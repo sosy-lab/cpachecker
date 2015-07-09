@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.collect.Iterables.getOnlyElement;
-
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.Set;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -40,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -52,6 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.Sets;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
@@ -67,7 +64,6 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
         pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
-    assert pCFA.getAllLoopHeads().get().size() == 1;
   }
 
   public InvariantSupplier getCurrentInvariants() {
@@ -79,15 +75,15 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   }
 
   @Override
-  protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
-      Collection<CFANode> targetLocations) {
-    final Set<CandidateInvariant> result = new LinkedHashSet<>();
-    final CFANode loopHead = getOnlyElement(cfa.getLoopStructure().get().getAllLoopHeads());
+  protected CandidateGenerator getCandidateInvariants(CFA pCFA,
+      Collection<CFANode> pTargetLocations) {
+    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
-    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(targetLocations)) {
-      result.add(new EdgeFormulaNegation(loopHead, assumeEdge));
+    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocations)) {
+      candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
     }
-    return result;
+
+    return new StaticCandidateProvider(candidates);
   }
 
   /**
@@ -98,8 +94,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
    * @return the relevant assume edges.
    */
   private Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = new LinkedHashSet<>();
-    Set<CFANode> visited = new HashSet<>(pTargetLocations);
+    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
+    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
     Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();

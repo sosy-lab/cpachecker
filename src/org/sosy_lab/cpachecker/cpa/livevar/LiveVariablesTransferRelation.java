@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.LiveVariables.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
@@ -91,7 +93,7 @@ import com.google.common.collect.Multimap;
 @Options(prefix="cpa.liveVar")
 public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
-  private final Multimap<CFANode, ASimpleDeclaration> liveVariables = HashMultimap.<CFANode, ASimpleDeclaration>create();
+  private final Multimap<CFANode, Wrapper<ASimpleDeclaration>> liveVariables = HashMultimap.<CFANode, Wrapper<ASimpleDeclaration>>create();
   private final VariableClassification variableClassification;
   private final Language language;
 
@@ -146,15 +148,15 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * Returns a collection of all variable names which occur in expression
    */
-  private Collection<ASimpleDeclaration> handleExpression(AExpression expression) {
-    return acceptAll(expression);
+  private Collection<Wrapper<ASimpleDeclaration>> handleExpression(AExpression expression) {
+    return from(acceptAll(expression)).transform(TO_EQUIV_WRAPPER).toSet();
   }
 
   /**
    * Returns a collection of the variable names in the leftHandSide
    */
-  private Collection<ASimpleDeclaration> handleLeftHandSide(AExpression pLeftHandSide) {
-    return acceptLeft(pLeftHandSide);
+  private Collection<Wrapper<ASimpleDeclaration>> handleLeftHandSide(AExpression pLeftHandSide) {
+    return from(acceptLeft(pLeftHandSide)).transform(TO_EQUIV_WRAPPER).toSet();
   }
 
   @Override
@@ -174,9 +176,9 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       return state;
     }
 
-    AVariableDeclaration varDecl = (AVariableDeclaration) decl;
-    Collection<ASimpleDeclaration> deadVar = Collections.singleton((ASimpleDeclaration)varDecl);
-    AInitializer init = varDecl.getInitializer();
+    Wrapper<ASimpleDeclaration> varDecl = LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)decl);
+    Collection<Wrapper<ASimpleDeclaration>> deadVar = Collections.singleton(varDecl);
+    AInitializer init = ((AVariableDeclaration)varDecl.get()).getInitializer();
 
     // there is no initializer thus we only have to remove the initialized variable
     // from the live variables
@@ -195,7 +197,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * This method computes the variables that are used for initializing an other
    * variable from a given initializer.
    */
-  private Collection<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer init) throws CPATransferException {
+  private Collection<Wrapper<ASimpleDeclaration>> getVariablesUsedForInitialization(AInitializer init) throws CPATransferException {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
     if (init instanceof CDesignatedInitializer) {
       return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide());
@@ -203,7 +205,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
     } else if (init instanceof CInitializerList) {
-      Collection<ASimpleDeclaration> readVars = new ArrayList<>();
+      Collection<Wrapper<ASimpleDeclaration>> readVars = new ArrayList<>();
 
       for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
         readVars.addAll(getVariablesUsedForInitialization(inList));
@@ -245,11 +247,11 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   private LiveVariablesState handleAssignments(AAssignment assignment) {
-    final Collection<ASimpleDeclaration> newLiveVariables = new HashSet<>();
+    final Collection<Wrapper<ASimpleDeclaration>> newLiveVariables = new HashSet<>();
     final ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-    final Collection<ASimpleDeclaration> assignedVariable = handleLeftHandSide(leftHandSide);
-    final Collection<ASimpleDeclaration> allLeftHandSideVariables = handleExpression(leftHandSide);
-    final Collection<ASimpleDeclaration> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariable)));
+    final Collection<Wrapper<ASimpleDeclaration>> assignedVariable = handleLeftHandSide(leftHandSide);
+    final Collection<Wrapper<ASimpleDeclaration>> allLeftHandSideVariables = handleExpression(leftHandSide);
+    final Collection<Wrapper<ASimpleDeclaration>> additionallyLeftHandSideVariables = filter(allLeftHandSideVariables, not(in(assignedVariable)));
 
     // all variables that occur in combination with the leftHandSide additionally
     // to the needed one (e.g. a[i] i is additionally) are added to the newLiveVariables
@@ -334,8 +336,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   /**
    * This method returns the variables that are used in a given list of CExpressions.
    */
-  private Collection<ASimpleDeclaration> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
-    Collection<ASimpleDeclaration> newLiveVars = new ArrayList<>();
+  private Collection<Wrapper<ASimpleDeclaration>> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
+    Collection<Wrapper<ASimpleDeclaration>> newLiveVars = new ArrayList<>();
     for (AExpression expression : parameters) {
       newLiveVars.addAll(handleExpression(expression));
     }
@@ -363,16 +365,16 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
      * all functions connected, this method is implemented.
      */
 
-    Collection<ASimpleDeclaration> variablesInArguments = new ArrayList<>();
+    Collection<Wrapper<ASimpleDeclaration>> variablesInArguments = new ArrayList<>();
     for (AExpression arg : arguments) {
       variablesInArguments.addAll(handleExpression(arg));
     }
 
     // we can safely remove the parameters from the live variables as the function
     // starts at this edge.
-    Collection<ASimpleDeclaration> parameterVars = new ArrayList<>(parameters.size());
+    Collection<Wrapper<ASimpleDeclaration>> parameterVars = new ArrayList<>(parameters.size());
     for (AParameterDeclaration decl : parameters) {
-      parameterVars.add(decl);
+      parameterVars.add(LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)decl));
     }
 
     return state.removeAndAddLiveVariables(parameterVars, variablesInArguments);
@@ -394,7 +396,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
       ASimpleDeclaration retVal = cfaEdge.getFunctionEntry().getReturnVariable().get();
       LiveVariablesState returnState = handleAssignments((AAssignment) summaryExpr);
       if (isLeftHandsideLive) {
-        returnState = returnState.addLiveVariables(Collections.singleton(retVal));
+        returnState = returnState.addLiveVariables(Collections.singleton(LIVE_DECL_EQUIVALENCE.wrap(retVal)));
       }
       return returnState;
 
@@ -425,7 +427,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * This method puts some variables that are initially live into the
    * live variables multimap.
    */
-  public void putInitialLiveVariables(CFANode node, Collection<ASimpleDeclaration> liveVars) {
+  public void putInitialLiveVariables(CFANode node, Iterable<Wrapper<ASimpleDeclaration>> liveVars) {
     liveVariables.putAll(node, liveVars);
   }
 
@@ -434,7 +436,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * makes only sense if the analysis was completed
    * @return a Multimap containing the variables that are live at each location
    */
-  public Multimap<CFANode, ASimpleDeclaration> getLiveVariables() {
+  public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
     return liveVariables;
   }
 
@@ -470,7 +472,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
         or(ALWAYS_LIVE_PREDICATE, new Predicate<ASimpleDeclaration>() {
                   @Override
                   public boolean apply(ASimpleDeclaration decl) {
-                      return state.contains(decl);
+                      return state.contains(LIVE_DECL_EQUIVALENCE.wrap(decl));
                   }});
 
 

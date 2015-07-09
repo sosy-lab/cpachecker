@@ -183,7 +183,7 @@ class ASTLiteralConverter {
         try {
           result = (char) Integer.parseInt(s, 16);
           check(result <= 0xFF, "hex escape sequence out of range", e);
-        } catch (NumberFormatException _) {
+        } catch (NumberFormatException exception) {
           throw new CFAGenerationRuntimeException("character literal with illegal hex number", e, niceFileNameFunction);
         }
 
@@ -193,7 +193,7 @@ class ASTLiteralConverter {
         try {
           result = (char) Integer.parseInt(s, 8);
           check(result <= 0xFF, "octal escape sequence out of range", e);
-        } catch (NumberFormatException _) {
+        } catch (NumberFormatException exception) {
           throw new CFAGenerationRuntimeException("character literal with illegal octal number", e, niceFileNameFunction);
         }
 
@@ -282,7 +282,7 @@ class ASTLiteralConverter {
       } else {
         result = new BigInteger(s, 10);
       }
-    } catch (NumberFormatException _) {
+    } catch (NumberFormatException exception) {
       throw new CFAGenerationRuntimeException("invalid number", e, niceFileNameFunction);
     }
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);

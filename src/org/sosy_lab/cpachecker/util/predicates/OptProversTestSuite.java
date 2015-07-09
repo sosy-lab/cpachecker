@@ -12,13 +12,13 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment.OptStatus;
 import org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3FormulaManager;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.ImmutableList;
 
@@ -173,11 +172,11 @@ public class OptProversTestSuite {
 
         Model model = prover.getModel();
         BigInteger xValue =
-            (BigInteger)model.get(new Model.Constant("x", TermType.Integer));
+            (BigInteger)model.get(new Variable("x", TermType.Integer));
         BigInteger objValue =
-            (BigInteger)model.get(new Model.Constant("obj", TermType.Integer));
+            (BigInteger)model.get(new Variable("obj", TermType.Integer));
         BigInteger yValue =
-            (BigInteger)model.get(new Model.Constant("y", TermType.Integer));
+            (BigInteger)model.get(new Variable("y", TermType.Integer));
 
         assertThat(objValue).isEqualTo(BigInteger.valueOf(19));
         assertThat(xValue).isEqualTo(BigInteger.valueOf(10));

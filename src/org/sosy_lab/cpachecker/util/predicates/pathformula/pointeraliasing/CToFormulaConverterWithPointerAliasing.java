@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import java.math.BigInteger;
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -78,7 +80,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -297,7 +298,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           addValueImportConstraints(cfaEdge,
-                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
+                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset), IS_POINTER_SIGNED),
                                     newBase,
                                     fields,
                                     ssa,
@@ -423,6 +424,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                                            final CLeftHandSide lhs,
                                            final Set<String> alreadyAssigned,
                                            final List<CExpressionAssignmentStatement> defaultAssignments) {
+    if (alreadyAssigned.contains(lhs.toString())) {
+      return;
+    }
+
     type = CTypeUtils.simplifyType(type);
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
@@ -453,9 +458,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else {
       assert isSimpleType(type);
       CExpression initExp = ((CInitializerExpression)CDefaults.forType(type, lhs.getFileLocation())).getExpression();
-      if (!alreadyAssigned.contains(lhs.toString())) {
-        defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
-      }
+      defaultAssignments.add(new CExpressionAssignmentStatement(lhs.getFileLocation(), lhs, initExp));
     }
   }
 

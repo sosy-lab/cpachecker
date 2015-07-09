@@ -366,7 +366,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
         maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getIteration());
       }
     }
-    pOut.print("Maximum loop iteration reached:" + maximumLoopIterationReached);
+    pOut.println("Maximum loop iteration reached:" + maximumLoopIterationReached);
   }
 
   @Override
@@ -383,5 +383,12 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
   public int getMaxLoopIterations() {
     return this.maxLoopIterations;
+  }
+
+  public void incLoopIterationsBeforeAbstraction() {
+    loopIterationsBeforeAbstraction++;
+    this.transferRelation.setDelegate(new LoopstackTransferRelation(
+        loopIterationsBeforeAbstraction,
+        maxLoopIterations, loopStructure));
   }
 }

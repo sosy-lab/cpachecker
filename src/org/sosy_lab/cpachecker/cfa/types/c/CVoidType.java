@@ -106,4 +106,8 @@ public final class CVoidType implements CType, Serializable {
   public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return create(isConst || pForceConst, isVolatile || pForceVolatile);
   }
+
+  private Object readResolve() {
+    return create(isConst, isVolatile);
+  }
 }

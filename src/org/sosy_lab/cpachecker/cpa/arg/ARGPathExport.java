@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
@@ -210,8 +210,10 @@ public class ARGPathExport {
       if (equals(pLabel)) {
         return true;
       }
+      boolean ignoreAssumptionScope = !keyValues.keySet().contains(KeyDef.ASSUMPTION) || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
       for (KeyDef keyDef : KeyDef.values()) {
         if (!keyDef.equals(KeyDef.ASSUMPTION)
+            && !(ignoreAssumptionScope && keyDef.equals(KeyDef.ASSUMPTIONSCOPE))
             && !Objects.equals(keyValues.get(keyDef), pLabel.keyValues.get(keyDef))) {
           return false;
         }
@@ -301,12 +303,13 @@ public class ARGPathExport {
       final ARGState pRootState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathElements,
+      Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
       final CounterexampleInfo pCounterExample)
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer = new WitnessWriter(defaultFileName);
-    writer.writePath(pTarget, pRootState, pSuccessorFunction, pPathElements, pCounterExample);
+    writer.writePath(pTarget, pRootState, pSuccessorFunction, pPathElements, pIsTargetPathEdge, pCounterExample);
   }
 
   private String getInitialFileName(ARGState pRootState) {
@@ -653,12 +656,13 @@ public class ARGPathExport {
         final ARGState pRootState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
         final Predicate<? super ARGState> pPathStates,
+        Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
         final CounterexampleInfo pCounterExample)
         throws IOException {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample != null) {
-        Model model = pCounterExample.getTargetPathModel();
+        RichModel model = pCounterExample.getTargetPathModel();
         CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
         if (cfaPath != null) {
           ARGPath targetPath = pCounterExample.getTargetPath();
@@ -745,7 +749,7 @@ public class ARGPathExport {
           }
 
           // Only proceed with this state if the path states contains the child
-          if (pPathStates.apply(child)) {
+          if (pPathStates.apply(child) && pIsTargetPathEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             appendNewEdge(doc, prevStateId, childStateId, edgeToNextState, s, valueMap);
           } else {
@@ -852,8 +856,8 @@ public class ARGPathExport {
             @Override
             public Edge apply(Edge pOldEdge) {
               TransitionCondition label = new TransitionCondition();
-              label.keyValues.putAll(pOldEdge.label.keyValues);
               label.keyValues.putAll(pEdge.label.keyValues);
+              label.keyValues.putAll(pOldEdge.label.keyValues);
               return new Edge(source, pOldEdge.target, label);
             }
 
@@ -879,8 +883,8 @@ public class ARGPathExport {
             @Override
             public Edge apply(Edge pOldEdge) {
               TransitionCondition label = new TransitionCondition();
-              label.keyValues.putAll(pOldEdge.label.keyValues);
               label.keyValues.putAll(pEdge.label.keyValues);
+              label.keyValues.putAll(pOldEdge.label.keyValues);
               return new Edge(pOldEdge.source, source, label);
             }
 

@@ -30,11 +30,11 @@ public class AppliedCustomInstructionParsingFailedException extends CPAException
 
   private static final long serialVersionUID = -1974068616247550237L;
 
-  public AppliedCustomInstructionParsingFailedException(String pMsg) {
+  public AppliedCustomInstructionParsingFailedException(final String pMsg) {
     super(pMsg);
   }
 
-  public AppliedCustomInstructionParsingFailedException(String msg, Throwable cause) {
+  public AppliedCustomInstructionParsingFailedException(final String msg, final Throwable cause) {
     super(msg, cause);
   }
 

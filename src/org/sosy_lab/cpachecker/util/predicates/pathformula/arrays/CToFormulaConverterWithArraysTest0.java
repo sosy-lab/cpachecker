@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
@@ -326,11 +326,11 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _a_at_2_notequal_0.getFirst(),
         "foo", ssa);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-    .comparesEqualTo(bmgr.not(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+    .isEqualTo(bmgr.not(
         imgr.equal(
             amgr.select(_smt_a_ssa1, imgr.makeNumber(2)),
-            imgr.makeNumber(0))).toString());
+            imgr.makeNumber(0))));
 
   }
 
@@ -354,14 +354,14 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         assign.getFirst(),
         "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+      .isEqualTo(
           amgr.equivalence(
               _smt_a_ssa2,
               amgr.store(
                   _smt_a_ssa1,
                   imgr.makeNumber(2),
-                  imgr.makeNumber(1))).toString());
+                  imgr.makeNumber(1))));
   }
 
   @Test
@@ -384,14 +384,14 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         assign.getFirst(),
         "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+      .isEqualTo(
           amgr.equivalence(
               _smt_a_ssa1,
               amgr.store(
                   _smt_a_ssa2,
                   imgr.makeNumber(2),
-                  imgr.makeNumber(1))).toString());
+                  imgr.makeNumber(1))));
   }
 
   @Test
@@ -408,12 +408,12 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         op.getFirst(),
         "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo( imgr.equal(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+      .isEqualTo( imgr.equal(
           imgr.makeVariable("i@1"),
           amgr.select(
               _smt_a_ssa1,
-              imgr.makeNumber(2))) .toString());
+              imgr.makeNumber(2))));
 
   }
 
@@ -441,15 +441,15 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         op.getFirst(),
         "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(amgr.equivalence(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+      .isEqualTo(amgr.equivalence(
           _smt_a_ssa2,
           amgr.store(
               _smt_a_ssa1,
               amgr.select(
                   _smt_a_ssa1,
                   imgr.makeNumber(2)),
-              imgr.makeNumber(1))) .toString());
+              imgr.makeNumber(1))));
 
   }
 
@@ -473,11 +473,11 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _a_at__a_at_2_notequal_0.getFirst(),
         "foo", ssa);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-      .comparesEqualTo(bmgr.not(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+      .isEqualTo(bmgr.not(
           imgr.equal(
               amgr.select(_smt_a_ssa1, amgr.select(_smt_a_ssa1, imgr.makeNumber(2))),
-              imgr.makeNumber(0))).toString());
+              imgr.makeNumber(0))));
 
   }
 
@@ -540,13 +540,13 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     final BooleanFormula resultBwd = ctfBwd.makeDeclaration(
         _arr.getFirst(), "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(resultBwd).toString())
-      .comparesEqualTo("true");
+    assertThat(mgr.getUnsafeFormulaManager().simplify(resultBwd))
+      .isEqualTo(bmgr.makeBoolean(true));
 
     final BooleanFormula resultFwd = ctfFwd.makeDeclaration(
         _arr.getFirst(), "foo", ssa, null, null, null);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd).toString())
+    assertThat(mgr.getUnsafeFormulaManager().simplify(resultFwd))
       .isEqualTo("The result should be an initialized array"); //TODO
   }
 
@@ -567,7 +567,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         "foo", ssa, null, null, null);
 
     // TODO: Aliasing not handled!!!!!!!!!!
-    assertThat(result.toString()).isEqualTo(amgr.equivalence(_smt_a_ssa1, _smt_b_ssa1));
+    assertThat(result).isEqualTo(amgr.equivalence(_smt_a_ssa1, _smt_b_ssa1));
   }
 
   @Test
@@ -656,14 +656,14 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
         _arr2d_at_3_7_equal_23.getFirst(),
         "foo", ssa);
 
-    assertThat(mgr.getUnsafeFormulaManager().simplify(result).toString())
-    .comparesEqualTo(
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+    .isEqualTo(
         imgr.equal(
             amgr.select(
                 amgr.select(
                     _smt_a2d, imgr.makeNumber(3)),
                     imgr.makeNumber(7)),
-            imgr.makeNumber(23)).toString());
+            imgr.makeNumber(23)));
   }
 
   @Test

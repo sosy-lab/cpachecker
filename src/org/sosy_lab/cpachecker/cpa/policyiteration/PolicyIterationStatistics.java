@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.Pair;
@@ -26,11 +27,19 @@ public class PolicyIterationStatistics implements Statistics {
   private final Timer valueDeterminationTimer = new Timer();
   private final Timer abstractionTimer = new Timer();
   private final Timer checkSATTimer = new Timer();
-  final Timer slicingTimer = new Timer();
+  final Timer polyhedraWideningTimer = new Timer();
+
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
   final Timer simplifyTimer = new Timer();
   final Timer congruenceTimer = new Timer();
+  final Timer comparisonTimer = new Timer();
+
+  private BigInteger wideningTemplatesGenerated = BigInteger.ZERO;
+
+  public void incWideningTemplatesGenerated() {
+    wideningTemplatesGenerated = wideningTemplatesGenerated.add(BigInteger.ONE);
+  }
 
   public void startCheckSATTimer() {
     checkSATTimer.start();
@@ -72,6 +81,14 @@ public class PolicyIterationStatistics implements Statistics {
     valueDeterminationTimer.stop();
   }
 
+  public void startPolyhedraWideningTimer() {
+    polyhedraWideningTimer.start();
+  }
+
+  public void stopPolyhedraWideningTimer() {
+    polyhedraWideningTimer.stop();
+  }
+
   public PolicyIterationStatistics(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this, PolicyIterationStatistics.class);
@@ -94,12 +111,15 @@ public class PolicyIterationStatistics implements Statistics {
     out.printf("Number of check-SAT calls sent: %d%n",
         checkSATTimer.getNumberOfIntervals());
 
-    if (slicingTimer.getNumberOfIntervals() > 0) {
-      printTimer(out, slicingTimer, "checking inductiveness in formula slicing");
-    }
+    printTimer(out, comparisonTimer, "comparing abstract states");
+
     printTimer(out, checkIndependenceTimer, "checking independence");
     printTimer(out, simplifyTimer, "simplifying formulas");
     printTimer(out, congruenceTimer, "computing congruence");
+    printTimer(out, polyhedraWideningTimer, "computing polyhedra widening");
+
+    out.printf("Number of templates generated through widening: %s%n",
+        wideningTemplatesGenerated);
 
     UpdateStats<?> updateStats = getUpdateStats(updateCounter);
     UpdateStats<?> templateUpdateStats = getUpdateStats(templateUpdateCounter);

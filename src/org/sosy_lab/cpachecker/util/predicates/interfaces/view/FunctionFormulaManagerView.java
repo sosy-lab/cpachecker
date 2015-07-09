@@ -41,6 +41,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
   private final FunctionFormulaManager manager;
 
+
   public FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FunctionFormulaManager pManager) {
     super(pWrappingHandler);
@@ -82,7 +83,6 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
   @Override
   public <T extends Formula> UninterpretedFunctionDeclaration<T> declareUninterpretedFunction(
       String pName, FormulaType<T> pReturnType, List<FormulaType<?>> pArgs) {
-
     List<FormulaType<?>> newArgs = unwrapType(pArgs);
     FormulaType<?> ret = unwrapType(pReturnType);
     UninterpretedFunctionDeclaration<?> func = manager.declareUninterpretedFunction(pName, ret, newArgs);

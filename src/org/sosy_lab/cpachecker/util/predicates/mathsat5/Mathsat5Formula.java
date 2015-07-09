@@ -29,9 +29,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.SerialProxyFormula;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 abstract class Mathsat5Formula implements Formula {
 
@@ -86,16 +83,8 @@ class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula
   }
 }
 
-@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
-    justification="Is never deserialized directly, only via serial proxy")
 class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
-  private static final long serialVersionUID = -3587393134167404728L;
-
   public Mathsat5BooleanFormula(long pTerm) {
     super(pTerm);
-  }
-
-  private Object writeReplace() {
-    return new SerialProxyFormula(this);
   }
 }

@@ -51,6 +51,9 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -68,13 +71,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.Rationa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -97,7 +100,7 @@ import com.google.common.collect.Sets;
  * The method {@link #parseName(String)} is also related to this, but should not be used!
  */
 @Options(prefix="cpa.predicate")
-public class FormulaManagerView {
+public class FormulaManagerView implements StatisticsProvider {
 
   public static enum Theory {
     INTEGER,
@@ -106,6 +109,12 @@ public class FormulaManagerView {
     FLOAT,
     ;
   }
+
+  /* TODO the integer-type corresponding to a pointer-type should be unsigned?
+   * TODO are there negative pointers?
+   * TODO distinguish pointer-int-type from pointer-diff-type (which is SIGNED!). currently we use this flag for both cases.
+   * TODO currently just 'decoration' until we know the exact needed signess. */
+  public static final boolean IS_POINTER_SIGNED = false;
 
   private final LogManager logger;
 
@@ -145,60 +154,82 @@ public class FormulaManagerView {
   @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
   private boolean ignoreExtractConcat = true;
 
+  @Option(secure=true, description="Use UFs to handle overflows when Bitvector theory was replaced with Integer or Rational theory.")
+  private boolean handleOverflowsWithUFs = false;
+
+  @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
+      + "when Bitvector theory was replaced with Integer or Rational theory.")
+  private boolean handleSignConversionWithUFs = false;
+
   public FormulaManagerView(FormulaManagerFactory solverFactory, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
     manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
+    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager();
+    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
-    BitvectorFormulaManager rawBitvectorFormulaManager;
-    switch (encodeBitvectorAs) {
-      case BITVECTOR:
-        try {
-          rawBitvectorFormulaManager = manager.getBitvectorFormulaManager();
-        } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
-              + "please choose another SMT solver "
-              + "or use the option cpa.predicate.encodeBitvectorAs "
-              + "to approximate bitvectors with another theory.",
-              e);
-        }
-        break;
-      case INTEGER:
-        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
-            ignoreExtractConcat);
-        break;
-      case RATIONAL:
-        NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
-        try {
-          rmgr = manager.getRationalFormulaManager();
-        } catch (UnsupportedOperationException e) {
-          throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
-              + "please choose another SMT solver "
-              + "or use the option cpa.predicate.encodeBitvectorAs "
-              + "to approximate bitvectors with another theory.",
-              e);
-        }
-        rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
-            rmgr, manager.getFunctionFormulaManager(),
-            ignoreExtractConcat);
-      break;
-      case FLOAT:
-        throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
-      default:
-        throw new AssertionError();
-    }
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
-
     integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
     quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
     arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+    floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
+  }
 
-    FloatingPointFormulaManager rawFloatingPointFormulaManager;
+  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
+  private BitvectorFormulaManager getRawBitvectorFormulaManager() throws InvalidConfigurationException, AssertionError {
+    final BitvectorFormulaManager rawBitvectorFormulaManager;
+    switch (encodeBitvectorAs) {
+    case BITVECTOR:
+      try {
+        rawBitvectorFormulaManager = manager.getBitvectorFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of bitvectors, "
+            + "please choose another SMT solver "
+            + "or use the option cpa.predicate.encodeBitvectorAs "
+            + "to approximate bitvectors with another theory.",
+            e);
+      }
+      break;
+    case INTEGER:
+      rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
+          manager.getBooleanFormulaManager(),
+          manager.getIntegerFormulaManager(),
+          manager.getFunctionFormulaManager(),
+          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+      break;
+    case RATIONAL:
+      NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
+      try {
+        rmgr = manager.getRationalFormulaManager();
+      } catch (UnsupportedOperationException e) {
+        throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
+            + "please choose another SMT solver "
+            + "or use the option cpa.predicate.encodeBitvectorAs "
+            + "to approximate bitvectors with another theory.",
+            e);
+      }
+      rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
+          manager.getBooleanFormulaManager(),
+          rmgr,
+          manager.getFunctionFormulaManager(),
+          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+      break;
+    case FLOAT:
+      throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
+    default:
+      throw new AssertionError();
+    }
+    return rawBitvectorFormulaManager;
+  }
+
+  /** Returns the FloatingPointFormulaManager or a Replacement based on the Option 'encodeFloatAs'. */
+  private FloatingPointFormulaManager getRawFloatingPointFormulaManager() throws InvalidConfigurationException,
+      AssertionError {
+    final FloatingPointFormulaManager rawFloatingPointFormulaManager;
     switch (encodeFloatAs) {
     case FLOAT:
       try {
@@ -231,13 +262,13 @@ public class FormulaManagerView {
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
           wrappingHandler, rmgr, manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
-    break;
+      break;
     case BITVECTOR:
       throw new InvalidConfigurationException("Value BITVECTOR is not valid for option cpa.predicate.encodeFloatAs");
     default:
       throw new AssertionError();
     }
-    floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
+    return rawFloatingPointFormulaManager;
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -340,7 +371,7 @@ public class FormulaManagerView {
       t = bitvectorFormulaManager.makeBitvector((FormulaType<BitvectorFormula>)formulaType,
           new BigInteger(value.toString()));
     } else if (formulaType.isFloatingPointType()) {
-      t = floatingPointFormulaManager.makeNumber(value.toString(), (FormulaType.FloatingPointType)formulaType);
+      t = floatingPointFormulaManager.makeNumber(value, (FormulaType.FloatingPointType)formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface: " + formula);
     }
@@ -368,14 +399,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeNegate(T pNum) {
+  public  <T extends Formula> T makeNegate(T pNum, boolean signed) {
     Formula t;
     if (pNum instanceof IntegerFormula) {
       t = integerFormulaManager.negate((IntegerFormula)pNum);
     } else if (pNum instanceof RationalFormula) {
       t = getRationalFormulaManager().negate((RationalFormula)pNum);
     } else if (pNum instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.negate((BitvectorFormula)pNum);
+      t = bitvectorFormulaManager.negate((BitvectorFormula)pNum, signed);
     } else if (pNum instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.negate((FloatingPointFormula)pNum);
     } else {
@@ -386,14 +417,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makePlus(T pF1, T pF2) {
+  public  <T extends Formula> T makePlus(T pF1, T pF2, boolean signed) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.add((IntegerFormula)pF1, (IntegerFormula)pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = rationalFormulaManager.add((NumeralFormula)pF1, (NumeralFormula)pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2);
+      t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2, signed);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.add((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -404,14 +435,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeMinus(T pF1, T pF2) {
+  public <T extends Formula> T makeMinus(T pF1, T pF2, boolean signed) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.subtract((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = getRationalFormulaManager().subtract((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+      t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2, signed);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.subtract((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -421,14 +452,14 @@ public class FormulaManagerView {
     return (T) t;
   }
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeMultiply(T pF1, T pF2) {
+  public  <T extends Formula> T makeMultiply(T pF1, T pF2, boolean signed) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.multiply((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = getRationalFormulaManager().multiply((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2);
+      t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2, signed);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.multiply((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -438,6 +469,15 @@ public class FormulaManagerView {
     return (T) t;
   }
 
+  /**
+   * This method returns the formula for the SMTlib2-conform DIVIDE-operator,
+   * which is rounded towards positive or negative infinity, depending on both operands.
+   * C99 always rounds towards zero!
+   *
+   * Example:
+   * SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
+   * C99:     10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
+   */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T  makeDivide(T pF1, T pF2, boolean pSigned) {
     Formula t;
@@ -456,6 +496,15 @@ public class FormulaManagerView {
     return (T) t;
   }
 
+  /**
+   * This method returns the formula for the SMTlib2-conform MODULO-operator,
+   * which is rounded towards positive or negative infinity, depending on both operands.
+   * C99 always rounds towards zero!
+   *
+   * Example:
+   * SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2,    (-10)%(-3)==2
+   * C99:     10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T  makeModulo(T pF1, T pF2, boolean pSigned) {
     Formula t;
@@ -576,12 +625,12 @@ public class FormulaManagerView {
    * @return
    */
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb) {
+  public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb, boolean signed) {
     checkArgument(pLsb >= 0);
     checkArgument(pMsb >= pLsb);
     Formula t;
     if (pFormula instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.extract((BitvectorFormula)pFormula, pMsb, pLsb);
+      t = bitvectorFormulaManager.extract((BitvectorFormula)pFormula, pMsb, pLsb, signed);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -857,6 +906,8 @@ public class FormulaManagerView {
    * Only use inside this package and for solver-specific classes
    * when creating a {@link Model}.
    * Do not use in client code!
+   *
+   * @throws IllegalArgumentException thrown if the given name is invalid
    */
   public static Pair<String, Integer> parseName(final String name) {
     String[] s = name.split(INDEX_SEPARATOR);
@@ -941,7 +992,8 @@ public class FormulaManagerView {
       if (unsafeManager.isFreeVariable(tt)) {
         String oldName = unsafeManager.getName(tt);
         String newName = pRenameFunction.apply(oldName);
-        Formula renamed = unsafeManager.replaceName(tt, newName);
+        Formula renamed = unsafeManager.replaceArgsAndName(
+            tt, newName, ImmutableList.<Formula>of());
         pCache.put(tt, renamed);
 
       } else if (unsafeManager.isBoundVariable(tt)) {
@@ -1267,8 +1319,8 @@ public class FormulaManagerView {
     return result;
   }
 
-  public Appender dumpFormula(Formula pT) {
-    return manager.dumpFormula(unwrap(pT));
+  public Appender dumpFormula(BooleanFormula pT) {
+    return manager.dumpFormula(pT);
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
@@ -1483,5 +1535,10 @@ public class FormulaManagerView {
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    // nothing to do here
   }
 }

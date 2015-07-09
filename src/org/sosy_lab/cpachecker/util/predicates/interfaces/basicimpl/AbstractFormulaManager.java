@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
@@ -186,7 +187,7 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
   public abstract Appender dumpFormula(TFormulaInfo t);
 
   @Override
-  public Appender dumpFormula(Formula t) {
+  public Appender dumpFormula(BooleanFormula t) {
     return dumpFormula(formulaCreator.extractInfo(t));
   }
 

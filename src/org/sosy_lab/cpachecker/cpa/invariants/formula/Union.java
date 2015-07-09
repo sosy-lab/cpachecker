@@ -28,17 +28,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Union<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The first operand of the union.
-   */
-  private final InvariantsFormula<ConstantType> operand1;
-
-  /**
-   * The second operand of the union.
-   */
-  private final InvariantsFormula<ConstantType> operand2;
+public class Union<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * Creates a new union of the given formulae.
@@ -48,49 +38,7 @@ public class Union<ConstantType> extends AbstractFormula<ConstantType> implement
    */
   private Union(InvariantsFormula<ConstantType> pOperand1,
       InvariantsFormula<ConstantType> pOperand2) {
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
-  }
-
-  /**
-   * Gets the first operand of the union.
-   *
-   * @return the first operand of the union.
-   */
-  public InvariantsFormula<ConstantType> getOperand1() {
-    return this.operand1;
-  }
-
-  /**
-   * Gets the second operand of the union.
-   *
-   * @return the second operand of the union.
-   */
-  public InvariantsFormula<ConstantType> getOperand2() {
-    return this.operand2;
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (pO == this) {
-      return true;
-    }
-    if (pO instanceof Union<?>) {
-      Union<?> other = (Union<?>) pO;
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2())
-          || getOperand2().equals(other.getOperand1()) && getOperand1().equals(other.getOperand2());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getOperand1().hashCode() | getOperand2().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s u %s)", getOperand1(), getOperand2());
+    super("u", true, pOperand1, pOperand2);
   }
 
   @Override

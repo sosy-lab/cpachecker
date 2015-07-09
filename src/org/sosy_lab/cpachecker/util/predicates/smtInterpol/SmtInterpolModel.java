@@ -27,14 +27,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Constant;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Function;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Variable;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Function;
+import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.cpachecker.util.predicates.TermType;
 
 import com.google.common.base.Verify;
 
@@ -63,13 +60,7 @@ class SmtInterpolModel {
     ApplicationTerm appTerm = (ApplicationTerm)t;
     String lName = appTerm.getFunction().getName();
     TermType lType = getType(appTerm);
-
-    Pair<String, Integer> lSplitName = FormulaManagerView.parseName(lName);
-    if (lSplitName.getSecond() != null) {
-      return new Variable(lSplitName.getFirst(), lSplitName.getSecond(), lType);
-    } else {
-      return new Constant(lSplitName.getFirst(), lType);
-    }
+    return new Variable(lName, lType);
   }
 
 

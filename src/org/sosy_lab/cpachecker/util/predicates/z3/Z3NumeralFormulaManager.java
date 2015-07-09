@@ -106,6 +106,16 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
+  public Long divide(Long pNumber1, Long pNumber2) {
+    return mk_div(z3context, pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long modulo(Long pNumber1, Long pNumber2) {
+    return mk_mod(z3context, pNumber1, pNumber2);
+  }
+
+  @Override
   protected Long modularCongruence(Long pNumber1, Long pNumber2, long pModulo) {
     return mk_true(z3context);
   }

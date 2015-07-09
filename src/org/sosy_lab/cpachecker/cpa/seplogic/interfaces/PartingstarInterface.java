@@ -45,7 +45,7 @@ public class PartingstarInterface {
   private Process psProcess;
   private LogManager logger;
   private static PartingstarInterface singleton = null;
-  private Object syncSentinel = new Object();
+  private final Object syncSentinel = new Object();
   public static final String RETVAR = "$ret_1";
 
   private static final String LOAD_RULES = "LOAD_RULES";

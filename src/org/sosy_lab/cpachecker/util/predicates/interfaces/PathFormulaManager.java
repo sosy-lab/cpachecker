@@ -25,15 +25,14 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -74,7 +73,7 @@ public interface PathFormulaManager {
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ARG states that should be considered.
+   * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    */
   BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
@@ -82,12 +81,12 @@ public interface PathFormulaManager {
 
   /**
    * Extract the information about the branching predicates created by
-   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
+   * {@link #buildBranchingFormula(Iterable)} from a satisfying assignment.
    *
    * A map is created that stores for each ARGState (using its element id as
    * the map key) which edge was taken (the positive or the negated one).
    *
-   * @param model A satisfying assignment that should contain values for branching predicates.
+   * @param pModel A satisfying assignment that should contain values for branching predicates.
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);

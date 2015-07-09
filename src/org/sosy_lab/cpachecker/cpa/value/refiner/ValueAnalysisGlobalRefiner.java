@@ -25,16 +25,17 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collection;
+import java.util.List;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -82,8 +83,8 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
    * This method creates the interpolation tree, depending on the selected interpolation strategy.
    */
   @Override
-  protected ValueAnalysisInterpolationTree createInterpolationTree(Collection<ARGState> targets) {
-    return new ValueAnalysisInterpolationTree(logger, targets, useTopDownInterpolationStrategy);
+  protected ValueAnalysisInterpolationTree createInterpolationTree(final List<ARGPath> targetsPaths) {
+    return new ValueAnalysisInterpolationTree(logger, targetsPaths, useTopDownInterpolationStrategy);
   }
 
   /**

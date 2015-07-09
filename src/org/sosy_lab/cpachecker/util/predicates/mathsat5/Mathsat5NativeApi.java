@@ -273,6 +273,11 @@ class Mathsat5NativeApi {
   public static native long msat_make_fp_minus(long e, long rounding, long t1, long t2);
   public static native long msat_make_fp_times(long e, long rounding, long t1, long t2);
   public static native long msat_make_fp_div(long e, long rounding, long t1, long t2);
+  public static native long msat_make_fp_sqrt(long e, long rounding, long t);
+  public static native long msat_make_fp_abs(long e, long t);
+  public static native long msat_make_fp_max(long e, long t1, long t2);
+  public static native long msat_make_fp_min(long e, long t1, long t2);
+  public static native long msat_make_fp_round_to_int(long e, long rounding, long t);
   public static native long msat_make_fp_cast(long e, long exp_w, long mant_w, long rounding, long t);
   public static native long msat_make_fp_to_bv(long e, long width, long rounding, long t);
   public static native long msat_make_fp_from_sbv(long e, long exp_w, long mant_w, long rounding, long t);
@@ -283,6 +288,9 @@ class Mathsat5NativeApi {
   public static native long msat_make_fp_isinf(long e, long t);
   public static native long msat_make_fp_iszero(long e, long t);
   public static native long msat_make_fp_issubnormal(long e, long t);
+  public static native long msat_make_fp_isnormal(long e, long t);
+  public static native long msat_make_fp_isneg(long e, long t);
+  public static native long msat_make_fp_ispos(long e, long t);
   public static native long msat_make_fp_plus_inf(long e, long exp_w, long mant_w);
   public static native long msat_make_fp_minus_inf(long e, long exp_w, long mant_w);
   public static native long msat_make_fp_nan(long e, long exp_w, long mant_w);

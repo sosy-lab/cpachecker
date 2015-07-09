@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -100,6 +100,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, description="Add a threshold to the automaton, after so many branches on a path the automaton will be ignored (0 to disable)")
   @IntegerOption(min=0)
   private int automatonBranchingThreshold = 0;
+
+  @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
+  private boolean automatonIgnoreAssumptions = false;
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -316,11 +319,19 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
-    sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+    if (automatonIgnoreAssumptions) {
+      sb.append("    TRUE -> GOTO __TRUE;\n\n");
+    } else {
+      sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
+    }
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
-      sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
+      if (automatonIgnoreAssumptions) {
+        sb.append("    TRUE -> GOTO __FALSE;\n\n");
+      } else {
+        sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
+      }
     }
 
     for (final ARGState s : relevantStates) {
@@ -403,10 +414,12 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState) throws IOException {
-    BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
-    writer.append("ASSUME {");
-    escape(assumption.toString(), writer);
-    writer.append("} ");
+    if (!automatonIgnoreAssumptions) {
+      BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+      writer.append("ASSUME {");
+      escape(assumption.toString(), writer);
+      writer.append("} ");
+    }
   }
 
   private void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,

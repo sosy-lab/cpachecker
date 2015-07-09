@@ -28,6 +28,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -178,7 +178,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     predicateManager = new PredicateAbstractionManager(
         abstractionManager, formulaManager, pathFormulaManager,
-        solver, config, logger, cfa.getLiveVariables());
+        solver, config, logger, pShutdownNotifier, cfa.getLiveVariables());
 
     transfer = new PredicateTransferRelation(this, blk, config, direction);
 
@@ -306,6 +306,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
     }
+    solver.collectStatistics(pStatsCollection);
   }
 
   @Override

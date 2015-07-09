@@ -23,17 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -46,17 +61,25 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.ApronException;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+
 @Options(prefix="cpa.apron")
-public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker {
+public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ApronCPA.class);
@@ -69,6 +92,14 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   @Option(secure=true, name="splitDisequalities",
       description="split disequalities considering integer operands into two states or use disequality provided by apron library ")
   private boolean splitDisequalities = true;
+
+  @Option(secure=true, description="get an initial precision from file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path initialPrecisionFile = null;
+
+  @Option(secure=true, description="target file to hold the exported precision")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path precisionFile = null;
 
   private final AbstractDomain abstractDomain;
   private final TransferRelation transferRelation;
@@ -109,14 +140,18 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
 
-    if (precisionType.equals("REFINEABLE_EMPTY")) {
-      precision = VariableTrackingPrecision.createRefineablePrecision(config,
+    VariableTrackingPrecision tempPrecision;
+    if (initialPrecisionFile != null || precisionType.equals("REFINEABLE_EMPTY")) {
+      tempPrecision = VariableTrackingPrecision.createRefineablePrecision(config,
           VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass()));
-
+      if (initialPrecisionFile != null) {
+        tempPrecision = tempPrecision.withIncrement(restoreMappingFromFile(cfa));
+      }
       // static full precision is default
     } else {
-      precision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
+      tempPrecision = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
     }
+    precision = tempPrecision;
   }
 
   public ApronManager getManager() {
@@ -212,4 +247,89 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
      return abstractDomain.isLessOrEqual(pState, pOtherState);
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Statistics() {
+
+      @Override
+      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        if (precisionFile != null) {
+          exportPrecision(pReached);
+        }
+
+      }
+
+      @Override
+      public @Nullable
+      String getName() {
+        return ApronCPA.this.getClass().getSimpleName();
+      }
+    });
+
+  }
+
+  /**
+   * This method exports the precision to file.
+   *
+   * @param reached the set of reached states.
+   */
+  private void exportPrecision(ReachedSet reached) {
+    VariableTrackingPrecision consolidatedPrecision =
+        VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
+    try (Writer writer = Files.openOutputFile(precisionFile)) {
+      consolidatedPrecision.serialize(writer);
+    } catch (IOException e) {
+      getLogger().logUserException(Level.WARNING, e, "Could not write apron-analysis precision to file");
+    }
+  }
+
+
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA cfa) {
+    Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
+
+    List<String> contents = null;
+    try {
+      contents = initialPrecisionFile.asCharSource(Charset.defaultCharset()).readLines();
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
+      return mapping;
+    }
+
+    Map<Integer, CFANode> idToCfaNode = createMappingForCFANodes(cfa);
+    final Pattern CFA_NODE_PATTERN = Pattern.compile("N([0-9][0-9]*)");
+
+    CFANode location = getDefaultLocation(idToCfaNode);
+    for (String currentLine : contents) {
+      if (currentLine.trim().isEmpty()) {
+        continue;
+
+      } else if(currentLine.endsWith(":")) {
+        String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
+        Matcher matcher = CFA_NODE_PATTERN.matcher(scopeSelectors);
+        if (matcher.matches()) {
+          location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
+        }
+
+      } else {
+        mapping.put(location, MemoryLocation.valueOf(currentLine));
+      }
+    }
+
+    return mapping;
+  }
+
+  private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
+    return idToCfaNode.values().iterator().next();
+  }
+
+  private Map<Integer, CFANode> createMappingForCFANodes(CFA cfa) {
+    Map<Integer, CFANode> idToNodeMap = Maps.newHashMap();
+    for (CFANode n : cfa.getAllNodes()) {
+      idToNodeMap.put(n.getNodeNumber(), n);
+    }
+    return idToNodeMap;
+  }
+
+
 }

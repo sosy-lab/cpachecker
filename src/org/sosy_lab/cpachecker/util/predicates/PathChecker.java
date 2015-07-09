@@ -31,15 +31,16 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -59,19 +60,28 @@ import com.google.common.collect.Multimap;
 public class PathChecker {
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pmgr;
   private final Solver solver;
-  private final MachineModel machineModel;
+  private final AssignmentToPathAllocator assignmentToPathAllocator;
 
-  public PathChecker(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      PathFormulaManager pPmgr, Solver pSolver,
-      MachineModel pMachineModel) {
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    pmgr = pPmgr;
-    solver = pSolver;
-    machineModel = pMachineModel;
+  public PathChecker(Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      PathFormulaManager pPmgr,
+      Solver pSolver) throws InvalidConfigurationException {
+    this(pLogger, pPmgr, pSolver, new AssignmentToPathAllocator(pConfig, pShutdownNotifier, pLogger, pMachineModel));
+  }
+
+  public PathChecker(
+      LogManager pLogger,
+      PathFormulaManager pPmgr,
+      Solver pSolver,
+      AssignmentToPathAllocator pAssignmentToPathAllocator) {
+    this.logger = pLogger;
+    this.pmgr = pPmgr;
+    this.solver = pSolver;
+    this.assignmentToPathAllocator = pAssignmentToPathAllocator;
   }
 
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath)
@@ -81,7 +91,7 @@ public class PathChecker {
 
     List<SSAMap> ssaMaps = result.getSecond();
 
-    PathFormula pathFormula = result.getFirst();
+    PathFormula pathFormula = result.getFirstNotNull();
 
     BooleanFormula f = pathFormula.getFormula();
 
@@ -90,14 +100,14 @@ public class PathChecker {
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
-        Model model = getModel(thmProver);
+        RichModel model = getModel(thmProver);
 
-        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(pPath, ssaMaps, model);
+        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(
+            pPath, ssaMaps, model);
 
         CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-        Multimap<CFAEdge, AssignableTerm> termsPerEdge = pathAndTerms.getSecond();
 
-        model = model.withAssignmentInformation(pathWithAssignments, termsPerEdge);
+        model = model.withAssignmentInformation(pathWithAssignments);
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
       }
@@ -144,20 +154,18 @@ public class PathChecker {
   }
 
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
-      List<SSAMap> pSsaMaps, Model pModel) throws InterruptedException {
+      List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
-    AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger, shutdownNotifier);
-
-    return allocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps, machineModel);
+    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);
   }
 
-  private Model getModel(ProverEnvironment thmProver) {
+  private RichModel getModel(ProverEnvironment thmProver) {
     try {
-      return thmProver.getModel();
+      return RichModel.of(thmProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+      return RichModel.empty();
     }
   }
 }

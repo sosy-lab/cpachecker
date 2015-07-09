@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Multiply<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The first factor of the multiplication.
-   */
-  private final InvariantsFormula<ConstantType> factor1;
-
-  /**
-   * The second factor of the multiplication.
-   */
-  private final InvariantsFormula<ConstantType> factor2;
+public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
 
   /**
    * Creates a new multiplication formula with the given factors.
@@ -49,8 +39,7 @@ public class Multiply<ConstantType> extends AbstractFormula<ConstantType> implem
    */
   private Multiply(InvariantsFormula<ConstantType> pFactor1,
       InvariantsFormula<ConstantType> pFactor2) {
-    this.factor1 = pFactor1;
-    this.factor2 = pFactor2;
+    super("*", true, pFactor1, pFactor2);
   }
 
   /**
@@ -59,7 +48,7 @@ public class Multiply<ConstantType> extends AbstractFormula<ConstantType> implem
    * @return the first factor of the multiplication.
    */
   public InvariantsFormula<ConstantType> getFactor1() {
-    return this.factor1;
+    return super.getOperand1();
   }
 
   /**
@@ -68,29 +57,7 @@ public class Multiply<ConstantType> extends AbstractFormula<ConstantType> implem
    * @return the second factor of the multiplication.
    */
   public InvariantsFormula<ConstantType> getFactor2() {
-    return this.factor2;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof Multiply<?>) {
-      Multiply<?> other = (Multiply<?>) o;
-      return getFactor1().equals(other.getFactor1()) && getFactor2().equals(other.getFactor2()) || getFactor1().equals(other.getFactor2()) && getFactor2().equals(other.getFactor1());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getFactor1().hashCode() * getFactor2().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s * %s)", getFactor1(), getFactor2());
+    return super.getOperand2();
   }
 
   @Override

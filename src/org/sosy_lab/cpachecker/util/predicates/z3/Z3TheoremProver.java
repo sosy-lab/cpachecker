@@ -23,26 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.LongArrayBackedList;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
@@ -91,7 +85,7 @@ class Z3TheoremProver implements ProverEnvironment {
       inc_ref(z3context, e);
     }
 
-    if (storedConstraints != null) {
+    if (storedConstraints != null) { // Unsat core generation is on.
       String varName = String.format(UNSAT_CORE_TEMP_VARNAME, track_no);
       // TODO: can we do with no casting?
       Z3BooleanFormula t =
@@ -175,25 +169,18 @@ class Z3TheoremProver implements ProverEnvironment {
     z3solver = 0;
   }
 
+
   @Override
-  public AllSatResult allSat(Collection<BooleanFormula> formulas,
-      RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws Z3SolverException {
-    checkNotNull(rmgr);
-    checkNotNull(solveTime);
-    checkNotNull(enumTime);
-    Preconditions.checkArgument(z3context != 0);
-
-    // create new allSatResult
-    Z3AllSatResult result = new Z3AllSatResult(rmgr, solveTime, enumTime);
-
+  public <T> T allSat(AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
     // unpack formulas to terms
-    long[] importantFormulas = new long[formulas.size()];
+    long[] importantFormulas = new long[important.size()];
     int i = 0;
-    for (BooleanFormula impF : formulas) {
+    for (BooleanFormula impF : important) {
       importantFormulas[i++] = Z3FormulaManager.getZ3Expr(impF);
     }
 
-    solveTime.start();
     solver_push(z3context, z3solver);
     smtLogger.logPush(1);
     smtLogger.logCheck();
@@ -216,8 +203,12 @@ class Z3TheoremProver implements ProverEnvironment {
         }
       }
 
-      // add model to BDD
-      result.callback(valuesOfModel);
+      callback.apply(new LongArrayBackedList<BooleanFormula>(valuesOfModel) {
+        @Override
+        protected BooleanFormula convert(long pE) {
+          return mgr.encapsulateBooleanFormula(pE);
+        }
+      });
 
       long negatedModel = mk_not(z3context, mk_and(z3context, valuesOfModel));
       inc_ref(z3context, negatedModel);
@@ -227,89 +218,9 @@ class Z3TheoremProver implements ProverEnvironment {
       smtLogger.logCheck();
     }
 
-    if (solveTime.isRunning()) {
-      solveTime.stop();
-    } else {
-      enumTime.stopOuter();
-    }
-
     // we pushed some levels on assertionStack, remove them and delete solver
     solver_pop(z3context, z3solver, 1);
     smtLogger.logPop(1);
-
-    return result;
+    return callback.getResult();
   }
-
-  /**
-   * this class is used to build the predicate abstraction of a formula
-   */
-  class Z3AllSatResult implements AllSatResult {
-
-    private final RegionCreator rmgr;
-    private final RegionBuilder builder;
-
-    private final Timer solveTime;
-    private final NestedTimer enumTime;
-    private Timer regionTime = null;
-
-    private int count = 0;
-
-    private Region formula;
-
-    public Z3AllSatResult(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
-      this.rmgr = rmgr;
-      this.solveTime = pSolveTime;
-      this.enumTime = pEnumTime;
-      builder = rmgr.newRegionBuilder(ShutdownNotifier.create()); // TODO real instance
-    }
-
-    @Override
-    public int getCount() {
-      return count;
-    }
-
-    @Override
-    public Region getResult() throws InterruptedException {
-      if (formula == null) {
-        enumTime.startBoth();
-        try {
-          formula = builder.getResult();
-          builder.close();
-        } finally {
-          enumTime.stopBoth();
-        }
-      }
-      return formula;
-    }
-
-    public void callback(long[] model) {
-      if (count == 0) {
-        solveTime.stop();
-        enumTime.startOuter();
-        regionTime = enumTime.getCurentInnerTimer();
-      }
-
-      regionTime.start();
-
-      // the abstraction is created simply by taking the disjunction
-      // of all the models found by the all-sat-loop, and storing them in a BDD
-      // first, let's create the BDD corresponding to the model
-      builder.startNewConjunction();
-      for (long t : model) {
-        if (isOP(z3context, t, Z3_OP_NOT)) {
-          t = get_app_arg(z3context, t, 0);
-          builder.addNegativeRegion(rmgr.getPredicate(mgr.encapsulateBooleanFormula(t)));
-        } else {
-          builder.addPositiveRegion(rmgr.getPredicate(mgr.encapsulateBooleanFormula(t)));
-        }
-      }
-      builder.finishConjunction();
-
-      count++;
-
-      regionTime.stop();
-    }
-  }
-
-
 }

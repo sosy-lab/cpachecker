@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static com.google.common.truth.TruthJUnit.assume;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -33,10 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
@@ -44,7 +39,6 @@ import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
-import com.google.common.testing.SerializableTester;
 
 @RunWith(Parameterized.class)
 public class SolverBasicTest extends SolverBasedTest0 {
@@ -103,20 +97,5 @@ public class SolverBasicTest extends SolverBasedTest0 {
                         fmgr.callUninterpretedFunction(f_b, ImmutableList.of(imgr.makeNumber(1))))
 
       .testEquals();
-  }
-
-  @Test
-  public void formulaSerialization() throws InvalidConfigurationException {
-    assume().withFailureMessage("Deserialization of formulas is not implemented")
-        .that(solver).isNotEqualTo(Solvers.PRINCESS);
-
-    BooleanFormula f = imgr.equal(imgr.makeVariable("x"), imgr.makeNumber(0));
-
-    GlobalInfo.getInstance().storeFormulaManager(mgr);
-    try {
-      SerializableTester.reserializeAndAssert(f);
-    } finally {
-      GlobalInfo.getInstance().storeFormulaManager(null);
-    }
   }
 }

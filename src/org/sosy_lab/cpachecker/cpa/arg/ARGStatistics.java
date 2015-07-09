@@ -46,11 +46,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
@@ -101,9 +103,11 @@ public class ARGStatistics implements IterationStatistics {
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final CEXExporter cexExporter;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa) throws InvalidConfigurationException {
+  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.cpa = cpa;
+    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, cpa.getLogger(), pMachineModel);
 
     config.inject(this);
 
@@ -271,7 +275,7 @@ public class ARGStatistics implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          Model model = createModelForPath(path);
+          RichModel model = createModelForPath(path);
           cex = CounterexampleInfo.feasible(path, model);
         }
       }
@@ -283,7 +287,7 @@ public class ARGStatistics implements IterationStatistics {
     return counterexamples;
   }
 
-  private Model createModelForPath(ARGPath pPath) {
+  private RichModel createModelForPath(ARGPath pPath) {
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
@@ -293,7 +297,7 @@ public class ARGStatistics implements IterationStatistics {
     // TODO Merge different paths
     for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
       ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, cpa.getLogger(), cpa.getMachineModel());
+      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, assumptionToEdgeAllocator);
 
       if (result != null) {
         result = result.mergePaths(cexPath);
@@ -303,9 +307,9 @@ public class ARGStatistics implements IterationStatistics {
     }
 
     if(result == null) {
-      return Model.empty();
+      return RichModel.empty();
     } else {
-      return Model.empty().withAssignmentInformation(result);
+      return RichModel.empty().withAssignmentInformation(result);
     }
   }
 

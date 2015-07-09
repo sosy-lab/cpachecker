@@ -78,8 +78,8 @@ public class ReachingDefinitionStorage implements Serializable {
     out.writeInt(elementsToSave.size());
     @SuppressWarnings("unchecked")
     Map<String, Set<DefinitionPoint>>[] array = new Map[elementsToSave.size()];
-    for (Map<String, Set<DefinitionPoint>> elem : elementsToSave.keySet()) {
-      array[elementsToSave.get(elem)] = elem;
+    for(Entry<Map<String, Set<DefinitionPoint>>, Integer> elemEntry : elementsToSave.entrySet()){
+      array[elemEntry.getValue()] = elemEntry.getKey();
     }
 
     for (Map<String, Set<DefinitionPoint>> elem : array) {

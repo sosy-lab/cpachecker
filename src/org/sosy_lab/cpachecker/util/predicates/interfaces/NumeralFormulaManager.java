@@ -27,6 +27,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+
+
 /**
  * This interface represents the Numeral-Theory
  *
@@ -57,6 +61,8 @@ public interface NumeralFormulaManager
 
   public ResultFormulaType makeNumber(String pI);
 
+  public ResultFormulaType makeNumber(Rational pRational);
+
   public ResultFormulaType makeVariable(String pVar);
 
   public FormulaType<ResultFormulaType> getFormulaType();
@@ -70,8 +76,14 @@ public interface NumeralFormulaManager
 
   public ResultFormulaType subtract(ParamFormulaType number1, ParamFormulaType number2);
 
+  /**
+   * @see FormulaManagerView#makeDivide(NumeralFormula, NumeralFormula, boolean)
+   */
   public ResultFormulaType divide(ParamFormulaType number1, ParamFormulaType number2);
 
+  /**
+   * @see FormulaManagerView#makeModulo(NumeralFormula, NumeralFormula, boolean)
+   */
   public ResultFormulaType modulo(ParamFormulaType number1, ParamFormulaType number2);
 
   /**

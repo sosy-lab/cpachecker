@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -33,6 +34,17 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 
 
 public interface CandidateInvariant {
+
+  /**
+   * Gets the uninstantiated invariant formula.
+   *
+   * @return the uninstantiated invariant formula.
+   *
+   * @throws CPATransferException if a CPA transfer required to produce the
+   * assertion failed.
+   * @throws InterruptedException if the formula creation was interrupted.
+   */
+  BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException;
 
   /**
    * Creates an assertion of the invariant over the given reached set, using
@@ -48,7 +60,7 @@ public interface CandidateInvariant {
    * assertion failed.
    * @throws InterruptedException if the formula creation was interrupted.
    */
-  BooleanFormula getAssertion(ReachedSet pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException;
+  BooleanFormula getAssertion(Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException;
 
   /**
    * Assume that the invariant holds and remove states from the given reached

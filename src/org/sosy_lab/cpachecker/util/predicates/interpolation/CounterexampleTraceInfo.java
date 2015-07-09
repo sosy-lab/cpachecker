@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
@@ -42,12 +42,12 @@ import com.google.common.collect.ImmutableMap;
 public class CounterexampleTraceInfo {
     private final boolean spurious;
     private final ImmutableList<BooleanFormula> interpolants;
-    private final Model mCounterexampleModel;
+    private final RichModel mCounterexampleModel;
     private final ImmutableList<BooleanFormula> mCounterexampleFormula;
     private final ImmutableMap<Integer, Boolean> branchingPreds;
 
     private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
-        Model pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
+        RichModel pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
         ImmutableMap<Integer, Boolean> pBranchingPreds) {
       spurious = pSpurious;
       interpolants = pInterpolants;
@@ -56,7 +56,7 @@ public class CounterexampleTraceInfo {
       branchingPreds = pBranchingPreds;
     }
 
-    static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
+    public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
       return new CounterexampleTraceInfo(true,
           ImmutableList.copyOf(pInterpolants),
           null,
@@ -75,7 +75,7 @@ public class CounterexampleTraceInfo {
     }
 
     public static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
-        Model pModel, Map<Integer, Boolean> preds) {
+        RichModel pModel, Map<Integer, Boolean> preds) {
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
           checkNotNull(pModel),
@@ -112,7 +112,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleFormula;
     }
 
-    public Model getModel() {
+    public RichModel getModel() {
       checkState(!spurious);
       return mCounterexampleModel;
     }

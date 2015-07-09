@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.base.Optional;
 
@@ -98,5 +98,23 @@ public class OptEnvironmentView implements OptEnvironment {
   @Override
   public void close() {
     delegate.close();
+  }
+
+  /**
+   * Note: the return value is not wrapped as we expect it to be a simple
+   * expression.
+   */
+  @Override
+  public Formula evaluate(Formula f) {
+    return  delegate.evaluate(wrappingHandler.unwrap(f));
+  }
+
+  /**
+   * @return String representation of the constraint system in the SMT-lib
+   * format.
+   */
+  @Override
+  public String dump() {
+    return delegate.dump();
   }
 }

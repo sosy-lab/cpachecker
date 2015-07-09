@@ -202,6 +202,9 @@ class AutomatonTransition {
 
   public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
     if (violatedPropertyDescription == null) {
+      if (getFollowState().isTarget()) {
+          return getFollowState().getName();
+      }
       return null;
     }
     return (String)violatedPropertyDescription.eval(pArgs).getValue();

@@ -212,7 +212,7 @@ public abstract class AbstractExpressionValueVisitor
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
-    lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
+    lVal = castCValue(lVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
@@ -226,7 +226,7 @@ public abstract class AbstractExpressionValueVisitor
        * the behavior is undefined.
        */
       rVal =
-          castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
+          castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
@@ -252,7 +252,7 @@ public abstract class AbstractExpressionValueVisitor
     case BINARY_OR:
     case BINARY_XOR: {
       result = arithmeticOperation((NumericValue)lVal, (NumericValue)rVal, binaryOperator, calculationType, machineModel, logger);
-      result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
+      result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
 
       break;
     }
@@ -630,8 +630,8 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CCastExpression pE) throws UnrecognizedCCodeException {
-    return castCValue(pE.getOperand().accept(this), pE.getOperand().getExpressionType(), pE.getExpressionType(),
-        machineModel, logger, pE.getFileLocation());
+    return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel,
+        logger, pE.getFileLocation());
   }
 
   @Override
@@ -1489,8 +1489,8 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel,
-        logger, pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
+        pExp.getFileLocation());
   }
 
   /**
@@ -1504,8 +1504,8 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel,
-        logger,pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
+        pExp.getFileLocation());
   }
 
   /**
@@ -1532,16 +1532,15 @@ public abstract class AbstractExpressionValueVisitor
    * is assigned to a variable of type 'char'.
    *
    * @param value will be casted.
-   * @param sourceType the type of the input value
    * @param targetType value will be casted to targetType.
    * @param machineModel contains information about types
    * @param logger for logging
    * @param fileLocation the location of the corresponding code in the source file
    * @return the casted Value
    */
-  public static Value castCValue(@Nonnull final Value value, final CType sourceType,
-      final CType targetType, final MachineModel machineModel,
-      final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
+  public static Value castCValue(@Nonnull final Value value, final CType targetType,
+      final MachineModel machineModel, final LogManagerWithoutDuplicates logger,
+      final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
       return castIfSymbolic(value, targetType, Optional.of(machineModel));

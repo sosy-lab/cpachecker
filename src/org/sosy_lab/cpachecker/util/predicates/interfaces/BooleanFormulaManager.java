@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
-import java.util.List;
+import java.util.Collection;
 
 
 /**
@@ -112,7 +112,7 @@ public interface BooleanFormulaManager {
    * @return (bits1 & bits2)
    */
   public BooleanFormula and(BooleanFormula bits1, BooleanFormula bits2);
-  public BooleanFormula and(List<BooleanFormula> bits);
+  public BooleanFormula and(Collection<BooleanFormula> bits);
 
   /**
    * Creates a formula representing an OR of the two arguments.
@@ -121,7 +121,7 @@ public interface BooleanFormulaManager {
    * @return (bits1 | bits2)
    */
   public BooleanFormula or(BooleanFormula bits1, BooleanFormula bits2);
-  public BooleanFormula or(List<BooleanFormula> bits);
+  public BooleanFormula or(Collection<BooleanFormula> bits);
 
   public BooleanFormula xor(BooleanFormula bits1, BooleanFormula bits2);
 
@@ -138,4 +138,23 @@ public interface BooleanFormulaManager {
   /** Check, if the formula matches XOR(a,b) with two (or more) boolean args. */
   public boolean isXor(BooleanFormula bits);
 
+  /** Apply a tactic which performs formula transformation */
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic);
+
+  /** Strategies for transforming the formula AST. */
+  enum Tactic {
+    NNF("nnf"),
+    CNF("tseitin-cnf")
+    ;
+
+    private final String name;
+
+    Tactic(String pName) {
+      name = pName;
+    }
+
+    public String getTacticName() {
+      return name;
+    }
+  }
 }

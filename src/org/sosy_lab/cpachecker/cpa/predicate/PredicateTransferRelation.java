@@ -68,8 +68,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
  * the strongest post for the given CFA edge. Afterwards it optionally
@@ -90,6 +88,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
+
+  @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
+  private boolean ignoreStateAssumptions = false;
 
   // statistics
   final Timer postTimer = new Timer();
@@ -358,7 +359,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         /*
          * Add additional assumptions from an automaton state.
          */
-        if (lElement instanceof AbstractStateWithAssumptions) {
+        if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
           element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
 
@@ -387,8 +388,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  @SuppressWarnings("unused")
-  @SuppressFBWarnings("UPM_UNCALLED_PRIVATE_METHOD")
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
       AbstractStateWithAssumptions pAssumeElement) throws CPATransferException, InterruptedException {
 

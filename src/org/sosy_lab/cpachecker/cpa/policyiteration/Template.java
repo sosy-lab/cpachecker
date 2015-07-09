@@ -7,10 +7,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.util.rationals.LinearExpression;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
 
 import com.google.common.collect.Iterables;
 
@@ -19,7 +19,6 @@ import com.google.common.collect.Iterables;
  */
 public class Template {
   final LinearExpression<CIdExpression> linearExpression;
-  private final CSimpleType type;
   final Kind kind;
 
   /**
@@ -39,15 +38,17 @@ public class Template {
     COMPLEX
   }
 
-  private Template(LinearExpression<CIdExpression> pLinearExpression,
-      CSimpleType pType, Kind pKind) {
+  private Template(LinearExpression<CIdExpression> pLinearExpression, Kind pKind) {
     linearExpression = pLinearExpression;
-    type = pType;
     kind = pKind;
   }
 
   public Kind getKind() {
     return kind;
+  }
+
+  public LinearExpression<CIdExpression> getLinearExpression() {
+    return linearExpression;
   }
 
   public boolean isUnsigned() {
@@ -61,13 +62,20 @@ public class Template {
     return true;
   }
 
-  public CSimpleType getType() {
-    return type;
+  public boolean isIntegral() {
+    for (Entry<CIdExpression, Rational> e : linearExpression) {
+      Rational coeff = e.getValue();
+      CIdExpression id = e.getKey();
+      if (!(coeff.isIntegral() &&
+          ((CSimpleType)id.getExpressionType()).getType().isIntegerType())) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  public static Template of(LinearExpression<CIdExpression> expr,
-      CSimpleType pType) {
-    return new Template(expr, pType, getKind(expr));
+  public static Template of(LinearExpression<CIdExpression> expr) {
+    return new Template(expr, getKind(expr));
   }
 
   private static Kind getKind(LinearExpression<CIdExpression> expr) {
@@ -154,6 +162,10 @@ public class Template {
       LinearExpression.writeMonomial(varName, coeff, b);
     }
     return b.toString();
+  }
+
+  public int size() {
+    return linearExpression.size();
   }
 
   @Override

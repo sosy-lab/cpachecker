@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -281,6 +282,7 @@ public class CEXExporter {
         witnessExporter.writePath(pAppendable, rootState,
                 ARGUtils.CHILDREN_OF_STATE,
                 Predicates.in(pathElements),
+                isTargetPathEdge,
                 counterexample);
       }
     });
@@ -288,7 +290,7 @@ public class CEXExporter {
 
   private Appender createErrorPathWithVariableAssignmentInformation(
           final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
-    final Model model = counterexample == null ? null : counterexample.getTargetPathModel();
+    final RichModel model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
@@ -307,7 +309,7 @@ public class CEXExporter {
           out.append(edge.toString());
           out.append(System.lineSeparator());
           //TODO Erase, counterexample is supposed to be independent of Assignable terms
-          for (Model.AssignableTerm term : model.getAllAssignedTerms(edge)) {
+          for (AssignableTerm term : model.getAllAssignedTerms(edge)) {
             out.append('\t');
             out.append(term.toString());
             out.append(": ");

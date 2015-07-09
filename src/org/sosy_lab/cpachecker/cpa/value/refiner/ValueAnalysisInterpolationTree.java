@@ -46,13 +46,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -96,11 +100,6 @@ class ValueAnalysisInterpolationTree {
   private final ARGState root;
 
   /**
-   * the target states to build the tree from
-   */
-  private final Collection<ARGState> targets;
-
-  /**
    * the strategy on how to select paths for interpolation
    */
   private final InterpolationStrategy strategy;
@@ -114,21 +113,17 @@ class ValueAnalysisInterpolationTree {
    * This method acts as constructor of the interpolation tree.
    *
    * @param pLogger the logger to use
-   * @param pTargets the set of target states from which to build the interpolation tree
-   * @param useTopDownInterpolationStrategy the flag to choose the strategy to apply
+   * @param pTargetPaths the set of target paths from which to build the interpolation tree
+   * @param pUseTopDownInterpolationStrategy the flag to choose the strategy to apply
    */
-  ValueAnalysisInterpolationTree(final LogManager pLogger, final Collection<ARGState> pTargets,
-      final boolean useTopDownInterpolationStrategy) {
-    logger    = pLogger;
+  ValueAnalysisInterpolationTree(final LogManager pLogger, final List<ARGPath> pTargetPaths,
+      final boolean pUseTopDownInterpolationStrategy) {
+    logger = pLogger;
 
-    targets   = pTargets;
-    root      = buildTree();
-
-    if (useTopDownInterpolationStrategy) {
-      strategy = new TopDownInterpolationStrategy();
-    } else {
-      strategy = new BottomUpInterpolationStrategy();
-    }
+    root = build(pTargetPaths);
+    strategy = pUseTopDownInterpolationStrategy
+        ? new TopDownInterpolationStrategy()
+        : new BottomUpInterpolationStrategy(extractTargets(pTargetPaths));
   }
 
   ARGState getRoot() {
@@ -146,14 +141,45 @@ class ValueAnalysisInterpolationTree {
   }
 
   /**
-   * This method creates the successor and predecessor relations, which make up the interpolation tree,
-   * from the target states given as input.
+   * This method creates the successor and predecessor relations using the target paths.
    *
    * @return the root of the tree
    */
-  private ARGState buildTree() {
-    Deque<ARGState> todo = new ArrayDeque<>(targets);
+  private ARGState build(final Collection<ARGPath> targetPaths) {
+    return (targetPaths.size() == 1)
+        ? buildTreeFromSinglePath(Iterables.getOnlyElement(targetPaths))
+        : buildTreeFromMultiplePaths(targetPaths);
+  }
+
+  /**
+   * This method builds a (linear) tree from a single path.
+   *
+   * Note that, while this is just a special case of {@link buildTreeFromMultiplePaths},
+   * this is the preferred way, because the given path could come from any analysis,
+   * e.g., a predicate analysis, and the exact given path should be used for interpolation.
+   * This is not guaranteed by the more general approach given in {@link buildTreeFromMultiplePaths},
+   * because there the interpolation tree is build from a (non-unambiguous) set of states.
+   */
+  private ARGState buildTreeFromSinglePath(final ARGPath targetPath) {
+    ImmutableList<ARGState> states = targetPath.asStatesList();
+
+    for (int i = 0; i < states.size() - 1; i++) {
+      ARGState predecessorState = states.get(i);
+
+      ARGState successorState = states.get(i + 1);
+      predecessorRelation.put(successorState, predecessorState);
+      successorRelation.put(predecessorState, successorState);
+    }
+
+    return states.get(0);
+  }
+
+  /**
+   * This method builds an actual tree from multiple path.
+   */
+  private ARGState buildTreeFromMultiplePaths(final Collection<ARGPath> targetPaths) {
     ARGState itpTreeRoot = null;
+    Deque<ARGState> todo = new ArrayDeque<>(extractTargets(targetPaths));
 
     // build the tree, bottom-up, starting from the target states
     while (!todo.isEmpty()) {
@@ -273,8 +299,9 @@ class ValueAnalysisInterpolationTree {
         }
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      if(!stateHasFalseInterpolant(currentState)) {
+        todo.addAll(successorRelation.get(currentState));
+      }
     }
 
     return increment;
@@ -374,6 +401,17 @@ class ValueAnalysisInterpolationTree {
     }
 
     return targetStates;
+  }
+
+  /**
+   * This method extracts all targets states from the target paths.
+   */
+  private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
+    return FluentIterable.from(targetsPaths).transform(new Function<ARGPath, ARGState>() {
+      @Override
+      public ARGState apply(ARGPath targetsPath) {
+        return targetsPath.getLastState();
+      }}).toSet();
   }
 
   /**
@@ -483,15 +521,7 @@ class ValueAnalysisInterpolationTree {
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState root) {
-      if (!interpolants.containsKey(root)) {
-        return true;
-      }
-
-      if (!interpolants.get(root).isFalse()) {
-        return true;
-      }
-
-      return false;
+      return !stateHasFalseInterpolant(root);
     }
 
     @Override
@@ -516,9 +546,13 @@ class ValueAnalysisInterpolationTree {
   private class BottomUpInterpolationStrategy implements InterpolationStrategy {
 
     /**
-     * the states that are the sources for obtaining error paths
+     * the (target) states that are acting as sources for obtaining error paths
      */
-    private List<ARGState> sources = new ArrayList<>(targets);
+    private List<ARGState> sources;
+
+    public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
+      sources = new ArrayList<>(pTargets);
+    }
 
     @Override
     public ARGPath getNextPathForInterpolation() {

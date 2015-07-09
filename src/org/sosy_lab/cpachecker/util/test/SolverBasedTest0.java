@@ -29,12 +29,12 @@ import javax.annotation.Nullable;
 
 import org.junit.After;
 import org.junit.Before;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
@@ -117,7 +117,8 @@ public abstract class SolverBasedTest0 {
   public final void initSolver() throws Exception {
     config = createTestConfigBuilder().build();
 
-    factory = new FormulaManagerFactory(config, logger, ShutdownNotifier.create());
+    factory = new FormulaManagerFactory(config, logger, ShutdownNotifier
+        .create());
     mgr = factory.getFormulaManager();
 
     fmgr = mgr.getFunctionFormulaManager();

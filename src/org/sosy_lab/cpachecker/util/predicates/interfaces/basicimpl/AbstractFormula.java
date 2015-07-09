@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * A Formula represented as a TFormulaInfo object.
  * @param <TFormulaInfo> the solver specific type.
@@ -116,18 +114,9 @@ class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInf
 /**
  * Simple BooleanFormula implementation.
  */
-@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
-    justification="Is never deserialized directly, only via serial proxy")
 class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BooleanFormula {
-
-  private static final long serialVersionUID = 5865113440562418634L;
-
   public BooleanFormulaImpl(TFormulaInfo pT) {
     super(pT);
-  }
-
-  private Object writeReplace() {
-    return new SerialProxyFormula(this);
   }
 }
 

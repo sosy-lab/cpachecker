@@ -27,11 +27,11 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,9 +44,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -59,6 +58,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
+import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -91,10 +92,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final PathFormulaManager pmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
-  private final MachineModel machineModel;
 
   private final Configuration config;
   private final CFA cfa;
+  private final AssignmentToPathAllocator assignmentToPathAllocator;
 
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
@@ -118,7 +119,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    machineModel = predCpa.getMachineModel();
+    MachineModel machineModel = predCpa.getMachineModel();
+
+    assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
   }
 
   @Override
@@ -131,12 +134,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  protected Set<CandidateInvariant> getCandidateInvariants(CFA cfa,
+  protected CandidateGenerator getCandidateInvariants(CFA cfa,
       Collection<CFANode> targetLocations) {
     if (targetLocations.isEmpty()) {
-      return new HashSet<>();
+      return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      return Sets.<CandidateInvariant>newHashSet(TargetLocationCandidateInvariant.INSTANCE);
+      return new StaticCandidateProvider(Sets.<CandidateInvariant>newHashSet(TargetLocationCandidateInvariant.INSTANCE));
     }
   }
 
@@ -256,13 +259,14 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return;
         }
       }
-      PathChecker pathChecker = new PathChecker(logger, shutdownNotifier, pmgr, solver, machineModel);
       try {
+        PathChecker pathChecker = new PathChecker(logger, pmgr, solver, assignmentToPathAllocator);
         CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.getInnerEdges());
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");
-          counterexample = CounterexampleInfo.feasible(targetPath, model);
+          counterexample = CounterexampleInfo.feasible(targetPath, RichModel
+              .of(model));
 
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
@@ -274,7 +278,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       } catch (SolverException | CPATransferException e) {
         // path is now suddenly a problem
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-        counterexample = CounterexampleInfo.feasible(targetPath, model);
+        counterexample = CounterexampleInfo.feasible(targetPath, RichModel
+            .of(model));
       }
       ((ARGCPA) cpa).addCounterexample(targetPath.getLastState(), counterexample);
 

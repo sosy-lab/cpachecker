@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -85,7 +83,6 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + Objects.hashCode(initializer);
     result = prime * result + qualifiedName.hashCode();
     result = prime * result + super.hashCode();
     return result;
@@ -107,8 +104,7 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
 
     AVariableDeclaration other = (AVariableDeclaration) obj;
 
-    return Objects.equals(other.initializer, initializer)
-        && qualifiedName.equals(other.qualifiedName);
+    return qualifiedName.equals(other.qualifiedName);
   }
 
 }

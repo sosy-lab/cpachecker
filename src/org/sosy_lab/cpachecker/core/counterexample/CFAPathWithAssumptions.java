@@ -34,10 +34,8 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.MultiConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
@@ -171,7 +169,7 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
   }
 
   public static CFAPathWithAssumptions of(ConcreteStatePath statePath,
-      LogManager pLogger, MachineModel pMachineModel) {
+      AssumptionToEdgeAllocator pAllocator) {
 
     List<CFAEdgeWithAssumptions> result = new ArrayList<>(statePath.size());
 
@@ -179,11 +177,11 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
       if (node instanceof SingleConcreteState) {
 
         SingleConcreteState singleState = (SingleConcreteState) node;
-        CFAEdgeWithAssumptions edge = createCFAEdgeWithAssignment(singleState, pLogger, pMachineModel);
+        CFAEdgeWithAssumptions edge = createCFAEdgeWithAssignment(singleState, pAllocator);
         result.add(edge);
       } else {
         MultiConcreteState multiState = (MultiConcreteState) node;
-        CFAEdgeWithAssumptions edge = createCFAEdgeWithAssignment(multiState, pLogger, pMachineModel);
+        CFAEdgeWithAssumptions edge = createCFAEdgeWithAssignment(multiState, pAllocator);
         result.add(edge);
       }
     }
@@ -192,13 +190,13 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
   }
 
   private static CFAEdgeWithAssumptions createCFAEdgeWithAssignment(MultiConcreteState state,
-      LogManager pLogger, MachineModel pMachineModel) {
+      AssumptionToEdgeAllocator pAllocator) {
 
     MultiEdge cfaEdge = state.getCfaEdge();
     List<CFAEdgeWithAssumptions> pEdges = new ArrayList<>(cfaEdge.getEdges().size());
 
     for (SingleConcreteState node : state) {
-      pEdges.add(createCFAEdgeWithAssignment(node, pLogger, pMachineModel));
+      pEdges.add(createCFAEdgeWithAssignment(node, pAllocator));
     }
 
     CFAMultiEdgeWithAssumptions edge = CFAMultiEdgeWithAssumptions.valueOf(cfaEdge, pEdges);
@@ -206,13 +204,12 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
   }
 
   private static CFAEdgeWithAssumptions createCFAEdgeWithAssignment(
-      SingleConcreteState state, LogManager pLogger, MachineModel pMachineModel) {
+      SingleConcreteState pState, AssumptionToEdgeAllocator pAllocator) {
 
-    CFAEdge cfaEdge = state.getCfaEdge();
-    ConcreteState concreteState = state.getConcreteState();
-    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(pLogger, cfaEdge, concreteState, pMachineModel);
+    CFAEdge cfaEdge = pState.getCfaEdge();
+    ConcreteState concreteState = pState.getConcreteState();
 
-    return allocator.allocateAssumptionsToEdge();
+    return pAllocator.allocateAssumptionsToEdge(cfaEdge, concreteState);
   }
 
   public boolean isEmpty() {

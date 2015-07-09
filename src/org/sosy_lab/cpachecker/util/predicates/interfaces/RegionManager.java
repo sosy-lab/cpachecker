@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -36,10 +35,10 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import com.google.common.base.Function;
 
 /**
- * An AbstractFormulaManager is an object that knows how to create/manipulate
- * AbstractFormulas
+ * A RegionManager encapsulates all operations for creating, inspecting,
+ * and manipulating {@link Region}s.
  */
-public interface RegionManager {
+public interface RegionManager extends RegionCreator {
 
   /**
    * checks whether the data region represented by f1
@@ -49,73 +48,6 @@ public interface RegionManager {
    * @return true if (f1 => f2), false otherwise
    */
   public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException;
-
-  /**
-   * @return a representation of logical truth
-   */
-  public Region makeTrue();
-
-  /**
-   * @return a representation of logical falseness
-   */
-  public Region makeFalse();
-
-  /**
-   * Creates a region representing a negation of the argument
-   * @param f an AbstractFormula
-   * @return (!f1)
-   */
-  public Region makeNot(Region f);
-
-  /**
-   * Creates a region representing an AND of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 & f2)
-   */
-  public Region makeAnd(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an OR of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 | f2)
-   */
-  public Region makeOr(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an equality (bi-implication) of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 <=> f2)
-   */
-  public Region makeEqual(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an disequality (XOR) of the two argument
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @return (f1 ^ f2)
-   */
-  public Region makeUnequal(Region f1, Region f2);
-
-  /**
-   * Creates a region representing an if then else construct of the three arguments
-   * @param f1 an AbstractFormula
-   * @param f2 an AbstractFormula
-   * @param f3 an AbstractFormula
-   * @return (if f1 then f2 else f3)
-   */
-  public Region makeIte(Region f1, Region f2, Region f3);
-
-  /**
-   * Creates a region representing an existential quantification of the second
-   * argument. If there are more arguments, each of them is quantified.
-   * @param f1 an AbstractFormula
-   * @param f2 one or more AbstractFormulas
-   * @return (exists f2... : f1)
-   */
-  public Region makeExists(Region f1, Region... f2);
 
   /**
    * Creates a new variable and returns the predicate representing it.
@@ -161,11 +93,6 @@ public interface RegionManager {
   public String getVersion();
 
   /**
-   * Return a new {@link RegionBuilder} instance.
-   */
-  public RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
-
-  /**
    * Sets the bdd variable ordering.
    *
    * @param pOrder the new order of the variables.
@@ -178,41 +105,4 @@ public interface RegionManager {
    * @param strategy the reorder strategy that should be applied.
    */
   public void reorder(PredicateOrderingStrategy strategy);
-
-  /**
-   * A stateful region builder for regions that are disjunctions
-   * of conjunctive literals.
-   */
-  public static interface RegionBuilder extends AutoCloseable {
-
-    /**
-     * Start a new conjunctive clause.
-     */
-    void startNewConjunction();
-
-    /**
-     * Add a region to the current conjunctive clause.
-     */
-    void addPositiveRegion(Region r);
-
-    /**
-     * Add the negation of a region to the current conjunctive clause.
-     * @param r
-     */
-    void addNegativeRegion(Region r);
-
-    /**
-     * End the current conjunctive clause and add it to the global disjunction.
-     */
-    void finishConjunction();
-
-    /**
-     * Retrieve the disjunction of all the conjunctive clauses created
-     * with this builder so far.
-     */
-    Region getResult() throws InterruptedException;
-
-    @Override
-    public void close();
-  }
 }

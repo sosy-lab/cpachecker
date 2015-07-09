@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.*;
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -52,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
@@ -334,7 +335,7 @@ public class PointerTargetSetManager {
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
           result = bfmgr.and(result, makeSharingConstraints(
-                                       formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset)),
+                                       formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset), IS_POINTER_SIGNED),
                                        newPrefix,
                                        memberType,
                                        sharedFields,
@@ -395,9 +396,10 @@ public class PointerTargetSetManager {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
     if (lastBase != null) {
-      final Integer lastSize = typeHandler.getSizeof(bases.get(lastBase));
+      final int lastSize = typeHandler.getSizeof(bases.get(lastBase));
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
-                                                  formulaManager.makeNumber(pointerType, lastSize));
+                                                  formulaManager.makeNumber(pointerType, lastSize),
+                                                  IS_POINTER_SIGNED);
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
                                     formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));
