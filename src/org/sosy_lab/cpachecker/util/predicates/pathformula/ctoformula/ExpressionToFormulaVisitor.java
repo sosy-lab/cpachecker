@@ -216,10 +216,14 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       ret =  mgr.makeMultiply(f1, f2, signed);
       break;
     case DIVIDE:
-      ret =  mgr.makeDivide(f1, f2, signed);
+      if (calculationType instanceof CSimpleType && ((CSimpleType)calculationType).getType().isIntegerType()) {
+        ret = getC99ReplacementForSMTlib2Division(f1, f2, returnFormulaType, signed);
+      } else {
+        ret = mgr.makeDivide(f1, f2, signed);
+      }
       break;
     case MODULO:
-      ret = mgr.makeModulo(f1, f2, signed);
+      ret = getC99ReplacementForSMTlib2Modulo(f1, f2, returnFormulaType, signed);
 
       addModuloConstraints(exp, f1, f2, signed, ret);
 
@@ -348,6 +352,73 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     constraints.addConstraint(signAndNumBound);
     constraints.addConstraint(denomBound);
   }
+
+  /**
+   * This method returns the formula for the C99-conform DIVIDE-operator,
+   * which is rounded towards zero. We build a big ITE-formula,
+   * because SMTlib2 rounds towards positive or negative infinity,
+   * depending on both operands.
+   *
+   * Example:
+   * SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
+   * C99:     10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
+   */
+  private Formula getC99ReplacementForSMTlib2Division(final Formula f1, final Formula f2,
+      final FormulaType<?> returnFormulaType, final boolean signed) {
+
+    final BooleanFormulaManagerView bmgr = mgr.getBooleanFormulaManager();
+    final Formula zero = mgr.makeNumber(returnFormulaType, 0);
+    final Formula additionalUnit = bmgr.ifThenElse(
+        mgr.makeGreaterOrEqual(f2, zero, signed),
+        mgr.makeNumber(returnFormulaType, 1),
+        mgr.makeNumber(returnFormulaType, -1));
+    final Formula div = mgr.makeDivide(f1, f2, signed);
+
+    // IF   first operand is positive or is divisible by second operand
+    // THEN return plain division --> here C99 is equal to SMTlib2
+    // ELSE divide and add an additional unit towards the nearest infinity.
+
+    return bmgr.ifThenElse(
+        bmgr.or(
+            mgr.makeGreaterOrEqual(f1, zero, signed),
+            mgr.makeEqual(mgr.makeMultiply(div, f2, signed), f1)),
+        div,
+        mgr.makePlus(div, additionalUnit, signed));
+  }
+
+  /**
+   * This method returns the formula for the C99-conform MODULO-operator,
+   * which is rounded towards zero. We build a big ITE-formula,
+   * because SMTlib2 rounds towards positive or negative infinity,
+   * depending on both operands.
+   *
+   * Example:
+   * SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2,    (-10)%(-3)==2
+   * C99:     10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   */
+  private Formula getC99ReplacementForSMTlib2Modulo(final Formula f1, final Formula f2,
+      final FormulaType<?> returnFormulaType, final boolean signed) {
+
+    final BooleanFormulaManagerView bmgr = mgr.getBooleanFormulaManager();
+    final Formula zero = mgr.makeNumber(returnFormulaType, 0);
+    final Formula additionalUnit = bmgr.ifThenElse(
+        mgr.makeGreaterOrEqual(f2, zero, signed),
+        mgr.makeNegate(f2, signed),
+        f2);
+    final Formula mod = mgr.makeModulo(f1, f2, signed);
+
+    // IF   first operand is positive or mod-result is zero
+    // THEN return plain modulo --> here C99 is equal to SMTlib2
+    // ELSE modulo and add an additional unit towards the nearest infinity.
+
+    return bmgr.ifThenElse(
+        bmgr.or(
+            mgr.makeGreaterOrEqual(f1, zero, signed),
+            mgr.makeEqual(mod, zero)),
+        mod,
+        mgr.makePlus(mod, additionalUnit, signed));
+  }
+
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
     CExpression op = cexp.getOperand();

@@ -64,60 +64,40 @@ abstract class SmtInterpolNumeralFormulaManager
 
   @Override
   public Term divide(Term pNumber1, Term pNumber2) {
-    Term result;
     if (isNumber(pNumber2)) {
       Sort intSort = pNumber1.getTheory().getNumericSort();
       Sort realSort = pNumber1.getTheory().getRealSort();
       if (intSort.equals(pNumber1.getSort()) && intSort.equals(pNumber2.getSort())) {
-        Term div = env.term("div", pNumber1, pNumber2);
-        // C99 truncates towards 0
-        result = env.term("mod", pNumber1, pNumber2);
-        result = env.term("ite",
-            greaterOrEquals(pNumber1, env.numeral(BigInteger.ZERO)),
-            div,
-            add(div, env.numeral(BigInteger.ONE)));
+        return env.term("div", pNumber1, pNumber2);
       } else {
         assert intSort.equals(pNumber1.getSort()) || realSort.equals(pNumber1.getSort());
         assert intSort.equals(pNumber2.getSort()) || realSort.equals(pNumber2.getSort());
-        result = env.term("/", pNumber1, pNumber2);
+        return env.term("/", pNumber1, pNumber2);
       }
     } else {
-      result = super.divide(pNumber1, pNumber2);
+      return super.divide(pNumber1, pNumber2);
     }
-
-    return result;
   }
 
   @Override
   public Term multiply(Term pNumber1, Term pNumber2) {
-    Term result;
     if (isNumber(pNumber1) || isNumber(pNumber2)) {
-      result = env.term("*", pNumber1, pNumber2);
+      return env.term("*", pNumber1, pNumber2);
     } else {
-      result = super.multiply(pNumber1, pNumber2);
+      return super.multiply(pNumber1, pNumber2);
     }
-
-    return result;
   }
 
   @Override
   protected Term modulo(Term pNumber1, Term pNumber2) {
-    Term result;
     Sort intSort = pNumber1.getTheory().getNumericSort();
     if (isNumber(pNumber2)
         && intSort.equals(pNumber1.getSort())
         && intSort.equals(pNumber2.getSort())) {
-      Term mod = env.term("mod", pNumber1, pNumber2);
-      // C99 truncates towards 0 on division
-      result = env.term("ite",
-          greaterOrEquals(pNumber1, env.numeral(BigInteger.ZERO)),
-          mod,
-          subtract(mod, pNumber2));
+      return env.term("mod", pNumber1, pNumber2);
     } else {
-      result = super.modulo(pNumber1, pNumber2);
+      return super.modulo(pNumber1, pNumber2);
     }
-
-    return result;
   }
 
   @Override
