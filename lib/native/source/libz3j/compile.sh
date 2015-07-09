@@ -78,14 +78,14 @@ if [[ ! `uname` == CYGWIN* ]] ; then
     	exit 1
     fi
 
-    MISSING_SYMBOLS="$(readelf -Ws ${OUTFILENAME}$FILE_SUFFIX | grep NOTYPE | grep GLOBAL | grep UND)"
+    MISSING_SYMBOLS="$(readelf -Ws ${OUTFILENAME}$FILE_SUFFIX | grep NOTYPE | grep GLOBAL | grep UND || true)"
     if [ ! -z "$MISSING_SYMBOLS" ]; then
     	echo "Warning: There are the following unresolved dependencies in libz3j.so:"
     	readelf -Ws ${OUTFILENAME}$FILE_SUFFIX | grep NOTYPE | grep GLOBAL | grep UND
     	exit 1
     fi
 
-    MISSING_SYMBOLS="$(readelf -Ws $Z3_LIB_DIR/${Z3_SO_FILENAME}$FILE_SUFFIX | grep NOTYPE | grep GLOBAL | grep UND)"
+    MISSING_SYMBOLS="$(readelf -Ws $Z3_LIB_DIR/${Z3_SO_FILENAME}$FILE_SUFFIX | grep NOTYPE | grep GLOBAL | grep UND || true)"
     if [ ! -z "$MISSING_SYMBOLS" ]; then
     	echo "Warning: There are the following unresolved dependencies in libz3.so:"
     	readelf -Ws $Z3_LIB_DIR/${Z3_SO_FILENAME}$FILE_SUFFIX | grep NOTYPE | grep GLOBAL | grep UND
@@ -94,3 +94,4 @@ if [[ ! `uname` == CYGWIN* ]] ; then
 fi
 
 echo "All Done"
+exit 0
