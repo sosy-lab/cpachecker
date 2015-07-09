@@ -469,6 +469,15 @@ public class FormulaManagerView implements StatisticsProvider {
     return (T) t;
   }
 
+  /**
+   * This method returns the formula for the SMTlib2-conform DIVIDE-operator,
+   * which is rounded towards positive or negative infinity, depending on both operands.
+   * C99 always rounds towards zero!
+   *
+   * Example:
+   * SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
+   * C99:     10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
+   */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T  makeDivide(T pF1, T pF2, boolean pSigned) {
     Formula t;
@@ -487,6 +496,15 @@ public class FormulaManagerView implements StatisticsProvider {
     return (T) t;
   }
 
+  /**
+   * This method returns the formula for the SMTlib2-conform MODULO-operator,
+   * which is rounded towards positive or negative infinity, depending on both operands.
+   * C99 always rounds towards zero!
+   *
+   * Example:
+   * SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2,    (-10)%(-3)==2
+   * C99:     10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T  makeModulo(T pF1, T pF2, boolean pSigned) {
     Formula t;
