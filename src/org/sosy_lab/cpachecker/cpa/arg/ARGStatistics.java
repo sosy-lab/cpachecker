@@ -270,9 +270,8 @@ public class ARGStatistics implements IterationStatistics {
           // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
-
-         // RichModel model = createModelForPath(path);
-        //  cex = CounterexampleInfo.feasible(path, model);
+          RichModel model = createModelForPath(path);
+          cex = CounterexampleInfo.feasible(path, model);
         }
       }
       if (cex != null) {
