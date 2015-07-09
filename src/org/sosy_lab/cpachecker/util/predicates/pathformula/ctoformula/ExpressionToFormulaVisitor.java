@@ -221,53 +221,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     case MODULO:
       ret = mgr.makeModulo(f1, f2, signed);
 
-      BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+      addModuloConstraints(exp, f1, f2, signed, ret);
 
-      if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
-        long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
-        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo);
-        if (!bfmgr.isTrue(modularCongruence)) {
-          constraints.addConstraint(modularCongruence);
-        }
-      }
-
-      FormulaType<Formula> numberType = mgr.getFormulaType(f1);
-      Formula zero = mgr.makeNumber(numberType, 0L);
-
-      // Sign of the remainder is set by the sign of the
-      // numerator, and it is bounded by the numerator.
-      BooleanFormula signAndNumBound = bfmgr.ifThenElse(
-          mgr.makeGreaterOrEqual(f1, zero, signed),
-          bfmgr.and(
-
-              // Remainder positive or zero.
-              mgr.makeGreaterOrEqual(ret, zero, signed),
-
-              // Remainder is bounded above by the numerator (both positive)
-              mgr.makeLessOrEqual(ret, f1, signed)
-          ),
-          bfmgr.and(
-
-              // Remainder negative or zero.
-              mgr.makeLessOrEqual(ret, zero, signed),
-
-              // Remainder is bounded below by the numerator (both negative)
-              mgr.makeGreaterOrEqual(ret, f1, signed)
-          )
-      );
-
-      BooleanFormula denomBound = bfmgr.ifThenElse(
-          mgr.makeGreaterOrEqual(f2, zero, signed),
-
-          // Denominator is positive => remainder is strictly less than denominator.
-          mgr.makeLessThan(ret, f2, signed),
-
-          // Denominator is negative => remainder is strictly more.
-          mgr.makeLessThan(f2, ret, signed)
-      );
-
-      constraints.addConstraint(signAndNumBound);
-      constraints.addConstraint(denomBound);
       break;
     case BINARY_AND:
       ret =  mgr.makeAnd(f1, f2);
@@ -339,6 +294,60 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     return castedResult;
   }
 
+  /**
+   * Some solvers (Mathsat, Princess) do not support MODULO and replace it with an UF.
+   * Thus, we limit the result of the UF with additional constraints.
+   */
+  private void addModuloConstraints(final CBinaryExpression exp, final Formula f1, final Formula f2,
+      final boolean signed, final Formula ret) {
+    BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+
+    if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+      long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo);
+      if (!bfmgr.isTrue(modularCongruence)) {
+        constraints.addConstraint(modularCongruence);
+      }
+    }
+
+    FormulaType<Formula> numberType = mgr.getFormulaType(f1);
+    Formula zero = mgr.makeNumber(numberType, 0L);
+
+    // Sign of the remainder is set by the sign of the
+    // numerator, and it is bounded by the numerator.
+    BooleanFormula signAndNumBound = bfmgr.ifThenElse(
+        mgr.makeGreaterOrEqual(f1, zero, signed),
+        bfmgr.and(
+
+            // Remainder positive or zero.
+            mgr.makeGreaterOrEqual(ret, zero, signed),
+
+            // Remainder is bounded above by the numerator (both positive)
+            mgr.makeLessOrEqual(ret, f1, signed)
+        ),
+        bfmgr.and(
+
+            // Remainder negative or zero.
+            mgr.makeLessOrEqual(ret, zero, signed),
+
+            // Remainder is bounded below by the numerator (both negative)
+            mgr.makeGreaterOrEqual(ret, f1, signed)
+        )
+    );
+
+    BooleanFormula denomBound = bfmgr.ifThenElse(
+        mgr.makeGreaterOrEqual(f2, zero, signed),
+
+        // Denominator is positive => remainder is strictly less than denominator.
+        mgr.makeLessThan(ret, f2, signed),
+
+        // Denominator is negative => remainder is strictly more.
+        mgr.makeLessThan(f2, ret, signed)
+    );
+
+    constraints.addConstraint(signAndNumBound);
+    constraints.addConstraint(denomBound);
+  }
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
     CExpression op = cexp.getOperand();
