@@ -451,7 +451,7 @@ def _handleResult(resultZipFile, run, output_handler, result_files_pattern):
 
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = _parseAndSetCloudWorkerHostInformation(hostInformation, output_handler)
+            values = _parseAndSetCloudWorkerHostInformation(hostInformation, output_handler, run.runSet)
             run.values.update(values)
     else:
         logging.warning('Missing host information for run {}.'.format(run.identifier))
@@ -481,7 +481,7 @@ def _handleResult(resultZipFile, run, output_handler, result_files_pattern):
 
     return return_value
 
-def _parseAndSetCloudWorkerHostInformation(file, output_handler):
+def _parseAndSetCloudWorkerHostInformation(file, output_handler, runSet):
     values = _parseFile(file)
 
     values["host"] = values.pop("@vcloud-name", "-")
@@ -491,7 +491,8 @@ def _parseAndSetCloudWorkerHostInformation(file, output_handler):
     cpuName = values.pop("@vcloud-cpuModel", "-")
     frequency = values.pop("@vcloud-frequency", "-")
     cores = values.pop("@vcloud-cores", "-")
-    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name,
+                                     runSet=runSet)
 
     return values
 
