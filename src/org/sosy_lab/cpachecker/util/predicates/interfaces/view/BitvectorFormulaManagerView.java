@@ -71,10 +71,28 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
     return manager.subtract(pNumber1, pNumbe2, signed);
   }
+
+  /**
+   * This method returns the formula for the C99-conform DIVIDE-operator, which is rounded towards zero.
+   * SMTlib2 rounds towards positive or negative infinity, depending on both operands.
+   *
+   * Example:
+   * SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
+   * C99:     10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
+   */
   @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
     return manager.divide(pNumber1, pNumbe2, signed);
   }
+
+  /**
+   * This method returns the formula for the C99-conform MODULO-operator, which is rounded towards zero.
+   * SMTlib2 rounds towards positive or negative infinity, depending on both operands.
+   *
+   * Example:
+   * SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2,    (-10)%(-3)==2
+   * C99:     10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   */
   @Override
   public BitvectorFormula modulo(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
     return manager.modulo(pNumber1, pNumbe2, signed);
