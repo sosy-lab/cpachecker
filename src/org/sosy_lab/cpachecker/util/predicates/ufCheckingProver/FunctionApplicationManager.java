@@ -115,6 +115,11 @@ public class FunctionApplicationManager {
       BigInteger p2 = (BigInteger) func.getArgument(1);
       BigInteger validResult = compute(p1, p2);
 
+      if (validResult == null) {
+        // evaluation not possible, ignore UF
+        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+      }
+
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
           getType(),
@@ -178,7 +183,11 @@ public class FunctionApplicationManager {
 
     @Override
     BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.divide(p2);
+      if (BigInteger.ZERO.equals(p2)) {
+        return null;
+      } else {
+        return p1.divide(p2);
+      }
     }
   };
 
@@ -186,7 +195,11 @@ public class FunctionApplicationManager {
 
     @Override
     BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.remainder(p2);
+      if (BigInteger.ZERO.equals(p2)) {
+        return null;
+      } else {
+        return p1.remainder(p2);
+      }
     }
   };
 
