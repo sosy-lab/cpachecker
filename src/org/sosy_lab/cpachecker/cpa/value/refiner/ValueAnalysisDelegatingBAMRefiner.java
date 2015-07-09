@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bam.DelegatingBAMRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -60,8 +61,10 @@ public class ValueAnalysisDelegatingBAMRefiner extends DelegatingBAMRefiner {
         BAMPredicateRefiner.create(cpa));
   }
 
-  private ValueAnalysisDelegatingBAMRefiner(ConfigurableProgramAnalysis pCpa, ValueAnalysisBAMRefiner valueBAMRefiner,
-      BAMPredicateRefiner predicateBAMRefiner) throws InvalidConfigurationException {
+  private ValueAnalysisDelegatingBAMRefiner(ConfigurableProgramAnalysis pCpa,
+      AbstractBAMBasedRefiner valueBAMRefiner,
+      AbstractBAMBasedRefiner predicateBAMRefiner)
+          throws InvalidConfigurationException {
     super(pCpa, valueBAMRefiner, predicateBAMRefiner);
   }
 }
