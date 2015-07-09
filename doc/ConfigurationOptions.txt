@@ -1205,7 +1205,7 @@ cpa.predicate.ignoreExtractConcat = true
 
 # Ignore fields that are not relevant for reachability properties. This is
 # unsound in case fields are accessed by pointer arithmetic with hard-coded
-# field offsets.
+# field offsets. Only relvant if ignoreIrrelevantVariables is enabled.
 cpa.predicate.ignoreIrrelevantFields = true
 
 # Ignore variables that are not relevant for reachability properties.

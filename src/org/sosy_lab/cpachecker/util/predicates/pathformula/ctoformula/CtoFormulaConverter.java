@@ -224,6 +224,7 @@ public class CtoFormulaConverter {
   protected boolean isRelevantField(final CCompositeType compositeType,
                           final String fieldName) {
     return !variableClassification.isPresent() ||
+           !options.ignoreIrrelevantVariables() ||
            !options.ignoreIrrelevantFields() ||
            variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
