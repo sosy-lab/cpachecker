@@ -75,6 +75,9 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
+  @Option(secure=true, description = "Ignore fields that are not relevant for reachability properties. This is unsound in case fields are accessed by pointer arithmetic with hard-coded field offsets.")
+  private boolean ignoreIrrelevantFields = true;
+
   @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
   private boolean trackFunctionPointers = true;
 
@@ -122,6 +125,10 @@ public class FormulaEncodingOptions {
 
   public boolean ignoreIrrelevantVariables() {
     return ignoreIrrelevantVariables;
+  }
+
+  public boolean ignoreIrrelevantFields() {
+    return ignoreIrrelevantFields;
   }
 
   public boolean trackFunctionPointers() {

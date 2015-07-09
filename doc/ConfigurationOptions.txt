@@ -1203,6 +1203,11 @@ cpa.predicate.handleStringLiteralInitializers = false
 # replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
 
+# Ignore fields that are not relevant for reachability properties. This is
+# unsound in case fields are accessed by pointer arithmetic with hard-coded
+# field offsets.
+cpa.predicate.ignoreIrrelevantFields = true
+
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
 
