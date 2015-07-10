@@ -18,6 +18,12 @@ fi
 git pull
 
 ## actual library creation
+./configure
+if [ $? -ne 0 ];then
+   echo "Running './configure' in $(pwd) resulted in an error"
+   exit 1
+fi
+
 
 python scripts/mk_make.py
 # check return value of build
@@ -56,7 +62,7 @@ if [ $? -ne 0 ];then
    exit 1
 fi
 
-cp $Z3_DIR/build/libz3.so CUR_DIR/libz3.so
+cp $Z3_DIR/build/libz3.so $CUR_DIR/libz3.so
 
 echo "library sucessfully created"
 echo "Please copy libz3j.so and libz3.so to the correct directory under CPAchecker/lib/native/..."
