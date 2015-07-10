@@ -12,17 +12,12 @@
     <property name="class.format" value="1.7"/>
     <property name="class.dir" value="bin"/>
 
-    <!-- If available, we use error-prone as the compiler, cf. https://code.google.com/p/error-prone/ -->
-    <available classname="com.google.errorprone.ErrorProneAntCompilerAdapter"
-               property="javac.compiler"
-               value="com.google.errorprone.ErrorProneAntCompilerAdapter"/>
-    <target name="-warn-errorprone" unless="javac.compiler">
-        <echo level="warning">Google error-prone not detected in class path.</echo>
-        <echo level="warning">For additional compiler checks, we recommend running ant with command-line arguments "-lib ${ivy.lib.dir}/build".</echo>
-    </target>
+    <path id="errorprone">
+        <pathelement location="${ivy.lib.dir}/build/error_prone_ant.jar"/>
+    </path>
 
-    <target name="build-project" depends="build-dependencies,-warn-errorprone">
-        <property name="javac.compiler" value="modern"/> <!-- fallback value -->
+    <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
+    <target name="build-project" depends="build-dependencies">
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <javac debug="true"
                debuglevel="source,lines,vars"
@@ -30,13 +25,14 @@
                source="${source.format}"
                target="${class.format}"
                includeAntRuntime="false"
-               compiler="${javac.compiler}"
+               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
                encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint"/>
             <compilerarg value="-Xlint:-processing"/>
             <compilerarg value="-Werror"/>
+            <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
 </project>
