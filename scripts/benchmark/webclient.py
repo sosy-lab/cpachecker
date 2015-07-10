@@ -510,7 +510,6 @@ def _parseCloudResultFile(file):
     values.pop("@vcloud-command", None)
     values.pop("@vcloud-timeLimit", None)
     values.pop("@vcloud-coreLimit", None)
-    values.pop("@vcloud-memoryLimit", None)
 
     return (walltime, cputime, return_value, values)
 
