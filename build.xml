@@ -31,7 +31,7 @@
     <path id="classpath">
         <pathelement location="${class.dir}"/>
         <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
-        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar"/>
     </path>
 
     <condition property="architecture" value="x86_64" else="x86">
@@ -111,7 +111,7 @@
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
     </target>
 
-    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
+    <target name="build-dependencies" depends="init, build-subprojects"/>
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
@@ -119,24 +119,22 @@
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="build-project" depends="build-dependencies">
+    <target name="build-project" depends="-warn-errorprone">
         <property name="javac.compiler" value="modern"/> <!-- fallback value -->
         <depend srcdir="${source.dir}" destdir="${class.dir}"/>
         <echo message="Compiling CPAchecker"/>
         <javac debug="true"
                debuglevel="source,lines,vars"
+               includeAntRuntime="false"
                destdir="${class.dir}"
                source="${source.format}"
                target="${class.format}"
-               includeAntRuntime="false"
-               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
                encoding="UTF-8">
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint:deprecation"/>
             <!-- exclude for now since necessary JARs might not be installed -->
             <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
-            <compilerclasspath refid="errorprone"/>
         </javac>
     </target>
 

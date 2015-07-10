@@ -841,7 +841,7 @@ cpa.conditions.path.length.limit = -1
 cpa.conditions.path.repetitions.limit = -1
 
 # Type of less-or-equal operator to use
-cpa.constraints.lessOrEqualType = SUBSET
+cpa.constraints.lessOrEqualType = ALIASED_SUBSET
   enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
 
 # Type of merge operator to use
@@ -857,8 +857,8 @@ cpa.constraints.refinement.precisionType = CONSTRAINTS
 # toanalysis during simplification
 cpa.constraints.removeOutdated = true
 
-# Whether to remove trivial constraints from constraints states during
-# simplification
+# Whether to remove trivial constraints from constraints states
+# duringsimplification
 cpa.constraints.removeTrivial = false
 
 # When to check the satisfiability of constraints
@@ -1799,11 +1799,6 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
-# Whether to replace symbolic values with a concrete value when only one
-# value is possible for an assumption to be true (e.g. for (x == 1) set x to
-# 1, even if x is a symbolic expression).
-cpa.value.assignSymbolicAssumptionVars = false
-
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
@@ -1856,6 +1851,9 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
+# Whether to try to not use any constraints in refinement
+cpa.value.refinement.avoidConstraints = true
+
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 
@@ -1906,6 +1904,10 @@ cpa.value.refinement.restart = PIVOT
 cpa.value.refinement.restart = ROOT
   enum:     [ROOT, PIVOT, COMMON]
 
+# The refinement strategy to use
+cpa.value.refinement.strategy = CONSTRAINTS_FIRST
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+
 # globalPrec
 cpa.value.refinement.useGlobalPrecision = false
 
@@ -1933,12 +1935,18 @@ cpa.value.symbolic.handlePointers = true
 # each struct member when handling non-deterministic structs.
 cpa.value.symbolic.handleStructs = true
 
-# Whether to try to not use any constraints in refinement
-cpa.value.symbolic.refinement.avoidConstraints = true
-
-# The refinement strategy to use
-cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
-  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+# How to choose which prefix to use for interpolation
+cpa.value.symbolic.refiner.prefixPreference = DOMAIN_GOOD_SHORT
+  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
+             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
+             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
+             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
+             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
+             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
+             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
+             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
+             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
+             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
 
 # Use symbolic values. This allows tracking of non-deterministic values.
 # Symbolic values should always be used in conjunction with ConstraintsCPA.

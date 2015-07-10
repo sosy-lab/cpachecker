@@ -30,12 +30,4 @@
 	<lib name="org.eclipse.jdt.core.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/org.eclipse.jdt.core-sources.jar!/"/>
 	</lib>
-	<lib name="lib/java/runtime/common.jar" scope="COMPILE">
-		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/common.jar!/"/>
-	</lib>
-	<levels>
-		<level name="annotations" value="project"/>
-		<level name="error_prone_ant" value="project"/>
-		<level name="smtinterpol-comp" value="project"/>
-	</levels>
 </component>
