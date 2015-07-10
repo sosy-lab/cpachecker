@@ -85,7 +85,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   @Test
   public void intTest3_DivMod() throws Exception {
     assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
-        .that(solver == Solvers.Z3 || solver == Solvers.SMTINTERPOL).isTrue();
+        .that(solver == Solvers.MATHSAT5 ).isFalse();
 
     IntegerFormula a = imgr.makeVariable("int_a");
     IntegerFormula b = imgr.makeVariable("int_b");
@@ -116,7 +116,9 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // check division-by-variable, a=10 && b=2 && a/b=5
     // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
-    // assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    if (solver != Solvers.SMTINTERPOL) {
+      assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    }
 
     // check modulo-by-constant, a=10 && a%5=0
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
@@ -130,7 +132,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   @Test
   public void intTest3_DivMod_NegativeNumbers() throws Exception {
     assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
-        .that(solver == Solvers.Z3 || solver == Solvers.SMTINTERPOL).isTrue();
+        .that(solver == Solvers.MATHSAT5 ).isFalse();
 
     IntegerFormula a = imgr.makeVariable("int_a");
     IntegerFormula b = imgr.makeVariable("int_b");
@@ -170,7 +172,9 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // check division-by-variable, a=-10 && b=-2 && a/b=5
     // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
-    // assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    if (solver != Solvers.SMTINTERPOL) {
+      assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    }
 
     // check modulo-by-constant, a=-10 && a%5=0
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
@@ -187,9 +191,6 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
 
   @Test
   public void intTest4_ModularCongruence() throws Exception {
-    assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MODULAR_CONGRUENCE")
-      .that(solver == Solvers.PRINCESS).isFalse();
-
     IntegerFormula a = imgr.makeVariable("int_a");
     IntegerFormula b = imgr.makeVariable("int_b");
     IntegerFormula c = imgr.makeVariable("int_c");
@@ -203,24 +204,36 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fb = imgr.equal(b, num5);
     BooleanFormula fc = imgr.equal(c, num0);
     BooleanFormula fd = imgr.equal(d, numNeg5);
-    BooleanFormula fConb = imgr.modularCongruence(a, b, 5);
-    BooleanFormula fConc = imgr.modularCongruence(a, c, 5);
-    BooleanFormula fCond = imgr.modularCongruence(a, d, 5);
+
+    // we have equal results modulo 5
+    BooleanFormula fConb5 = imgr.modularCongruence(a, b, 5);
+    BooleanFormula fConc5 = imgr.modularCongruence(a, c, 5);
+    BooleanFormula fCond5 = imgr.modularCongruence(a, d, 5);
+
+    // we have different results modulo 7
+    BooleanFormula fConb7 = imgr.modularCongruence(a, b, 7);
+    BooleanFormula fConc7 = imgr.modularCongruence(a, c, 7);
+    BooleanFormula fCond7 = imgr.modularCongruence(a, d, 7);
 
     // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb5)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc5)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond5)))).isUnsatisfiable();
+
+    // check modular congruence, a=10 && b=5 && (a mod 7 != b mod 7)
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb7))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb7)))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc7))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc7)))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond7))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond7)))).isSatisfiable();
   }
 
   @Test
   public void intTest4_ModularCongruence_NegativeNumbers() throws Exception {
-    assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MODULAR_CONGRUENCE")
-      .that(solver == Solvers.PRINCESS).isFalse();
-
     IntegerFormula a = imgr.makeVariable("int_a");
     IntegerFormula b = imgr.makeVariable("int_b");
     IntegerFormula c = imgr.makeVariable("int_c");
