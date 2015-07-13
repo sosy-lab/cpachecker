@@ -544,8 +544,8 @@ def _request(method, path, body, headers, expectedStatusCode=200):
     while (counter < 5):
         counter+=1
         # send request
-        connection.request(method, path, body=body, headers=headers)
         try:
+            connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
         except:
             if (counter < 5):
