@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -80,7 +81,7 @@ public class CustomInstructionRequirementsWriter {
     Collection<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
     fileID++;
 
-    try (Writer br = Files.openOutputFile(Paths.get(filePrefix+fileID+".smt"))) {
+    try (Writer br = Files.openOutputFile(Paths.get("output"+File.separator+filePrefix+fileID+".smt"))) {
       for (String element : set) {
         br.write(element);
         br.write("\n");
