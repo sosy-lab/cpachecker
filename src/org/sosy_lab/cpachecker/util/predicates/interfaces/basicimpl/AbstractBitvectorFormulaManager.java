@@ -44,7 +44,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public BitvectorFormula negate(BitvectorFormula pNumber) {
+  public BitvectorFormula negate(BitvectorFormula pNumber, boolean signed) {
     TFormulaInfo param1 = extractInfo(pNumber);
     return wrap(negate(param1));
   }
@@ -52,7 +52,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo negate(TFormulaInfo pParam1);
 
   @Override
-  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2)
         : "Can't add bitvectors with different sizes (" + getLength(pNumber1) + " and " + getLength(pNumber2) + ")";
 
@@ -67,7 +67,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo add(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2)
         : "Can't subtract bitvectors with different sizes (" + getLength(pNumber1) + " and " + getLength(pNumber2) + ")";
 
@@ -120,7 +120,7 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2)
         : "Can't multiply bitvectors with different sizes (" + getLength(pNumber1) + " and " + getLength(pNumber2) + ")";
 
@@ -298,12 +298,12 @@ public abstract class AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv>
 
 
   @Override
-  public final BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
+  public final BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb, boolean pSigned) {
     TFormulaInfo param = extractInfo(pNumber);
 
-    return wrap(extract(param, pMsb, pLsb));
+    return wrap(extract(param, pMsb, pLsb, pSigned));
   }
-  protected abstract TFormulaInfo extract(TFormulaInfo pNumber, int pMsb, int pLsb) ;
+  protected abstract TFormulaInfo extract(TFormulaInfo pNumber, int pMsb, int pLsb, boolean pSigned) ;
 
 
   @Override

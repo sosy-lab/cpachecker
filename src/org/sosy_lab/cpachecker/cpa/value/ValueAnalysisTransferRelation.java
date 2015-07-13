@@ -170,6 +170,8 @@ public class ValueAnalysisTransferRelation
       "Arrays in C programs will always be tracked, even if this value is false.")
   private boolean trackJavaArrayValues = true;
 
+  private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
+
   private final Set<String> javaNonStaticVariables = new HashSet<>();
 
   private JRightHandSide missingInformationRightJExpression = null;
@@ -222,6 +224,7 @@ public class ValueAnalysisTransferRelation
     }
 
     unknownValueHandler = new SymbolicValueAssigner(config);
+    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
   }
 
   @Override
@@ -1066,7 +1069,7 @@ public class ValueAnalysisTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(ConstraintsStrengthenOperator.getInstance());
+    statsCollection.add(constraintsStrengthenOperator);
   }
 
   /**
@@ -1456,11 +1459,10 @@ public class ValueAnalysisTransferRelation
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
-        ConstraintsStrengthenOperator strengthenOperator = ConstraintsStrengthenOperator.getInstance();
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           Collection<ValueAnalysisState> ret =
-              strengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae, cfaEdge);
+              constraintsStrengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae, cfaEdge);
 
           if (ret == null) {
             result.add(state);

@@ -192,9 +192,9 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     MutableARGPath infeasiblePrefix = new MutableARGPath();
     infeasiblePrefix.addAll(currentPrefix);
 
-    // for interpolation, one transition after the infeasible
-    // transition is needed, so we add the final (error) state
-    infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
+    // for interpolation, one transition after the infeasible transition is needed,
+    // so we add exactly that extra transition to the successor state
+    infeasiblePrefix.add(obtainSuccessorTransition(path, currentPrefix.size()));
 
     UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix.immutableCopy(),
         cfa.getVarClassification().isPresent()
@@ -215,5 +215,14 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
       throws CPAException, InterruptedException {
     extractInfeasiblePrefixes(path);
     return feasiblePrefix.immutableCopy();
+  }
+
+  /**
+   * This method returns the pair of state and edge at the given offset.
+   */
+  private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
+    Pair<ARGState, CFAEdge> transition = path.obtainTransitionAt(offset);
+    return Pair.<ARGState, CFAEdge>of(transition.getFirst(),
+        BlankEdge.buildNoopEdge(transition.getSecond().getPredecessor(), transition.getSecond().getSuccessor()));
   }
 }

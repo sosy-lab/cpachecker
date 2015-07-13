@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.truth.Truth.*;
-import static com.google.common.truth.TruthJUnit.assume;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -55,6 +55,7 @@ import com.google.common.collect.Iterables;
 public class SolverFormulaIOTest extends SolverBasedTest0 {
   private static final String MATHSAT_DUMP1 = "(set-info :source |printed by MathSAT|)\n(declare-fun a () Bool)\n(declare-fun b () Bool)\n(declare-fun d () Bool)\n(declare-fun e () Bool)\n(define-fun .def_9 () Bool (= a b))\n(define-fun .def_10 () Bool (not .def_9))\n(define-fun .def_13 () Bool (and .def_10 d))\n(define-fun .def_14 () Bool (or e .def_13))\n(assert .def_14)";
   private static final String MATHSAT_DUMP2 = "(set-info :source |printed by MathSAT|)\n(declare-fun a () Int)\n(declare-fun b () Int)\n(declare-fun c () Int)\n(declare-fun q () Bool)\n(declare-fun u () Bool)\n(define-fun .def_15 () Int (* (- 1) c))\n(define-fun .def_16 () Int (+ b .def_15))\n(define-fun .def_17 () Int (+ a .def_16))\n(define-fun .def_19 () Bool (= .def_17 0))\n(define-fun .def_27 () Bool (= .def_19 q))\n(define-fun .def_28 () Bool (not .def_27))\n(define-fun .def_23 () Bool (<= b a))\n(define-fun .def_29 () Bool (and .def_23 .def_28))\n(define-fun .def_11 () Bool (= a b))\n(define-fun .def_34 () Bool (and .def_11 .def_29))\n(define-fun .def_30 () Bool (or u .def_29))\n(define-fun .def_31 () Bool (and q .def_30))\n(define-fun .def_35 () Bool (and .def_31 .def_34))\n(assert .def_35)";
+  private static final String MATHSAT_DUMP3 = "(set-info :source |printed by MathSAT|)\n(declare-fun fun_b (Int) Bool)\n(define-fun .def_11 () Bool (fun_b 1))\n(assert .def_11)";
   private static final String SMTINTERPOL_DUMP1 = "(declare-fun d () Bool)\n(declare-fun b () Bool)\n(declare-fun a () Bool)\n(declare-fun e () Bool)\n(assert (or e (and (xor a b) d)))";
   private static final String SMTINTERPOL_DUMP2 = "(declare-fun b () Int)(declare-fun a () Int)\n(declare-fun c () Int)\n(declare-fun q () Bool)\n(declare-fun u () Bool)\n(assert (let ((.cse0 (xor q (= (+ a b) c))) (.cse1 (>= a b))) (and (or (and .cse0 .cse1) u) q (= a b) .cse0 .cse1)))";
   private static final String Z3_DUMP1 = "(declare-fun d () Bool)\n(declare-fun b () Bool)\n(declare-fun a () Bool)\n(declare-fun e () Bool)\n(assert  (or e (and (xor a b) d)))";
@@ -70,6 +71,13 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     @Override
     public BooleanFormula get() {
       return redundancyExprGen();
+    }
+  };
+
+  private Supplier<BooleanFormula> boolExprGen3 = new Supplier<BooleanFormula>() {
+    @Override
+    public BooleanFormula get() {
+      return functionExprGen();
     }
   };
 
@@ -129,7 +137,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     assert_().that(formDump).contains("(declare-fun a () Bool)");
     assert_().that(formDump).contains("(declare-fun b () Bool)");
     String[] lines = formDump.split("\n");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -155,7 +163,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     assert_().that(formDump).contains("(declare-fun a () Bool)");
     assert_().that(formDump).contains("(declare-fun b () Bool)");
     String[] lines = formDump.split("\n");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -172,7 +180,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(valComp5).toString();
     String[] lines = formDump.split("\n");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -183,8 +191,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(formula).toString();
     String[] lines = formDump.split("\n");
+
+    // check that int variable is declared correctly + necessary assert that has to be there
     assert_().that(formDump).contains("(declare-fun a () Int)");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -201,8 +211,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(formula).toString();
     String[] lines = formDump.split("\n");
+
+    // check that function is dumped correctly + necessary assert that has to be there
     assert_().that(formDump).contains("(declare-fun fun_a (Int Int) Int)");
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
+    checkThatAssertIsInLastLine(lines);
   }
 
   @Test
@@ -266,9 +278,16 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   }
 
   @Test
+  public void parseMathSatTestExprFirst3() throws SolverException, InterruptedException {
+    compareParseWithOrgExprFirst(MATHSAT_DUMP3, boolExprGen3);
+  }
+
+  public void parseMathSatTestParseFirst3() throws SolverException, InterruptedException {
+    compareParseWithOrgParseFirst(MATHSAT_DUMP3, boolExprGen3);
+  }
+
+  @Test
   public void redundancyTest() {
-    assume().withFailureMessage("Solver does not support removing multiple occurrences yet.")
-        .that(solver).isNotEqualTo(Solvers.PRINCESS);
     String formDump = mgr.dumpFormula(redundancyExprGen()).toString();
     int count = Iterables.size(Splitter.on(">=").split(formDump)) - 1;
     int count2 = Iterables.size(Splitter.on("<=").split(formDump)) - 1;
@@ -292,7 +311,11 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     IntegerFormula res2 = fmgr.callUninterpretedFunction(funB, args2);
 
     IntegerFormula calc = imgr.add(res1, res2);
-    checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
+    String formDump = mgr.dumpFormula(imgr.equal(calc, int1)).toString();
+
+    // check if dumped formula fits our specification
+    checkThatFunOnlyDeclaredOnce(formDump);
+    checkThatAssertIsInLastLine(formDump.split("\n"));
   }
 
   @Test
@@ -309,13 +332,20 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     IntegerFormula res2 = fmgr.callUninterpretedFunction(funA, args2);
 
     IntegerFormula calc = imgr.add(res1, res2);
-    checkThatFunOnlyDeclaredOnce(mgr.dumpFormula(calc).toString());
+    String formDump = mgr.dumpFormula(imgr.equal(calc, int1)).toString();
+
+    // check if dumped formula fits our specification
+    checkThatFunOnlyDeclaredOnce(formDump);
+    checkThatAssertIsInLastLine(formDump.split("\n"));
   }
 
   private void compareParseWithOrgExprFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
-    requireSMTLibParser();
+    // check if input is correct
     checkThatFunOnlyDeclaredOnce(textToParse);
+    checkThatAssertIsInLastLine(textToParse.split("\n"));
+
+    // actual test
     BooleanFormula expr = fun.get();
     BooleanFormula parsedForm = mgr.parse(textToParse);
     assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
@@ -323,8 +353,11 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
   private void compareParseWithOrgParseFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
-    requireSMTLibParser();
+    // check if input is correct
     checkThatFunOnlyDeclaredOnce(textToParse);
+    checkThatAssertIsInLastLine(textToParse.split("\n"));
+
+    // actual test
     BooleanFormula parsedForm = mgr.parse(textToParse);
     BooleanFormula expr = fun.get();
     assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
@@ -341,6 +374,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     }
 
     assert_().that(findDuplicates(funDeclares)).isEmpty();
+  }
+
+  private void checkThatAssertIsInLastLine(String[] lines) {
+    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
   }
 
   public <T> List<T> findDuplicates(List<T> list) {
@@ -389,8 +426,11 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     return bmgr.and(r1b, r2b);
   }
 
-  private void requireSMTLibParser() {
-    assume().withFailureMessage("Solver does not support parsing yet.")
-        .that(solver).isNotEqualTo(Solvers.PRINCESS);
+  private BooleanFormula functionExprGen() {
+    IntegerFormula arg = imgr.makeNumber(1);
+    List<IntegerFormula> args = Collections.singletonList(arg);
+    UninterpretedFunctionDeclaration<BooleanFormula> funA = fmgr.declareUninterpretedFunction("fun_b", FormulaType.BooleanType, FormulaType.IntegerType);
+    BooleanFormula res1 = fmgr.callUninterpretedFunction(funA, args);
+    return bmgr.and(res1, bmgr.makeBoolean(true));
   }
 }

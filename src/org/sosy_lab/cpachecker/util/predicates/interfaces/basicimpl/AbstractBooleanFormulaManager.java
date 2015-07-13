@@ -23,14 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 
 
 public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
@@ -87,18 +88,18 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract TFormulaInfo and(TFormulaInfo pParam1, TFormulaInfo pParam2);
 
   @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
+  public BooleanFormula and(Collection<BooleanFormula> pBits) {
     if (pBits.isEmpty()) {
       return makeBoolean(true);
     }
     if (pBits.size() == 1) {
-      return pBits.get(0);
+      return Iterables.getOnlyElement(pBits);
     }
-    TFormulaInfo result = andImpl(Lists.transform(pBits, extractor));
+    TFormulaInfo result = andImpl(Collections2.transform(pBits, extractor));
     return wrap(result);
   }
 
-  protected TFormulaInfo andImpl(List<TFormulaInfo> pParams) {
+  protected TFormulaInfo andImpl(Collection<TFormulaInfo> pParams) {
     TFormulaInfo result = makeBooleanImpl(true);
     for (TFormulaInfo formula : pParams) {
       result = and(result, formula);
@@ -124,18 +125,18 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   }
 
   @Override
-  public BooleanFormula or(List<BooleanFormula> pBits) {
+  public BooleanFormula or(Collection<BooleanFormula> pBits) {
     if (pBits.isEmpty()) {
       return makeBoolean(false);
     }
     if (pBits.size() == 1) {
-      return pBits.get(0);
+      return Iterables.getOnlyElement(pBits);
     }
-    TFormulaInfo result = orImpl(Lists.transform(pBits, extractor));
+    TFormulaInfo result = orImpl(Collections2.transform(pBits, extractor));
     return wrap(result);
   }
 
-  protected TFormulaInfo orImpl(List<TFormulaInfo> pParams) {
+  protected TFormulaInfo orImpl(Collection<TFormulaInfo> pParams) {
     TFormulaInfo result = makeBooleanImpl(false);
     for (TFormulaInfo formula : pParams) {
       result = or(result, formula);

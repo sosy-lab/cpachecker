@@ -167,13 +167,22 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     // for interpolation/refinement to work properly with existing code,
     // add another transition after the infeasible one, also add FALSE itp
-    infeasiblePrefix.add(Pair.of(Iterables.get(path.asStatesList(), infeasiblePrefix.size()), Iterables.get(path.asEdgesList(), infeasiblePrefix.size())));
+    infeasiblePrefix.add(obtainSuccessorTransition(path, currentPrefix.size()));
     interpolantSequence.add(fmgr.getBooleanFormulaManager().makeBoolean(false));
 
     // additionally, add final (target) state, also to satisfy requirements of existing code
     infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
 
     return InfeasiblePrefix.buildForPredicateDomain(infeasiblePrefix.immutableCopy(), interpolantSequence, fmgr);
+  }
+
+  /**
+   * This method returns the pair of state and edge at the given offset.
+   */
+  private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
+    Pair<ARGState, CFAEdge> transition = path.obtainTransitionAt(offset);
+    return Pair.<ARGState, CFAEdge>of(transition.getFirst(),
+        BlankEdge.buildNoopEdge(transition.getSecond().getPredecessor(), transition.getSecond().getSuccessor()));
   }
 
   private <T> Pair<ARGState, CFAEdge> removeFailingOperation(MutableARGPath feasiblePrefixPath,

@@ -55,6 +55,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.Lists;
 
@@ -97,9 +102,11 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private int previousErrorPathId = -1;
 
   // statistics
-  private int refinementCounter = 0;
-  private int targetCounter = 0;
-  private final Timer totalTime = new Timer();
+
+  // statistics
+  private final StatCounter refinementCounter = new StatCounter("Number of refinements");
+  private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
+  private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
 
   public GenericRefiner(
       final FeasibilityChecker<S> pFeasibilityChecker,
@@ -176,9 +183,9 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final List<ARGPath> pTargetPaths
   ) throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "performing refinement ...");
-    totalTime.start();
-    refinementCounter++;
-    targetCounter = targetCounter + pTargets.size();
+    refinementTime.start();
+    refinementCounter.inc();
+    numberOfTargets.setNextValue(pTargets.size());
 
     CounterexampleInfo cex = isAnyPathFeasible(pReached, pTargetPaths);
 
@@ -186,7 +193,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       refineUsingInterpolants(pReached, obtainInterpolants(pTargetPaths));
     }
 
-    totalTime.stop();
+    refinementTime.stop();
 
     return cex;
   }
@@ -207,7 +214,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL")
         && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
     }
     return interpolationTree;
   }
@@ -243,7 +250,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp));
 
     if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter);
+      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
     }
   }
 
@@ -325,12 +332,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     });
   }
 
-  private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    out.println("Total number of refinements:      " + String.format(Locale.US, "%9d", refinementCounter));
-    pathExtractor.printStatistics(out, pResult, pReached);
-    out.println("Time for completing refinement:       " + totalTime);
-    interpolator.printStatistics(out, pResult, pReached);
-    printAdditionalStatistics(out, pResult, pReached); //hook
+  private void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+    writer.put(refinementCounter)
+        .put(numberOfTargets)
+        .put(refinementTime);
+
+    pathExtractor.printStatistics(pOut, pResult, pReached);
+    interpolator.printStatistics(pOut, pResult, pReached);
+    printAdditionalStatistics(pOut, pResult, pReached); //hook
   }
 
   protected abstract void printAdditionalStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached);
@@ -351,14 +361,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     ROOT,
     PIVOT,
     COMMON
-  }
-
-  /**
-   * This method resets the current error path id, which is needed when using another refiner,
-   * such as a refiner from the predicate domain, in parallel to this refiner.
-   */
-  public final void resetPreviousErrorPathId() {
-    previousErrorPathId = -1;
   }
 }
 

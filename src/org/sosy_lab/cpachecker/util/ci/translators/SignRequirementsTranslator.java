@@ -62,37 +62,42 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
     Preconditions.checkArgument(sign != SIGN.EMPTY);
     Preconditions.checkArgument(sign != SIGN.ALL);
 
-    if (sign.covers(SIGN.PLUS)) {
+    switch (sign) {
+    case PLUS:
       sb.append("(> ");
       sb.append(var);
       sb.append(" 0)");
-
-    } else if (sign.covers(SIGN.MINUS)) {
+      break;
+    case MINUS:
       sb.append("(< ");
       sb.append(var);
       sb.append(" 0)");
-
-    } else if (sign.covers(SIGN.ZERO)) {
+      break;
+    case ZERO:
       sb.append("(= ");
       sb.append(var);
       sb.append(" 0)");
-
-    } else if (sign.covers(SIGN.PLUSMINUS)) {
+      break;
+    case PLUSMINUS:
       sb.append("(or (> ");
       sb.append(var);
       sb.append(" 0) (< ");
       sb.append(var);
       sb.append(" 0))");
-
-    } else if (sign.covers(SIGN.PLUS0)) {
+      break;
+    case PLUS0:
       sb.append("(>= ");
       sb.append(var);
       sb.append(" 0)");
-
-    } else if (sign.covers(SIGN.MINUS0)) {
+      break;
+    case MINUS0:
       sb.append("(<= ");
       sb.append(var);
       sb.append(" 0)");
+      break;
+    default:
+      // should never happen
+      assert (false);
     }
 
     return sb.toString();

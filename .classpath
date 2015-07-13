@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry excluding="org/sosy_lab/cpachecker/appengine/" kind="src" path="src"/>
-	<classpathentry exported="true" kind="lib" path="/home/lemberge/Svn/trunk/bin"/>
-	<classpathentry exported="true" kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/common.jar" sourcepath="/symbolic/lib/java-contrib/common-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/guava.jar" sourcepath="/symbolic/lib/java-contrib/guava-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/smtinterpol-comp.jar" sourcepath="/symbolic/lib/java-contrib/smtinterpol-sources.zip"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/javabdd.jar" sourcepath="/symbolic/lib/java-contrib/javabdd-sources.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/java-cup-runtime.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/icu4j.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/test/junit.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/test/mockito-core.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/test/hamcrest-core.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/edu.cmu.sei.rtss.jldd.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/jpl.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/jsylvan.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/apron.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/gmp.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/test/guava-testlib.jar" sourcepath="/symbolic/lib/java-contrib/guava-testlib-sources.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/build/annotations.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/test/truth.jar" sourcepath="/symbolic/lib/java-contrib/truth-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="bin"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/common.jar" sourcepath="/symbolic/lib/java-contrib/common-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/guava.jar" sourcepath="/symbolic/lib/java-contrib/guava-sources.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/java/runtime/smtinterpol-comp.jar" sourcepath="/symbolic/lib/java-contrib/smtinterpol-sources.zip"/>
+	<classpathentry kind="lib" path="lib/java/runtime/javabdd.jar" sourcepath="/symbolic/lib/java-contrib/javabdd-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/java-cup-runtime.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/icu4j.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/junit.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/mockito-core.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>
+	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
+	<classpathentry kind="lib" path="lib/jpl.jar"/>
+	<classpathentry kind="lib" path="lib/jsylvan.jar"/>
+	<classpathentry kind="lib" path="lib/apron.jar"/>
+	<classpathentry kind="lib" path="lib/gmp.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="/symbolic/lib/java-contrib/guava-testlib-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/annotations.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/truth.jar" sourcepath="/symbolic/lib/java-contrib/truth-sources.jar"/>
 	<classpathentry kind="lib" path="/symbolic/lib/java/runtime/smt-parser.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/test/objenesis.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="/symbolic/lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.core.contenttype.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.core.jobs.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.core.resources.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.core.runtime.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.equinox.common.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.equinox.preferences.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="/symbolic/lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/org.eclipse.osgi.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/meconsole010.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/princess.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/scala-library.jar"/>
-	<classpathentry kind="lib" path="/home/lemberge/Svn/trunk/lib/java/runtime/scala-actors.jar"/>
+	<classpathentry kind="lib" path="lib/java/test/objenesis.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.cdt.core.jar" sourcepath="/symbolic/lib/java-contrib/org.eclipse.cdt.core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.contenttype.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.jobs.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.resources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.core.runtime.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.common.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.equinox.preferences.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="/symbolic/lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
+	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/princess.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/scala-actors.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

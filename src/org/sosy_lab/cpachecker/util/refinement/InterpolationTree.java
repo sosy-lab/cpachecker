@@ -321,8 +321,9 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
         }
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      if (!stateHasFalseInterpolant(currentState)) {
+        todo.addAll(successorRelation.get(currentState));
+      }
     }
 
     return increment;
@@ -541,17 +542,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
      * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState root) {
-      if (!interpolants.containsKey(root)) {
-        return true;
-      }
-
-      I rootInterpolant = interpolants.get(root);
-
-      if (!rootInterpolant.isFalse()) {
-        return true;
-      }
-
-      return false;
+      return !stateHasFalseInterpolant(root);
     }
 
     @Override

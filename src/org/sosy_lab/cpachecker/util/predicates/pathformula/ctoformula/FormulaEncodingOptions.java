@@ -75,6 +75,9 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
+  @Option(secure=true, description = "Ignore fields that are not relevant for reachability properties. This is unsound in case fields are accessed by pointer arithmetic with hard-coded field offsets. Only relvant if ignoreIrrelevantVariables is enabled.")
+  private boolean ignoreIrrelevantFields = true;
+
   @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
   private boolean trackFunctionPointers = true;
 
@@ -85,6 +88,15 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Insert tmp-parameters for global variables at function-entries. " +
           "The global variables are also encoded with return-variables at function-exit.")
   private boolean useParameterVariablesForGlobals = false;
+
+  @Option(secure=true, description = "Add constraints for the range of the return-value of a nondet-method. "
+      + "For example the assignment 'X=nondet_int()' produces the constraint 'MIN<=X<=MAX', "
+      + "where MIN and MAX are computed from the type of the method (signature, not name!).")
+  private boolean addRangeConstraintsForNondet = false;
+
+  @Option(secure=true, description = "Replace possible overflows with an ITE-structure, "
+      + "which returns either the normal value or an UF representing the overflow.")
+  private boolean replaceOverflowsWithUFs = false;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
@@ -115,6 +127,10 @@ public class FormulaEncodingOptions {
     return ignoreIrrelevantVariables;
   }
 
+  public boolean ignoreIrrelevantFields() {
+    return ignoreIrrelevantFields;
+  }
+
   public boolean trackFunctionPointers() {
     return trackFunctionPointers;
   }
@@ -125,5 +141,13 @@ public class FormulaEncodingOptions {
 
   public boolean useParameterVariablesForGlobals() {
     return useParameterVariablesForGlobals;
+  }
+
+  public boolean addRangeConstraintsForNondet() {
+    return addRangeConstraintsForNondet;
+  }
+
+  public boolean replaceOverflowsWithUFs() {
+    return replaceOverflowsWithUFs;
   }
 }

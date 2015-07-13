@@ -29,6 +29,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
@@ -106,9 +107,10 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
       return null;
     }
     int variableSize = machineModel.getSizeof(type) * machineModel.getSizeofCharInBits();
+    boolean signed = !(type instanceof CSimpleType) || machineModel.isSigned((CSimpleType) type);
     BitvectorFormula variable = this.bvfmgr.makeVariable(variableSize, pVariableName);
     if (size <= variableSize) {
-      return this.bvfmgr.extract(variable, size - 1, 0);
+      return this.bvfmgr.extract(variable, size - 1, 0, signed);
     }
     return this.bvfmgr.concat(this.bvfmgr.makeBitvector(size - variableSize, 0), variable);
   }
@@ -188,7 +190,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
     if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    return this.bvfmgr.add(summand1, summand2);
+    return this.bvfmgr.add(summand1, summand2, true);
   }
 
   @Override
@@ -269,7 +271,7 @@ public class ToBitvectorFormulaVisitor implements ToFormulaVisitor<CompoundInter
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    return this.bvfmgr.multiply(factor1, factor2);
+    return this.bvfmgr.multiply(factor1, factor2, true);
   }
 
   @Override

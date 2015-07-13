@@ -33,12 +33,14 @@ import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
 
 import ap.parser.IExpression;
+import ap.parser.IFormula;
 
 public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
 
@@ -100,7 +102,8 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
 
   @Override
   public Appender dumpFormula(final IExpression formula) {
-    return getEnvironment().dumpFormula(formula);
+    assert getFormulaCreator().getFormulaType(formula) == FormulaType.BooleanType : "Only BooleanFormulas may be dumped";
+    return getEnvironment().dumpFormula((IFormula)formula);
   }
 
   @Override

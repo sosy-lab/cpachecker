@@ -173,7 +173,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
     // TODO: handle the case that the result is not a numeric value
     final Value castedValue = AbstractExpressionValueVisitor.castCValue(
-        value, op.getExpressionType(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+        value, expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
 
 
     return convertExplicitValueToExpression(expr, castedValue);
@@ -214,7 +214,9 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     final NumericValue value = getValue(op);
 
     if (unaryOperator == UnaryOperator.MINUS && value != null && op.getExpressionType() instanceof CSimpleType) {
-      final NumericValue negatedValue = value.negate();
+      // we have to cast the value, because it can overflow, for example for the unary-expression "-2147483648" (=MIN_INT),
+      // where the operand's value "2147483648" itself creates an overflow, and the negation reverses it.
+      final NumericValue negatedValue = (NumericValue) AbstractExpressionValueVisitor.castCValue(value.negate(), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
       switch (((CSimpleType)op.getExpressionType()).getType()) {
         case CHAR:
         case INT:

@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -55,12 +56,11 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.IntConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -112,7 +112,7 @@ public class PredicateMapParser {
 
   private final CFA cfa;
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final FormulaManagerView fmgr;
   private final AbstractionManager amgr;
 
@@ -124,7 +124,7 @@ public class PredicateMapParser {
     pConfig.inject(this);
 
     cfa = pCfa;
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
     fmgr = pFmgr;
     amgr = pAmgr;
   }
@@ -165,9 +165,7 @@ public class PredicateMapParser {
     switch (encodePredicates) {
     case INT2BV: {
       final StringBuilder str = new StringBuilder();
-      converter = new BVConverter(
-          new SymbolEncoding(cfa),
-          logger);
+      converter = new BVConverter(cfa, logger);
       for (String line : commonDefinitions.split("\n")) {
         String converted = convertFormula(converter, line);
         if (converted != null) {
@@ -179,9 +177,7 @@ public class PredicateMapParser {
     }
     case BV2INT: {
       final StringBuilder str = new StringBuilder();
-      converter = new IntConverter(
-          new SymbolEncoding(cfa),
-          logger);
+      converter = new IntConverter(cfa, logger);
       for (String line : commonDefinitions.split("\n")) {
         final String converted = convertFormula(converter, line);
         if (converted != null) {
@@ -320,7 +316,7 @@ public class PredicateMapParser {
           // ignore Mathsat5-specific helper symbols,
           // they are based on 'real' unknown symbols.
         } else {
-          logger.log(Level.INFO, e.getMessage());
+          logger.logOnce(Level.INFO, e.getMessage());
         }
         return null;
       }

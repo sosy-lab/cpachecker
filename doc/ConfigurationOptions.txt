@@ -489,6 +489,27 @@ counterexample.checker.path.file = no default value
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# If the option assumeLinearArithmetics is set, this option can be used to
+# allow division and modulo by constants.
+counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
+
+# If the option assumeLinearArithmetics is set, this option can be used to
+# allow multiplication between operands with at least one constant.
+counterexample.export.assumptions.allowMultiplicationWithConstants = false
+
+# Try to avoid using operations that exceed the capabilities of linear
+# arithmetics when extracting assumptions from the model. This option aims to
+# prevent witnesses that are inconsistent with  models that are, due to an
+# analysis limited to linear arithmetics, actually incorrect.
+#  This option does not magically produce a correct witness from an incorrect
+# model, and since the difference between an incorrect witness consistent
+# with the model and an incorrect witness that is inconsistent with the model
+# is academic, you usually want this option to be off.
+counterexample.export.assumptions.assumeLinearArithmetics = false
+
+# Whether or not to include concrete address values.
+counterexample.export.assumptions.includeConstantsForPointers = true
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
 counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
@@ -504,6 +525,11 @@ coverage.enabled = true
 # print coverage info to file
 coverage.export = true
 coverage.file = "coverage.info"
+
+# How should coverage be determined? REACHED: from the final ARG, TRANSFER:
+# from the edges that explored by the transfer relation
+coverage.mode = NONE
+  enum:     [NONE, REACHED, TRANSFER]
 
 # print coverage summary to stdout
 coverage.stdout = true
@@ -809,24 +835,20 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# This option sets the hard threshold for assignments (-1 for infinite). A
-# variable reaching this assignment threshold is not tracked anymore, even if
-# it is contained in the precision.
-cpa.conditions.path.assignments.hardThreshold = -1
+# sets the hard threshold for assignments (-1 for infinite), and it is upto,
+# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# value.
+cpa.conditions.path.assignments.hardThreshold = DISABLED
 
-# This option determines if there should be a single assignment state per
-# transition (more precise) or per path segment between assume edges (more
-# efficient).
-cpa.conditions.path.assignments.precise = true
+# determines if there should be one single assignment state per state,one per
+# path segment between assume edges, or a global one for the whole program.
+cpa.conditions.path.assignments.scope = STATE
+  enum:     [STATE, PATH, PROGRAM]
 
-# This option sets the soft threshold for assignments (-1 for infinite). The
-# semantics are that variables are tracked up to this threshold, even if not
-# being contained in the precison yet, and are removed once there are more
-# assignments for a variable then defined by this threshold. Once the
-# variable is found to be relevant, e.g., through refinement and
-# interpolation, the variable is tracked again, until reaching the  hard
-# threshold.
-cpa.conditions.path.assignments.softThreshold = -1
+# sets the soft threshold for assignments (-1 for infinite), and it is upto,
+# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# value.
+cpa.conditions.path.assignments.softThreshold = DISABLED
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -841,7 +863,7 @@ cpa.conditions.path.length.limit = -1
 cpa.conditions.path.repetitions.limit = -1
 
 # Type of less-or-equal operator to use
-cpa.constraints.lessOrEqualType = ALIASED_SUBSET
+cpa.constraints.lessOrEqualType = SUBSET
   enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
 
 # Type of merge operator to use
@@ -857,8 +879,8 @@ cpa.constraints.refinement.precisionType = CONSTRAINTS
 # toanalysis during simplification
 cpa.constraints.removeOutdated = true
 
-# Whether to remove trivial constraints from constraints states
-# duringsimplification
+# Whether to remove trivial constraints from constraints states during
+# simplification
 cpa.constraints.removeTrivial = false
 
 # When to check the satisfiability of constraints
@@ -1070,6 +1092,12 @@ cpa.predicate.abstractions.export = true
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
 
+# Add constraints for the range of the return-value of a nondet-method. For
+# example the assignment 'X=nondet_int()' produces the constraint
+# 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
+# (signature, not name!).
+cpa.predicate.addRangeConstraintsForNondet = false
+
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
 
@@ -1175,9 +1203,17 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
+# Use UFs to handle overflows when Bitvector theory was replaced with Integer
+# or Rational theory.
+cpa.predicate.handleOverflowsWithUFs = false
+
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
+
+# Use UFs to handle sign-conversion (from signed to unsigned or back) when
+# Bitvector theory was replaced with Integer or Rational theory.
+cpa.predicate.handleSignConversionWithUFs = false
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1187,6 +1223,11 @@ cpa.predicate.handleStringLiteralInitializers = false
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
+
+# Ignore fields that are not relevant for reachability properties. This is
+# unsound in case fields are accessed by pointer arithmetic with hard-coded
+# field offsets. Only relvant if ignoreIrrelevantVariables is enabled.
+cpa.predicate.ignoreIrrelevantFields = true
 
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
@@ -1415,6 +1456,10 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
+# Replace possible overflows with an ITE-structure, which returns either the
+# normal value or an UF representing the overflow.
+cpa.predicate.replaceOverflowsWithUFs = false
+
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
@@ -1432,6 +1477,9 @@ cpa.predicate.satCheckAtAbstraction = false
 # Which SMT solver to use.
 cpa.predicate.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# improve sat-checks with additional constraints for UFs
+cpa.predicate.solver.checkUFs = false
 
 # Export solver queries in Smtlib format into a file.
 cpa.predicate.solver.logAllQueries = false
@@ -1493,9 +1541,6 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
-
-# where to dump variables and their possible encoding
-cpa.predicate.symbolEncodingFile = "symbolEncoding.txt"
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -1799,6 +1844,11 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# Whether to replace symbolic values with a concrete value when only one
+# value is possible for an assumption to be true (e.g. for (x == 1) set x to
+# 1, even if x is a symbolic expression).
+cpa.value.assignSymbolicAssumptionVars = false
+
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
@@ -1851,9 +1901,6 @@ cpa.value.optimizeBooleanVariables = true
 # target file to hold the exported precision
 cpa.value.precisionFile = no default value
 
-# Whether to try to not use any constraints in refinement
-cpa.value.refinement.avoidConstraints = true
-
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 
@@ -1904,10 +1951,6 @@ cpa.value.refinement.restart = PIVOT
 cpa.value.refinement.restart = ROOT
   enum:     [ROOT, PIVOT, COMMON]
 
-# The refinement strategy to use
-cpa.value.refinement.strategy = CONSTRAINTS_FIRST
-  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
-
 # globalPrec
 cpa.value.refinement.useGlobalPrecision = false
 
@@ -1918,6 +1961,9 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Whether to adopt definite assignments computed by the ConstraintsCPA
+cpa.value.symbolic.adoptDefinites = true
 
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20
@@ -1935,18 +1981,15 @@ cpa.value.symbolic.handlePointers = true
 # each struct member when handling non-deterministic structs.
 cpa.value.symbolic.handleStructs = true
 
-# How to choose which prefix to use for interpolation
-cpa.value.symbolic.refiner.prefixPreference = DOMAIN_GOOD_SHORT
-  enum:     [NONE, RANDOM, LENGTH_SHORT, LENGTH_LONG, DOMAIN_GOOD_SHORT,
-             DOMAIN_GOOD_LONG, DOMAIN_BAD_SHORT, DOMAIN_BAD_LONG,
-             DOMAIN_GOOD_WIDTH_NARROW_SHORT, DOMAIN_PRECISE_GOOD_SHORT,
-             DOMAIN_PRECISE_GOOD_LONG, DOMAIN_PRECISE_BAD_SHORT,
-             DOMAIN_PRECISE_BAD_LONG, PIVOT_SHALLOW_SHORT, PIVOT_SHALLOW_LONG,
-             PIVOT_DEEP_SHORT, PIVOT_DEEP_LONG, WIDTH_NARROW_SHORT, WIDTH_NARROW_LONG,
-             WIDTH_WIDE_SHORT, WIDTH_WIDE_LONG, WIDTH_NARROW_NO_LOOP_SHORT,
-             ASSIGNMENTS_FEWEST_SHORT, ASSIGNMENTS_FEWEST_LONG, ASSIGNMENTS_MOST_SHORT,
-             ASSIGNMENTS_MOST_LONG, ASSUMPTIONS_FEWEST_SHORT, ASSUMPTIONS_FEWEST_LONG,
-             ASSUMPTIONS_MOST_SHORT, ASSUMPTIONS_MOST_LONG]
+# Whether to try to not use any constraints in refinement
+cpa.value.symbolic.refinement.avoidConstraints = true
+
+# The refinement strategy to use
+cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+
+# Whether to simplify symbolic expressions, if possible.
+cpa.value.symbolic.simplifySymbolics = true
 
 # Use symbolic values. This allows tracking of non-deterministic values.
 # Symbolic values should always be used in conjunction with ConstraintsCPA.
@@ -2251,6 +2294,10 @@ specification = no default value
 # export abstract states as formula, e.g. for re-using them as
 # PredicatePrecision.
 statesToFormulas.exportFile = no default value
+
+# export formulas for all program locations or just the important
+# locations,which include loop-heads, funtion-calls and function-exits.
+statesToFormulas.exportOnlyImporantLocations = false
 
 # instead of writing the exact state-representation as a single formula,
 # write its atoms as a list of formulas. Therefore we ignore operators for

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -99,11 +100,13 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final EdgeInterpolator<S, I> interpolator;
   private final FeasibilityChecker<S> checker;
   private final GenericPrefixProvider<S> prefixProvider;
+  private final InterpolantManager<S, I> interpolantManager;
 
   public GenericPathInterpolator(
       final EdgeInterpolator<S, I> pEdgeInterpolator,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final GenericPrefixProvider<S> pPrefixProvider,
+      final InterpolantManager<S, I> pInterpolantManager,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -118,6 +121,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     shutdownNotifier   = pShutdownNotifier;
     interpolator       = pEdgeInterpolator;
     checker = pFeasibilityChecker;
+    interpolantManager = pInterpolantManager;
 
     prefixProvider = pPrefixProvider;
   }
@@ -128,16 +132,19 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final I interpolant
   ) throws CPAException, InterruptedException {
     totalInterpolations.inc();
-    timerInterpolation.start();
 
     interpolationOffset = -1;
 
     ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
 
+    timerInterpolation.start();
+
     Map<ARGState, I> interpolants =
         performEdgeBasedInterpolation(errorPathPrefix, interpolant);
 
     timerInterpolation.stop();
+
+    propagateFalseInterpolant(errorPath, errorPathPrefix, interpolants);
 
     return interpolants;
   }
@@ -192,8 +199,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * This method performs interpolation on each edge of the path, using the
    * {@link EdgeInterpolator} given to this object at construction.
    *
-   * @param errorPathPrefix the error path prefix to interpolate
-   * @param interpolant an initial interpolant
+   * @param pErrorPathPrefix the error path prefix to interpolate
+   * @param pInterpolant an initial interpolant
    *    (only non-trivial when interpolating error path suffixes in global refinement)
    * @return the mapping of {@link ARGState}s to {@link Interpolant}s
    *
@@ -201,46 +208,44 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @throws CPAException
    */
   protected Map<ARGState, I> performEdgeBasedInterpolation(
-      ARGPath errorPathPrefix,
-      I interpolant
+      ARGPath pErrorPathPrefix,
+      I pInterpolant
   ) throws InterruptedException, CPAException {
 
-    if (pathSlicing && prefixPreference != PrefixPreference.NONE) {
-      errorPathPrefix = sliceErrorPath(errorPathPrefix);
-    }
+    pErrorPathPrefix = sliceErrorPath(pErrorPathPrefix);
 
-    Map<ARGState, I> pathInterpolants = new LinkedHashMap<>(errorPathPrefix.size());
+    Map<ARGState, I> pathInterpolants = new LinkedHashMap<>(pErrorPathPrefix.size());
 
-    PathIterator pathIterator = errorPathPrefix.pathIterator();
+    PathIterator pathIterator = pErrorPathPrefix.pathIterator();
     Deque<S> callstack = new ArrayDeque<>();
 
     while (pathIterator.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
 
       // interpolate at each edge as long as the previous interpolant is not false
-      if (!interpolant.isFalse()) {
-        interpolant = interpolator.deriveInterpolant(errorPathPrefix,
+      if (!pInterpolant.isFalse()) {
+        pInterpolant = interpolator.deriveInterpolant(pErrorPathPrefix,
                                                      pathIterator.getOutgoingEdge(),
                                                      callstack,
                                                      pathIterator.getIndex(),
-                                                     interpolant);
+                                                     pInterpolant);
       }
 
       totalInterpolationQueries.setNextValue(interpolator.getNumberOfInterpolationQueries());
 
-      if (!interpolant.isTrivial() && interpolationOffset == -1) {
+      if (!pInterpolant.isTrivial() && interpolationOffset == -1) {
         interpolationOffset = pathIterator.getIndex();
       }
 
-      sizeOfInterpolant.setNextValue(interpolant.getSize());
+      sizeOfInterpolant.setNextValue(pInterpolant.getSize());
 
       pathIterator.advance();
 
-      pathInterpolants.put(pathIterator.getAbstractState(), interpolant);
+      pathInterpolants.put(pathIterator.getAbstractState(), pInterpolant);
 
       if (!pathIterator.hasNext()) {
-        assert interpolant.isFalse()
-            : "final interpolant is not false: " + interpolant;
+        assert pInterpolant.isFalse()
+            : "final interpolant is not false: " + pInterpolant;
       }
     }
 
@@ -263,18 +268,22 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @throws InterruptedException
    * @throws CPAException
    */
-  private ARGPath sliceErrorPath(final ARGPath errorPathPrefix)
+  private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
       throws CPAException, InterruptedException {
 
-    Set<ARGState> useDefStates = new UseDefRelation(errorPathPrefix,
+    if (!isPathSlicingPossible(pErrorPathPrefix)) {
+      return pErrorPathPrefix;
+    }
+
+    Set<ARGState> useDefStates = new UseDefRelation(pErrorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
           : Collections.<String>emptySet()).getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(errorPathPrefix.asEdgesList());
+    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.asEdgesList());
 
-    PathIterator iterator = errorPathPrefix.pathIterator();
+    PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {
       CFAEdge originalEdge = iterator.getOutgoingEdge();
 
@@ -320,10 +329,10 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       iterator.advance();
     }
 
-    ARGPath slicedErrorPathPrefix = new ARGPath(errorPathPrefix.asStatesList(), abstractEdges);
+    ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
 
     return (isFeasible(slicedErrorPathPrefix))
-        ? errorPathPrefix
+        ? pErrorPathPrefix
         : slicedErrorPathPrefix;
 
   }
@@ -333,17 +342,61 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     return getClass().getSimpleName();
   }
 
+  /**
+   * This method propagates the interpolant "false" to all states that are in
+   * the original error path, but are not anymore in the (shorter) prefix.
+   *
+   * The property that every state on the path beneath the first state with an
+   * false interpolant is needed by some code in {@link org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationTree},
+   * i.e., for global refinement. This property could also be enforced there,
+   * but interpolant creation should only happen during interpolation, and not
+   * in the data structure holding the interpolants.
+   *
+   * @param errorPath the original error path
+   * @param errorPathPrefix the possible shorter error path prefix
+   * @param interpolants the current interpolant map
+   */
+  protected final void propagateFalseInterpolant(final ARGPath errorPath,
+      final ARGPath pErrorPathPrefix,
+      final Map<ARGState, I> pInterpolants
+  ) {
+    if(errorPath != pErrorPathPrefix) {
+      for (ARGState state : errorPath.obtainSuffix(pErrorPathPrefix.size()).asStatesList()) {
+        pInterpolants.put(state, interpolantManager.getFalseInterpolant());
+      }
+    }
+  }
+
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
-    writer.put(timerInterpolation);
-    writer.put(totalInterpolations);
-    writer.put(totalInterpolationQueries);
-    writer.put(sizeOfInterpolant);
-    writer.put(totalPrefixes);
+    writer.put(timerInterpolation)
+        .put(totalInterpolations)
+        .put(totalInterpolationQueries)
+        .put(sizeOfInterpolant)
+        .put(totalPrefixes);
+    writer.put(prefixExtractionTime);
+    writer.put(prefixSelectionTime);
   }
 
   public int getInterpolationOffset() {
     return interpolationOffset;
+  }
+
+  /**
+   * This method decides if path slicing is possible.
+   *
+   * It is only possible if the respective option is set,
+   * and a prefix us selected (single reason for infeasibility),
+   * and it is not a path suffix (from global refinement), i.e.,
+   * it starts with the initial program state.
+   *
+   * @param pErrorPathPrefix the error path prefix to be sliced
+   * @return true, if slicing is possible, else, false
+   */
+  private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
+    return pathSlicing
+        && prefixPreference != PrefixPreference.NONE
+        && pErrorPathPrefix.getFirstState().getParents().isEmpty();
   }
 }

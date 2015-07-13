@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
 import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.isNumber;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
@@ -62,35 +64,54 @@ abstract class SmtInterpolNumeralFormulaManager
 
   @Override
   public Term divide(Term pNumber1, Term pNumber2) {
-    Term result;
-    if (isNumber(pNumber2)
-        // In SmtInterpol, return type of division is always Real,
-        // but if we have two Int terms, we expect an Int result,
-        // so we use the UF.
-        && (pNumber1.getSort().equals(pNumber1.getTheory().getRealSort())
-            || pNumber2.getSort().equals(pNumber1.getTheory().getRealSort()))) {
-      result = env.term("/", pNumber1, pNumber2);
+    if (isNumber(pNumber2)) {
+      Sort intSort = pNumber1.getTheory().getNumericSort();
+      Sort realSort = pNumber1.getTheory().getRealSort();
+      if (intSort.equals(pNumber1.getSort()) && intSort.equals(pNumber2.getSort())) {
+        return env.term("div", pNumber1, pNumber2);
+      } else {
+        assert intSort.equals(pNumber1.getSort()) || realSort.equals(pNumber1.getSort());
+        assert intSort.equals(pNumber2.getSort()) || realSort.equals(pNumber2.getSort());
+        return env.term("/", pNumber1, pNumber2);
+      }
     } else {
-      result = super.divide(pNumber1, pNumber2);
+      return super.divide(pNumber1, pNumber2);
     }
-
-    return result;
   }
 
   @Override
   public Term multiply(Term pNumber1, Term pNumber2) {
-    Term result;
     if (isNumber(pNumber1) || isNumber(pNumber2)) {
-      result = env.term("*", pNumber1, pNumber2);
+      return env.term("*", pNumber1, pNumber2);
     } else {
-      result = super.multiply(pNumber1, pNumber2);
+      return super.multiply(pNumber1, pNumber2);
     }
+  }
 
-    return result;
+  @Override
+  protected Term modulo(Term pNumber1, Term pNumber2) {
+    Sort intSort = pNumber1.getTheory().getNumericSort();
+    if (isNumber(pNumber2)
+        && intSort.equals(pNumber1.getSort())
+        && intSort.equals(pNumber2.getSort())) {
+      return env.term("mod", pNumber1, pNumber2);
+    } else {
+      return super.modulo(pNumber1, pNumber2);
+    }
   }
 
   @Override
   protected Term modularCongruence(Term pNumber1, Term pNumber2, long pModulo) {
+    // if x >= 0: ((_ divisible n) x)   <==>   (= x (* n (div x n)))
+    // if x <  0: ((_ divisible n) x)   <==>   (= x (* n (div x n)))
+    Sort intSort = pNumber1.getTheory().getNumericSort();
+    if (pModulo > 0
+        && intSort.equals(pNumber1.getSort())
+        && intSort.equals(pNumber2.getSort())) {
+      Term n = env.numeral(BigInteger.valueOf(pModulo));
+      Term x = subtract(pNumber1, pNumber2);
+      return env.term("=", x, env.term("*", n, env.term("div", x, n)));
+    }
     return env.getTheory().mTrue;
   }
 

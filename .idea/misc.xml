@@ -3,7 +3,8 @@
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_7" assert-keyword="true" jdk-15="true" project-jdk-name="1.7" project-jdk-type="JavaSDK">
+  <component name="IdProvider" IDEtalkID="AD8EB3D00A48DC495A745951AAED18E9" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_7" assert-keyword="true" jdk-15="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/bin" />
   </component>
   <component name="SvnBranchConfigurationManager">
@@ -20,19 +21,6 @@
                 </list>
               </option>
               <option name="trunkUrl" value="https://svn.sosy-lab.org/software/cpachecker/trunk" />
-            </SvnBranchConfiguration>
-          </value>
-        </entry>
-        <entry key="$PROJECT_DIR$/test/programs/benchmarks">
-          <value>
-            <SvnBranchConfiguration>
-              <option name="branchUrls">
-                <list>
-                  <option value="https://svn.sosy-lab.org/software/sv-benchmarks/branches" />
-                  <option value="https://svn.sosy-lab.org/software/sv-benchmarks/tags" />
-                </list>
-              </option>
-              <option name="trunkUrl" value="https://svn.sosy-lab.org/software/sv-benchmarks/trunk" />
             </SvnBranchConfiguration>
           </value>
         </entry>

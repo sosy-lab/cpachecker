@@ -123,6 +123,7 @@ public class ValueAnalysisPathInterpolator
             pCfa),
         pFeasibilityChecker,
         pPrefixProvider,
+        ValueAnalysisInterpolantManager.getInstance(),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -146,13 +147,17 @@ public class ValueAnalysisPathInterpolator
 
     } else {
       totalInterpolations.inc();
-      timerInterpolation.start();
+
       ARGPath errorPathPrefix = performRefinementSelection(errorPath, interpolant);
+
+      timerInterpolation.start();
 
       Map<ARGState, ValueAnalysisInterpolant> interpolants =
           performPathBasedInterpolation(errorPathPrefix);
 
       timerInterpolation.stop();
+
+      propagateFalseInterpolant(errorPath, errorPathPrefix, interpolants);
 
       return interpolants;
     }
@@ -271,11 +276,11 @@ public class ValueAnalysisPathInterpolator
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
-    writer.put(timerInterpolation);
-    writer.put(totalInterpolations);
-    writer.put(totalInterpolationQueries);
-    writer.put(sizeOfInterpolant);
-    writer.put(totalPrefixes);
+    writer.put(timerInterpolation)
+      .put(totalInterpolations)
+      .put(totalInterpolationQueries)
+      .put(sizeOfInterpolant)
+      .put(totalPrefixes);
     writer.put(prefixExtractionTime);
     writer.put(prefixSelectionTime);
   }

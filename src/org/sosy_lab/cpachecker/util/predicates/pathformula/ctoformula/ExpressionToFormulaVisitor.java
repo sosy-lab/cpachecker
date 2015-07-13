@@ -176,33 +176,33 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     switch (op) {
     case PLUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-        ret = mgr.makePlus(f1, f2);
+        ret = mgr.makePlus(f1, f2, signed);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
         ret =  mgr.makePlus(f1, mgr.makeMultiply(f2,
                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                             calculationType)));
+                                                             calculationType), false), signed);
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
         ret =  mgr.makePlus(f2, mgr.makeMultiply(f1,
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
-                                                             calculationType)));
+                                                             calculationType), false), signed);
       } else {
         throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
       }
       break;
     case MINUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-        ret =  mgr.makeMinus(f1, f2);
+        ret =  mgr.makeMinus(f1, f2, signed);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
         ret =  mgr.makeMinus(f1, mgr.makeMultiply(f2,
                                                               getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                                                            calculationType)));
+                                                                                            calculationType), false), signed);
       } else if (promT1 instanceof CPointerType) {
         // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
         if (promT1.equals(promT2)) {
-          ret = mgr.makeDivide(mgr.makeMinus(f1, f2),
+          ret = mgr.makeDivide(mgr.makeMinus(f1, f2, signed),
                                      getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
                                      true);
         } else {
@@ -213,61 +213,16 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
       break;
     case MULTIPLY:
-      ret =  mgr.makeMultiply(f1, f2);
+      ret =  mgr.makeMultiply(f1, f2, signed);
       break;
     case DIVIDE:
-      ret =  mgr.makeDivide(f1, f2, signed);
+      ret = mgr.makeDivide(f1, f2, signed);
       break;
     case MODULO:
       ret = mgr.makeModulo(f1, f2, signed);
 
-      BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
+      addModuloConstraints(exp, f1, f2, signed, ret);
 
-      if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
-        long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
-        BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo);
-        if (!bfmgr.isTrue(modularCongruence)) {
-          constraints.addConstraint(modularCongruence);
-        }
-      }
-
-      FormulaType<Formula> numberType = mgr.getFormulaType(f1);
-      Formula zero = mgr.makeNumber(numberType, 0L);
-
-      // Sign of the remainder is set by the sign of the
-      // numerator, and it is bounded by the numerator.
-      BooleanFormula signAndNumBound = bfmgr.ifThenElse(
-          mgr.makeGreaterOrEqual(f1, zero, signed),
-          bfmgr.and(
-
-              // Remainder positive or zero.
-              mgr.makeGreaterOrEqual(ret, zero, signed),
-
-              // Remainder is bounded above by the numerator (both positive)
-              mgr.makeLessOrEqual(ret, f1, signed)
-          ),
-          bfmgr.and(
-
-              // Remainder negative or zero.
-              mgr.makeLessOrEqual(ret, zero, signed),
-
-              // Remainder is bounded below by the numerator (both negative)
-              mgr.makeGreaterOrEqual(ret, f1, signed)
-          )
-      );
-
-      BooleanFormula denomBound = bfmgr.ifThenElse(
-          mgr.makeGreaterOrEqual(f2, zero, signed),
-
-          // Denominator is positive => remainder is strictly less than denominator.
-          mgr.makeLessThan(ret, f2, signed),
-
-          // Denominator is negative => remainder is strictly more.
-          mgr.makeLessThan(f2, ret, signed)
-      );
-
-      constraints.addConstraint(signAndNumBound);
-      constraints.addConstraint(denomBound);
       break;
     case BINARY_AND:
       ret =  mgr.makeAnd(f1, f2);
@@ -335,10 +290,64 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     final Formula castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
     assert returnFormulaType.equals(mgr.getFormulaType(castedResult))
          : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
+
     return castedResult;
   }
 
+  /**
+   * Some solvers (Mathsat, Princess) do not support MODULO and replace it with an UF.
+   * Thus, we limit the result of the UF with additional constraints.
+   */
+  private void addModuloConstraints(final CBinaryExpression exp, final Formula f1, final Formula f2,
+      final boolean signed, final Formula ret) {
+    BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
 
+    if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+      long modulo = ((CIntegerLiteralExpression)exp.getOperand2()).asLong();
+      BooleanFormula modularCongruence = mgr.makeModularCongruence(ret, f1, modulo);
+      if (!bfmgr.isTrue(modularCongruence)) {
+        constraints.addConstraint(modularCongruence);
+      }
+    }
+
+    FormulaType<Formula> numberType = mgr.getFormulaType(f1);
+    Formula zero = mgr.makeNumber(numberType, 0L);
+
+    // Sign of the remainder is set by the sign of the
+    // numerator, and it is bounded by the numerator.
+    BooleanFormula signAndNumBound = bfmgr.ifThenElse(
+        mgr.makeGreaterOrEqual(f1, zero, signed),
+        bfmgr.and(
+
+            // Remainder positive or zero.
+            mgr.makeGreaterOrEqual(ret, zero, signed),
+
+            // Remainder is bounded above by the numerator (both positive)
+            mgr.makeLessOrEqual(ret, f1, signed)
+        ),
+        bfmgr.and(
+
+            // Remainder negative or zero.
+            mgr.makeLessOrEqual(ret, zero, signed),
+
+            // Remainder is bounded below by the numerator (both negative)
+            mgr.makeGreaterOrEqual(ret, f1, signed)
+        )
+    );
+
+    BooleanFormula denomBound = bfmgr.ifThenElse(
+        mgr.makeGreaterOrEqual(f2, zero, signed),
+
+        // Denominator is positive => remainder is strictly less than denominator.
+        mgr.makeLessThan(ret, f2, signed),
+
+        // Denominator is negative => remainder is strictly more.
+        mgr.makeLessThan(f2, ret, signed)
+    );
+
+    constraints.addConstraint(signAndNumBound);
+    constraints.addConstraint(denomBound);
+  }
 
   @Override
   public Formula visit(CCastExpression cexp) throws UnrecognizedCCodeException {
@@ -439,7 +448,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
       if (op == UnaryOperator.MINUS) {
-        ret = mgr.makeNegate(operandFormula);
+        final boolean signed;
+        if (promoted instanceof CSimpleType) {
+          signed = conv.machineModel.isSigned((CSimpleType)promoted);
+        } else {
+          signed = false;
+        }
+        ret = mgr.makeNegate(operandFormula, signed);
       } else {
         assert op == UnaryOperator.TILDE
               : "This case should be impossible because of switch";
@@ -557,7 +572,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula zero = mgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
             BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
             return mgr.getBooleanFormulaManager().ifThenElse(isNegative,
-                mgr.makeNegate(param), param);
+                mgr.makeNegate(param, true), param);
           }
         }
 
@@ -650,6 +665,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
   }
 
   protected Formula makeNondet(final String varName, final CType type) {
-    return conv.makeFreshVariable(varName, type, ssa);
+    Formula newVariable = conv.makeFreshVariable(varName, type, ssa);
+    if (conv.options.addRangeConstraintsForNondet()) {
+      conv.addRangeConstraint(newVariable, type, constraints);
+    }
+    return newVariable;
   }
 }

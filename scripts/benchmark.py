@@ -40,7 +40,7 @@ import benchexec
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
 import benchexec.tools
-benchexec.tools.__path__ += [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')]
+benchexec.tools.__path__ = [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')] + benchexec.tools.__path__
 
 class Benchmark(benchexec.BenchExec):
     """
@@ -88,6 +88,13 @@ class Benchmark(benchexec.BenchExec):
                           dest="reprocessResults",
                           action="store_true",
                           help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored (use --startTime to point the script to the results).")
+
+        vcloud_args.add_argument("--cloudClientHeap",
+                          dest="cloudClientHeap",
+                          metavar="MB",
+                          default=100,
+                          type=int,
+                          help="The heap-size (in MB) used by the VerifierCloudClient. A too small heap-size may terminate the client without any results.")
 
         appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
         appengine_args.add_argument("--appengine",

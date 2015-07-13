@@ -31,7 +31,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -72,6 +71,11 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -103,8 +107,8 @@ public class ValueAnalysisRefiner
   private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
 
   // Statistics
-  private int timesRootRelocated = 0;
-  private int timesRepeatedRefinements = 0;
+  private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
+  private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -167,11 +171,10 @@ public class ValueAnalysisRefiner
         pShutdownNotifier,
         pCfa);
 
-    pConfig.inject(this);
+    pConfig.inject(this, ValueAnalysisRefiner.class);
 
     checker = pFeasibilityChecker;
-
-    concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pLogger, pShutdownNotifier, pCfa.getMachineModel());
+    concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
   }
 
   @Override
@@ -222,8 +225,10 @@ public class ValueAnalysisRefiner
         .getPrecision(pReached.asReachedSet().getFirstState()), PredicatePrecision.class) != null;
   }
 
-  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(final ARGState pRefinementRoot,
-      final ARGReachedSet pReached) {
+  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final ARGReachedSet pReached
+  ) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
@@ -309,7 +314,7 @@ public class ValueAnalysisRefiner
    * @return the relocated refinement root
    */
   private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
-    timesRepeatedRefinements++;
+    repeatedRefinements.inc();
     int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
 
     ARGPath path = ARGUtils.getOnePathTo(currentRoot);
@@ -391,7 +396,7 @@ public class ValueAnalysisRefiner
       newRefinementRoot = Iterables.getOnlyElement(successorRelation.get(newRefinementRoot));
     }
 
-    timesRootRelocated++;
+    rootRelocations.inc();
     return newRefinementRoot;
   }
 
@@ -409,9 +414,11 @@ public class ValueAnalysisRefiner
   }
 
   @Override
-  protected void printAdditionalStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
-    out.println("Total number of root relocations: " + String.format(Locale.US, "%9d", timesRootRelocated));
-    out.println("Total number of similar, repeated refinements: " + String.format(Locale.US, "%9d", timesRepeatedRefinements));
+  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+
+    writer.put(rootRelocations)
+        .put(repeatedRefinements);
   }
 }
 

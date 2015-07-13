@@ -29,12 +29,10 @@ import org.sosy_lab.cpachecker.util.predicates.TermType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractNumeralFormulaManager;
 
-import ap.basetypes.IdealInt;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
-import ap.parser.IIntLit;
 import ap.parser.ITerm;
-
+import ap.theories.BitShiftMultiplication;
 
 abstract class PrincessNumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
@@ -63,15 +61,12 @@ abstract class PrincessNumeralFormulaManager
 
   @Override
   public IExpression divide(IExpression pNumber1, IExpression pNumber2) {
-    IExpression result;
-    if (isNumber(pNumber2)) {
-      result = castToTerm(pNumber1).$times(IdealInt.ONE().$div(((IIntLit) pNumber2).value()));
-      // TODO div is the euclidian division (with remainder), do we want this here?
-    } else {
-      result = super.divide(pNumber1, pNumber2);
-    }
+    return BitShiftMultiplication.eDiv(castToTerm(pNumber1), castToTerm(pNumber2));
+  }
 
-    return result;
+  @Override
+  public IExpression modulo(IExpression pNumber1, IExpression pNumber2) {
+    return BitShiftMultiplication.eMod(castToTerm(pNumber1), castToTerm(pNumber2));
   }
 
   @Override

@@ -182,6 +182,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             explicitEdgeInterpolator,
             explicitFeasibilityChecker,
             explicitPrefixProvider,
+            SymbolicInterpolantManager.getInstance(),
             config, logger, shutdownNotifier, cfa);
 
     SymbolicDelegatingRefiner refiner = new SymbolicDelegatingRefiner(

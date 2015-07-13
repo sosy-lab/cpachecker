@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
@@ -274,6 +275,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   @Override
   public Appender dumpFormula(final Long expr) {
+    assert getFormulaCreator().getFormulaType(expr) == FormulaType.BooleanType : "Only BooleanFormulas may be dumped";
+
     return new Appenders.AbstractAppender() {
 
       @Override

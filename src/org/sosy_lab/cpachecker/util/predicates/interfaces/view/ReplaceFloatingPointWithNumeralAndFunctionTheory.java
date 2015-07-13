@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigDecimal;
 
 import org.sosy_lab.common.rationals.Rational;
@@ -82,29 +84,33 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
 
   @Override
   public <T2 extends Formula> T2 castTo(FloatingPointFormula pNumber, FormulaType<T2> pTargetType) {
-    return genericCast(pNumber, pTargetType);
+    // This method needs to handle only wrapping of FloatingPointFormulas,
+    // wrapping of other types is handled by FloatingPointFormulaManagerView.
+    return genericCast(unwrap(pNumber), pTargetType);
   }
 
   @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    return genericCast(pNumber, pTargetType);
+    // This method needs to handle only wrapping of FloatingPointFormulas,
+    // wrapping of other types is handled by FloatingPointFormulaManagerView.
+    return wrap(pTargetType, genericCast(pNumber, unwrapType(pTargetType)));
   }
 
   private <T2 extends Formula> T2 genericCast(Formula pNumber, FormulaType<T2> pTargetType) {
-    Formula number = unwrap(pNumber);
-    FormulaType<?> type = getFormulaType(number);
-    FormulaType<?> targetType = unwrapType(pTargetType);
+    // This method does not handle wrapping, it needs to be done by callers.
+    checkArgument(!(pNumber instanceof WrappingFormula<?, ?>));
+    FormulaType<?> type = getFormulaType(pNumber);
 
-    if (type.equals(targetType)) {
-      // both theories are represented with same type, so we can use the exact same formula,
-      // just wrapped differently
-      return wrap(pTargetType, number);
+    if (type.equals(pTargetType)) {
+      // both theories are represented with same type, so we can use the exact same formula
+      @SuppressWarnings("unchecked")
+      T2 result = (T2)pNumber;
+      return result;
     } else {
-      UninterpretedFunctionDeclaration<?> castFunction = functionManager.declareUninterpretedFunction(
+      UninterpretedFunctionDeclaration<T2> castFunction = functionManager.declareUninterpretedFunction(
           "__cast_" + type + "_to_" + pTargetType + "__",
-          targetType, type);
-      return wrap(pTargetType,
-          functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(number)));
+          pTargetType, type);
+      return functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(pNumber));
     }
   }
 

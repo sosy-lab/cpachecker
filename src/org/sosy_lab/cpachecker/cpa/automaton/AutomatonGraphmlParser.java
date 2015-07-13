@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -290,22 +291,38 @@ public class AutomatonGraphmlParser {
         }
         Deque<String> newStack = currentStack;
         Set<String> functionEntries = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONENTRY);
-        if (!functionEntries.isEmpty()) {
-          newStack = new ArrayDeque<>(newStack);
-          newStack.push(Iterables.getOnlyElement(functionEntries));
-        }
+        String functionEntry = Iterables.getOnlyElement(functionEntries, null);
         Set<String> functionExits = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONEXIT);
-        if (!functionExits.isEmpty()) {
-          String function = Iterables.getOnlyElement(functionExits);
-          if (newStack.isEmpty()) {
-            logger.log(Level.WARNING, "Trying to return from function", function, "although no function is on the stack.");
-          } else {
+        String functionExit = Iterables.getOnlyElement(functionEntries, null);
+
+        // If the same function is entered and exited, the stack remains unchanged.
+        // Otherwise, adjust the stack accordingly:
+        if (!Objects.equals(functionEntry, functionExit)) {
+          // First, perform the function exit
+          if (!functionExits.isEmpty()) {
+            if (newStack.isEmpty()) {
+              logger.log(Level.WARNING, "Trying to return from function", functionExit, "although no function is on the stack.");
+            } else {
+              newStack = new ArrayDeque<>(newStack);
+              String oldFunction = newStack.pop();
+              assert oldFunction.equals(functionExit);
+            }
+          }
+          // Now enter the new function
+          if (!functionEntries.isEmpty()) {
             newStack = new ArrayDeque<>(newStack);
-            String oldFunction = newStack.pop();
-            assert oldFunction.equals(function);
+            newStack.push(functionEntry);
           }
         }
+        // Store the stack in its state after the edge is applied
         stacks.put(targetStateId, newStack);
+
+        // If the edge enters and exits the same function, assume this function for this edge only
+        if (functionEntry != null
+            && functionEntry.equals(functionExit)
+            && (newStack.isEmpty() || !newStack.peek().equals(functionExit))) {
+          newStack = new ArrayDeque<>(newStack);
+        }
 
         AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
 

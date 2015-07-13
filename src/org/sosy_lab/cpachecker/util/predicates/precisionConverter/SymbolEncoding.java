@@ -21,14 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -213,27 +210,6 @@ public class SymbolEncoding {
           }}});
     }
   }
-
-  /** parse the file into a map for a new SymbolEncoding. */
-  @Deprecated /* we use the CFA directly to get the encoding */
-  public static SymbolEncoding readSymbolEncoding(Path symbolEncodingFile) throws IOException {
-    final SymbolEncoding encoding = new SymbolEncoding();
-    Files.checkReadableFile(symbolEncodingFile);
-    try (BufferedReader reader = symbolEncodingFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        final String[] splitted = line.split("\t");
-        final List<FormulaType<?>> lst = new ArrayList<>();
-        for (int i = 2; i < splitted.length; i++) {
-          lst.add(FormulaType.fromString(splitted[i]));
-        }
-        encoding.put(splitted[0],
-            new Type<>(FormulaType.fromString(splitted[1]), lst));
-      }
-    }
-    return encoding;
-  }
-
 
   /** just a nice replacement for Pair<T,List<T>> */
   public static class Type<T> {

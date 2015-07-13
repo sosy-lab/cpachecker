@@ -29,10 +29,13 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.Type;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -42,8 +45,19 @@ import com.google.common.collect.Sets;
 public class Converter {
 
   protected final Set<String> binBooleanOps = Sets.newHashSet("and", "or");
+  protected final SymbolEncoding symbolEncoding;
+  protected final LogManager logger;
 
-  public Converter() {}
+  public Converter(LogManager logger, CFA cfa) {
+    this.symbolEncoding = new SymbolEncoding(cfa);
+    this.logger = logger;
+  }
+
+  @VisibleForTesting
+  public Converter() {
+    this.symbolEncoding = null;
+    this.logger = null;
+  }
 
   public String convertFunctionDeclaration(String symbol, Type<String> pFt)
       throws UnknownFormulaSymbolException {

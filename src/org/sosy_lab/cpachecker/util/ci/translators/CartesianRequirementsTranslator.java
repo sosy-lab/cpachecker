@@ -109,10 +109,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
 
     int index = indices.getIndex(var);
 
-    if (index == 0){
-      return var;
+    if (index == -1){
+      return "|" + var + "|";
     } else {
-      return var + "@" + index;
+      return "|" + var + "@" + index + "|";
     }
   }
 
