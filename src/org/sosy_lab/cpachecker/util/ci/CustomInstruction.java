@@ -681,9 +681,6 @@ public class CustomInstruction{
 
     @Override
     public Void visit(final CIdExpression ciExp) throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CIdExpression)) {
-        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + aciExp + " is not from the type CIdExpression, but ci is.");
-      }
       if (aciExp instanceof CIdExpression) {
         CIdExpression aciIdExp = (CIdExpression) aciExp;
         if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
