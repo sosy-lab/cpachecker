@@ -257,7 +257,9 @@ def _submitRun(run, benchmark, counter = 0):
         
     if benchmark.result_files_pattern:
         params['resultFilesPattern'] = benchmark.result_files_pattern;
-
+    else:
+        params['resultFilesPattern'] = '[]'
+    
     invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
