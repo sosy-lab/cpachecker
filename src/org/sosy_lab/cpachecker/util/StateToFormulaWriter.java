@@ -45,6 +45,8 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -94,6 +96,10 @@ public class StateToFormulaWriter implements StatisticsProvider {
       + "write its atoms as a list of formulas. Therefore we ignore operators for conjunction and disjunction.")
   private FormulaSplitter splitFormulas = FormulaSplitter.LOCATION;
 
+  @Option(secure=true,
+      description="export formulas for all program locations or just the important locations,"
+          + "which include loop-heads, funtion-calls and function-exits.")
+  private boolean exportOnlyImporantLocations = false;
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
   private static final Joiner LINE_JOINER = Joiner.on('\n');
@@ -102,6 +108,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pfmgr;
   private final LogManager logger;
+  private final CFA cfa;
 
   public enum FormulaSplitter {
     LOCATION, // one formula per location: "(a=2&b=3)|(a=2&b=4)"
@@ -111,14 +118,15 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
   public StateToFormulaWriter(
       Configuration config, LogManager pLogger,
-      ShutdownNotifier shutdownNotifier, CFA cfa)
+      ShutdownNotifier shutdownNotifier, CFA pCfa)
           throws InvalidConfigurationException {
     config.inject(this);
     solver = Solver.create(config, pLogger, shutdownNotifier);
     logger = pLogger;
     fmgr = solver.getFormulaManager();
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger,
-        shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+        shutdownNotifier, pCfa, AnalysisDirection.FORWARD);
+    cfa = pCfa;
   }
 
   @Override
@@ -152,16 +160,32 @@ public class StateToFormulaWriter implements StatisticsProvider {
     SetMultimap<CFANode, FormulaReportingState> locationPredicates = HashMultimap.create();
     for (AbstractState state : pReachedSet) {
       CFANode location = extractLocation(state);
-
-      // In most cases we re-use only states at abstraction locations.
-      // TODO Add some filter-mechanism to export only them!
-
-      if (location != null) {
+      if (location != null && isImportantNode(location)) {
         FluentIterable<FormulaReportingState> formulaState = asIterable(state).filter(FormulaReportingState.class);
         locationPredicates.putAll(location, formulaState);
       }
+
     }
     write(locationPredicates, pAppendable);
+  }
+
+  /**
+   * Filter important program locations.
+   * In some cases we re-use only states at abstraction locations,
+   * which include loop-starts and function calls.
+   * We use a simple filter-mechanism to export only them!
+   */
+  private boolean isImportantNode(CFANode location) {
+    if (exportOnlyImporantLocations) {
+      return (cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().contains(location))
+          || location instanceof FunctionEntryNode
+          || location instanceof FunctionExitNode
+          || location.getLeavingSummaryEdge() != null
+          || location.getEnteringSummaryEdge() != null;
+    } else {
+      // all locations are important
+      return true;
+    }
   }
 
   /** write all formulas for a single program location. */

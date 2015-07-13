@@ -2248,6 +2248,10 @@ specification = no default value
 # PredicatePrecision.
 statesToFormulas.exportFile = no default value
 
+# export formulas for all program locations or just the important
+# locations,which include loop-heads, funtion-calls and function-exits.
+statesToFormulas.exportOnlyImporantLocations = false
+
 # instead of writing the exact state-representation as a single formula,
 # write its atoms as a list of formulas. Therefore we ignore operators for
 # conjunction and disjunction.
