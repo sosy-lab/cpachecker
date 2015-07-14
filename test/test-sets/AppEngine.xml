@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="540" memlimit="2000" cpuCores="2">
   <option name="-noout"/>
   <option name="-nolog"/>
@@ -27,22 +27,22 @@
   <option name="-setprop">cpa.conditions.global.memory.process=-1</option>
   <option name="-setprop">cpa.conditions.global.reached.size=-1</option>
 
-  <sourcefiles name="ControlFlowInteger">
+  <tasks name="ControlFlowInteger">
   	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="Loops">
+  <tasks name="Loops">
   	<includesfile>../programs/benchmarks/Loops.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="ProductLines">
+  <tasks name="ProductLines">
   	<includesfile>../programs/benchmarks/ProductLines.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="DeviceDrivers64">
+  <tasks name="DeviceDrivers64">
   	<option name="-setprop">analysis.machineModel=Linux64</option>
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
 	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
@@ -150,18 +150,18 @@
 	<exclude>../programs/benchmarks/ldv-consumption/linux-3.8-rc1-32_7a-drivers--net--ethernet--intel--e1000e--e1000e.ko-ldv_main1_true-unreach-call.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-consumption/linux-3.8-rc1-32_7a-drivers--scsi--mpt3sas--mpt3sas.ko-ldv_main4_false-unreach-call.cil.out.c</exclude>
 	<exclude>../programs/benchmarks/ldv-consumption/linux-3.8-rc1-32_7a-drivers--usb--core--usbcore.ko-ldv_main13_false-unreach-call.cil.out.c</exclude>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="Sequentialized">
+  <tasks name="Sequentialized">
   	<includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="Simple">
+  <tasks name="Simple">
   	<includesfile>../programs/benchmarks/Simple.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </sourcefiles>
+  </tasks>
 
   <rundefinition name="valueAnalysis-Simple">
   	<option name="-valueAnalysis-NoRefiner"></option>

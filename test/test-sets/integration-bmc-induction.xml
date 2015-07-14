@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="90" hardtimelimit="120" memlimit="3000" cpuCores="2">
   <option name="-noout"/>
   <option name="-heap">2000M</option>
@@ -7,11 +7,11 @@
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
       <exclude>../programs/simple/bitvectors/*</exclude>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
@@ -26,14 +26,14 @@
       <exclude>../programs/benchmarks/systemc/kundu2_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.04_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy2_false-unreach-call_false-termination.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*true-unreach-call*.cil.out.c</include>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</include>
       <option name="-skipRecursion"/>
       <option name="-64"/>
-    </sourcefiles>
+    </tasks>
     <option name="-bmc-induction"/>
     <option name="-setprop">cpa.predicate.solver=SMTINTERPOL</option>
   </rundefinition>

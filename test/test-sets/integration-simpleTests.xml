@@ -1,15 +1,15 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="10" memlimit="100" cpuCores="1">
   <option name="-noout"/>
   <option name="-heap">10M</option>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <include>../programs/simple/functionCall.c</include>
       <include>../programs/simple/loop1.c</include>
       <include>../programs/simple/uninitVars.cil.c</include>
-    </sourcefiles>
+    </tasks>
     <option name="-config">test/config/alwaysTopAnalysis.properties</option>
   </rundefinition>
 
