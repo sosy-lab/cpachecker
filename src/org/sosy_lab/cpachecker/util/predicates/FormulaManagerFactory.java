@@ -89,7 +89,7 @@ public class FormulaManagerFactory {
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
-  @Option(secure=true, name="solver.random-seed",
+  @Option(secure=true, name="solver.randomSeed",
       description = "Random seed for SMT solver.")
   private long randomSeed = 42;
 
