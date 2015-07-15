@@ -259,6 +259,8 @@ def _submitRun(run, benchmark, counter = 0):
         params['resultFilesPattern'] = benchmark.result_files_pattern;
     else:
         params['resultFilesPattern'] = ''
+    if benchmark.config.cloudPriority:
+        params['priority'] = benchmark.config.cloudPriority
 
     invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
