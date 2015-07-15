@@ -254,12 +254,12 @@ def _submitRun(run, benchmark, counter = 0):
         params['coreLimitation'] = limits[CORELIMIT]
     if benchmark.config.cpu_model:
         params['cpuModel'] = benchmark.config.cpu_model
-        
+
     if benchmark.result_files_pattern:
         params['resultFilesPattern'] = benchmark.result_files_pattern;
     else:
-        params['resultFilesPattern'] = '[]'
-    
+        params['resultFilesPattern'] = ''
+
     invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
