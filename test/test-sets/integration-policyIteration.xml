@@ -7,6 +7,7 @@
     <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=true</option>
     <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
     <option name="-setprop">cpa.stator.policy.unrollingRefinementThreshold=2</option>
+    <option name="-setprop">solver.z3.requireProofs=false</option>
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 

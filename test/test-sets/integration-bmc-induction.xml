@@ -35,6 +35,6 @@
       <option name="-64"/>
     </tasks>
     <option name="-bmc-induction"/>
-    <option name="-setprop">cpa.predicate.solver=SMTINTERPOL</option>
+    <option name="-setprop">solver.solver=SMTINTERPOL</option>
   </rundefinition>
 </benchmark>

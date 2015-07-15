@@ -69,7 +69,8 @@ import com.google.common.base.Predicate;
  * The preferred way to instantiate all of this is
  * {@link Solver#create(Configuration, LogManager, ShutdownNotifier)}.
  */
-@Options(prefix="cpa.predicate")
+@Options(deprecatedPrefix="cpa.predicate",
+         prefix="solver")
 public class FormulaManagerFactory {
 
   @VisibleForTesting
@@ -80,17 +81,16 @@ public class FormulaManagerFactory {
     PRINCESS
   }
 
-  @Option(secure=true, name="solver.logAllQueries",
+  @Option(secure=true,
       description = "Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
-  @Option(secure=true, name="solver.logfile",
+  @Option(secure=true,
       description = "Export solver queries in Smtlib format into a file.")
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
-  @Option(secure=true, name="solver.randomSeed",
-      description = "Random seed for SMT solver.")
+  @Option(secure=true, description = "Random seed for SMT solver.")
   private long randomSeed = 42;
 
   @Option(secure=true, description="Which SMT solver to use.")
@@ -171,7 +171,7 @@ public class FormulaManagerFactory {
       throw new InvalidConfigurationException("The SMT solver " + solver
           + " is not available on this machine because of missing libraries"
           + " (" + e.getMessage() + ")."
-          + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
+          + " You may experiment with SMTInterpol by setting solver.solver=SMTInterpol.", e);
     }
   }
 

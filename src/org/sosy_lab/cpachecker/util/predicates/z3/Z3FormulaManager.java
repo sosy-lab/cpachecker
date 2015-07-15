@@ -56,7 +56,8 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Splitter;
 
-@Options(prefix = "cpa.predicate.solver.z3")
+@Options(deprecatedPrefix="cpa.predicate.solver.z3",
+         prefix="solver.z3")
 public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
   @Option(secure=true, description = "simplify formulas when they are asserted in a solver.")
@@ -82,7 +83,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
 
-  @Options(prefix="cpa.predicate.solver.z3")
+  @Options(deprecatedPrefix="cpa.predicate.solver.z3",
+           prefix="solver.z3")
   public static class ExtraOptions {
     @Option(secure=true, description="Require proofs from SMT solver")
     boolean requireProofs = true;

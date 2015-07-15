@@ -16,7 +16,7 @@
   <option name="-setprop">analysis.algorithm.CBMC=false</option>
   <option name="-setprop">analysis.algorithm.proofCheck=false</option>
   <option name="-setprop">statistics.file=Statistics.txt</option>
-  <option name="-setprop">cpa.predicate.solver=smtinterpol</option>
+  <option name="-setprop">solver.solver=smtinterpol</option>
   <option name="-setprop">memorysafety.check=false</option>
   <option name="-setprop">limits.time.cpu=-1ns</option>
   <option name="-setprop">cpa.conditions.global.time.wall=-1</option>

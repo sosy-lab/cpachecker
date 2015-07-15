@@ -835,24 +835,20 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# This option sets the hard threshold for assignments (-1 for infinite). A
-# variable reaching this assignment threshold is not tracked anymore, even if
-# it is contained in the precision.
-cpa.conditions.path.assignments.hardThreshold = -1
+# sets the hard threshold for assignments (-1 for infinite), and it is upto,
+# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# value.
+cpa.conditions.path.assignments.hardThreshold = DISABLED
 
-# This option determines if there should be a single assignment state per
-# transition (more precise) or per path segment between assume edges (more
-# efficient).
-cpa.conditions.path.assignments.precise = true
+# determines if there should be one single assignment state per state,one per
+# path segment between assume edges, or a global one for the whole program.
+cpa.conditions.path.assignments.scope = STATE
+  enum:     [STATE, PATH, PROGRAM]
 
-# This option sets the soft threshold for assignments (-1 for infinite). The
-# semantics are that variables are tracked up to this threshold, even if not
-# being contained in the precison yet, and are removed once there are more
-# assignments for a variable then defined by this threshold. Once the
-# variable is found to be relevant, e.g., through refinement and
-# interpolation, the variable is tracked again, until reaching the  hard
-# threshold.
-cpa.conditions.path.assignments.softThreshold = -1
+# sets the soft threshold for assignments (-1 for infinite), and it is upto,
+# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# value.
+cpa.conditions.path.assignments.softThreshold = DISABLED
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -1214,11 +1210,6 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
-# Which solver to use specifically for interpolation (default is to use the
-# main one).
-cpa.predicate.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
-
 # export final loop invariants
 cpa.predicate.invariants.export = true
 
@@ -1452,61 +1443,6 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
-
-# Which SMT solver to use.
-cpa.predicate.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
-
-# improve sat-checks with additional constraints for UFs
-cpa.predicate.solver.checkUFs = false
-
-# Export solver queries in Smtlib format into a file.
-cpa.predicate.solver.logAllQueries = false
-cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
-
-# List of further options which will be passed to Mathsat in addition to the
-# default options. Format is 'key1=value1,key2=value2'
-cpa.predicate.solver.mathsat5.furtherOptions = ""
-
-# Load less stable optimizing version of mathsat5 solver.
-cpa.predicate.solver.mathsat5.loadOptimathsat5 = false
-
-# Random seed for SMT solver.
-cpa.predicate.solver.random-seed = 42
-
-# Double check generated results like interpolants and models whether they
-# are correct
-cpa.predicate.solver.smtinterpol.checkResults = false
-
-# List of further options which will be set to true for SMTInterpol in
-# addition to the default options. Format is 'option1,option2,option3'
-cpa.predicate.solver.smtinterpol.furtherOptions = []
-
-# log some solver actions, this may be slow!
-cpa.predicate.solver.useLogger = false
-
-# Activate replayable logging in Z3. The log can be given as an input to the
-# solver and replayed.
-cpa.predicate.solver.z3.log = no default value
-
-# Export solver queries in Smtlib2 format, there are small differences for
-# different solvers, choose target-solver.
-cpa.predicate.solver.z3.logger.target = Z3
-  allowed values: [Z3, MATHSAT5]
-
-# Ordering for objectives in the optimization context
-cpa.predicate.solver.z3.objectivePrioritizationMode = "box"
-  allowed values: [lex, pareto, box]
-
-# Engine to use for the optimization
-cpa.predicate.solver.z3.optimizationEngine = "basic"
-  allowed values: [basic, farkas, symba]
-
-# Require proofs from SMT solver
-cpa.predicate.solver.z3.requireProofs = true
-
-# simplify formulas when they are asserted in a solver.
-cpa.predicate.solver.z3.simplifyFormulas = false
 
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
@@ -2213,6 +2149,66 @@ realC.timelimit = 0ms
 # configuration will only be used if the previous configuration ended with a
 # matching condition.
 restartAlgorithm.configFiles = no default value
+
+# improve sat-checks with additional constraints for UFs
+solver.checkUFs = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in Smtlib format into a file.
+solver.logAllQueries = false
+solver.logfile = "smtquery.%03d.smt2"
+
+# List of further options which will be passed to Mathsat in addition to the
+# default options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# List of further options which will be set to true for SMTInterpol in
+# addition to the default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# log some solver actions, this may be slow!
+solver.useLogger = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Export solver queries in Smtlib2 format, there are small differences for
+# different solvers, choose target-solver.
+solver.z3.logger.target = Z3
+  allowed values: [Z3, MATHSAT5]
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# simplify formulas when they are asserted in a solver.
+solver.z3.simplifyFormulas = false
 
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
