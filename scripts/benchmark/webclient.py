@@ -26,6 +26,7 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
+import hashlib
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import base64
@@ -183,7 +184,7 @@ def stop():
 def _stop_run(runId):
     path = _webclient.path + "runs/" + runId
     try:
-        _request("DELETE", path, "", {}, 204)
+        _request("DELETE", path, "", {}, [200,204])
     except urllib2.HTTPError as e:
         logging.warn("Stopping of run {0} failed: {1}".format(runId, e.reason))
 
@@ -230,12 +231,12 @@ def _submitRunsParallel(runSet, benchmark):
 
 def _submitRun(run, benchmark, counter = 0):
 
-    programTexts = []
+    programTextHashs = []
     for programPath in run.sourcefiles:
-        with open(programPath, 'r') as programFile:
-            programText = programFile.read()
-            programTexts.append(programText)
-    params = {'programText': programTexts}
+        with open(programPath, 'rb') as programFile:
+            programTextHash = hashlib.sha1(programFile.read()).hexdigest()
+            programTextHashs.append(programTextHash)
+    params = {'programTextHash': programTextHashs}
 
     params['svnBranch'] = _svn_branch
     params['revision'] = _svn_revision
@@ -277,8 +278,24 @@ def _submitRun(run, benchmark, counter = 0):
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/"
 
-    return _request("POST", path, paramsCompressed, headers)
+    (runId, statusCode) = _request("POST", path, paramsCompressed, headers, [200, 412])
+    
+    # program files given as hash value are not known by the cloud system
+    if statusCode == 412 and counter < 1: 
+        headers = {"Content-Type": "application/octet-stream",
+               "Content-Encoding": "deflate"}
 
+        # upload all used program files
+        filePath = _webclient + "files/"
+        for programPath in run.sourcefiles:
+            with open(programPath, 'rb') as programFile:
+                compressedProgramText = zlib.compress(programFile.read(), 9)
+                _request('POST', filePath, compressedProgramText, headers, [200,204])
+                
+        # retry submission of run
+        return _submitRun(run, benchmark, counter + 1)
+    else:
+        return runId
 
 def _flushRuns():
     headers = {"Content-Type": "application/x-www-form-urlencoded",
@@ -289,7 +306,7 @@ def _flushRuns():
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/flush"
 
-    _request("POST", path, paramsCompressed, headers, expectedStatusCode=204)
+    _request("POST", path, paramsCompressed, headers, expectedStatusCodes=[200,204])
 
     logging.info("Run submission finished.")
 
@@ -387,9 +404,9 @@ def _isFinished(runID, benchmark):
     path = _webclient.path + "runs/" + runID + "/state"
 
     try:
-        state = _request("GET", path,"", headers).decode('utf-8')
+        (state, _) = _request("GET", path,"", headers)
 
-
+        state = state.decode('utf-8')
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
             return True
@@ -414,7 +431,7 @@ def _getAndHandleResult(runID, run, output_handler, benchmark):
     path = _webclient.path + "runs/" + runID + "/result"
 
     try:
-        zipContent = _request("GET", path, {}, headers)
+        (zipContent, _) = _request("GET", path, {}, headers)
     except urllib2.HTTPError as e:
         logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
         return False
@@ -534,7 +551,7 @@ def _parseFile(file):
 
     return values
 
-def _request(method, path, body, headers, expectedStatusCode=200):
+def _request(method, path, body, headers, expectedStatusCodes=[200]):
     connection = _get_connection()
 
     headers["Connection"] = "Keep-Alive"
@@ -558,8 +575,8 @@ def _request(method, path, body, headers, expectedStatusCode=200):
             else:
                 raise
 
-        if response.status == expectedStatusCode:
-            return response.read()
+        if response.status in expectedStatusCodes:
+            return (response.read(), response.getcode())
 
         else:
             message = ""
