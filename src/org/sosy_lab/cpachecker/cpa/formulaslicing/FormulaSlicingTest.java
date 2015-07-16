@@ -1,3 +1,26 @@
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import java.util.ArrayList;
@@ -78,7 +101,7 @@ public class FormulaSlicingTest {
     bfmgr = fmgr.getBooleanFormulaManager();
     ufmgr = factory.getFormulaManager().getUnsafeFormulaManager();
   }
-  
+
   @Test public void blah() throws Exception {
     // todo: read in from the file instead.
     CFA cfa = toCFA(
@@ -87,94 +110,19 @@ public class FormulaSlicingTest {
         "int p;",
         "int nondet;",
         "int nondet2;",
-        "if (nondet) {",
-        "y = 100;",
-        "p = 1;",
-        "} else {",
-        "p = 2;",
-        "}"
+        "if (nondet) {",  "y = 100;", "p = 1", "}",
+        "} else {", "p = 2;", "}"
     );
     logger.log(Level.INFO, "CFA = ", cfa);
     PathFormula pf = toPathFormula(cfa);
     logger.log(Level.INFO, "PathFormula = ", pf);
     BooleanFormula bf = pf.getFormula();
-    BooleanFormula tseitin = bfmgr.applyTactic(bf, Tactic.CNF);
-    logger.log(Level.INFO, "In tseitin: ", tseitin);
 
-    BooleanFormula negated = bfmgr.not(tseitin);
-
+    BooleanFormula negated = bfmgr.not(bf);
     BooleanFormula negatedNNF = bfmgr.applyTactic(negated, Tactic.NNF);
+
     logger.log(Level.INFO, "Negated in NNF: ", negatedNNF);
     logger.flush();
-  }
-
-  /**
-   * Aim: return a formula in CNF (conjunction over keys of the returned map).
-   * Maps to true: inductive, maps to false: not really.
-   */
-  Map<BooleanFormula, Boolean> entryPoint(
-      PathFormula input,
-      List<CFAEdge> loopingEdges
-  ) throws Exception {
-    SSAMap ssa = input.getSsa();
-    BooleanFormula f, cnf;
-
-    f = input.getFormula();
-
-    // todo: perform cheap existential quantifier elimination first.
-    BooleanFormula noNonFinal = OverApproximationVisitor.bind(fmgr, ssa).visit(f);
-
-    // Transform to CNF.
-    cnf = bfmgr.applyTactic(f, Tactic.CNF);
-
-    // Now we perform the same filtering step on CNF.
-    Verify.verify(bfmgr.isAnd(cnf));
-    List<BooleanFormula> clauses = new ArrayList<>();
-    for (int i=0; i<ufmgr.getArity(cnf); i++) {
-      clauses.add((BooleanFormula) ufmgr.getArg(cnf, i));
-    }
-
-    // todo: this preFiltering has to be done on the original formula,
-    // which is not in the CNF encoding.
-    final Map<BooleanFormula, Boolean> m = preFiltering(clauses, ssa);
-    Set<BooleanFormula> invariantCandidates = Maps.filterKeys(m,
-        new Predicate<BooleanFormula>() {
-          public boolean apply(BooleanFormula input) {
-            return m.get(input);
-          }
-        }).keySet();
-
-    // Negation operates only on [invariantCandidates]
-
-
-    return null;
-  }
-
-
-  /**
-   * BooleanFormula (each clause) -> mapped to true (only has final vars)
-   *                              -> false otherwise
-   */
-  private Map<BooleanFormula, Boolean> preFiltering(
-      List<BooleanFormula> clauses,
-      final SSAMap ssa)
-      throws Exception {
-    return Maps.toMap(clauses, new Function<BooleanFormula, Boolean>() {
-      public Boolean apply(BooleanFormula input) {
-        return hasOnlyFinalVars(input, ssa);
-      }
-    });
-  }
-
-  boolean hasOnlyFinalVars(BooleanFormula f, SSAMap ssa) {
-    for (String s : fmgr.extractFunctionNames(f, true)) {
-      Pair<String, Integer> p = FormulaManagerView.parseName(s);
-      if (p.getSecond() != null &&
-          p.getSecond() < ssa.getIndex(p.getFirst())) {
-        return false;
-      }
-    }
-    return true;
   }
 
   private PathFormula toPathFormula(CFA cfa) throws Exception {
