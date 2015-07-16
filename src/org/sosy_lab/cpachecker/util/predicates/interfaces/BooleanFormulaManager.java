@@ -57,6 +57,11 @@ public interface BooleanFormulaManager {
    */
   public BooleanFormula equivalence(BooleanFormula formula1, BooleanFormula formula2);
 
+  /**
+   * @return {@code formula1 => formula2}.
+   */
+  public BooleanFormula implication(BooleanFormula formula1, BooleanFormula formula2);
+
   /** Check, if the formula is of the form "a==b" with two boolean args. */
   public boolean isEquivalence(BooleanFormula formula);
 

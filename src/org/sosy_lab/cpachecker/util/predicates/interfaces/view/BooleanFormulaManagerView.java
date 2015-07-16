@@ -163,16 +163,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
 
     FormulaType<T> targetType = getFormulaType(pF);
-    return Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch));
+    return Triple.of(cond, wrap(targetType, thenBranch),
+        wrap(targetType, elseBranch));
   }
 
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(pFormula);
-  }
-
-  public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {
-    return or(not(p), q);
   }
 
   @Override
@@ -183,6 +180,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
     return manager.equivalence(pFormula1, pFormula2);
+  }
+
+  @Override
+  public BooleanFormula implication(BooleanFormula formula1, BooleanFormula formula2) {
+    return manager.implication(formula1, formula2);
   }
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {

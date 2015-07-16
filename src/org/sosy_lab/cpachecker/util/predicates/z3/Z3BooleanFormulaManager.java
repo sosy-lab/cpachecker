@@ -112,6 +112,11 @@ class Z3BooleanFormulaManager extends AbstractBooleanFormulaManager<Long, Long, 
   }
 
   @Override
+  protected Long implication(Long pBits1, Long pBits2) {
+    return mk_implies(z3context, pBits1, pBits2);
+  }
+
+  @Override
   protected boolean isTrue(Long pParam) {
     return isOP(z3context, pParam, Z3_OP_TRUE);
   }

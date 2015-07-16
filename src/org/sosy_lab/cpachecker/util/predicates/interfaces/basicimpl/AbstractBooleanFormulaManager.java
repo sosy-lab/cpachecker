@@ -189,6 +189,17 @@ public abstract class AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv>
   }
   protected abstract TFormulaInfo equivalence(TFormulaInfo bits1, TFormulaInfo bits2);
 
+  @Override
+  public final BooleanFormula implication(BooleanFormula pBits1, BooleanFormula pBits2) {
+    TFormulaInfo param1 = extractInfo(pBits1);
+    TFormulaInfo param2 = extractInfo(pBits2);
+    return wrap(implication(param1, param2));
+  }
+
+  protected TFormulaInfo implication(TFormulaInfo bits1, TFormulaInfo bits2) {
+    return or(not(bits1), bits2);
+  }
+
 
   @Override
   public final boolean isTrue(BooleanFormula pBits) {
