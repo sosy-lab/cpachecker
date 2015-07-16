@@ -143,18 +143,26 @@ public interface BooleanFormulaManager {
 
   /** Strategies for transforming the formula AST. */
   enum Tactic {
-    NNF("nnf"),
-    CNF("tseitin-cnf")
+    NNF("nnf", "Convert the formula to NNF"),
+    CNF("tseitin-cnf", "Convert the formula to CNF using Tseitin encoding"),
+    QE_LIGHT("qe-light", "Perform light quantifier elimination"),
+    QE("qe", "Perform quantifier elimination")
     ;
 
     private final String name;
+    private final String description;
 
-    Tactic(String pName) {
+    Tactic(String pName, String pDescription) {
       name = pName;
+      description = pDescription;
     }
 
     public String getTacticName() {
       return name;
+    }
+
+    public String getDescription() {
+      return description;
     }
   }
 }

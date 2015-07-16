@@ -113,8 +113,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     statistics = new PolicyIterationStatistics(pConfig);
     TemplateManager templateManager = new TemplateManager(pLogger, pConfig, cfa,
         statistics);
-    FormulaSlicingManager formulaSlicingManager = new FormulaSlicingManager(
-        pLogger, formulaManager);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
             formulaManager, pLogger, templateManager, pathFormulaManager);

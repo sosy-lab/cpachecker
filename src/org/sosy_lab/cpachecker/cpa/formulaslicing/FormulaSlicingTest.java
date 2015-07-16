@@ -1,8 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -28,15 +30,20 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager.Tactic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /**
  * TODO: Class Description
@@ -47,6 +54,7 @@ public class FormulaSlicingTest {
   private PathFormulaManager pfmgr;
   private FormulaManagerView fmgr;
   private BooleanFormulaManager bfmgr;
+  private UnsafeFormulaManager ufmgr;
   
   @Before public void setUp() throws Exception {
     Configuration config = TestDataTools.configurationForTest().setOptions(
@@ -68,9 +76,11 @@ public class FormulaSlicingTest {
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
         MachineModel.LINUX32, AnalysisDirection.FORWARD);
     bfmgr = fmgr.getBooleanFormulaManager();
+    ufmgr = factory.getFormulaManager().getUnsafeFormulaManager();
   }
   
   @Test public void blah() throws Exception {
+    // todo: read in from the file instead.
     CFA cfa = toCFA(
         "int x = 5;",
         "int y = 10;",
@@ -78,10 +88,10 @@ public class FormulaSlicingTest {
         "int nondet;",
         "int nondet2;",
         "if (nondet) {",
-          "y = 100;",
-          "p = 1;",
+        "y = 100;",
+        "p = 1;",
         "} else {",
-          "p = 2;",
+        "p = 2;",
         "}"
     );
     logger.log(Level.INFO, "CFA = ", cfa);
@@ -99,20 +109,72 @@ public class FormulaSlicingTest {
   }
 
   /**
-   *
-   * Compute the negation of the {@code state} after {@code transition}.
+   * Aim: return a formula in CNF (conjunction over keys of the returned map).
+   * Maps to true: inductive, maps to false: not really.
    */
-  private PathFormula negatedOverapprox(
-      PathFormula state,
-      // todo: instead a list?
-      CFAEdge transition) throws Exception {
-    BooleanFormula stateFormula = state.getFormula();
-    BooleanFormula stateFormulaNNF = bfmgr.applyTactic(stateFormula, Tactic.NNF);
-    BooleanFormula stateFormulaCNF = bfmgr.applyTactic(stateFormulaNNF, Tactic.CNF);
+  Map<BooleanFormula, Boolean> entryPoint(
+      PathFormula input,
+      List<CFAEdge> loopingEdges
+  ) throws Exception {
+    SSAMap ssa = input.getSsa();
+    BooleanFormula f, cnf;
+
+    f = input.getFormula();
+
+    // todo: perform cheap existential quantifier elimination first.
+    BooleanFormula noNonFinal = OverApproximationVisitor.bind(fmgr, ssa).visit(f);
+
+    // Transform to CNF.
+    cnf = bfmgr.applyTactic(f, Tactic.CNF);
+
+    // Now we perform the same filtering step on CNF.
+    Verify.verify(bfmgr.isAnd(cnf));
+    List<BooleanFormula> clauses = new ArrayList<>();
+    for (int i=0; i<ufmgr.getArity(cnf); i++) {
+      clauses.add((BooleanFormula) ufmgr.getArg(cnf, i));
+    }
+
+    // todo: this preFiltering has to be done on the original formula,
+    // which is not in the CNF encoding.
+    final Map<BooleanFormula, Boolean> m = preFiltering(clauses, ssa);
+    Set<BooleanFormula> invariantCandidates = Maps.filterKeys(m,
+        new Predicate<BooleanFormula>() {
+          public boolean apply(BooleanFormula input) {
+            return m.get(input);
+          }
+        }).keySet();
+
+    // Negation operates only on [invariantCandidates]
 
 
     return null;
+  }
 
+
+  /**
+   * BooleanFormula (each clause) -> mapped to true (only has final vars)
+   *                              -> false otherwise
+   */
+  private Map<BooleanFormula, Boolean> preFiltering(
+      List<BooleanFormula> clauses,
+      final SSAMap ssa)
+      throws Exception {
+    return Maps.toMap(clauses, new Function<BooleanFormula, Boolean>() {
+      public Boolean apply(BooleanFormula input) {
+        return hasOnlyFinalVars(input, ssa);
+      }
+    });
+  }
+
+  boolean hasOnlyFinalVars(BooleanFormula f, SSAMap ssa) {
+    for (String s : fmgr.extractFunctionNames(f, true)) {
+      Pair<String, Integer> p = FormulaManagerView.parseName(s);
+      if (p.getSecond() != null &&
+          p.getSecond() < ssa.getIndex(p.getFirst())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private PathFormula toPathFormula(CFA cfa) throws Exception {
