@@ -286,7 +286,7 @@ def _submitRun(run, benchmark, counter = 0):
                "Content-Encoding": "deflate"}
 
         # upload all used program files
-        filePath = _webclient + "files/"
+        filePath = _webclient.path + "files/"
         for programPath in run.sourcefiles:
             with open(programPath, 'rb') as programFile:
                 compressedProgramText = zlib.compress(programFile.read(), 9)
