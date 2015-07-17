@@ -155,6 +155,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             removed = true;
             break; // break out of the variable selection loop.
           } else {
+
+            // Try to abstract away some other element.
             continue;
           }
         }
