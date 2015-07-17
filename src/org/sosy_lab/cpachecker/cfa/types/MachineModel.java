@@ -348,11 +348,8 @@ public enum MachineModel {
       if (arrayLength instanceof CIntegerLiteralExpression) {
         int length = ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
 
-        Integer sizeOfType = model.getSizeof(pArrayType.getType());
-
-        if (sizeOfType != null) {
-          return length * sizeOfType;
-        }
+        int sizeOfType = model.getSizeof(pArrayType.getType());
+        return length * sizeOfType;
       }
 
       // Treat arrays with variable length as pointer.
