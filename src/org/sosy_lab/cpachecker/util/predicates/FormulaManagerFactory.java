@@ -49,7 +49,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -147,17 +146,7 @@ public class FormulaManagerFactory {
           return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
 
       case Z3:
-        try {
-          return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
-        } catch (UnsatisfiedLinkError e) {
-          if (e.getMessage().contains("libfoci.so")) {
-            throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
-                + " Please download it from http://www.kenmcmil.com/foci2/ for your architecture"
-                + " and put it into " + NativeLibraries.getNativeLibraryPath() + "/.", e);
-          } else {
-            throw e;
-          }
-        }
+        return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
 
       case PRINCESS:
         // TODO: pass randomSeed to Princess
