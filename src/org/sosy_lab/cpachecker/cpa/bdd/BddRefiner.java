@@ -50,13 +50,18 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Multimap;
 
@@ -69,6 +74,8 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
    * refiner used for value-analysis interpolation refinement
    */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
+
+  private final FeasibilityChecker<ValueAnalysisState> checker;
 
   private final CFA cfa;
 
@@ -103,10 +110,19 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
           throws CPAException, InvalidConfigurationException {
     Configuration config  = pBddCpa.getConfiguration();
     LogManager logger     = pBddCpa.getLogger();
+    CFA cfa               = pBddCpa.getCFA();
 
     pBddCpa.injectRefinablePrecision();
 
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+
     return new BddRefiner(
+        feasibilityChecker,
+        strongestPostOperator,
         config,
         logger,
         pBddCpa.getShutdownNotifier(),
@@ -115,6 +131,8 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   }
 
   protected BddRefiner(
+      final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -122,7 +140,13 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       final CFA pCfa) throws InvalidConfigurationException {
     super(pCpa);
 
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
+    checker = pFeasibilityChecker;
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(
+        pFeasibilityChecker,
+        pStrongestPostOperator,
+        new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig),
+        pConfig, pLogger, pShutdownNotifier, pCfa);
+
     config                = pConfig;
     cfa                   = pCfa;
     logger                = pLogger;
@@ -211,15 +235,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, config);
-
+  boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
       return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
   }
 }

@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -113,6 +114,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
+  private boolean refineablePrecisionSet = false;
   private ValueAnalysisConcreteErrorPathAllocator errorPathAllocator;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
@@ -227,8 +229,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null) {
+    if (initialPrecisionFile == null && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      refineablePrecisionSet = true;
     }
   }
 
@@ -297,6 +300,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     pStatsCollection.add(statistics);
     writer.collectStatistics(pStatsCollection);
     precisionAdjustment.collectStatistics(pStatsCollection);
+    transferRelation.collectStatistics(pStatsCollection);
   }
 
   public ValueAnalysisCPAStatistics getStats() {

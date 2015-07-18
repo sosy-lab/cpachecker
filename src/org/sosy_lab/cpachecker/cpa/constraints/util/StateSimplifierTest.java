@@ -25,14 +25,15 @@ package org.sosy_lab.cpachecker.cpa.constraints.util;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
-import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -52,7 +53,7 @@ public class StateSimplifierTest {
       new LogManagerWithoutDuplicates(TestLogManager.getInstance());
 
   private final MachineModel machineModel = MachineModel.LINUX32;
-  private final StateSimplifier simplifier = new StateSimplifier(machineModel, logger);
+  private final StateSimplifier simplifier;
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
@@ -85,6 +86,10 @@ public class StateSimplifierTest {
   private final MemoryLocation group1MemLoc2 = MemoryLocation.valueOf("b", 0);
   private final MemoryLocation group2MemLoc1 = MemoryLocation.valueOf("c", 0);
   private final MemoryLocation group2MemLoc2 = MemoryLocation.valueOf("d", 0);
+
+  public StateSimplifierTest() throws InvalidConfigurationException {
+    simplifier = new StateSimplifier(machineModel, logger, Configuration.defaultConfiguration());
+  }
 
 
   @Test

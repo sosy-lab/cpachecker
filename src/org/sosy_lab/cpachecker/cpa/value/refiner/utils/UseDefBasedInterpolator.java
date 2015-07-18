@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -91,7 +92,12 @@ public class UseDefBasedInterpolator {
    * @param pUseDefRelation
    * @param pMachineModel
    */
-  public UseDefBasedInterpolator(LogManager pLogger, ARGPath pSlicedPrefix, UseDefRelation pUseDefRelation, MachineModel pMachineModel) {
+  public UseDefBasedInterpolator(
+      final LogManager pLogger,
+      final ARGPath pSlicedPrefix,
+      final UseDefRelation pUseDefRelation,
+      final MachineModel pMachineModel
+  ) {
     slicedPrefix   = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel   = pMachineModel;
@@ -163,6 +169,7 @@ public class UseDefBasedInterpolator {
     HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
+
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
         useDefInterpolant.put(memoryLocation, UnknownValue.getInstance());
       }

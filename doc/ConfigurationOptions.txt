@@ -862,6 +862,31 @@ cpa.conditions.path.length.limit = -1
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
 
+# Type of less-or-equal operator to use
+cpa.constraints.lessOrEqualType = SUBSET
+  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+
+# Type of merge operator to use
+cpa.constraints.mergeType = SEP
+  enum:     [SEP, JOIN_FITTING_CONSTRAINT]
+
+# Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
+# is used.
+cpa.constraints.refinement.precisionType = CONSTRAINTS
+  enum:     [CONSTRAINTS, LOCATION]
+
+# Whether to remove constraints that can't add any more information
+# toanalysis during simplification
+cpa.constraints.removeOutdated = true
+
+# Whether to remove trivial constraints from constraints states during
+# simplification
+cpa.constraints.removeTrivial = false
+
+# When to check the satisfiability of constraints
+cpa.constraints.satCheckStrategy = AT_ASSUME
+  enum:     [AT_ASSUME, AT_TARGET]
+
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
   allowed values: [sep, join]
@@ -1759,6 +1784,11 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# Whether to replace symbolic values with a concrete value when only one
+# value is possible for an assumption to be true (e.g. for (x == 1) set x to
+# 1, even if x is a symbolic expression).
+cpa.value.assignSymbolicAssumptionVars = false
+
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
@@ -1828,7 +1858,7 @@ cpa.value.refinement.exportInterpolationTree = "NEVER"
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 
-# heuristic to sort targets based on the quality of interpolants deriveable
+# heuristic to sort targets based on the quality of interpolants derivable
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
@@ -1856,6 +1886,8 @@ cpa.value.refinement.prefixPreference = DOMAIN_GOOD_SHORT
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
+cpa.value.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
 cpa.value.refinement.restart = ROOT
   enum:     [ROOT, PIVOT, COMMON]
 
@@ -1870,15 +1902,34 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# Whether to adopt definite assignments computed by the ConstraintsCPA
+cpa.value.symbolic.adoptDefinites = true
+
+# Default size of arrays whose length can't be determined.
+cpa.value.symbolic.defaultArraySize = 20
+
 # If this option is set to true, an own symbolic identifier is assigned to
 # each array slot when handling non-deterministic arrays of fixed length. If
 # the length of the array can't be determined, it won't be handled in either
 # cases.
 cpa.value.symbolic.handleArrays = false
 
+# Whether to handle non-deterministic pointers in symbolic value analysis.
+cpa.value.symbolic.handlePointers = true
+
 # If this option is set to true, an own symbolic identifier is assigned to
-# each struct member when handling non-determinstic structs.
-cpa.value.symbolic.handleStructs = false
+# each struct member when handling non-deterministic structs.
+cpa.value.symbolic.handleStructs = true
+
+# Whether to try to not use any constraints in refinement
+cpa.value.symbolic.refinement.avoidConstraints = true
+
+# The refinement strategy to use
+cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+
+# Whether to simplify symbolic expressions, if possible.
+cpa.value.symbolic.simplifySymbolics = true
 
 # Use symbolic values. This allows tracking of non-deterministic values.
 # Symbolic values should always be used in conjunction with ConstraintsCPA.

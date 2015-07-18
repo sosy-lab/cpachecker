@@ -23,41 +23,31 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -65,17 +55,21 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
+import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -85,69 +79,34 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.value.refinement")
-public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
+public class ValueAnalysisRefiner
+    extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
-      description = "heuristic to sort targets based on the quality of interpolants deriveable from them")
-  private boolean itpSortedTargets = false;
-
-  @Option(
-      secure = true,
       description = "whether or not to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
-
-  @Option(secure = true, description = "when to export the interpolation tree"
-      + "\nNEVER:   never export the interpolation tree"
-      + "\nFINAL:   export the interpolation tree once after each refinement"
-      + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
-      values = { "NEVER", "FINAL", "ALWAYS" })
-  private String exportInterpolationTree = "NEVER";
-
-  @Option(secure = true, description = "export interpolation trees to this file template")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
-
-  protected final LogManager logger;
-
-  private ValueAnalysisPathInterpolator interpolator;
-
-  private ValueAnalysisFeasibilityChecker checker;
-
-  private ValueAnalysisPrefixProvider prefixProvider;
-
-  private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
-
-  private PrefixSelector classifier;
-
-  private int previousErrorPathId = -1;
-
-  /**
-   * keep log of feasible targets that were already found
-   */
-  private final Set<ARGState> feasibleTargets = new HashSet<>();
 
   /**
    * keep log of previous refinements to identify repeated one
    */
   private final Set<Integer> previousRefinementIds = new HashSet<>();
 
-  // statistics
-  private final StatCounter refinementCounter = new StatCounter("Number of refinements");
-  private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
-  private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
+  private final ValueAnalysisFeasibilityChecker checker;
+
+  private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
+
+  // Statistics
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
 
@@ -161,117 +120,95 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(valueAnalysisCpa.getConfiguration(),
-        valueAnalysisCpa.getLogger(),
+    final LogManager logger = valueAnalysisCpa.getLogger();
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final ValueAnalysisFeasibilityChecker checker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
+
+    final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
+        new ValueAnalysisPrefixProvider(logger, cfa, config);
+    final PrefixSelector prefixSelector = new PrefixSelector(cfa.getVarClassification(),
+                                                             cfa.getLoopStructure());
+
+    ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(
+        checker,
+        strongestPostOp,
+        new SortingPathExtractor(prefixProvider,
+                                 prefixSelector,
+                                 logger, config),
+        prefixProvider,
+        config,
+        logger,
         valueAnalysisCpa.getShutdownNotifier(),
-        valueAnalysisCpa.getCFA());
+        cfa);
 
     return refiner;
   }
 
-  ValueAnalysisRefiner(final Configuration pConfig, final LogManager pLogger,
+  ValueAnalysisRefiner(
+      final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final PathExtractor pPathExtractor,
+      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
+    super(pFeasibilityChecker,
+        new ValueAnalysisPathInterpolator(pFeasibilityChecker,
+            pStrongestPostOperator,
+            pPrefixProvider,
+            pConfig, pLogger, pShutdownNotifier, pCfa),
+        ValueAnalysisInterpolantManager.getInstance(),
+        pPathExtractor,
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pCfa);
+
     pConfig.inject(this, ValueAnalysisRefiner.class);
 
-    logger = pLogger;
-
-    interpolator   = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker        = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
-    prefixProvider = new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig);
-    classifier     = new PrefixSelector(pCfa.getVarClassification(), pCfa.getLoopStructure());
-
+    checker = pFeasibilityChecker;
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
   }
 
   @Override
-  public boolean performRefinement(final ReachedSet pReached)
-      throws CPAException, InterruptedException {
-    return performRefinement(new ARGReachedSet(pReached)).isSpurious();
-  }
-
-  public CounterexampleInfo performRefinement(final ARGReachedSet pReached)
-      throws CPAException, InterruptedException {
-    Collection<ARGState> targets = getTargetStates(pReached);
-    List<ARGPath> targetPaths = getTargetPaths(targets);
-
-    // fail hard on a repeated counterexample, this is most definitively a bug
-    if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPaths.get(0));
-    }
-
-    return performRefinement(pReached, targets, targetPaths);
-  }
-
-  public CounterexampleInfo performRefinement(final ARGReachedSet pReached, ARGPath targetPath)
-      throws CPAException, InterruptedException {
-    Collection<ARGState> targets = Collections.singleton(targetPath.getLastState());
-
-    // if the target path is given from outside, do not fail hard on a repeated counterexample:
-    // this can happen when the predicate-analysis refinement returns back-to-back target paths
-    // that are feasible under predicate-analysis semantics and hands those into the value-analysis
-    // refiner, where the in-between value-analysis refinement happens to only affect paths in a
-    // (ABE) block, which may not be visible when constructing the target path in the next refinement.
-    if (!madeProgress(targetPath)) {
-      logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
-          "so instead, refiner uses an error path extracted from the reachset.");
-      targetPath = getTargetPaths(targets).get(0);
-    }
-
-    return performRefinement(pReached, targets, Lists.newArrayList(targetPath));
-  }
-
-  private CounterexampleInfo performRefinement(final ARGReachedSet pReached,
-      Collection<ARGState> targets,
-      List<ARGPath> targetPaths)
-          throws RefinementFailedException, CPAException, InterruptedException {
-
-    logger.log(Level.FINEST, "performing refinement ...");
-
-    refinementTime.start();
-    refinementCounter.inc();
-    numberOfTargets.setNextValue(targets.size());
-
-    CounterexampleInfo cex = isAnyPathFeasible(pReached, targetPaths);
-
-    if (cex.isSpurious()) {
-      refineUsingInterpolants(pReached, obtainInterpolants(targetPaths));
-    }
-
-    refinementTime.stop();
-
-    return cex;
-  }
-
-  private void refineUsingInterpolants(final ARGReachedSet pReached, ValueAnalysisInterpolationTree interpolationTree) {
-
+  protected void refineUsingInterpolants(
+      final ARGReachedSet pReached,
+      final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
+  ) {
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
-    Collection<ARGState> refinementRoots = interpolationTree.obtainRefinementRoots(restartStrategy);
+    Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
     for (ARGState root : refinementRoots) {
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
-      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(interpolationTree.extractPrecisionIncrement(root).values())) {
+      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
+          pInterpolationTree.extractPrecisionIncrement(root).values())) {
         root = relocateRepeatedRefinementRoot(root);
       }
 
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
-          .withIncrement(interpolationTree.extractPrecisionIncrement(root)));
+          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
-        precisions.add(mergePredictePrecisionsForSubgraph(root, pReached));
+        precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
       }
 
       refinementInformation.put(root, precisions);
     }
 
-    for (Map.Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+    for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
       List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
 
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
@@ -283,75 +220,15 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  private ValueAnalysisInterpolationTree obtainInterpolants(List<ARGPath> targetsPaths) throws CPAException,
-      InterruptedException {
-    ValueAnalysisInterpolationTree interpolationTree = createInterpolationTree(targetsPaths);
-
-    while (interpolationTree.hasNextPathForInterpolation()) {
-      performPathInterpolation(interpolationTree);
-    }
-
-    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("FINAL")
-        && !exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
-    }
-    return interpolationTree;
-  }
-
-  /**
-   * This method creates the interpolation tree. As there is only a single target, it is irrelevant
-   * whether to use top-down or bottom-up interpolation, as the tree is degenerated to a list.
-   */
-  protected ValueAnalysisInterpolationTree createInterpolationTree(List<ARGPath> targetsPaths) {
-    return new ValueAnalysisInterpolationTree(logger, targetsPaths, true);
-  }
-
   private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
     return Precisions.extractPrecisionByType(pReached.asReachedSet()
         .getPrecision(pReached.asReachedSet().getFirstState()), PredicatePrecision.class) != null;
   }
 
-  private void performPathInterpolation(ValueAnalysisInterpolationTree interpolationTree) throws CPAException,
-      InterruptedException {
-    ARGPath errorPath = interpolationTree.getNextPathForInterpolation();
-
-    if (errorPath == ValueAnalysisInterpolationTree.EMPTY_PATH) {
-      logger.log(Level.FINEST, "skipping interpolation,"
-          + " because false interpolant on path to target state");
-      return;
-    }
-
-    ValueAnalysisInterpolant initialItp = interpolationTree.getInitialInterpolantForPath(errorPath);
-
-    if (isInitialInterpolantTooWeak(interpolationTree.getRoot(), initialItp, errorPath)) {
-      errorPath = ARGUtils.getOnePathTo(errorPath.getLastState());
-      initialItp = ValueAnalysisInterpolant.createInitial();
-    }
-
-    logger.log(Level.FINEST, "performing interpolation, starting at ", errorPath.getFirstState().getStateId(),
-        ", using interpolant ", initialItp);
-
-    interpolationTree.addInterpolants(interpolator.performInterpolation(errorPath, initialItp));
-
-    if (interpolationTreeExportFile != null && exportInterpolationTree.equals("ALWAYS")) {
-      interpolationTree.exportToDot(interpolationTreeExportFile, refinementCounter.getValue());
-    }
-  }
-
-  private boolean isInitialInterpolantTooWeak(ARGState root, ValueAnalysisInterpolant initialItp, ARGPath errorPath)
-      throws CPAException, InterruptedException {
-
-    // if the first state of the error path is the root, the interpolant cannot be to weak
-    if (errorPath.getFirstState() == root) {
-      return false;
-    }
-
-    // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
-  }
-
-  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(final ARGState pRefinementRoot,
-      final ARGReachedSet pReached) {
+  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final ARGReachedSet pReached
+  ) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
@@ -374,8 +251,10 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
    * @return a new predicate precision containing all predicate precision from
    * the subgraph below the refinement root.
    */
-  private PredicatePrecision mergePredictePrecisionsForSubgraph(final ARGState pRefinementRoot,
-      final ARGReachedSet pReached) {
+  private PredicatePrecision mergePredicatePrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final ARGReachedSet pReached
+  ) {
 
     PredicatePrecision mergedPrecision = PredicatePrecision.empty();
 
@@ -394,7 +273,8 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
       ARGState state) {
-    return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
+    return (VariableTrackingPrecision) Precisions
+        .asIterable(pReached.asReachedSet().getPrecision(state))
         .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
         .get(0);
   }
@@ -520,197 +400,25 @@ public class ValueAnalysisRefiner implements Refiner, StatisticsProvider {
     return newRefinementRoot;
   }
 
-  private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPathId == -1 || previousErrorPathId != obtainErrorPathId(path));
-
-    previousErrorPathId = obtainErrorPathId(path);
-
-    return progress;
-  }
-
-  private CounterexampleInfo isAnyPathFeasible(final ARGReachedSet pReached, final Collection<ARGPath> errorPaths)
-      throws CPAException, InterruptedException {
-
-    ARGPath feasiblePath = null;
-    for (ARGPath currentPath : errorPaths) {
-
-      if (isErrorPathFeasible(currentPath)) {
-        if(feasiblePath == null) {
-          previousErrorPathId = obtainErrorPathId(currentPath);
-          feasiblePath = currentPath;
-        }
-
-        feasibleTargets.add(currentPath.getLastState());
-      }
-    }
-
-    // remove all other target states, so that only one is left (for CEX-checker)
-    if (feasiblePath != null) {
-      for (ARGPath others : errorPaths) {
-        if (others != feasiblePath) {
-          pReached.removeSubtree(others.getLastState());
-        }
-      }
-
-      logger.log(Level.FINEST, "found a feasible counterexample");
-      return CounterexampleInfo.feasible(feasiblePath, createModel(feasiblePath));
-    }
-
-    return CounterexampleInfo.spurious();
-  }
-
-  boolean isErrorPathFeasible(final ARGPath errorPath)
-      throws CPAException, InterruptedException {
-    return checker.isFeasible(errorPath);
-  }
-
   /**
    * This method creates a model for the given error path.
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InvalidConfigurationException
    * @throws InterruptedException
    * @throws CPAException
    */
-  private RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+  @Override
+  protected RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {
     return concreteErrorPathAllocator.allocateAssignmentsToPath(checker.evaluate(errorPath));
   }
 
-  /**
-   * This method returns the list of paths to the target states, sorted by the
-   * length of the paths, in ascending order.
-   *
-   * @param targetStates the target states for which to get the target paths
-   * @return the list of paths to the target states
-   */
-  protected List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
-    List<ARGPath> errorPaths = new ArrayList<>(targetStates.size());
-
-    for (ARGState target : targetStates) {
-      errorPaths.add(ARGUtils.getOnePathTo(target));
-    }
-
-    return errorPaths;
-  }
-
-  /**
-   * This method returns an unsorted, non-empty collection of target states
-   * found during the analysis.
-   *
-   * @param pReached the set of reached states
-   * @return the target states
-   * @throws RefinementFailedException
-   */
-  private Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
-
-    // sort the list, to either favor shorter paths or better interpolants
-    Comparator<ARGState> comparator = new Comparator<ARGState>() {
-      @Override
-      public int compare(ARGState target1, ARGState target2) {
-        try {
-          ARGPath path1 = ARGUtils.getOnePathTo(target1);
-          ARGPath path2 = ARGUtils.getOnePathTo(target2);
-
-          if(itpSortedTargets) {
-            List<InfeasiblePrefix> prefixes1 = prefixProvider.extractInfeasiblePrefixes(path1);
-            List<InfeasiblePrefix> prefixes2 = prefixProvider.extractInfeasiblePrefixes(path2);
-
-            int score1 = classifier.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_GOOD_SHORT);
-            int score2 = classifier.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_GOOD_SHORT);
-
-            if(score1 == score2) {
-              return 0;
-            }
-
-            else if(score1 < score2) {
-              return -1;
-            }
-
-            else {
-              return 1;
-            }
-          }
-
-          else {
-            return path1.size() - path2.size();
-          }
-        } catch (CPAException e) {
-          throw new AssertionError(e);
-        }
-      }
-    };
-
-    // extract target locations from and exclude those found to be feasible before,
-    // e.g., when analysis.stopAfterError is set to false
-    List<ARGState> targets = extractTargetStatesFromArg(pReached)
-        .filter(Predicates.not(Predicates.in(feasibleTargets))).toSortedList(comparator);
-
-    // set of targets may only be empty, if all of them were found feasible previously
-    if(targets.isEmpty()) {
-      assert feasibleTargets.containsAll(extractTargetStatesFromArg(pReached).toSet());
-
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          ARGUtils.getOnePathTo(Iterables.getLast(feasibleTargets)));
-    }
-
-    logger.log(Level.FINEST, "number of targets found: " + targets.size());
-
-    return targets;
-  }
-
-  /**
-   * This method extracts the last state from the ARG, which has to be a target state.
-   */
-  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
-    ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
-
-    assert (lastState.isTarget()) : "Last state is not a target state";
-
-    return from(Collections.singleton(lastState));
-  }
-
   @Override
-  public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
+  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
-      @Override
-      public String getName() {
-        return ValueAnalysisRefiner.this.getClass().getSimpleName();
-      }
-
-      @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
-        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
-        writer.put(refinementCounter)
-          .put(numberOfTargets)
-          .put(refinementTime);
-
-        // delegate to interpolator for statistics obtained there
-        interpolator.printStatistics(pOut, pResult, pReached);
-
-        writer.put(rootRelocations)
-          .put(repeatedRefinements);
-      }
-    });
-  }
-
-  private int obtainErrorPathId(ARGPath path) {
-    return path.toString().hashCode();
-  }
-
-  /**
-   * The strategy to determine where to restart the analysis after a successful refinement.
-   * {@link #ROOT} means that the analysis is restarted from the root of the ARG
-   * {@link #PIVOT} means that the analysis is restarted from the lowest possible refinement root, i.e.,
-   *  the first ARGNode associated with a non-trivial interpolant (cf. Lazy Abstraction, 2002)
-   * {@link #COMMON} means that the analysis is restarted from lowest ancestor common to all refinement roots, if more
-   * than two refinement roots where identified
-   */
-  public enum RestartStrategy {
-    ROOT,
-    PIVOT,
-    COMMON
+    writer.put(rootRelocations)
+        .put(repeatedRefinements);
   }
 }
 

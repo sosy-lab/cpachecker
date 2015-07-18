@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -50,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -60,10 +61,12 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -82,8 +85,16 @@ import com.google.common.collect.Iterables;
 /**
  * Transfer relation for Symbolic Execution Analysis.
  */
+@Options(prefix = "cpa.constraints")
 public class ConstraintsTransferRelation
     extends ForwardingTransferRelation<ConstraintsState, ConstraintsState, SingletonPrecision> {
+
+  private enum CheckStrategy { AT_ASSUME, AT_TARGET }
+
+  @Option(name = "satCheckStrategy",
+      description = "When to check the satisfiability of constraints")
+  private CheckStrategy checkStrategy = CheckStrategy.AT_ASSUME;
+
 
   private final LogManagerWithoutDuplicates logger;
 
@@ -94,22 +105,23 @@ public class ConstraintsTransferRelation
   private CtoFormulaConverter converter;
   private StateSimplifier simplifier;
 
-  public ConstraintsTransferRelation(MachineModel pMachineModel, LogManager pLogger,
-      Configuration pConfig, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
+  public ConstraintsTransferRelation(
+      final Solver pSolver,
+      final MachineModel pMachineModel,
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final ShutdownNotifier pShutdownNotifier
+  ) throws InvalidConfigurationException {
+
+    pConfig.inject(this);
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    simplifier = new StateSimplifier(machineModel, logger);
-    initializeSolver(pLogger, pConfig, pShutdownNotifier);
-    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
-  }
+    simplifier = new StateSimplifier(machineModel, logger, pConfig);
 
-  private void initializeSolver(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-
-    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
+    solver = pSolver;
     formulaManager = solver.getFormulaManager();
+    initializeCToFormulaConverter(pLogger, pConfig, pShutdownNotifier);
   }
 
   // Can only be called after machineModel and formulaManager are set
@@ -196,7 +208,7 @@ public class ConstraintsTransferRelation
     ConstraintsState newState = pOldState.copyOf();
 
     final IdentifierAssignment definiteAssignment = pOldState.getDefiniteAssignment();
-    FormulaCreator formulaCreator = getFormulaCreator(definiteAssignment, pFunctionName);
+    FormulaCreator formulaCreator = getFormulaCreator(pFunctionName);
     newState.initialize(solver, formulaManager, formulaCreator);
 
     if (oNewConstraint.isPresent()) {
@@ -205,14 +217,14 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (isTrivial(newConstraint, definiteAssignment)) {
-        if (solver.isUnsat(formulaCreator.createFormula(newConstraint))) {
+        if (solver.isUnsat(formulaCreator.createFormula(newConstraint, newState.getDefiniteAssignment()))) {
           return null;
         }
 
       } else {
         newState.add(newConstraint);
 
-        if (newState.isUnsat()) {
+        if (checkStrategy == CheckStrategy.AT_ASSUME && newState.isUnsat()) {
           return null;
 
         } else {
@@ -225,8 +237,8 @@ public class ConstraintsTransferRelation
     return pOldState;
   }
 
-  private FormulaCreator getFormulaCreator(IdentifierAssignment pDefiniteAssignment, String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pDefiniteAssignment, pFunctionName);
+  private FormulaCreator getFormulaCreator(String pFunctionName) {
+    return new FormulaCreatorUsingCConverter(formulaManager, getConverter(), pFunctionName);
   }
 
   private CtoFormulaConverter getConverter() {
@@ -326,39 +338,53 @@ public class ConstraintsTransferRelation
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pStateToStrengthen,
-      List<AbstractState> pStrengtheningStates, CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException {
+  public Collection<? extends AbstractState> strengthen(
+      final AbstractState pStateToStrengthen,
+      final List<AbstractState> pStrengtheningStates,
+      final CFAEdge pCfaEdge, Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     assert pStateToStrengthen instanceof ConstraintsState;
+
+    final ConstraintsState initialStateToStrengthen = (ConstraintsState) pStateToStrengthen;
 
     final String currentFunctionName = pCfaEdge.getPredecessor().getFunctionName();
 
     List<ConstraintsState> newStates = new ArrayList<>();
+    newStates.add(initialStateToStrengthen);
+
     boolean nothingChanged = true;
 
-    if (pCfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
-      return null;
-    }
+    for (AbstractState currStrengtheningState : pStrengtheningStates) {
+      ConstraintsState currStateToStrengthen = newStates.get(0);
+      StrengthenOperator strengthenOperator = null;
 
-    for (AbstractState currState : pStrengtheningStates) {
+      if (currStrengtheningState instanceof ValueAnalysisState) {
+        strengthenOperator = new ValueAnalysisStrengthenOperator();
 
-      if (currState instanceof ValueAnalysisState) {
-        final ValueAnalysisState valueState = (ValueAnalysisState) currState;
-        final ConstraintFactory factory =
-            ConstraintFactory.getInstance(currentFunctionName, valueState, machineModel, logger);
+      } else if (currStrengtheningState instanceof AutomatonState) {
+        strengthenOperator = new AutomatonStrengthenOperator();
+      }
 
-        Optional<Collection<ConstraintsState>> oNewValueStrengthenedStates =
-            strengthen((ConstraintsState) pStateToStrengthen, factory, currentFunctionName, (AssumeEdge) pCfaEdge);
+      if (strengthenOperator != null) {
+        Optional<Collection<ConstraintsState>> oNewStrengthenedStates =
+            strengthenOperator.strengthen(currStateToStrengthen, currStrengtheningState, currentFunctionName, pCfaEdge);
 
-        if (oNewValueStrengthenedStates.isPresent()) {
+        if (oNewStrengthenedStates.isPresent()) {
+          newStates.clear(); // remove the old state to replace it with the new, strengthened result
           nothingChanged = false;
-          Collection<ConstraintsState> strengthenedStates = oNewValueStrengthenedStates.get();
+          Collection<ConstraintsState> strengthenedStates = oNewStrengthenedStates.get();
 
           if (!strengthenedStates.isEmpty()) {
             ConstraintsState newState = Iterables.getOnlyElement(strengthenedStates);
-            newState = simplify(newState, valueState);
             newStates.add(newState);
           }
         }
+      }
+
+      // if a strengthening resulted in bottom, we can return bottom without performing other
+      // strengthen operations
+      if (newStates.isEmpty()) {
+        return newStates;
       }
     }
 
@@ -369,54 +395,123 @@ public class ConstraintsTransferRelation
     }
   }
 
-  /**
-   * Strengthen the given {@link ConstraintsState} with the provided {@link ValueAnalysisState}.
-   *
-   * If the returned {@link Optional} instance is empty, strengthening of the given <code>ConstraintsState</code>
-   * changed nothing.
-   *
-   * Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has the same
-   * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List, CFAEdge, Precision)}.
-   *
-   * @param pStateToStrengthen the state to strengthen
-   * @param pCfaEdge the current {@link CFAEdge} we are at
-   *
-   * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not changed after
-   *    strengthening. A <code>Optional</code> instance containing a <code>Collection</code> with the strengthened state,
-   *    otherwise
-   */
-  private Optional<Collection<ConstraintsState>> strengthen(ConstraintsState pStateToStrengthen,
-      ConstraintFactory pConstraintFactory, String pFunctionName, AssumeEdge pCfaEdge) throws UnrecognizedCodeException {
+  private class ValueAnalysisStrengthenOperator implements StrengthenOperator {
 
-    Collection<ConstraintsState> newStates = new ArrayList<>();
-    final boolean truthAssumption = pCfaEdge.getTruthAssumption();
-    final AExpression edgeExpression = pCfaEdge.getExpression();
+    @Override
+    public Optional<Collection<ConstraintsState>> strengthen(
+        final ConstraintsState pStateToStrengthen,
+        final AbstractState pValueState,
+        final String pFunctionName,
+        final CFAEdge pCfaEdge
+    ) throws CPATransferException, InterruptedException {
 
-    final FileLocation fileLocation = pCfaEdge.getFileLocation();
+      assert pValueState instanceof ValueAnalysisState;
 
-    ConstraintsState newState = null;
-    try {
-
-      newState = getNewState(pStateToStrengthen,
-          edgeExpression,
-          pConstraintFactory,
-          truthAssumption,
-          pFunctionName,
-          fileLocation);
-
-    } catch (SolverException | InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, fileLocation.toString());
-    }
-
-    // newState == null represents the bottom element, so we return an empty collection
-    // (which represents the bottom element for strengthen methods)
-    if (newState != null) {
-      newStates.add(newState);
-
-      if (newState.equals(pStateToStrengthen)) {
+      if (!(pCfaEdge instanceof AssumeEdge)) {
         return Optional.absent();
       }
+
+      final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
+      final AssumeEdge assume = (AssumeEdge) pCfaEdge;
+
+      Collection<ConstraintsState> newStates = new ArrayList<>();
+      final boolean truthAssumption = assume.getTruthAssumption();
+      final AExpression edgeExpression = assume.getExpression();
+
+      final FileLocation fileLocation = assume.getFileLocation();
+
+      final ConstraintFactory factory =
+          ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger);
+
+      ConstraintsState newState = null;
+      try {
+
+        newState = getNewState(pStateToStrengthen,
+            edgeExpression,
+            factory,
+            truthAssumption,
+            pFunctionName,
+            fileLocation);
+
+      } catch (SolverException e) {
+        throw new CPATransferException(
+            "Error while strengthening ConstraintsState with ValueAnalysisState", e);
+      }
+
+      // newState == null represents the bottom element, so we return an empty collection
+      // (which represents the bottom element for strengthen methods)
+      if (newState != null) {
+        newState = simplify(newState, valueState);
+        newStates.add(newState);
+
+        if (newState.equals(pStateToStrengthen)) {
+          return Optional.absent();
+        }
+      }
+      return Optional.of(newStates);
     }
-    return Optional.of(newStates);
+  }
+
+  private class AutomatonStrengthenOperator implements StrengthenOperator {
+
+    @Override
+    public Optional<Collection<ConstraintsState>> strengthen(
+        final ConstraintsState pStateToStrengthen,
+        final AbstractState pStrengtheningState,
+        final String pFunctionName,
+        final CFAEdge pEdge
+    ) throws CPATransferException, InterruptedException {
+      assert pStrengtheningState instanceof AutomatonState;
+
+      if (checkStrategy != CheckStrategy.AT_TARGET) {
+        return Optional.absent();
+      }
+
+      final AutomatonState automatonState = (AutomatonState) pStrengtheningState;
+
+      try {
+        if (automatonState.isTarget()
+            && pStateToStrengthen.isInitialized()
+            && pStateToStrengthen.isUnsat()) {
+
+          return Optional.<Collection<ConstraintsState>>of(Collections.<ConstraintsState>emptySet());
+
+        } else {
+          return Optional.absent();
+        }
+      } catch (SolverException e) {
+        throw new CPATransferException("Error while strengthening.", e);
+      }
+    }
+  }
+
+  private interface StrengthenOperator {
+
+    /**
+     * Strengthen the given {@link ConstraintsState} with the provided {@link AbstractState}.
+     * <p/>
+     * If the returned {@link Optional} instance is empty, strengthening of the given
+     * <code>ConstraintsState</code>
+     * changed nothing.
+     * <p/>
+     * Otherwise, the returned <code>Collection</code> contained in the <code>Optional</code> has
+     * the same
+     * meaning as the <code>Collection</code> returned by {@link #strengthen(AbstractState, List,
+     * CFAEdge, Precision)}.
+     *
+     * @param stateToStrengthen the state to strengthen
+     * @param strengtheningState the strengthening state
+     * @param functionName the name of the current location's function
+     * @param edge the current {@link CFAEdge} we treat
+     * @return an empty <code>Optional</code> instance, if <code>pStateToStrengthen</code> was not
+     *    changed after strengthening. A <code>Optional</code> instance containing a
+     *    <code>Collection</code> with the strengthened state, otherwise
+     */
+    Optional<Collection<ConstraintsState>> strengthen(
+        ConstraintsState stateToStrengthen,
+        AbstractState strengtheningState,
+        String functionName,
+        CFAEdge edge
+    ) throws CPATransferException, InterruptedException;
   }
 }

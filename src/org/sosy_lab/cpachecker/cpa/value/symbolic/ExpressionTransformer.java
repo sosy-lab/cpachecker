@@ -79,7 +79,7 @@ public class ExpressionTransformer {
     if (valueState.contains(memLoc)) {
       final Value idValue = valueState.getValueFor(memLoc);
 
-      return SymbolicValueFactory.getInstance().asConstant(idValue, idType);
+      return SymbolicValueFactory.getInstance().asConstant(idValue, idType).copyForLocation(memLoc);
 
     } else {
       return null;

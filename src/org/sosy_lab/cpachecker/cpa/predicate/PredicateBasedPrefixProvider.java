@@ -89,15 +89,15 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasiblePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
    */
   @Override
-  public <T> List<InfeasiblePrefix> extractInfeasiblePrefixes(
+  public List<InfeasiblePrefix> extractInfeasiblePrefixes(
       final ARGPath path) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> prefixes = new ArrayList<>();
     MutableARGPath feasiblePrefixPath = new MutableARGPath();
-    List<T> feasiblePrefixTerms = new ArrayList<>(path.size());
+    List<Object> feasiblePrefixTerms = new ArrayList<>(path.size());
 
     try (@SuppressWarnings("unchecked")
-      InterpolatingProverEnvironmentWithAssumptions<T> prover =
-      (InterpolatingProverEnvironmentWithAssumptions<T>)solver.newProverEnvironmentWithInterpolation()) {
+      InterpolatingProverEnvironmentWithAssumptions<Object> prover =
+      (InterpolatingProverEnvironmentWithAssumptions<Object>)solver.newProverEnvironmentWithInterpolation()) {
 
       PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
@@ -106,7 +106,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         feasiblePrefixPath.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
         try {
           formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
-          T term = prover.push(formula.getFormula());
+          Object term = prover.push(formula.getFormula());
           feasiblePrefixTerms.add(term);
 
           if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {

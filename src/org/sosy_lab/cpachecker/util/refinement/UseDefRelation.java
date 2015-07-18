@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
+package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Collections2.filter;
@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -119,7 +118,19 @@ public class UseDefRelation {
     buildRelation(path);
   }
 
-  Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
+  boolean hasDef(ARGState state, CFAEdge edge) {
+    Set<ASimpleDeclaration> defs = new HashSet<>(getDef(state, edge));
+
+    if(edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+      for(CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+        defs.addAll(getDef(state, singleEdge));
+      }
+    }
+
+    return defs.size() > 0;
+  }
+
+  public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
 
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
     Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
@@ -234,85 +245,85 @@ public class UseDefRelation {
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {
     switch (edge.getEdgeType()) {
 
-    case FunctionReturnEdge:
-      AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
+      case FunctionReturnEdge:
+        AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
 
-      if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-        Set<ASimpleDeclaration> assignedVariables = acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+        if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
+          Set<ASimpleDeclaration> assignedVariables = acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
 
-        if(assignedVariables.size() > 1) {
-          break;
+          if(assignedVariables.size() > 1) {
+            break;
+          }
+
+          ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(assignedVariables);
+          if(hasUnresolvedUse(assignedVariable)) {
+            addUseDef(state, edge, assignedVariable, ((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get());
+          }
         }
 
-        ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(assignedVariables);
-        if(hasUnresolvedUse(assignedVariable)) {
-          addUseDef(state, edge, assignedVariable, ((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get());
+        break;
+
+      case DeclarationEdge:
+        CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
+
+        // only variable declarations are of interest
+        if (declaration instanceof AVariableDeclaration && hasUnresolvedUse(declaration)) {
+          addUseDef(state, edge, declaration, getVariablesUsedInDeclaration(declaration));
         }
-      }
 
-      break;
+        break;
 
-    case DeclarationEdge:
-      CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
-
-      // only variable declarations are of interest
-      if (declaration instanceof AVariableDeclaration && hasUnresolvedUse(declaration)) {
-        addUseDef(state, edge, declaration, getVariablesUsedInDeclaration(declaration));
-      }
-
-      break;
-
-    case ReturnStatementEdge:
-      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge)edge;
-      if (returnStatementEdge.asAssignment().isPresent()) {
-        handleAssignments(returnStatementEdge.asAssignment().get(), edge, state);
-      }
-
-      break;
-
-    case FunctionCallEdge:
-      final FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-      final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
-
-      ArrayList<ASimpleDeclaration> parameters = new ArrayList<>(functionEntryNode.getFunctionParameters().size());
-      for (AParameterDeclaration parameterDeclaration : functionEntryNode.getFunctionParameters()) {
-        parameters.add(parameterDeclaration);
-      }
-
-      Set<ASimpleDeclaration> defs = new HashSet<>();
-      Set<ASimpleDeclaration> uses = new HashSet<>();
-      for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
-        if (hasUnresolvedUse(parameters.get(parameterIndex))) {
-          defs.add(parameters.get(parameterIndex));
-          uses.addAll(acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
+      case ReturnStatementEdge:
+        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge)edge;
+        if (returnStatementEdge.asAssignment().isPresent()) {
+          handleAssignments(returnStatementEdge.asAssignment().get(), edge, state);
         }
-      }
-      addUseDef(state, edge, defs, uses);
 
-      break;
+        break;
 
-    case AssumeEdge:
-      if (hasContradictingAssumeEdgeBeenHandled) {
-        handleFeasibleAssumption(state, (CAssumeEdge)edge);
-      } else {
-        hasContradictingAssumeEdgeBeenHandled = true;
-        addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
-      }
+      case FunctionCallEdge:
+        final FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
+        final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
 
-      break;
+        ArrayList<ASimpleDeclaration> parameters = new ArrayList<>(functionEntryNode.getFunctionParameters().size());
+        for (AParameterDeclaration parameterDeclaration : functionEntryNode.getFunctionParameters()) {
+          parameters.add(parameterDeclaration);
+        }
 
-    case StatementEdge:
-      CStatement statement = ((CStatementEdge)edge).getStatement();
+        Set<ASimpleDeclaration> defs = new HashSet<>();
+        Set<ASimpleDeclaration> uses = new HashSet<>();
+        for (int parameterIndex = 0; parameterIndex < parameters.size(); parameterIndex++) {
+          if (hasUnresolvedUse(parameters.get(parameterIndex))) {
+            defs.add(parameters.get(parameterIndex));
+            uses.addAll(acceptAll(functionCallEdge.getArguments().get(parameterIndex)));
+          }
+        }
+        addUseDef(state, edge, defs, uses);
 
-      if (statement instanceof AExpressionAssignmentStatement
-          || statement instanceof AFunctionCallAssignmentStatement) {
-        handleAssignments((AAssignment) statement, edge, state);
-      }
-      break;
+        break;
 
-    default:
-      // nothing to do for any other types of edges
-      break;
+      case AssumeEdge:
+        if (hasContradictingAssumeEdgeBeenHandled) {
+          handleFeasibleAssumption(state, (CAssumeEdge)edge);
+        } else {
+          hasContradictingAssumeEdgeBeenHandled = true;
+          addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
+        }
+
+        break;
+
+      case StatementEdge:
+        CStatement statement = ((CStatementEdge)edge).getStatement();
+
+        if (statement instanceof AExpressionAssignmentStatement
+            || statement instanceof AFunctionCallAssignmentStatement) {
+          handleAssignments((AAssignment) statement, edge, state);
+        }
+        break;
+
+      default:
+        // nothing to do for any other types of edges
+        break;
     }
   }
 
@@ -373,30 +384,30 @@ public class UseDefRelation {
     @Override
     public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
       return pE.getArrayExpression().<Set<ASimpleDeclaration>,
-                                      Set<ASimpleDeclaration>,
-                                      Set<ASimpleDeclaration>,
-                                      RuntimeException,
-                                      RuntimeException,
-                                      UseDefRelation.LeftHandSideIdExpressionVisitor>accept_(this);
+          Set<ASimpleDeclaration>,
+          Set<ASimpleDeclaration>,
+          RuntimeException,
+          RuntimeException,
+          UseDefRelation.LeftHandSideIdExpressionVisitor>accept_(this);
     }
   }
 
   private static Set<ASimpleDeclaration> acceptLeft(AExpression exp) {
     return exp.<Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                RuntimeException,
-                RuntimeException,
-                UseDefRelation.LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
+        Set<ASimpleDeclaration>,
+        Set<ASimpleDeclaration>,
+        RuntimeException,
+        RuntimeException,
+        UseDefRelation.LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
   }
 
   private static Set<ASimpleDeclaration> acceptAll(AExpression exp) {
     return exp.<Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                RuntimeException,
-                RuntimeException,
-                DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
+        Set<ASimpleDeclaration>,
+        Set<ASimpleDeclaration>,
+        RuntimeException,
+        RuntimeException,
+        DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
   }
 
 
@@ -452,6 +463,22 @@ public class UseDefRelation {
       return;
     }
 
+/*
+    // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
+    // until is is reassigned, and not only a single field
+    // if assigned variable is resolving a dependency
+    if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
+      // hack to handle assignments of structs (keeps the whole struct in use all the time)
+      if(leftHandSide.toString().contains("->")) {
+        //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+        addDependency(assignedVariables);
+      }
+      else {
+        //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+        dependencies.remove(Iterables.getOnlyElement(assignedVariables));
+      }
+*/
+
     // if assigned variable is resolving a dependency
     if (hasUnresolvedUse(Iterables.getOnlyElement(assignedVariables))) {
       // all variables that occur in combination with the leftHandSide additionally
@@ -461,20 +488,14 @@ public class UseDefRelation {
       // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
-      }
-      else if (assignment instanceof AFunctionCallAssignmentStatement){
+      } else if (assignment instanceof AFunctionCallAssignmentStatement){
         AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
         rightHandSideUses = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
-      }
-      else {
+      } else {
         throw new AssertionError("Unhandled assignment type.");
       }
 
-      Set<ASimpleDeclaration> def = (leftHandSide instanceof CFieldReference)
-          ? Collections.<ASimpleDeclaration>emptySet() // field of struct does not resolve use
-          : Sets.newHashSet((Iterables.getOnlyElement(assignedVariables)));
-
-      addUseDef(state, edge, def, Sets.union(leftHandSideUses, rightHandSideUses));
+      addUseDef(state, edge, Iterables.getOnlyElement(assignedVariables), Sets.union(leftHandSideUses, rightHandSideUses));
     }
   }
 

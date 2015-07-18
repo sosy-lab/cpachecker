@@ -21,22 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.constraints;
+package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
+import org.sosy_lab.cpachecker.cpa.constraints.VariableMap;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -56,22 +62,29 @@ import com.google.common.collect.Lists;
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements LatticeAbstractState<ConstraintsState>, Set<Constraint> {
+public class ConstraintsState implements AbstractState, Set<Constraint> {
 
   /**
    * Stores identifiers and their corresponding constraints
    */
   private List<Constraint> constraints;
+
+  /**
+   * The last constraint added to this state. This does not have to be the last constraint in
+   * {@link #constraints}.
+   */
+  // It does not have to be the last constraint contained in 'constraints' because we only
+  // add a constraint to 'constraints' if it's not yet in this list.
+  private Constraint lastAddedConstraint;
   private Map<Constraint, BooleanFormula> constraintFormulas;
 
   private Solver solver;
   private ProverEnvironment prover;
   private FormulaCreator formulaCreator;
   private FormulaManagerView formulaManager;
+  private SymbolicIdentifierLocator locator;
 
   private IdentifierAssignment definiteAssignment;
-
-  private LessOrEqualOperator lessOrEqualOperator = LessOrEqualOperator.getInstance();
 
   /**
    * Creates a new, initial <code>ConstraintsState</code> object.
@@ -80,6 +93,17 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     constraints = new ArrayList<>();
     constraintFormulas = new HashMap<>();
     definiteAssignment = new IdentifierAssignment();
+    locator = SymbolicIdentifierLocator.getInstance();
+  }
+
+  public ConstraintsState(
+      final Set<Constraint> pConstraints,
+      final IdentifierAssignment pDefiniteAssignment
+  ) {
+    constraints = new ArrayList<>(pConstraints);
+    definiteAssignment = new IdentifierAssignment(pDefiniteAssignment);
+    constraintFormulas = new HashMap<>();
+    locator = SymbolicIdentifierLocator.getInstance();
   }
 
   /**
@@ -100,6 +124,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     prover = pState.prover;
     formulaCreator = pState.formulaCreator;
     formulaManager = pState.formulaManager;
+    locator = pState.locator;
 
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
   }
@@ -122,61 +147,6 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   }
 
   /**
-   * Join this <code>ConstraintsState</code> with the given one.
-   *
-   * Join is defined as the intersection of both states.
-   *
-   * @param other the state to join this state with
-   *
-   * @return the join (that is, intersection) of both states
-   */
-  @Override
-  public ConstraintsState join(ConstraintsState other) {
-    ConstraintsState newState = new ConstraintsState();
-
-    if (constraints.size() < other.size()) {
-      for (Constraint c : constraints) {
-        if (other.contains(c)) {
-          newState.add(c);
-        }
-      }
-    } else {
-      for (Constraint c : other) {
-        if (constraints.contains(c)) {
-          newState.add(c);
-        }
-      }
-    }
-
-    return newState;
-  }
-
-  /**
-   * Returns whether this state is less or equal than another given state.
-   *
-   * <p>A <code>ConstraintsState</code> is less or equal another given state, if it is a super set of it.</p>
-   *
-   * @param other the other state to check against
-   * @return <code>true</code> if this state is less or equal than the given state, <code>false</code> otherwise
-   */
-  @Override
-  public boolean isLessOrEqual(ConstraintsState other) {
-    /* Alternative method: A state s is less or equal another states s', if s' implies s.
-
-    if (solver == null) {
-      // an uninitialized solver means there can be no constraints
-      return true;
-    }
-
-    BooleanFormula thisRepresentingFormula = getFullFormula();
-    BooleanFormula otherRepresentingFormula = other.getFullFormula();
-
-    return solver.implies(otherRepresentingFormula, thisRepresentingFormula);*/
-
-    return lessOrEqualOperator.isLessOrEqual(this, other);
-  }
-
-  /**
    * Adds the given {@link Constraint} to this state.
    *
    * @param pConstraint the <code>Constraint</code> to add
@@ -187,6 +157,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   public boolean add(Constraint pConstraint) {
     checkNotNull(pConstraint);
 
+    lastAddedConstraint = pConstraint;
     return !constraints.contains(pConstraint) && constraints.add(pConstraint);
   }
 
@@ -200,6 +171,10 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     }
 
     return changed;
+  }
+
+  Constraint getLastAddedConstraint() {
+    return checkNotNull(lastAddedConstraint);
   }
 
   @Override
@@ -314,7 +289,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
         if (!unsat) {
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really requested
-          computeDefiniteAssignment(constraintsAsFormula);
+          resolveDefiniteAssignments(constraintsAsFormula);
 
         } else {
           definiteAssignment = null;
@@ -335,6 +310,15 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
     }
   }
 
+  private void resolveDefiniteAssignments(BooleanFormula pFormula)
+      throws InterruptedException, SolverException, UnrecognizedCCodeException {
+
+    IdentifierAssignment oldDefinites = new IdentifierAssignment(definiteAssignment);
+    computeDefiniteAssignment(pFormula);
+    updateOldFormulasDefinitesAppearIn(oldDefinites, definiteAssignment);
+    assert definiteAssignment.entrySet().containsAll(oldDefinites.entrySet());
+  }
+
   private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException, UnrecognizedCCodeException {
     Model validAssignment = prover.getModel();
 
@@ -343,8 +327,8 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
       Object termAssignment = entry.getValue();
 
       if (isSymbolicTerm(term)) {
-        SymbolicIdentifier identifier = toSymbolicIdentifier(
-            FormulaManagerView.parseName(term.getName()).getFirst());
+
+        SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
         Value concreteValue = convertToValue(termAssignment, term.getType());
 
         if (!definiteAssignment.containsKey(identifier)
@@ -355,6 +339,40 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
           definiteAssignment.put(identifier, concreteValue);
         }
+      }
+    }
+  }
+
+  private void updateOldFormulasDefinitesAppearIn(
+      final IdentifierAssignment pOldDefinites,
+      final IdentifierAssignment pNewDefinites
+  ) throws UnrecognizedCCodeException, InterruptedException {
+    assert pOldDefinites.size() <= pNewDefinites.size();
+
+    // if no new definite assignments were added, we don't have to remove any formula
+    if (pOldDefinites.size() == pNewDefinites.size()) {
+      return;
+    }
+
+    Set<SymbolicIdentifier> newlyKnownIdentifiers = new HashSet<>(pNewDefinites.keySet());
+
+    newlyKnownIdentifiers.removeAll(pOldDefinites.keySet());
+
+    // for each constraint a formula exists for, we check if the formula can be replaced
+    // with a version holding more information, and do so.
+    for (Constraint c : constraintFormulas.keySet()) {
+      Set<SymbolicIdentifier> identifiers = c.accept(locator);
+
+      // if the constraint contains any identifier we now know a definite assignment for,
+      // we replace the constraint's formula by a new formula using these definite assignments.
+      if (!Collections.disjoint(newlyKnownIdentifiers, identifiers)) {
+        BooleanFormula newFormula = formulaCreator.createFormula(c, pNewDefinites);
+
+        assert !newFormula.equals(constraintFormulas.get(c))
+            || formulaManager.getBooleanFormulaManager().isTrue(constraintFormulas.get(c))
+            : "Identifier was not replaced by definite assignment";
+
+        constraintFormulas.put(c, newFormula);
       }
     }
   }
@@ -392,8 +410,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
   }
 
   private SymbolicIdentifier toSymbolicIdentifier(String pEncoding) {
-    return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(
-        pEncoding);
+    return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pEncoding);
   }
 
   private Value convertToValue(Object pTermAssignment, TermType pType) {
@@ -420,7 +437,7 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
    * @throws UnrecognizedCCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
+  BooleanFormula getFullFormula() throws UnrecognizedCCodeException, InterruptedException {
     createMissingConstraintFormulas();
 
     return formulaManager.getBooleanFormulaManager().and(Lists.newArrayList(constraintFormulas.values()));
@@ -437,7 +454,8 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
       assert !constraintFormulas.containsKey(newConstraint)
           : "Trying to add a formula that already exists!";
 
-      constraintFormulas.put(newConstraint, formulaCreator.createFormula(newConstraint));
+      BooleanFormula newFormula = formulaCreator.createFormula(newConstraint, definiteAssignment);
+      constraintFormulas.put(newConstraint, newFormula);
     }
 
     assert constraints.size() == constraintFormulas.size()
@@ -510,10 +528,16 @@ public class ConstraintsState implements LatticeAbstractState<ConstraintsState>,
 
     @Override
     public void remove() {
+      if (index < 0) {
+        throw new IllegalStateException("Iterator not at valid location");
+      }
+
       Constraint constraintToRemove = constraints.get(index);
 
       constraints.remove(index);
       constraintFormulas.remove(constraintToRemove);
+      index--;
     }
   }
+
 }

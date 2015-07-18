@@ -29,24 +29,28 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 /**
  * This class allows assignment of new {@link SymbolicIdentifier}s
@@ -64,13 +68,20 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   private boolean useSymbolicValues = false;
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
-      + " each struct member when handling non-determinstic structs.")
-  private boolean handleStructs = false;
+      + " each struct member when handling non-deterministic structs.")
+  private boolean handleStructs = true;
 
   @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
       + " each array slot when handling non-deterministic arrays of fixed length."
       + " If the length of the array can't be determined, it won't be handled in either cases.")
   private boolean handleArrays = false;
+
+  @Option(description="Default size of arrays whose length can't be determined.")
+  private int defaultArraySize = 20;
+
+  @Option(description="Whether to handle non-deterministic pointers in symbolic value analysis.")
+  private boolean handlePointers = true;
+
 
   /**
    * Creates a new <code>SymbolicValueAssigner</code> object with the given configuration.
@@ -163,7 +174,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
                                                pValueVisitor);
 
     } else if (canonicalType instanceof CArrayType) {
-       fillArrayWithSymbolicIdentifiers(pState, pVarLocation, (CArrayType) canonicalType);
+       fillArrayWithSymbolicIdentifiers(pState, pVarLocation, (CArrayType) canonicalType, pValueVisitor);
 
     } else if (canonicalType instanceof CElaboratedType) {
       pState.forget(pVarLocation);
@@ -193,7 +204,6 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     List<CCompositeType.CCompositeTypeMemberDeclaration> memberDeclarations =
         pStructType.getMembers();
 
-    assert !memberDeclarations.isEmpty();
     for (CCompositeType.CCompositeTypeMemberDeclaration d : memberDeclarations) {
       String memberName = d.getName();
       MemoryLocation memberLocation = pValueVisitor.evaluateRelativeMemLocForStructMember(
@@ -210,10 +220,42 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     }
   }
 
-  private void fillArrayWithSymbolicIdentifiers(ValueAnalysisState pState,
-      MemoryLocation pArrayLocation, CArrayType pArrayType) {
+  private void fillArrayWithSymbolicIdentifiers(
+      final ValueAnalysisState pState,
+      final MemoryLocation pArrayLocation,
+      final CArrayType pArrayType,
+      final ExpressionValueVisitor pValueVisitor
+  ) throws UnrecognizedCCodeException {
 
-    pState.forget(pArrayLocation);
+    if (!handleArrays) {
+      pState.forget(pArrayLocation);
+      return;
+    }
+
+    CExpression arraySizeExpression = pArrayType.getLength();
+    Value arraySizeValue;
+    long arraySize;
+
+    if (arraySizeExpression == null) { // array of unknown length
+      arraySize = defaultArraySize;
+    } else {
+      arraySizeValue = arraySizeExpression.accept(pValueVisitor);
+      if (!arraySizeValue.isExplicitlyKnown()) {
+        arraySize = defaultArraySize;
+
+      } else {
+        assert arraySizeValue instanceof NumericValue;
+
+        arraySize = ((NumericValue) arraySizeValue).longValue();
+      }
+    }
+
+    for (int i = 0; i < arraySize; i++) {
+      MemoryLocation arraySlotMemLoc =
+          pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
+
+      handle(arraySlotMemLoc, pArrayType.getType(), pState, pValueVisitor);
+    }
   }
 
 
@@ -229,7 +271,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
         return handleStructs;
 
       } else {
-        return !(canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
+        return (!(canonicalType instanceof CPointerType) || handlePointers)
+            && !(canonicalType instanceof CVoidType || canonicalType instanceof CTypedefType);
       }
 
     } else {

@@ -4,7 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-valueAnalysis-symbolic"/>
+  <option name="-valueAnalysis-symbolic-refiner"/>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
@@ -18,8 +18,7 @@
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-      <!-- exclude always-error tasks -->
-      <exclude>../programs/benchmarks/ssh/*</exclude>
+
       <!-- exclude close-to-timeout tasks -->
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1_true-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
@@ -31,4 +30,13 @@
       <option name="-64"/>
     </tasks>
   </rundefinition>
+
+  <columns>
+    <column title="total">time for CPAchecker</column>
+    <column title="reached">reached set</column>
+    <column title="refinements">Number of refinements</column>
+    <column title="refinements_succ">Number of successful refinements</column>
+    <column title="refinements_fail">Number of failed refinements</column>
+    <column title="time_refinements">Time for refinements</column>
+  </columns>
 </benchmark>

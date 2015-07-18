@@ -62,12 +62,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisRefiner.RestartStrategy;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refinement.GenericRefiner.RestartStrategy;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
@@ -131,8 +133,21 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
     }
 
-    ValueAnalysisImpactRefiner refiner = new ValueAnalysisImpactRefiner(valueAnalysisCpa.getConfiguration(),
-                                    valueAnalysisCpa.getLogger(),
+    final LogManager logger = valueAnalysisCpa.getLogger();
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final ValueAnalysisFeasibilityChecker feasibilityChecker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
+
+    ValueAnalysisImpactRefiner refiner = new ValueAnalysisImpactRefiner(
+                                    feasibilityChecker,
+                                    strongestPostOperator,
+                                    config,
+                                    logger,
                                     valueAnalysisCpa.getShutdownNotifier(),
                                     valueAnalysisCpa.getCFA(),
                                     argCpa);
@@ -140,7 +155,10 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     return refiner;
   }
 
-  private ValueAnalysisImpactRefiner(final Configuration pConfig, final LogManager pLogger,
+  private ValueAnalysisImpactRefiner(
+      final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,
+      final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa, final ARGCPA pArgCpa)
           throws InvalidConfigurationException {
 
@@ -148,8 +166,12 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     logger                = pLogger;
     argCpa                = pArgCpa;
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pConfig, pLogger, pShutdownNotifier, pCfa);
-    checker               = new ValueAnalysisFeasibilityChecker(pLogger, pCfa, pConfig);
+    checker               = pFeasibilityChecker;
+    interpolatingRefiner  =
+        new ValueAnalysisPathInterpolator(checker,
+                                          pStrongestPostOp,
+                                          new ValueAnalysisPrefixProvider(logger, pCfa, pConfig),
+                                          pConfig, pLogger, pShutdownNotifier, pCfa);
   }
 
   @Override
@@ -361,7 +383,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     }
 
     // for all other cases, check if the path is feasible when using the interpolant as initial state
-    return checker.isFeasible(errorPath, initialItp.createValueAnalysisState());
+    return checker.isFeasible(errorPath, initialItp.reconstructState());
   }
 
   private VariableTrackingPrecision joinSubtreePrecisions(final ReachedSet pReached,

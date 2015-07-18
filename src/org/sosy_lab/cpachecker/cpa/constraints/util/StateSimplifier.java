@@ -30,27 +30,40 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
- * Simplifier for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState}s.
+ * Simplifier for {@link ConstraintsState}s.
  * Provides different methods for simplifying a <code>ConstraintsState</code>
- * through {@link #simplify(org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState, ValueAnalysisState)}.
+ * through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
  */
+@Options(prefix = "cpa.constraints")
 public class StateSimplifier {
+
+  @Option(description = "Whether to remove trivial constraints from constraints states during"
+      + " simplification")
+  private boolean removeTrivial = false;
+
+  @Option(description = "Whether to remove constraints that can't add any more information to"
+      + "analysis during simplification")
+  private boolean removeOutdated = true;
 
   @SuppressWarnings("unused")
   private final MachineModel machineModel;
@@ -58,13 +71,18 @@ public class StateSimplifier {
   @SuppressWarnings("unused")
   private final LogManager logger;
 
-  public StateSimplifier(MachineModel pMachineModel, LogManager pLogger) {
+  public StateSimplifier(
+      final MachineModel pMachineModel,
+      final LogManager pLogger,
+      final Configuration pConfig
+  ) throws InvalidConfigurationException {
+    pConfig.inject(this);
     machineModel = pMachineModel;
     logger = pLogger;
   }
 
   /**
-   * Simplifies the given {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsState}.
+   * Simplifies the given {@link ConstraintsState}.
    * Applies different simplifications to it.
    *
    * <p>The returned state will hold the same amount of information as the given state.</p>
@@ -76,10 +94,16 @@ public class StateSimplifier {
       final ConstraintsState pState,
       final ValueAnalysisState pValueState
   ) {
-    ConstraintsState newState;
+    ConstraintsState newState = pState;
 
-    newState = removeTrivialConstraints(pState, pState.getDefiniteAssignment());
-    newState = removeOutdatedConstraints(newState, pValueState);
+    if (removeTrivial) {
+      newState = removeTrivialConstraints(newState, newState.getDefiniteAssignment());
+    }
+
+    if (removeOutdated) {
+      newState = removeOutdatedConstraints(newState, pValueState);
+    }
+
     return newState;
   }
 
@@ -131,6 +155,7 @@ public class StateSimplifier {
 
     final Map<ActivityInfo, Set<ActivityInfo>> symIdActivity = getInitialActivityMap(newState);
     final Set<SymbolicIdentifier> symbolicValues = getExistingSymbolicIds(pValueState);
+    final IdentifierAssignment definiteAssignments = pState.getDefiniteAssignment();
 
     for (Map.Entry<ActivityInfo, Set<ActivityInfo>> e : symIdActivity.entrySet()) {
       final ActivityInfo s = e.getKey();
@@ -144,13 +169,21 @@ public class StateSimplifier {
         case UNUSED:
 
           if (!symbolicValues.contains(currId)) {
-            s.disable();
-            Set<ActivityInfo> parent = new HashSet<>();
-            parent.add(s);
-            boolean canBeRemoved = removeOutdatedConstraints0(symIdActivity,
-                symbolicValues,
-                e.getValue(),
-                parent);
+            boolean canBeRemoved;
+            if (s.getUsingConstraints().size() < 2 && !definiteAssignments.containsKey(currId)) {
+              // the symbolic identifier only occurs in one constraint and is not active,
+              // so it does not constrain any currently existing symbolic identifier
+              canBeRemoved = true;
+            } else {
+
+              s.disable();
+              Set<ActivityInfo> parent = new HashSet<>();
+              parent.add(s);
+              canBeRemoved = removeOutdatedConstraints0(symIdActivity,
+                  symbolicValues,
+                  e.getValue(),
+                  parent);
+            }
 
             if (canBeRemoved) {
               s.markDeleted();
@@ -217,7 +250,7 @@ public class StateSimplifier {
           }
           break;
         default:
-          throw new AssertionError("Unhandled status of ActivityInfo: " + t.getActivity());
+          throw new AssertionError("Unhandled state of ActivityInfo: " + t.getActivity());
       }
     }
 
@@ -236,13 +269,12 @@ public class StateSimplifier {
   }
 
   private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
-    final SymbolicIdentifierLocator locator = SymbolicIdentifierLocator.getInstance();
     final Collection<Value> valueStateConstants = pValueState.getConstantsMapView().values();
     Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
 
     for (Value v : valueStateConstants) {
       if (v instanceof SymbolicValue) {
-        symbolicValues.addAll(((SymbolicValue) v).accept(locator));
+        symbolicValues.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
       }
     }
 
@@ -254,10 +286,10 @@ public class StateSimplifier {
   ) {
 
     Map<ActivityInfo, Set<ActivityInfo>> activityMap = new HashMap<>();
-    final SymbolicIdentifierLocator symIdLocator = SymbolicIdentifierLocator.getInstance();
 
     for (Constraint c : pState) {
-      final Set<SymbolicIdentifier> usedIdentifiers = c.accept(symIdLocator);
+      final Collection<SymbolicIdentifier> usedIdentifiers =
+          SymbolicValues.getContainedSymbolicIdentifiers(c);
 
       for (SymbolicIdentifier i : usedIdentifiers) {
         Set<SymbolicIdentifier> otherIdentifiers = new HashSet<>(usedIdentifiers);
@@ -310,6 +342,10 @@ public class StateSimplifier {
       if (infos.containsKey(pIdentifier)) {
         ActivityInfo info = infos.get(pIdentifier);
         info.usingConstraints.add(pConstraint);
+
+        // Activity might have been marked as deleted in a previous iteration of CEGAR, so we have
+        // to set it back
+        info.enable();
 
         return info;
 
@@ -365,11 +401,7 @@ public class StateSimplifier {
 
       ActivityInfo that = (ActivityInfo)o;
 
-      if (!identifier.equals(that.identifier)) {
-        return false;
-      }
-
-      return true;
+      return SymbolicValues.representSameSymbolicMeaning(identifier, that.identifier);
     }
 
     @Override
