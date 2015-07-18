@@ -31,11 +31,13 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
 import com.google.common.collect.ImmutableSet;
@@ -76,6 +78,10 @@ public class AliasedSubsetLessOrEqualOperatorTest {
   private final Constraint cAlias1 = (Constraint) factory.lessThan(aliasExp1, numExp1, defType, defType);
   private final Constraint cAlias2 = (Constraint) factory.equal(aliasExp2, aliasExp1, defType, defType);
 
+  public AliasedSubsetLessOrEqualOperatorTest() {
+    SymbolicValues.initialize(ComparisonType.ALIASED_SUBSET);
+  }
+
   @Test
   public void testIsLessOrEqual_reflexive() {
     org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
@@ -108,32 +114,13 @@ public class AliasedSubsetLessOrEqualOperatorTest {
 
   @Test
   public void testIsLessOrEqual_BiggerOneSubsetWithOtherIdentifierIds() {
-    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
-        state = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
+    ConstraintsState state = new ConstraintsState(getConstraintSet(), emptyDefiniteAssignment);
     Set<Constraint> subset = getAliasConstraintSet();
     subset.remove(Iterables.get(subset, 0));
-    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
-        subsetState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(subset, emptyDefiniteAssignment);
+    ConstraintsState
+        subsetState = new ConstraintsState(subset, emptyDefiniteAssignment);
 
     Assert.assertTrue(leqOp.isLessOrEqual(state, subsetState));
-  }
-
-  @Test
-  public void testIsLessOrEqual_DefiniteAssignmentVsEqualsExpression() {
-    Constraint lesserConstraint = factory.equal(idExp1, numExp1, defType, defType);
-    Set<Constraint> constraints = ImmutableSet.of(lesserConstraint);
-
-    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
-        biggerState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(constraints, emptyDefiniteAssignment);
-
-    IdentifierAssignment definiteAssignment = new IdentifierAssignment();
-    definiteAssignment.put(id1, num1);
-
-    org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState
-        lesserState = new org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState(
-        Collections.<Constraint>emptySet(),
-        definiteAssignment);
-    Assert.assertTrue(leqOp.isLessOrEqual(lesserState, biggerState));
   }
 
   private Set<Constraint> getConstraintSet() {
