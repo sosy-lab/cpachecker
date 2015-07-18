@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
