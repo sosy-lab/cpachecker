@@ -32,11 +32,13 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -88,7 +90,13 @@ public class StateSimplifierTest {
   private final MemoryLocation group2MemLoc2 = MemoryLocation.valueOf("d", 0);
 
   public StateSimplifierTest() throws InvalidConfigurationException {
-    simplifier = new StateSimplifier(machineModel, logger, Configuration.defaultConfiguration());
+    Configuration config = Configuration.builder()
+        .setOption("cpa.constraints.removeTrivial", "true")
+        .build();
+    simplifier =
+        new StateSimplifier(machineModel, logger, config);
+    SymbolicValues.initialize(ComparisonType.SUBSET);
+
   }
 
 
@@ -98,13 +106,14 @@ public class StateSimplifierTest {
 
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState = simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
+    ConstraintsState newState =
+        simplifier.removeOutdatedConstraints(constraintsState, initialValueState);
 
     Assert.assertTrue(newState.isEmpty());
   }
 
   @Test
-  public void testRemoveOutdatedConstraints_noConstraintsOutdated() {
+  public void testRemoveOutdatedConstraints_group1ConstraintOutdated() {
     final ValueAnalysisState valueState = getCompleteValueState();
 
     valueState.forget(group1MemLoc1);
@@ -114,14 +123,14 @@ public class StateSimplifierTest {
 
     ConstraintsState newState = simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(allConstraintsExist(newState));
+    Assert.assertTrue(group2ConstraintsExist(newState));
   }
 
-  private boolean allConstraintsExist(ConstraintsState pNewState) {
+  private boolean group2ConstraintsExist(
+      ConstraintsState pNewState
+  ) {
     boolean allExist = true;
 
-    allExist &= pNewState.contains(group1Constraint1);
-    allExist &= pNewState.contains(group1Constraint2);
     allExist &= pNewState.contains(group2Constraint1);
     allExist &= pNewState.contains(group2Constraint2);
 
@@ -129,7 +138,7 @@ public class StateSimplifierTest {
   }
 
   @Test
-  public void testRemoveOutdatedConstraints_group1ConstraintsOutdated() {
+  public void testRemoveOutdatedConstraints_allButOneConstraintsOutdated() {
     final ValueAnalysisState valueState = getCompleteValueState();
 
     valueState.forget(group1MemLoc1);
@@ -137,20 +146,12 @@ public class StateSimplifierTest {
     valueState.forget(group2MemLoc2);
     ConstraintsState constraintsState = getSampleConstraints();
 
-    ConstraintsState newState = simplifier.removeOutdatedConstraints(constraintsState, valueState);
+    ConstraintsState newState =
+        simplifier.removeOutdatedConstraints(constraintsState, valueState);
 
-    Assert.assertTrue(group2ConstraintsExist(newState));
+    Assert.assertTrue(newState.size() == 1
+        && newState.contains(group2Constraint1));
   }
-
-  private boolean group2ConstraintsExist(ConstraintsState pNewState) {
-    boolean correct = pNewState.size() == 2;
-
-    correct &= pNewState.contains(group2Constraint1);
-    correct &= pNewState.contains(group2Constraint2);
-
-    return correct;
-  }
-
 
   private ConstraintsState getSampleConstraints() {
     ConstraintsState state = new ConstraintsState();
