@@ -136,9 +136,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     LogManager logger         = valueCpa.getLogger();
     CFA controlFlowAutomaton  = valueCpa.getCFA();
 
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), controlFlowAutomaton);
-
     return new ValueAnalysisDelegatingRefiner(
         config,
         logger,

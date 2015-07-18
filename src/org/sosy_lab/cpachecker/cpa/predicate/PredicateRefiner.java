@@ -79,7 +79,6 @@ public abstract class PredicateRefiner implements Refiner {
     LogManager logger = predicateCpa.getLogger();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
-    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
     MachineModel machineModel = predicateCpa.getMachineModel();
     Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
     Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();

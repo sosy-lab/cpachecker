@@ -119,7 +119,9 @@ public abstract class SymbolicExpression implements SymbolicValue {
 
   @Override
   public boolean equals(final Object pObj) {
-    return pObj.getClass().equals(getClass())
-      && Objects.equals(representedLocation, ((SymbolicExpression) pObj).representedLocation);
+    return pObj != null
+        && pObj.getClass().equals(getClass())
+        && Objects.equals(representedLocation,
+                          ((SymbolicExpression) pObj).representedLocation);
   }
 }
