@@ -41,6 +41,7 @@ import zlib
 import zipfile
 
 from time import sleep
+from time import time
 
 import urllib.parse as urllib
 import urllib.request as urllib2
@@ -378,6 +379,7 @@ def _getResults(runIDs, output_handler, benchmark):
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
 
     while len(runIDs) > 0 :
+        start = time()
         runIDsFutures = {}
         for runID in runIDs:
             if _isFinished(runID, benchmark):
