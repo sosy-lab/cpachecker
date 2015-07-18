@@ -126,6 +126,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     formulaManager = pState.formulaManager;
     locator = pState.locator;
 
+    lastAddedConstraint = pState.lastAddedConstraint;
     definiteAssignment = new IdentifierAssignment(pState.definiteAssignment);
   }
 
