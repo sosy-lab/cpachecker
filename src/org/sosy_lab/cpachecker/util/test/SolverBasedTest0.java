@@ -110,7 +110,7 @@ public abstract class SolverBasedTest0 {
 
   protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
     return TestDataTools.configurationForTest()
-        .setOption("cpa.predicate.solver", solverToUse().toString());
+        .setOption("solver.solver", solverToUse().toString());
   }
 
   @Before

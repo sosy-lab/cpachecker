@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
 
   <option name="-noout"/>
@@ -9,7 +9,7 @@
 
   <rundefinition>
     <!-- Integer Tests -->
-    <sourcefiles name="ControlFlowInteger">
+    <tasks name="ControlFlowInteger">
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
             <include>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</include>
@@ -18,27 +18,27 @@
             <include>../programs/benchmarks/ssh-simplified/*_true-unreach-call*.cil.c</include>
             <include>../programs/benchmarks/locks/*_false-unreach-call*.c</include>
             <include>../programs/benchmarks/locks/*_true-unreach-call*.c</include>
-          </sourcefiles>
-      <sourcefiles name="Sequentialized">
+          </tasks>
+      <tasks name="Sequentialized">
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
             <include>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</include>
             <include>../programs/benchmarks/systemc/*_true-unreach-call*.cil.c</include>
-      </sourcefiles>    
-        <sourcefiles name="OctagonRegression-int">
+      </tasks>    
+        <tasks name="OctagonRegression-int">
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
               <includesfile>../programs/simple/octagon/octagon-int.set</includesfile>
-        </sourcefiles>
-      <sourcefiles>
+        </tasks>
+      <tasks>
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
         <includesfile>integration-DeviceDrivers64.set</includesfile>
               <option name="-64"/>
-        </sourcefiles>
+        </tasks>
 
     <!-- Widening Tests -->
-        <sourcefiles name="Loops">
+        <tasks name="Loops">
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
         <includesfile>../programs/benchmarks/Loops.set</includesfile>
@@ -47,14 +47,14 @@
         <option name="-setprop">analysis.checkCounterexamples=true</option>
         <option name="-setprop">counterexample.checker=CPACHECKER</option>
         <option name="-setprop">counterexample.checker.config=config/octagonAnalysis.properties</option>
-    </sourcefiles>   
+    </tasks>   
 
         <!-- Float Tests -->
-        <sourcefiles name="OctagonRegression-float">
+        <tasks name="OctagonRegression-float">
                 <includesfile>../programs/simple/octagon/octagon-float.set</includesfile>
                 <option name="-setprop">OctagonCPA.precision.trackFloatVariables=true</option>
                 <option name="-setprop">cpa.octagon.octagonLibrary=FLOAT</option>
-        </sourcefiles>
+        </tasks>
 
      </rundefinition>
 

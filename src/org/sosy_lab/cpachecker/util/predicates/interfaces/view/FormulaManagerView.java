@@ -1449,17 +1449,19 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   /**
-   * Use a SSA map to conclude what variables of a
-   *  (instantiated) formula can be considered 'dead'.
+   * Use a SSA map to conclude what variables of an
+   * [instantiated] formula can be considered 'dead'.
    *
    * A variable is considered 'dead' if its SSA index
-   *  is different from the index in the SSA map.
+   * is different from the index in the SSA map.
    *
    * @param pFormula
    * @param pSsa
    * @return
    */
   public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
+    // todo: this is a really bad name, "intermediate" would be much better.
+    // todo: talk to Andreas about renaming.
     Set<String> result = Sets.newHashSet();
     List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa);
     for (Formula f : varFormulas) {

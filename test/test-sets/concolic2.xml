@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <!--
   Example file that demonstrates the use of CPAchecker.
   This file can and should be used as a base for building own benchmark definitions.
@@ -11,24 +11,24 @@
   <option name="-noout"/>
   <option name="-heap">1200M</option>
  <!--
-  <sourcefiles name="ControlFlowInteger">
+  <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-  </sourcefiles>
+  </tasks>
   -->
-  <sourcefiles name="Simple">
+  <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Loops">
+  </tasks>
+  <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude>  for_infinite_loop_1_true-unreach-label_false-termination.i
-  </sourcefiles>
+    <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude><!--  for_infinite_loop_1_true-unreach-label_false-termination.i -->
+  </tasks>
  <!--
- <sourcefiles name="Sequentialized">
+ <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Nested">
+  </tasks>
+  <tasks name="Nested">
     <includesfile>nested.set</includesfile>
-  </sourcefiles>
+  </tasks>
   -->
 
   <!-- Global options for all run definitions. -->

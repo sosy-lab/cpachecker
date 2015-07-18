@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60" memlimit="1000" cpuCores="1">
   <!-- Test the parser frontend of CPAchecker. -->
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
@@ -17,16 +17,16 @@
       <includesfile>../programs/benchmarks/Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <include>../programs/simple/*.i</include>
       <include>../programs/simple/*/*.i</include>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <include>../programs/simple/*.c</include>
       <include>../programs/simple/*/*.c</include>
       <option name="-preprocess"/>
-    </sourcefiles>
+    </tasks>
 
     <option name="-heap">500m</option>
     <option name="-noout"/>

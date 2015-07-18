@@ -73,7 +73,8 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationReques
  * so functions remain declared, if levels are popped.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "smtinterpol.smt2").
  */
-@Options(prefix="cpa.predicate.solver.smtinterpol")
+@Options(deprecatedPrefix="cpa.predicate.solver.smtinterpol",
+    prefix="solver.smtinterpol")
 class SmtInterpolEnvironment {
 
   @Option(secure=true, description="Double check generated results like interpolants and models whether they are correct")

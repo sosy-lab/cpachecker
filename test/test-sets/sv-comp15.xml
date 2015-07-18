@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900" hardtimelimit="1000" memlimit="15000" cpuCores="4">
   <option name="-disable-java-assertions"/>
   <option name="-heap">10000M</option>
@@ -8,56 +8,56 @@
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
-  <sourcefiles name="Arrays">
+  <tasks name="Arrays">
     <includesfile>../programs/benchmarks/Arrays.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="BitVectors">
+  </tasks>
+  <tasks name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Concurrency">
+  </tasks>
+  <tasks name="Concurrency">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ControlFlowInteger">
+  </tasks>
+  <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="DeviceDrivers">
+  </tasks>
+  <tasks name="DeviceDrivers">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <option name="-64"/>
-  </sourcefiles>
-  <sourcefiles name="ECA">
+  </tasks>
+  <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Floats">
+  </tasks>
+  <tasks name="Floats">
     <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </sourcefiles>
-  <sourcefiles name="HeapManipulation">
+  </tasks>
+  <tasks name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Loops">
+  </tasks>
+  <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="MemorySafety">
+  </tasks>
+  <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ProductLines">
+  </tasks>
+  <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Recursive">
+  </tasks>
+  <tasks name="Recursive">
     <includesfile>../programs/benchmarks/Recursive.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Sequentialized">
+  </tasks>
+  <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Simple">
+  </tasks>
+  <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </sourcefiles>
-  <sourcefiles name="Termination">
+  </tasks>
+  <tasks name="Termination">
     <includesfile>../programs/benchmarks/Termination-crafted.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-  </sourcefiles>
+  </tasks>
 
   <rundefinition name="sv-comp15">
     <option name="-sv-comp15"/>

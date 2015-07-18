@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="5000" cpuCores="2">
   <option name="-noout"/>
   <option name="-heap">2000M</option>
@@ -7,13 +7,13 @@
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/*</exclude><!-- only timeouts anyway -->
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
@@ -28,19 +28,19 @@
       <exclude>../programs/benchmarks/systemc/mem_slave_tlm.3_true-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.05_true-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.08_false-unreach-call_false-termination.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-hwmon-it87.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/Floats.set</includesfile>
       <exclude>../programs/benchmarks/floats-cdfpl/newton_1_8_false-unreach-call.i</exclude>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    </sourcefiles>
+    </tasks>
     <option name="-predicateAnalysis-bitprecise"/>
   </rundefinition>
 </benchmark>

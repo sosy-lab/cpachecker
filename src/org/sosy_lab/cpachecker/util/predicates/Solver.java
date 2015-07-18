@@ -69,14 +69,14 @@ import com.google.common.collect.Maps;
  * replacing one SMT theory transparently with another,
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
-@Options(prefix="cpa.predicate")
+@Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
 public final class Solver implements AutoCloseable, StatisticsProvider {
 
-  @Option(secure=true, name="solver.useLogger",
+  @Option(secure=true, name="useLogger",
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
 
-  @Option(secure=true, name="solver.checkUFs",
+  @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
 
