@@ -90,6 +90,9 @@ public class SymbolEncoding {
   public SymbolEncoding(CFA pCfa) {
     decls = getAllDeclarations(pCfa.getAllNodes());
     machineModel = pCfa.getMachineModel();
+
+    encodedSymbols.put("true", new Type<FormulaType<?>>(FormulaType.BooleanType));
+    encodedSymbols.put("false", new Type<FormulaType<?>>(FormulaType.BooleanType));
   }
 
 
