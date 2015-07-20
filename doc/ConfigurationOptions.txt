@@ -1074,8 +1074,8 @@ cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
 # in the program)
 cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 
-# when reading predicates from file, convert them to BV-theory. This option
-# depends on the 'variableEncodingFile'.
+# when reading predicates from file, convert them from Integer- to BV-theory
+# or reverse.
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
@@ -2204,6 +2204,9 @@ realC.timelimit = 0ms
 # configuration will only be used if the previous configuration ended with a
 # matching condition.
 restartAlgorithm.configFiles = no default value
+
+# List of files with configurations to use. 2 filenames expected.
+restartAlgorithmWithARGReplay.configFiles = no default value
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false

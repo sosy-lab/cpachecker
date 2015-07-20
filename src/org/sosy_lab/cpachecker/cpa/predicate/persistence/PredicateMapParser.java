@@ -105,8 +105,7 @@ public class PredicateMapParser {
   @Option(secure=true, description="Apply location- and function-specific predicates globally (to all locations in the program)")
   private boolean applyGlobally = false;
 
-  @Option(secure=true, description = "when reading predicates from file, convert them to BV-theory. "
-      + "This option depends on the 'variableEncodingFile'.")
+  @Option(secure=true, description = "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
   private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
   private enum PrecisionConverter {DISABLE, INT2BV, BV2INT}
 
