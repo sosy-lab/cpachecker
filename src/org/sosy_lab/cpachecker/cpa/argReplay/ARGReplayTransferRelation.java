@@ -54,11 +54,11 @@ public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
       getChildren(pCfaEdge, baseState, successors);
 
       // children of covering state
-      if (baseState.isCovered()) {
-        ARGState coveringState = baseState.getCoveringState();
-        // logger.log(Level.INFO, "jumping from", pState, "to covering state", coveringState, "because of edge", pCfaEdge);
-        getChildren(pCfaEdge, coveringState, successors);
-      }
+      // if (baseState.isCovered()) {
+      //  ARGState coveringState = baseState.getCoveringState();
+      //  logger.log(Level.INFO, "jumping from", pState, "to covering state", coveringState, "because of edge", pCfaEdge);
+      //  getChildren(pCfaEdge, coveringState, successors);
+      // }
     }
 
     return Collections.singleton(new ARGReplayState(successors, ((ARGReplayState)pState).getCPA()));
@@ -66,8 +66,14 @@ public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
 
   private void getChildren(CFAEdge pCfaEdge, ARGState baseState, Set<ARGState> successors) {
     for (ARGState child : baseState.getChildren()) {
+      // normally only one child has the correct edge
       if (pCfaEdge.equals(baseState.getEdgeToChild(child))) {
-        successors.add(child);
+        // redirect edge from child to covering state, because the subgraph of the covering state is reachable from there
+        if (child.isCovered()) {
+          successors.add(child.getCoveringState());
+        } else {
+          successors.add(child);
+        }
       }
     }
   }
