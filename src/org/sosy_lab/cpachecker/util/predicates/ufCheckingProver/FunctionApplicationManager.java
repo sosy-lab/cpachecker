@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
-
+/** This class contains code for a better evaluation of UFs. */
 public class FunctionApplicationManager {
 
   private final FormulaManagerView fmgr;
@@ -44,6 +44,11 @@ public class FunctionApplicationManager {
     this.logger = pLogger;
   }
 
+  /**
+   * For a UF (with a matching signature and name), we produce the correct result,
+   * and build an assignment (equality) of the UF and the correct result and return it.
+   * If we cannot compute a result or UF is unknown, we return TRUE.
+   */
   public BooleanFormula evaluate(Function func, Object value) {
     switch (func.getName()) {
     case "Integer__*_": {
@@ -79,14 +84,14 @@ public class FunctionApplicationManager {
       return OVERFLOW.apply(func, value);
     }
 
-    logger.logf(Level.INFO, "ignoring UF '%s' with value '%s'.", func, value);
+    logger.logf(Level.ALL, "ignoring UF '%s' with value '%s'.", func, value);
     return fmgr.getBooleanFormulaManager().makeBoolean(true);
   }
 
   /** if the new valid result is equal to the old value, we return just TRUE, else we return the new assignment. */
-  private BooleanFormula makeAssignmentOrTrue(BigInteger validResult, Object value, Formula uf, BooleanFormula newAssignment) {
+  private BooleanFormula makeAssignmentOrTrue(Number validResult, Object value, Formula uf, BooleanFormula newAssignment) {
     if (!validResult.equals(value)) {
-      logger.logf(Level.INFO, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
+      logger.logf(Level.ALL, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
       return newAssignment;
     } else {
       return fmgr.getBooleanFormulaManager().makeBoolean(true);
@@ -97,9 +102,8 @@ public class FunctionApplicationManager {
   private static interface FunctionApplication {
 
     /**
-     * returns a pair consisting of
-     * -- a constraint "UF(params) == result",
-     * -- a boolean flag, whether the result already was correct.
+     * returns a constraint "UF(params) == result"
+     * or TRUE if we cannot evaluate the UF.
      */
     public BooleanFormula apply(Function func, Object pValue);
   }
@@ -207,7 +211,11 @@ public class FunctionApplicationManager {
 
     @Override
     BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.shiftLeft(p2.intValue());
+      int v = p2.intValue();
+      if (v < 0) {
+        return null;
+      }
+      return p1.shiftLeft(v);
     }
   };
 
@@ -215,7 +223,11 @@ public class FunctionApplicationManager {
 
     @Override
     BigInteger compute(BigInteger p1, BigInteger p2) {
-      return p1.shiftRight(p2.intValue());
+      int v = p2.intValue();
+      if (v < 0) {
+        return null;
+      }
+      return p1.shiftRight(v);
     }
   };
 
