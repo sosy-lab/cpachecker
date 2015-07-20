@@ -453,11 +453,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     BooleanFormula newPredicate = fmgr.simplify(
         bfmgr.or(oldState.getPredicate(), newState.getPredicate()));
 
-    PolicyAbstractedState merged = oldState.withUpdates(
-        newAbstraction,
+    PolicyAbstractedState merged = PolicyAbstractedState.of(
+        newAbstraction, oldState.getNode(),
         congruenceManager.join(
             newState.getCongruence(), oldState.getCongruence()),
-        newPredicate);
+        oldState.getLocationID(),
+        this,
+        oldState.getSSA(),
+
+        // todo: merge pointer target states [ONLY IF the new state is not coming
+        // from under the loop].
+        oldState.getPointerTargetSet(),
+        newPredicate
+    );
 
     if (generateTemplatesUsingWidening) {
       templateManager.addGeneratedTemplates(

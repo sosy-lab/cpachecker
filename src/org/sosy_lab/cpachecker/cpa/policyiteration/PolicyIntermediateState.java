@@ -21,6 +21,9 @@ public final class PolicyIntermediateState extends PolicyState {
    */
   private final ImmutableMap<Integer, PolicyAbstractedState> generatingStates;
 
+  /**
+   * Meta-information for determining the coverage.
+   */
   private transient PolicyIntermediateState mergedInto;
 
   private PolicyIntermediateState(
