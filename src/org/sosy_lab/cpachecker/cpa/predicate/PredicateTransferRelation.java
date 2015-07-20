@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
@@ -117,9 +118,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   private final BooleanFormulaManagerView bfmgr;
 
   private final AnalysisDirection direction;
+  private final CFA cfa;
 
   public PredicateTransferRelation(PredicateCPA pCpa, BlockOperator pBlk,
-      Configuration config, AnalysisDirection pDirection) throws InvalidConfigurationException {
+      Configuration config, AnalysisDirection pDirection, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this, PredicateTransferRelation.class);
 
     logger = pCpa.getLogger();
@@ -130,6 +132,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     assumeStore = pCpa.getAssumesStore();
     blk = pBlk;
     direction = pDirection;
+    cfa = pCfa;
   }
 
   @Override
