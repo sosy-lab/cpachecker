@@ -1,11 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-
-import com.google.common.collect.ImmutableMap;
 
 public final class PolicyIntermediateState extends PolicyState {
 
@@ -15,11 +11,9 @@ public final class PolicyIntermediateState extends PolicyState {
   private final PathFormula pathFormula;
 
   /**
-   * Abstract states used for generating this state.
-   *
-   * locationID -> PolicyAbstractedState.
+   * Abstract state representing start of the trace.
    */
-  private final ImmutableMap<Integer, PolicyAbstractedState> generatingStates;
+  private final PolicyAbstractedState startingAbstraction;
 
   /**
    * Meta-information for determining the coverage.
@@ -29,21 +23,21 @@ public final class PolicyIntermediateState extends PolicyState {
   private PolicyIntermediateState(
       CFANode node,
       PathFormula pPathFormula,
-      Map<Integer, PolicyAbstractedState> pGeneratingStates
+      PolicyAbstractedState pStartingAbstraction
       ) {
     super(node);
 
     pathFormula = pPathFormula;
-    generatingStates = ImmutableMap.copyOf(pGeneratingStates);
+    startingAbstraction = pStartingAbstraction;
   }
 
   public static PolicyIntermediateState of(
       CFANode node,
       PathFormula pPathFormula,
-      Map<Integer, PolicyAbstractedState> generatingStates
+      PolicyAbstractedState generatingState
   ) {
     return new PolicyIntermediateState(
-        node, pPathFormula, generatingStates);
+        node, pPathFormula, generatingState);
   }
 
   public void setMergedInto(PolicyIntermediateState other) {
@@ -55,10 +49,10 @@ public final class PolicyIntermediateState extends PolicyState {
   }
 
   /**
-   * @return Starting {@link PathFormula} for possible starting locations.
+   * @return Starting {@link PolicyAbstractedState} for the starting location.
    */
-  public ImmutableMap<Integer, PolicyAbstractedState> getGeneratingStates() {
-    return generatingStates;
+  public PolicyAbstractedState getGeneratingState() {
+    return startingAbstraction;
   }
 
   public PathFormula getPathFormula() {
