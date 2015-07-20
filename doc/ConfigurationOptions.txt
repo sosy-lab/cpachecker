@@ -157,6 +157,10 @@ analysis.refinePreconditions = false
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# run a sequence of analysis, where the previous ARG is inserted into the
+# current ARGReplayCPA.
+analysis.restartAlgorithmWithARGReplay = false
+
 # stop after the first error has been found
 analysis.stopAfterError = true
 
