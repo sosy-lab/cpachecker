@@ -166,8 +166,6 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
 
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
 
-    stats.totalTime.start();
-
     try {
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(globalConfig, logger);
 
@@ -266,7 +264,8 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     logger.log(Level.INFO, "Starting sub-analysis");
     shutdownNotifier.shutdownIfNecessary();
     stats.noOfAlgorithmsUsed++;
-    AlgorithmStatus status = algorithm.run(reached);
+    stats.totalTime.start();
+   AlgorithmStatus status = algorithm.run(reached);
     shutdownNotifier.shutdownIfNecessary();
 
     stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reached);

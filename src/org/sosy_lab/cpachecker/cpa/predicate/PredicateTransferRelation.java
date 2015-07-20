@@ -25,8 +25,10 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,11 +57,14 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -66,6 +72,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Optional;
 
@@ -359,6 +368,10 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
+        if (lElement instanceof ARGReplayState) {
+          element = strengthen(element, (ARGReplayState) lElement);
+        }
+
         /*
          * Add additional assumptions from an automaton state.
          */
@@ -389,6 +402,86 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     } finally {
       strengthenTimer.stop();
     }
+  }
+
+  private PredicateAbstractState strengthen(PredicateAbstractState predicateState, ARGReplayState state)
+      throws SolverException, InterruptedException {
+    if (predicateState instanceof ComputeAbstractionState) {
+      // we have following step: [transfer, strengthen, refine]
+      // in "refine" the expansive abstraction is computed,
+      // so we try to get information from other states to avoid abstraction.
+      for (ARGState innerState : state.getStates()) {
+        PredicateAbstractState oldPredicateState = AbstractStates.extractStateByType(innerState, PredicateAbstractState.class);
+        if (oldPredicateState != null && oldPredicateState.isAbstractionState()) {
+          PredicateCPA oldPredicateCPA = CPAs.retrieveCPA(state.getCPA(), PredicateCPA.class);
+          predicateState = updateComputeAbstractionState((ComputeAbstractionState)predicateState, oldPredicateState, oldPredicateCPA);
+          break;
+        }
+      }
+    }
+    return predicateState;
+  }
+
+  private ComputeAbstractionState updateComputeAbstractionState(ComputeAbstractionState pPredicateState,
+      PredicateAbstractState pOldPredicateState, PredicateCPA oldPredicateCPA)
+          throws SolverException, InterruptedException {
+    // TODO while converting constraints from  INT to BV, re-use as many sub-formula as possible for all old abstractions,
+    // such that we get the same BDD-nodes for atoms of different old abstractions.
+    BooleanFormula constraint = pOldPredicateState.getAbstractionFormula().asFormula();
+
+    StringBuilder in = new StringBuilder();
+    BVConverter converter = new BVConverter(cfa, logger);
+    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(constraint);
+
+    try {
+      app.appendTo(in);
+    } catch (IOException e) {
+      throw new AssertionError(e.getMessage());
+    }
+
+    StringBuilder out = new StringBuilder();
+    try {
+      for (String line : in.toString().split("\n")) {
+        if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
+          line = FormulaParser.convertFormula(checkNotNull(converter), line, logger);
+        }
+        out.append(line);
+      }
+    } catch (UnknownFormulaSymbolException e) {
+      throw new AssertionError(e.getMessage());
+    }
+
+    constraint = this.fmgr.parse(out.toString());
+
+    if (!isImplication(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
+      constraint = null; // ignore constraint
+    }
+
+    return new ComputeAbstractionState(
+        pPredicateState.getPathFormula(),
+        pPredicateState.getAbstractionFormula(),
+        pPredicateState.getLocation(),
+        pPredicateState.getAbstractionLocationsOnPath(),
+        constraint);
+  }
+
+  /** return, whether  (lastAbstraction && pathFormula) => newAbstraction  is a valid expression.
+   * All three formulas are instantiated. */
+  private boolean isImplication(AbstractionFormula oldAbstraction,
+      PathFormula pathFormula, BooleanFormula newAbstraction) throws SolverException, InterruptedException {
+
+    // set abstraction to true, we just need a dummy abstraction
+    AbstractionFormula tru = formulaManager.makeTrueAbstractionFormula(pathFormula);
+    BooleanFormula implication = bfmgr.implication(
+        bfmgr.and(oldAbstraction.asInstantiatedFormula(), pathFormula.getFormula()),
+        fmgr.instantiate(newAbstraction, pathFormula.getSsa()));
+    PathFormula formula = new PathFormula(implication, pathFormula.getSsa(), pathFormula.getPointerTargetSet(), 0);
+
+    boolean unsat = formulaManager.unsat(tru, formula);
+
+    //logger.log(Level.INFO, implication, "is sat", !unsat);
+
+    return !unsat;
   }
 
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
