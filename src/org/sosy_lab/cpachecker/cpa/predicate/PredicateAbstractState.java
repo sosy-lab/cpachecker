@@ -28,6 +28,8 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -36,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
@@ -156,10 +159,23 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     private static final long serialVersionUID = -3961784113582993743L;
     private transient final CFANode location;
 
+    /** A constraint is boolean formula that is valid for the current abstraction
+     * and should be conjuncted with the result of the abstraction computation.
+     * The constraint is a not instantiated formula. */
+    private transient final @Nullable BooleanFormula constraint;
+
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
         CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       location = pLoc;
+      constraint = null; // NULL represents TRUE, because we do not have a FormulaManager here.
+    }
+
+    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
+        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations, BooleanFormula pConstraint) {
+      super(pf, pA, pAbstractionLocations);
+      location = pLoc;
+      constraint = pConstraint;
     }
 
     @Override
@@ -179,6 +195,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
     public CFANode getLocation() {
       return location;
+    }
+
+    public @Nullable BooleanFormula getConstraint() {
+      return constraint;
     }
   }
 

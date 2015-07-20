@@ -48,11 +48,13 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
@@ -148,6 +150,22 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
           loc, abstractionFormula, pathFormula, preds);
     } finally {
       computingAbstractionTime.stop();
+    }
+
+    final BooleanFormula constraint = element.getConstraint();
+    if (constraint != null) {
+      // add constraint to the current abstraction, such that it can be used for further steps in the analysis.
+      // We manually set the SSA-indices for the constraint with the indices available in the current (new) abstractionFormula.
+      // TODO: check if we use identical BDD-nodes for identical atoms for different formulas
+      Region abs = formulaManager.buildRegionFromFormulaWithUnknownAtoms(constraint);
+      BooleanFormula symbolicAbs = constraint;
+      BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(constraint, newAbstractionFormula.getBlockFormula().getSsa());
+      PathFormula blockFormula = newAbstractionFormula.getBlockFormula(); // has to be equal for 'makeAnd'
+
+      AbstractionFormula constraintAbs = new AbstractionFormula(
+          fmgr, abs, symbolicAbs, instantiatedSymbolicAbs, blockFormula, ImmutableSet.<Integer>of());
+
+      newAbstractionFormula = formulaManager.makeAnd(constraintAbs, newAbstractionFormula);
     }
 
     // if the abstraction is false, return bottom (represented by empty set)
