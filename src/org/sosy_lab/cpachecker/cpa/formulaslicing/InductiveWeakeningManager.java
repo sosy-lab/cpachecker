@@ -113,16 +113,14 @@ public class InductiveWeakeningManager {
         // Remove the selection constraint.
         env.pop();
 
-        int i = 0;
         boolean removed = false;
-        for (BooleanFormula selVar : selectionVars) {
+        for (int i=0; i<selectionVars.size(); i++) {
 
           // Remove this variable from the selection.
           List<BooleanFormula> newSelection = Lists.newArrayList(selectionVars);
           newSelection.remove(i);
 
           env.push(bfmgr.and(newSelection));
-          i++;
 
           if (env.isUnsat()) {
             // Still unsat: keep that element non-abstracted.
