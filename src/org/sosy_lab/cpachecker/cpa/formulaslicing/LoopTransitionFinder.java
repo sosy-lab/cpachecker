@@ -12,9 +12,12 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -23,10 +26,12 @@ import com.google.common.collect.Sets;
 public class LoopTransitionFinder {
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
+  private final SetMultimap<CFANode, CFAEdge> loopEdgesCache;
 
   public LoopTransitionFinder(CFA pCfa, PathFormulaManager pPfmgr) {
     cfa = pCfa;
     pfmgr = pPfmgr;
+    loopEdgesCache = HashMultimap.create();
   }
 
   public PathFormula generateLoopTransition(CFANode loopHead)
@@ -38,14 +43,7 @@ public class LoopTransitionFinder {
 
     // Looping edges: intersection of forwards-reachable
     // and backwards-reachable.
-    EdgeCollectingCFAVisitor forwardVisitor = new EdgeCollectingCFAVisitor();
-    CFATraversal.dfs().traverse(loopHead, forwardVisitor);
-    Set<CFAEdge> forwardEdges = ImmutableSet.copyOf(forwardVisitor.getVisitedEdges());
-    EdgeCollectingCFAVisitor backwardVisitor = new EdgeCollectingCFAVisitor();
-    CFATraversal.dfs().backwards().traverse(loopHead, backwardVisitor);
-    Set<CFAEdge> backwardEdges = ImmutableSet.copyOf(
-        backwardVisitor.getVisitedEdges());
-    Set<CFAEdge> edgesInLoop = Sets.intersection(forwardEdges, backwardEdges);
+    Set<CFAEdge> edgesInLoop = getEdgesInLoop(loopHead);
 
     CFAEdge first = Iterables.getFirst(edgesInLoop, null);
     PathFormula formula = pfmgr.makeFormulaForPath(ImmutableList.of(first));
@@ -55,5 +53,30 @@ public class LoopTransitionFinder {
     }
 
     return formula;
+  }
+
+  public Set<CFAEdge> getEdgesInLoop(CFANode loopHead) {
+    Preconditions.checkState(cfa.getAllLoopHeads().get().contains(loopHead));
+
+    Set<CFAEdge> out = loopEdgesCache.get(loopHead);
+
+    // Note that loop has to contain at least one looping edge.
+    if (out.isEmpty()) {
+
+      // Populate the cache on demand.
+      EdgeCollectingCFAVisitor forwardVisitor = new EdgeCollectingCFAVisitor();
+      CFATraversal.dfs().traverse(loopHead, forwardVisitor);
+      Set<CFAEdge> forwardEdges = ImmutableSet.copyOf(
+          forwardVisitor.getVisitedEdges());
+      EdgeCollectingCFAVisitor backwardVisitor = new EdgeCollectingCFAVisitor();
+      CFATraversal.dfs().backwards().traverse(loopHead, backwardVisitor);
+      Set<CFAEdge> backwardEdges = ImmutableSet.copyOf(
+          backwardVisitor.getVisitedEdges());
+      out = Sets.intersection(forwardEdges, backwardEdges);
+
+      loopEdgesCache.putAll(loopHead, out);
+    }
+
+    return out;
   }
 }

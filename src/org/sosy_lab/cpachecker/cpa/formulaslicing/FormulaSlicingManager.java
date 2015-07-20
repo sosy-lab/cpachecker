@@ -25,12 +25,16 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -62,13 +67,20 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
+  private final LogManager logger;
+  private final CFA cfa;
+  private final LoopTransitionFinder loopTransitionFinder;
 
 
   public FormulaSlicingManager(PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, Solver pSolver) {
+      FormulaManagerView pFmgr, Solver pSolver, LogManager pLogger, CFA pCfa,
+      LoopTransitionFinder pLoopTransitionFinder) {
     pfmgr = pPfmgr;
     fmgr = pFmgr;
     solver = pSolver;
+    logger = pLogger;
+    cfa = pCfa;
+    loopTransitionFinder = pLoopTransitionFinder;
     bfmgr = fmgr.getBooleanFormulaManager();
   }
 
@@ -253,42 +265,188 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   }
 
   /** ... utility stuff below ... **/
-
   @Override
-  public FormulaSlicingState join(FormulaSlicingState oldState,
-      FormulaSlicingState newState) throws CPAException, InterruptedException {
-    return null;
+  public Collection<? extends SlicingState> getAbstractSuccessors(
+      SlicingState oldState, CFAEdge edge)
+      throws CPATransferException, InterruptedException {
+
+    SlicingIntermediateState iOldState;
+
+    if (oldState.isAbstracted()) {
+      iOldState = abstractStateToIntermediate(oldState.asAbstracted());
+    } else {
+      iOldState = oldState.asIntermediate();
+    }
+
+    PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
+
+    SlicingIntermediateState out = SlicingIntermediateState.of(
+        outPath, iOldState.getAbstraction());
+
+    return Collections.singleton(out);
   }
 
   @Override
-  public Collection<? extends FormulaSlicingState> getAbstractSuccessors(
-      FormulaSlicingState state, CFAEdge edge)
-      throws CPAException, InterruptedException {
-    return null;
+  public SlicingState join(SlicingState newState,
+      SlicingState oldState) throws CPAException, InterruptedException {
+    Preconditions.checkState(oldState.isAbstracted() == newState.isAbstracted());
+
+    SlicingState out;
+    if (oldState.isAbstracted()) {
+      out = joinAbstractedStates(oldState.asAbstracted(),
+          newState.asAbstracted());
+    } else {
+      out = joinIntermediateStates(oldState.asIntermediate(),
+          newState.asIntermediate());
+    }
+
+    return out;
   }
 
+  /**
+   * Slicing is performed in the {@code strengthen} call.
+   */
   @Override
-  public Collection<? extends FormulaSlicingState> strengthen(
-      FormulaSlicingState state, List<AbstractState> otherState,
+  public Collection<? extends SlicingState> strengthen(
+      SlicingState state, List<AbstractState> otherState,
       CFAEdge pCFAEdge) throws CPATransferException, InterruptedException {
-    return null;
+
+    CFANode successor = pCFAEdge.getSuccessor();
+
+    if (shouldPerformAbstraction(successor)) {
+      if (shouldPerformSlicing(pCFAEdge)) {
+
+        // todo: this is the place we perform formula slicing!
+        return null;
+
+      } else {
+
+        // Would it work properly?? Returning bottom when no abstraction is
+        // necessary.
+        return Collections.emptySet();
+      }
+
+    } else {
+      return Collections.singleton(state);
+    }
   }
 
   @Override
-  public FormulaSlicingState getInitialState(CFANode node) {
-    return null;
+  public SlicingState getInitialState(CFANode node) {
+    return SlicingAbstractedState.empty(bfmgr);
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(FormulaSlicingState state,
-      UnmodifiableReachedSet states, AbstractState pArgState)
+  public Optional<PrecisionAdjustmentResult> prec(SlicingState state,
+      UnmodifiableReachedSet states, AbstractState fullState)
       throws CPAException, InterruptedException {
+
+    // todo: remove, we perform slicing in {@code strengthen} instead.
     return null;
   }
 
+
   @Override
-  public boolean isLessOrEqual(FormulaSlicingState pState1,
-      FormulaSlicingState pState2) {
-    return false;
+  public boolean isLessOrEqual(SlicingState pState1,
+      SlicingState pState2) {
+    Preconditions.checkState(pState1.isAbstracted() == pState2.isAbstracted());
+
+    if (!pState1.isAbstracted()) {
+
+      // Use the coverage relation for intermediate states.
+      SlicingIntermediateState iState1 = pState1.asIntermediate();
+      SlicingIntermediateState iState2 = pState2.asIntermediate();
+      return iState1.isMergedInto(iState2) &&
+          iState1.getAbstraction().equals(iState2.getAbstraction());
+    } else {
+      // todo: Comparison for abstracted states?
+      // Do we need to deal with "false" and "true" values explicitly?
+      // Namely, "true" is the biggest, "false" is the smallest.
+      if (pState1.asAbstracted().getAbstraction().equals(bfmgr.makeBoolean(false))) {
+
+        // False is the smallest.
+        // todo: would AST comparison work though?
+        return true;
+      }
+      return false;
+    }
   }
+
+  private SlicingState joinIntermediateStates(
+      SlicingIntermediateState newState,
+      SlicingIntermediateState oldState) throws InterruptedException {
+    Preconditions.checkState(newState.getAbstraction().equals(
+        oldState.getAbstraction()));
+
+    if (newState.isMergedInto(oldState)) {
+      return oldState;
+    } else if (oldState.isMergedInto(newState)) {
+      return newState;
+    }
+
+    if (oldState.getPathFormula().equals(newState.getPathFormula())) {
+      return newState;
+    }
+    PathFormula mergedPath = pfmgr.makeOr(newState.getPathFormula(),
+        oldState.getPathFormula());
+
+    SlicingIntermediateState out = SlicingIntermediateState.of(
+        mergedPath, oldState.getAbstraction()
+    );
+    newState.setMergedInto(out);
+    oldState.setMergedInto(out);
+    return out;
+  }
+
+  private SlicingState joinAbstractedStates(
+      SlicingAbstractedState newState,
+      SlicingAbstractedState oldState) throws InterruptedException {
+
+    logger.log(Level.INFO, "Joining abstracted states",
+        "this should be quite rare");
+
+    // HM what if I'll just set to bottom the generated abstract state if it
+    // comes from within the loop? That would avoid the given problem.
+
+    // Merging PointerTargetSet.
+    PathFormula p1 = abstractStateToIntermediate(newState).getPathFormula();
+    PathFormula p2 = abstractStateToIntermediate(oldState).getPathFormula();
+    PointerTargetSet merged = pfmgr.makeOr(p1, p2).getPointerTargetSet();
+
+    return SlicingAbstractedState.of(
+        bfmgr.or(newState.getAbstraction(), oldState.getAbstraction()),
+        newState.getSSA(), // arbitrary
+        merged
+    );
+  }
+
+
+  private SlicingIntermediateState abstractStateToIntermediate(
+      SlicingAbstractedState pSlicingAbstractedState) {
+    return SlicingIntermediateState.of(
+        new PathFormula(
+            bfmgr.makeBoolean(true),
+            pSlicingAbstractedState.getSSA(),
+            pSlicingAbstractedState.getPointerTargetSet(),
+            0), pSlicingAbstractedState);
+  }
+
+  /**
+   * <=>
+   * 1) Target is a loop-head.
+   * 2) {@code edge} is NOT a back edge.
+   */
+  private boolean shouldPerformSlicing(CFAEdge edge) {
+    CFANode succ = edge.getSuccessor();
+    return shouldPerformAbstraction(succ)
+        && !loopTransitionFinder.getEdgesInLoop(succ).contains(edge);
+  }
+
+  private boolean shouldPerformAbstraction(CFANode node) {
+
+    // Slicing is only performed on the loop heads.
+    return cfa.getLoopStructure().get().getAllLoopHeads().contains(node);
+  }
+
+
 }

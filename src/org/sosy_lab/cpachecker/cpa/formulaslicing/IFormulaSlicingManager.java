@@ -37,29 +37,29 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Optional;
 
 public interface IFormulaSlicingManager {
-  FormulaSlicingState join(
-      FormulaSlicingState oldState,
-      FormulaSlicingState newState
+  SlicingState join(
+      SlicingState oldState,
+      SlicingState newState
   ) throws CPAException, InterruptedException;
 
-  Collection<? extends FormulaSlicingState> getAbstractSuccessors(
-      FormulaSlicingState state,
+  Collection<? extends SlicingState> getAbstractSuccessors(
+      SlicingState state,
       CFAEdge edge
-  ) throws CPAException, InterruptedException;
+  ) throws CPATransferException, InterruptedException;
 
-  Collection<? extends FormulaSlicingState> strengthen(
-      FormulaSlicingState state,
+  Collection<? extends SlicingState> strengthen(
+      SlicingState state,
       List<AbstractState> otherState,
       CFAEdge pCFAEdge
   ) throws CPATransferException, InterruptedException;
 
-  FormulaSlicingState getInitialState(CFANode node);
+  SlicingState getInitialState(CFANode node);
 
   Optional<PrecisionAdjustmentResult> prec(
-    FormulaSlicingState state,
+    SlicingState state,
     UnmodifiableReachedSet states,
     AbstractState pArgState) throws CPAException, InterruptedException;
 
-  boolean isLessOrEqual(FormulaSlicingState pState1,
-      FormulaSlicingState pState2);
+  boolean isLessOrEqual(SlicingState pState1,
+      SlicingState pState2);
 }
