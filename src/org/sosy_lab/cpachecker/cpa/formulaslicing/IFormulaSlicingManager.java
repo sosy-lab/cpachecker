@@ -29,12 +29,8 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import com.google.common.base.Optional;
 
 public interface IFormulaSlicingManager {
   SlicingState join(
@@ -54,11 +50,6 @@ public interface IFormulaSlicingManager {
   ) throws CPATransferException, InterruptedException;
 
   SlicingState getInitialState(CFANode node);
-
-  Optional<PrecisionAdjustmentResult> prec(
-    SlicingState state,
-    UnmodifiableReachedSet states,
-    AbstractState pArgState) throws CPAException, InterruptedException;
 
   boolean isLessOrEqual(SlicingState pState1,
       SlicingState pState2);
