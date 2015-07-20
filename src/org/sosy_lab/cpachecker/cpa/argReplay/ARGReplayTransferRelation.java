@@ -61,7 +61,7 @@ public class ARGReplayTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    return Collections.singleton(new ARGReplayState(successors));
+    return Collections.singleton(new ARGReplayState(successors, ((ARGReplayState)pState).getCPA()));
   }
 
   private void getChildren(CFAEdge pCfaEdge, ARGState baseState, Set<ARGState> successors) {

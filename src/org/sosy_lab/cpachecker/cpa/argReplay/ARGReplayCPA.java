@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.argReplay;
 import java.util.Collections;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -62,20 +63,29 @@ public class ARGReplayCPA implements ConfigurableProgramAnalysis {
   private final AbstractDomain abstractDomain;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private ReachedSet reached = null;
 
-  public ARGReplayCPA(LogManager pLogger) {
+  private final CFA cfa;
+
+  private ReachedSet reached = null;
+  private ConfigurableProgramAnalysis cpa = null;
+
+  public ARGReplayCPA(LogManager pLogger, CFA pCfa) {
     transferRelation = new ARGReplayTransferRelation();
     abstractDomain = DelegateAbstractDomain.<ARGReplayState>getInstance();
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopJoinOperator(abstractDomain);
+    cfa = pCfa;
   }
 
   /** This method should be run directly after the constructor. */
-  public void setARG(ReachedSet pReached) {
+  public void setARGAndCPA(ReachedSet pReached, ConfigurableProgramAnalysis pCpa) {
     Preconditions.checkNotNull(pReached);
     Preconditions.checkState(this.reached == null, "ReachedSet should only be set once.");
     this.reached  = pReached;
+
+    Preconditions.checkNotNull(pCpa);
+    Preconditions.checkState(this.cpa == null, "CPA should only be set once.");
+    this.cpa   = pCpa;
   }
 
   @Override
@@ -106,7 +116,7 @@ public class ARGReplayCPA implements ConfigurableProgramAnalysis {
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(reached);
-    return new ARGReplayState(Collections.singleton((ARGState)reached.getFirstState()));
+    return new ARGReplayState(Collections.singleton((ARGState)reached.getFirstState()), cpa);
   }
 
   @Override

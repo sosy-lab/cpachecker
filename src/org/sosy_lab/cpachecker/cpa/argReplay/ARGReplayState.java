@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.argReplay;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.collect.Sets;
@@ -33,14 +34,21 @@ import com.google.common.collect.Sets;
 /** Abstract state of a powerset domain. */
 public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
-  private Set<ARGState> states;
+  private final Set<ARGState> states;
 
-  ARGReplayState(Set<ARGState> states) {
+  private final ConfigurableProgramAnalysis cpa;
+
+  ARGReplayState(Set<ARGState> states, ConfigurableProgramAnalysis cpa) {
     this.states = states;
+    this.cpa = cpa;
   }
 
   public Set<ARGState> getStates() {
     return states;
+  }
+
+  public ConfigurableProgramAnalysis getCPA() {
+    return cpa;
   }
 
   @Override
@@ -53,7 +61,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
     if (this == other) {
       return this;
     }
-    return new ARGReplayState(Sets.union(this.states, other.states));
+    return new ARGReplayState(Sets.union(this.states, other.states), cpa);
   }
 
   @Override
@@ -66,12 +74,13 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   @Override
   public int hashCode() {
-    return states.hashCode();
+    return states.hashCode() + 31 * cpa.hashCode();
   }
 
   @Override
   public boolean equals(Object other) {
     return other instanceof ARGReplayState
-        && this.states.equals(((ARGReplayState)other).states);
+        && this.states.equals(((ARGReplayState)other).states)
+        && this.cpa.equals(((ARGReplayState)other).cpa);
   }
 }
