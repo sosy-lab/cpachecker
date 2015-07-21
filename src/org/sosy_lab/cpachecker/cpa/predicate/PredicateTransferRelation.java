@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -453,7 +454,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     constraint = this.fmgr.parse(out.toString());
 
-    if (!isImplication(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
+    if (!isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
       constraint = null; // ignore constraint
     }
 
@@ -465,23 +466,38 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         constraint);
   }
 
-  /** return, whether  (lastAbstraction && pathFormula) => newAbstraction  is a valid expression.
+  /** return, whether the newAbstraction is a valid expression,
+   * depending on lastAbstraction and pathFormula.
    * All three formulas are instantiated. */
-  private boolean isImplication(AbstractionFormula oldAbstraction,
+  private boolean isValidConstraint(AbstractionFormula oldAbstraction,
       PathFormula pathFormula, BooleanFormula newAbstraction) throws SolverException, InterruptedException {
 
-    // set abstraction to true, we just need a dummy abstraction
+    // The next formula represents the "implication" of lastAbstraction and pathFormula towards newAbstraction.
+    // The constraint is invalid, iff there exists an unsatisfying assignment for
+    // ((lastAbstraction && pathFormula) => newAbstraction), and (lastAbstraction && pathFormula) must be satisfied.
+
+    // Transformation:
+    // valid == not (exists unsatisfying assignment for ((a && b) => c) with (a && b))
+    // valid == not (exists unsatisfying assignment for ((a && b && c)))
+    // valid == not (exists satisfying assignment for (not(a && b && c)))
+    // valid == ((not(a && b && c)) is UNSAT)
+    // Warning: This is not the same as "valid == ((a && b && c) is SAT)".
+
+    BooleanFormula validConstraint = bfmgr.not(bfmgr.and(Lists.newArrayList(
+        oldAbstraction.asInstantiatedFormula(),
+        pathFormula.getFormula(),
+        fmgr.instantiate(newAbstraction, pathFormula.getSsa())
+        )));
+
+    // set abstraction to true, we just need a dummy abstraction, the important part is the "checkThis"
     AbstractionFormula tru = formulaManager.makeTrueAbstractionFormula(pathFormula);
-    BooleanFormula implication = bfmgr.implication(
-        bfmgr.and(oldAbstraction.asInstantiatedFormula(), pathFormula.getFormula()),
-        fmgr.instantiate(newAbstraction, pathFormula.getSsa()));
-    PathFormula formula = new PathFormula(implication, pathFormula.getSsa(), pathFormula.getPointerTargetSet(), 0);
+    PathFormula formula = new PathFormula(validConstraint, pathFormula.getSsa(), pathFormula.getPointerTargetSet(), 0);
 
     boolean unsat = formulaManager.unsat(tru, formula);
 
-    //logger.log(Level.INFO, implication, "is sat", !unsat);
+    // logger.log(Level.INFO, validConstraint, "is", unsat ? "UNSAT" : "SAT");
 
-    return !unsat;
+    return unsat;
   }
 
   private PredicateAbstractState strengthen(CFANode pNode, PredicateAbstractState pElement,
