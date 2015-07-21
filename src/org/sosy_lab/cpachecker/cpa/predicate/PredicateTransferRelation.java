@@ -440,15 +440,15 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     StringBuilder out = new StringBuilder();
-    try {
-      for (String line : in.toString().split("\n")) {
-        if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
+    for (String line : in.toString().split("\n")) {
+      if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
+        try {
           line = FormulaParser.convertFormula(checkNotNull(converter), line, logger);
+        } catch (UnknownFormulaSymbolException e) {
+          throw new AssertionError(e.getMessage());
         }
-        out.append(line);
       }
-    } catch (UnknownFormulaSymbolException e) {
-      throw new AssertionError(e.getMessage());
+      out.append(line);
     }
 
     constraint = this.fmgr.parse(out.toString());
