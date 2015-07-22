@@ -16,5 +16,7 @@ int main() {
     x++;
   }
 
-  assert(z > 100 && p == 0 || z <= 100 && p == 1);
+  // todo: for some reason CPAchecker gets confused in the absence of brackets.
+  assert((z > 100 && p == 0)
+          || (z <= 100 && p == 1));
 }

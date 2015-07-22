@@ -36,14 +36,6 @@ public class LoopTransitionFinderTest {
   private PathFormulaManager pfmgr;
   private FormulaManagerView fmgr;
 
-  // todo: the CFA creation functionality
-  // would come extremely handy at this point.
-  // Where can we store it though?
-  // maybe even outside of this package?
-  // It has very specific hacks though -- P. wouldn't
-  // be happy about that.
-  // Can't make them static either though due to dependencies =n/
-
   @Before public void setUp() throws Exception {
     Configuration config = TestDataTools.configurationForTest().setOptions(
         ImmutableMap.of(
@@ -73,7 +65,7 @@ public class LoopTransitionFinderTest {
         "while (1) {",
         // todo: gives strange result w/ x++; y++; which uses unnecessarily
         // uses temporary variables. Maybe we should ask Philipp?
-        "x += 1; y += 1;",
+          "x += 1; y += 1;",
         "}"
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
@@ -94,10 +86,6 @@ public class LoopTransitionFinderTest {
         "while (1) {",
           "if (p) { x += 1; } else { y += 1; }",
         "}"
-        // note: there is an "else" branch, under which both "x" and "y"
-        // remain constant.
-        // this is a problem, but probably unavoidable without applying LBE
-        // properly -> this probably should be emailed to Philipp.
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
