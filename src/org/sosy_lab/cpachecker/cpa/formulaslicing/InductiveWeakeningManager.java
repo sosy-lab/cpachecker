@@ -56,8 +56,8 @@ public class InductiveWeakeningManager {
 
 
     // ...remove atoms containing intermediate variables.
-    BooleanFormula noIntermediate = SlicingPreprocessor
-        .of(fmgr, input.getSsa()).visit(input.getFormula());
+    BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
+        .of(fmgr, input.getSsa()).visit(input.getFormula()));
     logger.log(Level.INFO, "Input without intermediate variables", noIntermediate);
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
@@ -68,8 +68,6 @@ public class InductiveWeakeningManager {
     BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVars).visit(
         noIntermediateNNF);
 
-    // Step 3: make sure transition SSA agrees with
-
 
     // This is possible since the formula does not have any intermediate
     // variables, hence the whole renaming would work just as expected.
@@ -77,6 +75,8 @@ public class InductiveWeakeningManager {
         fmgr.instantiate(fmgr.uninstantiate(annotated),
             transition.getSsa());
     BooleanFormula negated = bfmgr.not(primed);
+
+    logger.log(Level.INFO, "Loop transition: ", transition.getFormula());
 
     // Inductiveness checking formula.
     BooleanFormula query = bfmgr.and(ImmutableList.of(annotated,
@@ -98,6 +98,7 @@ public class InductiveWeakeningManager {
 
     BooleanFormula sliced = ufmgr.substitute(annotated, replacement);
     sliced = fmgr.simplify(sliced);
+    logger.log(Level.INFO, "Slice obtained: ", sliced);
 
     return fmgr.uninstantiate(sliced);
   }
@@ -250,6 +251,10 @@ public class InductiveWeakeningManager {
     private BooleanFormula makeFreshSelector() {
       BooleanFormula selector = bfmgr
           .makeVariable(PROP_VAR + controllerIdGenerator.getFreshId());
+
+      // todo: we somehow must maintain an order on selection vars,
+      // based on syntactic tests.
+      // Though it can be left as a future item as well.
       selectionVars.add(selector);
       return selector;
     }

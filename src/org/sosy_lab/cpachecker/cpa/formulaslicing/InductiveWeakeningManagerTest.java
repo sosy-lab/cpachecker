@@ -2,10 +2,6 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
@@ -19,13 +15,8 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -34,11 +25,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 public class InductiveWeakeningManagerTest {
@@ -86,13 +74,29 @@ public class InductiveWeakeningManagerTest {
     logger.log(Level.INFO, "Loop transition: ", loop);
 
     BooleanFormula slice = inductiveWeakeningManager.slice(f, loop);
-
     logger.log(Level.INFO, "Obtained slice", slice);
 
     BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(toCFA("int y; y = 0;"))
         .getFormula());
 
     assertThat(slice).isEqualTo(expectedFormula);
+  }
+
+  @Test public void slicingSimpleRearranged() throws Exception {
+    PathFormula f = toPathFormula(toCFA("int x, y; y = 0; x = 1;"));
+    logger.log(Level.INFO, "Sliced formula: ", f);
+
+    PathFormula loop = toPathFormula(toCFA("int x; x++;"), f.getSsa());
+    logger.log(Level.INFO, "Loop transition: ", loop);
+
+    BooleanFormula slice = inductiveWeakeningManager.slice(f, loop);
+    logger.log(Level.INFO, "Obtained slice", slice);
+
+    BooleanFormula expectedFormula = fmgr.uninstantiate(toPathFormula(toCFA("int y; y = 0;"))
+        .getFormula());
+
+    assertThat(slice).isEqualTo(expectedFormula);
+
   }
 
   @Test public void testSlicingComplex() throws Exception {
@@ -108,7 +112,6 @@ public class InductiveWeakeningManagerTest {
     // processed last.
     logger.log(Level.INFO, "Obtained slice", slice);
     logger.flush();
-
 
     // First result: infinite loop =(.
   }
@@ -137,60 +140,11 @@ public class InductiveWeakeningManagerTest {
   }
 
   private PathFormula toPathFormula(CFA cfa, SSAMap initialSSA) throws Exception {
-    Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.getAllNodes().size());
-    CFANode start = cfa.getMainFunction();
-
-    PathFormula initial = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeBoolean(true), initialSSA,
-        PointerTargetSet.emptyPointerTargetSet(),
-        0
-    );
-
-    mapping.put(start, initial);
-    Deque<CFANode> queue = new LinkedList<>();
-    queue.add(start);
-
-    while (!queue.isEmpty()) {
-      CFANode node = queue.removeLast();
-      Preconditions.checkState(!node.isLoopStart(),
-          "Can only work on loop-free fragments");
-      PathFormula path = mapping.get(node);
-
-      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
-        CFANode toNode = e.getSuccessor();
-        PathFormula old = mapping.get(toNode);
-
-        PathFormula n;
-        if (e instanceof CDeclarationEdge &&
-            ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
-
-          // Skip variable declaration edges.
-          n = path;
-        } else {
-          n = pfmgr.makeAnd(path, e);
-        }
-        PathFormula out;
-        if (old == null) {
-          out = n;
-        } else {
-          out = pfmgr.makeOr(old, n);
-          out = out.updateFormula(fmgr.simplify(out.getFormula()));
-        }
-        mapping.put(toNode, out);
-        queue.add(toNode);
-      }
-    }
-
-    PathFormula out = mapping.get(cfa.getMainFunction().getExitNode());
-    out = out.updateFormula(fmgr.simplify(out.getFormula()));
-    return out;
+    return TestDataTools.toPathFormula(cfa, initialSSA,
+        fmgr, pfmgr, true);
   }
 
   private CFA toCFA(String... parts) throws Exception {
-    return creator.parseFileAndCreateCFA(getProgram(parts));
-  }
-
-  private String getProgram(String... parts) {
-    return "int main() {" +  Joiner.on('\n').join(parts) + "}";
+    return TestDataTools.toCFA(creator, parts);
   }
 }

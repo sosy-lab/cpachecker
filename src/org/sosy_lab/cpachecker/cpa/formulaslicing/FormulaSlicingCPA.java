@@ -81,7 +81,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     }
 
     LoopTransitionFinder ltf = new LoopTransitionFinder(
-        cfa, pathFormulaManager);
+        cfa, pathFormulaManager, formulaManager, pLogger);
 
     InductiveWeakeningManager pInductiveWeakeningManager =
         new InductiveWeakeningManager(
@@ -162,6 +162,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Precision getInitialPrecision(CFANode node,
       StateSpacePartition partition) {
     // At the moment, precision is not used for formula slicing.
-    return null;
+    return new Precision() {};
   }
 }

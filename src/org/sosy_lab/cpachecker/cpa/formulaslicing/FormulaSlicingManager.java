@@ -109,6 +109,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     if (shouldPerformAbstraction(successor)) {
       if (shouldPerformSlicing(pCFAEdge)) {
 
+        // todo: the loop transition is incorrect.
+        // okay, let's test this mofo.
         PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
             successor);
         BooleanFormula inductiveWeakening;
@@ -262,7 +264,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private boolean shouldPerformSlicing(CFAEdge edge) {
     CFANode succ = edge.getSuccessor();
     return shouldPerformAbstraction(succ)
-        && !loopTransitionFinder.getEdgesInLoop(succ).contains(edge);
+        && !loopTransitionFinder.getEdgesInSCC(succ).contains(edge);
   }
 
   private boolean shouldPerformAbstraction(CFANode node) {
