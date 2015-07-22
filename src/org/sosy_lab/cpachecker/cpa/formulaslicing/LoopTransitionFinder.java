@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,7 +32,17 @@ import com.google.common.collect.Sets;
 /**
  * Return a path-formula describing all possible transitions inside the loop.
  */
+@Options(prefix="cpa.slicing")
 public class LoopTransitionFinder {
+
+  @Option(secure=true, description="Apply AND- LBE transformation to loop "
+      + "transition relation.")
+  private boolean applyANDtransformation = true;
+
+  @Option(secure=true, description="Apply OR- LBE transformation to loop "
+      + "transition relation.")
+  private boolean applyORtransformation = true;
+
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final SetMultimap<CFANode, CFAEdge> loopEdgesCache;
@@ -110,79 +122,18 @@ public class LoopTransitionFinder {
       Set<CFAEdge> edgesInLoop)
       throws CPATransferException, InterruptedException {
 
+    logger.log(Level.INFO, "Set of edges in the loop: ", edgesInLoop);
+
     Set<EdgeWrapper> out = convert(edgesInLoop);
 
-    while (true) { // Fixpoint computation.
-      boolean changed = false;
-
-      // Applying and-transformation.
-      for (EdgeWrapper e : out) {
-
-        if (e.getSuccessor() == loopHead) continue;
-
-        EdgeWrapper candidate = null;
-
-        for (EdgeWrapper other : out) {
-          if (e == other) continue;
-
-          if (other.getPredecessor() == e.getSuccessor()) {
-            if (candidate == null) {
-              candidate = other;
-            } else {
-
-              // Do not perform replacement,
-              // if there are two candidates we should stop.
-              candidate = null;
-              break;
-            }
-          }
-        }
-
-        if (candidate != null) {
-          out.remove(e);
-          out.remove(candidate);
-          EdgeWrapper added = new AndEdge(ImmutableList.of(e, candidate));
-          out.add(added);
-
-          logger.log(Level.ALL, "Removing", e, "and", candidate,
-              "adding", added);
-          changed = true;
-          break;
-        }
+    boolean changed;
+    do {
+      changed = false;
+      if (applyANDtransformation && andLBETransformation(loopHead, out) ||
+          applyORtransformation && orLBETransformation(out)) {
+        changed = true;
       }
-
-      // Applying or-transformation.
-      for (EdgeWrapper e : out) {
-
-        List<EdgeWrapper> candidates = new ArrayList<>();
-        candidates.add(e);
-
-        for (EdgeWrapper other : out) {
-          if (e == other) continue;
-
-          if (other.getPredecessor() == e.getPredecessor() &&
-              other.getSuccessor() == e.getSuccessor()) {
-
-            candidates.add(other);
-          }
-        }
-
-        if (candidates.size() > 1) {
-          EdgeWrapper added = new OrEdge(candidates);
-          for (EdgeWrapper toRemove : candidates) {
-            out.remove(toRemove);
-          }
-          out.add(added);
-
-          logger.log(Level.ALL, "Removing", candidates,
-              "adding", added);
-          changed = true;
-          break;
-        }
-      }
-
-      if (!changed) break;
-    }
+    } while (changed);
 
     List<PathFormula> outPF = new ArrayList<>(out.size());
     PathFormula empty = pfmgr.makeNewPathFormula(
@@ -192,6 +143,82 @@ public class LoopTransitionFinder {
     }
 
     return outPF;
+  }
+
+  /**
+   * Apply and- transformation, return whether the passed set was changed.
+   */
+  private boolean andLBETransformation(
+      CFANode loopHead,
+      Set<EdgeWrapper> out) {
+    for (EdgeWrapper e : out) {
+
+      if (e.getSuccessor() == loopHead) continue;
+
+      EdgeWrapper candidate = null;
+
+      for (EdgeWrapper other : out) {
+        if (e == other) continue;
+
+        if (other.getPredecessor() == e.getSuccessor()) {
+          if (candidate == null) {
+            candidate = other;
+          } else {
+
+            // Do not perform replacement,
+            // if there are two candidates we should stop.
+            candidate = null;
+            break;
+          }
+        }
+      }
+
+      if (candidate != null) {
+        out.remove(e);
+        out.remove(candidate);
+        EdgeWrapper added = new AndEdge(ImmutableList.of(e, candidate));
+        out.add(added);
+
+        logger.log(Level.ALL, "Removing", e, "and", candidate,
+            "adding", added);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Apply or- transformation, return whether the passed set was changed.
+   */
+  private boolean orLBETransformation(Set<EdgeWrapper> out) {
+    for (EdgeWrapper e : out) {
+
+      List<EdgeWrapper> candidates = new ArrayList<>();
+      candidates.add(e);
+
+      for (EdgeWrapper other : out) {
+        if (e == other) continue;
+
+        if (other.getPredecessor() == e.getPredecessor() &&
+            other.getSuccessor() == e.getSuccessor()) {
+
+          candidates.add(other);
+        }
+      }
+
+      if (candidates.size() > 1) {
+        EdgeWrapper added = new OrEdge(candidates);
+        for (EdgeWrapper toRemove : candidates) {
+          out.remove(toRemove);
+        }
+        out.add(added);
+
+        logger.log(Level.ALL, "Removing", candidates,
+            "adding", added);
+        return true;
+      }
+    }
+    return false;
   }
 
   private Set<EdgeWrapper> convert(Collection<CFAEdge> edges) {

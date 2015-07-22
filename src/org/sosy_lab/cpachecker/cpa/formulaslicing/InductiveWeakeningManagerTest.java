@@ -100,41 +100,26 @@ public class InductiveWeakeningManagerTest {
   }
 
   @Test public void testSlicingComplex() throws Exception {
+    PathFormula input = toPathFormula(toCFA(
+        "int x, y, p, nondet;",
+        "x = 5;",
+        "y = 10;",
+        "if (nondet) {",
+          "y = 100;",
+          "p = 1;",
+        "} else {",
+          "p = 2;",
+        "}"
+    ));
+
+    PathFormula loopTransition = toPathFormula(toCFA("int x; x += 1;"));
 
     BooleanFormula slice = inductiveWeakeningManager.slice(
-        getSlicedTransition(), getLoopTransition());
+        input, loopTransition);
 
-    // todo: can we test things though? Or are all guarantees off with a
-    // heuristical method?
-    // One thing we should do: why not order things, so that we'll get something
-    // at least as good as syntactic?
-    // todo: Namely, make sure that syntactically different atoms are
-    // processed last.
     logger.log(Level.INFO, "Obtained slice", slice);
-    logger.flush();
-
-    // First result: infinite loop =(.
   }
 
-  private PathFormula getLoopTransition() throws Exception {
-    // todo: this is somehow problematic.
-    // in theory this should be done in the context of the same CFA
-    // as the transition we have seen before.
-    // otherwise it might not work to well.
-    // Yet what if we re-declare "x" again? Would that still work?
-    return toPathFormula(toCFA("int x; x++;"));
-  }
-
-  private PathFormula getSlicedTransition() throws Exception {
-    return toPathFormula(toCFA(
-        "int x = 5;",
-        "int y = 10;",
-        "int p;",
-        "int nondet;",
-        "int nondet2;",
-        "if (nondet) {", "y = 100;", "p = 1;", "} else {", "p = 2;", "}"
-    ));
-  }
   private PathFormula toPathFormula(CFA cfa) throws Exception {
     return toPathFormula(cfa, SSAMap.emptySSAMap());
   }

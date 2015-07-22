@@ -28,6 +28,14 @@ public class FormulaSlicingTest {
     check("bad_slice_false_assert.c");
   }
 
+  @Test public void slice_with_branches_true_assert() throws Exception {
+    check("slice_with_branches_true_assert.c");
+  }
+
+  @Test public void slice_with_branches_false_assert() throws Exception {
+    check("slice_with_branches_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }
@@ -69,6 +77,9 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.order", "bfs")
         .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
+
+        // To make debugging easier.
+        .put("cpa.predicate.ignoreIrrelevantVariables", "false")
 
         .put("log.consoleLevel", "FINE")
         .build());

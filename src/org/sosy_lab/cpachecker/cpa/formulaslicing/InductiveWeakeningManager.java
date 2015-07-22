@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,8 +28,11 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class InductiveWeakeningManager {
+  // todo: make sorting variables configurable.
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
@@ -65,11 +70,11 @@ public class InductiveWeakeningManager {
         Tactic.NNF);
 
     // Step 2: Annotate conjunctions.
-    Set<BooleanFormula> selectionVars = new HashSet<>();
+
+    // Selection variables -> atoms.
+    Map<BooleanFormula, BooleanFormula> selectionVars = new HashMap<>();
     BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVars).visit(
         noIntermediateNNF);
-    logger.log(Level.FINE, "Annotated in NNF: ", annotated);
-
 
     // This is possible since the formula does not have any intermediate
     // variables.
@@ -84,7 +89,9 @@ public class InductiveWeakeningManager {
     BooleanFormula query = bfmgr.and(ImmutableList.of(annotated,
         transition.getFormula(),
         negated));
-    List<BooleanFormula> orderedList = ImmutableList.copyOf(selectionVars);
+    List<BooleanFormula> orderedList =
+        sortBySyntacticSimilarity(selectionVars, transition.getFormula());
+
 
     Set<BooleanFormula> inductiveSlice = formulaSlicing(orderedList, query);
 
@@ -93,7 +100,7 @@ public class InductiveWeakeningManager {
     // note: it would be probably better to move those different steps to
     // different subroutines.
     Map<BooleanFormula, BooleanFormula> replacement = new HashMap<>();
-    for (BooleanFormula f : selectionVars) {
+    for (BooleanFormula f : selectionVars.keySet()) {
 
       if (inductiveSlice.contains(f)) {
         replacement.put(f, bfmgr.makeBoolean(true));
@@ -123,6 +130,13 @@ public class InductiveWeakeningManager {
   ) throws SolverException, InterruptedException {
 
     query = fmgr.simplify(query);
+
+    if (solver.isUnsat(query)) { // Questionable, but very useful for testing.
+      logger.log(Level.WARNING, "Everything is inductive under the transition!",
+          "That looks very suspicious");
+      return ImmutableSet.of();
+    }
+
     logger.log(Level.FINE, "Inductiveness checking query: ", query);
 
     List<BooleanFormula> selection = selectionVars;
@@ -181,6 +195,38 @@ public class InductiveWeakeningManager {
     return new HashSet<>(selection);
   }
 
+  /**
+   * Sort selectors by syntactic similarity, variables most similar to the
+   * transition relation come last.
+   *
+   * todo: might be a good idea to use the information about the variables
+   * which get _changed_ inside the transition as well.
+   */
+  private List<BooleanFormula> sortBySyntacticSimilarity(
+      final Map<BooleanFormula, BooleanFormula> selectors,
+      BooleanFormula transitionRelation
+  ) {
+
+    final Set<String> transitionVars = fmgr.extractFunctionNames(transitionRelation,
+        true);
+    List<BooleanFormula> selectorVars = new ArrayList<>(selectors.keySet());
+    Collections.sort(selectorVars, new Comparator<BooleanFormula>() {
+      @Override
+      public int compare(BooleanFormula s1, BooleanFormula s2) {
+        BooleanFormula a1 = selectors.get(s1);
+        BooleanFormula a2 = selectors.get(s2);
+        Set<String> a1Vars = fmgr.extractFunctionNames(a1, true);
+        Set<String> a2Vars = fmgr.extractFunctionNames(a2, true);
+
+        Set<String> intersection1 = Sets.intersection(a1Vars, transitionVars);
+        Set<String> intersection2 = Sets.intersection(a2Vars, transitionVars);
+
+        return Integer.compare(intersection1.size(), intersection2.size());
+      }
+    });
+    return selectorVars;
+  }
+
   private static class SlicingPreprocessor
       extends BooleanFormulaTransformationVisitor {
     private final SSAMap finalSSA;
@@ -224,21 +270,23 @@ public class InductiveWeakeningManager {
     private final UniqueIdGenerator controllerIdGenerator =
         new UniqueIdGenerator();
     private final BooleanFormulaManager bfmgr;
-    private final Set<BooleanFormula> selectionVars;
+    private final Map<BooleanFormula, BooleanFormula> selectionVars;
 
     private static final String PROP_VAR = "_FS_SEL_VAR_";
 
     protected ConjunctionAnnotator(
         FormulaManagerView pFmgr,
         Map<BooleanFormula, BooleanFormula> pCache,
-        Set<BooleanFormula> pSelectionVars) {
+
+        // Selection variable -> controlled atom.
+        Map<BooleanFormula, BooleanFormula> pSelectionVars) {
       super(pFmgr, pCache);
       bfmgr = pFmgr.getBooleanFormulaManager();
       selectionVars = pSelectionVars;
     }
 
     public static ConjunctionAnnotator of(FormulaManagerView pFmgr,
-        Set<BooleanFormula> selectionVars) {
+        Map<BooleanFormula, BooleanFormula> selectionVars) {
       return new ConjunctionAnnotator(pFmgr,
           new HashMap<BooleanFormula, BooleanFormula>(),
           selectionVars);
@@ -248,20 +296,17 @@ public class InductiveWeakeningManager {
     protected BooleanFormula visitAnd(BooleanFormula... pOperands) {
       List<BooleanFormula> args = new ArrayList<>(pOperands.length);
       for (BooleanFormula arg : pOperands) {
-        BooleanFormula controller = makeFreshSelector();
+        BooleanFormula controller = makeFreshSelector(arg);
         args.add(bfmgr.or(controller, arg));
       }
       return bfmgr.and(args);
     }
 
-    private BooleanFormula makeFreshSelector() {
+    private BooleanFormula makeFreshSelector(BooleanFormula atom) {
       BooleanFormula selector = bfmgr
           .makeVariable(PROP_VAR + controllerIdGenerator.getFreshId());
 
-      // todo: we somehow must maintain an order on selection vars,
-      // based on syntactic tests.
-      // Though it can be left as a future item as well.
-      selectionVars.add(selector);
+      selectionVars.put(selector, atom);
       return selector;
     }
   }
