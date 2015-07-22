@@ -13,7 +13,7 @@ int main() {
   }
 
   while (__VERIFIER_nondet_int()) {
-    x++;
+    x += 1; // todo: try with the increment "++" operator as well.
   }
 
   // todo: for some reason CPAchecker gets confused in the absence of brackets.

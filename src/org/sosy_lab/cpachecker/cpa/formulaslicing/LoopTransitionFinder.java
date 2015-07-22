@@ -141,7 +141,7 @@ public class LoopTransitionFinder {
           EdgeWrapper added = new AndEdge(ImmutableList.of(e, candidate));
           out.add(added);
 
-          logger.log(Level.INFO, "Removing", e, "and", candidate,
+          logger.log(Level.ALL, "Removing", e, "and", candidate,
               "adding", added);
           changed = true;
           break;
@@ -171,7 +171,7 @@ public class LoopTransitionFinder {
           }
           out.add(added);
 
-          logger.log(Level.INFO, "Removing", candidates,
+          logger.log(Level.ALL, "Removing", candidates,
               "adding", added);
           changed = true;
           break;

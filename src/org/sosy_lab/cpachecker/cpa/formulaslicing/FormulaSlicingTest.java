@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableMap;
 public class FormulaSlicingTest {
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
-  // todo: wonderful, now they both loop indefinitely.
   @Test public void simplest_true_assert() throws Exception {
     check("simplest_true_assert.c");
   }
@@ -67,7 +66,7 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
 
-        .put("log.consoleLevel", "INFO")
+        .put("log.consoleLevel", "FINE")
         .build());
     props.putAll(extra);
     return props;

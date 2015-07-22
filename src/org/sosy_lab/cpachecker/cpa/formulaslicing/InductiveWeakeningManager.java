@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 public class InductiveWeakeningManager {
@@ -67,16 +68,24 @@ public class InductiveWeakeningManager {
     Set<BooleanFormula> selectionVars = new HashSet<>();
     BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVars).visit(
         noIntermediateNNF);
+    logger.log(Level.FINE, "Annotated in NNF: ", annotated);
 
 
     // This is possible since the formula does not have any intermediate
     // variables, hence the whole renaming would work just as expected.
     BooleanFormula primed =
+
         fmgr.instantiate(fmgr.uninstantiate(annotated),
-            transition.getSsa());
+            // todo: why is not the map identical in the first place?
+            SSAMap.merge(transition.getSsa(), input.getSsa()).getFirst()
+        );
+
     BooleanFormula negated = bfmgr.not(primed);
 
-    logger.log(Level.INFO, "Loop transition: ", transition.getFormula());
+    // Problem 1: loop transition looks extremely weird.
+    // In any case, under such a weird transition the entire thing should be
+    // inductive?
+    logger.log(Level.FINE, "Loop transition: ", transition.getFormula());
 
     // Inductiveness checking formula.
     BooleanFormula query = bfmgr.and(ImmutableList.of(annotated,
@@ -86,6 +95,10 @@ public class InductiveWeakeningManager {
 
     Set<BooleanFormula> inductiveSlice = formulaSlicing(orderedList, query);
 
+    // Step 3: Apply the transformation, replace the atoms marked by the
+    // selector variables with 'Top'.
+    // note: it would be probably better to move those different steps to
+    // different subroutines.
     Map<BooleanFormula, BooleanFormula> replacement = new HashMap<>();
     for (BooleanFormula f : selectionVars) {
 
@@ -98,7 +111,7 @@ public class InductiveWeakeningManager {
 
     BooleanFormula sliced = ufmgr.substitute(annotated, replacement);
     sliced = fmgr.simplify(sliced);
-    logger.log(Level.INFO, "Slice obtained: ", sliced);
+    logger.log(Level.FINE, "Slice obtained: ", sliced);
 
     return fmgr.uninstantiate(sliced);
   }
@@ -116,8 +129,13 @@ public class InductiveWeakeningManager {
       BooleanFormula query
   ) throws SolverException, InterruptedException {
 
+    // todo: remove the step below, this is just for testing:
+//    if (solver.isUnsat(query)) {
+//      return ImmutableSet.of();
+//    }
+
     query = fmgr.simplify(query);
-    logger.log(Level.INFO, "Inductiveness checking query: ", query);
+    logger.log(Level.FINE, "Inductiveness checking query: ", query);
 
     List<BooleanFormula> selection = selectionVars;
 
