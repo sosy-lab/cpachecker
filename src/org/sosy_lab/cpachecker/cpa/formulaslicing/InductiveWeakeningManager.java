@@ -6,7 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -29,19 +31,25 @@ public class InductiveWeakeningManager {
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
   private final UnsafeFormulaManager ufmgr;
+  private final LogManager logger;
 
   public InductiveWeakeningManager(FormulaManagerView pFmgr, Solver pSolver,
-      UnsafeFormulaManager pUfmgr) {
+      UnsafeFormulaManager pUfmgr, LogManager pLogger) {
     fmgr = pFmgr;
     solver = pSolver;
     ufmgr = pUfmgr;
+    logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
   }
 
+  /**
+   * Find the inductive weakening of {@code input} subject to the loop
+   * transition over-approximation shown in {@code transition}.
+   */
   public BooleanFormula slice(PathFormula input, PathFormula transition)
       throws SolverException, InterruptedException {
 
-    // Step 0: (optional): add quantifiers next to intermediate variables,
+    // Step 0: todo (optional): add quantifiers next to intermediate variables,
     // perform quantification, run QE_LIGHT to remove the ones we can.
 
     // Step 1: get rid of intermediate variables in "input".
@@ -50,6 +58,7 @@ public class InductiveWeakeningManager {
     // ...remove atoms containing intermediate variables.
     BooleanFormula noIntermediate = SlicingPreprocessor
         .of(fmgr, input.getSsa()).visit(input.getFormula());
+    logger.log(Level.INFO, "Input without intermediate variables", noIntermediate);
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
         Tactic.NNF);
@@ -58,6 +67,9 @@ public class InductiveWeakeningManager {
     Set<BooleanFormula> selectionVars = new HashSet<>();
     BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVars).visit(
         noIntermediateNNF);
+
+    // Step 3: make sure transition SSA agrees with
+
 
     // This is possible since the formula does not have any intermediate
     // variables, hence the whole renaming would work just as expected.
@@ -75,11 +87,17 @@ public class InductiveWeakeningManager {
     Set<BooleanFormula> inductiveSlice = formulaSlicing(orderedList, query);
 
     Map<BooleanFormula, BooleanFormula> replacement = new HashMap<>();
-    for (BooleanFormula f : inductiveSlice) {
-      replacement.put(f, bfmgr.makeBoolean(true));
+    for (BooleanFormula f : selectionVars) {
+
+      if (inductiveSlice.contains(f)) { // todo: better datastructure? set?
+        replacement.put(f, bfmgr.makeBoolean(true));
+      } else {
+        replacement.put(f, bfmgr.makeBoolean(false));
+      }
     }
 
-    BooleanFormula sliced = ufmgr.substitute(input.getFormula(), replacement);
+    BooleanFormula sliced = ufmgr.substitute(annotated, replacement);
+    sliced = fmgr.simplify(sliced);
 
     return fmgr.uninstantiate(sliced);
   }
@@ -89,55 +107,67 @@ public class InductiveWeakeningManager {
    *    The order is very important and determines which MUS we will get out.
    *
    * @return An assignment to boolean variables:
-   *         returned as a set of abstracted {@code selectionVars}
+   *         returned as a subset of {@code selectionVars},
+   *         which should be abstracted.
    */
   private Set<BooleanFormula> formulaSlicing(
       List<BooleanFormula> selectionVars,
       BooleanFormula query
   ) throws SolverException, InterruptedException {
 
+    query = fmgr.simplify(query);
+    logger.log(Level.INFO, "Inductiveness checking query: ", query);
+
     List<BooleanFormula> selection = selectionVars;
 
-
+    // todo: note really convinced. Need to check that the scheme as
+    // presented is linear and not quadratic.
+    // I am still not convinced that there is no need to re-visit the atoms.
     try (ProverEnvironment env = solver.newProverEnvironment()) {
+
+      //noinspection ResultOfMethodCallIgnored
       env.push(query);
 
       // Make everything abstracted.
       BooleanFormula selectionFormula = bfmgr.and(selection);
+
+      //noinspection ResultOfMethodCallIgnored
       env.push(selectionFormula);
+      // Note: what happens if it is SAT already?
       Verify.verify(env.isUnsat());
 
+      // Remove the selection constraint.
+      env.pop();
 
-      while (true) {
 
-        // Remove the selection constraint.
+      int noRemoved = 0;
+      for (int i=0; i<selectionVars.size(); i++) {
+
+        // Remove this variable from the selection.
+        List<BooleanFormula> newSelection = Lists.newArrayList(selection);
+
+        // Try removing the corresponding element from the selection.
+        newSelection.remove(i - noRemoved);
+
+        //noinspection ResultOfMethodCallIgnored
+        env.push(bfmgr.and(newSelection));
+
+        if (env.isUnsat()) {
+
+          // Still unsat: keep that element non-abstracted.
+          selection = newSelection;
+          noRemoved++;
+        }
+
         env.pop();
-
-        boolean removed = false;
-        for (int i=0; i<selectionVars.size(); i++) {
-
-          // Remove this variable from the selection.
-          List<BooleanFormula> newSelection = Lists.newArrayList(selectionVars);
-          newSelection.remove(i);
-
-          env.push(bfmgr.and(newSelection));
-
-          if (env.isUnsat()) {
-            // Still unsat: keep that element non-abstracted.
-            selection = newSelection;
-            removed = true;
-            break; // break out of the variable selection loop.
-          } else {
-
-            // Try to abstract away some other element.
-            continue;
-          }
-        }
-
-        if (!removed) {
-          break;
-        }
       }
+
+      //noinspection ResultOfMethodCallIgnored
+      env.push(bfmgr.and(selection));
+
+      // todo: what if we end up with a SAT formula in the end?
+      // What does it come down to?
+      Verify.verify(env.isUnsat());
     }
 
 
@@ -189,7 +219,7 @@ public class InductiveWeakeningManager {
     private final BooleanFormulaManager bfmgr;
     private final Set<BooleanFormula> selectionVars;
 
-    private static final String PROP_VAR = "_FS_PROP_";
+    private static final String PROP_VAR = "_FS_SEL_VAR_";
 
     protected ConjunctionAnnotator(
         FormulaManagerView pFmgr,
