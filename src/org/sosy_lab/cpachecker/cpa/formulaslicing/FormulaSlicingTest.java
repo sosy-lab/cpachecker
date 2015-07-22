@@ -24,6 +24,10 @@ public class FormulaSlicingTest {
     check("simplest_false_assert.c");
   }
 
+  @Test public void bad_slice_false_assert() throws Exception {
+    check("bad_slice_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }

@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -45,7 +46,8 @@ public class LoopTransitionFinder {
     loopEdgesCache = HashMultimap.create();
   }
 
-  public PathFormula generateLoopTransition(CFANode loopHead)
+  public PathFormula generateLoopTransition(
+      SSAMap start, CFANode loopHead)
       throws CPATransferException, InterruptedException {
     Preconditions.checkState(cfa.getAllLoopHeads().get().contains(loopHead));
 
@@ -56,7 +58,7 @@ public class LoopTransitionFinder {
     // Otherwise it's not a loop.
     Preconditions.checkState(!edgesInLoop.isEmpty());
 
-    List<PathFormula> out = LBE(loopHead, edgesInLoop);
+    List<PathFormula> out = LBE(start, loopHead, edgesInLoop);
 
     PathFormula first = out.iterator().next();
 
@@ -103,6 +105,7 @@ public class LoopTransitionFinder {
    * Runs in quadratic time.
    */
   private List<PathFormula> LBE(
+      SSAMap start,
       CFANode loopHead,
       Set<CFAEdge> edgesInLoop)
       throws CPATransferException, InterruptedException {
@@ -182,7 +185,8 @@ public class LoopTransitionFinder {
     }
 
     List<PathFormula> outPF = new ArrayList<>(out.size());
-    PathFormula empty = pfmgr.makeEmptyPathFormula();
+    PathFormula empty = pfmgr.makeNewPathFormula(
+        pfmgr.makeEmptyPathFormula(), start);
     for (EdgeWrapper e : out) {
       outPF.add(e.makeAnd(empty));
     }

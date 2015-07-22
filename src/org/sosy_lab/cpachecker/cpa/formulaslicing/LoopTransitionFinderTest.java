@@ -72,7 +72,9 @@ public class LoopTransitionFinderTest {
     LoopTransitionFinder loopTransitionFinder =
         new LoopTransitionFinder(cfa, pfmgr, fmgr, logger);
 
-    PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(loopHead);
+    PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
+        SSAMap.emptySSAMap(),
+        loopHead);
 
     PathFormula expected = TestDataTools.toPathFormula(
         TestDataTools.toCFA(creator, "int x, y; x += 1; y += 1;"),
@@ -84,7 +86,7 @@ public class LoopTransitionFinderTest {
     CFA cfa = TestDataTools.toCFA(creator,
         "int x = 0; int y = 0; int p = 1;",
         "while (1) {",
-          "if (p) { x += 1; } else { y += 1; }",
+        "if (p) { x += 1; } else { y += 1; }",
         "}"
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
@@ -94,7 +96,9 @@ public class LoopTransitionFinderTest {
 
     logger.log(Level.INFO, "Set of loop edges", out);
 
-    PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(loopHead);
+    PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
+        SSAMap.emptySSAMap(),
+        loopHead);
 
     logger.log(Level.INFO, "Loop transition", loopTransition);
   }

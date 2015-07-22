@@ -109,10 +109,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     if (shouldPerformAbstraction(successor)) {
       if (shouldPerformSlicing(pCFAEdge)) {
 
-        // todo: the loop transition is incorrect.
-        // okay, let's test this mofo.
         PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
-            successor);
+            iState.getPathFormula().getSsa(), successor);
         BooleanFormula inductiveWeakening;
         try {
           inductiveWeakening =

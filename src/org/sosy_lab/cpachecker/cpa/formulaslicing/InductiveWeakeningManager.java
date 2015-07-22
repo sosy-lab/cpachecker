@@ -72,19 +72,12 @@ public class InductiveWeakeningManager {
 
 
     // This is possible since the formula does not have any intermediate
-    // variables, hence the whole renaming would work just as expected.
+    // variables.
     BooleanFormula primed =
-
-        fmgr.instantiate(fmgr.uninstantiate(annotated),
-            // todo: why is not the map identical in the first place?
-            SSAMap.merge(transition.getSsa(), input.getSsa()).getFirst()
-        );
+        fmgr.instantiate(fmgr.uninstantiate(annotated), transition.getSsa());
 
     BooleanFormula negated = bfmgr.not(primed);
 
-    // Problem 1: loop transition looks extremely weird.
-    // In any case, under such a weird transition the entire thing should be
-    // inductive?
     logger.log(Level.FINE, "Loop transition: ", transition.getFormula());
 
     // Inductiveness checking formula.
@@ -102,7 +95,7 @@ public class InductiveWeakeningManager {
     Map<BooleanFormula, BooleanFormula> replacement = new HashMap<>();
     for (BooleanFormula f : selectionVars) {
 
-      if (inductiveSlice.contains(f)) { // todo: better datastructure? set?
+      if (inductiveSlice.contains(f)) {
         replacement.put(f, bfmgr.makeBoolean(true));
       } else {
         replacement.put(f, bfmgr.makeBoolean(false));
@@ -129,17 +122,12 @@ public class InductiveWeakeningManager {
       BooleanFormula query
   ) throws SolverException, InterruptedException {
 
-    // todo: remove the step below, this is just for testing:
-//    if (solver.isUnsat(query)) {
-//      return ImmutableSet.of();
-//    }
-
     query = fmgr.simplify(query);
     logger.log(Level.FINE, "Inductiveness checking query: ", query);
 
     List<BooleanFormula> selection = selectionVars;
 
-    // todo: note really convinced. Need to check that the scheme as
+    // todo: not really convinced. Need to check that the scheme as
     // presented is linear and not quadratic.
     // I am still not convinced that there is no need to re-visit the atoms.
     try (ProverEnvironment env = solver.newProverEnvironment()) {
