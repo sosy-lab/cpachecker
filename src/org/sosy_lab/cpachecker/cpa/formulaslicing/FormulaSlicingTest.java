@@ -4,6 +4,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -16,7 +17,7 @@ import com.google.common.collect.ImmutableMap;
 public class FormulaSlicingTest {
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
-  @Test public void simplest_true_assert() throws Exception {
+  @Test @Ignore public void simplest_true_assert() throws Exception {
     check("simplest_true_assert.c");
   }
 
