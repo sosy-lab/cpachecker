@@ -17,10 +17,6 @@ public class FormulaSlicingTest {
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
   @Test public void simplest_true_assert() throws Exception {
-    // todo: why is this simplest test failing?
-    // after integrating the branch as well?
-    // it was passing all this time! What happened?
-
     check("simplest_true_assert.c");
   }
 
