@@ -85,10 +85,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     InductiveWeakeningManager pInductiveWeakeningManager =
         new InductiveWeakeningManager(
-        formulaManager, solver, realFormulaManager.getUnsafeFormulaManager());
+        formulaManager, solver, realFormulaManager.getUnsafeFormulaManager(),
+            pLogger);
     manager = new FormulaSlicingManager(
         pathFormulaManager, formulaManager, pLogger, cfa, ltf,
-        pInductiveWeakeningManager);
+        pInductiveWeakeningManager, solver);
     stopOperator = new StopSepOperator(this);
     mergeOperator = new SlicingMergeOperator(manager, joinOnMerge);
   }

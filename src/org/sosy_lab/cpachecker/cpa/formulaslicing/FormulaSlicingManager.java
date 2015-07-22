@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -13,6 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -23,24 +26,32 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 
 import com.google.common.base.Preconditions;
 
+@Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
+  private final FormulaManagerView fmgr;
   private final LogManager logger;
   private final CFA cfa;
   private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
+  private final Solver solver;
 
+  @Option(secure=true, description="Check target states reachability")
+  private boolean checkTargetStates = true;
 
   public FormulaSlicingManager(PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger, CFA pCfa,
+      FormulaManagerView pFmgr, LogManager pLogger,
+      CFA pCfa,
       LoopTransitionFinder pLoopTransitionFinder,
-      InductiveWeakeningManager pInductiveWeakeningManager) {
+      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver) {
+    fmgr = pFmgr;
     pfmgr = pPfmgr;
     logger = pLogger;
     cfa = pCfa;
     loopTransitionFinder = pLoopTransitionFinder;
     inductiveWeakeningManager = pInductiveWeakeningManager;
+    solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
@@ -87,7 +98,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
    */
   @Override
   public Collection<? extends SlicingState> strengthen(
-      SlicingState state, List<AbstractState> otherState,
+      SlicingState state, List<AbstractState> otherStates,
       CFAEdge pCFAEdge)
       throws CPATransferException, InterruptedException {
     Preconditions.checkState(!state.isAbstracted());
@@ -115,12 +126,42 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
         // Would it work properly?? Returning bottom when no abstraction is
         // necessary.
+        // We are coming from inside the loop => the (other) abstracted state
+        // should already exist.
         return Collections.emptySet();
       }
 
     } else {
+
+      boolean hasTargetState = false;
+      for (AbstractState oState : otherStates) {
+        if (AbstractStates.isTargetState(oState)) {
+          hasTargetState = true;
+          break;
+        }
+      }
+
+      if (checkTargetStates && hasTargetState) {
+        try {
+          if (isUnreachable(state.asIntermediate())) {
+            return Collections.emptyList();
+          }
+        } catch (SolverException e) {
+          throw new CPATransferException("Reachability checking failed", e);
+        }
+      }
       return Collections.singleton(state);
     }
+  }
+
+  private boolean isUnreachable(SlicingIntermediateState iState)
+      throws SolverException, InterruptedException {
+    BooleanFormula prevSlice = iState.getAbstraction().getAbstraction();
+    BooleanFormula instantiatedFormula =
+        fmgr.instantiate(prevSlice, iState.getAbstraction().getSSA());
+    BooleanFormula reachabilityQuery = bfmgr.and(
+        iState.getPathFormula().getFormula(), instantiatedFormula);
+    return solver.isUnsat(reachabilityQuery);
   }
 
   @Override

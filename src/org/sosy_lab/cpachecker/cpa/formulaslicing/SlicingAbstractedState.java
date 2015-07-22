@@ -1,14 +1,18 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 /**
  * Abstracted state, containing invariants obtained by slicing.
  */
-public class SlicingAbstractedState extends SlicingState {
+public class SlicingAbstractedState extends SlicingState implements
+    FormulaReportingState {
 
   /**
    * Slice with respect to the current SCC.
@@ -64,5 +68,11 @@ public class SlicingAbstractedState extends SlicingState {
   @Override
   public boolean isAbstracted() {
     return true;
+  }
+
+  @Override
+  public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
+      PathFormulaManager pfmgr) {
+    return slice;
   }
 }
