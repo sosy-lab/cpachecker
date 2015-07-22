@@ -36,6 +36,14 @@ public class FormulaSlicingTest {
     check("slice_with_branches_false_assert.c");
   }
 
+  @Test public void slicing_nested_true_assert() throws Exception {
+    check("slicing_nested_true_assert.c");
+  }
+
+  @Test public void slicing_nested_false_assert() throws Exception {
+    check("slicing_nested_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }

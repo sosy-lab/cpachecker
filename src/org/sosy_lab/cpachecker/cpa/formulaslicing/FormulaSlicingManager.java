@@ -113,6 +113,13 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
             iState.getPathFormula().getSsa(), successor);
         BooleanFormula inductiveWeakening;
         try {
+
+          // todo: this isn't right.
+          // We should also use the information from the previous sliced state
+          // while doing slicing.
+          // HOWEVER, it is important not to annotate it (as we already know
+          // that it has to be inductive) => thus we might need to change the
+          // interface of the InductiveWeakeningManager.
           inductiveWeakening =
               inductiveWeakeningManager.slice(iState.getPathFormula(),
                   loopTransition);
@@ -124,8 +131,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
       } else {
 
-        // Would it work properly?? Returning bottom when no abstraction is
-        // necessary.
         // We are coming from inside the loop => the (other) abstracted state
         // should already exist.
         return Collections.emptySet();

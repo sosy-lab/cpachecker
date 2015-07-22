@@ -1533,6 +1533,21 @@ cpa.sign.merge = "JOIN"
 cpa.sign.stop = "SEP"
   allowed values: [SEP, JOIN]
 
+# Apply AND- LBE transformation to loop transition relation.
+cpa.slicing.applyANDtransformation = true
+
+# Apply OR- LBE transformation to loop transition relation.
+cpa.slicing.applyORtransformation = true
+
+# Check target states reachability
+cpa.slicing.checkTargetStates = true
+
+# Whether to join states on merge (leads to cycles in ARG)
+cpa.slicing.joinOnMerge = true
+
+# Cache formulas produced by path formula manager
+cpa.slicing.useCachingPathFormulaManager = true
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
