@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnv
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
@@ -56,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterp
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Verify;
 import com.google.common.collect.Maps;
 
 /**
@@ -265,6 +268,46 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
 
     } finally {
       solverTime.stop();
+    }
+  }
+
+  /**
+   * Helper function for UNSAT core generation.
+   * Takes a single API call to perform.
+   *
+   * Additionally, tries to give a "better" UNSAT core, by breaking up AND-
+   * nodes into multiple constraints (thus an UNSAT core can contain only a
+   * subset of some AND node).
+   */
+  public List<BooleanFormula> unsatCore(Iterable<BooleanFormula> constraints)
+      throws SolverException, InterruptedException {
+
+    try (ProverEnvironment prover = newProverEnvironmentWithUnsatCoreGeneration()) {
+      for (BooleanFormula constraint : constraints) {
+        addConstraint(constraint, prover,
+            solvingFormulaManager.getUnsafeFormulaManager());
+      }
+      Verify.verify(prover.isUnsat());
+      return prover.getUnsatCore();
+    }
+  }
+
+  /**
+   * Helper function: add the constraint, OR, if the constraint is an AND-node,
+   * add children one by one. Keep going recursively.
+   */
+  private void addConstraint(BooleanFormula constraint,
+      ProverEnvironment prover, UnsafeFormulaManager ufmgr) {
+
+    if (bfmgr.isAnd(constraint)) {
+      for (int k = 0; k < ufmgr.getArity(constraint); k++) {
+        addConstraint((BooleanFormula)ufmgr.getArg(constraint, k),
+            prover, ufmgr);
+      }
+    } else {
+
+      //noinspection ResultOfMethodCallIgnored
+      prover.push(constraint);
     }
   }
 
