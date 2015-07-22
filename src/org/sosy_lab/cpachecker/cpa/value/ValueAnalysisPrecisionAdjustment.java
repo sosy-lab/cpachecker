@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -65,17 +64,17 @@ import com.google.common.collect.ImmutableSet;
 @Options(prefix="cpa.value.blk")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
 
-  @Option(secure=true, description="restrict abstractions to loop heads")
-  private boolean alwaysAtLoops = false;
-
-  @Option(secure=true, description="restrict abstractions to function calls/returns")
-  private boolean alwaysAtFunctions = false;
-
-  @Option(secure=true, description="restrict abstractions to assume edges")
-  private boolean alwaysAtAssumes = false;
+  @Option(secure=true, description="restrict abstractions to branching points")
+  private boolean alwaysAtBranch = false;
 
   @Option(secure=true, description="restrict abstractions to join points")
-  private boolean alwaysAtJoins = false;
+  private boolean alwaysAtJoin = false;
+
+  @Option(secure=true, description="restrict abstractions to function calls/returns")
+  private boolean alwaysAtFunction = false;
+
+  @Option(secure=true, description="restrict abstractions to loop heads")
+  private boolean alwaysAtLoop = false;
 
   @Option(secure=true, description="toggle liveness abstraction")
   private boolean doLivenessAbstraction = false;
@@ -105,7 +104,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
     pConfig.inject(this);
 
-    if (alwaysAtLoops && pCfa.getAllLoopHeads().isPresent()) {
+    if (alwaysAtLoop && pCfa.getAllLoopHeads().isPresent()) {
       loopHeads = pCfa.getAllLoopHeads().get();
     } else {
       loopHeads = null;
@@ -206,10 +205,10 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    */
   private void enforcePrecision(ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
     if (abstractAtEachLocation()
-        || abstractAtAssumes(location)
-        || abstractAtJoins(location)
+        || abstractAtBranch(location)
+        || abstractAtJoin(location)
         || abstractAtFunction(location)
-        || abstractAtLoopHead(location)) {
+        || abstractAtLoop(location)) {
 
       for (MemoryLocation memoryLocation : state.getTrackedMemoryLocations()) {
         if (!precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location.getLocationNode())) {
@@ -227,52 +226,25 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    * @return true, if an abstraction should be computed at each location, else false
    */
   private boolean abstractAtEachLocation() {
-    return !alwaysAtAssumes && !alwaysAtJoins && !alwaysAtFunctions && !alwaysAtLoops;
+    return !alwaysAtBranch && !alwaysAtJoin && !alwaysAtFunction && !alwaysAtLoop;
   }
 
-  /**
-   * This method determines whether or not the given location is a branching,
-   * and whether or not an abstraction shall be computed or not.
-   *
-   * @param location the current location
-   * @return true, if at the current location an abstraction shall be computed, else false
-   */
-  private boolean abstractAtAssumes(LocationState location) {
-    return alwaysAtAssumes && location.getLocationNode().getEnteringEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge;
+  private boolean abstractAtBranch(LocationState location) {
+    return alwaysAtBranch && location.getLocationNode().getNumLeavingEdges() > 1;
   }
 
-  /**
-   * This method determines whether or not to abstract before a join point.
-   *
-   * @param location the current location
-   * @return true, if at the current location an abstraction shall be computed, else false
-   */
-  private boolean abstractAtJoins(LocationState location) {
-    return alwaysAtJoins && location.getLocationNode().getNumEnteringEdges() > 1;
+  private boolean abstractAtJoin(LocationState location) {
+    return alwaysAtJoin && location.getLocationNode().getNumEnteringEdges() > 1;
   }
 
-  /**
-   * This method determines whether or not the given location is a function entry or exit,
-   * and whether or not an abstraction shall be computed or not.
-   *
-   * @param location the current location
-   * @return true, if at the current location an abstraction shall be computed, else false
-   */
   private boolean abstractAtFunction(LocationState location) {
-    return alwaysAtFunctions && (location.getLocationNode() instanceof FunctionEntryNode
+    return alwaysAtFunction && (location.getLocationNode() instanceof FunctionEntryNode
         || location.getLocationNode().getEnteringSummaryEdge() != null);
   }
 
-  /**
-   * This method determines whether or not the given location is a loop head,
-   * and whether or not an abstraction shall be computed or not.
-   *
-   * @param location the current location
-   * @return true, if at the current location an abstraction shall be computed, else false
-   */
-  private boolean abstractAtLoopHead(LocationState location) {
-    checkState(!alwaysAtLoops || loopHeads != null);
-    return alwaysAtLoops && loopHeads.contains(location.getLocationNode());
+  private boolean abstractAtLoop(LocationState location) {
+    checkState(!alwaysAtLoop || loopHeads != null);
+    return alwaysAtLoop && loopHeads.contains(location.getLocationNode());
   }
 
   /**
