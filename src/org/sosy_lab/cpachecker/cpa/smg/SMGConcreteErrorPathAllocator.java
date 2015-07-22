@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -57,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -75,8 +75,7 @@ import com.google.common.collect.ImmutableMap;
 
 public class SMGConcreteErrorPathAllocator {
 
-  @SuppressWarnings("unused")
-  private final LogManager logger;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private MemoryName memoryName = new MemoryName() {
 
@@ -86,8 +85,8 @@ public class SMGConcreteErrorPathAllocator {
     }
   };
 
-  public SMGConcreteErrorPathAllocator(LogManager pLogger) {
-    logger = pLogger;
+  public SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+    assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -118,7 +117,7 @@ public class SMGConcreteErrorPathAllocator {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
     CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, logger, pMachineModel);
+        CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
 
     RichModel model = RichModel.empty();
 

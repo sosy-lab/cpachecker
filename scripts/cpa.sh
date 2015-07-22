@@ -25,7 +25,7 @@ if [ $result -ne 0 ]; then
   echo "Please make sure you are able to execute Java processes by running \"$JAVA\"."
   exit 1
 fi
-java_version="`echo "$java_version" | grep "^java version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
+java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
 if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
   echo "Your Java version is too old, please install Java 1.7 or newer." 1>&2
   echo "For Ubuntu: sudo apt-get install openjdk-7-jre" 1>&2

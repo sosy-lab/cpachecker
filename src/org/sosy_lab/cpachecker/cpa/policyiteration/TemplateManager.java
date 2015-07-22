@@ -366,10 +366,10 @@ public class TemplateManager {
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        multipliedItem = fmgr.makeNegate(item);
+        multipliedItem = fmgr.makeNegate(item, true);
       } else if (coeff != Rational.ONE){
         multipliedItem = fmgr.makeMultiply(
-            item, fmgr.makeNumber(item, entry.getValue())
+            item, fmgr.makeNumber(item, entry.getValue()), true
         );
       } else {
         multipliedItem = item;
@@ -378,7 +378,7 @@ public class TemplateManager {
       if (sum == null) {
         sum = multipliedItem;
       } else {
-        sum = fmgr.makePlus(sum, multipliedItem);
+        sum = fmgr.makePlus(sum, multipliedItem, true);
       }
     }
 

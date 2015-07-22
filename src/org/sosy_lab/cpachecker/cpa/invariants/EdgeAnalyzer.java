@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor
 import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 
@@ -81,18 +82,18 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given edge.
    */
-  public static Map<String, CType> getInvolvedVariables(CFAEdge pCfaEdge) {
+  public static Map<String, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
       AExpression expression = assumeEdge.getExpression();
-      return getInvolvedVariables(expression, pCfaEdge);
+      return getInvolvedVariableTypes(expression, pCfaEdge);
     }
     case MultiEdge: {
       MultiEdge multiEdge = (MultiEdge) pCfaEdge;
       Map<String, CType> result = new HashMap<>();
       for (CFAEdge edge : multiEdge) {
-        result.putAll(getInvolvedVariables(edge));
+        result.putAll(getInvolvedVariableTypes(edge));
       }
       return result;
     }
@@ -109,7 +110,7 @@ public class EdgeAnalyzer {
         }
         Map<String, CType> result = new HashMap<>();
         result.put(declaredVariable, type);
-        result.putAll(getInvolvedVariables(initializer, pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
         return result;
       } else if (declaration instanceof AVariableDeclaration) {
         throw new UnsupportedOperationException("Only C expressions are supported");
@@ -124,7 +125,7 @@ public class EdgeAnalyzer {
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       for (AExpression argument : functionCallEdge.getArguments()) {
-        result.putAll(getInvolvedVariables(argument,
+        result.putAll(getInvolvedVariableTypes(argument,
             new VariableNameExtractor(
                 callerFunctionName,
                 Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap())));
@@ -132,7 +133,7 @@ public class EdgeAnalyzer {
 
       // Extract formal parameters
       for (AParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionParameters()) {
-        result.putAll(getInvolvedVariables(parameter, pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
       }
 
       return result;
@@ -142,9 +143,11 @@ public class EdgeAnalyzer {
       if (returnStatementEdge.getExpression().isPresent()) {
         AExpression returnExpression = returnStatementEdge.getExpression().get();
         Map<String, CType> result = new HashMap<>();
-        result.put(VariableNameExtractor.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, pCfaEdge.getSuccessor().getFunctionName()),
-            (CType) returnExpression.getExpressionType());
-        result.putAll(getInvolvedVariables(returnExpression, pCfaEdge));
+        Optional<? extends AVariableDeclaration> retVar = returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
+        if (retVar.isPresent()) {
+          result.put(retVar.get().getQualifiedName(), (CType) returnExpression.getExpressionType());
+        }
+        result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
         return result;
       }
       return Collections.emptyMap();
@@ -155,25 +158,25 @@ public class EdgeAnalyzer {
       if (statement instanceof AExpressionAssignmentStatement) {
         AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
         Map<String, CType> result = new HashMap<>();
-        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
-        result.putAll(getInvolvedVariables(expressionAssignmentStatement.getRightHandSide(), pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(expressionAssignmentStatement.getRightHandSide(), pCfaEdge));
         return result;
       } else if (statement instanceof AExpressionStatement) {
-        return getInvolvedVariables(((AExpressionStatement) statement).getExpression(), pCfaEdge);
+        return getInvolvedVariableTypes(((AExpressionStatement) statement).getExpression(), pCfaEdge);
       } else if (statement instanceof AFunctionCallAssignmentStatement) {
         AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
         Map<String, CType> result = new HashMap<>();
-        result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
         AFunctionCallExpression functionCallExpression = functionCallAssignmentStatement.getFunctionCallExpression();
         for (AExpression expression : functionCallExpression.getParameterExpressions()) {
-          result.putAll(getInvolvedVariables(expression, pCfaEdge));
+          result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
         }
         return result;
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
         Map<String, CType> result = new HashMap<>();
         for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-          result.putAll(getInvolvedVariables(expression, pCfaEdge));
+          result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
         }
         return result;
       } else {
@@ -189,10 +192,11 @@ public class EdgeAnalyzer {
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         if (functionCallExpression != null) {
           Map<String, CType> result = new HashMap<>();
-          result.put(
-              VariableNameExtractor.scope(InvariantsTransferRelation.RETURN_VARIABLE_BASE_NAME, pCfaEdge.getPredecessor().getFunctionName()),
-              (CType) functionCallExpression.getExpressionType());
-          result.putAll(getInvolvedVariables(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+          Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
+          if (retVar.isPresent()) {
+            result.put(retVar.get().getQualifiedName(), (CType) functionCallExpression.getExpressionType());
+          }
+          result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
         }
       }
@@ -205,7 +209,7 @@ public class EdgeAnalyzer {
   }
 
 
-  private static Map<? extends String, ? extends CType> getInvolvedVariables(AParameterDeclaration pParameter,
+  private static Map<? extends String, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
       CFAEdge pCFAEdge) {
     if (pParameter.getType() instanceof CType) {
       return Collections.singletonMap(
@@ -224,16 +228,16 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given CInitializer.
    */
-  private static Map<String, CType> getInvolvedVariables(CInitializer pCInitializer, CFAEdge pCfaEdge) {
+  private static Map<String, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariables(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
+      return getInvolvedVariableTypes(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariables(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
+      return getInvolvedVariableTypes(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList) {
       CInitializerList initializerList = (CInitializerList) pCInitializer;
       Map<String, CType> result = new HashMap<>();
       for (CInitializer initializer : initializerList.getInitializers()) {
-        result.putAll(getInvolvedVariables(initializer, pCfaEdge));
+        result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
       return result;
     }
@@ -248,8 +252,8 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given expression.
    */
-  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, CFAEdge pCFAEdge) {
-    return getInvolvedVariables(pExpression,
+  public static Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
+    return getInvolvedVariableTypes(pExpression,
         new VariableNameExtractor(
             pCFAEdge,
             Collections.<String, InvariantsFormula<CompoundInterval>> emptyMap())
@@ -264,7 +268,7 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given expression.
    */
-  public static Map<String, CType> getInvolvedVariables(AExpression pExpression, VariableNameExtractor pVariableNameExtractor) {
+  public static Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, VariableNameExtractor pVariableNameExtractor) {
     if (pExpression == null) { return Collections.emptyMap(); }
     if (pExpression instanceof CExpression) {
       Map<String, CType> result = new HashMap<>();

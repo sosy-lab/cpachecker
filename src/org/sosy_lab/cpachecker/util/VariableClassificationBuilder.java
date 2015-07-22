@@ -109,6 +109,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -166,6 +167,12 @@ public class VariableClassificationBuilder {
   private final Set<String> nonIntEqVars = new HashSet<>();
   private final Set<String> nonIntAddVars = new HashSet<>();
 
+  /**
+   * Contains the names of all variables that are not integers or that occur not only in simple
+   * non-binary operations.
+   */
+  private final Set<String> nonIntArithVars = new HashSet<>();
+
   private final Dependencies dependencies = new Dependencies();
 
   /** These sets contain all variables even ones of array, pointer or structure types.
@@ -213,9 +220,11 @@ public class VariableClassificationBuilder {
     final Set<String> intBoolVars = new HashSet<>();
     final Set<String> intEqualVars = new HashSet<>();
     final Set<String> intAddVars = new HashSet<>();
+    final Set<String> intArithVars = new HashSet<>();
     final Set<Partition> intBoolPartitions = new HashSet<>();
     final Set<Partition> intEqualPartitions = new HashSet<>();
     final Set<Partition> intAddPartitions = new HashSet<>();
+    final Set<Partition> intArithPartitions = new HashSet<>();
     for (final String var : allVars) {
       // we have this hierarchy of classes for variables:
       //        IntBool < IntEqBool < IntAddEqBool < AllInt
@@ -237,6 +246,19 @@ public class VariableClassificationBuilder {
         intAddVars.add(var);
         intAddPartitions.add(dependencies.getPartitionForVar(var));
       }
+
+      // In addition, we add all variables that are not floats, only occur
+      // in arithmetic or boolean expressions and are not in IntBool or IntEq.
+      // We call this set IntArith.
+      // IntArith does not fit in the hierarchy above, as IntEq may contain float variables,
+      // but no arithmetic expressions. As such neither IntArith <= IntEq nor IntEq <= IntArith is
+      // correct.
+      if (nonIntBoolVars.contains(var)
+          && nonIntEqVars.contains(var)
+          && !nonIntArithVars.contains(var)) {
+        intArithVars.add(var);
+        intArithPartitions.add(dependencies.getPartitionForVar(var));
+      }
     }
 
     propagateRelevancy();
@@ -255,6 +277,7 @@ public class VariableClassificationBuilder {
         intBoolVars,
         intEqualVars,
         intAddVars,
+        intArithVars,
         relevantVariables,
         addressedVariables,
         relevantFields,
@@ -262,9 +285,11 @@ public class VariableClassificationBuilder {
         intBoolPartitions,
         intEqualPartitions,
         intAddPartitions,
+        intArithPartitions,
         dependencies.edgeToPartition,
         extractAssumedVariables(cfa.getAllNodes()),
-        extractAssignedVariables(cfa.getAllNodes()));
+        extractAssignedVariables(cfa.getAllNodes()),
+        logger);
 
     if (printStatsOnStartup) {
       printStats(result);
@@ -520,6 +545,7 @@ public class VariableClassificationBuilder {
       exp.accept(new BoolCollectingVisitor(pre));
       exp.accept(new IntEqualCollectingVisitor(pre));
       exp.accept(new IntAddCollectingVisitor(pre));
+      exp.accept(new IntArithCollectingVisitor(pre));
 
       exp.accept(new CollectingRHSVisitor(null));
       break;
@@ -721,6 +747,7 @@ public class VariableClassificationBuilder {
         param.accept(new BoolCollectingVisitor(pre));
         param.accept(new IntEqualCollectingVisitor(pre));
         param.accept(new IntAddCollectingVisitor(pre));
+        param.accept(new IntArithCollectingVisitor(pre));
       }
     }
   }
@@ -820,6 +847,10 @@ public class VariableClassificationBuilder {
     IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
+
+    IntArithCollectingVisitor iacv = new IntArithCollectingVisitor(pre);
+    Set<String> possibleIntArithVars = exp.accept(iacv);
+    handleResult(varName, possibleIntArithVars, nonIntArithVars);
 
     exp.accept(new CollectingRHSVisitor(lhs));
   }
@@ -1520,6 +1551,107 @@ public class VariableClassificationBuilder {
       } else {
         relevantFields.put(field.getCompositeType(), field.getName());
       }
+    }
+  }
+
+  private class IntArithCollectingVisitor extends VariablesCollectingVisitor {
+
+    public IntArithCollectingVisitor(CFANode pre) {
+      super(pre);
+    }
+
+    @Override
+    public Set<String> visit(CCastExpression exp) {
+      return exp.getOperand().accept(this);
+    }
+
+    @Override
+    public Set<String> visit(CFieldReference exp) {
+      nonIntArithVars.addAll(super.visit(exp));
+      return null;
+    }
+
+    @Override
+    public Set<String> visit(CIdExpression exp) {
+      Set<String> ret = super.visit(exp);
+
+      CType expressionType = exp.getExpressionType().getCanonicalType();
+
+      if (expressionType instanceof CSimpleType) {
+        CBasicType basicType = ((CSimpleType) expressionType).getType();
+        switch (basicType) {
+          case FLOAT:
+          case DOUBLE:
+            nonIntArithVars.addAll(ret);
+            return null;
+
+          default:
+            return ret;
+        }
+      } else {
+        return ret;
+      }
+    }
+
+    @Override
+    public Set<String> visit(CBinaryExpression exp) {
+      Set<String> operand1 = exp.getOperand1().accept(this);
+      Set<String> operand2 = exp.getOperand2().accept(this);
+
+      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
+        if (operand1 != null) {
+          nonIntArithVars.addAll(operand1);
+        }
+        if (operand2 != null) {
+          nonIntArithVars.addAll(operand2);
+        }
+        return null;
+      }
+
+      switch (exp.getOperator()) {
+
+        case PLUS:
+        case MINUS:
+        case LESS_THAN:
+        case LESS_EQUAL:
+        case GREATER_THAN:
+        case GREATER_EQUAL:
+        case EQUALS:
+        case NOT_EQUALS:
+          // this calculations work with all numbers
+          operand1.addAll(operand2);
+          return operand1;
+
+        default: // *, /, %, shift --> no simple calculations
+          nonIntArithVars.addAll(operand1);
+          nonIntArithVars.addAll(operand2);
+          return null;
+      }
+    }
+
+    @Override
+    public Set<String> visit(CIntegerLiteralExpression exp) {
+      return new HashSet<>(0);
+    }
+
+    @Override
+    public Set<String> visit(CUnaryExpression exp) {
+      Set<String> inner = exp.getOperand().accept(this);
+      if (inner == null) { return null; }
+      if (exp.getOperator() == UnaryOperator.MINUS) { return inner; }
+
+      // *, ~, etc --> not simple
+      nonIntArithVars.addAll(inner);
+      return null;
+    }
+
+    @Override
+    public Set<String> visit(CPointerExpression exp) {
+      Set<String> inner = exp.getOperand().accept(this);
+      if (inner == null) { return null; }
+
+      nonIntArithVars.addAll(inner);
+      return null;
     }
   }
 

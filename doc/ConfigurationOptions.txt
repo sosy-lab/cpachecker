@@ -157,11 +157,18 @@ analysis.refinePreconditions = false
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
+# run a sequence of analysis, where the previous ARG is inserted into the
+# current ARGReplayCPA.
+analysis.restartAlgorithmWithARGReplay = false
+
 # stop after the first error has been found
 analysis.stopAfterError = true
 
 # create summary call statement edges
 analysis.summaryEdges = false
+
+# traverse in the order defined by the values of an automaton variable
+analysis.traversal.byAutomatonVariable = no default value
 
 # which strategy to adopt for visiting states?
 analysis.traversal.order = DFS
@@ -486,6 +493,27 @@ counterexample.checker.path.file = no default value
 # second check
 counterexample.continueAfterInfeasibleError = true
 
+# If the option assumeLinearArithmetics is set, this option can be used to
+# allow division and modulo by constants.
+counterexample.export.assumptions.allowDivisionAndModuloByConstants = false
+
+# If the option assumeLinearArithmetics is set, this option can be used to
+# allow multiplication between operands with at least one constant.
+counterexample.export.assumptions.allowMultiplicationWithConstants = false
+
+# Try to avoid using operations that exceed the capabilities of linear
+# arithmetics when extracting assumptions from the model. This option aims to
+# prevent witnesses that are inconsistent with  models that are, due to an
+# analysis limited to linear arithmetics, actually incorrect.
+#  This option does not magically produce a correct witness from an incorrect
+# model, and since the difference between an incorrect witness consistent
+# with the model and an incorrect witness that is inconsistent with the model
+# is academic, you usually want this option to be off.
+counterexample.export.assumptions.assumeLinearArithmetics = false
+
+# Whether or not to include concrete address values.
+counterexample.export.assumptions.includeConstantsForPointers = true
+
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
 counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
@@ -502,6 +530,11 @@ coverage.enabled = true
 coverage.export = true
 coverage.file = "coverage.info"
 
+# How should coverage be determined? REACHED: from the final ARG, TRANSFER:
+# from the edges that explored by the transfer relation
+coverage.mode = NONE
+  enum:     [NONE, REACHED, TRANSFER]
+
 # print coverage summary to stdout
 coverage.stdout = true
 
@@ -511,6 +544,9 @@ cpa = CompositeCPA.class.getCanonicalName()
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = "OCTAGON"
   allowed values: [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
+
+# get an initial precision from file
+cpa.apron.initialPrecisionFile = no default value
 
 # this option determines which initial precision should be used
 cpa.apron.initialPrecisionType = "STATIC_FULL"
@@ -522,6 +558,9 @@ cpa.apron.mergeop.onlyMergeAtLoopHeads = false
 # of which type should the merge be?
 cpa.apron.mergeop.type = "SEP"
   allowed values: [SEP, JOIN, WIDENING]
+
+# target file to hold the exported precision
+cpa.apron.precisionFile = no default value
 
 # whether or not to check for repeated refinements, to then reset the
 # refinement root
@@ -800,24 +839,20 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# This option sets the hard threshold for assignments (-1 for infinite). A
-# variable reaching this assignment threshold is not tracked anymore, even if
-# it is contained in the precision.
-cpa.conditions.path.assignments.hardThreshold = -1
+# sets the hard threshold for assignments (-1 for infinite), and it is upto,
+# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# value.
+cpa.conditions.path.assignments.hardThreshold = DISABLED
 
-# This option determines if there should be a single assignment state per
-# transition (more precise) or per path segment between assume edges (more
-# efficient).
-cpa.conditions.path.assignments.precise = true
+# determines if there should be one single assignment state per state,one per
+# path segment between assume edges, or a global one for the whole program.
+cpa.conditions.path.assignments.scope = STATE
+  enum:     [STATE, PATH, PROGRAM]
 
-# This option sets the soft threshold for assignments (-1 for infinite). The
-# semantics are that variables are tracked up to this threshold, even if not
-# being contained in the precison yet, and are removed once there are more
-# assignments for a variable then defined by this threshold. Once the
-# variable is found to be relevant, e.g., through refinement and
-# interpolation, the variable is tracked again, until reaching the  hard
-# threshold.
-cpa.conditions.path.assignments.softThreshold = -1
+# sets the soft threshold for assignments (-1 for infinite), and it is upto,
+# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# value.
+cpa.conditions.path.assignments.softThreshold = DISABLED
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1
@@ -830,6 +865,31 @@ cpa.conditions.path.length.limit = -1
 
 # maximum repetitions of any edge in a path (-1 for infinite)
 cpa.conditions.path.repetitions.limit = -1
+
+# Type of less-or-equal operator to use
+cpa.constraints.lessOrEqualType = SUBSET
+  enum:     [SUBSET, ALIASED_SUBSET, IMPLICATION]
+
+# Type of merge operator to use
+cpa.constraints.mergeType = SEP
+  enum:     [SEP, JOIN_FITTING_CONSTRAINT]
+
+# Type of precision to use. Has to be LOCATION if PredicateExtractionRefiner
+# is used.
+cpa.constraints.refinement.precisionType = CONSTRAINTS
+  enum:     [CONSTRAINTS, LOCATION]
+
+# Whether to remove constraints that can't add any more information
+# toanalysis during simplification
+cpa.constraints.removeOutdated = true
+
+# Whether to remove trivial constraints from constraints states during
+# simplification
+cpa.constraints.removeTrivial = false
+
+# When to check the satisfiability of constraints
+cpa.constraints.satCheckStrategy = AT_ASSUME
+  enum:     [AT_ASSUME, AT_TARGET]
 
 # which merge operator to use for DefUseCPA
 cpa.defuse.merge = "sep"
@@ -1014,14 +1074,10 @@ cpa.predicate.abstraction.initialPredicates.applyFunctionWide = false
 # in the program)
 cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 
-# when reading predicates from file, convert them to BV-theory. This option
-# depends on the 'variableEncodingFile'.
+# when reading predicates from file, convert them from Integer- to BV-theory
+# or reverse.
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
-
-# where to read symbols and their possible encoding,this corresponds to
-# 'cpa.predicate.symbolEncodingFile' of a previous execution.
-cpa.predicate.abstraction.initialPredicates.symbolEncodingFile = "SymbolEncoding.txt"
 
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
@@ -1039,6 +1095,12 @@ cpa.predicate.abstractions.export = true
 
 # file that consists of one abstraction formula for each abstraction state
 cpa.predicate.abstractions.file = "abstractions.txt"
+
+# Add constraints for the range of the return-value of a nondet-method. For
+# example the assignment 'X=nondet_int()' produces the constraint
+# 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
+# (signature, not name!).
+cpa.predicate.addRangeConstraintsForNondet = false
 
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
@@ -1145,9 +1207,17 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
+# Use UFs to handle overflows when Bitvector theory was replaced with Integer
+# or Rational theory.
+cpa.predicate.handleOverflowsWithUFs = false
+
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
+
+# Use UFs to handle sign-conversion (from signed to unsigned or back) when
+# Bitvector theory was replaced with Integer or Rational theory.
+cpa.predicate.handleSignConversionWithUFs = false
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1158,13 +1228,16 @@ cpa.predicate.handleStringLiteralInitializers = false
 # replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
 
+# Ignore fields that are not relevant for reachability properties. This is
+# unsound in case fields are accessed by pointer arithmetic with hard-coded
+# field offsets. Only relvant if ignoreIrrelevantVariables is enabled.
+cpa.predicate.ignoreIrrelevantFields = true
+
 # Ignore variables that are not relevant for reachability properties.
 cpa.predicate.ignoreIrrelevantVariables = true
 
-# Which solver to use specifically for interpolation (default is to use the
-# main one).
-cpa.predicate.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+# do not include assumptions of states into path formula during strengthening
+cpa.predicate.ignoreStateAssumptions = false
 
 # export final loop invariants
 cpa.predicate.invariants.export = true
@@ -1382,6 +1455,10 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
+# Replace possible overflows with an ITE-structure, which returns either the
+# normal value or an UF representing the overflow.
+cpa.predicate.replaceOverflowsWithUFs = false
+
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
@@ -1396,58 +1473,6 @@ cpa.predicate.satCheck = 0
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
 
-# Which SMT solver to use.
-cpa.predicate.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
-
-# Export solver queries in Smtlib format into a file.
-cpa.predicate.solver.logAllQueries = false
-cpa.predicate.solver.logfile = "smtquery.%03d.smt2"
-
-# List of further options which will be passed to Mathsat in addition to the
-# default options. Format is 'key1=value1,key2=value2'
-cpa.predicate.solver.mathsat5.furtherOptions = ""
-
-# Load less stable optimizing version of mathsat5 solver.
-cpa.predicate.solver.mathsat5.loadOptimathsat5 = false
-
-# Random seed for SMT solver.
-cpa.predicate.solver.random-seed = 42
-
-# Double check generated results like interpolants and models whether they
-# are correct
-cpa.predicate.solver.smtinterpol.checkResults = false
-
-# List of further options which will be set to true for SMTInterpol in
-# addition to the default options. Format is 'option1,option2,option3'
-cpa.predicate.solver.smtinterpol.furtherOptions = []
-
-# log some solver actions, this may be slow!
-cpa.predicate.solver.useLogger = false
-
-# Activate replayable logging in Z3. The log can be given as an input to the
-# solver and replayed.
-cpa.predicate.solver.z3.log = no default value
-
-# Export solver queries in Smtlib2 format, there are small differences for
-# different solvers, choose target-solver.
-cpa.predicate.solver.z3.logger.target = Z3
-  allowed values: [Z3, MATHSAT5]
-
-# Ordering for objectives in the optimization context
-cpa.predicate.solver.z3.objectivePrioritizationMode = "box"
-  allowed values: [lex, pareto, box]
-
-# Engine to use for the optimization
-cpa.predicate.solver.z3.optimizationEngine = "basic"
-  allowed values: [basic, farkas, symba]
-
-# Require proofs from SMT solver
-cpa.predicate.solver.z3.requireProofs = true
-
-# simplify formulas when they are asserted in a solver.
-cpa.predicate.solver.z3.simplifyFormulas = false
-
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
 cpa.predicate.stop = "SEP"
@@ -1460,9 +1485,6 @@ cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
 # The function used to model successful heap object allocation with zeroing.
 # This is only used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulZallocFunctionName = "__VERIFIER_successful_zalloc"
-
-# where to dump variables and their possible encoding
-cpa.predicate.symbolEncodingFile = "symbolEncoding.txt"
 
 # whether to include the symbolic path formula in the coverage checks or do
 # only the fast abstract checks
@@ -1781,6 +1803,11 @@ cpa.uninitvars.stop = "sep"
 cpa.validVars.merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# Whether to replace symbolic values with a concrete value when only one
+# value is possible for an assumption to be true (e.g. for (x == 1) set x to
+# 1, even if x is a symbolic expression).
+cpa.value.assignSymbolicAssumptionVars = false
+
 # Process the Automaton ASSUMEs as if they were statements, not as if they
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
@@ -1811,6 +1838,17 @@ cpa.value.initAssumptionVars = false
 # get an initial precision from file
 cpa.value.initialPrecisionFile = no default value
 
+# apply optimizations based on equality of input interpolant and candidate
+# interpolant
+cpa.value.interpolation.applyItpEqualityOptimization = true
+
+# apply optimizations based on CFA edges with only variable-renaming
+# semantics
+cpa.value.interpolation.applyRenamingOptimization = true
+
+# apply optimizations based on infeasibility of suffix
+cpa.value.interpolation.applyUnsatSuffixOptimization = true
+
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -1839,7 +1877,7 @@ cpa.value.refinement.exportInterpolationTree = "NEVER"
 # export interpolation trees to this file template
 cpa.value.refinement.interpolationTreeExportFile = "interpolationTree.%d-%d.dot"
 
-# heuristic to sort targets based on the quality of interpolants deriveable
+# heuristic to sort targets based on the quality of interpolants derivable
 # from them
 cpa.value.refinement.itpSortedTargets = false
 
@@ -1867,6 +1905,8 @@ cpa.value.refinement.prefixPreference = DOMAIN_GOOD_SHORT
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
+cpa.value.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
 cpa.value.refinement.restart = ROOT
   enum:     [ROOT, PIVOT, COMMON]
 
@@ -1881,15 +1921,34 @@ cpa.value.refinement.useTopDownInterpolationStrategy = true
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
 
+# Whether to adopt definite assignments computed by the ConstraintsCPA
+cpa.value.symbolic.adoptDefinites = true
+
+# Default size of arrays whose length can't be determined.
+cpa.value.symbolic.defaultArraySize = 20
+
 # If this option is set to true, an own symbolic identifier is assigned to
 # each array slot when handling non-deterministic arrays of fixed length. If
 # the length of the array can't be determined, it won't be handled in either
 # cases.
 cpa.value.symbolic.handleArrays = false
 
+# Whether to handle non-deterministic pointers in symbolic value analysis.
+cpa.value.symbolic.handlePointers = true
+
 # If this option is set to true, an own symbolic identifier is assigned to
-# each struct member when handling non-determinstic structs.
-cpa.value.symbolic.handleStructs = false
+# each struct member when handling non-deterministic structs.
+cpa.value.symbolic.handleStructs = true
+
+# Whether to try to not use any constraints in refinement
+cpa.value.symbolic.refinement.avoidConstraints = true
+
+# The refinement strategy to use
+cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
+  enum:     [CONSTRAINTS_FIRST, VALUES_FIRST, VALUES_ONLY]
+
+# Whether to simplify symbolic expressions, if possible.
+cpa.value.symbolic.simplifySymbolics = true
 
 # Use symbolic values. This allows tracking of non-deterministic values.
 # Symbolic values should always be used in conjunction with ConstraintsCPA.
@@ -2161,6 +2220,69 @@ realC.timelimit = 0ms
 # matching condition.
 restartAlgorithm.configFiles = no default value
 
+# List of files with configurations to use. 2 filenames expected.
+restartAlgorithmWithARGReplay.configFiles = no default value
+
+# improve sat-checks with additional constraints for UFs
+solver.checkUFs = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in Smtlib format into a file.
+solver.logAllQueries = false
+solver.logfile = "smtquery.%03d.smt2"
+
+# List of further options which will be passed to Mathsat in addition to the
+# default options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# List of further options which will be set to true for SMTInterpol in
+# addition to the default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# log some solver actions, this may be slow!
+solver.useLogger = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Export solver queries in Smtlib2 format, there are small differences for
+# different solvers, choose target-solver.
+solver.z3.logger.target = Z3
+  allowed values: [Z3, MATHSAT5]
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# simplify formulas when they are asserted in a solver.
+solver.z3.simplifyFormulas = false
+
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
 
@@ -2190,6 +2312,20 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
+
+# export abstract states as formula, e.g. for re-using them as
+# PredicatePrecision.
+statesToFormulas.exportFile = no default value
+
+# export formulas for all program locations or just the important
+# locations,which include loop-heads, funtion-calls and function-exits.
+statesToFormulas.exportOnlyImporantLocations = false
+
+# instead of writing the exact state-representation as a single formula,
+# write its atoms as a list of formulas. Therefore we ignore operators for
+# conjunction and disjunction.
+statesToFormulas.splitFormulas = LOCATION
+  enum:     [LOCATION, STATE, ATOM]
 
 # Add all assumtions from the control flow automaton to the precision.
 staticRefiner.addAllControlFlowAssumes = false

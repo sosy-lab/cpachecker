@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
@@ -134,20 +135,21 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
   }
 
   @Override
-  public Long replaceName(Long t, String pNewName) {
+  public Long replaceArgsAndName(Long t, String pNewName, List<Long> newArgs) {
     if (isVariable(t)) {
+      checkArgument(newArgs.isEmpty());
       long sort = get_sort(z3context, t);
       return getFormulaCreator().makeVariable(sort, pNewName);
 
     } else if (isUF(t)) {
       int n = get_app_num_args(z3context, t);
-      long[] args = new long[n];
       long[] sorts = new long[n];
       for (int i = 0; i < sorts.length; i++) {
-        args[i] = get_app_arg(z3context, t, i);
-        inc_ref(z3context, args[i]);
-        sorts[i] = get_sort(z3context, args[i]);
+        long arg = get_app_arg(z3context, t, i);
+        inc_ref(z3context, arg);
+        sorts[i] = get_sort(z3context, arg);
         inc_ref(z3context, sorts[i]);
+        dec_ref(z3context, arg);
       }
       long symbol = mk_string_symbol(z3context, pNewName);
       long retSort = get_sort(z3context, t);
@@ -156,10 +158,9 @@ class Z3UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Long, Lo
 
       //      creator.getSmtLogger().logDeclaration(newFunc, retSort, sorts); // TODO necessary???
 
-      long uif = createUIFCallImpl(newFunc, args);
+      long uif = createUIFCallImpl(newFunc, Longs.toArray(newArgs));
 
       for (int i = 0; i < sorts.length; i++) {
-        dec_ref(z3context, args[i]);
         dec_ref(z3context, sorts[i]);
       }
       return uif;

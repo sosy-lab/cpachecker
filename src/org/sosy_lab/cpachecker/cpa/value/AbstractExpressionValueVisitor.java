@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -111,6 +112,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.base.Optional;
 import com.google.common.primitives.UnsignedLongs;
@@ -212,7 +214,7 @@ public abstract class AbstractExpressionValueVisitor
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
 
-    lVal = castCValue(lVal, binaryExpr.getOperand1().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
+    lVal = castCValue(lVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
@@ -226,7 +228,7 @@ public abstract class AbstractExpressionValueVisitor
        * the behavior is undefined.
        */
       rVal =
-          castCValue(rVal, binaryExpr.getOperand2().getExpressionType(), calculationType, machineModel, logger, binaryExpr.getFileLocation());
+          castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
@@ -252,7 +254,7 @@ public abstract class AbstractExpressionValueVisitor
     case BINARY_OR:
     case BINARY_XOR: {
       result = arithmeticOperation((NumericValue)lVal, (NumericValue)rVal, binaryOperator, calculationType, machineModel, logger);
-      result = castCValue(result, calculationType, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
+      result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
 
       break;
     }
@@ -298,7 +300,8 @@ public abstract class AbstractExpressionValueVisitor
     final CType expressionType = pExpression.getExpressionType();
     final CType calculationType = pExpression.getCalculationType();
 
-    return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator, expressionType,
+    return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
+        expressionType,
         calculationType, pLocation);
   }
 
@@ -591,11 +594,25 @@ public abstract class AbstractExpressionValueVisitor
         break;
       }
       case FLOAT: {
-        cmp = Float.compare(l.floatValue(), r.floatValue());
+        float lVal = l.floatValue();
+        float rVal = r.floatValue();
+
+        if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
+          return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+        }
+
+        cmp = Float.compare(lVal, rVal);
         break;
       }
       case DOUBLE: {
-        cmp = Double.compare(l.doubleValue(),r.doubleValue());
+        double lVal = l.floatValue();
+        double rVal = r.floatValue();
+
+        if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
+          return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+        }
+
+        cmp = Double.compare(lVal, rVal);
         break;
       }
       default: {
@@ -630,8 +647,8 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CCastExpression pE) throws UnrecognizedCCodeException {
-    return castCValue(pE.getOperand().accept(this), pE.getOperand().getExpressionType(), pE.getExpressionType(),
-        machineModel, logger, pE.getFileLocation());
+    return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel,
+        logger, pE.getFileLocation());
   }
 
   @Override
@@ -642,7 +659,91 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCCodeException {
+    CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
+
+    // We only handle builtin functions
+    if (functionNameExp instanceof CIdExpression) {
+      String functionName = ((CIdExpression) functionNameExp).getName();
+
+      if (BuiltinFunctions.isBuiltinFunction(functionName)) {
+        CType functionReturnType = BuiltinFunctions.getFunctionType(functionName);
+
+        if (isUnspecifiedType(functionReturnType)) {
+          // unsupported formula
+          return Value.UnknownValue.getInstance();
+        }
+
+        assert functionReturnType.equals(pIastFunctionCallExpression.getExpressionType())
+            : "Builtin function's return type is false. " + functionName
+            + " has return type " + pIastFunctionCallExpression.getExpressionType();
+        List<CExpression> parameterExpressions = pIastFunctionCallExpression.getParameterExpressions();
+        List<Value> parameterValues = new ArrayList<>(parameterExpressions.size());
+
+        for (CExpression currParamExp : parameterExpressions) {
+          Value newValue = currParamExp.accept(this);
+
+          parameterValues.add(newValue);
+        }
+
+        if (BuiltinFunctions.isAbsolute(functionName)) {
+          assert parameterValues.size() == 1;
+
+          final CType parameterType = parameterExpressions.get(0).getExpressionType();
+          final Value parameter = parameterValues.get(0);
+
+          if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
+            return parameter;
+
+          } else if (parameter.isExplicitlyKnown()) {
+            assert parameter.isNumericValue();
+            final double absoluteValue = Math.abs(((NumericValue) parameter).doubleValue());
+
+            // absolute value for INT_MIN is undefined behaviour, so we do not bother handling it
+            // in any specific way
+            return new NumericValue(absoluteValue);
+          }
+
+        } else if (BuiltinFunctions.isHugeVal(functionName)
+            || BuiltinFunctions.isInfinity(functionName)) {
+
+          assert parameterValues.isEmpty();
+          if (BuiltinFunctions.isHugeValFloat(functionName)
+              || BuiltinFunctions.isInfinityFloat(functionName)) {
+
+            return new NumericValue(Float.POSITIVE_INFINITY);
+
+          } else {
+            assert BuiltinFunctions.isInfinityDouble(functionName)
+                || BuiltinFunctions.isInfinityLongDouble(functionName)
+                || BuiltinFunctions.isHugeValDouble(functionName)
+                || BuiltinFunctions.isHugeValLongDouble(functionName)
+                : " Unhandled builtin function for infinity: " + functionName;
+
+            return new NumericValue(Double.POSITIVE_INFINITY);
+          }
+
+        } else if (BuiltinFunctions.isNaN(functionName)) {
+          assert parameterValues.isEmpty() || parameterValues.size() == 1;
+
+          if (BuiltinFunctions.isNaNFloat(functionName)) {
+            return new NumericValue(Float.NaN);
+          } else {
+            assert BuiltinFunctions.isNaNDouble(functionName)
+                || BuiltinFunctions.isNaNLongDouble(functionName)
+                : "Unhandled builtin function for NaN: " + functionName;
+
+            return new NumericValue(Double.NaN);
+          }
+        }
+      }
+    }
+
     return Value.UnknownValue.getInstance();
+  }
+
+  private boolean isUnspecifiedType(CType pType) {
+    return pType instanceof CSimpleType
+        && ((CSimpleType) pType).getType() == CBasicType.UNSPECIFIED;
   }
 
   @Override
@@ -1489,8 +1590,8 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CExpression pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel,
-        logger, pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
+        pExp.getFileLocation());
   }
 
   /**
@@ -1504,8 +1605,8 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCCodeException {
-    return castCValue(pExp.accept(this), pExp.getExpressionType(), pTargetType, machineModel,
-        logger,pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
+        pExp.getFileLocation());
   }
 
   /**
@@ -1532,16 +1633,15 @@ public abstract class AbstractExpressionValueVisitor
    * is assigned to a variable of type 'char'.
    *
    * @param value will be casted.
-   * @param sourceType the type of the input value
    * @param targetType value will be casted to targetType.
    * @param machineModel contains information about types
    * @param logger for logging
    * @param fileLocation the location of the corresponding code in the source file
    * @return the casted Value
    */
-  public static Value castCValue(@Nonnull final Value value, final CType sourceType,
-      final CType targetType, final MachineModel machineModel,
-      final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
+  public static Value castCValue(@Nonnull final Value value, final CType targetType,
+      final MachineModel machineModel, final LogManagerWithoutDuplicates logger,
+      final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
       return castIfSymbolic(value, targetType, Optional.of(machineModel));

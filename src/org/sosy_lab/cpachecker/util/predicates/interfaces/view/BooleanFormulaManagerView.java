@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
+  public BooleanFormula and(Collection<BooleanFormula> pBits) {
     return manager.and(pBits);
   }
 
@@ -77,7 +78,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula or(List<BooleanFormula> pBits) {
+  public BooleanFormula or(Collection<BooleanFormula> pBits) {
     return manager.or(pBits);
   }
 
@@ -162,16 +163,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
 
     FormulaType<T> targetType = getFormulaType(pF);
-    return Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch));
+    return Triple.of(cond, wrap(targetType, thenBranch),
+        wrap(targetType, elseBranch));
   }
 
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(pFormula);
-  }
-
-  public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {
-    return or(not(p), q);
   }
 
   @Override
@@ -182,6 +180,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
     return manager.equivalence(pFormula1, pFormula2);
+  }
+
+  @Override
+  public BooleanFormula implication(BooleanFormula formula1, BooleanFormula formula2) {
+    return manager.implication(formula1, formula2);
   }
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {

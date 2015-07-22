@@ -4,11 +4,17 @@ int main() {
   int b = __VERIFIER_nondet_int();
   
   if (a < 0) {
-    a = -a;
+    a++;
+    if (a < 0) {
+      a = -a;
+    }
   }
 
   if (b < 0) {
-    b = -b;
+    b++;
+    if (b < 0) {
+      b = -b;
+    }
   }
   
   if (a == 0) {

@@ -31,23 +31,17 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
 
-  protected FormulaManagerView fmgr; // TODO: wird der wirklich benötigt?
+  protected final LogManager logger;
 
   public CartesianRequirementsTranslator(final Class<T> pAbstractStateClass, final Configuration config,
       final ShutdownNotifier shutdownNotifier, final LogManager log) {
     super(pAbstractStateClass);
-    fmgr = GlobalInfo.getInstance().getFormulaManagerView();
-    if (fmgr==null) {
-      // TODO: wirft Exception!
-//      fmgr = Solver.create(config, log, shutdownNotifier).getFormulaManager();
-    }
+    logger = log;
   }
 
   private List<String> writeVarDefinition(final List<String> vars, final SSAMap ssaMap) {
@@ -86,6 +80,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     StringBuilder sb = new StringBuilder();
     int BracketCounter = 0;
 
+    if (list.isEmpty()) {
+      return "true";
+    }
+
     String last = list.get(list.size()-1);
     for (String var : list) {
       if (var.equals(last)) {
@@ -111,10 +109,10 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
 
     int index = indices.getIndex(var);
 
-    if (index == 0){
-      return var;
+    if (index == -1){
+      return "|" + var + "|";
     } else {
-      return var + "@" + index;
+      return "|" + var + "@" + index + "|";
     }
   }
 

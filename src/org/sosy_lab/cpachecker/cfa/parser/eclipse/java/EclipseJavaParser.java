@@ -96,6 +96,7 @@ class EclipseJavaParser implements Parser {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportTypeHierarchyFile = Paths.get("typeHierarchy.dot");
 
+  @SuppressWarnings("deprecation")
   private final ASTParser parser = ASTParser.newParser(AST.JLS4);
 
   private final LogManager logger;
@@ -360,7 +361,7 @@ class EclipseJavaParser implements Parser {
           AnonymousClassDeclaration nextLocalClassToBeParsed = scope.getNextLocalClass();
           nextLocalClassToBeParsed.accept(builder);
         }
-        
+
         nextClassToBeParsed = scope.getNextClass();
       }
 

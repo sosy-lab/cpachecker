@@ -51,7 +51,7 @@ class Mathsat5BitvectorFormulaManager extends AbstractBitvectorFormulaManager<Lo
   }
 
   @Override
-  public Long extract(Long pFirst, int pMsb, int pLsb) {
+  public Long extract(Long pFirst, int pMsb, int pLsb, boolean pSigned) {
     return msat_make_bv_extract(mathsatEnv, pMsb, pLsb, pFirst);
   }
 

@@ -27,20 +27,13 @@ import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.castToFormula;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.time.NestedTimer;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager.RegionCreator;
+import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager.RegionBuilder;
 
 import scala.Option;
 import ap.parser.IBinFormula;
@@ -67,7 +60,7 @@ class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvi
 
   @Override
   public void pop() {
-    assertedTerms.remove(assertedTerms.size()-1); // remove last term
+    assertedTerms.remove(assertedTerms.size() - 1); // remove last term
     stack.pop(1);
   }
 
@@ -86,132 +79,42 @@ class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvi
   }
 
   @Override
-  public AllSatResult allSat(Collection<BooleanFormula> formulas,
-                             RegionCreator rmgr, Timer solveTime, NestedTimer enumTime) throws InterruptedException {
-    checkNotNull(rmgr);
-    checkNotNull(solveTime);
-    checkNotNull(enumTime);
-    checkArgument(!formulas.isEmpty());
-
-    // create new allSatResult
-    final AllSatCallback result = new AllSatCallback(rmgr, solveTime, enumTime);
+  public <T> T allSat(ProverEnvironment.AllSatCallback<T> callback,
+      List<BooleanFormula> important)
+      throws InterruptedException, SolverException {
 
     // unpack formulas to terms
-    List<IFormula> importantFormulas = new ArrayList<>(formulas.size());
-    for (BooleanFormula impF : formulas) {
+    List<IFormula> importantFormulas = new ArrayList<>(important.size());
+    for (BooleanFormula impF : important) {
       importantFormulas.add(castToFormula(mgr.extractInfo(impF)));
     }
 
-    solveTime.start();
-    try {
-      stack.push(1);
-      while (stack.checkSat()) {
-        shutdownNotifier.shutdownIfNecessary();
-
-        IFormula newFormula = new IBoolLit(true); // neutral element for AND
-        final Map<IFormula, Boolean> partialModel = new HashMap<>();
-        for (final IFormula f : importantFormulas) {
-          final Option<Object> value = stack.evalPartial(f);
-          if (value.isDefined()) {
-            final Boolean isTrueValue = (Boolean)value.get();
-            final IFormula newElement = isTrueValue ? f : new INot(f);
-            newFormula = new IBinFormula(IBinJunctor.And(), newFormula, newElement);
-            partialModel.put(f, isTrueValue);
-          } else {
-            // when does this happen? if formula was not asserted?
-          }
-        }
-
-        result.callback(partialModel);
-
-        // add negation of current formula to get a new model in next iteration
-        stack.assertTerm(new INot(newFormula));
-      }
+    stack.push(1);
+    while (stack.checkSat()) {
       shutdownNotifier.shutdownIfNecessary();
-      stack.pop(1);
 
-    } finally {
-      if (solveTime.isRunning()) {
-        solveTime.stop();
-      } else {
-        enumTime.stopOuter();
-      }
-    }
+      IFormula newFormula = new IBoolLit(true); // neutral element for AND
+      List<BooleanFormula> wrappedPartialModel = new ArrayList<>(important.size());
+      for (final IFormula f : importantFormulas) {
+        final Option<Object> value = stack.evalPartial(f);
+        if (value.isDefined()) {
+          final boolean isTrueValue = (boolean)value.get();
+          final IFormula newElement = isTrueValue ? f : new INot(f);
 
-    return result;
-  }
-
-  /**
-   * callback used to build the predicate abstraction of a formula
-   */
-  class AllSatCallback implements AllSatResult {
-    private final RegionCreator rmgr;
-    private final RegionBuilder builder;
-
-    private final Timer solveTime;
-    private final NestedTimer enumTime;
-    private Timer regionTime = null;
-
-    private int count = 0;
-
-    private Region formula = null;
-
-    public AllSatCallback(RegionCreator rmgr, Timer pSolveTime, NestedTimer pEnumTime) {
-      this.rmgr = rmgr;
-      this.solveTime = pSolveTime;
-      this.enumTime = pEnumTime;
-      builder = rmgr.newRegionBuilder(shutdownNotifier);
-    }
-
-    @Override
-    public int getCount() {
-      return count;
-    }
-
-    @Override
-    public Region getResult() throws InterruptedException {
-      if (formula == null) {
-        enumTime.startBoth();
-        try {
-          formula = builder.getResult();
-          builder.close();
-        } finally {
-          enumTime.stopBoth();
-        }
-      }
-      return formula;
-    }
-
-    public void callback(final Map<IFormula, Boolean> model) {
-      if (count == 0) {
-        solveTime.stop();
-        enumTime.startOuter();
-        regionTime = enumTime.getCurentInnerTimer();
-      }
-
-      regionTime.start();
-
-      // the abstraction is created simply by taking the disjunction
-      // of all the models found by all_sat, and storing them in a BDD
-      // first, let's create the BDD corresponding to the model
-      builder.startNewConjunction();
-
-      for (Map.Entry<IFormula, Boolean> f : model.entrySet()) {
-        if (f.getValue()) {
-          builder.addPositiveRegion(rmgr.getPredicate(encapsulate(f.getKey())));
+          wrappedPartialModel.add(mgr.encapsulateBooleanFormula(newElement));
+          newFormula = new IBinFormula(IBinJunctor.And(), newFormula, newElement);
         } else {
-          builder.addNegativeRegion(rmgr.getPredicate(encapsulate(f.getKey())));
+          // when does this happen? if formula was not asserted?
         }
       }
-      builder.finishConjunction();
+      callback.apply(wrappedPartialModel);
 
-      count++;
-
-      regionTime.stop();
+      // add negation of current formula to get a new model in next iteration
+      stack.assertTerm(new INot(newFormula));
     }
+    shutdownNotifier.shutdownIfNecessary();
+    stack.pop(1);
 
-    private BooleanFormula encapsulate(IFormula pT) {
-      return mgr.encapsulateBooleanFormula(pT);
-    }
+    return callback.getResult();
   }
 }

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.List;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -36,13 +34,15 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingGlobalPathExtractor;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.util.CPAs;
-
-import com.google.common.collect.FluentIterable;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
+import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
@@ -62,19 +62,46 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    ValueAnalysisGlobalRefiner refiner = new ValueAnalysisGlobalRefiner(valueAnalysisCpa.getConfiguration(),
-        valueAnalysisCpa.getLogger(),
-        valueAnalysisCpa.getShutdownNotifier(),
-        valueAnalysisCpa.getCFA());
+    final LogManager logger = valueAnalysisCpa.getLogger();
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final ValueAnalysisFeasibilityChecker checker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
+
+    ValueAnalysisGlobalRefiner refiner =
+        new ValueAnalysisGlobalRefiner(
+            checker,
+            strongestPostOp,
+            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new PrefixSelector(cfa.getVarClassification(),
+                               cfa.getLoopStructure()),
+            config,
+            logger,
+            valueAnalysisCpa.getShutdownNotifier(),
+            cfa);
 
     return refiner;
   }
 
-  ValueAnalysisGlobalRefiner(final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
-      throws InvalidConfigurationException {
+  ValueAnalysisGlobalRefiner(
+      final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final PrefixSelector pPrefixSelector,
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa
+  ) throws InvalidConfigurationException {
 
-    super(pConfig, pLogger, pShutdownNotifier, pCfa);
+    super(pFeasibilityChecker,
+          pStrongestPostOperator,
+          new SortingGlobalPathExtractor(pPrefixProvider, pPrefixSelector, pLogger, pConfig),
+          pPrefixProvider,
+          pConfig, pLogger, pShutdownNotifier, pCfa);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
   }
@@ -85,16 +112,6 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   @Override
   protected ValueAnalysisInterpolationTree createInterpolationTree(final List<ARGPath> targetsPaths) {
     return new ValueAnalysisInterpolationTree(logger, targetsPaths, useTopDownInterpolationStrategy);
-  }
-
-  /**
-   * This method extracts all target states available in the ARG (hence, global refinement).
-   */
-  @Override
-  protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
-    return from(pReached.asReachedSet())
-        .transform(AbstractStates.toState(ARGState.class))
-        .filter(AbstractStates.IS_TARGET_STATE);
   }
 }
 

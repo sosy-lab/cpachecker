@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smtInterpol;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.util.predicates.smtInterpol.SmtInterpolUtil.toTermArray;
+
 import java.util.List;
 
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractUnsafeFormulaManager;
@@ -99,10 +102,11 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
   }
 
   @Override
-  public Term replaceName(Term t, String pNewName) {
-
+  protected Term replaceArgsAndName(Term t, String pNewName, List<Term> pNewArgs) {
     if (isVariable(t)) {
+      checkArgument(pNewArgs.isEmpty());
       return getFormulaCreator().makeVariable(t.getSort(), pNewName);
+
     } else if (isUF(t)) {
       ApplicationTerm at = (ApplicationTerm) t;
       Term[] args = at.getParameters();
@@ -111,7 +115,7 @@ class SmtInterpolUnsafeFormulaManager extends AbstractUnsafeFormulaManager<Term,
         sorts[i] = args[i].getSort();
       }
       getFormulaCreator().getEnv().declareFun(pNewName, sorts, t.getSort());
-      return createUIFCallImpl(pNewName, args);
+      return createUIFCallImpl(pNewName, toTermArray(pNewArgs));
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");
     }

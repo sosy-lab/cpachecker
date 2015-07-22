@@ -41,6 +41,8 @@ import com.google.common.collect.ImmutableList;
 
 public class CFunctionType extends AFunctionType implements CType {
 
+  private static final long serialVersionUID = 4154771254170820716L;
+
   public static CFunctionType functionTypeWithReturnType(CType pReturnType) {
     return new CFunctionType(false, false, checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
   }

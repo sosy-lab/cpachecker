@@ -77,7 +77,11 @@ final class FormulaWrappingHandler {
 
   @SuppressWarnings("unchecked")
   <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
-    assert !(toWrap instanceof WrappingFormula<?, ?>);
+    if (toWrap instanceof WrappingFormula<?, ?>) {
+      throw new IllegalArgumentException(String.format(
+          "Cannot double-wrap a formula %s, which has already been wrapped as %s, as %s.",
+          toWrap, ((WrappingFormula<?, ?>)toWrap).getType(), targetType));
+    }
 
     if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
       return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
@@ -95,7 +99,8 @@ final class FormulaWrappingHandler {
       return (T1) toWrap;
 
     } else {
-      throw new IllegalArgumentException("invalid wrap call");
+      throw new IllegalArgumentException(String.format(
+          "Cannot wrap formula %s as %s", toWrap, targetType));
     }
   }
 

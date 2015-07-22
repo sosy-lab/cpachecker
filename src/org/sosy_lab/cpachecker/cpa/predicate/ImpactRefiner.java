@@ -66,7 +66,13 @@ public abstract class ImpactRefiner implements Refiner {
         predicateCpa.getShutdownNotifier(),
         logger);
 
-    PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pfmgr, solver, machineModel);
+    PathChecker pathChecker = new PathChecker(
+        config,
+        logger,
+        predicateCpa.getShutdownNotifier(),
+        machineModel,
+        pfmgr,
+        solver);
 
     PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr);
 

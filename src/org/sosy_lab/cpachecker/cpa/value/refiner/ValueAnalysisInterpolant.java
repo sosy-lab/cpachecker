@@ -36,14 +36,15 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.refinement.Interpolant;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
  * from memory locations to values, representing a variable assignment.
  */
-public class ValueAnalysisInterpolant {
+public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState> {
   /**
    * the variable assignment of the interpolant
    */
@@ -93,6 +94,13 @@ public class ValueAnalysisInterpolant {
         : Collections.unmodifiableSet(assignment.keySet());
   }
 
+  @Override
+  public <T extends Interpolant<ValueAnalysisState>> T join(final T pOther) {
+    assert pOther instanceof ValueAnalysisInterpolant;
+
+    return (T) join0((ValueAnalysisInterpolant) pOther);
+  }
+
   /**
    * This method joins to value-analysis interpolants. If the underlying map contains different values for a key
    * contained in both maps, the behaviour is undefined.
@@ -101,7 +109,7 @@ public class ValueAnalysisInterpolant {
    * @return a new value-analysis interpolant containing the joined mapping of this and the other value-analysis
    * interpolant
    */
-  public ValueAnalysisInterpolant join(ValueAnalysisInterpolant other) {
+  private ValueAnalysisInterpolant join0(ValueAnalysisInterpolant other) {
 
     if (assignment == null || other.assignment == null) {
       return ValueAnalysisInterpolant.FALSE;
@@ -187,7 +195,8 @@ public class ValueAnalysisInterpolant {
    *
    * @return a value-analysis state that represents the same variable assignment as the interpolant
    */
-  public ValueAnalysisState createValueAnalysisState() {
+  @Override
+  public ValueAnalysisState reconstructState() {
     return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment), PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
   }
 

@@ -307,13 +307,8 @@ public class SMGExpressionEvaluator {
 
       return SMGExplicitValueAndState.of(newState);
     } else {
-      Long longValue = value.asNumericValue().longValue();
-
-      if (longValue != null) {
-        return SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(longValue));
-      } else {
-        return SMGExplicitValueAndState.of(newState);
-      }
+      long longValue = value.asNumericValue().longValue();
+      return SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(longValue));
     }
   }
 

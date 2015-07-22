@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -82,6 +83,336 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   }
 
   @Test
+  public void intTest3_DivMod() throws Exception {
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
+        .that(solver == Solvers.MATHSAT5 ).isFalse();
+
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula b = imgr.makeVariable("int_b");
+
+    IntegerFormula num10 = imgr.makeNumber(10);
+    IntegerFormula num5 = imgr.makeNumber(5);
+    IntegerFormula num3 = imgr.makeNumber(3);
+    IntegerFormula num2 = imgr.makeNumber(2);
+    IntegerFormula num1 = imgr.makeNumber(1);
+    IntegerFormula num0 = imgr.makeNumber(0);
+
+    BooleanFormula fa = imgr.equal(a, num10);
+    BooleanFormula fb = imgr.equal(b, num2);
+    BooleanFormula fADiv5 = imgr.equal(imgr.divide(a, num5), b);
+    BooleanFormula fADiv3 = imgr.equal(imgr.divide(a, num3), num3);
+    BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
+    BooleanFormula fAMod5 = imgr.equal(imgr.modulo(a, num5), num0);
+    BooleanFormula fAMod3 = imgr.equal(imgr.modulo(a, num3), num1);
+
+    // check division-by-constant, a=10 && b=2 && a/5=b
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+
+    // check division-by-constant, a=10 && a/3=3
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+
+    // check division-by-variable, a=10 && b=2 && a/b=5
+    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    if (solver != Solvers.SMTINTERPOL) {
+      assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    }
+
+    // check modulo-by-constant, a=10 && a%5=0
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=10 && a%3=1
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTest3_DivMod_NegativeNumbers() throws Exception {
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
+        .that(solver == Solvers.MATHSAT5 ).isFalse();
+
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula b = imgr.makeVariable("int_b");
+
+    IntegerFormula numNeg10 = imgr.makeNumber(-10);
+    IntegerFormula num5 = imgr.makeNumber(5);
+    IntegerFormula num4 = imgr.makeNumber(4);
+    IntegerFormula numNeg4 = imgr.makeNumber(-4);
+    IntegerFormula num3 = imgr.makeNumber(3);
+    IntegerFormula numNeg3 = imgr.makeNumber(-3);
+    IntegerFormula numNeg2 = imgr.makeNumber(-2);
+    IntegerFormula num2 = imgr.makeNumber(2);
+    IntegerFormula num0 = imgr.makeNumber(0);
+
+    BooleanFormula fa = imgr.equal(a, numNeg10);
+    BooleanFormula fb = imgr.equal(b, numNeg2);
+    BooleanFormula fADiv5 = imgr.equal(imgr.divide(a, num5), b);
+    BooleanFormula fADiv3 = imgr.equal(imgr.divide(a, num3), numNeg4);
+    BooleanFormula fADivNeg3 = imgr.equal(imgr.divide(a, numNeg3), num4);
+    BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
+    BooleanFormula fAMod5 = imgr.equal(imgr.modulo(a, num5), num0);
+    BooleanFormula fAMod3 = imgr.equal(imgr.modulo(a, num3), num2);
+    BooleanFormula fAModNeg3 = imgr.equal(imgr.modulo(a, numNeg3), num2);
+
+    // integer-division for negative numbers is __not__ C99-conform!
+    // SMTlib always rounds against +/- infinity.
+
+    // check division-by-constant, a=-10 && b=-2 && a/5=b
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+
+    // check division-by-constant, a=-10 && a/3=-4
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+
+    // check division-by-constant, a=-10 && a/(-3)=4
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
+
+    // check division-by-variable, a=-10 && b=-2 && a/b=5
+    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    if (solver != Solvers.SMTINTERPOL) {
+      assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    }
+
+    // check modulo-by-constant, a=-10 && a%5=0
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=-10 && a%3=2
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=-10 && a%(-3)=2
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTestBV_DivMod() throws Exception {
+    requireBitvectors();
+
+    BitvectorFormula a = bvmgr.makeVariable(32, "int_a");
+    BitvectorFormula b = bvmgr.makeVariable(32, "int_b");
+
+    BitvectorFormula num10 = bvmgr.makeBitvector(32, 10);
+    BitvectorFormula num5 = bvmgr.makeBitvector(32, 5);
+    BitvectorFormula num3 = bvmgr.makeBitvector(32, 3);
+    BitvectorFormula num2 = bvmgr.makeBitvector(32, 2);
+    BitvectorFormula num1 = bvmgr.makeBitvector(32, 1);
+    BitvectorFormula num0 = bvmgr.makeBitvector(32, 0);
+
+    BooleanFormula fa = bvmgr.equal(a, num10);
+    BooleanFormula fb = bvmgr.equal(b, num2);
+    BooleanFormula fADiv5 = bvmgr.equal(bvmgr.divide(a, num5, true), b);
+    BooleanFormula fADiv3 = bvmgr.equal(bvmgr.divide(a, num3, true), num3);
+    BooleanFormula fADivB = bvmgr.equal(bvmgr.divide(a, b, true), num5);
+    BooleanFormula fAMod5 = bvmgr.equal(bvmgr.modulo(a, num5, true), num0);
+    BooleanFormula fAMod3 = bvmgr.equal(bvmgr.modulo(a, num3, true), num1);
+
+    // check division-by-constant, a=10 && b=2 && a/5=b
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+
+    // check division-by-constant, a=10 && a/3=3
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+
+    // check division-by-variable, a=10 && b=2 && a/b=5
+    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=10 && a%5=0
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=10 && a%3=1
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTestBV_DivMod_NegativeNumbers() throws Exception {
+    requireBitvectors();
+
+    BitvectorFormula a = bvmgr.makeVariable(32, "int_a");
+    BitvectorFormula b = bvmgr.makeVariable(32, "int_b");
+
+    BitvectorFormula numNeg10 = bvmgr.makeBitvector(32, -10);
+    BitvectorFormula num5 = bvmgr.makeBitvector(32, 5);
+    BitvectorFormula num3 = bvmgr.makeBitvector(32, 3);
+    BitvectorFormula numNeg3 = bvmgr.makeBitvector(32, -3);
+    BitvectorFormula numNeg2 = bvmgr.makeBitvector(32, -2);
+    BitvectorFormula numNeg1 = bvmgr.makeBitvector(32, -1);
+    BitvectorFormula num0 = bvmgr.makeBitvector(32, 0);
+
+    BooleanFormula fa = bvmgr.equal(a, numNeg10);
+    BooleanFormula fb = bvmgr.equal(b, numNeg2);
+    BooleanFormula fADiv5 = bvmgr.equal(bvmgr.divide(a, num5, true), b);
+    BooleanFormula fADiv3 = bvmgr.equal(bvmgr.divide(a, num3, true), numNeg3);
+    BooleanFormula fADivNeg3 = bvmgr.equal(bvmgr.divide(a, numNeg3, true), num3);
+    BooleanFormula fADivB = bvmgr.equal(bvmgr.divide(a, b, true), num5);
+    BooleanFormula fAMod5 = bvmgr.equal(bvmgr.modulo(a, num5, true), num0);
+    BooleanFormula fAMod3 = bvmgr.equal(bvmgr.modulo(a, num3, true), numNeg1);
+    BooleanFormula fAModNeg3 = bvmgr.equal(bvmgr.modulo(a, numNeg3, true), numNeg1);
+
+    // bitvector-division for negative numbers is C99-conform!
+
+    // check division-by-constant, a=-10 && b=-2 && a/5=b
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+
+    // check division-by-constant, a=-10 && a/3=-3
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+
+    // check division-by-constant, a=-10 && a/(-3)=3
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
+
+    // check division-by-variable, a=-10 && b=-2 && a/b=5
+    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=-10 && a%5=0
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=-10 && a%3=-1
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+
+    // check modulo-by-constant, a=-10 && a%(-3)=-1
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTest4_ModularCongruence() throws Exception {
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula b = imgr.makeVariable("int_b");
+    IntegerFormula c = imgr.makeVariable("int_c");
+    IntegerFormula d = imgr.makeVariable("int_d");
+    IntegerFormula num10 = imgr.makeNumber(10);
+    IntegerFormula num5 = imgr.makeNumber(5);
+    IntegerFormula num0 = imgr.makeNumber(0);
+    IntegerFormula numNeg5 = imgr.makeNumber(-5);
+
+    BooleanFormula fa = imgr.equal(a, num10);
+    BooleanFormula fb = imgr.equal(b, num5);
+    BooleanFormula fc = imgr.equal(c, num0);
+    BooleanFormula fd = imgr.equal(d, numNeg5);
+
+    // we have equal results modulo 5
+    BooleanFormula fConb5 = imgr.modularCongruence(a, b, 5);
+    BooleanFormula fConc5 = imgr.modularCongruence(a, c, 5);
+    BooleanFormula fCond5 = imgr.modularCongruence(a, d, 5);
+
+    // we have different results modulo 7
+    BooleanFormula fConb7 = imgr.modularCongruence(a, b, 7);
+    BooleanFormula fConc7 = imgr.modularCongruence(a, c, 7);
+    BooleanFormula fCond7 = imgr.modularCongruence(a, d, 7);
+
+    // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb5)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc5)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond5))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond5)))).isUnsatisfiable();
+
+    // check modular congruence, a=10 && b=5 && (a mod 7 != b mod 7)
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb7))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb7)))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc7))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc7)))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond7))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond7)))).isSatisfiable();
+  }
+
+  @Test
+  public void intTest4_ModularCongruence_NegativeNumbers() throws Exception {
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula b = imgr.makeVariable("int_b");
+    IntegerFormula c = imgr.makeVariable("int_c");
+    IntegerFormula num8 = imgr.makeNumber(8);
+    IntegerFormula num3 = imgr.makeNumber(3);
+    IntegerFormula numNeg2 = imgr.makeNumber(-2);
+
+    BooleanFormula fa = imgr.equal(a, num8);
+    BooleanFormula fb = imgr.equal(b, num3);
+    BooleanFormula fc = imgr.equal(c, numNeg2);
+    BooleanFormula fConb = imgr.modularCongruence(a, b, 5);
+    BooleanFormula fConc = imgr.modularCongruence(a, c, 5);
+
+    // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTestBV_ModularCongruence() throws Exception {
+    requireBitvectors();
+
+    BitvectorFormula a = bvmgr.makeVariable(32, "int_a");
+    BitvectorFormula b = bvmgr.makeVariable(32, "int_b");
+    BitvectorFormula c = bvmgr.makeVariable(32, "int_c");
+    BitvectorFormula d = bvmgr.makeVariable(32, "int_d");
+    BitvectorFormula num10 = bvmgr.makeBitvector(32, 10);
+    BitvectorFormula num5 = bvmgr.makeBitvector(32, 5);
+    BitvectorFormula num0 = bvmgr.makeBitvector(32, 0);
+    BitvectorFormula numNeg5 = bvmgr.makeBitvector(32, -5);
+
+    BooleanFormula fa = bvmgr.equal(a, num10);
+    BooleanFormula fb = bvmgr.equal(b, num5);
+    BooleanFormula fc = bvmgr.equal(c, num0);
+    BooleanFormula fd = bvmgr.equal(d, numNeg5);
+    BooleanFormula fConb = bvmgr.modularCongruence(a, b, 5);
+    BooleanFormula fConc = bvmgr.modularCongruence(a, c, 5);
+    BooleanFormula fCond = bvmgr.modularCongruence(a, d, 5);
+
+    // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTestBV_ModularCongruence_NegativeNumbers() throws Exception {
+    requireBitvectors();
+
+    BitvectorFormula a = bvmgr.makeVariable(32, "int_a");
+    BitvectorFormula b = bvmgr.makeVariable(32, "int_b");
+    BitvectorFormula c = bvmgr.makeVariable(32, "int_c");
+    BitvectorFormula num8 = bvmgr.makeBitvector(32, 8);
+    BitvectorFormula num3 = bvmgr.makeBitvector(32, 3);
+    BitvectorFormula numNeg2 = bvmgr.makeBitvector(32, -2);
+
+    BooleanFormula fa = bvmgr.equal(a, num8);
+    BooleanFormula fb = bvmgr.equal(b, num3);
+    BooleanFormula fc = bvmgr.equal(c, numNeg2);
+    BooleanFormula fConb = bvmgr.modularCongruence(a, b, 5);
+    BooleanFormula fConc = bvmgr.modularCongruence(a, c, 5);
+
+    // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
+  }
+
+  @Test
   public void realTest() throws Exception {
     requireRationals();
 
@@ -108,15 +439,15 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     b = bvmgr.extend(b, 32 - 8, false);
     a = bvmgr.or(a, one);
     b = bvmgr.or(b, one);
-    a = bvmgr.extract(a, 7, 0);
-    b = bvmgr.extract(b, 7, 0);
+    a = bvmgr.extract(a, 7, 0, true);
+    b = bvmgr.extract(b, 7, 0, true);
     a = bvmgr.extend(a, 32 - 8, false);
     b = bvmgr.extend(b, 32 - 8, false);
 
     a = bvmgr.shiftLeft(a, rightOp);
     b = bvmgr.shiftLeft(b, rightOp);
-    a = bvmgr.extract(a, 7, 0);
-    b = bvmgr.extract(b, 7, 0);
+    a = bvmgr.extract(a, 7, 0, true);
+    b = bvmgr.extract(b, 7, 0, true);
     BooleanFormula f = bmgr.not(bvmgr.equal(a, b));
 
     assert_().about(BooleanFormula()).that(f).isUnsatisfiable();

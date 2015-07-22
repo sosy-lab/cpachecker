@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.princess;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.princess.PrincessUtil.isBoolean;
-import static scala.collection.JavaConversions.asJavaCollection;
 
 import java.util.List;
 
@@ -91,18 +91,18 @@ class PrincessUnsafeFormulaManager extends AbstractUnsafeFormulaManager<IExpress
   }
 
   @Override
-  public IExpression replaceName(IExpression t, String pNewName) {
+  public IExpression replaceArgsAndName(IExpression t, String pNewName, List<IExpression> newArgs) {
 
     if (isVariable(t)) {
+      checkArgument(newArgs.isEmpty());
       return getFormulaCreator().makeVariable(isBoolean(t) ? TermType.Boolean : TermType.Integer,
                                               pNewName);
 
     } else if (isUF(t)) {
       IFunApp fun = (IFunApp) t;
-      List<IExpression> args = ImmutableList.<IExpression>copyOf(asJavaCollection(fun.args()));
       PrincessEnvironment env = getFormulaCreator().getEnv();
       TermType returnType = env.getReturnTypeForFunction(fun.fun());
-      return env.makeFunction(env.declareFun(pNewName, args.size(), returnType), args);
+      return env.makeFunction(env.declareFun(pNewName, fun.args().size(), returnType), newArgs);
 
     } else {
       throw new IllegalArgumentException("The Term " + t + " has no name!");

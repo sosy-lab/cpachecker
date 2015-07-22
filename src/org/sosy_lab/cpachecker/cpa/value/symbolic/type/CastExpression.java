@@ -79,4 +79,9 @@ public class CastExpression extends UnarySymbolicExpression {
   public String toString() {
     return "Cast[" + getType() + ", " + getOperand() + "]";
   }
+
+  @Override
+  public String getOperationString() {
+    return "Cast>";
+  }
 }

@@ -25,22 +25,25 @@ package org.sosy_lab.cpachecker.util.predicates.princess;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.TermType;
@@ -50,20 +53,20 @@ import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
-import ap.parser.IBoolLit;
 import ap.parser.IConstant;
 import ap.parser.IExpression;
+import ap.parser.IExpression.BooleanFunApplier;
 import ap.parser.IFormula;
-import ap.parser.IFormulaITE;
 import ap.parser.IFunApp;
 import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
 
+import com.google.common.collect.Iterables;
+
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
- * // TODO logfile is only available as tmpfile in /tmp, perhaps it is not closed?
  * It also manages the "shared variables": each variable is declared for all stacks.
  */
 class PrincessEnvironment {
@@ -74,7 +77,7 @@ class PrincessEnvironment {
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
 
   /** The key of this map is the abbreviation, the value is the full expression.*/
-  private final Map<IExpression, IExpression> abbrevCache = new HashMap<>();
+  private final List<Pair<IExpression, IExpression>> abbrevCache = new ArrayList<>();
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
@@ -129,8 +132,8 @@ class PrincessEnvironment {
     for (IFunction s : functionsCache.values()) {
       stack.addSymbol(s);
     }
-    for(Entry<IExpression, IExpression> e : abbrevCache.entrySet()) {
-      stack.addAbbrev(e.getKey(), e.getValue());
+    for(Pair<IExpression, IExpression> e : abbrevCache) {
+      stack.addAbbrev(e.getFirst(), e.getSecond());
     }
     registeredStacks.add(stack);
     allStacks.add(stack);
@@ -140,7 +143,11 @@ class PrincessEnvironment {
   private SimpleAPI getNewApi(boolean useForInterpolation) {
     final SimpleAPI newApi;
     if (basicLogfile != null) {
-      newApi = SimpleAPI.spawnWithLogNoSanitise(basicLogfile.getFreshPath().getAbsolutePath());
+      Path logPath = basicLogfile.getFreshPath();
+      String fileName = logPath.getName();
+      String absPath = logPath.getAbsolutePath();
+      File directory = new File(absPath.substring(0, absPath.length()-fileName.length()));
+      newApi = SimpleAPI.spawnWithLogNoSanitise(fileName, directory);
     } else {
       newApi = SimpleAPI.spawnNoSanitise();
     }
@@ -165,44 +172,99 @@ class PrincessEnvironment {
   }
 
   public List<IExpression> parseStringToTerms(String s) {
-    throw new UnsupportedOperationException(); // todo: implement this
+    List<IExpression> formula = castToExpression(JavaConversions.seqAsJavaList(api.extractSMTLIBAssertions(new StringReader(s))));
+
+    Set<IExpression> declaredfunctions = PrincessUtil.getVarsAndUIFs(formula);
+    for (IExpression var : declaredfunctions) {
+      if (var instanceof IConstant) {
+        intVariablesCache.put(var.toString(), (ITerm) var);
+        for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          stack.addSymbol((IConstant)var);
+        }
+      } else if (var instanceof IAtom) {
+        boolVariablesCache.put(((IAtom) var).pred().name(), (IFormula) var);
+        for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          stack.addSymbol((IAtom)var);
+        }
+      } else if (var instanceof IFunApp) {
+        IFunction fun = ((IFunApp)var).fun();
+        functionsCache.put(fun.name(), fun);
+        // up to now princess only supports int as return type
+        functionsReturnTypes.put(fun, TermType.Integer);
+        for (SymbolTrackingPrincessStack stack : registeredStacks) {
+          stack.addSymbol(fun);
+        }
+      }
+    }
+    return formula;
   }
 
-  public Appender dumpFormula(final IExpression formula) {
+  private List<IExpression> castToExpression(List<IFormula> formula) {
+    List<IExpression> retVal = new ArrayList<>(formula.size());
+    for (IFormula f : formula) {
+      retVal.add(f);
+    }
+    return retVal;
+  }
+
+  public Appender dumpFormula(IFormula formula) {
+    // remove redundant expressions
+    final IExpression lettedFormula = PrincessUtil.let(formula, this);
     return new Appenders.AbstractAppender() {
 
       @Override
       public void appendTo(Appendable out) throws IOException {
-        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(formula));
+        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(lettedFormula));
 
         for (IExpression var : declaredFunctions) {
           out.append("(declare-fun ");
-          out.append(getName(var));
+          String name = getName(var);
 
-          // function parameters
-          out.append(" (");
-          if (var instanceof IFunApp) {
-            IFunApp function = (IFunApp) var;
-            Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
-            while (args.hasNext()) {
-              args.next();
-              // Princess does only support IntegerFormulas in UIFs we don't need
-              // to check the type here separately
-              if (args.hasNext()) {
-                out.append("Int ");
-              } else {
-                out.append("Int");
+          // we do only want to add declare-funs for things we really declared
+          // the rest is done afterwards
+          if (!name.startsWith("abbrev_")) {
+            out.append(name);
+
+            // function parameters
+            out.append(" (");
+            if (var instanceof IFunApp) {
+              IFunApp function = (IFunApp) var;
+              Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
+              while (args.hasNext()) {
+                args.next();
+                // Princess does only support IntegerFormulas in UIFs we don't need
+                // to check the type here separately
+                if (args.hasNext()) {
+                  out.append("Int ");
+                } else {
+                  out.append("Int");
+                }
               }
             }
-          }
 
-          out.append(") ");
-          out.append(getType(var));
+            out.append(") ");
+            out.append(getType(var));
+            out.append(")\n");
+          }
+        }
+
+        // now as everything we know from the formula is declared we have to add
+        // the abbreviations, too
+        for (Pair<IExpression, IExpression> entry : abbrevCache) {
+          IExpression abbrev = entry.getFirst();
+          IExpression fullFormula = entry.getSecond();
+          String name = getName(Iterables.getOnlyElement(PrincessUtil.getVarsAndUIFs(Collections.singleton(abbrev))));
+          out.append("(define-fun ");
+          out.append(name);
+
+          // the type of each abbreviation + the renamed formula
+          out.append(" ((abbrev_arg Int)) Int (");
+          out.append(fullFormula.toString());
           out.append(")\n");
         }
 
         out.append("(assert ");
-        out.append(formula.toString());
+        out.append(lettedFormula.toString());
         out.append(")");
       }
     };
@@ -309,8 +371,8 @@ class PrincessEnvironment {
 
     // boolean term -> build ITE(t > 0, true, false)
     if (returnType == TermType.Boolean) {
-      IFormula condition = ((ITerm)returnFormula).$greater(new IIntLit(IdealInt.ZERO()));
-      returnFormula = new IFormulaITE(condition, new IBoolLit(true), new IBoolLit(false));
+      BooleanFunApplier ap = new BooleanFunApplier(funcDecl);
+      return ap.apply(argsBuf);
 
     } else if (returnType != TermType.Integer) {
       throw new AssertionError("Not possible to have return types for functions other than bool or int.");
@@ -333,7 +395,7 @@ class PrincessEnvironment {
       stack.addAbbrev(abbrev, expr);
     }
 
-    abbrevCache.put(abbrev, expr);
+    abbrevCache.add(Pair.of(abbrev, expr));
     return abbrev;
   }
 

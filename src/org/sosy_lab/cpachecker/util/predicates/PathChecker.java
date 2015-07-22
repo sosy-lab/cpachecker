@@ -32,6 +32,8 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -58,19 +60,28 @@ import com.google.common.collect.Multimap;
 public class PathChecker {
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pmgr;
   private final Solver solver;
-  private final MachineModel machineModel;
+  private final AssignmentToPathAllocator assignmentToPathAllocator;
 
-  public PathChecker(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      PathFormulaManager pPmgr, Solver pSolver,
-      MachineModel pMachineModel) {
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    pmgr = pPmgr;
-    solver = pSolver;
-    machineModel = pMachineModel;
+  public PathChecker(Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      PathFormulaManager pPmgr,
+      Solver pSolver) throws InvalidConfigurationException {
+    this(pLogger, pPmgr, pSolver, new AssignmentToPathAllocator(pConfig, pShutdownNotifier, pLogger, pMachineModel));
+  }
+
+  public PathChecker(
+      LogManager pLogger,
+      PathFormulaManager pPmgr,
+      Solver pSolver,
+      AssignmentToPathAllocator pAssignmentToPathAllocator) {
+    this.logger = pLogger;
+    this.pmgr = pPmgr;
+    this.solver = pSolver;
+    this.assignmentToPathAllocator = pAssignmentToPathAllocator;
   }
 
   public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath)
@@ -145,9 +156,7 @@ public class PathChecker {
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
       List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
-    AssignmentToPathAllocator allocator = new AssignmentToPathAllocator(logger, shutdownNotifier);
-
-    return allocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps, machineModel);
+    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);
   }
 
   private RichModel getModel(ProverEnvironment thmProver) {

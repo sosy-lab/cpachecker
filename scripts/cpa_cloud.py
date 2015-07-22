@@ -27,12 +27,19 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import glob
+import os
+import logging
+import subprocess
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
+    sys.path.insert(0, egg)
 
-import subprocess
-import logging
-import os.path
+# Add ./benchmark/tools to __path__ of benchexec.tools package
+# such that additional tool-wrapper modules can be placed in this directory.
+import benchexec.tools
+benchexec.tools.__path__ = [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')] + benchexec.tools.__path__
 
 import benchexec.tools.cpachecker
 cpachecker = benchexec.tools.cpachecker.Tool()
@@ -59,7 +66,7 @@ lib_dir = os.path.abspath(os.path.join("lib", "java-benchmark"))
 cmd_line = ["java", "-jar", os.path.join(lib_dir, "vcloud.jar"), "cpachecker",
             "--loglevel", logLevel,
             "--input", in_file,
-            "--required_files", ','.join(required_files),
+            "--requiredFiles", ','.join(required_files),
             "--cpachecker-dir", cpachecker_dir,
             "--", executable
             ]

@@ -48,14 +48,16 @@ public class FloatingPointFormulaManagerView
 
   @Override
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
-    // no wrapping/unwrapping, done inside ReplaceFloatingPointWithNumeralAndFunctionTheory
-    return manager.castTo(pNumber, pTargetType);
+    // This method needs to unwrap/wrap pTargetType and the return value,
+    // in case they are replaced with other formula types.
+    return wrap(pTargetType, manager.castTo(pNumber, unwrapType(pTargetType)));
   }
 
   @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    // no wrapping/unwrapping, done inside ReplaceFloatingPointWithNumeralAndFunctionTheory
-    return manager.castFrom(pNumber, pSigned, pTargetType);
+    // This method needs to unwrap pNumber,
+    // in case it is replaced with another formula type.
+    return manager.castFrom(unwrap(pNumber), pSigned, pTargetType);
   }
 
   @Override

@@ -1,23 +1,23 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="1800" memlimit="2000">
   <option name="-noout"/>
   <option name="-heap">1200M</option>
 
   <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
-  <sourcefiles name="ControlFlowInteger">
+  <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Simple">
+  </tasks>
+  <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Sequentialized">
+  </tasks>
+  <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Nested">
+  </tasks>
+  <tasks name="Nested">
     <includesfile>nested.set</includesfile>
-  </sourcefiles>
+  </tasks>
 
   <rundefinition name="without-cbmc">
     <option name="-valueAnalysis-no-cbmc"/>

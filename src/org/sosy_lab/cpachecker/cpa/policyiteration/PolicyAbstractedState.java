@@ -132,18 +132,16 @@ public final class PolicyAbstractedState extends PolicyState
     return abstraction;
   }
 
-  public PolicyAbstractedState withUpdates(
-      Map<Template, PolicyBound> newAbstraction,
-      CongruenceState newCongruence,
-      BooleanFormula newPredicate
-  ) {
-    return new PolicyAbstractedState(getNode(),
-        newAbstraction, newCongruence, locationID, manager, ssaMap,
-        pointerTargetSet, newPredicate);
-  }
-
   public BooleanFormula getPredicate() {
     return predicate;
+  }
+
+  public SSAMap getSSA() {
+    return ssaMap;
+  }
+
+  public PointerTargetSet getPointerTargetSet() {
+    return pointerTargetSet;
   }
 
   public PathFormula getPathFormula(FormulaManagerView fmgr) {

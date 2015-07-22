@@ -73,7 +73,8 @@ import de.uni_freiburg.informatik.ultimate.smtinterpol.smtlib2.TerminationReques
  * so functions remain declared, if levels are popped.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "smtinterpol.smt2").
  */
-@Options(prefix="cpa.predicate.solver.smtinterpol")
+@Options(deprecatedPrefix="cpa.predicate.solver.smtinterpol",
+    prefix="solver.smtinterpol")
 class SmtInterpolEnvironment {
 
   @Option(secure=true, description="Double check generated results like interpolants and models whether they are correct")
@@ -241,7 +242,7 @@ class SmtInterpolEnvironment {
   SmtInterpolTheoremProver createProver(SmtInterpolFormulaManager mgr) {
     checkState(stackDepth == 0,
         "Not allowed to create a new prover environment while solver stack is still non-empty, parallel stacks are not supported.");
-    return new SmtInterpolTheoremProver(mgr, shutdownNotifier);
+    return new SmtInterpolTheoremProver(mgr);
   }
 
   /** Parse a String to Terms and Declarations.

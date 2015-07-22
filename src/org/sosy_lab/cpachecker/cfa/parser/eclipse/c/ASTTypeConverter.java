@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
+import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTNamedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTPointer;
 import org.eclipse.cdt.core.dom.ast.IASTPointerOperator;
@@ -327,7 +328,9 @@ class ASTTypeConverter {
       length = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(v.numericalValue()));
     } else {
       try {
-        length = converter.convertExpressionWithoutSideEffects(t.getArraySizeExpression());
+        @SuppressWarnings("deprecation")
+        IASTExpression arraySizeExpression = t.getArraySizeExpression();
+        length = converter.convertExpressionWithoutSideEffects(arraySizeExpression);
         if (length != null) {
           length = converter.simplifyExpressionRecursively(length);
         }

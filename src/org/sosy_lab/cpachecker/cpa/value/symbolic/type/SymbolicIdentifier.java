@@ -98,18 +98,28 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     return new SymbolicIdentifier(id, pLocation);
   }
 
+  @Override
+  public String getRepresentation() {
+    if (representedLocation.isPresent()) {
+      return representedLocation.get().toString();
+    } else {
+      return toString();
+    }
+  }
+
   public long getId() {
     return id;
   }
 
   @Override
   public int hashCode() {
-    return (int) (id ^ (id >>> 32));
+    return getRepresentedLocation().hashCode() + ((int) (id ^ (id >>> 32)));
   }
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id;
+    return pOther instanceof SymbolicIdentifier && ((SymbolicIdentifier) pOther).id == id
+        && ((SymbolicIdentifier) pOther).getRepresentedLocation().equals(getRepresentedLocation());
   }
 
   @Override
@@ -231,7 +241,7 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
      */
     public boolean isSymbolicEncoding(String pName) {
       String variableName = FormulaManagerView.parseName(pName).getFirst();
-      return variableName.startsWith(PREFIX);
+      return variableName.matches(PREFIX + "[0-9]*");
     }
   }
 }

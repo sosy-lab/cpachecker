@@ -140,7 +140,7 @@ public interface FormulaManager {
    */
   // TODO: Implement solver independent file format and remove this method from the solver interface
   // Instead implement the format in the View
-  public Appender dumpFormula(Formula pT);
+  public Appender dumpFormula(BooleanFormula pT);
 
   /**
    * Get some version information of the solver.

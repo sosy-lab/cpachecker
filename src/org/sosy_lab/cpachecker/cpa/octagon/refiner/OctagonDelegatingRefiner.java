@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -58,10 +59,15 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -118,6 +124,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private final CFA cfa;
   private final OctagonCPA octagonCPA;
 
+  private final FeasibilityChecker<ValueAnalysisState> valueChecker;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -131,21 +139,44 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " needs an OctagonCPA");
     }
 
-    OctagonDelegatingRefiner refiner = new OctagonDelegatingRefiner(cpa, octagonCPA);
+    final LogManager logger = octagonCPA.getLogger();
+    final Configuration config = octagonCPA.getConfiguration();
+    final CFA cfa = octagonCPA.getCFA();
+
+    final StrongestPostOperator<ValueAnalysisState> valuePostOp =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final FeasibilityChecker<ValueAnalysisState> valueChecker =
+        new ValueAnalysisFeasibilityChecker(valuePostOp, logger, cfa, config);
+
+    OctagonDelegatingRefiner refiner =
+        new OctagonDelegatingRefiner(valueChecker, valuePostOp, cpa, octagonCPA);
 
     return refiner;
   }
 
-  private OctagonDelegatingRefiner(final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
+  private OctagonDelegatingRefiner(
+      final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
+      final StrongestPostOperator<ValueAnalysisState> pValueAnalysisPostOperator,
+      final ConfigurableProgramAnalysis pCpa, final OctagonCPA pOctagonCPA)
       throws InvalidConfigurationException {
     super(pCpa);
-    pOctagonCPA.getConfiguration().inject(this);
+
+    final Configuration config = pOctagonCPA.getConfiguration();
+    config.inject(this);
 
     cfa                   = pOctagonCPA.getCFA();
     logger                = pOctagonCPA.getLogger();
     shutdownNotifier      = pOctagonCPA.getShutdownNotifier();
     octagonCPA            = pOctagonCPA;
-    interpolatingRefiner  = new ValueAnalysisPathInterpolator(pOctagonCPA.getConfiguration(), logger, shutdownNotifier, cfa);
+    interpolatingRefiner  = new ValueAnalysisPathInterpolator(
+        pValueAnalysisFeasibilityChecker,
+        pValueAnalysisPostOperator,
+        new ValueAnalysisPrefixProvider(logger, cfa, config),
+        config,
+        logger, shutdownNotifier, cfa);
+
+    valueChecker = pValueAnalysisFeasibilityChecker;
   }
 
   @Override
@@ -302,16 +333,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @return true, if the path is feasible, else false
    * @throws CPAException if the path check gets interrupted
    */
-  boolean isPathFeasable(ARGPath path) throws CPAException {
-    try {
-      // create a new ValueAnalysisPathChecker, which does check the given path at full precision
-      ValueAnalysisFeasibilityChecker checker = new ValueAnalysisFeasibilityChecker(logger, cfa, octagonCPA.getConfiguration());
-
-      return checker.isFeasible(path);
-    }
-    catch (InterruptedException | InvalidConfigurationException e) {
-      throw new CPAException("counterexample-check failed: ", e);
-    }
+  boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
+    return valueChecker.isFeasible(path);
   }
 
   /**

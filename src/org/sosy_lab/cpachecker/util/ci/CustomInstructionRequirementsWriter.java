@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Collection;
@@ -73,15 +74,14 @@ public class CustomInstructionRequirementsWriter {
 
   public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
       final AppliedCustomInstruction pACI) throws IOException, CPAException {
-    // TODO Tanja: delete index from convertRequirements interface
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements
-      = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars(), 0);
+      = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars());
 
     Pair<List<String>, String> fakeSMTDesc = pACI.getFakeSMTDescription();
     Collection<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
     fileID++;
 
-    try (Writer br = Files.openOutputFile(Paths.get(filePrefix+fileID+".smt"))) {
+    try (Writer br = Files.openOutputFile(Paths.get("output"+File.separator+filePrefix+fileID+".smt"))) {
       for (String element : set) {
         br.write(element);
         br.write("\n");

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
   <option name="-noout"/>
   <option name="-heap">2000M</option>
@@ -7,13 +7,13 @@
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.10_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.11_true-unreach-call.i.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
@@ -25,15 +25,15 @@
       <exclude>../programs/benchmarks/systemc/token_ring.10_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/transmitter.10_false-unreach-call_false-termination.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
-    </sourcefiles>
+    </tasks>
     <option name="-predicateAnalysis-bam"/>
   </rundefinition>
 </benchmark>

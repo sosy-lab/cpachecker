@@ -46,6 +46,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
@@ -58,7 +59,8 @@ import com.google.common.collect.ImmutableMap;
 
 public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
-  @Options(prefix="cpa.predicate.solver.mathsat5")
+  @Options(deprecatedPrefix="cpa.predicate.solver.mathsat5",
+           prefix="solver.mathsat5")
   private static class Mathsat5Settings {
 
     @Option(secure=true, description = "List of further options which will be passed to Mathsat in addition to the default options. "
@@ -92,7 +94,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
   private final ShutdownNotifier shutdownNotifier;
   private final TerminationTest terminationTest;
 
-  @Options(prefix="cpa.predicate.solver.mathsat5")
+  @Options(deprecatedPrefix="cpa.predicate.solver.mathsat5",
+    prefix="solver.mathsat5")
   private static class ExtraOptions {
     @Option(secure=true, description="Load less stable optimizing version of"
         + " mathsat5 solver.")
@@ -215,6 +218,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   @Override
   public Appender dumpFormula(final Long f) {
+    assert getFormulaCreator().getFormulaType(f) == FormulaType.BooleanType : "Only BooleanFormulas may be dumped";
+
     // Lazy invocation of msat_to_smtlib2 wrapped in an Appender.
     return Appenders.fromToStringMethod(
         new Object() {

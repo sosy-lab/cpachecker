@@ -74,6 +74,15 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
   }
 
   @Override
+  public String getRepresentation() {
+    if (getRepresentedLocation().isPresent()) {
+      return getRepresentedLocation().get().toString();
+    } else {
+      return toString();
+    }
+  }
+
+  @Override
   public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
@@ -108,7 +117,8 @@ public class ConstantSymbolicExpression extends SymbolicExpression {
 
     ConstantSymbolicExpression that = (ConstantSymbolicExpression) o;
 
-    return Objects.equals(type, that.type) && Objects.equals(value, that.value);
+    return super.equals(o)
+        && Objects.equals(type, that.type) && Objects.equals(value, that.value);
 
   }
 

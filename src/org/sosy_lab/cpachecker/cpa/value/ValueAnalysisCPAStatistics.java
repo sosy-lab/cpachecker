@@ -38,9 +38,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -94,32 +92,12 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    * @param reached the set of reached states.
    */
   private void exportPrecision(ReachedSet reached) {
-    VariableTrackingPrecision consolidatedPrecision = getConsolidatedPrecision(reached);
-    try (Writer writer = Files.openOutputFile(precisionFile)) {
+    VariableTrackingPrecision consolidatedPrecision =
+        VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
+  try (Writer writer = Files.openOutputFile(precisionFile)) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
       cpa.getLogger().logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
     }
-  }
-
-  /**
-   * This method iterates of every state of the reached set and joins their respective precision into one map.
-   *
-   * @param reached the set of reached states
-   * @return the join over precisions of states in the reached set
-   */
-  private VariableTrackingPrecision getConsolidatedPrecision(ReachedSet reached) {
-    VariableTrackingPrecision joinedPrecision = null;
-    for (Precision precision : reached.getPrecisions()) {
-      if (precision instanceof WrapperPrecision) {
-        VariableTrackingPrecision prec = ((WrapperPrecision)precision).retrieveWrappedPrecision(VariableTrackingPrecision.class);
-        if (joinedPrecision == null) {
-          joinedPrecision = prec;
-        } else {
-          joinedPrecision = joinedPrecision.join(prec);
-        }
-      }
-    }
-    return joinedPrecision;
   }
 }

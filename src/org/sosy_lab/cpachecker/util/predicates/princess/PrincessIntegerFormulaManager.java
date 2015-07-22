@@ -35,6 +35,7 @@ import ap.parser.IBoolLit;
 import ap.parser.IExpression;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
+import ap.theories.BitShiftMultiplication;
 
 
 class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predicates.princess.PrincessNumeralFormulaManager<IntegerFormula, IntegerFormula> {
@@ -83,6 +84,12 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.cpachecker.util.predica
 
   @Override
   protected IExpression modularCongruence(IExpression pNumber1, IExpression pNumber2, long pModulo) {
+    // ((_ divisible n) x)   <==>   (= x (* n (div x n)))
+    if (pModulo > 0) {
+      ITerm n = makeNumberImpl(pModulo);
+      ITerm x = subtract(pNumber1, pNumber2);
+      return x.$eq$eq$eq(n.$times(BitShiftMultiplication.eDiv(x, n)));
+    }
     return new IBoolLit(true);
   }
 }

@@ -48,12 +48,14 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -286,28 +288,25 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
       @Override
       public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
-        ValueAnalysisDelegatingRefiner.this.printStatistics(pOut, pResult, pReached);
+        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut).beginLevel();
+
+        pOut.println("Primary Analysis:");
+        writer.put(totalPrimaryRefinementsSelected)
+          .put(totalPrimaryRefinementsFinished)
+          .put(totalPrimaryExtraRefinementsSelected)
+          .put(totalPrimaryExtraRefinementsFinished)
+          .spacer();
+
+        pOut.println("Secondary Analysis:");
+        writer.put(totalSecondaryRefinementsSelected)
+          .put(totalSecondaryRefinementsFinished)
+          .put(totalSecondaryExtraRefinementsSelected)
+          .put(totalSecondaryExtraRefinementsFinished);
       }
     });
 
     valueCpaRefiner.collectStatistics(pStatsCollection);
     predicateCpaRefiner.collectStatistics(pStatsCollection);
-  }
-
-  private void printStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    out.println("Primary Analysis:");
-    writer.beginLevel().put(totalPrimaryRefinementsSelected);
-    writer.beginLevel().put(totalPrimaryRefinementsFinished);
-    writer.beginLevel().put(totalPrimaryExtraRefinementsSelected);
-    writer.beginLevel().put(totalPrimaryExtraRefinementsFinished);
-
-    writer.spacer();
-    out.println("Secondary Analysis:");
-    writer.beginLevel().put(totalSecondaryRefinementsSelected);
-    writer.beginLevel().put(totalSecondaryRefinementsFinished);
-    writer.beginLevel().put(totalSecondaryExtraRefinementsSelected);
-    writer.beginLevel().put(totalSecondaryExtraRefinementsFinished);
   }
 }
 

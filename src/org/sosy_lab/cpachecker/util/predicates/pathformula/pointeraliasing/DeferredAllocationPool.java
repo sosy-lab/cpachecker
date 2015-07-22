@@ -26,8 +26,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -35,6 +40,7 @@ import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 /**
@@ -189,5 +195,37 @@ class DeferredAllocationPool implements Serializable {
       result = result.with(target);
     }
     return result;
+  }
+
+  private Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    throw new InvalidObjectException("Proxy required");
+  }
+
+  private static class SerializationProxy implements Serializable {
+
+    private static final long serialVersionUID = 4850967154964188729L;
+    private final List<String> pointerVariables;
+    private final boolean isZeroing;
+    private final List<String> baseVariables;
+    private final long size;
+    private final CType sizeType;
+
+    public SerializationProxy(DeferredAllocationPool pDeferredAllocationPool) {
+      isZeroing = pDeferredAllocationPool.isZeroing;
+      pointerVariables = new ArrayList<>(pDeferredAllocationPool.pointerVariables);
+      baseVariables = new ArrayList<>(pDeferredAllocationPool.baseVariables);
+      size = pDeferredAllocationPool.size.asLong();
+      sizeType = pDeferredAllocationPool.size.getExpressionType();
+    }
+
+    private Object readResolve() {
+      return new DeferredAllocationPool(PersistentLinkedList.copyOf(pointerVariables), isZeroing,
+          CIntegerLiteralExpression.createDummyLiteral(size, sizeType),
+          PersistentLinkedList.copyOf(baseVariables));
+    }
   }
 }
