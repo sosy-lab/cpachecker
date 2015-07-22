@@ -93,7 +93,8 @@ public class InductiveWeakeningManager {
         sortBySyntacticSimilarity(selectionVars, transition.getFormula());
 
 
-    Set<BooleanFormula> inductiveSlice = formulaSlicing(orderedList, query);
+    Set<BooleanFormula> inductiveSlice = formulaSlicing(selectionVars,
+        orderedList, query);
 
     // Step 3: Apply the transformation, replace the atoms marked by the
     // selector variables with 'Top'.
@@ -117,6 +118,8 @@ public class InductiveWeakeningManager {
   }
 
   /**
+   * @param selectionInfo Mapping from selection variables
+   *    to the atoms (possibly w/ negation) they represent.
    * @param selectionVars List of selection variables.
    *    The order is very important and determines which MUS we will get out.
    *
@@ -125,6 +128,7 @@ public class InductiveWeakeningManager {
    *         which should be abstracted.
    */
   private Set<BooleanFormula> formulaSlicing(
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
       List<BooleanFormula> selectionVars,
       BooleanFormula query
   ) throws SolverException, InterruptedException {
@@ -136,8 +140,6 @@ public class InductiveWeakeningManager {
           "That looks very suspicious");
       return ImmutableSet.of();
     }
-
-    logger.log(Level.FINE, "Inductiveness checking query: ", query);
 
     List<BooleanFormula> selection = selectionVars;
 
@@ -155,11 +157,11 @@ public class InductiveWeakeningManager {
       //noinspection ResultOfMethodCallIgnored
       env.push(selectionFormula);
       // Note: what happens if it is SAT already?
-      Verify.verify(env.isUnsat());
+      Verify.verify(env.isUnsat()); // note: this SMT call can be dropped,
+                                    // it's purely for testing purposes.
 
       // Remove the selection constraint.
       env.pop();
-
 
       int noRemoved = 0;
       for (int i=0; i<selectionVars.size(); i++) {
@@ -167,17 +169,26 @@ public class InductiveWeakeningManager {
         // Remove this variable from the selection.
         List<BooleanFormula> newSelection = Lists.newArrayList(selection);
 
+        BooleanFormula selVar = selectionVars.get(i);
+        Verify.verify(selVar.equals(newSelection.get(i - noRemoved)));
+
         // Try removing the corresponding element from the selection.
         newSelection.remove(i - noRemoved);
+
+        logger.log(Level.FINE, "Attempting to add an atom",
+            selectionInfo.get(selVar));
 
         //noinspection ResultOfMethodCallIgnored
         env.push(bfmgr.and(newSelection));
 
         if (env.isUnsat()) {
+          logger.log(Level.FINE, "Query is still unsat: atom added!");
 
           // Still unsat: keep that element non-abstracted.
           selection = newSelection;
           noRemoved++;
+        } else {
+          logger.log(Level.FINE, "Query became non-inductive: not adding the atom");
         }
 
         env.pop();
@@ -190,8 +201,6 @@ public class InductiveWeakeningManager {
       // What does it come down to?
       Verify.verify(env.isUnsat());
     }
-
-
     return new HashSet<>(selection);
   }
 
@@ -207,16 +216,20 @@ public class InductiveWeakeningManager {
       BooleanFormula transitionRelation
   ) {
 
-    final Set<String> transitionVars = fmgr.extractFunctionNames(transitionRelation,
-        true);
+    final Set<String> transitionVars = fmgr.extractFunctionNames(
+        fmgr.uninstantiate(transitionRelation), true);
     List<BooleanFormula> selectorVars = new ArrayList<>(selectors.keySet());
     Collections.sort(selectorVars, new Comparator<BooleanFormula>() {
       @Override
       public int compare(BooleanFormula s1, BooleanFormula s2) {
         BooleanFormula a1 = selectors.get(s1);
         BooleanFormula a2 = selectors.get(s2);
-        Set<String> a1Vars = fmgr.extractFunctionNames(a1, true);
-        Set<String> a2Vars = fmgr.extractFunctionNames(a2, true);
+
+        // todo: incessant re-uninstantiation is very inefficient.
+        Set<String> a1Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a1),
+            true);
+        Set<String> a2Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a2),
+            true);
 
         Set<String> intersection1 = Sets.intersection(a1Vars, transitionVars);
         Set<String> intersection2 = Sets.intersection(a2Vars, transitionVars);

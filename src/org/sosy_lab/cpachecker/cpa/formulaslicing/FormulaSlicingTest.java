@@ -4,7 +4,6 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -17,7 +16,11 @@ import com.google.common.collect.ImmutableMap;
 public class FormulaSlicingTest {
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
-  @Test @Ignore public void simplest_true_assert() throws Exception {
+  @Test public void simplest_true_assert() throws Exception {
+    // todo: why is this simplest test failing?
+    // after integrating the branch as well?
+    // it was passing all this time! What happened?
+
     check("simplest_true_assert.c");
   }
 
@@ -79,8 +82,8 @@ public class FormulaSlicingTest {
                     .build()
             ))
     )
-        .put("cpa.predicate.solver.z3.requireProofs", "false")
-        .put("cpa.predicate.solver", "Z3")
+        .put("solver.z3.requireProofs", "false")
+        .put("solver.solver", "Z3")
         .put("specification", "config/specification/default.spc")
         .put("parser.usePreprocessor", "true")
         .put("analysis.traversal.order", "bfs")

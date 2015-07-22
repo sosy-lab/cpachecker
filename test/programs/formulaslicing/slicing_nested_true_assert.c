@@ -13,6 +13,7 @@ int main() {
     p = 2;
   }
 
+  int set;
   while (__VERIFIER_nondet_int()) {
     x++;
     counter = 100;
@@ -23,6 +24,12 @@ int main() {
     while (__VERIFIER_nondet_int()) {
       counter++;
     }
+    for (int z = 0; z < 100; z++) {}
+    if (p == 1 || p == 2) {
+      set = 1;
+    }
+    for (int z = 0; z < 100; z++) {}
+    assert(set == 1);
   }
 
   assert((nondet && p == 1) || (!nondet && p == 2));
