@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.collect.ImmutableMap;
@@ -74,6 +75,7 @@ public class LoopTransitionFinderTest {
 
     PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
         loopHead);
 
     PathFormula expected = TestDataTools.toPathFormula(
@@ -97,7 +99,7 @@ public class LoopTransitionFinderTest {
     logger.log(Level.INFO, "Set of loop edges", out);
 
     PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
-        SSAMap.emptySSAMap(),
+        SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(),
         loopHead);
 
     logger.log(Level.INFO, "Loop transition", loopTransition);

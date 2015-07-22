@@ -65,6 +65,7 @@ public class InductiveWeakeningManager {
     BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
         .of(fmgr, input.getSsa()).visit(input.getFormula()));
     logger.log(Level.INFO, "Input without intermediate variables", noIntermediate);
+    logger.flush();
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
         Tactic.NNF);
@@ -84,11 +85,15 @@ public class InductiveWeakeningManager {
     BooleanFormula negated = bfmgr.not(primed);
 
     logger.log(Level.FINE, "Loop transition: ", transition.getFormula());
+    logger.flush();
 
     // Inductiveness checking formula.
     BooleanFormula query = bfmgr.and(ImmutableList.of(annotated,
         transition.getFormula(),
         negated));
+
+    logger.log(Level.FINE, "Generated a loop transition");
+    logger.flush();
     List<BooleanFormula> orderedList =
         sortBySyntacticSimilarity(selectionVars, transition.getFormula());
 

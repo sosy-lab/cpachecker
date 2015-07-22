@@ -26,17 +26,20 @@ public class SlicingAbstractedState extends SlicingState implements
    */
   private final SSAMap ssaMap;
   private final PointerTargetSet pointerTargetSet;
+  private final FormulaManagerView fmgr;
 
   private SlicingAbstractedState(BooleanFormula pSlice, SSAMap pSsaMap,
-      PointerTargetSet pPointerTargetSet) {
+      PointerTargetSet pPointerTargetSet, FormulaManagerView pFmgr) {
     slice = pSlice;
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
+    fmgr = pFmgr;
   }
 
   public static SlicingAbstractedState of(BooleanFormula pSlice,
-      SSAMap pSsaMap, PointerTargetSet pPointerTargetSet) {
-    return new SlicingAbstractedState(pSlice, pSsaMap, pPointerTargetSet);
+      SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
+      FormulaManagerView pFmgr) {
+    return new SlicingAbstractedState(pSlice, pSsaMap, pPointerTargetSet, pFmgr);
   }
 
   public SSAMap getSSA() {
@@ -52,12 +55,13 @@ public class SlicingAbstractedState extends SlicingState implements
   }
 
   public static SlicingAbstractedState empty(
-      BooleanFormulaManager bfmgr
+      FormulaManagerView pFmgr
   ) {
     return SlicingAbstractedState.of(
-        bfmgr.makeBoolean(true),
+        pFmgr.getBooleanFormulaManager().makeBoolean(true),
         SSAMap.emptySSAMap(),
-        PointerTargetSet.emptyPointerTargetSet());
+        PointerTargetSet.emptyPointerTargetSet(),
+        pFmgr);
   }
 
   // todo: note on comparison.
@@ -73,6 +77,6 @@ public class SlicingAbstractedState extends SlicingState implements
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
       PathFormulaManager pfmgr) {
-    return slice;
+    return manager.parse(fmgr.dumpFormula(slice).toString());
   }
 }

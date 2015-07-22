@@ -110,13 +110,14 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       if (shouldPerformSlicing(pCFAEdge)) {
 
         PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
-            iState.getPathFormula().getSsa(), successor);
+            iState.getPathFormula().getSsa(),
+            iState.getPathFormula().getPointerTargetSet(),
+            successor);
         BooleanFormula inductiveWeakening;
         try {
 
-          // todo: this isn't right.
-          // We should also use the information from the previous sliced state
-          // while doing slicing.
+          // todo: we should also use the information from the previous
+          // abstracted state while doing the inductive weakening.
           // HOWEVER, it is important not to annotate it (as we already know
           // that it has to be inductive) => thus we might need to change the
           // interface of the InductiveWeakeningManager.
@@ -127,7 +128,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           throw new CPATransferException("Originating exception: ", ex);
         }
         return Collections.singleton(SlicingAbstractedState.of(inductiveWeakening, iState.getPathFormula().getSsa(),
-            iState.getPathFormula().getPointerTargetSet()));
+            iState.getPathFormula().getPointerTargetSet(), fmgr));
 
       } else {
 
@@ -171,7 +172,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   @Override
   public SlicingState getInitialState(CFANode node) {
-    return SlicingAbstractedState.empty(bfmgr);
+    return SlicingAbstractedState.empty(fmgr);
   }
 
   @Override
@@ -244,7 +245,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return SlicingAbstractedState.of(
         bfmgr.or(newState.getAbstraction(), oldState.getAbstraction()),
         newState.getSSA(), // arbitrary
-        merged
+        merged, fmgr
     );
   }
 
