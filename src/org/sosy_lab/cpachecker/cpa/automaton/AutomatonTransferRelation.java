@@ -213,7 +213,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(state);
     }
 
-    Collection<AutomatonState> lSuccessors = Sets.newHashSetWithExpectedSize(2);
+    Collection<AutomatonState> lSuccessors = Sets.newLinkedHashSetWithExpectedSize(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
