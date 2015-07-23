@@ -54,8 +54,6 @@ import com.google.common.collect.Iterables;
  */
 public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator<ValueAnalysisState> {
 
-
-
   private final ValueAnalysisTransferRelation transfer;
 
   public ValueAnalysisStrongestPostOperator(

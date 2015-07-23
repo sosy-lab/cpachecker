@@ -300,6 +300,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    *
    * @return the total number of variables contained in this state
    */
+  @Override
   public int getSize() {
     return constantsMap.size();
   }
