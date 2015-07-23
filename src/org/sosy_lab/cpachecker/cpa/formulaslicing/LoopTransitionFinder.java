@@ -86,13 +86,16 @@ public class LoopTransitionFinder {
   }
 
 
-  public Set<CFAEdge> getEdgesInSCC(CFANode loopHead) {
-    Preconditions.checkState(cfa.getAllLoopHeads().get().contains(loopHead));
+  /**
+   * @return all edges in the local {@link Loop} associated with the {@code node},
+   * or an empty set, if {@code node} is not a loop-head.
+   */
+  public Set<CFAEdge> getEdgesInSCC(CFANode node) {
 
     // Returns *local* loop.
     Set<CFAEdge> out = new HashSet<>();
     for (Loop loop :
-        cfa.getLoopStructure().get().getLoopsForLoopHead(loopHead)) {
+        cfa.getLoopStructure().get().getLoopsForLoopHead(node)) {
       out.addAll(loop.getInnerLoopEdges());
     }
 

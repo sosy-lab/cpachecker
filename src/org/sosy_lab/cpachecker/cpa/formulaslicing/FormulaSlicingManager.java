@@ -122,33 +122,54 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     if (shouldPerformAbstraction(successor)) {
       if (shouldPerformSlicing(pCFAEdge)) {
+        SlicingAbstractedState ancestor = iState.getAbstraction();
+
+        boolean isInsideAncestorLoop =
+            loopTransitionFinder.getEdgesInSCC(ancestor.getNode()).contains(pCFAEdge);
 
         PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
             iState.getPathFormula().getSsa(),
             iState.getPathFormula().getPointerTargetSet(),
             successor);
         BooleanFormula inductiveWeakening;
+        BooleanFormula strengthening = fmgr.instantiate(
+                ancestor.getAbstraction(),
+                ancestor.getSSA());
         try {
 
-          // todo: this obtained slice can be added to *all* abstracted states
-          // inside the given SCC.
+          // If we are inside the ancestor loop, then:
+          // 1) Slice obtained from the ancestor can be safely conjoined to the
+          // slice we have obtained (with proper instantiation)
+          // 2) The strengthening can contain the predicate both before and
+          // after the transition.
+          PathFormula toSlice = iState.getPathFormula();
+          if (isInsideAncestorLoop) {
+            strengthening = bfmgr.and(strengthening, fmgr.instantiate(
+                ancestor.getAbstraction(), iState.getPathFormula().getSsa()
+            ));
+          } else {
+            toSlice = toSlice.updateFormula(
+                bfmgr.and(strengthening, toSlice.getFormula())
+            );
+          }
+          toSlice = toSlice.updateFormula(fmgr.simplify(toSlice.getFormula()));
+
           inductiveWeakening =
               inductiveWeakeningManager.slice(
-                  iState.getPathFormula(),
-                  loopTransition,
-                  fmgr.instantiate(
-                      iState.getAbstraction().getAbstraction(),
-                      iState.getAbstraction().getSSA()
-                  )
-              );
-
+                  toSlice,
+                  loopTransition, strengthening);
+          if (isInsideAncestorLoop) {
+            inductiveWeakening = fmgr.simplify(bfmgr.and(
+                inductiveWeakening, ancestor.getAbstraction()
+            ));
+          }
         } catch (SolverException ex) {
           throw new CPATransferException("Originating exception: ", ex);
         }
         return Collections.singleton(
             SlicingAbstractedState.of(
                 inductiveWeakening, iState.getPathFormula().getSsa(),
-                iState.getPathFormula().getPointerTargetSet(), fmgr)
+                iState.getPathFormula().getPointerTargetSet(), fmgr, successor)
         );
 
       } else {
@@ -195,7 +216,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
   @Override
   public SlicingState getInitialState(CFANode node) {
-    return SlicingAbstractedState.empty(fmgr);
+    return SlicingAbstractedState.empty(fmgr, node);
   }
 
   @Override
@@ -243,7 +264,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
       Verify.verify(sibling.isPresent() && sibling.get().isAbstracted());
       return Optional.of(PrecisionAdjustmentResult.create(
-          sibling.get(), new Precision() { }, Action.CONTINUE));
+          sibling.get(), new Precision() {
+      }, Action.CONTINUE));
     }
 
     return Optional.of(PrecisionAdjustmentResult.create(
@@ -280,6 +302,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private SlicingState joinAbstractedStates(
       SlicingAbstractedState newState,
       SlicingAbstractedState oldState) throws InterruptedException {
+    Preconditions.checkState(newState.getNode() == oldState.getNode());
 
     if (newState.getAbstraction().equals(bfmgr.makeBoolean(false))
         || oldState == newState) {
@@ -300,7 +323,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         fmgr.simplify(bfmgr.or(newState.getAbstraction(),
             oldState.getAbstraction())),
         oldState.getSSA(), // arbitrary
-        merged, fmgr
+        merged, fmgr, newState.getNode()
     );
   }
 

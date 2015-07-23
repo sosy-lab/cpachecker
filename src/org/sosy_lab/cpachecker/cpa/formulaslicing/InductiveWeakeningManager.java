@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
@@ -30,8 +34,17 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+/**
+ * Finds inductive weakening of formulas (originally: formula slicing).
+ * This class operates on formulas, and should be orthogonal to
+ * CFA- and CPA-specific concepts.
+ */
+@Options(prefix="cpa.slicing")
 public class InductiveWeakeningManager {
-  // todo: make sorting variables configurable.
+
+  @Option(secure=true, description="Sort selection variables based on syntactic "
+      + "similarity to the transition relation")
+  private boolean sortSelectionVariablesSyntactic = true;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
@@ -39,8 +52,12 @@ public class InductiveWeakeningManager {
   private final UnsafeFormulaManager ufmgr;
   private final LogManager logger;
 
-  public InductiveWeakeningManager(FormulaManagerView pFmgr, Solver pSolver,
-      UnsafeFormulaManager pUfmgr, LogManager pLogger) {
+  public InductiveWeakeningManager(
+      Configuration config,
+      FormulaManagerView pFmgr, Solver pSolver,
+      UnsafeFormulaManager pUfmgr, LogManager pLogger)
+      throws InvalidConfigurationException {
+    config.inject(this);
     fmgr = pFmgr;
     solver = pSolver;
     ufmgr = pUfmgr;
@@ -52,29 +69,25 @@ public class InductiveWeakeningManager {
    * Find the inductive weakening of {@code input} subject to the loop
    * transition over-approximation shown in {@code transition}.
    *
-   * @param previousSlice Slice associated with the previous abstract state:
+   * @param strengthening Strengthening which is guaranteed to be universally
+   * true (under the given path) at the given point.
    */
   public BooleanFormula slice(
       PathFormula input, PathFormula transition,
-      BooleanFormula previousSlice
+      BooleanFormula strengthening
   ) throws SolverException, InterruptedException {
+    if (input.getFormula().equals(bfmgr.makeBoolean(true))) {
+      return bfmgr.makeBoolean(true);
+    }
 
     // Step 0: todo (optional): add quantifiers next to intermediate variables,
     // perform quantification, run QE_LIGHT to remove the ones we can.
 
     // Step 1: get rid of intermediate variables in "input".
 
-
     // ...remove atoms containing intermediate variables.
     BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
-        .of(fmgr, input.getSsa()).visit(
-
-            // todo: we are potentially repeating a lot of work here,
-            // if we are inside the same SCC,
-            // as we *already* know that the {@code previousSlice}
-            // is inductive across the entire SCC.
-            bfmgr.and(input.getFormula(), previousSlice)
-        ));
+        .of(fmgr, input.getSsa()).visit(input.getFormula()));
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
         Tactic.NNF);
@@ -96,13 +109,20 @@ public class InductiveWeakeningManager {
     logger.log(Level.FINE, "Loop transition: ", transition.getFormula());
 
     // Inductiveness checking formula.
-    BooleanFormula query = bfmgr.and(ImmutableList.of(annotated,
+    BooleanFormula query = bfmgr.and(ImmutableList.of(
+        annotated,
         transition.getFormula(),
-        negated));
+        negated,
+        strengthening
+    ));
 
-    logger.log(Level.FINE, "Generated a loop transition");
-    List<BooleanFormula> orderedList =
-        sortBySyntacticSimilarity(selectionVars, transition.getFormula());
+    List<BooleanFormula> orderedList;
+    if (sortSelectionVariablesSyntactic) {
+      orderedList =
+          sortBySyntacticSimilarity(selectionVars, transition.getFormula());
+    } else {
+      orderedList = new ArrayList<>(selectionVars.keySet());
+    }
 
     Set<BooleanFormula> inductiveSlice = formulaSlicing(selectionVars,
         orderedList, query);
@@ -147,16 +167,13 @@ public class InductiveWeakeningManager {
     query = fmgr.simplify(query);
 
     if (solver.isUnsat(query)) { // Questionable, but very useful for testing.
-      logger.log(Level.WARNING, "Everything is inductive under the transition!",
-          "That looks very suspicious");
+      logger.log(Level.INFO, "Everything is inductive under the transition!",
+          "That looks suspicious");
       return ImmutableSet.of();
     }
 
     List<BooleanFormula> selection = selectionVars;
 
-    // todo: not really convinced. Need to check that the scheme as
-    // presented is linear and not quadratic.
-    // I am still not convinced that there is no need to re-visit the atoms.
     try (ProverEnvironment env = solver.newProverEnvironment()) {
 
       //noinspection ResultOfMethodCallIgnored
@@ -169,7 +186,7 @@ public class InductiveWeakeningManager {
       env.push(selectionFormula);
       // Note: what happens if it is SAT already?
       Verify.verify(env.isUnsat()); // note: this SMT call can be dropped,
-                                    // it's purely for testing purposes.
+                                    // it is purely for testing purposes.
 
       // Remove the selection constraint.
       env.pop();
@@ -236,7 +253,7 @@ public class InductiveWeakeningManager {
         BooleanFormula a1 = selectors.get(s1);
         BooleanFormula a2 = selectors.get(s2);
 
-        // todo: incessant re-uninstantiation is very inefficient.
+        // todo: incessant re-uninstantiation is inefficient.
         Set<String> a1Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a1),
             true);
         Set<String> a2Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a2),

@@ -58,7 +58,7 @@ public class InductiveWeakeningManagerTest {
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
         MachineModel.LINUX32, AnalysisDirection.FORWARD);
     Solver solver = new Solver(fmgr, factory, config, logger);
-    inductiveWeakeningManager = new InductiveWeakeningManager(fmgr, solver,
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver,
         factory.getFormulaManager().getUnsafeFormulaManager(), logger);
   }
 

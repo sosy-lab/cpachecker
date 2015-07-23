@@ -1570,6 +1570,10 @@ cpa.slicing.checkTargetStates = true
 # Whether to join states on merge (leads to cycles in ARG)
 cpa.slicing.joinOnMerge = true
 
+# Sort selection variables based on syntactic similarity to the transition
+# relation
+cpa.slicing.sortSelectionVariablesSyntactic = true
+
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
 
