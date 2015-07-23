@@ -686,6 +686,13 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# Merge two automata states if one of them is TOP.
+cpa.automaton.mergeOnTop = false
+
+# An implicit precision: consider states with a self-loop and no other
+# outgoing edges as TOP.
+cpa.automaton.prec.topOnFinalSelfLoopingState = false
+
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
 cpa.automaton.treatErrorsAsTargets = true
@@ -1812,17 +1819,17 @@ cpa.value.assignSymbolicAssumptionVars = false
 # were assumptions.
 cpa.value.automatonAssumesAsStatements = false
 
-# restrict abstractions to assume edges
-cpa.value.blk.alwaysAtAssumes = false
+# restrict abstractions to branching points
+cpa.value.blk.alwaysAtBranch = false
 
 # restrict abstractions to function calls/returns
-cpa.value.blk.alwaysAtFunctions = false
+cpa.value.blk.alwaysAtFunction = false
 
 # restrict abstractions to join points
-cpa.value.blk.alwaysAtJoins = false
+cpa.value.blk.alwaysAtJoin = false
 
 # restrict abstractions to loop heads
-cpa.value.blk.alwaysAtLoops = false
+cpa.value.blk.alwaysAtLoop = false
 
 # toggle liveness abstraction
 cpa.value.blk.doLivenessAbstraction = false
