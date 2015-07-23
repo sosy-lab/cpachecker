@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
@@ -38,7 +37,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -100,8 +98,6 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private final PathExtractor pathExtractor;
 
   private int previousErrorPathId = -1;
-
-  // statistics
 
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");
