@@ -51,10 +51,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -103,7 +103,6 @@ public class ValueAnalysisPathInterpolator
 
   private final ValueAnalysisInterpolantManager interpolantManager;
   private final LogManager logger;
-  private final Configuration config;
 
   public ValueAnalysisPathInterpolator(
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
@@ -130,10 +129,9 @@ public class ValueAnalysisPathInterpolator
         pCfa);
 
     pConfig.inject(this);
-    cfa              = pCfa;
+    cfa = pCfa;
     interpolantManager = ValueAnalysisInterpolantManager.getInstance();
     logger = pLogger;
-    config = pConfig;
   }
 
   @Override
@@ -285,6 +283,7 @@ public class ValueAnalysisPathInterpolator
     writer.put(prefixSelectionTime);
   }
 
+  @Override
   public int getInterpolationOffset() {
     return interpolationOffset;
   }
