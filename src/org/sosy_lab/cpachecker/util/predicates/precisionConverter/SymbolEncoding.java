@@ -71,7 +71,7 @@ public class SymbolEncoding {
   /** This set contains function symbols that have a (maybe) unknown, but valid type.
    *  We do not care about the type, because it is automatically determined. */
   private final static Set<String> functionSymbols = Sets.newHashSet(
-      "and", "or", "not",
+      "and", "or", "not", "ite",
       "=", "<", ">", "<=", ">=",
       "+", "-", "*", "/",
       "Integer__*_", "Integer__/_", "Integer__%_",
@@ -79,7 +79,9 @@ public class SymbolEncoding {
       "_~_", "_&_", "_!!_", "_^_", "_<<_", "_>>_",
       "bvnot", "bvslt", "bvult", "bvsle", "bvule", "bvsgt", "bvugt", "bvsge", "bvuge",
       "bvadd", "bvsub", "bvmul", "bvsdiv", "bvudiv", "bvsrem", "bvurem",
-      "bvand", "bvor", "bvxor", "bvshl", "bvlshr", "bvashr"
+      "bvand", "bvor", "bvxor", "bvshl", "bvlshr", "bvashr",
+      "to_real", "to_int",
+      "_", "divisible"
       );
 
   /** create an empty symbol encoding */
