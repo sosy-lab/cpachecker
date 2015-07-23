@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -95,7 +94,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final Configuration config;
 
   private final EdgeInterpolator<S, I> interpolator;
   private final FeasibilityChecker<S> checker;
@@ -114,7 +112,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   ) throws InvalidConfigurationException {
 
     pConfig.inject(this, GenericPathInterpolator.class);
-    config = pConfig;
 
     logger             = pLogger;
     cfa                = pCfa;
