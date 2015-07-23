@@ -235,7 +235,7 @@ public class ValueAnalysisPathInterpolator
   ) {
 
     for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
-      if (assignments == null || !assignments.exceedsHardThreshold(memoryLocation)) {
+      if (assignments == null || !assignments.exceedsThreshold(memoryLocation)) {
         increment.put(currentNode, memoryLocation);
       }
     }

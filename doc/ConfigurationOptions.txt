@@ -846,20 +846,16 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
-# sets the hard threshold for assignments (-1 for infinite), and it is upto,
-# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
-# value.
-cpa.conditions.path.assignments.hardThreshold = DISABLED
-
-# determines if there should be one single assignment state per state,one per
-# path segment between assume edges, or a global one for the whole program.
+# determines if there should be one single assignment state per state, one
+# per path segment between assume edges, or a global one for the whole
+# program.
 cpa.conditions.path.assignments.scope = STATE
   enum:     [STATE, PATH, PROGRAM]
 
-# sets the soft threshold for assignments (-1 for infinite), and it is upto,
-# e.g., ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
+# sets the threshold for assignments (-1 for infinite), and it is upto, e.g.,
+# ValueAnalysisPrecisionAdjustment to act accordingly to this threshold
 # value.
-cpa.conditions.path.assignments.softThreshold = DISABLED
+cpa.conditions.path.assignments.threshold = DISABLED
 
 # maximum number of assume edges length (-1 for infinite)
 cpa.conditions.path.assumeedges.limit = -1

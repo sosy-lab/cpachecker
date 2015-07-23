@@ -154,18 +154,15 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
       totalLiveness.stop();
     }
 
-    // compute the abstraction based on the value-analysis precision, unless assignment information is available
-    // then, this is dealt with during enforcement of the path thresholds, see below
-    if (assignments == null) {
-      totalAbstraction.start();
-      enforcePrecision(resultState, location, pPrecision);
-      totalAbstraction.stop();
-    }
+    // compute the abstraction based on the value-analysis precision
+    totalAbstraction.start();
+    enforcePrecision(resultState, location, pPrecision);
+    totalAbstraction.stop();
 
     // compute the abstraction for assignment thresholds
-    else {
+    if (assignments != null) {
       totalEnforcePath.start();
-      enforcePathThreshold(resultState, pPrecision, assignments, location.getLocationNode());
+      enforcePathThreshold(resultState, pPrecision, assignments);
       totalEnforcePath.stop();
     }
 
@@ -256,26 +253,14 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    */
   private void enforcePathThreshold(ValueAnalysisState state,
       VariableTrackingPrecision precision,
-      UniqueAssignmentsInPathConditionState assignments, CFANode location) {
+      UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold
     for (MemoryLocation memoryLocation: state.getTrackedMemoryLocations()) {
+      assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
 
-      // if memory location is being tracked, check against hard threshold
-      if (precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location)) {
-        assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
-
-        if (assignments.exceedsHardThreshold(memoryLocation)) {
-          state.forget(memoryLocation);
-        }
-
-      } else {
-        // otherwise, check against soft threshold, including the pending assignment
-        if (assignments.wouldExceedSoftThreshold(state, memoryLocation)) {
-          state.forget(memoryLocation);
-        } else {
-          assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
-        }
+      if (assignments.exceedsThreshold(memoryLocation)) {
+        state.forget(memoryLocation);
       }
     }
   }

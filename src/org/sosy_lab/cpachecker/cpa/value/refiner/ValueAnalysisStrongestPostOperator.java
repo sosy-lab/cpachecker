@@ -140,6 +140,6 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
       return Collections.emptySet();
     }
 
-    return assignments.getMemoryLocationsExceedingHardThreshold();
+    return assignments.getMemoryLocationsExceedingThreshold();
   }
 }

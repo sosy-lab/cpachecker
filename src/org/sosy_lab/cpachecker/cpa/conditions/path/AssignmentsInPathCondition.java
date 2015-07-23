@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.conditions.path;
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -42,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -63,18 +61,13 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
    */
   private static final int DISABLED = -1;
 
-  @Option(secure=true, description="sets the soft threshold for assignments (-1 for infinite), and it is upto, e.g.,"
+  @Option(secure=true, description="sets the threshold for assignments (-1 for infinite), and it is upto, e.g.,"
       + " ValueAnalysisPrecisionAdjustment to act accordingly to this threshold value.")
   @IntegerOption(min=-1)
-  private int softThreshold = DISABLED;
-
-  @Option(secure=true, description="sets the hard threshold for assignments (-1 for infinite), and it is upto, e.g.,"
-      + " ValueAnalysisPrecisionAdjustment to act accordingly to this threshold value.")
-  @IntegerOption(min=-1)
-  private int hardThreshold = DISABLED;
+  private int threshold = DISABLED;
 
   @Option(secure=true, description="determines if there should be one single assignment state per state,"
-      + "one per path segment between assume edges, or a global one for the whole program.")
+      + " one per path segment between assume edges, or a global one for the whole program.")
   private Scope scope = Scope.STATE;
 
   /**
@@ -84,12 +77,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   public AssignmentsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
-
-    if(softThreshold == DISABLED) {
-      logger.log(Level.INFO, AssignmentsInPathCondition.class.getSimpleName() + " in use"
-          + " with softThreshold set to infinite (-1), so only state information will be collected,"
-          + " while no thresholds will be enforced.");
-    }
   }
 
   @Override
@@ -116,8 +103,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public boolean adjustPrecision() {
-    softThreshold *= 2;
-    hardThreshold *= 2;
+    threshold *= 2;
     return true;
   }
 
@@ -128,8 +114,6 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
   @Override
   public void printStatistics(PrintStream out, Result result, ReachedSet reachedSet) {
-    out.println("Threshold value (soft):     " + softThreshold);
-    out.println("Threshold value (hard):     " + hardThreshold);
     out.println("Max. number of assignments: " + maxNumberOfAssignments);
   }
 
@@ -170,28 +154,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
 
     @Override
     public boolean mustDumpAssumptionForAvoidance() {
-      return (softThreshold != DISABLED) && (maximum > AssignmentsInPathCondition.this.softThreshold);
-    }
-
-    /**
-    * This method decides if the number of assignments for the given variable would exceed the soft threshold, taking
-    * into account the current assignment from the given explicit-value state.
-    *
-    * @param state the current assignment in form of a explicit-value state
-    * @param memoryLocation the variable to check
-    * @return true, if the number of assignments for the given variable would exceed the soft threshold, else false
-    */
-    public boolean wouldExceedSoftThreshold(ValueAnalysisState state, MemoryLocation memoryLocation) {
-      if (softThreshold == DISABLED) {
-        return false;
-      }
-
-      else if (softThreshold == 0) {
-        return true;
-      }
-
-      int increment = mapping.containsEntry(memoryLocation, state.getValueFor(memoryLocation)) ? 0 : 1;
-      return (mapping.get(memoryLocation).size() + increment) > softThreshold;
+      return (threshold != DISABLED) && (maximum > threshold);
     }
 
     /**
@@ -200,8 +163,8 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     * @param memoryLocation the memory location to check
     * @return true, if the number of assignments for the given memory location exceeds the hard threshold, else false
     */
-    public boolean exceedsHardThreshold(MemoryLocation memoryLocation) {
-      return (hardThreshold != DISABLED) && (mapping.get(memoryLocation).size() > hardThreshold);
+    public boolean exceedsThreshold(MemoryLocation memoryLocation) {
+      return (threshold != DISABLED) && (mapping.get(memoryLocation).size() > threshold);
     }
 
     /**
@@ -220,14 +183,14 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     }
 
     /**
-     * This method return those memory locations that exceed the hard threshold
+     * This method return those memory locations that exceed the threshold.
      *
-     * @return the memory locations that exceed the hard threshold
+     * @return the memory locations that exceed the threshold
      */
-    public Set<MemoryLocation> getMemoryLocationsExceedingHardThreshold() {
+    public Set<MemoryLocation> getMemoryLocationsExceedingThreshold() {
       Set<MemoryLocation> exceedingMemoryLocations = new HashSet<>();
       for (MemoryLocation memoryLocation : mapping.keys()) {
-        if(mapping.get(memoryLocation).size() > hardThreshold) {
+        if(mapping.get(memoryLocation).size() > threshold) {
           exceedingMemoryLocations.add(memoryLocation);
         }
       }
