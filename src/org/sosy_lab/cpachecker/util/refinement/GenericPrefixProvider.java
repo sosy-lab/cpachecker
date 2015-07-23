@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 
 /**
  * PrefixProvider that extracts all infeasible prefixes for a path, starting with an initial empty
