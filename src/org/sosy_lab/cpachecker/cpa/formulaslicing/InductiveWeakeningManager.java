@@ -126,6 +126,11 @@ public class InductiveWeakeningManager {
 
     Set<BooleanFormula> inductiveSlice = formulaSlicing(selectionVars,
         orderedList, query);
+    if (inductiveSlice.size() == selectionVars.size()) {
+
+      // Everything was abstracted => return a trivial invariant "true".
+      return bfmgr.makeBoolean(true);
+    }
 
     // Step 3: Apply the transformation, replace the atoms marked by the
     // selector variables with 'Top'.
@@ -184,9 +189,13 @@ public class InductiveWeakeningManager {
 
       //noinspection ResultOfMethodCallIgnored
       env.push(selectionFormula);
-      // Note: what happens if it is SAT already?
-      Verify.verify(env.isUnsat()); // note: this SMT call can be dropped,
-                                    // it is purely for testing purposes.
+
+      if (!env.isUnsat()) {
+
+        // No non-trivial assignment exists: rely on the caller to return
+        // the trivial environment "true".
+        return new HashSet<>(selectionVars);
+      }
 
       // Remove the selection constraint.
       env.pop();
