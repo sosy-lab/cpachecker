@@ -75,7 +75,7 @@ public class LoopTransitionFinder {
     // Otherwise it's not a loop.
     Preconditions.checkState(!edgesInLoop.isEmpty());
 
-    List<PathFormula> out = LBE(start, pts, loopHead, edgesInLoop);
+    List<PathFormula> out = LBE(start, pts, edgesInLoop);
 
     PathFormula first = out.iterator().next();
 
@@ -116,7 +116,6 @@ public class LoopTransitionFinder {
   private List<PathFormula> LBE(
       SSAMap start,
       PointerTargetSet pts,
-      CFANode loopHead,
       Set<CFAEdge> edgesInLoop)
       throws CPATransferException, InterruptedException {
 
@@ -127,7 +126,7 @@ public class LoopTransitionFinder {
     boolean changed;
     do {
       changed = false;
-      if (applyANDtransformation && andLBETransformation(loopHead, out) ||
+      if (applyANDtransformation && andLBETransformation(out) ||
           applyORtransformation && orLBETransformation(out)) {
         changed = true;
       }
@@ -148,11 +147,11 @@ public class LoopTransitionFinder {
    * Apply and- transformation, return whether the passed set was changed.
    */
   private boolean andLBETransformation(
-      CFANode loopHead,
       Set<EdgeWrapper> out) {
     for (EdgeWrapper e : out) {
 
-      if (e.getSuccessor() == loopHead) continue;
+      // Do not perform reduction on nodes ending in a loop-head.
+      if (loopStructure.getAllLoopHeads().contains(e.getSuccessor())) continue;
 
       EdgeWrapper candidate = null;
 
