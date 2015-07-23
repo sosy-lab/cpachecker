@@ -197,7 +197,7 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s)%s%n %n %s %n",
+        "(node=%s)%s%nExtra Predicate: %s %n",
         getNode(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
         predicate

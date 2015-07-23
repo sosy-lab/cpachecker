@@ -290,14 +290,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       // Perform the abstraction, if necessary.
       if (shouldPerformAbstraction(iState)) {
         BooleanFormula extraPredicate = extractReportedFormulas(pArgState);
+
+
         logger.log(Level.FINE, "Reported formulas: ", extraPredicate);
 
         Optional<PolicyAbstractedState> sibling =
-            findSibling(extraPredicate, states.getReached(pArgState));
+            findSibling(states.getReached(pArgState));
+
+        if (sibling.isPresent()) {
+
+          // todo: verify that this hack is valid.
+          extraPredicate = fmgr.simplify(bfmgr.and(extraPredicate,
+              sibling.get().getPredicate()));
+        }
 
         logger.log(Level.FINE, "Performing abstraction on a node " + toNode);
         Optional<PolicyAbstractedState> abstraction = performAbstraction(
-            iState, sibling, templateManager.precisionForNode(toNode), extraPredicate);
+            iState, sibling, templateManager.precisionForNode(toNode),
+            extraPredicate);
 
         if (!abstraction.isPresent()) {
           logger.log(Level.FINE, "Returning the bottom state.");
@@ -633,6 +643,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         startConstraints, state.getPathFormula().getFormula());
 
     try {
+      // todo: I think we are not using the [extraPredicate] bit from the abstracted state.
       statistics.startCheckSATTimer();
       return solver.isUnsat(constraint);
     } catch (SolverException e) {
@@ -985,10 +996,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   /**
    * Find the PolicyAbstractedState sibling: something about-to-be-merged
-   * with the argument state, and that has the same partitioning predicate.
+   * with the argument state.
+   * // todo: is it valid to ignore the partitioning predicate?
    */
   private Optional<PolicyAbstractedState> findSibling(
-      BooleanFormula extraPredicate,
       Collection<AbstractState> pSiblings) {
     if (pSiblings.isEmpty()) {
       return Optional.absent();
@@ -999,7 +1010,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     for (AbstractState sibling : pSiblings) {
       out = AbstractStates.extractStateByType(sibling,
           PolicyAbstractedState.class);
-      if (out != null && out.getPredicate().equals(extraPredicate)) {
+      if (out != null) { // && out.getPredicate().equals(extraPredicate)) {
         found = true;
         break;
       }
