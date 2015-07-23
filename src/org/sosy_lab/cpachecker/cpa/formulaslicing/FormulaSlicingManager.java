@@ -46,6 +46,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
+  private final FormulaSlicingStatistics statistics;
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
@@ -56,7 +57,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       FormulaManagerView pFmgr, LogManager pLogger,
       CFA pCfa,
       LoopTransitionFinder pLoopTransitionFinder,
-      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver)
+      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver,
+      FormulaSlicingStatistics pStatistics)
       throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
@@ -67,6 +69,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    statistics = pStatistics;
   }
 
   @Override
@@ -154,10 +157,16 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           }
           toSlice = toSlice.updateFormula(fmgr.simplify(toSlice.getFormula()));
 
-          inductiveWeakening =
-              inductiveWeakeningManager.slice(
-                  toSlice,
-                  loopTransition, strengthening);
+          try {
+            statistics.formulaSlicingTimer.start();
+            inductiveWeakening =
+                inductiveWeakeningManager.slice(
+                    toSlice,
+                    loopTransition, strengthening);
+          } finally {
+            statistics.formulaSlicingTimer.stop();
+          }
+
           if (isInsideAncestorLoop) {
             inductiveWeakening = fmgr.simplify(bfmgr.and(
                 inductiveWeakening, ancestor.getAbstraction()
