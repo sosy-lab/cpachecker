@@ -373,8 +373,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private boolean shouldPerformAbstraction(CFANode node) {
 
     // Slicing is only performed on the loop heads.
-    return node.isLoopStart() ||
-        cfa.getLoopStructure().get().getAllLoopHeads().contains(node);
+    return cfa.getLoopStructure().get().getAllLoopHeads().contains(node);
   }
 
   /**

@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -41,10 +42,10 @@ public class LoopTransitionFinder {
       + "transition relation.")
   private boolean applyORtransformation = true;
 
-  private final CFA cfa;
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final LogManager logger;
+  private final LoopStructure loopStructure;
 
   public LoopTransitionFinder(
       Configuration config,
@@ -52,10 +53,10 @@ public class LoopTransitionFinder {
       FormulaManagerView pFmgr, LogManager pLogger)
       throws InvalidConfigurationException {
     config.inject(this);
-    cfa = pCfa;
     pfmgr = pPfmgr;
     fmgr = pFmgr;
     logger = pLogger;
+    loopStructure = pCfa.getLoopStructure().get();
   }
 
   public PathFormula generateLoopTransition(
@@ -64,7 +65,7 @@ public class LoopTransitionFinder {
       CFANode loopHead)
       throws CPATransferException, InterruptedException {
 
-    Preconditions.checkState(cfa.getLoopStructure().get().getAllLoopHeads()
+    Preconditions.checkState(loopStructure.getAllLoopHeads()
         .contains(loopHead));
 
     // Looping edges: intersection of forwards-reachable
@@ -72,8 +73,6 @@ public class LoopTransitionFinder {
     Set<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
 
     // Otherwise it's not a loop.
-    // todo: this condition is sometimes triggered, figure out the cause
-    // (probably a bug in loop detection).
     Preconditions.checkState(!edgesInLoop.isEmpty());
 
     List<PathFormula> out = LBE(start, pts, loopHead, edgesInLoop);
@@ -98,7 +97,7 @@ public class LoopTransitionFinder {
     // Returns *local* loop.
     Set<CFAEdge> out = new HashSet<>();
     for (Loop loop :
-        cfa.getLoopStructure().get().getLoopsForLoopHead(node)) {
+        loopStructure.getLoopsForLoopHead(node)) {
       out.addAll(loop.getInnerLoopEdges());
     }
 
