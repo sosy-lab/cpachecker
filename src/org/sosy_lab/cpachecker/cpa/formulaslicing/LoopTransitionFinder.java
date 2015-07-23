@@ -64,13 +64,16 @@ public class LoopTransitionFinder {
       CFANode loopHead)
       throws CPATransferException, InterruptedException {
 
-    Preconditions.checkState(cfa.getAllLoopHeads().get().contains(loopHead));
+    Preconditions.checkState(cfa.getLoopStructure().get().getAllLoopHeads()
+        .contains(loopHead));
 
     // Looping edges: intersection of forwards-reachable
     // and backwards-reachable.
     Set<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
 
     // Otherwise it's not a loop.
+    // todo: this condition is sometimes triggered, figure out the cause
+    // (probably a bug in loop detection).
     Preconditions.checkState(!edgesInLoop.isEmpty());
 
     List<PathFormula> out = LBE(start, pts, loopHead, edgesInLoop);
