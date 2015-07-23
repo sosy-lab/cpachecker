@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -12,10 +14,16 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
@@ -24,7 +32,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -40,11 +50,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
 
-  public FormulaSlicingManager(PathFormulaManager pPfmgr,
+  public FormulaSlicingManager(
+      Configuration config,
+      PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr, LogManager pLogger,
       CFA pCfa,
       LoopTransitionFinder pLoopTransitionFinder,
-      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver) {
+      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver)
+      throws InvalidConfigurationException {
+    config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     logger = pLogger;
@@ -116,25 +130,34 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         BooleanFormula inductiveWeakening;
         try {
 
-          // todo: we should also use the information from the previous
-          // abstracted state while doing the inductive weakening.
-          // HOWEVER, it is important not to annotate it (as we already know
-          // that it has to be inductive) => thus we might need to change the
-          // interface of the InductiveWeakeningManager.
+          // todo: this obtained slice can be added to *all* abstracted states
+          // inside the given SCC.
           inductiveWeakening =
-              inductiveWeakeningManager.slice(iState.getPathFormula(),
-                  loopTransition);
+              inductiveWeakeningManager.slice(
+                  iState.getPathFormula(),
+                  loopTransition,
+                  fmgr.instantiate(
+                      iState.getAbstraction().getAbstraction(),
+                      iState.getAbstraction().getSSA()
+                  )
+              );
+
         } catch (SolverException ex) {
           throw new CPATransferException("Originating exception: ", ex);
         }
-        return Collections.singleton(SlicingAbstractedState.of(inductiveWeakening, iState.getPathFormula().getSsa(),
-            iState.getPathFormula().getPointerTargetSet(), fmgr));
+        return Collections.singleton(
+            SlicingAbstractedState.of(
+                inductiveWeakening, iState.getPathFormula().getSsa(),
+                iState.getPathFormula().getPointerTargetSet(), fmgr)
+        );
 
       } else {
 
         // We are coming from inside the loop => the (other) abstracted state
         // should already exist.
-        return Collections.emptySet();
+        // We return the IntermediateState as a flag, and during the precision
+        // adjustment it will be replaced by the previously calculated flag.
+        return Collections.singleton(state);
       }
 
     } else {
@@ -188,18 +211,45 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       return iState1.isMergedInto(iState2) &&
           iState1.getAbstraction().equals(iState2.getAbstraction());
     } else {
-      // todo: Comparison for abstracted states?
-      // Do we need to deal with "false" and "true" values explicitly?
-      // Namely, "true" is the biggest, "false" is the smallest.
-      if (pState1.asAbstracted().getAbstraction().equals(bfmgr.makeBoolean(false))) {
+      if (fmgr.simplify(pState1.asAbstracted().getAbstraction()).equals(
+          fmgr.simplify(pState2.asAbstracted().getAbstraction())
+      )) {
+        return true;
+      }
 
-        // False is the smallest.
-        // todo: would AST comparison work though?
+      if (pState1.asAbstracted().getAbstraction().equals(bfmgr.makeBoolean(false))) {
         return true;
       }
       return false;
     }
   }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> prec(SlicingState pState,
+      UnmodifiableReachedSet pStates, AbstractState pFullState) {
+    LocationState loc =
+        AbstractStates.extractStateByType(pFullState, LocationState.class);
+
+    // todo: get rid of the warning.
+    CFANode node = loc.getLocationNode();
+    if (shouldPerformAbstraction(node) && !pState.isAbstracted()) {
+      // todo: less hacky way to signal that this state is at the abstract
+      // location, but is coming from SCC. Current approach tightly couples
+      // two conceptually separate methods.
+
+      // Replace with an existing abstracted sibling.
+      Optional<SlicingAbstractedState> sibling = findSibling(
+          pStates.getReached(pFullState));
+
+      Verify.verify(sibling.isPresent() && sibling.get().isAbstracted());
+      return Optional.of(PrecisionAdjustmentResult.create(
+          sibling.get(), new Precision() { }, Action.CONTINUE));
+    }
+
+    return Optional.of(PrecisionAdjustmentResult.create(
+        pState, new Precision() { }, Action.CONTINUE));
+  }
+
 
   private SlicingState joinIntermediateStates(
       SlicingIntermediateState newState,
@@ -231,11 +281,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingAbstractedState newState,
       SlicingAbstractedState oldState) throws InterruptedException {
 
+    if (newState.getAbstraction().equals(bfmgr.makeBoolean(false))
+        || oldState == newState) {
+      return oldState;
+    }
+    if (oldState.getAbstraction().equals(bfmgr.makeBoolean(false))) {
+      return newState;
+    }
     logger.log(Level.INFO, "Joining abstracted states",
         "this should be quite rare");
-
-    // HM what if I'll just set to bottom the generated abstract state if it
-    // comes from within the loop? That would avoid the given problem.
 
     // Merging PointerTargetSet.
     PathFormula p1 = abstractStateToIntermediate(newState).getPathFormula();
@@ -243,8 +297,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     PointerTargetSet merged = pfmgr.makeOr(p1, p2).getPointerTargetSet();
 
     return SlicingAbstractedState.of(
-        bfmgr.or(newState.getAbstraction(), oldState.getAbstraction()),
-        newState.getSSA(), // arbitrary
+        fmgr.simplify(bfmgr.or(newState.getAbstraction(),
+            oldState.getAbstraction())),
+        oldState.getSSA(), // arbitrary
         merged, fmgr
     );
   }
@@ -264,18 +319,57 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
    * <=>
    * 1) Target is a loop-head.
    * 2) {@code edge} is NOT a back edge.
+   *    (for the entire loop or for the SCC in question?)
    */
   private boolean shouldPerformSlicing(CFAEdge edge) {
     CFANode succ = edge.getSuccessor();
+
+    // todo: define precisely what do we need here, information
+    // provided by CPAchecker might not be sufficient.
+    // Note that we need whether we are inside the _local_ loop,
+    // not the global SCC.
+    boolean fromInsideLoop = false;
+    for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(succ)) {
+      if (loop.getInnerLoopEdges().contains(edge)) {
+        fromInsideLoop = true;
+      }
+    }
     return shouldPerformAbstraction(succ)
-        && !loopTransitionFinder.getEdgesInSCC(succ).contains(edge);
+        && !fromInsideLoop;
   }
 
   private boolean shouldPerformAbstraction(CFANode node) {
 
     // Slicing is only performed on the loop heads.
-    return cfa.getLoopStructure().get().getAllLoopHeads().contains(node);
+    return node.isLoopStart() ||
+        cfa.getLoopStructure().get().getAllLoopHeads().contains(node);
   }
 
+  /**
+   * Find the SlicingAbstractedState sibling: something about-to-be-merged
+   * with the argument state, and that has the same partitioning predicate.
+   */
+  private Optional<SlicingAbstractedState> findSibling(
+      Collection<AbstractState> pSiblings) {
 
+    // todo: Code duplication with PolicyIterationManager#findSibling.
+    if (pSiblings.isEmpty()) {
+      return Optional.absent();
+    }
+
+    SlicingAbstractedState out = null;
+    boolean found = false;
+    for (AbstractState sibling : pSiblings) {
+      out = AbstractStates.extractStateByType(sibling,
+          SlicingAbstractedState.class);
+      if (out != null) {
+        found = true;
+        break;
+      }
+    }
+    if (found) {
+      return Optional.of(out);
+    }
+    return Optional.absent();
+  }
 }

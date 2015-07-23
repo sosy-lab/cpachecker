@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -26,9 +25,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
@@ -39,10 +40,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
-  implements ConfigurableProgramAnalysis, AbstractDomain {
+  implements ConfigurableProgramAnalysis, AbstractDomain, PrecisionAdjustment {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
@@ -88,6 +92,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         formulaManager, solver, realFormulaManager.getUnsafeFormulaManager(),
             pLogger);
     manager = new FormulaSlicingManager(
+        pConfiguration,
         pathFormulaManager, formulaManager, pLogger, cfa, ltf,
         pInductiveWeakeningManager, solver);
     stopOperator = new StopSepOperator(this);
@@ -120,7 +125,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return this;
   }
 
   @Override
@@ -163,5 +168,13 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       StateSpacePartition partition) {
     // At the moment, precision is not used for formula slicing.
     return new Precision() {};
+  }
+
+  @Override
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState state,
+      Precision precision, UnmodifiableReachedSet states,
+      Function<AbstractState, AbstractState> stateProjection,
+      AbstractState fullState) throws CPAException, InterruptedException {
+    return manager.prec((SlicingState) state,  states, fullState);
   }
 }

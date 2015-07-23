@@ -127,7 +127,7 @@ public class LoopTransitionFinder {
       Set<CFAEdge> edgesInLoop)
       throws CPATransferException, InterruptedException {
 
-    logger.log(Level.INFO, "Set of edges in the loop: ", edgesInLoop);
+    logger.log(Level.FINEST, "Set of edges in the loop: ", edgesInLoop);
 
     Set<EdgeWrapper> out = convert(edgesInLoop);
 

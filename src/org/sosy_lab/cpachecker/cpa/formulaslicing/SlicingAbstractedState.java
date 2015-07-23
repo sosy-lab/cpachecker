@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
  * Abstracted state, containing invariants obtained by slicing.
  */
 public class SlicingAbstractedState extends SlicingState implements
-    FormulaReportingState {
+    FormulaReportingState, Graphable {
 
   /**
    * Slice with respect to the current SCC.
@@ -78,5 +78,15 @@ public class SlicingAbstractedState extends SlicingState implements
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager,
       PathFormulaManager pfmgr) {
     return manager.parse(fmgr.dumpFormula(slice).toString());
+  }
+
+  @Override
+  public String toDOTLabel() {
+    return slice.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 }

@@ -51,9 +51,13 @@ public class InductiveWeakeningManager {
   /**
    * Find the inductive weakening of {@code input} subject to the loop
    * transition over-approximation shown in {@code transition}.
+   *
+   * @param previousSlice Slice associated with the previous abstract state:
    */
-  public BooleanFormula slice(PathFormula input, PathFormula transition)
-      throws SolverException, InterruptedException {
+  public BooleanFormula slice(
+      PathFormula input, PathFormula transition,
+      BooleanFormula previousSlice
+  ) throws SolverException, InterruptedException {
 
     // Step 0: todo (optional): add quantifiers next to intermediate variables,
     // perform quantification, run QE_LIGHT to remove the ones we can.
@@ -63,7 +67,14 @@ public class InductiveWeakeningManager {
 
     // ...remove atoms containing intermediate variables.
     BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
-        .of(fmgr, input.getSsa()).visit(input.getFormula()));
+        .of(fmgr, input.getSsa()).visit(
+
+            // todo: we are potentially repeating a lot of work here,
+            // if we are inside the same SCC,
+            // as we *already* know that the {@code previousSlice}
+            // is inductive across the entire SCC.
+            bfmgr.and(input.getFormula(), previousSlice)
+        ));
     logger.log(Level.INFO, "Input without intermediate variables", noIntermediate);
     logger.flush();
 
