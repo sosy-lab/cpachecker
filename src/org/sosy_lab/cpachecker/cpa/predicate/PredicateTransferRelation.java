@@ -492,16 +492,15 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     // ((lastAbstraction && pathFormula) => newAbstraction), and (lastAbstraction && pathFormula) must be satisfied.
 
     // Transformation:
-    // valid == not (exists unsatisfying assignment for ((a && b) => c) with (a && b))
-    // valid == not (exists unsatisfying assignment for ((a && b && c)))
-    // valid == not (exists satisfying assignment for (not(a && b && c)))
-    // valid == ((not(a && b && c)) is UNSAT)
-    // Warning: This is not the same as "valid == ((a && b && c) is SAT)".
+    // valid == exists no unsatisfying assignment for ((a && b) => c)
+    // valid == exists no unsatisfying assignment for (not(a && b) or c)
+    // valid == exists no satisfying assignment for (a && b && not(c))
+    // valid == ((a && b && not(c)) is UNSAT)
 
-    BooleanFormula validConstraint = bfmgr.not(bfmgr.and(Lists.newArrayList(
+    BooleanFormula validConstraint = bfmgr.and(Lists.newArrayList(
         oldAbstraction.asInstantiatedFormula(),
         pathFormula.getFormula(),
-        fmgr.instantiate(newAbstraction, pathFormula.getSsa())
+        bfmgr.not(fmgr.instantiate(newAbstraction, pathFormula.getSsa())
         )));
 
     // set abstraction to true, we just need a dummy abstraction, the important part is the "checkThis"
