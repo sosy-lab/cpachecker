@@ -177,7 +177,14 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       ReachedSet reached1 = createInitialReachedSetForRestart(cpa1, mainFunction, singleConfig1, logger);
 
       reached.setDelegate(reached1);
+
+      stats.noOfAlgorithmsUsed++;
+      stats.totalTime.start();
+
       status = run0(reached1, algorithm1);
+
+      //stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reached); // disabled, because table-generator can not distinguish 1st and 2nd statistics.
+      stats.resetSubStatistics();
 
       // predicate bit-precise analysis
       logger.log(Level.FINE, "Creating CPA for PredicateAnalysis-Bitprecise");
@@ -196,7 +203,14 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
 
 
       reached.setDelegate(reached2);
+
+      stats.noOfAlgorithmsUsed++;
+      stats.totalTime.start();
+
       status = run0(reached2, algorithm2);
+
+      stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reached);
+      stats.resetSubStatistics();
 
     } catch (InvalidConfigurationException e) {
       logger.logUserException(Level.WARNING, e, "Exiting analysis because the configuration file is invalid");
@@ -263,13 +277,8 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       throws InterruptedException, CPAException, CPAEnabledAnalysisPropertyViolationException {
     logger.log(Level.INFO, "Starting sub-analysis");
     shutdownNotifier.shutdownIfNecessary();
-    stats.noOfAlgorithmsUsed++;
-    stats.totalTime.start();
-   AlgorithmStatus status = algorithm.run(reached);
+    AlgorithmStatus status = algorithm.run(reached);
     shutdownNotifier.shutdownIfNecessary();
-
-    stats.printIntermediateStatistics(System.out, Result.UNKNOWN, reached);
-    stats.resetSubStatistics();
     logger.log(Level.INFO, "Finished sub-analysis");
     return status;
   }

@@ -290,6 +290,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
     if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Times result was 'false':        " + trans.numStrengthenChecksFalse + " (" + toPercent(trans.numStrengthenChecksFalse, trans.strengthenCheckTimer.getNumberOfIntervals()) + ")");
     }
+    out.println("Number of strengthening with abstraction reuse:   " + trans.strengthenReuseCheckTimer.getNumberOfIntervals());
+    if (trans.strengthenReuseCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Times abstraction was valid:     " + valueWithPercentage(trans.numStrengthenReusedValidAbstractions, trans.strengthenReuseCheckTimer.getNumberOfIntervals()));
+      out.println("  Times abstraction was invalid:   " + valueWithPercentage(trans.numStrengthenReusedInvalidAbstractions, trans.strengthenReuseCheckTimer.getNumberOfIntervals()));
+    }
     out.println("Number of coverage checks:         " + domain.coverageCheckTimer.getNumberOfIntervals());
     out.println("  BDD entailment checks:           " + domain.bddCoverageCheckTimer.getNumberOfIntervals());
     if (domain.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
@@ -347,6 +352,10 @@ class PredicateCPAStatistics extends AbstractStatistics {
     out.println("Time for strengthen operator:        " + trans.strengthenTimer);
     if (trans.strengthenCheckTimer.getNumberOfIntervals() > 0) {
       out.println("  Time for satisfiability checks:    " + trans.strengthenCheckTimer);
+    }
+    if (trans.strengthenReuseCheckTimer.getNumberOfIntervals() > 0) {
+      out.println("  Time for abstraction reuse check:  " + trans.strengthenReuseCheckTimer);
+      out.println("  Time for abstraction converter:    " + trans.strengthenReuseConvertTimer);
     }
     out.println("Time for prec operator:              " + prec.totalPrecTime);
     if (prec.numAbstractions > 0) {

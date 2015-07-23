@@ -109,10 +109,14 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   final Timer pathFormulaTimer = new Timer();
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
+  final Timer strengthenReuseConvertTimer = new Timer();
+  final Timer strengthenReuseCheckTimer = new Timer();
   final Timer abstractionCheckTimer = new Timer();
 
   int numSatChecksFalse = 0;
   int numStrengthenChecksFalse = 0;
+  int numStrengthenReusedValidAbstractions = 0;
+  int numStrengthenReusedInvalidAbstractions = 0;
 
   private final LogManager logger;
   private final PredicateAbstractionManager formulaManager;
@@ -430,6 +434,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     // such that we get the same BDD-nodes for atoms of different old abstractions.
     BooleanFormula constraint = pOldPredicateState.getAbstractionFormula().asFormula();
 
+    strengthenReuseConvertTimer.start();
+
     StringBuilder in = new StringBuilder();
     BVConverter converter = new BVConverter(cfa, logger);
     Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(constraint);
@@ -454,9 +460,18 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     constraint = this.fmgr.parse(out.toString());
 
+    strengthenReuseConvertTimer.stop();
+
+    strengthenReuseCheckTimer.start();
+
     if (!isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
       constraint = null; // ignore constraint
+      numStrengthenReusedInvalidAbstractions++;
+    } else {
+      numStrengthenReusedValidAbstractions++;
     }
+
+    strengthenReuseCheckTimer.stop();
 
     return new ComputeAbstractionState(
         pPredicateState.getPathFormula(),
