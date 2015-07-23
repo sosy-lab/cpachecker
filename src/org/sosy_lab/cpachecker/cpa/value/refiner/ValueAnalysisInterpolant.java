@@ -88,6 +88,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
     return new ValueAnalysisInterpolant();
   }
 
+  @Override
   public Set<MemoryLocation> getMemoryLocations() {
     return isFalse()
         ? Collections.<MemoryLocation>emptySet()
@@ -168,6 +169,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    *
    * @return true, if the interpolant represents "true", else false
    */
+  @Override
   public boolean isTrue() {
     return !isFalse() && assignment.isEmpty();
   }
@@ -177,6 +179,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    *
    * @return true, if the interpolant represents "false", else true
    */
+  @Override
   public boolean isFalse() {
     return assignment == null;
   }
@@ -186,6 +189,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    *
    * @return true, if the interpolant is trivial, else false
    */
+  @Override
   public boolean isTrivial() {
     return isFalse() || isTrue();
   }
@@ -260,6 +264,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
     return weakenedItp;
   }
 
+  @Override
   public int getSize() {
     return isTrivial() ? 0 : assignment.size();
   }
