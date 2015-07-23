@@ -36,9 +36,10 @@ public class LoopTransitionFinderTest {
   private LogManager logger;
   private PathFormulaManager pfmgr;
   private FormulaManagerView fmgr;
+  private Configuration config;
 
   @Before public void setUp() throws Exception {
-    Configuration config = TestDataTools.configurationForTest().setOptions(
+    config = TestDataTools.configurationForTest().setOptions(
         ImmutableMap.of(
             "cpa.predicate.handlePointerAliasing", "false"
         )
@@ -71,7 +72,7 @@ public class LoopTransitionFinderTest {
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
-        new LoopTransitionFinder(cfa, pfmgr, fmgr, logger);
+        new LoopTransitionFinder(config, cfa, pfmgr, fmgr, logger);
 
     PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(),
@@ -93,7 +94,7 @@ public class LoopTransitionFinderTest {
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
-        new LoopTransitionFinder(cfa, pfmgr, fmgr, logger);
+        new LoopTransitionFinder(config, cfa, pfmgr, fmgr, logger);
     Set<CFAEdge> out = loopTransitionFinder.getEdgesInSCC(loopHead);
 
     logger.log(Level.INFO, "Set of loop edges", out);

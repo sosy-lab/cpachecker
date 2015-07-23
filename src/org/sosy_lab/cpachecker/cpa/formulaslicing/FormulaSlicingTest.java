@@ -4,7 +4,6 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
@@ -37,14 +36,7 @@ public class FormulaSlicingTest {
     check("slice_with_branches_false_assert.c");
   }
 
-  @Test
-  @Ignore
   public void slicing_nested_true_assert() throws Exception {
-    // todo: nested slicing test non-deterministically fails.
-    // Proper merging of intermediate slicing results seems to be quite
-    // far from the desired quality.
-    // but we always process the atoms in the same order, should not
-    // this be deterministic?
     check("slicing_nested_true_assert.c");
   }
 

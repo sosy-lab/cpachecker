@@ -75,8 +75,6 @@ public class InductiveWeakeningManager {
             // is inductive across the entire SCC.
             bfmgr.and(input.getFormula(), previousSlice)
         ));
-    logger.log(Level.INFO, "Input without intermediate variables", noIntermediate);
-    logger.flush();
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
         Tactic.NNF);
@@ -96,7 +94,6 @@ public class InductiveWeakeningManager {
     BooleanFormula negated = bfmgr.not(primed);
 
     logger.log(Level.FINE, "Loop transition: ", transition.getFormula());
-    logger.flush();
 
     // Inductiveness checking formula.
     BooleanFormula query = bfmgr.and(ImmutableList.of(annotated,
@@ -104,10 +101,8 @@ public class InductiveWeakeningManager {
         negated));
 
     logger.log(Level.FINE, "Generated a loop transition");
-    logger.flush();
     List<BooleanFormula> orderedList =
         sortBySyntacticSimilarity(selectionVars, transition.getFormula());
-
 
     Set<BooleanFormula> inductiveSlice = formulaSlicing(selectionVars,
         orderedList, query);

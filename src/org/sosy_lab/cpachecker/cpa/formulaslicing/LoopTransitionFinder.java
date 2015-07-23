@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -14,8 +16,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -23,12 +24,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 
 /**
  * Return a path-formula describing all possible transitions inside the loop.
@@ -46,17 +43,19 @@ public class LoopTransitionFinder {
 
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
-  private final SetMultimap<CFANode, CFAEdge> loopEdgesCache;
   private final FormulaManagerView fmgr;
   private final LogManager logger;
 
-  public LoopTransitionFinder(CFA pCfa, PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger) {
+  public LoopTransitionFinder(
+      Configuration config,
+      CFA pCfa, PathFormulaManager pPfmgr,
+      FormulaManagerView pFmgr, LogManager pLogger)
+      throws InvalidConfigurationException {
+    config.inject(this);
     cfa = pCfa;
     pfmgr = pPfmgr;
     fmgr = pFmgr;
     logger = pLogger;
-    loopEdgesCache = HashMultimap.create();
   }
 
   public PathFormula generateLoopTransition(
@@ -90,35 +89,24 @@ public class LoopTransitionFinder {
   public Set<CFAEdge> getEdgesInSCC(CFANode loopHead) {
     Preconditions.checkState(cfa.getAllLoopHeads().get().contains(loopHead));
 
-    Set<CFAEdge> out = loopEdgesCache.get(loopHead);
-
-    // Note that loop has to contain at least one looping edge.
-    if (out.isEmpty()) {
-
-      // Populate the cache on demand.
-      EdgeCollectingCFAVisitor forwardVisitor = new EdgeCollectingCFAVisitor();
-      CFATraversal.dfs().traverse(loopHead, forwardVisitor);
-      Set<CFAEdge> forwardEdges = ImmutableSet.copyOf(
-          forwardVisitor.getVisitedEdges());
-      EdgeCollectingCFAVisitor backwardVisitor = new EdgeCollectingCFAVisitor();
-      CFATraversal.dfs().backwards().traverse(loopHead, backwardVisitor);
-      Set<CFAEdge> backwardEdges = ImmutableSet.copyOf(
-          backwardVisitor.getVisitedEdges());
-      out = Sets.intersection(forwardEdges, backwardEdges);
-
-      loopEdgesCache.putAll(loopHead, out);
+    // Returns *local* loop.
+    Set<CFAEdge> out = new HashSet<>();
+    for (Loop loop :
+        cfa.getLoopStructure().get().getLoopsForLoopHead(loopHead)) {
+      out.addAll(loop.getInnerLoopEdges());
     }
 
     return out;
   }
 
   /**
-   * Apply at  large-block-encoding.
+   * Apply large-block-encoding to a list of {@link PathFormula}s.
    *
    * 1) A - s_1 -> B, B - s_2 ->C is converted to A - s_1 /\ s_2 -> C.
    *
    * 2) A - s_1 -> B, A - s_2 -> B is converted to A - s_1 \/ s_2 -> B.
-   * Runs in quadratic time.
+   *
+   * Runs in quadratic time, uses fixpoint computation.
    */
   private List<PathFormula> LBE(
       SSAMap start,

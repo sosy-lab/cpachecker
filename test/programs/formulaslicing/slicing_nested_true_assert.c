@@ -1,5 +1,7 @@
 #include<assert.h>
 
+extern int __VERIFIER_nondet_int();
+
 int main() {
   int x = 5;
   int y = 10;
