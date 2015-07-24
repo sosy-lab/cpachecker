@@ -26,16 +26,17 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
-import hashlib
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import base64
 import fnmatch
+import hashlib
 import io
 import logging
 import os
 import random
 import shutil
+import tempfile
 import threading
 import zlib
 import zipfile
@@ -70,6 +71,8 @@ class WebClientError(Exception):
         return repr(self.value)
 
 _connectionTimeout = 600 #seconds
+_hashCodeCachePath = os.path.join(os.path.expanduser("~"), ".verifiercloud/cache/hashCodeCache")
+_hashCodeCache = {}
 _thread_local = threading.local()
 _print_lock = threading.Lock()
 _unfinished_run_ids = set()
@@ -78,6 +81,25 @@ _webclient = None
 _base64_user_pwd = None
 _svn_branch = None
 _svn_revision = None
+
+def _readHashCodeCache():
+    if not os.path.isfile(_hashCodeCachePath):        
+        return
+        
+    with open(_hashCodeCachePath, mode='r') as hashCodeCacheFile:
+        for line in hashCodeCacheFile:
+            tokens = line.strip().split('\t')
+            if len(tokens) == 3:
+                _hashCodeCache[(tokens[0],tokens[1])]= tokens[2]
+
+def _writeHashCodeCache():
+    directory = os.path.dirname(_hashCodeCachePath)
+    with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
+        for (path, mTime), hashValue in _hashCodeCache.items():
+            line = (path + '\t' + mTime + '\t' + hashValue + '\n').encode()
+            tmpFile.write(line)
+            
+    os.renames(tmpFile.name, _hashCodeCachePath)
 
 def resolveToolVersion(config, benchmark, webclient):
     global _svn_branch, _svn_revision
@@ -134,6 +156,7 @@ def init(config, benchmark):
     if config.cloudUser:
         _base64_user_pwd = base64.b64encode(config.cloudUser.encode("utf-8")).decode("utf-8")
 
+    _readHashCodeCache()
     _groupId = str(random.randint(0, 1000000))
 
     benchmark.executable = 'scripts/cpa.sh'
@@ -168,6 +191,7 @@ def execute_benchmark(benchmark, output_handler):
         raise
     finally:
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
+        _writeHashCodeCache()
 
 def stop():
     logging.debug("Stopping tasks...")
@@ -229,13 +253,22 @@ def _submitRunsParallel(runSet, benchmark):
     _flushRuns()
     return runIDs
 
+def _getSha1Hash(path):
+    path = os.path.abspath(path)
+    mTime = str(os.path.getmtime(path))
+    if ((path, mTime) in _hashCodeCache):
+        return _hashCodeCache[(path, mTime)]
+    else:
+        with open(path, 'rb') as file:
+            hashValue = hashlib.sha1(file.read()).hexdigest()
+            _hashCodeCache[(path, mTime)] = hashValue
+            return hashValue
+    
 def _submitRun(run, benchmark, counter = 0):
 
     programTextHashs = []
     for programPath in run.sourcefiles:
-        with open(programPath, 'rb') as programFile:
-            programTextHash = hashlib.sha1(programFile.read()).hexdigest()
-            programTextHashs.append(programTextHash)
+        programTextHashs.append(_getSha1Hash(programPath))
     params = {'programTextHash': programTextHashs}
 
     params['svnBranch'] = _svn_branch
