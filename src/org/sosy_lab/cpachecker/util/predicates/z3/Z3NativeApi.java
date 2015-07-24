@@ -56,8 +56,6 @@ public final class Z3NativeApi {
     String value;
   }
 
-  /** Start optimization - Nikolaj Bjorner branch. **/
-
   /**
    * Create a new optimize context.
    *
@@ -553,6 +551,11 @@ public final class Z3NativeApi {
   public static native long pattern_to_ast(long context, long a1);
   public static native int get_pattern_num_terms(long context, long a1);
   public static native long get_pattern(long context, long a1, int a2);
+
+  /**
+   * @param a1 Variable AST.
+   * @return index of de-Brujin bound variable.
+   */
   public static native int get_index_value(long context, long a1);
   public static native boolean is_quantifier_forall(long context, long a1);
   public static native int get_quantifier_weight(long context, long a1);
