@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.formulaslicing.SlicingAbstractedState.SubsumedSlicingState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -185,9 +185,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
         // We are coming from inside the loop => the (other) abstracted state
         // should already exist.
-        // We return the IntermediateState as a flag, and during the precision
-        // adjustment it will be replaced by the previously calculated flag.
-        return Collections.singleton(state);
+        // We use a special flag to indicate that no slicing is necessary.
+        return Collections.singleton(SubsumedSlicingState.getInstance());
       }
 
     } else {
@@ -257,21 +256,16 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Override
   public Optional<PrecisionAdjustmentResult> prec(SlicingState pState,
       UnmodifiableReachedSet pStates, AbstractState pFullState) {
-    LocationState loc =
-        AbstractStates.extractStateByType(pFullState, LocationState.class);
 
-    // todo: get rid of the warning.
-    CFANode node = loc.getLocationNode();
-    if (shouldPerformAbstraction(node) && !pState.isAbstracted()) {
-      // todo: less hacky way to signal that this state is at the abstract
-      // location, but is coming from SCC. Current approach tightly couples
-      // two conceptually separate methods.
+    if (pState instanceof SubsumedSlicingState) {
 
       // Replace with an existing abstracted sibling.
       Optional<SlicingAbstractedState> sibling = findSibling(
           pStates.getReached(pFullState));
 
-      Verify.verify(sibling.isPresent() && sibling.get().isAbstracted());
+      // todo: this condition can be violated, in LPI + formula slicing mode
+      Verify.verify(sibling.isPresent());
+      Verify.verify(sibling.get().isAbstracted());
       return Optional.of(PrecisionAdjustmentResult.create(
           sibling.get(), new Precision() {
       }, Action.CONTINUE));

@@ -106,4 +106,24 @@ public class SlicingAbstractedState extends SlicingState implements
   public boolean shouldBeHighlighted() {
     return false;
   }
+
+  /**
+   * Dummy state for signalling that the processed edge comes from within the
+   * loop and no slicing is necessary.
+   */
+  static class SubsumedSlicingState extends SlicingState {
+    private static final SubsumedSlicingState INSTANCE = new SubsumedSlicingState();
+
+    private SubsumedSlicingState() { }
+
+    static SubsumedSlicingState getInstance() {
+      return INSTANCE;
+    }
+
+
+    @Override
+    public boolean isAbstracted() {
+      return true;
+    }
+  }
 }
