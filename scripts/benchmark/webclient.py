@@ -94,6 +94,7 @@ def _readHashCodeCache():
 
 def _writeHashCodeCache():
     directory = os.path.dirname(_hashCodeCachePath)
+    os.makedirs(directory, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
         for (path, mTime), hashValue in _hashCodeCache.items():
             line = (path + '\t' + mTime + '\t' + hashValue + '\n').encode()
