@@ -150,15 +150,17 @@ public class LoopTransitionFinder {
       Set<EdgeWrapper> out) {
     for (EdgeWrapper e : out) {
 
+      CFANode successor = e.getSuccessor();
+
       // Do not perform reduction on nodes ending in a loop-head.
-      if (loopStructure.getAllLoopHeads().contains(e.getSuccessor())) continue;
+      if (loopStructure.getAllLoopHeads().contains(successor)) continue;
 
       EdgeWrapper candidate = null;
 
       for (EdgeWrapper other : out) {
         if (e == other) continue;
 
-        if (other.getPredecessor() == e.getSuccessor()) {
+        if (other.getPredecessor() == successor) {
           if (candidate == null) {
             candidate = other;
           } else {

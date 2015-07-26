@@ -240,6 +240,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       return iState1.isMergedInto(iState2) &&
           iState1.getAbstraction().equals(iState2.getAbstraction());
     } else {
+      if (pState1 instanceof SubsumedSlicingState) {
+        return true;
+      }
       if (fmgr.simplify(pState1.asAbstracted().getAbstraction()).equals(
           fmgr.simplify(pState2.asAbstracted().getAbstraction())
       )) {
@@ -376,24 +379,15 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
    */
   private Optional<SlicingAbstractedState> findSibling(
       Collection<AbstractState> pSiblings) {
-
-    // todo: Code duplication with PolicyIterationManager#findSibling.
     if (pSiblings.isEmpty()) {
       return Optional.absent();
     }
-
-    SlicingAbstractedState out = null;
-    boolean found = false;
     for (AbstractState sibling : pSiblings) {
-      out = AbstractStates.extractStateByType(sibling,
+      SlicingAbstractedState out = AbstractStates.extractStateByType(sibling,
           SlicingAbstractedState.class);
       if (out != null) {
-        found = true;
-        break;
+        return Optional.of(out);
       }
-    }
-    if (found) {
-      return Optional.of(out);
     }
     return Optional.absent();
   }
