@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -81,12 +82,18 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
     // TODO here, we could sort the refiners to get a better result,
     //      like the score-based sorting from ValueAnalysisDelegatingRefiner
 
+    logger.logf(Level.FINE, "starting refinement with %d refiners", refiners.size());
+
     for (int i = 0; i < refiners.size(); i++) {
       totalRefinementsSelected.get(i).inc();
       try {
 
+        logger.logf(Level.FINE, "starting refinement %d of %d with %s", i + 1, refiners.size(),
+            refiners.get(i).getClass().getSimpleName());
         cex = refiners.get(i).performRefinement(reached, pErrorPath);
+
         if (cex.isSpurious()) {
+          logger.logf(Level.FINE, "refinement %d of %d was successful", i + 1, refiners.size());
           totalRefinementsFinished.get(i).inc();
           break;
         }
@@ -96,6 +103,8 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
           throw e; // propagate exception
         } else {
           // ignore and try the next refiner
+          logger.logf(Level.FINE, "refinement %d of %d reported repeated counterexample, "
+              + "restarting refinement with next refiner", i + 1, refiners.size());
         }
       }
     }
@@ -104,6 +113,8 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
       // TODO correct reason?
       throw new RefinementFailedException(Reason.RepeatedCounterexample, pErrorPath);
     }
+
+    logger.log(Level.FINE, "refinement finished");
 
     return Preconditions.checkNotNull(cex);
   }
