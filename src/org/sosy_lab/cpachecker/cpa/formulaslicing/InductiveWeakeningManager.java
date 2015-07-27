@@ -170,22 +170,22 @@ public class InductiveWeakeningManager {
   ) throws SolverException, InterruptedException {
 
     query = fmgr.simplify(query);
-
-    if (solver.isUnsat(query)) { // Questionable, but very useful for testing.
-      logger.log(Level.INFO, "Everything is inductive under the transition!",
-          "That looks suspicious");
-      return ImmutableSet.of();
-    }
-
-    List<BooleanFormula> selection = selectionVars;
+    List<BooleanFormula> abstractedSelectors = selectionVars;
 
     try (ProverEnvironment env = solver.newProverEnvironment()) {
 
       //noinspection ResultOfMethodCallIgnored
       env.push(query);
 
+      if (env.isUnsat()) {
+        // Questionable, but very useful for testing.
+        logger.log(Level.INFO, "Everything is inductive under the transition!",
+            "That looks suspicious");
+        return ImmutableSet.of();
+      }
+
       // Make everything abstracted.
-      BooleanFormula selectionFormula = bfmgr.and(selection);
+      BooleanFormula selectionFormula = bfmgr.and(abstractedSelectors);
 
       //noinspection ResultOfMethodCallIgnored
       env.push(selectionFormula);
@@ -204,7 +204,7 @@ public class InductiveWeakeningManager {
       for (int i=0; i<selectionVars.size(); i++) {
 
         // Remove this variable from the selection.
-        List<BooleanFormula> newSelection = Lists.newArrayList(selection);
+        List<BooleanFormula> newSelection = Lists.newArrayList(abstractedSelectors);
 
         BooleanFormula selVar = selectionVars.get(i);
         Verify.verify(selVar.equals(newSelection.get(i - noRemoved)));
@@ -219,10 +219,9 @@ public class InductiveWeakeningManager {
         env.push(bfmgr.and(newSelection));
 
         if (env.isUnsat()) {
-          logger.log(Level.FINE, "Query is still unsat: atom added!");
 
           // Still unsat: keep that element non-abstracted.
-          selection = newSelection;
+          abstractedSelectors = newSelection;
           noRemoved++;
         } else {
           logger.log(Level.FINE, "Query became non-inductive: not adding the atom");
@@ -232,13 +231,11 @@ public class InductiveWeakeningManager {
       }
 
       //noinspection ResultOfMethodCallIgnored
-      env.push(bfmgr.and(selection));
+      env.push(bfmgr.and(abstractedSelectors));
 
-      // todo: what if we end up with a SAT formula in the end?
-      // What does it come down to?
       Verify.verify(env.isUnsat());
     }
-    return new HashSet<>(selection);
+    return new HashSet<>(abstractedSelectors);
   }
 
   /**
