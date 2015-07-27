@@ -133,6 +133,11 @@ public class BlockOperator {
       return explicitAbstractionNodes.contains(predLoc);
     }
 
+    if (threshold == 1) {
+      // check SBE case here to avoid need for loop-structure information
+      return true;
+    }
+
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
       numBlkFunctions++;
       return true;
