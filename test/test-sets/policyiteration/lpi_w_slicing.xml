@@ -3,12 +3,10 @@
 <benchmark tool="cpachecker" timelimit="100" hardtimelimit="120" memlimit="2000" cpuCores="1">
     <option name="-noout" />
 
-    <!-- todo: benchmark slicing w/ policy refinement?-->
     <option name="-policy-slicing"/>
     <option name="-setprop">cpa.predicate.ignoreIrrelevantVariables=true</option>
     <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
-    <option name="-setprop">cpa.stator.policy.unrollingRefinementThreshold=2</option>
-    <option name="-setprop">solver.z3.requireProofs=false</option>
+    <option name="-setprop">cpa.stator.policy.runCongruence=false</option>
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
@@ -31,5 +29,6 @@
         <column title="checking independence">Time spent in checking independence</column>
 
         <column title="formula slicing">Time spent in formula slicing</column>
+        <column title="LBE encoding">Time spent in LBE encoding</column>
     </columns>
 </benchmark>
