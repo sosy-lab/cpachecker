@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
@@ -37,14 +40,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueAnalysisReducer implements Reducer {
 
-  private boolean occursInBlock(Block pBlock, String pVar) {
-    // TODO could be more efficient (avoid linear runtime)
+  /** returns a collection of variables used in the block */
+  private Set<String> getBlockVariables(Block pBlock) {
+    Set<String> vars = new HashSet<>();
     for (ReferencedVariable referencedVar : pBlock.getReferencedVariables()) {
-      if (referencedVar.getName().equals(pVar)) {
-        return true;
-      }
+      vars.add(referencedVar.getName());
     }
-    return false;
+    return vars;
   }
 
   @Override
@@ -55,13 +57,16 @@ public class ValueAnalysisReducer implements Reducer {
     for (MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
-      if (!occursInBlock(pContext, simpleName)) {
+      Set<String> blockVariables = getBlockVariables(pContext);
+      if (!blockVariables.contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }
     }
 
     return clonedElement;
   }
+
+
 
   @Override
   public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
@@ -75,10 +80,12 @@ public class ValueAnalysisReducer implements Reducer {
     // - not the variables of rootState used in the block -> just ignore those values
     ValueAnalysisState diffElement = ValueAnalysisState.copyOf(reducedState);
 
+    Set<String> blockVariables = getBlockVariables(pReducedContext);
+
     for (MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
-      if (!occursInBlock(pReducedContext, simpleName)) {
+      if (!blockVariables.contains(simpleName)) {
         diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar), rootState.getTypeForMemoryLocation(trackedVar));
 
       //} else {
