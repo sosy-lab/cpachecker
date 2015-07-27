@@ -177,10 +177,6 @@ public class BlockOperator {
     }
 
     if (threshold > 0) {
-      if (threshold == 1) {
-        return true;
-      }
-
       if (isThresholdFulfilled(pf)) {
 
         if (alwaysAfterThreshold) {
