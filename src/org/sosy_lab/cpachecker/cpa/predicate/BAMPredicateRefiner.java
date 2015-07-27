@@ -457,8 +457,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
           openBlocks.pop();
         }
       }
-
-      predicateCpa.getReducer().clearCaches();
     }
 
     @Override

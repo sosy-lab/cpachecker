@@ -180,25 +180,6 @@ public class BAMPredicateReducer implements Reducer {
     return Pair.of(element.getAbstractionFormula().asRegion(), precision);
   }
 
-  private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<>();
-
-  public void clearCaches() {
-    reduceCache.clear();
-  }
-
-  @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision,
-      Block pContext) {
-    PredicatePrecision precision = (PredicatePrecision) pPrecision;
-    Pair<Integer, Block> key = Pair.of(precision.getId(), pContext);
-    Precision result = reduceCache.get(key);
-    if (result != null) { return result; }
-
-    result = reducePrecision(precision, pContext);
-    reduceCache.put(key, result);
-    return result;
-  }
-
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
@@ -218,7 +199,9 @@ public class BAMPredicateReducer implements Reducer {
     return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
   }
 
-  private PredicatePrecision reducePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
+  @Override
+  public Precision getVariableReducedPrecision(Precision pPrecision, Block context) {
+    PredicatePrecision expandedPredicatePrecision = (PredicatePrecision) pPrecision;
 
     assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
       "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
