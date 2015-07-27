@@ -23,6 +23,8 @@
  */
 
 /**
- * Contains {@link SymbolicInterpolant} and all all classes related to it.
+ * Contains
+ * {@link org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant
+ * SymbolicInterpolant} and all all classes related to it.
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant;

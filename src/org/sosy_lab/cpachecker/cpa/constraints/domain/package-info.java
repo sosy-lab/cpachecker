@@ -25,7 +25,9 @@
 /**
  * {@link org.sosy_lab.cpachecker.core.interfaces.AbstractDomain AbstractDomains} for
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
- * Provides the {@link ConstraintsState} and different kinds of less-or-equal operators.
+ * Provides the
+ * {@link org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState ConstraintsState}
+ * and different kinds of less-or-equal operators.
  *
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;

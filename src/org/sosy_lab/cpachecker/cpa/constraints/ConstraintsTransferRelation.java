@@ -117,7 +117,7 @@ public class ConstraintsTransferRelation
 
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    simplifier = new StateSimplifier(machineModel, logger, pConfig);
+    simplifier = new StateSimplifier(pConfig);
 
     solver = pSolver;
     formulaManager = solver.getFormulaManager();
@@ -196,13 +196,17 @@ public class ConstraintsTransferRelation
       }
 
     } else {
-      return computeNewStateByCreatingConstraint(pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName, pFileLocation);
+      return computeNewStateByCreatingConstraint(pOldState, pExpression, pFactory, pTruthAssumption, pFunctionName);
     }
   }
 
-  private ConstraintsState computeNewStateByCreatingConstraint(ConstraintsState pOldState,
-      AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption, String pFunctionName,
-      FileLocation pFileLocation) throws UnrecognizedCodeException, SolverException, InterruptedException {
+  private ConstraintsState computeNewStateByCreatingConstraint(
+      final ConstraintsState pOldState,
+      final AExpression pExpression,
+      final ConstraintFactory pFactory,
+      final boolean pTruthAssumption,
+      final String pFunctionName
+  ) throws UnrecognizedCodeException, SolverException, InterruptedException {
 
     Optional<Constraint> oNewConstraint = createConstraint(pExpression, pFactory, pTruthAssumption);
     ConstraintsState newState = pOldState.copyOf();
@@ -423,7 +427,7 @@ public class ConstraintsTransferRelation
       final ConstraintFactory factory =
           ConstraintFactory.getInstance(pFunctionName, valueState, machineModel, logger);
 
-      ConstraintsState newState = null;
+      ConstraintsState newState;
       try {
 
         newState = getNewState(pStateToStrengthen,

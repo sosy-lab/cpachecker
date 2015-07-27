@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.VariableMap;
@@ -394,7 +393,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   }
 
   private boolean isOnlySatisfyingAssignment(AssignableTerm pTerm, Object termAssignment, BooleanFormula pFormula)
-      throws SolverException, InterruptedException, UnrecognizedCCodeException {
+      throws SolverException, InterruptedException {
 
     VariableMap freeVariables = new VariableMap(formulaManager.extractFreeVariableMap(pFormula));
     BooleanFormula prohibitAssignment = formulaManager

@@ -60,7 +60,6 @@ public class ValueAnalysisEdgeInterpolator
           new ValueAnalysisState(),
           ValueAnalysisCPA.class,
           pConfig,
-          pLogger,
           pShutdownNotifier,
           pCfa);
   }

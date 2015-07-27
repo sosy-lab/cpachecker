@@ -53,7 +53,7 @@ import com.google.common.base.Optional;
 /**
  * Edge interpolator for
  * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
- * Creates {@link ConstraintsInterpolant ConstraintsInterpolants} based on a combination of
+ * Creates {@link SymbolicInterpolant SymbolicInterpolants} based on a combination of
  * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
  * <code>ConstraintsCPA</code>.
  */
@@ -178,11 +178,9 @@ public class ElementTestingSymbolicEdgeInterpolator
 
   private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
     IdentifierAssignment definiteAssignments = pState.getConstraintsState().getDefiniteAssignment();
-    ForgettingCompositeState newState =
-        new ForgettingCompositeState(pState.getValueState(),
-                                     new ConstraintsState(new HashSet<Constraint>(), definiteAssignments));
 
-    return newState;
+    return new ForgettingCompositeState(pState.getValueState(),
+                                 new ConstraintsState(new HashSet<Constraint>(), definiteAssignments));
   }
 
   private ForgettingCompositeState reduceConstraintsToNecessaryState(

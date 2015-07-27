@@ -122,7 +122,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
 
     valueAnalysisCpa.injectRefinablePrecision();
 
-    ARGCPA argCpa = null;
+    ARGCPA argCpa;
 
     if (pCpa instanceof WrapperCPA) {
       argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
@@ -143,7 +143,7 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
     final ValueAnalysisFeasibilityChecker feasibilityChecker =
         new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
 
-    ValueAnalysisImpactRefiner refiner = new ValueAnalysisImpactRefiner(
+    return new ValueAnalysisImpactRefiner(
                                     feasibilityChecker,
                                     strongestPostOperator,
                                     config,
@@ -151,8 +151,6 @@ public class ValueAnalysisImpactRefiner implements UnsoundRefiner, StatisticsPro
                                     valueAnalysisCpa.getShutdownNotifier(),
                                     valueAnalysisCpa.getCFA(),
                                     argCpa);
-
-    return refiner;
   }
 
   private ValueAnalysisImpactRefiner(

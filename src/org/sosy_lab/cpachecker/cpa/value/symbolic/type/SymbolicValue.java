@@ -52,6 +52,4 @@ public interface SymbolicValue extends Value, Serializable {
    * a certain memory locations replaced with these locations.
    */
   String getRepresentation();
-
-  boolean equals(Object o);
 }

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 /**
@@ -74,9 +72,9 @@ public class AliasedSubsetLessOrEqualOperatorTest {
   private final SymbolicExpression numExp1 = factory.asConstant(num1, defType);
 
   private final Constraint c1 = (Constraint) factory.lessThan(idExp1, numExp1, defType, defType);
-  private final Constraint c2 = (Constraint) factory.equal(idExp2, idExp1, defType, defType);
+  private final Constraint c2 = factory.equal(idExp2, idExp1, defType, defType);
   private final Constraint cAlias1 = (Constraint) factory.lessThan(aliasExp1, numExp1, defType, defType);
-  private final Constraint cAlias2 = (Constraint) factory.equal(aliasExp2, aliasExp1, defType, defType);
+  private final Constraint cAlias2 = factory.equal(aliasExp2, aliasExp1, defType, defType);
 
   public AliasedSubsetLessOrEqualOperatorTest() {
     SymbolicValues.initialize(ComparisonType.ALIASED_SUBSET);

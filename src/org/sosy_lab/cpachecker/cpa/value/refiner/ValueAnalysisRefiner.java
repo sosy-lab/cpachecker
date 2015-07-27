@@ -132,7 +132,7 @@ public class ValueAnalysisRefiner
     final PrefixSelector prefixSelector = new PrefixSelector(cfa.getVarClassification(),
                                                              cfa.getLoopStructure());
 
-    ValueAnalysisRefiner refiner = new ValueAnalysisRefiner(
+    return new ValueAnalysisRefiner(
         checker,
         strongestPostOp,
         new SortingPathExtractor(prefixProvider,
@@ -143,8 +143,6 @@ public class ValueAnalysisRefiner
         logger,
         valueAnalysisCpa.getShutdownNotifier(),
         cfa);
-
-    return refiner;
   }
 
   ValueAnalysisRefiner(
@@ -164,9 +162,7 @@ public class ValueAnalysisRefiner
         ValueAnalysisInterpolantManager.getInstance(),
         pPathExtractor,
         pConfig,
-        pLogger,
-        pShutdownNotifier,
-        pCfa);
+        pLogger);
 
     pConfig.inject(this, ValueAnalysisRefiner.class);
 

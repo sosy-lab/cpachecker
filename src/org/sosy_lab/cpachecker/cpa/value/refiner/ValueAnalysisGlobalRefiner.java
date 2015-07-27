@@ -40,8 +40,8 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingGlobalPathExtracto
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 @Options(prefix = "cpa.value.refinement")
@@ -72,19 +72,16 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    ValueAnalysisGlobalRefiner refiner =
-        new ValueAnalysisGlobalRefiner(
-            checker,
-            strongestPostOp,
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
-            new PrefixSelector(cfa.getVarClassification(),
-                               cfa.getLoopStructure()),
-            config,
-            logger,
-            valueAnalysisCpa.getShutdownNotifier(),
-            cfa);
-
-    return refiner;
+    return new ValueAnalysisGlobalRefiner(
+        checker,
+        strongestPostOp,
+        new ValueAnalysisPrefixProvider(logger, cfa, config),
+        new PrefixSelector(cfa.getVarClassification(),
+                           cfa.getLoopStructure()),
+        config,
+        logger,
+        valueAnalysisCpa.getShutdownNotifier(),
+        cfa);
   }
 
   ValueAnalysisGlobalRefiner(

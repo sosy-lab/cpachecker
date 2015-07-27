@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -52,8 +50,7 @@ public class SymbolicValueAnalysisFeasibilityChecker
       final SymbolicStrongestPostOperator pStrongestPostOperator,
       final Configuration pConfig,
       final LogManager pLogger,
-      final CFA pCfa,
-      final ShutdownNotifier pShutdownNotifier
+      final CFA pCfa
   ) throws InvalidConfigurationException {
 
     super(pStrongestPostOperator,

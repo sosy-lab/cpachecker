@@ -95,6 +95,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
         : Collections.unmodifiableSet(assignment.keySet());
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <T extends Interpolant<ValueAnalysisState>> T join(final T pOther) {
     assert pOther instanceof ValueAnalysisInterpolant;
@@ -161,7 +162,8 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
     }
 
     ValueAnalysisInterpolant other = (ValueAnalysisInterpolant) obj;
-    return Objects.equals(assignment, other.assignment) && Objects.equals(assignmentTypes, other.assignmentTypes);
+    return Objects.equals(assignment, other.assignment) && Objects.equals(
+        assignmentTypes, other.assignmentTypes);
   }
 
   /**
@@ -201,7 +203,12 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    */
   @Override
   public ValueAnalysisState reconstructState() {
-    return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment), PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
+    if (assignment == null || assignmentTypes == null) {
+      throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
+
+    } else {
+      return new ValueAnalysisState(PathCopyingPersistentTreeMap.copyOf(assignment), PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
+    }
   }
 
   @Override
@@ -246,6 +253,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    * @param toRetain the set of memory location identifiers to retain in the interpolant.
    * @return the weakened interpolant
    */
+  @SuppressWarnings("ConstantConditions") // isTrivial() checks for FALSE-interpolants
   public ValueAnalysisInterpolant weaken(Set<String> toRetain) {
     if (isTrivial()) {
       return this;
@@ -264,6 +272,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
     return weakenedItp;
   }
 
+  @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null
   @Override
   public int getSize() {
     return isTrivial() ? 0 : assignment.size();

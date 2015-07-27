@@ -47,7 +47,6 @@ import com.google.common.base.Optional;
 public class ValueAnalysisFeasibilityChecker
     extends GenericFeasibilityChecker<ValueAnalysisState> {
 
-  private final LogManager logger;
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
 
@@ -74,7 +73,6 @@ public class ValueAnalysisFeasibilityChecker
           pCfa);
 
     strongestPostOp = pStrongestPostOp;
-    logger    = pLogger;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
   }
 

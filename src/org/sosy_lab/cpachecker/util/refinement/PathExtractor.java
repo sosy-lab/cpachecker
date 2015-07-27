@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
 /**
@@ -133,10 +132,6 @@ public class PathExtractor implements Statistics {
 
   public void addFeasibleTarget(ARGState pLastState) {
     feasibleTargets.add(pLastState);
-  }
-
-  protected Set<ARGState> getFeasibleTargets() {
-    return ImmutableSet.copyOf(feasibleTargets);
   }
 
   @Override

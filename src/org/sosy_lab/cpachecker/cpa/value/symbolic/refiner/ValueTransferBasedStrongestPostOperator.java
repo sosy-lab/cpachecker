@@ -259,9 +259,6 @@ public class ValueTransferBasedStrongestPostOperator
   private ForgettingCompositeState getNewCompositeState(final ValueAnalysisState pNextValueState,
       final ConstraintsState pConstraints) {
 
-    final ForgettingCompositeState newState =
-        new ForgettingCompositeState(pNextValueState, pConstraints);
-
-    return newState;
+    return new ForgettingCompositeState(pNextValueState, pConstraints);
   }
 }

@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -59,7 +58,6 @@ import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.Multimap;
@@ -96,7 +94,7 @@ public class SymbolicValueAnalysisRefiner
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final CFA cfa = valueAnalysisCpa.getCFA();;
+    final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final Solver solver = Solver.create(config, logger, shutdownNotifier);
@@ -108,17 +106,13 @@ public class SymbolicValueAnalysisRefiner
         new SymbolicValueAnalysisFeasibilityChecker(strongestPostOperator,
                                                     config,
                                                     logger,
-                                                    cfa,
-                                                    shutdownNotifier);
+                                                    cfa);
 
 
     final GenericPrefixProvider<ForgettingCompositeState> prefixProvider =
         new GenericPrefixProvider<>(strongestPostOperator,
                                     ForgettingCompositeState.getInitialState(),
                                     logger, cfa, config, ValueAnalysisCPA.class);
-
-    final PrefixSelector prefixSelector =
-        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -132,22 +126,17 @@ public class SymbolicValueAnalysisRefiner
         new SymbolicPathInterpolator(edgeInterpolator,
                                     feasibilityChecker,
                                     prefixProvider,
-                                    prefixSelector,
                                     config,
                                     logger,
                                     shutdownNotifier,
                                     cfa);
 
-    SymbolicValueAnalysisRefiner refiner = new SymbolicValueAnalysisRefiner(
+    return new SymbolicValueAnalysisRefiner(
         feasibilityChecker,
         pathInterpolator,
         new PathExtractor(logger),
         config,
-        logger,
-        shutdownNotifier,
-        cfa);
-
-    return refiner;
+        logger);
   }
 
   public SymbolicValueAnalysisRefiner(
@@ -155,9 +144,7 @@ public class SymbolicValueAnalysisRefiner
       final PathInterpolator<SymbolicInterpolant> pInterpolator,
       final PathExtractor pPathExtractor,
       final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
+      final LogManager pLogger
   ) throws InvalidConfigurationException {
 
     super(pFeasibilityChecker,
@@ -165,9 +152,7 @@ public class SymbolicValueAnalysisRefiner
           SymbolicInterpolantManager.getInstance(),
           pPathExtractor,
           pConfig,
-          pLogger,
-          pShutdownNotifier,
-          pCfa);
+          pLogger);
   }
 
   @Override
@@ -216,11 +201,6 @@ public class SymbolicValueAnalysisRefiner
     }
 
     return increment.build();
-  }
-
-  @Override
-  public void collectStatistics(final Collection<Statistics> pStatsCollection) {
-    super.collectStatistics(pStatsCollection);
   }
 
   @Override

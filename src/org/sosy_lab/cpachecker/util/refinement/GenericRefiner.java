@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,7 +36,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
@@ -110,9 +108,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       final InterpolantManager<S, I> pInterpolantManager,
       final PathExtractor pPathExtractor,
       final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
+      final LogManager pLogger
   ) throws InvalidConfigurationException {
 
     pConfig.inject(this, GenericRefiner.class);

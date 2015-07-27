@@ -45,7 +45,7 @@ public interface ConstraintsPrecision extends Precision {
   boolean isTracked(Constraint pConstraint, CFANode pLocation);
 
   ConstraintsPrecision join(ConstraintsPrecision pOther);
-  
+
   ConstraintsPrecision withIncrement(Increment pIncrement);
 
   class Increment {
@@ -79,6 +79,7 @@ public interface ConstraintsPrecision extends Precision {
       return new Builder();
     }
 
+    @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("ConstraintsPrecision.Increment[");
 
@@ -101,7 +102,7 @@ public interface ConstraintsPrecision extends Precision {
 
     public static class Builder {
       private Multimap<CFANode, Constraint> trackedLocally = HashMultimap.create();
-      private Multimap<String, Constraint> trackedInFunction = HashMultimap.create();;
+      private Multimap<String, Constraint> trackedInFunction = HashMultimap.create();
       private Set<Constraint> trackedGlobally = new HashSet<>();
 
       private Builder() {

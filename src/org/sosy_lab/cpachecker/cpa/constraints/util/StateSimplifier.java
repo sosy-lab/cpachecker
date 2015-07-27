@@ -34,12 +34,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityChecker;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -65,20 +63,10 @@ public class StateSimplifier {
       + "analysis during simplification")
   private boolean removeOutdated = true;
 
-  @SuppressWarnings("unused")
-  private final MachineModel machineModel;
-
-  @SuppressWarnings("unused")
-  private final LogManager logger;
-
   public StateSimplifier(
-      final MachineModel pMachineModel,
-      final LogManager pLogger,
       final Configuration pConfig
   ) throws InvalidConfigurationException {
     pConfig.inject(this);
-    machineModel = pMachineModel;
-    logger = pLogger;
   }
 
   /**

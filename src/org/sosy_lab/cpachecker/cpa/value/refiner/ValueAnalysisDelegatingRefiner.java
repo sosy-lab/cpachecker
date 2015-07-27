@@ -136,7 +136,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     return new ValueAnalysisDelegatingRefiner(
         config,
-        logger,
         controlFlowAutomaton,
         cpa,
         ValueAnalysisRefiner.create(cpa),
@@ -147,7 +146,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
   protected ValueAnalysisDelegatingRefiner(
       final Configuration pConfig,
-      final LogManager pLogger,
       final CFA pCfa,
       final ConfigurableProgramAnalysis pCpa,
       final ValueAnalysisRefiner pValueRefiner,

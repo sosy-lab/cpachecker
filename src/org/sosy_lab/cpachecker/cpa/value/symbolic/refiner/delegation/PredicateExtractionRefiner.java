@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
@@ -45,7 +44,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public abstract class PredicateExtractionRefiner implements Refiner {
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
 
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);

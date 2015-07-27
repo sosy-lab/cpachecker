@@ -201,7 +201,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
             : Collections.<String>emptySet());
 
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
-        logger,
         infeasiblePrefix.immutableCopy(),
         useDefRelation,
         cfa.getMachineModel()).obtainInterpolants();

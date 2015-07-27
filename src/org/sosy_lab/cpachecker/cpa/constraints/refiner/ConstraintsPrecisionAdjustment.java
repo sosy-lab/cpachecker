@@ -72,16 +72,12 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment, Stat
 
     return prec((ConstraintsState) pStateToAdjust,
                 (ConstraintsPrecision) pPrecision,
-                pReachedStates,
-                pStateProjection,
                 pFullState);
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
       final ConstraintsState pStateToAdjust,
       final ConstraintsPrecision pPrecision,
-      final UnmodifiableReachedSet pReachedStates,
-      final Function<AbstractState, AbstractState> pStateProjection,
       final AbstractState pFullState
   ) {
 

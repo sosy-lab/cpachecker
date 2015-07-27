@@ -58,7 +58,7 @@ public abstract class SymbolicExpression implements SymbolicValue {
   }
 
   /**
-   * Accepts the given {@link SymbolicExpressionVisitor}.
+   * Accepts the given {@link SymbolicValueVisitor}.
    *
    * @param pVisitor the visitor to accept
    * @param <VisitorReturnT> the return type of the visitor's specific <code>visit</code> method

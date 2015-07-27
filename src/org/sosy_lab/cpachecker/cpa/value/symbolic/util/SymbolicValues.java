@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;

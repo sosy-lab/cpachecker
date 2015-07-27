@@ -26,16 +26,11 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant.SymbolicInterpolantManager;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
-import org.sosy_lab.cpachecker.util.refinement.EdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -54,7 +49,6 @@ public class SymbolicPathInterpolator
       final SymbolicEdgeInterpolator pEdgeInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
       final GenericPrefixProvider<ForgettingCompositeState> pPrefixProvider,
-      final PrefixSelector pPrefixSelector,
       final Configuration pConfig, LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, CFA pCfa
   ) throws InvalidConfigurationException {

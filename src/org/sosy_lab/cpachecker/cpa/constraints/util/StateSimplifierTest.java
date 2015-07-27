@@ -27,9 +27,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
@@ -51,10 +48,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class StateSimplifierTest {
 
-  private final LogManagerWithoutDuplicates logger =
-      new LogManagerWithoutDuplicates(TestLogManager.getInstance());
-
-  private final MachineModel machineModel = MachineModel.LINUX32;
   private final StateSimplifier simplifier;
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
@@ -94,7 +87,7 @@ public class StateSimplifierTest {
         .setOption("cpa.constraints.removeTrivial", "true")
         .build();
     simplifier =
-        new StateSimplifier(machineModel, logger, config);
+        new StateSimplifier(config);
     SymbolicValues.initialize(ComparisonType.SUBSET);
 
   }
@@ -129,9 +122,8 @@ public class StateSimplifierTest {
   private boolean group2ConstraintsExist(
       ConstraintsState pNewState
   ) {
-    boolean allExist = true;
 
-    allExist &= pNewState.contains(group2Constraint1);
+    boolean allExist = pNewState.contains(group2Constraint1);
     allExist &= pNewState.contains(group2Constraint2);
 
     return allExist;

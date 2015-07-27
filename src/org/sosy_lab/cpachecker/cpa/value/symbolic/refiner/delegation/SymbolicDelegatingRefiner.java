@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 
 /**
  * Refiner for {@link ValueAnalysisCPA} using symbolic values and
@@ -109,7 +108,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
     constraintsCpa.injectRefinablePrecision(new RefinableConstraintsPrecision(config));
 
     final LogManager logger = valueAnalysisCpa.getLogger();
-    final CFA cfa = valueAnalysisCpa.getCFA();;
+    final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final Solver solver = Solver.create(config, logger, shutdownNotifier);
@@ -121,16 +120,12 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
         new SymbolicValueAnalysisFeasibilityChecker(symbolicStrongestPost,
             config,
             logger,
-            cfa,
-            shutdownNotifier);
+            cfa);
 
     final GenericPrefixProvider<ForgettingCompositeState> symbolicPrefixProvider =
         new GenericPrefixProvider<>(symbolicStrongestPost,
             ForgettingCompositeState.getInitialState(),
             logger, cfa, config, ValueAnalysisCPA.class);
-
-    final PrefixSelector prefixSelector =
-        new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
 
     final ElementTestingSymbolicEdgeInterpolator symbolicEdgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -145,7 +140,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             symbolicEdgeInterpolator,
             feasibilityChecker,
             symbolicPrefixProvider,
-            prefixSelector,
             config,
             logger,
             shutdownNotifier,
@@ -169,7 +163,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             SymbolicInterpolantManager.getInstance(),
             ForgettingCompositeState.getInitialState(),
             ValueAnalysisCPA.class, // we want to work on the ValueAnalysisCPA only
-            config, logger, shutdownNotifier, cfa);
+            config, shutdownNotifier, cfa);
 
     final GenericPrefixProvider<ForgettingCompositeState> explicitPrefixProvider =
         new GenericPrefixProvider<>(
@@ -185,7 +179,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             SymbolicInterpolantManager.getInstance(),
             config, logger, shutdownNotifier, cfa);
 
-    SymbolicDelegatingRefiner refiner = new SymbolicDelegatingRefiner(
+    return new SymbolicDelegatingRefiner(
         feasibilityChecker,
         pathInterpolator,
         explicitFeasibilityChecker,
@@ -194,8 +188,6 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
         logger,
         shutdownNotifier,
         cfa);
-
-    return refiner;
   }
 
 
@@ -216,16 +208,12 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
                                                        pSymbolicInterpolator,
                                                        new PathExtractor(pLogger),
                                                        pConfig,
-                                                       pLogger,
-                                                       pShutdownNotifier,
-                                                       pCfa);
+                                                       pLogger);
     explicitRefiner = new SymbolicValueAnalysisRefiner(pExplicitFeasibilityChecker,
                                                        pExplicitInterpolator,
                                                        new PathExtractor(pLogger),
                                                        pConfig,
-                                                       pLogger,
-                                                       pShutdownNotifier,
-                                                       pCfa);
+                                                       pLogger);
     logger = pLogger;
   }
 

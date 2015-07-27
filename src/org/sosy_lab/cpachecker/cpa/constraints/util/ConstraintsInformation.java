@@ -68,11 +68,9 @@ public class ConstraintsInformation {
 
     ConstraintsInformation that = (ConstraintsInformation)o;
 
-    if (constraints.size() != that.constraints.size()) {
-      return false;
-    }
+    return constraints.size() == that.constraints.size()
+        && constraints.containsAll(that.constraints);
 
-    return constraints.containsAll(that.constraints);
   }
 
   @Override

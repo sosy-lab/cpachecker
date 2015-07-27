@@ -42,7 +42,7 @@ public class ValueAnalysisBAMRefiner extends AbstractBAMBasedRefiner {
     refiner = ValueAnalysisRefiner.create(pCpa);
   }
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     return new ValueAnalysisBAMRefiner(pCpa);
   }
 

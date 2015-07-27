@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -40,10 +39,6 @@ import com.google.common.collect.ForwardingMap;
 public class VariableMap extends ForwardingMap<String, Formula> {
 
   private Map<String, Formula> variableMap;
-
-  public VariableMap() {
-    variableMap = new HashMap<>();
-  }
 
   public VariableMap(Map<String, Formula> pVariableMap) {
     variableMap = new HashMap<>();

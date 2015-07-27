@@ -138,7 +138,6 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
         if (termAssignment instanceof Float) {
           assignmentAsDouble = ((Float)termAssignment).doubleValue();
         } else {
-          assert termAssignment instanceof Double;
           assignmentAsDouble = (Double)termAssignment;
         }
 

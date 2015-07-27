@@ -97,6 +97,7 @@ class ConstraintBasedConstraintsPrecision
   /**
    * Returns whether the given <code>Constraint</code> is tracked by this precision.
    */
+  @Override
   public boolean isTracked(final Constraint pConstraint, final CFANode pLocation) {
     for (Constraint c : trackedLocally.get(pLocation)) {
       if (SymbolicValues.representSameCCodeExpression(c, pConstraint)) {
@@ -126,6 +127,7 @@ class ConstraintBasedConstraintsPrecision
    * @param pOther the precision to join with this precision
    * @return the join of both precisions
    */
+  @Override
   public ConstraintBasedConstraintsPrecision join(final ConstraintsPrecision pOther) {
     assert pOther instanceof ConstraintBasedConstraintsPrecision;
 
@@ -276,7 +278,8 @@ class ConstraintBasedConstraintsPrecision
 
         // unfortunately, constraints aren't comparable, so we won't have a deterministic order.
         for (Constraint c : trackedLocally.get(n)) {
-          sb.append(c.getRepresentation() + ", ");
+          sb.append(c.getRepresentation())
+            .append(", ");
         }
 
         sb.append("\n");
@@ -294,7 +297,8 @@ class ConstraintBasedConstraintsPrecision
         sb.append("\t").append(f).append(" -> ");
 
         for (Constraint c : trackedInFunction.get(f)) {
-          sb.append(c.getRepresentation() + ", ");
+          sb.append(c.getRepresentation())
+            .append(", ");
         }
 
         sb.append("\n");

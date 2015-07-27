@@ -376,10 +376,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     writer.put(prefixSelectionTime);
   }
 
-  public int getInterpolationOffset() {
-    return interpolationOffset;
-  }
-
   /**
    * This method decides if path slicing is possible.
    *

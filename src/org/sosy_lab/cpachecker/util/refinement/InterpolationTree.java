@@ -174,7 +174,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    */
   private ARGState buildTreeFromMultiplePaths(final Collection<ARGPath> targetPaths) {
     ARGState itpTreeRoot = null;
-    Deque<ARGState> todo = new ArrayDeque<ARGState>(extractTargets(targetPaths));
+    Deque<ARGState> todo = new ArrayDeque<>(extractTargets(targetPaths));
 
     // build the tree, bottom-up, starting from the target states
     while (!todo.isEmpty()) {

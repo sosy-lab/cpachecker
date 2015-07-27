@@ -82,6 +82,7 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
     return new RefinableConstraintsPrecision(delegate.withIncrement(pIncrement));
   }
 
+  @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
   @Override
   public boolean equals(Object o) {
     return delegate.equals(o);

@@ -28,9 +28,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -118,16 +118,19 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
     return isFalse() || isTrue();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <T extends Interpolant<ForgettingCompositeState>> T join(T pOtherInterpolant) {
     assert pOtherInterpolant instanceof SymbolicInterpolant;
 
     SymbolicInterpolant that = (SymbolicInterpolant) pOtherInterpolant;
 
-    ValueAnalysisInterpolant newValueInterpolant = valueInterpolant.join(that.valueInterpolant);
+    ValueAnalysisInterpolant newValueInterpolant = valueInterpolant.join(
+        that.valueInterpolant);
 
     ConstraintsInformation newConstraintsInfo = joinConstraints(that.constraintsInformation);
 
+    // We have to assume that <T> is of type SymbolicInterpolant.
     return (T) new SymbolicInterpolant(newValueInterpolant,
                                        newConstraintsInfo);
   }

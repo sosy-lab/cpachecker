@@ -90,7 +90,7 @@ public class ValueAnalysisPathInterpolator
   private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
   private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
   private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private final StatInt totalPrefixes             = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatInt totalNumberOfPrefixes             = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
   private final StatTimer prefixExtractionTime    = new StatTimer("Extracting infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime     = new StatTimer("Selecting infeasible sliced prefixes");
 
@@ -102,7 +102,6 @@ public class ValueAnalysisPathInterpolator
   private final CFA cfa;
 
   private final ValueAnalysisInterpolantManager interpolantManager;
-  private final LogManager logger;
 
   public ValueAnalysisPathInterpolator(
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
@@ -131,7 +130,6 @@ public class ValueAnalysisPathInterpolator
     pConfig.inject(this);
     cfa = pCfa;
     interpolantManager = ValueAnalysisInterpolantManager.getInstance();
-    logger = pLogger;
   }
 
   @Override
@@ -180,7 +178,6 @@ public class ValueAnalysisPathInterpolator
           : Collections.<String>emptySet());
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
-        logger,
         errorPathPrefix,
         useDefRelation,
         cfa.getMachineModel()).obtainInterpolantsAsMap();
@@ -278,13 +275,8 @@ public class ValueAnalysisPathInterpolator
       .put(totalInterpolations)
       .put(totalInterpolationQueries)
       .put(sizeOfInterpolant)
-      .put(totalPrefixes);
+      .put(totalNumberOfPrefixes);
     writer.put(prefixExtractionTime);
     writer.put(prefixSelectionTime);
-  }
-
-  @Override
-  public int getInterpolationOffset() {
-    return interpolationOffset;
   }
 }

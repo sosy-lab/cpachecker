@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
+import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
-import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 
 import com.google.common.collect.FluentIterable;
 
@@ -126,9 +126,7 @@ public class SortingPathExtractor extends PathExtractor {
 
     // extract target locations from and exclude those found to be feasible before,
     // e.g., when analysis.stopAfterError is set to false
-    List<ARGState> targets =
-        FluentIterable.from(super.getTargetStates(pReached)).toSortedList(comparator);
 
-    return targets;
+    return FluentIterable.from(super.getTargetStates(pReached)).toSortedList(comparator);
   }
 }

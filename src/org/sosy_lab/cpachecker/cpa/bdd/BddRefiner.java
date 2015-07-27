@@ -77,11 +77,6 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
 
   private final FeasibilityChecker<ValueAnalysisState> checker;
 
-  private final CFA cfa;
-
-  private final LogManager logger;
-  private final Configuration config;
-
   private int previousErrorPathId = -1;
 
   // statistics
@@ -146,10 +141,6 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
         pStrongestPostOperator,
         new ValueAnalysisPrefixProvider(pLogger, pCfa, pConfig),
         pConfig, pLogger, pShutdownNotifier, pCfa);
-
-    config                = pConfig;
-    cfa                   = pCfa;
-    logger                = pLogger;
   }
 
   @Override

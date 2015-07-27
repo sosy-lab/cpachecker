@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -93,7 +92,6 @@ public class UseDefBasedInterpolator {
    * @param pMachineModel
    */
   public UseDefBasedInterpolator(
-      final LogManager pLogger,
       final ARGPath pSlicedPrefix,
       final UseDefRelation pUseDefRelation,
       final MachineModel pMachineModel
