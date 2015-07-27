@@ -88,7 +88,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
 
     SlicingIntermediateState out = SlicingIntermediateState.of(
-        outPath, iOldState.getAbstraction());
+        edge.getSuccessor(), outPath, iOldState.getAbstraction());
 
     return Collections.singleton(out);
   }
@@ -124,70 +124,66 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     SlicingIntermediateState iState = state.asIntermediate();
 
     if (shouldPerformAbstraction(successor)) {
-      if (shouldPerformSlicing(pCFAEdge)) {
-        SlicingAbstractedState ancestor = iState.getAbstraction();
-
-        boolean isInsideAncestorLoop =
-            loopTransitionFinder.getEdgesInSCC(ancestor.getNode()).contains(pCFAEdge);
-
-        PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
-            iState.getPathFormula().getSsa(),
-            iState.getPathFormula().getPointerTargetSet(),
-            successor);
-        BooleanFormula inductiveWeakening;
-        BooleanFormula strengthening = fmgr.instantiate(
-                ancestor.getAbstraction(),
-                ancestor.getSSA());
-        try {
-
-          // If we are inside the ancestor loop, then:
-          // 1) Slice obtained from the ancestor can be safely conjoined to the
-          // slice we have obtained (with proper instantiation)
-          // 2) The strengthening can contain the predicate both before and
-          // after the transition.
-          PathFormula toSlice = iState.getPathFormula();
-          if (isInsideAncestorLoop) {
-            strengthening = bfmgr.and(strengthening, fmgr.instantiate(
-                ancestor.getAbstraction(), iState.getPathFormula().getSsa()
-            ));
-          } else {
-            toSlice = toSlice.updateFormula(
-                bfmgr.and(strengthening, toSlice.getFormula())
-            );
-          }
-          toSlice = toSlice.updateFormula(fmgr.simplify(toSlice.getFormula()));
-
-          try {
-            statistics.formulaSlicingTimer.start();
-            inductiveWeakening =
-                inductiveWeakeningManager.slice(
-                    toSlice,
-                    loopTransition, strengthening);
-          } finally {
-            statistics.formulaSlicingTimer.stop();
-          }
-
-          if (isInsideAncestorLoop) {
-            inductiveWeakening = fmgr.simplify(bfmgr.and(
-                inductiveWeakening, ancestor.getAbstraction()
-            ));
-          }
-        } catch (SolverException ex) {
-          throw new CPATransferException("Originating exception: ", ex);
-        }
-        return Collections.singleton(
-            SlicingAbstractedState.of(
-                inductiveWeakening, iState.getPathFormula().getSsa(),
-                iState.getPathFormula().getPointerTargetSet(), fmgr, successor)
-        );
-
-      } else {
+      if (!shouldPerformSlicing(pCFAEdge)) {
 
         // We are coming from inside the loop => the (other) abstracted state
         // should already exist.
         // We use a special flag to indicate that no slicing is necessary.
-        return Collections.singleton(SubsumedSlicingState.getInstance());
+        return Collections.singleton(SubsumedSlicingState.of(iState));
       }
+      SlicingAbstractedState ancestor = iState.getAbstraction();
+
+      boolean isInsideAncestorLoop =
+          loopTransitionFinder.getEdgesInSCC(ancestor.getNode()).contains(pCFAEdge);
+
+      PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
+          iState.getPathFormula().getSsa(),
+          iState.getPathFormula().getPointerTargetSet(),
+          successor);
+      BooleanFormula inductiveWeakening;
+      BooleanFormula strengthening = fmgr.instantiate(
+          ancestor.getAbstraction(),
+          ancestor.getSSA());
+
+      // If we are inside the ancestor loop, then:
+      // 1) Slice obtained from the ancestor can be safely conjoined to the
+      // slice we have obtained (with proper instantiation)
+      // 2) The strengthening can contain the predicate both before and
+      // after the transition.
+      PathFormula toSlice = iState.getPathFormula();
+      if (isInsideAncestorLoop) {
+        strengthening = bfmgr.and(strengthening, fmgr.instantiate(
+            ancestor.getAbstraction(), iState.getPathFormula().getSsa()
+        ));
+      } else {
+        toSlice = toSlice.updateFormula(
+            bfmgr.and(strengthening, toSlice.getFormula())
+        );
+      }
+      toSlice = toSlice.updateFormula(fmgr.simplify(toSlice.getFormula()));
+
+      try {
+        statistics.formulaSlicingTimer.start();
+        inductiveWeakening =
+            inductiveWeakeningManager.slice(
+                toSlice,
+                loopTransition, strengthening);
+      } catch(SolverException ex) {
+        throw new CPATransferException("Originating exception: ", ex);
+      } finally {
+        statistics.formulaSlicingTimer.stop();
+      }
+
+      if (isInsideAncestorLoop) {
+        inductiveWeakening = fmgr.simplify(bfmgr.and(
+            inductiveWeakening, ancestor.getAbstraction()
+        ));
+      }
+      return Collections.singleton(
+          SlicingAbstractedState.of(
+              inductiveWeakening, iState.getPathFormula().getSsa(),
+              iState.getPathFormula().getPointerTargetSet(), fmgr, successor)
+      );
 
     } else {
 
@@ -266,7 +262,26 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       Optional<SlicingAbstractedState> sibling = findSibling(
           pStates.getReached(pFullState));
 
-      // todo: this condition can be violated, in LPI + formula slicing mode
+      if (!sibling.isPresent()) {
+        SubsumedSlicingState subsumed = (SubsumedSlicingState) pState;
+
+        // This weird situation something happens if the abstraction from the
+        // other CPA returned "bottom" at the *first* entrance of the loop,
+        // and then we have successfully entered the loop through some other
+        // means (e.g. goto).
+        // In that case we try to minimize the damage by returning a trivial
+        // invariant "true".
+        return Optional.of(PrecisionAdjustmentResult.create(
+            SlicingAbstractedState.of(
+                bfmgr.makeBoolean(true),
+                subsumed.getWrapped().getPathFormula().getSsa(),
+                subsumed.getWrapped().getPathFormula().getPointerTargetSet(),
+                fmgr,
+                subsumed.getWrapped().getNode()
+            )
+            , new Precision() {
+            }, Action.CONTINUE));
+      }
       Verify.verify(sibling.isPresent());
       Verify.verify(sibling.get().isAbstracted());
       return Optional.of(PrecisionAdjustmentResult.create(
@@ -298,7 +313,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         oldState.getPathFormula());
 
     SlicingIntermediateState out = SlicingIntermediateState.of(
-        mergedPath, oldState.getAbstraction()
+        oldState.getNode(), mergedPath, oldState.getAbstraction()
     );
     newState.setMergedInto(out);
     oldState.setMergedInto(out);
@@ -337,6 +352,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private SlicingIntermediateState abstractStateToIntermediate(
       SlicingAbstractedState pSlicingAbstractedState) {
     return SlicingIntermediateState.of(
+        pSlicingAbstractedState.getNode(),
         new PathFormula(
             bfmgr.makeBoolean(true),
             pSlicingAbstractedState.getSSA(),
@@ -352,19 +368,18 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
    */
   private boolean shouldPerformSlicing(CFAEdge edge) {
     CFANode succ = edge.getSuccessor();
+    if (!shouldPerformAbstraction(succ)) {
+      return false;
+    }
 
-    // todo: define precisely what do we need here, information
-    // provided by CPAchecker might not be sufficient.
     // Note that we need whether we are inside the _local_ loop,
     // not the global SCC.
-    boolean fromInsideLoop = false;
     for (Loop loop : cfa.getLoopStructure().get().getLoopsForLoopHead(succ)) {
       if (loop.getInnerLoopEdges().contains(edge)) {
-        fromInsideLoop = true;
+        return false;
       }
     }
-    return shouldPerformAbstraction(succ)
-        && !fromInsideLoop;
+    return true;
   }
 
   private boolean shouldPerformAbstraction(CFANode node) {

@@ -112,14 +112,19 @@ public class SlicingAbstractedState extends SlicingState implements
    * loop and no slicing is necessary.
    */
   static class SubsumedSlicingState extends SlicingState {
-    private static final SubsumedSlicingState INSTANCE = new SubsumedSlicingState();
+    private final SlicingIntermediateState wrapped;
 
-    private SubsumedSlicingState() { }
-
-    static SubsumedSlicingState getInstance() {
-      return INSTANCE;
+    private SubsumedSlicingState(SlicingIntermediateState pWrapped) {
+      wrapped = pWrapped;
     }
 
+    public SlicingIntermediateState getWrapped() {
+      return wrapped;
+    }
+
+    public static SubsumedSlicingState of(SlicingIntermediateState wrapped) {
+      return new SubsumedSlicingState(wrapped);
+    }
 
     @Override
     public boolean isAbstracted() {
