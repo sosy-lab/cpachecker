@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.SimpleFormatter;
@@ -37,6 +38,7 @@ public class LoopTransitionFinderTest {
   private PathFormulaManager pfmgr;
   private FormulaManagerView fmgr;
   private Configuration config;
+  private FormulaSlicingStatistics statistics;
 
   @Before public void setUp() throws Exception {
     config = TestDataTools.configurationForTest().setOptions(
@@ -53,6 +55,7 @@ public class LoopTransitionFinderTest {
     // todo: non-deprecated constructor.
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
         MachineModel.LINUX32, AnalysisDirection.FORWARD);
+    statistics = new FormulaSlicingStatistics();
   }
 
   @After public void tearDown() throws Exception {
@@ -72,7 +75,7 @@ public class LoopTransitionFinderTest {
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
-        new LoopTransitionFinder(config, cfa, pfmgr, fmgr, logger);
+        new LoopTransitionFinder(config, cfa, pfmgr, fmgr, logger, statistics);
 
     PathFormula loopTransition = loopTransitionFinder.generateLoopTransition(
         SSAMap.emptySSAMap(),
@@ -94,8 +97,8 @@ public class LoopTransitionFinderTest {
     );
     CFANode loopHead = cfa.getAllLoopHeads().get().iterator().next();
     LoopTransitionFinder loopTransitionFinder =
-        new LoopTransitionFinder(config, cfa, pfmgr, fmgr, logger);
-    Set<CFAEdge> out = loopTransitionFinder.getEdgesInSCC(loopHead);
+        new LoopTransitionFinder(config, cfa, pfmgr, fmgr, logger, statistics);
+    List<CFAEdge> out = loopTransitionFinder.getEdgesInSCC(loopHead);
 
     logger.log(Level.INFO, "Set of loop edges", out);
 

@@ -46,13 +46,16 @@ public class LoopTransitionFinder {
   private final FormulaManagerView fmgr;
   private final LogManager logger;
   private final LoopStructure loopStructure;
+  private final FormulaSlicingStatistics statistics;
 
   public LoopTransitionFinder(
       Configuration config,
       CFA pCfa, PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger)
+      FormulaManagerView pFmgr, LogManager pLogger,
+      FormulaSlicingStatistics pStatistics)
       throws InvalidConfigurationException {
     config.inject(this);
+    statistics = pStatistics;
     pfmgr = pPfmgr;
     fmgr = pFmgr;
     logger = pLogger;
@@ -68,23 +71,22 @@ public class LoopTransitionFinder {
     Preconditions.checkState(loopStructure.getAllLoopHeads()
         .contains(loopHead));
 
-    // Looping edges: intersection of forwards-reachable
-    // and backwards-reachable.
-    Set<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
+      // Looping edges: intersection of forwards-reachable
+      // and backwards-reachable.
+      List<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
 
-    // Otherwise it's not a loop.
-    Preconditions.checkState(!edgesInLoop.isEmpty());
+      // Otherwise it's not a loop.
+      Preconditions.checkState(!edgesInLoop.isEmpty());
 
-    List<PathFormula> out = LBE(start, pts, edgesInLoop);
-
-    PathFormula first = out.iterator().next();
-
-    for (PathFormula t : out) {
-      if (t == first) continue;
-      first = pfmgr.makeOr(first, t);
+    PathFormula out;
+    statistics.LBEencodingTimer.start();
+    try {
+      out = LBE(start, pts, edgesInLoop);
+    } finally {
+      statistics.LBEencodingTimer.stop();
     }
 
-    return first.updateFormula(fmgr.simplify(first.getFormula()));
+    return out.updateFormula(fmgr.simplify(out.getFormula()));
   }
 
 
@@ -92,7 +94,7 @@ public class LoopTransitionFinder {
    * @return all edges in the local {@link Loop} associated with the {@code node},
    * or an empty set, if {@code node} is not a loop-head.
    */
-  public Set<CFAEdge> getEdgesInSCC(CFANode node) {
+  public List<CFAEdge> getEdgesInSCC(CFANode node) {
 
     // Returns *local* loop.
     Set<CFAEdge> out = new HashSet<>();
@@ -100,8 +102,7 @@ public class LoopTransitionFinder {
         loopStructure.getLoopsForLoopHead(node)) {
       out.addAll(loop.getInnerLoopEdges());
     }
-
-    return out;
+    return ImmutableList.copyOf(out);
   }
 
   /**
@@ -111,15 +112,14 @@ public class LoopTransitionFinder {
    *
    * 2) A - s_1 -> B, A - s_2 -> B is converted to A - s_1 \/ s_2 -> B.
    *
-   * Runs in quadratic time, uses fixpoint computation.
+   * Runs in cubic time, uses fixpoint computation.
+   * todo: faster computation.
    */
-  private List<PathFormula> LBE(
+  private PathFormula LBE(
       SSAMap start,
       PointerTargetSet pts,
-      Set<CFAEdge> edgesInLoop)
+      List<CFAEdge> edgesInLoop)
       throws CPATransferException, InterruptedException {
-
-    logger.log(Level.FINEST, "Set of edges in the loop: ", edgesInLoop);
 
     Set<EdgeWrapper> out = convert(edgesInLoop);
 
@@ -132,15 +132,16 @@ public class LoopTransitionFinder {
       }
     } while (changed);
 
-    List<PathFormula> outPF = new ArrayList<>(out.size());
     PathFormula empty = new PathFormula(
         fmgr.getBooleanFormulaManager().makeBoolean(true),
         start, pts, 0);
-    for (EdgeWrapper e : out) {
-      outPF.add(e.makeAnd(empty));
+    EdgeWrapper outEdge;
+    if (out.size() == 1) {
+      outEdge = out.iterator().next();
+    } else {
+      outEdge = new OrEdge(ImmutableList.copyOf(out));
     }
-
-    return outPF;
+    return outEdge.toPathFormula(empty);
   }
 
   /**
@@ -150,17 +151,17 @@ public class LoopTransitionFinder {
       Set<EdgeWrapper> out) {
     for (EdgeWrapper e : out) {
 
-      CFANode successor = e.getSuccessor();
+      CFANode predecessor = e.getPredecessor();
 
       // Do not perform reduction on nodes ending in a loop-head.
-      if (loopStructure.getAllLoopHeads().contains(successor)) continue;
+      if (loopStructure.getAllLoopHeads().contains(e.getSuccessor())) continue;
 
       EdgeWrapper candidate = null;
 
       for (EdgeWrapper other : out) {
         if (e == other) continue;
 
-        if (other.getPredecessor() == successor) {
+        if (other.getSuccessor() == predecessor) {
           if (candidate == null) {
             candidate = other;
           } else {
@@ -176,7 +177,7 @@ public class LoopTransitionFinder {
       if (candidate != null) {
         out.remove(e);
         out.remove(candidate);
-        EdgeWrapper added = new AndEdge(ImmutableList.of(e, candidate));
+        EdgeWrapper added = new AndEdge(ImmutableList.of(candidate, e));
         out.add(added);
 
         logger.log(Level.ALL, "Removing", e, "and", candidate,
@@ -212,7 +213,6 @@ public class LoopTransitionFinder {
           out.remove(toRemove);
         }
         out.add(added);
-
         logger.log(Level.ALL, "Removing", candidates,
             "adding", added);
         return true;
@@ -236,12 +236,18 @@ public class LoopTransitionFinder {
     /**
      * Convert to {@link PathFormula} with a given start.
      */
-    PathFormula makeAnd(PathFormula prev)
+    PathFormula toPathFormula(PathFormula prev)
         throws CPATransferException, InterruptedException;
+
+    /**
+     * Pretty-print with a given prefix.
+     */
+    String prettyPrint(String prefix);
   }
 
   private class SingleEdge implements EdgeWrapper {
-    CFAEdge edge;
+    private final CFAEdge edge;
+
     SingleEdge(CFAEdge e) {
       edge = e;
     }
@@ -257,22 +263,48 @@ public class LoopTransitionFinder {
     }
 
     @Override
-    public PathFormula makeAnd(PathFormula prev)
+    public PathFormula toPathFormula(PathFormula prev)
         throws CPATransferException, InterruptedException {
       return pfmgr.makeAnd(prev, edge);
+    }
+
+    @Override
+    public String toString() {
+      return prettyPrint("");
+    }
+
+    @Override
+    public String prettyPrint(String prefix) {
+      return String.format(
+          "%s%s->%s(%s)",
+          prefix,
+          getPredecessor(),
+          getSuccessor(),
+          edge.getCode()
+      );
     }
   }
 
   private class AndEdge implements EdgeWrapper {
-    List<EdgeWrapper> edges;
-    CFANode predecessor;
-    CFANode successor;
+    private final List<EdgeWrapper> edges;
+    private final CFANode predecessor;
+    private final CFANode successor;
 
     AndEdge(List<EdgeWrapper> pEdges) {
       Preconditions.checkState(!pEdges.isEmpty());
-      edges = ImmutableList.copyOf(pEdges);
-      successor = Iterables.getLast(pEdges).getSuccessor();
+      List<EdgeWrapper> l = new ArrayList<>();
+      for (EdgeWrapper w : pEdges) {
+        if (w instanceof AndEdge) {
+
+          // Simplification.
+          l.addAll(((AndEdge) w).edges);
+        } else {
+          l.add(w);
+        }
+      }
+      edges = ImmutableList.copyOf(l);
       predecessor = edges.iterator().next().getPredecessor();
+      successor = Iterables.getLast(edges).getSuccessor();
     }
 
     @Override
@@ -286,19 +318,29 @@ public class LoopTransitionFinder {
     }
 
     @Override
-    public PathFormula makeAnd(PathFormula prev)
+    public PathFormula toPathFormula(PathFormula prev)
         throws CPATransferException, InterruptedException {
       for (EdgeWrapper edge : edges) {
-        prev = edge.makeAnd(prev);
+        prev = edge.toPathFormula(prev);
       }
       return prev;
+    }
+
+    @Override
+    public String toString() {
+      return prettyPrint("");
+    }
+
+    @Override
+    public String prettyPrint(String prefix) {
+      return prettyPrintHelper(edges, prefix, "AND");
     }
   }
 
   private class OrEdge implements EdgeWrapper {
-    List<EdgeWrapper> edges;
-    CFANode predecessor;
-    CFANode successor;
+    private final List<EdgeWrapper> edges;
+    private final CFANode predecessor;
+    private final CFANode successor;
 
     OrEdge(List<EdgeWrapper> pEdges) {
       Preconditions.checkState(!pEdges.isEmpty());
@@ -318,18 +360,40 @@ public class LoopTransitionFinder {
     }
 
     @Override
-    public PathFormula makeAnd(PathFormula prev)
+    public PathFormula toPathFormula(PathFormula prev)
         throws CPATransferException, InterruptedException {
       Preconditions.checkState(!edges.isEmpty());
 
       EdgeWrapper first = edges.iterator().next();
-      PathFormula out = first.makeAnd(prev);
+      PathFormula out = first.toPathFormula(prev);
 
       for (EdgeWrapper edge : edges) {
         if (edge == first) continue;
-        out = pfmgr.makeOr(out, edge.makeAnd(prev));
+        out = pfmgr.makeOr(out, edge.toPathFormula(prev));
       }
       return out;
     }
+
+    @Override
+    public String toString() {
+      return prettyPrint("");
+    }
+
+    @Override
+    public String prettyPrint(String prefix) {
+      return prettyPrintHelper(edges, prefix, "OR");
+    }
+  }
+
+  private String prettyPrintHelper(
+      Iterable<EdgeWrapper> edges,
+      String prefix, String funcName) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(prefix).append(funcName).append("(\n");
+    for (EdgeWrapper w : edges) {
+      sb.append(w.prettyPrint(prefix + "\t")).append(",\n");
+    }
+    sb.append(prefix).append(")");
+    return sb.toString();
   }
 }

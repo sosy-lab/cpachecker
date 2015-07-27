@@ -93,7 +93,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     }
 
     LoopTransitionFinder ltf = new LoopTransitionFinder(
-        pConfiguration, cfa, pathFormulaManager, formulaManager, pLogger);
+        pConfiguration, cfa, pathFormulaManager, formulaManager, pLogger,
+        statistics);
 
     InductiveWeakeningManager pInductiveWeakeningManager =
         new InductiveWeakeningManager(pConfiguration,
