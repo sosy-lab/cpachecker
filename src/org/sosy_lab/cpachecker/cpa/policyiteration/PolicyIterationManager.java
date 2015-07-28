@@ -710,6 +710,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
 
+      optEnvironment.addConstraint(
+          fmgr.instantiate(extraPredicate, state.getPathFormula().getSsa())
+      );
       if (optEnvironment.check() == OptEnvironment.OptStatus.UNSAT) {
 
         // Bottom => bail early.
