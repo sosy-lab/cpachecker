@@ -210,7 +210,8 @@ public class BAMCEXSubgraphComputer {
     // we found the reachedSet, corresponding to the root and precision.
     // now try to find the target in the reach set.
 
-    assert reachedSet.contains(reducedTarget);
+    assert reachedSet.contains(reducedTarget) :
+      "reduced state '" + reducedTarget + "' is not part of reachedset with root '" + reachedSet.getFirstState() + "'";
 
     // we found the target; now construct a subtree in the ARG starting with targetARGElement
     final BackwardARGState result = computeCounterexampleSubgraph(reducedTarget, new ARGReachedSet(reachedSet), newTreeTarget);
