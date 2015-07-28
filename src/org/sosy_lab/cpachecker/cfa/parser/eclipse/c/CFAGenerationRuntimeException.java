@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -76,22 +78,24 @@ class CFAGenerationRuntimeException extends RuntimeException {
       Function<String, String> niceFileNameFunction) {
     StringBuilder sb = new StringBuilder();
 
-    IASTFileLocation fileLocation = node.getFileLocation();
-    String fileName = niceFileNameFunction.apply(fileLocation.getFileName());
-    if (!fileName.isEmpty()) {
-      sb.append(fileName);
-      sb.append(", ");
+    @Nullable IASTFileLocation fileLocation = node.getFileLocation();
+    if (fileLocation != null) {
+      String fileName = niceFileNameFunction.apply(fileLocation.getFileName());
+      if (!fileName.isEmpty()) {
+        sb.append(fileName);
+        sb.append(", ");
+      }
+      if (fileLocation.getEndingLineNumber() != fileLocation.getStartingLineNumber()) {
+        sb.append("lines ");
+        sb.append(fileLocation.getStartingLineNumber());
+        sb.append("-");
+        sb.append(fileLocation.getEndingLineNumber());
+      } else {
+        sb.append("line ");
+        sb.append(fileLocation.getStartingLineNumber());
+      }
+      sb.append(": ");
     }
-    if (fileLocation.getEndingLineNumber() != fileLocation.getStartingLineNumber()) {
-      sb.append("lines ");
-      sb.append(fileLocation.getStartingLineNumber());
-      sb.append("-");
-      sb.append(fileLocation.getEndingLineNumber());
-    } else {
-      sb.append("line ");
-      sb.append(fileLocation.getStartingLineNumber());
-    }
-    sb.append(": ");
 
     if (Strings.isNullOrEmpty(msg)) {
       sb.append("Problem");
