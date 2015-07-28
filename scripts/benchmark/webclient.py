@@ -415,17 +415,26 @@ def _getResults(runIDs, output_handler, benchmark):
     while len(runIDs) > 0 :
         start = time()
         runIDsFutures = {}
+        failedRuns = []
         for runID in runIDs:
-            if _isFinished(runID, benchmark):
+            state = _isFinished(runID)
+            if state == "FINISHED" or state == "UNKOWN":
                 run = runIDs[runID]
                 future  = executor.submit(_getAndHandleResult, runID, run, output_handler, benchmark)
                 runIDsFutures[future] = runID
+            elif state == "ERROR":
+                failedRuns.append(runID)
 
-        # remove all finished run from _unfinished_run_ids
+        # remove all finished runs from _unfinished_run_ids
         for future in as_completed(runIDsFutures.keys()):
             if future.result():
                 del runIDs[runIDsFutures[future]]
                 _unfinished_run_ids.remove(runIDsFutures[future])
+        
+        # remove failed runs from _unfinished_run_ids
+        for runID in failedRuns:
+            _unfinished_run_ids.remove(runID)
+            del runIDs[runID]
 
         end = time();
         duration = end - start
@@ -433,7 +442,7 @@ def _getResults(runIDs, output_handler, benchmark):
             sleep(5 - duration)
 
 
-def _isFinished(runID, benchmark):
+def _isFinished(runID):
     headers = {"Accept": "text/plain"}
     path = _webclient.path + "runs/" + runID + "/state"
 
@@ -443,16 +452,11 @@ def _isFinished(runID, benchmark):
         state = state.decode('utf-8')
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
-            return True
 
-        # UNKNOWN is returned for unknown runs. This happens,
-        # when the webclient is restarted since the submission of the runs.
         if state == "UNKNOWN":
             logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))
-            return True
 
-        else:
-            return False
+        return state
 
     except urllib2.HTTPError as e:
         logging.warning('Could not get run state {0}: {1}'.format(runID, e.reason))
