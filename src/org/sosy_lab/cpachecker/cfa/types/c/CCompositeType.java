@@ -239,25 +239,8 @@ public final class CCompositeType implements CComplexType, Serializable {
 
     CCompositeType other = (CCompositeType) obj;
 
-    boolean fieldNamesEqual = true;
-    List<CCompositeTypeMemberDeclaration> otherMembers = other.getMembers();
-
-    if (members.size() == otherMembers.size()){
-      for (int i = 0; i < members.size(); ++i){
-        CCompositeTypeMemberDeclaration member = members.get(i);
-        CCompositeTypeMemberDeclaration otherMember = otherMembers.get(i);
-        if (!(member.getName().equals(otherMember.getName()))){
-          fieldNamesEqual = false;
-          break;
-        }
-      }
-    } else {
-      fieldNamesEqual = false;
-    }
-
     return isConst == other.isConst && isVolatile == other.isVolatile
-           && kind == other.kind && Objects.equals(name, other.name)
-           && fieldNamesEqual;
+           && kind == other.kind && Objects.equals(name, other.name);
   }
 
   @Override
