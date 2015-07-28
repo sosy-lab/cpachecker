@@ -716,7 +716,9 @@ cpa.bam.exportBlocksPath = "block_cfa.dot"
 # the cause of the miss.
 cpa.bam.gatherCacheMissStatistics = false
 
-# BAM allows to analyse recursive procedures depending on the underlying CPA.
+# BAM allows to analyse recursive procedures. This strongly depends on the
+# underlying CPA. The current support includes only ValueAnalysis and
+# PredicateAnalysis (with tree interpolation enabled).
 cpa.bam.handleRecursiveProcedures = false
 
 # export single blocked ARG as .dot files, should contain '%d'

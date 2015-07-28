@@ -100,6 +100,11 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportBlocksPath = Paths.get("block_cfa.dot");
 
+  @Option(name = "handleRecursiveProcedures", secure = true,
+      description = "BAM allows to analyse recursive procedures. This strongly depends on the underlying CPA. "
+          + "The current support includes only ValueAnalysis and PredicateAnalysis (with tree interpolation enabled).")
+  private boolean handleRecursiveProcedures = false;
+
   public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -120,7 +125,13 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     reducer = new TimedReducer(wrappedReducer);
     final BAMCache cache = new BAMCache(config, reducer);
-    transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
+
+    if (handleRecursiveProcedures) {
+      transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
+    } else {
+      transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
+    }
+
     prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), transfer, logger);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
     stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);

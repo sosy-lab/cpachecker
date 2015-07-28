@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,8 +36,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
@@ -52,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -63,7 +60,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -81,7 +77,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-@Options(prefix = "cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
 
   @Options
@@ -106,27 +101,23 @@ public class BAMTransferRelation implements TransferRelation {
 
   }
 
-  @Option(name = "handleRecursiveProcedures", secure = true,
-      description = "BAM allows to analyse recursive procedures depending on the underlying CPA.")
-  private boolean handleRecursiveProcedures = false;
-
-  private final BAMCache argCache;
+  protected final BAMCache argCache;
 
   final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
   final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
   final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
 
-  private Block currentBlock;
-  private BlockPartitioning partitioning;
-  private int depth = 0;
-  private final List<Triple<AbstractState, Precision, Block>> stack = new ArrayList<>();
+  protected Block currentBlock;
+  protected BlockPartitioning partitioning;
+  protected int depth = 0;
+  protected final List<Triple<AbstractState, Precision, Block>> stack = new ArrayList<>();
 
-  private final LogManager logger;
+  protected final LogManager logger;
   private final CPAAlgorithmFactory algorithmFactory;
   private final TransferRelation wrappedTransfer;
   private final ReachedSetFactory reachedSetFactory;
-  private final Reducer wrappedReducer;
-  private final BAMCPA bamCPA;
+  protected final Reducer wrappedReducer;
+  protected final BAMCPA bamCPA;
   private final ProofChecker wrappedProofChecker;
 
   // Callstack-CPA is used for additional recursion handling
@@ -144,17 +135,9 @@ public class BAMTransferRelation implements TransferRelation {
 
   boolean breakAnalysis = false;
 
-  // flags of the fixpoint-algorithm for recursion
-  private boolean recursionSeen = false;
-  private boolean resultStatesChanged = false;
-  private boolean targetFound = false;
-  final Map<AbstractState, Triple<AbstractState, Precision, Block>> potentialRecursionUpdateStates = new HashMap<>();
-
   public BAMTransferRelation(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
                              ProofChecker wrappedChecker, BAMCache cache,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    pConfig.inject(this);
-
     logger = pLogger;
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier, null);
     reachedSetFactory = pReachedSetFactory;
@@ -202,7 +185,7 @@ public class BAMTransferRelation implements TransferRelation {
     }
   }
 
-  private Collection<? extends AbstractState> getAbstractSuccessorsWithoutWrapping(
+  protected Collection<? extends AbstractState> getAbstractSuccessorsWithoutWrapping(
       final AbstractState pState, final Precision pPrecision)
           throws CPAException, InterruptedException {
 
@@ -210,14 +193,9 @@ public class BAMTransferRelation implements TransferRelation {
 
     final CFANode node = extractLocation(pState);
 
-    if (handleRecursiveProcedures && stack.isEmpty() && isHeadOfMainFunction(node)) {
-      // we are at the start of the program (root-node of CFA).
-      return doFixpointIterationForRecursion(pState, pPrecision, node);
-    }
-
-      // we are at some location inside the program,
-      // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
-      // (except we have a full cache-hit).
+    // we are at some location inside the program,
+    // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
+    // (except we have a full cache-hit).
 
     if (currentBlock != null && currentBlock.isReturnNode(node) && !alreadyReturnedFromSameBlock(pState, currentBlock)) {
       // we are leaving the block, do not perform analysis beyond the current block.
@@ -225,10 +203,7 @@ public class BAMTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    if (partitioning.isCallNode(node)
-            && !(handleRecursiveProcedures && ((ARGState)pState).getParents().isEmpty()) // if no parents, we have already started a new block
-            && (!partitioning.getBlockForCallNode(node).equals(currentBlock)
-                || (handleRecursiveProcedures && isFunctionBlock(partitioning.getBlockForCallNode(node))))) {
+    if (startNewBlockAnalysis(pState, node)) {
       // we are at the entryNode of a new block and we are in a new context,
       // so we have to start a recursive analysis
       logger.log(Level.FINEST, "Starting recursive analysis of depth", ++depth);
@@ -247,7 +222,7 @@ public class BAMTransferRelation implements TransferRelation {
     // because the operation Reduce splits it into f-g and g-f.
     // Thus we check for recursion here and (if we do not handle recursion here)
     // set a flag for the Callstack-CPA, such that it knows about the recursion.
-    final boolean foundRecursion = !handleRecursiveProcedures && isRecursiveCall(node);
+    final boolean foundRecursion = isRecursiveCall(node);
     if (foundRecursion) {
       callstackTransfer.enableRecursiveContext();
     }
@@ -258,13 +233,16 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
+  protected boolean startNewBlockAnalysis(final AbstractState pState, final CFANode node) {
+    return partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock);
+  }
 
   /**
    * check if
    * - the current node is before a function-block and
    * - the block was entered before (and thus is part of the stack).
    */
-  private boolean isRecursiveCall(final CFANode node) {
+  protected boolean isRecursiveCall(final CFANode node) {
     if (!partitioning.isCallNode(node)) {
 
       // TODO Why filter for functionCallEdge?
@@ -281,139 +259,8 @@ public class BAMTransferRelation implements TransferRelation {
     return false;
   }
 
-
-  private Collection<? extends AbstractState> doFixpointIterationForRecursion(
-          final AbstractState pHeadOfMainFunctionState, final Precision pPrecision, final CFANode pHeadOfMainFunction)
-          throws CPAException, InterruptedException {
-
-    assert isHeadOfMainFunction(pHeadOfMainFunction) && stack.isEmpty();
-
-    Collection<? extends AbstractState> resultStates;
-    int iterationCounter = 0;
-    while (true) { // fixpoint-iteration to handle recursive functions
-
-      if (!targetFound) {
-        // The target might be outside the recursive function.
-        // If CEGAR removes the target through refinement,
-        // we might miss the recursive function, if we reset the flags. So we do not reset them in that case.
-
-        recursionSeen = false; // might be changed in recursive analysis
-        resultStatesChanged = false; // might be changed in recursive analysis
-        potentialRecursionUpdateStates.clear();
-      }
-
-      logger.log(Level.FINE, "Starting recursive analysis of main-block");
-
-      resultStates = doRecursiveAnalysis(pHeadOfMainFunctionState, pPrecision, pHeadOfMainFunction);
-
-      logger.log(Level.FINE, "Finished recursive analysis of main-block");
-
-      // EITHER: result is an target-state, return it 'as is' and let CEGAR-algorithm perform a refinement, if needed.
-      // OR:     we have completely analyzed the main-block and have not found an target-state.
-      //         now we check, if we need to unwind recursive calls further until a fixpoint is reached.
-
-      targetFound = Iterables.any(resultStates, IS_TARGET_STATE);
-      if (targetFound) {
-        // not really a fixpoint, but we return and let CEGAR check the target-state
-        logger.log(Level.INFO, "fixpoint-iteration aborted, because there was a target state.");
-        break;
-      }
-
-      if (!resultStatesChanged) {
-        logger.log(Level.INFO, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
-        break;
-      }
-
-      logger.log(Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
-
-      reAddStatesForFixPointIteration(pHeadOfMainFunctionState);
-
-      // continue;
-    }
-
-    return resultStates;
-  }
-
-  private void reAddStatesForFixPointIteration(final AbstractState pHeadOfMainFunctionState) {
-    for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates.keySet()) {
-      // final Triple<AbstractState, Precision, Block> level = potentialRecursionUpdateStates.get(recursionUpdateState);
-
-      // final Pair<ReachedSet, Collection<AbstractState>> reachedResult =
-      //         argCache.get(level.getFirst(), level.getSecond(), level.getThird());
-      // final ReachedSet innerReachedSet = checkNotNull(reachedResult.getFirst());
-      // final Collection<AbstractState> innerResultStates = checkNotNull(reachedResult.getSecond());
-
-      // update waitlist
-      for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
-        if (reachedSet.contains(recursionUpdateState)) {
-          logger.log(Level.ALL, "re-adding state", recursionUpdateState);
-          reachedSet.reAddToWaitlist(recursionUpdateState);
-        }
-        // else if (pHeadOfMainFunctionState == recursionUpdateState) {
-          // special case: this is the root-state of the whole program, it is in the main-reachedset.
-          // we have no possibility to re-add it,because we do not have access to the main-reachedset.
-          // however we do not need to re-add it, because it is the initial-state of current transfer-relation.
-        // }
-      }
-      // TODO break loop earlier?
-    }
-  }
-
-  /** returns a covering level or Null, if no such level is found. */
-  private Triple<AbstractState, Precision, Block> getCoveringLevel(final List<Triple<AbstractState, Precision, Block>> stack,
-                                final Triple<AbstractState, Precision, Block> currentLevel)
-    throws CPAException, InterruptedException {
-    for (Triple<AbstractState, Precision, Block> level : stack.subList(0, stack.size() - 1)) {
-      if (level.getThird() == currentLevel.getThird()
-              // && level.getSecond().equals(currentLevel.getSecond())
-              && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
-        // previously reached state contains 'less' information, it is a super-state of the currentState.
-        // From currentState we could reach the levelState again (with further unrolling).
-        // Thus we would have found an endless recursion (with current information (precision/state)).
-
-        // TODO how to compare precisions? equality would be enough
-        return level;
-      }
-    }
-    return null;
-  }
-
-  /** check, if all base-states are covered by the covering-states.
-   * examples:
-   * {x} is covered by {x,y,z}
-   * {} is covered by {x,y,z}
-   * {x} is covered by {(x or y),z}
-   * {(x and y),z} is covered by {x,z}
-   */
-  private Collection<AbstractState> getStatesNotCoveredBy(@Nonnull final Collection<AbstractState> baseStates,
-      @Nonnull final Collection<AbstractState> coveringStates)
-      throws CPAException, InterruptedException {
-    final Collection<AbstractState> notCoveredStates = new ArrayList<>();
-    for (final AbstractState baseState : baseStates) {
-      if (!isCoveredByAny(baseState, coveringStates)) {
-        notCoveredStates.add(baseState);
-      }
-    }
-    return notCoveredStates;
-  }
-
-  /** is there any covering-state, that covers the base-state? */
-  private boolean isCoveredByAny(@Nonnull final AbstractState baseState,
-                                 @Nonnull final Collection<AbstractState> coveringStates)
-          throws CPAException, InterruptedException {
-    if (coveringStates.contains(baseState)) {
-      return true;
-    }
-    for (final AbstractState coveringState : coveringStates) {
-      if (bamCPA.isCoveredBy(baseState, coveringState)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /** Enters a new block and performs a new analysis or returns result from cache. */
-  private Collection<? extends AbstractState> doRecursiveAnalysis(
+  protected Collection<? extends AbstractState> doRecursiveAnalysis(
           final AbstractState initialState, final Precision pPrecision, final CFANode node)
           throws CPAException, InterruptedException  {
 
@@ -428,6 +275,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(node);
+    assert currentBlock.getCallNodes().contains(node);
 
     logger.log(Level.ALL, "Reducing state", initialState);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
@@ -437,113 +285,14 @@ public class BAMTransferRelation implements TransferRelation {
     stack.add(currentLevel);
     logger.log(Level.FINEST, "current Stack:", stack);
 
-    final Collection<? extends AbstractState> resultStates;
-
-    if (!handleRecursiveProcedures || (!(node instanceof FunctionEntryNode) || isHeadOfMainFunction(node))) {
-      // block is a loop-block
-      // or we are at the start of the main-block, we do not need the rebuilding-part for main,
-      // so we use a simplified version of function-handling and handle it like a loop-block
-      resultStates = analyseBlockAndExpand(initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
-
-    } else {
-      // function-entry and old block --> begin new block
-      // TODO match only recursive function, not all functions
-
-      assert !((ARGState)initialState).getParents().isEmpty();
-
-      // get the rootState, that is the abstract state of the functioncall.
-      Collection<ARGState> possibleRootStates = ((ARGState)initialState).getParents();
-      assert possibleRootStates.size() == 1 : "too many functioncalls: " + possibleRootStates;
-      AbstractState rootState = possibleRootStates.iterator().next();
-
-      final Collection<AbstractState> expandedFunctionReturnStates;
-
-      final Triple<AbstractState, Precision, Block> coveringLevel = getCoveringLevel(stack, currentLevel);
-      if (coveringLevel != null) {
-        // if level is twice in stack, we have endless recursion.
-        // with current knowledge we would never abort unrolling the recursion.
-        // lets skip the function and return only a short "summary" of the function.
-        // this summary is the result of a previous analysis of this block from the cache.
-        logger.logf(Level.FINEST, "recursion will cause endless unrolling (with current precision), " +
-                "aborting call of function '%s' at state %s", node.getFunctionName(), reducedInitialState);
-
-        expandedFunctionReturnStates = analyseRecursiveBlockAndExpand(
-            initialState, pPrecision, outerSubtree, reducedInitialState, coveringLevel);
-
-      } else {
-        // enter block of function-call and start recursive analysis
-        expandedFunctionReturnStates = analyseBlockAndExpand(
-                initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
-      }
-
-      if (breakAnalysis) {
-        // analysis aborted, so lets abort here too
-        // TODO why return element?
-        assert expandedFunctionReturnStates.size() == 1;
-        return expandedFunctionReturnStates;
-      }
-
-      final Collection<AbstractState> rebuildStates = new ArrayList<>(expandedFunctionReturnStates.size());
-      for (final AbstractState expandedState : expandedFunctionReturnStates) {
-        rebuildStates.add(getRebuildState(rootState, initialState, expandedState));
-      }
-      logger.log(Level.ALL, "finished rebuilding of", rebuildStates.size(), "states");
-      resultStates = rebuildStates;
-
-      // current location is "before" the function-return-edge.
-    }
-
-    if (recursionSeen) {
-      // we are returning from an recursive call.
-      // if we would need to do further analysis for recursion later (fixpoint-analysis!),
-      // we need to know, where to update the reachedset --> store initialState for later usage
-      potentialRecursionUpdateStates.put(initialState, currentLevel);
-    }
+    final Collection<? extends AbstractState> resultStates = analyseBlockAndExpand(
+        initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
     final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
     assert lastLevel.equals(currentLevel);
     currentBlock = outerSubtree;
 
     return resultStates;
-  }
-
-  /** This method analyses a recursive procedure and
-   * returns (expanded) abstract states from the cache, that match the current procedure,
-   * or an empty set, if no cache entry was found. */
-  private Collection<AbstractState> analyseRecursiveBlockAndExpand(
-      final AbstractState initialState, final Precision pPrecision,
-      final Block pOuterSubtree, final AbstractState pReducedInitialState,
-      final Triple<AbstractState, Precision, Block> pCoveringLevel) throws CPATransferException {
-
-    recursionSeen = true;
-    // after this point we have to check all returnStates for changes.
-    // If no changes are found, we have found the fixpoint.
-
-    // try to get previously computed states from cache
-    final Pair<ReachedSet, Collection<AbstractState>> pair =
-            //argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-            argCache.get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
-    final ReachedSet reached = pair.getFirst();
-    final Collection<AbstractState> previousResult = pair.getSecond();
-    final Collection<Pair<AbstractState, Precision>> reducedResult;
-
-    assert reached != null : "cached entry has no reached set";
-    if (previousResult == null) {
-      // outer block was not finished, abort recursion
-      reducedResult = Collections.emptySet();
-      logger.logf(Level.FINEST, "skipping recursive call with new empty result");
-    } else {
-      // use previously computed outer block as inner block,
-      // this is equal to 'add one recursive step' in the recursion
-      reducedResult = imbueAbstractStatesWithPrecision(reached, previousResult);
-      logger.logf(Level.FINEST, "skipping recursive call with cached result");
-    }
-
-    abstractStateToReachedSet.put(initialState, reached);
-
-    addBlockAnalysisInfo(pReducedInitialState);
-
-    return expandResultStates(reducedResult, pOuterSubtree, initialState, pPrecision);
   }
 
   static boolean isHeadOfMainFunction(CFANode currentNode) {
@@ -555,7 +304,7 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   /** Analyse block, return expanded exit-states. */
-  private Collection<AbstractState> analyseBlockAndExpand(
+  protected Collection<AbstractState> analyseBlockAndExpand(
           final AbstractState entryState, final Precision precision, final Block outerSubtree,
           final AbstractState reducedInitialState, final Precision reducedInitialPrecision)
           throws CPAException, InterruptedException {
@@ -578,7 +327,7 @@ public class BAMTransferRelation implements TransferRelation {
   }
 
   /** This function returns expanded states for all reduced states and updates the caches. */
-  private List<AbstractState> expandResultStates(
+  protected List<AbstractState> expandResultStates(
           final Collection<Pair<AbstractState, Precision>> reducedResult,
           final Block outerSubtree, final AbstractState state, final Precision precision) {
 
@@ -645,7 +394,7 @@ public class BAMTransferRelation implements TransferRelation {
       // cache hit, return element from cache
       logger.log(Level.FINEST, "Cache hit with target-state.");
       reducedResult = cachedReturnStates;
-      statesForFurtherAnalysis = reducedResult;
+      statesForFurtherAnalysis = cachedReturnStates;
 
     } else {
       if (reached == null) {
@@ -661,30 +410,8 @@ public class BAMTransferRelation implements TransferRelation {
       reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached);
 
       assert reducedResult != null;
-      if (cachedReturnStates == null) {
-        logger.log(Level.FINEST, "there was no cache-entry for result-states.");
-        resultStatesChanged = true;
-        statesForFurtherAnalysis = reducedResult;
 
-      } else {
-        // this is the result from a previous analysis of a recursive functioncall
-        // now we check, if we really get new states or if all new states (= reducedResult) are
-        final Collection<AbstractState> newStates = getStatesNotCoveredBy(reducedResult, cachedReturnStates);
-        if (newStates.isEmpty()) {
-          // analysis of recursive function did not produce more states.
-          logger.log(Level.FINEST, "all previous return-states are covering the current new states, no new states found.");
-        } else {
-          // new states found, set flag for fixpoint-analysis and return (and later update the cache).
-          logger.log(Level.FINEST, "some cached result-states are not covered. returning new result-states.");
-          resultStatesChanged = true;
-        }
-
-        // we are in an the fixpoint-algorithm for recursion,
-        // we have already analysed all covered states in the previous iteration,
-        // thus we only need to analyse the remaining states.
-        // this is an optimisation,
-        statesForFurtherAnalysis = newStates;
-      }
+      statesForFurtherAnalysis = filterResultStatesForFurtherAnalysis(reducedResult, cachedReturnStates);
     }
 
     assert reached != null;
@@ -705,40 +432,11 @@ public class BAMTransferRelation implements TransferRelation {
     return imbueAbstractStatesWithPrecision(reached, statesForFurtherAnalysis);
   }
 
-  /** Reconstruct the resulting state from root-, entry- and expanded-state.
-   * Also cleanup and update the ARG with the new build state. */
-  private AbstractState getRebuildState(final AbstractState rootState, final AbstractState entryState, final AbstractState expandedState) {
-    logger.log(Level.ALL, "rebuilding state with root state", rootState);
-    logger.log(Level.ALL, "rebuilding state with entry state", entryState);
-    logger.log(Level.ALL, "rebuilding state with expanded state", expandedState);
-
-    final CFANode location = extractLocation(expandedState);
-    if (!(location instanceof FunctionExitNode)) {
-      logger.log(Level.ALL, "rebuilding skipped because of non-function-exit-location");
-      assert isTargetState(expandedState) : "only target states are returned without rebuild";
-      return expandedState;
-    }
-
-    final AbstractState rebuildState = wrappedReducer.rebuildStateAfterFunctionCall(
-            rootState, entryState, expandedState, (FunctionExitNode)location);
-    logger.log(Level.ALL, "rebuilding finished with state", rebuildState);
-
-    // in the ARG of the outer block we have now the connection "rootState <-> expandedState"
-    assert ((ARGState)expandedState).getChildren().isEmpty() && ((ARGState)expandedState).getParents().size() == 1:
-        "unexpected expanded state: " + expandedState;
-    assert ((ARGState)entryState).getChildren().contains(expandedState):
-        "successor of entry state " +  entryState + " must be expanded state " + expandedState;
-
-    // we replace this connection with "rootState <-> rebuildState"
-    ((ARGState)expandedState).removeFromARG();
-    ((ARGState)rebuildState).addParent((ARGState)entryState);
-
-    assert expandedToBlockCache.get(expandedState) == currentBlock : "returning from wrong block?";
-
-    // also clean up local data structures
-    replaceStateInCaches(expandedState, rebuildState, true);
-
-    return rebuildState;
+  /** We try to get a smaller set of states for further analysis. */
+  protected Collection<AbstractState> filterResultStatesForFurtherAnalysis(
+      final Collection<AbstractState> reducedResult, final Collection<AbstractState> cachedReturnStates)
+          throws CPAException, InterruptedException {
+    return reducedResult; // dummy implementation, overridden in sub-class
   }
 
   void replaceStateInCaches(AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
@@ -809,7 +507,7 @@ public class BAMTransferRelation implements TransferRelation {
     return returnStates;
   }
 
-  private List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
+  protected List<Pair<AbstractState, Precision>> imbueAbstractStatesWithPrecision(
       ReachedSet pReached, Collection<AbstractState> pElements) {
     List<Pair<AbstractState, Precision>> result = new ArrayList<>();
     for (AbstractState ele : pElements) {
@@ -859,10 +557,11 @@ public class BAMTransferRelation implements TransferRelation {
     toReplace.replaceInARGWith(replaceWith);
   }
 
-  private void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
+  protected void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (PCCInformation.isPCCEnabled()) {
-      if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) { throw new CPATransferException(
-          "Cannot build proof, ARG, for BAM analysis."); }
+      if (argCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
+        throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
+      }
       ((BAMARGBlockStartState) pElement).setAnalyzedBlock(argCache.getLastAnalyzedBlock());
     }
   }
@@ -901,19 +600,6 @@ public class BAMTransferRelation implements TransferRelation {
             abstractStateToReachedSet, expandedToReducedCache, logger);
     return cexSubgraphComputer.computeCounterexampleSubgraph(
         target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
-  }
-
-  /** searches through all available reachedSet for a matching state and returns its precision */
-  Precision getPrecisionForState(final ARGState state, final UnmodifiableReachedSet mainReachedSet) {
-    if (mainReachedSet.contains(state)) {
-      return mainReachedSet.getPrecision(state);
-    }
-    for (UnmodifiableReachedSet rs : abstractStateToReachedSet.values()) {
-      if (rs.contains(state)) {
-        return rs.getPrecision(state);
-      }
-    }
-    throw new AssertionError("No reachedset found for state " + state + ". Where does this state come from?");
   }
 
   void clearCaches() {
