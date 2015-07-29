@@ -88,6 +88,26 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     }
   }
 
+  static class INACTIVE extends AutomatonState {
+    private static final long serialVersionUID = -7848577870312049023L;
+
+    public INACTIVE(ControlAutomatonCPA pAutomatonCPA) {
+      super(Collections.<String, AutomatonVariable>emptyMap(),
+            AutomatonInternalState.INACTIVE,
+            pAutomatonCPA, ImmutableList.<AStatement>of(), 0, 0, null);
+    }
+
+    @Override
+    public boolean checkProperty(String pProperty) throws InvalidQueryException {
+      return pProperty.toLowerCase().equals("state == inactive");
+    }
+
+    @Override
+    public String toString() {
+      return "AutomatonState.INACTIVE";
+    }
+  }
+
   static class BOTTOM extends AutomatonState {
     private static final long serialVersionUID = -401794748742705212L;
 

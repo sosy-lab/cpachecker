@@ -49,8 +49,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
@@ -107,14 +105,12 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
   private boolean treatErrorsAsTargets = true;
 
-  @Option(secure=true, description="Merge two automata states if one of them is TOP.")
-  private boolean mergeOnTop  = false;
-
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
+  private final AutomatonState inactiveState = new AutomatonState.INACTIVE(this);
+  private final AbstractDomain automatonDomain = new AutomatonDomain(topState, inactiveState);
 
-  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
   private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
@@ -135,12 +131,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     this.transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
-
-    if (mergeOnTop) {
-      this.mergeOperator = new AutomatonTopMergeOperator(automatonDomain, topState);
-    } else {
-      this.mergeOperator = MergeSepOperator.getInstance();
-    }
+    this.mergeOperator = new AutomatonMergeOperator(pConfig, this, automatonDomain, topState);
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
