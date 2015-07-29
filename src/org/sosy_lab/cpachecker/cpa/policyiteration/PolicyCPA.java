@@ -15,6 +15,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -62,6 +65,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA {
 
+
+  @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
+  private boolean useInvariantsForAbstraction = false;
+
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
@@ -70,12 +77,12 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     description="Whether to join states on merge (leads to cycles in ARG)")
   private boolean joinOnMerge = true;
 
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
-  private final PolicyIterationStatistics statistics;
+  private final Configuration config;
   private final IPolicyIterationManager policyIterationManager;
   private final LogManager logger;
-  private final Configuration config;
+  private final MergeOperator mergeOperator;
+  private final PolicyIterationStatistics statistics;
+  private final StopOperator stopOperator;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -87,7 +94,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
       CFA cfa
-  ) throws InvalidConfigurationException {
+  ) throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     logger = pLogger;
@@ -110,25 +117,39 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       );
     }
 
+    InvariantGenerator invariantGenerator;
+    if (useInvariantsForAbstraction) {
+      invariantGenerator = CPAInvariantGenerator
+          .create(config, logger, shutdownNotifier, cfa);
+    } else {
+      invariantGenerator = new DoNothingInvariantGenerator();
+    }
     statistics = new PolicyIterationStatistics(pConfig);
     TemplateManager templateManager = new TemplateManager(pLogger, pConfig, cfa,
         statistics);
+    CongruenceManager pCongruenceManager = new CongruenceManager(
+        pConfig,
+        solver, templateManager,
+        formulaManager,
+        statistics, pathFormulaManager);
+    StateFormulaConversionManager stateFormulaConversionManager =
+        new StateFormulaConversionManager(formulaManager,
+            pathFormulaManager, pCongruenceManager, templateManager,
+            invariantGenerator);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
-            formulaManager, pLogger, templateManager, pathFormulaManager);
+            formulaManager, pLogger, templateManager, pathFormulaManager,
+            stateFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(
           realFormulaManager.getUnsafeFormulaManager(),
           formulaManager.getBooleanFormulaManager(),
           formulaManager,
         formulaManager.getIntegerFormulaManager());
-    CongruenceManager pCongruenceManager = new CongruenceManager(
-        pConfig,
-        solver, templateManager,
-        formulaManager,
-        statistics, pathFormulaManager);
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
+
+
     policyIterationManager = new PolicyIterationManager(
         pConfig,
         formulaManager,
@@ -136,7 +157,11 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         solver, pLogger, shutdownNotifier,
         templateManager, valueDeterminationFormulaManager,
         statistics,
-        formulaLinearizationManager, pCongruenceManager, joinOnMerge, pPwm);
+        formulaLinearizationManager,
+        pCongruenceManager,
+        joinOnMerge,
+        pPwm,
+        invariantGenerator, stateFormulaConversionManager);
     mergeOperator = new PolicyMergeOperator(policyIterationManager, joinOnMerge);
     stopOperator = new StopSepOperator(this);
   }

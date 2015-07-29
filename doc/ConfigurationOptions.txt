@@ -1789,6 +1789,10 @@ cpa.stator.policy.unrollingRefinementThreshold = 2
 # Cache formulas produced by path formula manager
 cpa.stator.policy.useCachingPathFormulaManager = true
 
+# Generate invariants and strengthen the formulas during abstraction with
+# them.
+cpa.stator.policy.useInvariantsForAbstraction = false
+
 # Use the optimized abstraction, which takes into the account the previously
 # obtained bound at the location.
 cpa.stator.policy.usePreviousBounds = true
