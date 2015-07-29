@@ -48,7 +48,7 @@ from time import time
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 CONNECTION_TIMEOUT = 600 #seconds
-DEFAULT_OUTPUT_PATH = "test/results/"
+DEFAULT_OUTPUT_PATH = "./"
 RESULT_FILE_LOG = 'output.log'
 RESULT_FILE_STDERR = 'stderr'
 RESULT_FILE_RUN_INFO = 'runInformation.txt'
@@ -148,6 +148,9 @@ def __setup_logging(config):
                             level=logging.INFO)
 
 def __init(config):
+    """
+    Sets __webclient and __base64_user_pwd if they are defined in the given config.
+    """
     global __webclient, __base64_user_pwd
 
     if config.cloud_master:
@@ -162,6 +165,11 @@ def __init(config):
         __base64_user_pwd = base64.b64encode(config.cloud_user.encode("utf-8")).decode("utf-8")
 
 def __request(method, path, body, headers, expectedStatusCodes=[200]):
+    """
+    Sends a request specified by the parameters.
+    @raise urlib.request.HTTPError:  if the request fails more than 5 times
+    @return: (response body, status code)
+    """
     connection = __get_connection()
 
     headers["Connection"] = "Keep-Alive"
@@ -198,6 +206,12 @@ def __request(method, path, body, headers, expectedStatusCodes=[200]):
             raise request.HTTPError(path, response.getcode(), message , response.getheaders(), None)
 
 def __get_connection():
+    """
+    Creates and caches a HTTPConnection or HTTPSConnection. 
+    A previously created connection object will be reused, otherwise a new connection Object is created.
+    @requires: __webclient must be set (see __init(config)).
+    @return: http.client.HTTPConnection object
+    """
     global __connection
 
     if __connection is None:
@@ -211,6 +225,10 @@ def __get_connection():
     return __connection
 
 def __get_revision(config):
+    """
+    Extracts branch and revision number from the given config parameter.
+    @return: (branch, revision number)
+    """
     if config.revision:
         tokens = config.revision.split(':')
         svn_branch = tokens[0]
@@ -222,11 +240,18 @@ def __get_revision(config):
     else:
         return ('trunk', 'HEAD')      
 
-def __get_sha1_hash(path):
+def __compute_sha1_hash(path):
+    """
+    Returns the SHA-1 hash of a file as string in hexadecimal format.
+    """
     with open(path, 'rb') as file:
         return hashlib.sha1(file.read()).hexdigest()
     
-def __parse_cpachecker_args(config, cpachecker_args):
+def __parse_cpachecker_args(cpachecker_args):
+    """
+    Parses the given CPAchecker arguments.
+    @return:  (list of invalid options, list of source files, dict of POST parameters).
+    """
     params = {}
     options = []
     invalid_options = []
@@ -293,8 +318,12 @@ def __parse_cpachecker_args(config, cpachecker_args):
     return (invalid_options, source_files, params)
     
 def __submit_run(config, cpachecker_args, counter=0):
+    """
+    Submits a single run using the web interface of the VerifierCloud.
+    @return: the run's identifier
+    """
     
-    (invalid_options, source_files, params) = __parse_cpachecker_args(config, cpachecker_args)
+    (invalid_options, source_files, params) = __parse_cpachecker_args(cpachecker_args)
     if len (invalid_options) > 0:
         logging.warn('Command {0} contains option that is not usable with the webclient: {1} '\
             .format(cpachecker_args, invalid_options))
@@ -323,7 +352,7 @@ def __submit_run(config, cpachecker_args, counter=0):
     #source files
     source_file_Hashs = []
     for source_file in source_files:
-        source_file_Hashs.append(__get_sha1_hash(source_file))
+        source_file_Hashs.append(__compute_sha1_hash(source_file))
     params = {'programTextHash': source_file_Hashs}
 
     # prepare request
@@ -357,10 +386,14 @@ def __submit_run(config, cpachecker_args, counter=0):
         return decoded_run_id
 
 def __get_results(runID, config, cpachecker_args):
+    """
+    Waits until the run given by its runID id finished, downloads and parses the result.
+    @return: the return value of CPAchecker or -1 if the execution failed
+    """
 
     while True:
         start = time()
-        state = __is_finished(runID)
+        state = __get_state(runID)
         
         if state == "FINISHED" or state == "UNKOWN":
             result_value = __download_and_parse_result(runID, config, cpachecker_args)
@@ -376,7 +409,10 @@ def __get_results(runID, config, cpachecker_args):
         if duration < 5:
             sleep(5 - duration)
 
-def __is_finished(runID):
+def __get_state(runID):
+    """
+    @return:  the current state of the run given by its runID
+    """
     headers = {"Accept": "text/plain"}
     path = __webclient.path + "runs/" + runID + "/state"
 
@@ -397,6 +433,11 @@ def __is_finished(runID):
         return "UNKNOWN"
 
 def __download_and_parse_result(runID, config, cpachecker_args):
+    """
+    Downloads the result of the run given by its id, parses the meta information 
+    and writes all files to the 'output_path' defined in the config parameter.
+    @return: the return value of CPAchecker
+    """
     # download result as zip file
     headers = {"Accept": "application/zip"}
     path = __webclient.path + "runs/" + runID + "/result"
@@ -426,7 +467,13 @@ def __download_and_parse_result(runID, config, cpachecker_args):
 
     return return_value
 
+
 def __handle_result(resultZipFile, config, cpachecker_args):
+    """
+    Extraxts all files from the given zip file, parses the meta information 
+    and writes all files to the 'output_path' defined in the config parameter.
+    @return: the return value of CPAchecker.
+    """
     result_dir = config.output_path
     files = set(resultZipFile.namelist())
 
@@ -454,6 +501,8 @@ def __handle_result(resultZipFile, config, cpachecker_args):
     # extract log file
     if RESULT_FILE_LOG in files:
         with open(config.output_path + "output.log", 'wb') as log_file:
+            # The log file contains typically the executed command, 
+            # 3 empty lines and a line of '-' followed by the output of CPAchecker.
             log_header = " ".join(cpachecker_args) + "\n\n\n--------------------------------------------------------------------------------\n"
             log_file.write(log_header.encode('utf-8'))
             with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
@@ -472,6 +521,10 @@ def __handle_result(resultZipFile, config, cpachecker_args):
     return return_value
 
 def __parse_worker_host_information(file):
+    """
+    Parses the mete file containing information about the host executed the run.
+    Returns a dict of all values.
+    """
     values = __parse_file(file)
 
     values["host"] = values.pop("@vcloud-name", "-")
@@ -483,6 +536,10 @@ def __parse_worker_host_information(file):
     return values
 
 def __parse_cloud_result_file(file):
+    """
+    Parses the mete file containing information about the run.
+    Returns a dict of all values.
+    """
     values = __parse_file(file)
 
     return_value = int(values["@vcloud-exitcode"])
@@ -499,6 +556,10 @@ def __parse_cloud_result_file(file):
     return (walltime, cputime, return_value, values)
 
 def __parse_file(file):
+    """
+    Parses a file containing key value pairs in each line. 
+    @return:  a dict of the parsed key value pairs.
+    """
     values = {}
 
     for line in file:
@@ -513,16 +574,23 @@ def __parse_file(file):
     return values
 
 def __execute():
+    """
+    Executes a single CPAchecker run in the VerifierCloud vis the web front end.
+    All informations are given by the command line arguments.
+    @return: the return value of CPAchecker
+    """
     arg_parser = __create_argument_parser()
     (config, cpachecker_args) = arg_parser.parse_known_args()
     __setup_logging(config)
     __init(config)
+    
     try:
         run_id = __submit_run(config, cpachecker_args)
         return __get_results(run_id, config, cpachecker_args)
+    
     except request.HTTPError as e:
         logging.warn(e.reason)
         
 
 if __name__ == "__main__":
-    __execute()
+    sys.exit(__execute())
