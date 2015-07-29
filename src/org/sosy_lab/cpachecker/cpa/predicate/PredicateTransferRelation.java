@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
@@ -357,6 +358,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision)
           throws CPATransferException, InterruptedException {
 
+    boolean satCheckRequested = false;
+
     strengthenTimer.start();
     try {
 
@@ -384,15 +387,21 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
 
-
         if (AbstractStates.isTargetState(lElement)) {
           errorFound = true;
+        }
+
+        if (lElement instanceof AutomatonState) {
+          AutomatonState e = (AutomatonState) lElement;
+          if (e.getInternalStateName().equals("SAT")) {
+            satCheckRequested = true;
+          }
         }
       }
 
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && targetStateSatCheck) {
+      if (satCheckRequested || errorFound && targetStateSatCheck) {
         element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
         if (element == null) {
           // successor not reachable
