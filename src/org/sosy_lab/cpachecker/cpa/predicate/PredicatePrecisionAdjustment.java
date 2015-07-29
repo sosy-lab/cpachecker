@@ -152,8 +152,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       computingAbstractionTime.stop();
     }
 
-    final BooleanFormula constraint = element.getConstraint();
-    if (constraint != null) {
+    for (BooleanFormula constraint : element.getConstraints()) {
       // add constraint to the current abstraction, such that it can be used for further steps in the analysis.
       // We manually set the SSA-indices for the constraint with the indices available in the current (new) abstractionFormula.
       // TODO: check if we use identical BDD-nodes for identical atoms for different formulas

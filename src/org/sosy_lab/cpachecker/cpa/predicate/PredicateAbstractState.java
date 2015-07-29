@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
-
-import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -162,20 +162,17 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     /** A constraint is boolean formula that is valid for the current abstraction
      * and should be conjuncted with the result of the abstraction computation.
      * The constraint is a not instantiated formula. */
-    private transient final @Nullable BooleanFormula constraint;
+    private transient final List<BooleanFormula> constraint;
 
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
         CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       location = pLoc;
-      constraint = null; // NULL represents TRUE, because we do not have a FormulaManager here.
+      constraint = new ArrayList<>(); // NULL represents TRUE, because we do not have a FormulaManager here.
     }
 
-    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
-        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations, BooleanFormula pConstraint) {
-      super(pf, pA, pAbstractionLocations);
-      location = pLoc;
-      constraint = pConstraint;
+    public void addConstraint(BooleanFormula pConstraint) {
+      constraint.add(pConstraint);
     }
 
     @Override
@@ -197,7 +194,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       return location;
     }
 
-    public @Nullable BooleanFormula getConstraint() {
+    public List<BooleanFormula> getConstraints() {
       return constraint;
     }
   }

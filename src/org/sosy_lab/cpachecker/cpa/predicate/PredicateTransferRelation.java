@@ -432,13 +432,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           throws SolverException, InterruptedException {
     // TODO while converting constraints from  INT to BV, re-use as many sub-formula as possible for all old abstractions,
     // such that we get the same BDD-nodes for atoms of different old abstractions.
-    BooleanFormula constraint = pOldPredicateState.getAbstractionFormula().asFormula();
 
     strengthenReuseConvertTimer.start();
 
     StringBuilder in = new StringBuilder();
     BVConverter converter = new BVConverter(cfa, logger);
-    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(constraint);
+    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(
+        pOldPredicateState.getAbstractionFormula().asFormula());
 
     try {
       app.appendTo(in);
@@ -455,27 +455,23 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    constraint = this.fmgr.parse(out.toString());
+    BooleanFormula constraint = this.fmgr.parse(out.toString());
 
     strengthenReuseConvertTimer.stop();
 
     strengthenReuseCheckTimer.start();
 
-    if (!isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
-      constraint = null; // ignore constraint
-      numStrengthenReusedInvalidAbstractions++;
-    } else {
+    if (isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
       numStrengthenReusedValidAbstractions++;
+      pPredicateState.addConstraint(constraint);
+    } else {
+      // ignore constraint
+      numStrengthenReusedInvalidAbstractions++;
     }
 
     strengthenReuseCheckTimer.stop();
 
-    return new ComputeAbstractionState(
-        pPredicateState.getPathFormula(),
-        pPredicateState.getAbstractionFormula(),
-        pPredicateState.getLocation(),
-        pPredicateState.getAbstractionLocationsOnPath(),
-        constraint);
+    return pPredicateState;
   }
 
   /** return, whether the newAbstraction is a valid expression,
