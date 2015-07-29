@@ -377,15 +377,18 @@ def _handleOptions(run, params, rlimits):
                 elif option == "-skipRecursion":
                     options.append("cpa.callstack.skipRecursion=true")
                     options.append("analysis.summaryEdges=true")
-
+                       
                 elif option == "-spec":
-                    spec  = next(i)[-1].split('.')[0]
-                    if spec[-8:] == ".graphml":
-                        with open(spec, 'r') as  errorWitnessFile:
-                            errorWitnessText = errorWitnessFile.read()
-                            params['errorWitnessText'] = errorWitnessText
-                    else:
-                        params['specification'] = spec
+                    spec_path  = next(i)
+                    with open(spec_path, 'r') as  spec_file:
+                        file_text = spec_file.read()
+                        if spec_path[-8:] == ".graphml":
+                            params['errorWitnessText'] = file_text
+                        elif spec_path[-4:] == ".prp":
+                            params['propertyText'] = file_text
+                        else:
+                            params['specificationText'] = file_text
+                        
                 elif option == "-config":
                     configPath = next(i)
                     tokens = configPath.split('/')
