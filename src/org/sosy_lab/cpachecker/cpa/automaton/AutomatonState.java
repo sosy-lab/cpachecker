@@ -73,7 +73,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable>emptyMap(),
-            new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
+            AutomatonInternalState.TOP,
             pAutomatonCPA, ImmutableList.<AStatement>of(), 0, 0, null);
     }
 
