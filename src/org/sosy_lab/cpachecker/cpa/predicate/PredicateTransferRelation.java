@@ -73,7 +73,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 
 import com.google.common.base.Optional;
@@ -373,8 +374,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
-        if (lElement instanceof ARGReplayState) {
-          element = strengthen(element, (ARGReplayState) lElement);
+        if (element instanceof ComputeAbstractionState && lElement instanceof ARGReplayState) {
+          element = strengthen((ComputeAbstractionState)element, (ARGReplayState) lElement);
         }
 
         /*
@@ -409,19 +410,17 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private PredicateAbstractState strengthen(PredicateAbstractState predicateState, ARGReplayState state)
+  private PredicateAbstractState strengthen(ComputeAbstractionState predicateState, ARGReplayState state)
       throws SolverException, InterruptedException {
-    if (predicateState instanceof ComputeAbstractionState) {
-      // we have following step: [transfer, strengthen, refine]
-      // in "refine" the expansive abstraction is computed,
-      // so we try to get information from other states to avoid abstraction.
-      for (ARGState innerState : state.getStates()) {
-        PredicateAbstractState oldPredicateState = AbstractStates.extractStateByType(innerState, PredicateAbstractState.class);
-        if (oldPredicateState != null && oldPredicateState.isAbstractionState()) {
-          PredicateCPA oldPredicateCPA = CPAs.retrieveCPA(state.getCPA(), PredicateCPA.class);
-          predicateState = updateComputeAbstractionState((ComputeAbstractionState)predicateState, oldPredicateState, oldPredicateCPA);
-          break;
-        }
+    // we have following step: [transfer, strengthen, refine]
+    // in "refine" the expansive abstraction is computed,
+    // so we try to get information from other states to avoid abstraction.
+    for (ARGState innerState : state.getStates()) {
+      PredicateAbstractState oldPredicateState = AbstractStates.extractStateByType(innerState, PredicateAbstractState.class);
+      if (oldPredicateState != null && oldPredicateState.isAbstractionState()) {
+        PredicateCPA oldPredicateCPA = CPAs.retrieveCPA(state.getCPA(), PredicateCPA.class);
+        predicateState = updateComputeAbstractionState(predicateState, oldPredicateState, oldPredicateCPA);
+        // we can either break here, or we use all available matching states.
       }
     }
     return predicateState;
@@ -436,7 +435,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     strengthenReuseConvertTimer.start();
 
     StringBuilder in = new StringBuilder();
-    BVConverter converter = new BVConverter(cfa, logger);
+    Converter converter = Converter.getConverter(PrecisionConverter.INT2BV, cfa, logger);
     Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(
         pOldPredicateState.getAbstractionFormula().asFormula());
 
