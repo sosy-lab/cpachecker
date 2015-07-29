@@ -459,6 +459,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     strengthenReuseConvertTimer.stop();
 
+    addConstraintIfValid(pPredicateState, constraint);
+
+    return pPredicateState;
+  }
+
+  private void addConstraintIfValid(ComputeAbstractionState pPredicateState,
+      BooleanFormula constraint) throws SolverException, InterruptedException {
     strengthenReuseCheckTimer.start();
 
     if (isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
@@ -470,8 +477,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     strengthenReuseCheckTimer.stop();
-
-    return pPredicateState;
   }
 
   /** return, whether the newAbstraction is a valid expression,

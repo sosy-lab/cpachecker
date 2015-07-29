@@ -62,7 +62,7 @@ parser code {:
     logger.log(Level.WARNING, errorString);
   }
 
-  /** 
+  /**
    * This method converts a formula with the given converter.
    * If the converter is NULL or the formula is a solver-specific string, it is returned unchanged.
    * Otherwise the converter converts the formula, for example from Integer-logic to BV-logic.
@@ -79,8 +79,13 @@ parser code {:
       return line;
     }
 
-    ComplexSymbolFactory sf = new ComplexSymbolFactory();
+    return convert0(converter, line, pLogger);
+  }
+
+  private static String convert0(Converter converter, String line, LogManagerWithoutDuplicates pLogger)
+      throws AssertionError {
     try (InputStream input = new ByteArrayInputStream(line.getBytes())) {
+      ComplexSymbolFactory sf = new ComplexSymbolFactory();
       Scanner scanner = new FormulaScanner(input, pLogger, sf);
       FormulaParser parser = new FormulaParser(scanner, sf, converter, pLogger);
       Symbol symbol = parser.parse();

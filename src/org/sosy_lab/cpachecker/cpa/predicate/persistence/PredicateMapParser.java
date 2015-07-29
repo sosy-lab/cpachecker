@@ -56,10 +56,9 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.IntConverter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -106,7 +105,6 @@ public class PredicateMapParser {
 
   @Option(secure=true, description = "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
   private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
-  private enum PrecisionConverter {DISABLE, INT2BV, BV2INT}
 
   private final CFA cfa;
 
@@ -159,7 +157,7 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
-    final Converter converter = getConverter();
+    final Converter converter = Converter.getConverter(encodePredicates, cfa, logger);
     if (encodePredicates != PrecisionConverter.DISABLE) {
       final StringBuilder str = new StringBuilder();
       for (String line : commonDefinitions.split("\n")) {
@@ -280,22 +278,6 @@ public class PredicateMapParser {
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>, AbstractionPredicate>of(),
         localPredicates, functionPredicates, globalPredicates);
-  }
-
-  private Converter getConverter() {
-    switch (encodePredicates) {
-    case INT2BV: {
-      return new BVConverter(cfa, logger);
-    }
-    case BV2INT: {
-      return new IntConverter(cfa, logger);
-    }
-    case DISABLE: {
-      return null;
-    }
-    default:
-      throw new AssertionError("invalid value for option");
-    }
   }
 
   private @Nullable String convertFormula(final Converter converter, final String line) {
