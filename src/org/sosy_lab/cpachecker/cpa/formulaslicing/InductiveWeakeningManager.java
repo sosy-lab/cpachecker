@@ -46,6 +46,11 @@ public class InductiveWeakeningManager {
       + "similarity to the transition relation")
   private boolean sortSelectionVariablesSyntactic = true;
 
+  @Option(secure=true, description="Use syntactic formula slicing, which"
+      + " uses only the syntactic structure of the formula and does not involve"
+      + " any calls to the SMT solver.")
+  private boolean useSyntacticFormulaSlicing = false;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
@@ -124,12 +129,19 @@ public class InductiveWeakeningManager {
       orderedList = new ArrayList<>(selectionVars.keySet());
     }
 
-    Set<BooleanFormula> inductiveSlice = formulaSlicing(selectionVars,
-        orderedList, query);
-    if (inductiveSlice.size() == selectionVars.size()) {
+    Set<BooleanFormula> inductiveSlice;
 
-      // Everything was abstracted => return a trivial invariant "true".
-      return bfmgr.makeBoolean(true);
+    if (useSyntacticFormulaSlicing) {
+      inductiveSlice = syntacticFormulaSlicing(selectionVars, orderedList,
+          transition);
+    } else {
+      inductiveSlice = formulaSlicing(selectionVars,
+          orderedList, query);
+      if (inductiveSlice.size() == selectionVars.size()) {
+
+        // Everything was abstracted => return a trivial invariant "true".
+        return bfmgr.makeBoolean(true);
+      }
     }
 
     // Step 3: Apply the transformation, replace the atoms marked by the
@@ -153,15 +165,42 @@ public class InductiveWeakeningManager {
     return fmgr.uninstantiate(sliced);
   }
 
+  private Set<BooleanFormula> syntacticFormulaSlicing(
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      List<BooleanFormula> selectionVars,
+      PathFormula transition
+  ) throws SolverException, InterruptedException {
+
+    Set<BooleanFormula> out = new HashSet<>();
+    for (BooleanFormula selector : selectionVars) {
+      BooleanFormula atom = selectionInfo.get(selector);
+      Set<String> varNames = fmgr.extractFunctionNames(fmgr.uninstantiate(atom), true);
+
+      boolean keepSelector = true;
+      for (String var : varNames) {
+
+        // todo: Replace hard-coded "2" by a meaningful parameter.
+        if (transition.getSsa().getIndex(var) > 2) {
+          out.add(selector);
+          keepSelector = false;
+        }
+        if (!keepSelector) {
+          break;
+        }
+      }
+    }
+    // todo:
+    return out;
+  }
+
   /**
    * @param selectionInfo Mapping from selection variables
    *    to the atoms (possibly w/ negation) they represent.
    * @param selectionVars List of selection variables.
    *    The order is very important and determines which MUS we will get out.
    *
-   * @return An assignment to boolean variables:
-   *         returned as a subset of {@code selectionVars},
-   *         which should be abstracted.
+   * @return Set of selectors which correspond to atoms which *should*
+   *         be abstracted.
    */
   private Set<BooleanFormula> formulaSlicing(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
