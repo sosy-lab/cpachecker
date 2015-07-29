@@ -359,6 +359,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           throws CPATransferException, InterruptedException {
 
     boolean satCheckRequested = false;
+    boolean newAbstractionStateOnSat = true;
 
     strengthenTimer.start();
     try {
@@ -395,6 +396,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           AutomatonState e = (AutomatonState) lElement;
           if (e.getInternalStateName().equals("SAT")) {
             satCheckRequested = true;
+            // Computing a new abstraction state would prohibit a merge!!!!
+            newAbstractionStateOnSat = false;
           }
         }
       }
@@ -402,10 +405,14 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
       if (satCheckRequested || errorFound && targetStateSatCheck) {
-        element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
-        if (element == null) {
+        PredicateAbstractState e = strengthenSatCheck(element, getAnalysisSuccesor(edge));
+        if (e == null) {
           // successor not reachable
           return Collections.emptySet();
+        }
+
+        if (newAbstractionStateOnSat) {
+          element = e;
         }
       }
 
