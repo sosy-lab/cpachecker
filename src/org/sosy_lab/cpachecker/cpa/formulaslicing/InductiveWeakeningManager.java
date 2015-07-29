@@ -133,7 +133,7 @@ public class InductiveWeakeningManager {
 
     if (useSyntacticFormulaSlicing) {
       inductiveSlice = syntacticFormulaSlicing(selectionVars, orderedList,
-          transition);
+          transition, input);
     } else {
       inductiveSlice = formulaSlicing(selectionVars,
           orderedList, query);
@@ -168,7 +168,8 @@ public class InductiveWeakeningManager {
   private Set<BooleanFormula> syntacticFormulaSlicing(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       List<BooleanFormula> selectionVars,
-      PathFormula transition
+      PathFormula transition,
+      PathFormula initial
   ) throws SolverException, InterruptedException {
 
     Set<BooleanFormula> out = new HashSet<>();
@@ -179,8 +180,7 @@ public class InductiveWeakeningManager {
       boolean keepSelector = true;
       for (String var : varNames) {
 
-        // todo: Replace hard-coded "2" by a meaningful parameter.
-        if (transition.getSsa().getIndex(var) > 2) {
+        if (transition.getSsa().getIndex(var) != initial.getSsa().getIndex(var)) {
           out.add(selector);
           keepSelector = false;
         }
