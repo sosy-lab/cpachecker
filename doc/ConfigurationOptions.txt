@@ -1483,6 +1483,12 @@ cpa.predicate.satCheckAtAbstraction = false
 cpa.predicate.stop = "SEP"
   allowed values: [SEP, SEPPCC]
 
+# try to reuse old abstractions from file during strengthening
+cpa.predicate.strengthenWithReusedAbstractions = false
+
+# file that consists of old abstractions, to be used during strengthening
+cpa.predicate.strengthenWithReusedAbstractionsFile = "abstractions.txt"
+
 # The function used to model successful heap object allocation. This is only
 # used, when pointer analysis with UFs is enabled.
 cpa.predicate.successfulAllocFunctionName = "__VERIFIER_successful_alloc"
