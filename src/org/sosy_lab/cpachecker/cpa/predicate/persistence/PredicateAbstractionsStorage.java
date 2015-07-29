@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,13 +33,18 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -91,16 +98,18 @@ public class PredicateAbstractionsStorage {
   private final Path abstractionsFile;
   private final FormulaManagerView fmgr;
   protected final LogManager logger;
+  private final Converter converter;
 
   private Integer rootAbstractionId = null;
   private ImmutableMap<Integer, AbstractionNode> abstractions = ImmutableMap.of();
   private ImmutableMultimap<Integer, Integer> abstractionTree = ImmutableMultimap.of();
   private Set<Integer> reusedAbstractions = Sets.newTreeSet();
 
-  public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr) throws PredicateParsingFailedException {
+  public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter) throws PredicateParsingFailedException {
     this.fmgr = pFmgr;
     this.logger = pLogger;
     this.abstractionsFile = pFile;
+    this.converter = pConverter;
 
     if (pFile != null) {
       try {
@@ -123,7 +132,7 @@ public class PredicateAbstractionsStorage {
       // first, read first section with initial set of function definitions
       Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
       int lineNo = defParsingResult.getFirst();
-      String commonDefinitions = defParsingResult.getSecond();
+      String commonDefinitions = convert(defParsingResult.getSecond());
 
       String currentLine;
       int currentAbstractionId = -1;
@@ -182,6 +191,8 @@ public class PredicateAbstractionsStorage {
             throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
           }
 
+          currentLine = convert(currentLine);
+
           BooleanFormula f;
           try {
             f = fmgr.parse(commonDefinitions + currentLine);
@@ -213,6 +224,23 @@ public class PredicateAbstractionsStorage {
     // Set results
     this.abstractions = ImmutableMap.copyOf(resultAbstractions);
     this.abstractionTree = ImmutableMultimap.copyOf(resultTree);
+  }
+
+  private String convert(String str) {
+    if (converter == null){
+      return str;
+    }
+
+    LogManagerWithoutDuplicates logger2 = new LogManagerWithoutDuplicates(logger);
+    StringBuilder out = new StringBuilder();
+    for (String line : str.split("\n")) {
+      line = FormulaParser.convertFormula(checkNotNull(converter), line, logger2);
+      if (line != null) {
+        out.append(line).append("\n");
+      }
+    }
+
+    return out.toString();
   }
 
   public AbstractionNode getAbstractionNode(int abstractionId) {

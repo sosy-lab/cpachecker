@@ -246,7 +246,7 @@ public class PredicateAbstractionManager {
       cartesianAbstractionCache = null;
     }
 
-    abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr);
+    abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr, null);
     SSAMap extractionSsa = SSAMap.emptySSAMap().withDefault(1);
     for (AbstractionNode an : abstractionStorage.getAbstractions().values()) {
       BooleanFormula instanceFm = fmgr.instantiate(an.getFormula(), extractionSsa);
