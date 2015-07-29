@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -74,7 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -446,16 +446,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       throw new AssertionError(e.getMessage());
     }
 
+    LogManagerWithoutDuplicates logger2 = new LogManagerWithoutDuplicates(logger);
     StringBuilder out = new StringBuilder();
     for (String line : in.toString().split("\n")) {
-      if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
-        try {
-          line = FormulaParser.convertFormula(checkNotNull(converter), line, logger);
-        } catch (UnknownFormulaSymbolException e) {
-          throw new AssertionError(e.getMessage());
-        }
+      line = FormulaParser.convertFormula(checkNotNull(converter), line, logger2);
+      if (line != null) {
+        out.append(line).append("\n");
       }
-      out.append(line);
     }
 
     constraint = this.fmgr.parse(out.toString());

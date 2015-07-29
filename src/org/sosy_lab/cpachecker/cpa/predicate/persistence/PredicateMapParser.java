@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.IntConverter;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -160,23 +159,9 @@ public class PredicateMapParser {
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
-    final Converter converter;
-    switch (encodePredicates) {
-    case INT2BV: {
+    final Converter converter = getConverter();
+    if (encodePredicates != PrecisionConverter.DISABLE) {
       final StringBuilder str = new StringBuilder();
-      converter = new BVConverter(cfa, logger);
-      for (String line : commonDefinitions.split("\n")) {
-        String converted = convertFormula(converter, line);
-        if (converted != null) {
-          str.append(converted).append("\n");
-        }
-      }
-      commonDefinitions = str.toString();
-      break;
-    }
-    case BV2INT: {
-      final StringBuilder str = new StringBuilder();
-      converter = new IntConverter(cfa, logger);
       for (String line : commonDefinitions.split("\n")) {
         final String converted = convertFormula(converter, line);
         if (converted != null) {
@@ -184,16 +169,7 @@ public class PredicateMapParser {
         }
       }
       commonDefinitions = str.toString();
-      break;
     }
-    case DISABLE: {
-      converter = null;
-      break;
-    }
-    default:
-      throw new AssertionError("invalid value for option");
-    }
-
 
     // second, read map of predicates
     Set<AbstractionPredicate> globalPredicates = Sets.newHashSet();
@@ -306,22 +282,24 @@ public class PredicateMapParser {
         localPredicates, functionPredicates, globalPredicates);
   }
 
-  private @Nullable String convertFormula(final Converter converter, final String line) {
-    if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
-      try {
-        return FormulaParser.convertFormula(checkNotNull(converter), line, logger);
-      } catch (UnknownFormulaSymbolException e) {
-        if (e.getMessage().contains("unknown symbol in formula: .def_")) {
-          // ignore Mathsat5-specific helper symbols,
-          // they are based on 'real' unknown symbols.
-        } else {
-          logger.logOnce(Level.INFO, e.getMessage());
-        }
-        return null;
-      }
-    } else {
-      return line;
+  private Converter getConverter() {
+    switch (encodePredicates) {
+    case INT2BV: {
+      return new BVConverter(cfa, logger);
     }
+    case BV2INT: {
+      return new IntConverter(cfa, logger);
+    }
+    case DISABLE: {
+      return null;
+    }
+    default:
+      throw new AssertionError("invalid value for option");
+    }
+  }
+
+  private @Nullable String convertFormula(final Converter converter, final String line) {
+    return FormulaParser.convertFormula(checkNotNull(converter), line, logger);
   }
 
   private CFANode getCFANodeWithId(int id) {
