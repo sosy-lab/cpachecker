@@ -76,7 +76,8 @@ def __create_argument_parser():
     
     parser = argparse.ArgumentParser("Executes CPAchecker in the VerifierCloud and uses the web interface." \
                                       + "Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
-                                    fromfile_prefix_chars='@')
+                                    fromfile_prefix_chars='@',
+                                    add_help=False) # conflict with -heap
 
     parser.add_argument("--cloudMaster",
                       dest="cloud_master",
@@ -283,13 +284,15 @@ def __parse_cpachecker_args(cpachecker_args):
                 options.append("analysis.summaryEdges=true")
 
             elif option == "-spec":
-                spec  = next(i)[-1].split('.')[0]
-                if spec[-8:] == ".graphml":
-                    with open(spec, 'r') as  errorWitnessFile:
-                        errorWitnessText = errorWitnessFile.read()
-                        params['errorWitnessText'] = errorWitnessText
-                else:
-                    params['specification'] = spec
+                spec_path  = next(i)
+                with open(spec_path, 'r') as  spec_file:
+                    file_text = spec_file.read()
+                    if spec_path[-8:] == ".graphml":
+                        params['errorWitnessText'] = file_text
+                    elif spec_path[-4:] == ".prp":
+                        params['propertyText'] = file_text
+                    else:
+                        params['specificationText'] = file_text
                     
             elif option == "-config":
                 configPath = next(i)
@@ -304,10 +307,13 @@ def __parse_cpachecker_args(cpachecker_args):
             elif option == "-setprop":
                 options.append(next(i))
 
+            # example: -predicateAnalysis
             elif option[0] == '-' and 'configuration' not in params :
-                params['configuration'] = option[1]
+                params['configuration'] = option[1:]
+                
             elif os.path.isfile(option):
                 source_files.append(option)
+                
             else:
                 invalid_options.append(option)
 
@@ -325,9 +331,10 @@ def __submit_run(config, cpachecker_args, counter=0):
     
     (invalid_options, source_files, params) = __parse_cpachecker_args(cpachecker_args)
     if len (invalid_options) > 0:
-        logging.warn('Command {0} contains option that is not usable with the webclient: {1} '\
+        raise WebClientError('Command {0} contains option that is not usable with the webclient: {1} '\
             .format(cpachecker_args, invalid_options))
-        return
+
+    print(params)
 
     #revision
     (svn_branch, svn_revision) = __get_revision(config)
@@ -353,7 +360,7 @@ def __submit_run(config, cpachecker_args, counter=0):
     source_file_Hashs = []
     for source_file in source_files:
         source_file_Hashs.append(__compute_sha1_hash(source_file))
-    params = {'programTextHash': source_file_Hashs}
+    params['programTextHash'] = source_file_Hashs
 
     # prepare request
     headers = {"Content-Type": "application/x-www-form-urlencoded",
@@ -390,6 +397,8 @@ def __get_results(runID, config, cpachecker_args):
     Waits until the run given by its runID id finished, downloads and parses the result.
     @return: the return value of CPAchecker or -1 if the execution failed
     """
+
+    logging.info("Waiting for result of run {0}.".format(runID))
 
     while True:
         start = time()
@@ -500,14 +509,14 @@ def __handle_result(resultZipFile, config, cpachecker_args):
 
     # extract log file
     if RESULT_FILE_LOG in files:
-        with open(config.output_path + "output.log", 'wb') as log_file:
-            # The log file contains typically the executed command, 
-            # 3 empty lines and a line of '-' followed by the output of CPAchecker.
-            log_header = " ".join(cpachecker_args) + "\n\n\n--------------------------------------------------------------------------------\n"
-            log_file.write(log_header.encode('utf-8'))
+        log_file_path = config.output_path + "output.log"
+        with open(log_file_path, 'wb') as log_file:
             with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
                 for line in result_log_file:
                     log_file.write(line)
+        
+        logging.info('Log file is written to ' + log_file_path + '.')
+        
     else:
         logging.warning('Missing log file .')
 
@@ -590,6 +599,8 @@ def __execute():
     
     except request.HTTPError as e:
         logging.warn(e.reason)
+    except WebClientError as e:
+        logging.warn(str(e))
         
 
 if __name__ == "__main__":
