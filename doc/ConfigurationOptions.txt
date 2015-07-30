@@ -686,8 +686,11 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
+# Merge two automata states if one of them is INACTIVE.
+cpa.automaton.merge.onInactive = false
+
 # Merge two automata states if one of them is TOP.
-cpa.automaton.mergeOnTop = false
+cpa.automaton.merge.onTop = false
 
 # An implicit precision: consider states with a self-loop and no other
 # outgoing edges as TOP.
