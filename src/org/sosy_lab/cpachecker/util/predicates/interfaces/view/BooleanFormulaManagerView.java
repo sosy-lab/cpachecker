@@ -224,11 +224,20 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       }
 
       if (bfmgr.isAnd(f)) {
-        assert unsafe.getArity(f) >= 2;
+        if (unsafe.getArity(f) == 0) {
+          return visitTrue();
+        } else if (unsafe.getArity(f) == 1) {
+          return visit(getArg(f, 0));
+        }
         return visitAnd(getAllArgs(f));
       }
+
       if (bfmgr.isOr(f)) {
-        assert unsafe.getArity(f) >= 2;
+        if (unsafe.getArity(f) == 0) {
+          return visitFalse();
+        } else if (unsafe.getArity(f) == 1) {
+          return visit(getArg(f, 0));
+        }
         return visitOr(getAllArgs(f));
       }
 
