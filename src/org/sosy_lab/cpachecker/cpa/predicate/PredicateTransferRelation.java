@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -103,6 +104,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
+
+  @Option(secure=true, description = "Check satisfiability when a observer automaton state with this name is reached.")
+  private Pattern satCheckStatenameRegexp = Pattern.compile("^SAT(_.*)?");
 
   // statistics
   final Timer postTimer = new Timer();
@@ -394,7 +398,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
         if (lElement instanceof AutomatonState) {
           AutomatonState e = (AutomatonState) lElement;
-          if (e.getInternalStateName().equals("SAT")) {
+          if (satCheckStatenameRegexp.matcher(e.getInternalStateName()).matches()) {
             satCheckRequested = true;
             // Computing a new abstraction state would prohibit a merge!!!!
             newAbstractionStateOnSat = false;

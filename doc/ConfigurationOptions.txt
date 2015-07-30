@@ -1479,6 +1479,10 @@ cpa.predicate.satCheck = 0
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
 
+# Check satisfiability when a observer automaton state with this name is
+# reached.
+cpa.predicate.satCheckStatenameRegexp = "^SAT(_.*)?"
+
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
 cpa.predicate.stop = "SEP"
