@@ -79,6 +79,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   Timer totalPostTime = new Timer();
   Timer matchTime = new Timer();
+  Timer inactivityCheckTime = new Timer();
   Timer assertionsTime = new Timer();
   Timer actionTime = new Timer();
   Timer totalStrengthenTime = new Timer();
@@ -336,9 +337,46 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                                     List<AbstractState> pOtherElements,
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
-    if (! (pElement instanceof AutomatonUnknownState)) {
-      return null;
-    } else {
+
+    inactivityCheckTime.start();
+    try {
+
+      int totalObservingAutomata = 0;
+      int totalInactiveObservingAutomata = 0;
+
+      // We perform the check only for LocationState
+      //  (to avoid multiple checks for one state tuple with several AutomataStates)
+      for (AbstractState other: pOtherElements) {
+        if (!(other instanceof AutomatonState)) {
+          continue;
+        }
+
+        final AutomatonState o = (AutomatonState) other;
+        final Automaton a = o.getAutomatonCPA().getAutomaton();
+
+        if (a.getIsObservingOnly()) {
+          totalObservingAutomata++;
+
+          if (o.getInternalState().equals(AutomatonInternalState.INACTIVE)) {
+            totalInactiveObservingAutomata++;
+          }
+        }
+      }
+
+      if (totalObservingAutomata > 0) {
+        if (totalInactiveObservingAutomata == totalObservingAutomata) {
+          // STOP exploring the path if all observing
+          // automata are DISABLED/INACTIVE or have done their work.
+          return Collections.emptyList();
+        }
+      }
+
+    } finally {
+      inactivityCheckTime.stop();
+    }
+
+    if (pElement instanceof AutomatonUnknownState) {
+
       totalStrengthenTime.start();
       AutomatonUnknownState lUnknownState = (AutomatonUnknownState)pElement;
 
@@ -400,5 +438,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       assert !from(successors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return successors;
     }
+
+    return null;
   }
 }
