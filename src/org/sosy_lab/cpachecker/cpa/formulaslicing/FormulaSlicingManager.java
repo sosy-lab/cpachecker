@@ -248,7 +248,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       // Use the coverage relation for intermediate states.
       SlicingIntermediateState iState1 = pState1.asIntermediate();
       SlicingIntermediateState iState2 = pState2.asIntermediate();
-      return iState1.isMergedInto(iState2) &&
+      return (iState1.isMergedInto(iState2) ||
+          iState1.getPathFormula().equals(iState2.getPathFormula())) &&
           iState1.getAbstractParent() == iState2.getAbstractParent();
 
     } else {
@@ -273,7 +274,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
           throw new CPAException("Solver failed on a query", e);
         }
       } else {
-        return false;
+        return true;
       }
     }
   }
@@ -333,19 +334,16 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     logger.log(Level.INFO, "Joining abstracted states",
         "this should be quite rare");
 
-    SlicingIntermediateState merged = joinIntermediateStates(
-        newState.getGeneratingState().get(),
-        oldState.getGeneratingState().get()
-    );
-
     return SlicingAbstractedState.of(
         fmgr.simplify(bfmgr.or(newState.getAbstraction(),
             oldState.getAbstraction())),
-        merged.getPathFormula().getSsa(), // arbitrary
-        merged.getPathFormula().getPointerTargetSet(),
+        oldState.getSSA(),
+        oldState.getPointerTargetSet(),
         fmgr,
         newState.getNode(),
-        Optional.of(merged)
+
+        // todo: this might not be valid if they both are not coming from the loop.
+        oldState.getGeneratingState()
     );
   }
 
