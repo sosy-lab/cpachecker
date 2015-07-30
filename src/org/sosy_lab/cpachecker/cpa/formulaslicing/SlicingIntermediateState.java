@@ -41,7 +41,7 @@ public class SlicingIntermediateState extends SlicingState {
     return pathFormula;
   }
 
-  public SlicingAbstractedState getAbstraction() {
+  public SlicingAbstractedState getAbstractParent() {
     return start;
   }
 

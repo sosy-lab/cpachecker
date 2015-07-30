@@ -171,7 +171,6 @@ public class InductiveWeakeningManager {
       PathFormula transition,
       PathFormula initial
   ) throws SolverException, InterruptedException {
-
     Set<BooleanFormula> out = new HashSet<>();
     for (BooleanFormula selector : selectionVars) {
       BooleanFormula atom = selectionInfo.get(selector);
@@ -183,13 +182,13 @@ public class InductiveWeakeningManager {
         if (transition.getSsa().getIndex(var) != initial.getSsa().getIndex(var)) {
           out.add(selector);
           keepSelector = false;
-        }
-        if (!keepSelector) {
           break;
         }
       }
+      if (!keepSelector) {
+        break;
+      }
     }
-    // todo:
     return out;
   }
 

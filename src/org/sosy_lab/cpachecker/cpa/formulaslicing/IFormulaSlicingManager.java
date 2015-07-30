@@ -33,7 +33,7 @@ public interface IFormulaSlicingManager {
   SlicingState getInitialState(CFANode node);
 
   boolean isLessOrEqual(SlicingState pState1,
-      SlicingState pState2);
+      SlicingState pState2) throws InterruptedException, CPAException;
 
   Optional<PrecisionAdjustmentResult> prec(SlicingState pState, UnmodifiableReachedSet pStates,
       AbstractState pFullState);

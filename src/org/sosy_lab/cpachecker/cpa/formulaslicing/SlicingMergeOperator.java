@@ -39,7 +39,7 @@ public class SlicingMergeOperator implements MergeOperator {
       SlicingIntermediateState iState1 = pState1.asIntermediate();
       SlicingIntermediateState iState2 = pState2.asIntermediate();
 
-      if (!iState1.getAbstraction().equals(iState2.getAbstraction())) {
+      if (!iState1.getAbstractParent().equals(iState2.getAbstractParent())) {
 
         // No merge.
         return iState2;
@@ -58,7 +58,7 @@ public class SlicingMergeOperator implements MergeOperator {
       SlicingIntermediateState iState1 = pState1.asIntermediate();
       SlicingIntermediateState iState2 = pState2.asIntermediate();
 
-      if (!iState1.getAbstraction().equals(iState2.getAbstraction())) {
+      if (!iState1.getAbstractParent().equals(iState2.getAbstractParent())) {
 
         // No merge.
         return iState2;

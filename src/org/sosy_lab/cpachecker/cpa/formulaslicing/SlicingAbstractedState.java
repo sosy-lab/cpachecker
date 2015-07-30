@@ -9,6 +9,8 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
+import com.google.common.base.Optional;
+
 /**
  * Abstracted state, containing invariants obtained by slicing.
  *
@@ -37,26 +39,39 @@ public class SlicingAbstractedState extends SlicingState implements
    */
   private final FormulaManagerView fmgr;
 
+  /**
+   * The intermediate state used to generate the inductive weakening,
+   * empty for the initial state.
+   */
+  private final Optional<SlicingIntermediateState> generatingState;
+
   private final CFANode node;
 
   private SlicingAbstractedState(
       BooleanFormula pSlice,
       SSAMap pSsaMap,
       PointerTargetSet pPointerTargetSet,
-      FormulaManagerView pFmgr, CFANode pNode) {
+      FormulaManagerView pFmgr,
+      Optional<SlicingIntermediateState> pGeneratingState, CFANode pNode) {
     slice = pSlice;
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
     fmgr = pFmgr;
+    generatingState = pGeneratingState;
     node = pNode;
   }
 
   public static SlicingAbstractedState of(BooleanFormula pSlice,
       SSAMap pSsaMap, PointerTargetSet pPointerTargetSet,
       FormulaManagerView pFmgr,
-      CFANode pNode) {
+      CFANode pNode,
+      Optional<SlicingIntermediateState> pGeneratingState) {
     return new SlicingAbstractedState(pSlice, pSsaMap, pPointerTargetSet, pFmgr,
-        pNode);
+        pGeneratingState, pNode);
+  }
+
+  public Optional<SlicingIntermediateState> getGeneratingState(){
+    return generatingState;
   }
 
   public SSAMap getSSA() {
@@ -83,7 +98,8 @@ public class SlicingAbstractedState extends SlicingState implements
         pFmgr.getBooleanFormulaManager().makeBoolean(true),
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
-        pFmgr, startingNode);
+        pFmgr, startingNode,
+        Optional.<SlicingIntermediateState>absent());
   }
 
   @Override
@@ -105,30 +121,5 @@ public class SlicingAbstractedState extends SlicingState implements
   @Override
   public boolean shouldBeHighlighted() {
     return false;
-  }
-
-  /**
-   * Dummy state for signalling that the processed edge comes from within the
-   * loop and no slicing is necessary.
-   */
-  static class SubsumedSlicingState extends SlicingState {
-    private final SlicingIntermediateState wrapped;
-
-    private SubsumedSlicingState(SlicingIntermediateState pWrapped) {
-      wrapped = pWrapped;
-    }
-
-    public SlicingIntermediateState getWrapped() {
-      return wrapped;
-    }
-
-    public static SubsumedSlicingState of(SlicingIntermediateState wrapped) {
-      return new SubsumedSlicingState(wrapped);
-    }
-
-    @Override
-    public boolean isAbstracted() {
-      return true;
-    }
   }
 }

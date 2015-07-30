@@ -108,7 +108,9 @@ public class LoopTransitionFinder {
   /**
    * Apply large-block-encoding to a list of {@link PathFormula}s.
    *
-   * 1) A - s_1 -> B, B - s_2 ->C is converted to A - s_1 /\ s_2 -> C.
+   * 1) A - s_1 -> B, B - s_2 ->C,
+   *    no other incoming edge to B, B is not a loop-head,
+   *    is converted to A - s_1 /\ s_2 -> C.
    *
    * 2) A - s_1 -> B, A - s_2 -> B is converted to A - s_1 \/ s_2 -> B.
    *
