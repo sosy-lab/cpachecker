@@ -26,20 +26,56 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 
 public final class ReducedAutomatonProduct {
+
+  public static enum TransitionCollectionQuality {
+    DISTINCT, // each transition matches for different cases
+    UNKNOWN   // the choice might be ambiguous
+  }
+
+  public static enum Trinary {
+    TRUE,
+    FALSE,
+    UNKNOWN;
+
+    boolean maybe() {
+      return this != FALSE;
+    }
+  }
+
+  public static class TransitionList {
+
+    private TransitionCollectionQuality quality = TransitionCollectionQuality.DISTINCT;
+    private Map<PlainAutomatonTransition, AutomatonInternalState> transitions = Maps.newIdentityHashMap();
+
+    public TransitionList() {
+    }
+
+    public TransitionCollectionQuality getQuality() {
+      return quality;
+    }
+
+    public ImmutableMap<PlainAutomatonTransition, AutomatonInternalState> getTransitions() {
+      return ImmutableMap.copyOf(transitions);
+    }
+
+  }
 
   /**
    * Product of a set of automata states.
@@ -150,28 +186,35 @@ public final class ReducedAutomatonProduct {
     worklist.add(initialState);
 
     while(!worklist.isEmpty()) {
+      // FOR the product state 'current':
       final ProductState current = worklist.pop();
 
-      // The order of the transitions might be important!!!!
-      final Multimap<PlainAutomatonTransition, AutomatonInternalState> transitions;
-      transitions = getUniqueOutgoingTransitions(current);
+      // -- The order of the transitions might be important!!!!
+      final TransitionList transitions = getOutgoingTransitions(current);
+      final ImmutableMap<PlainAutomatonTransition, AutomatonInternalState> tx = transitions.getTransitions();
 
-      for (PlainAutomatonTransition t: transitions) {
+      // FOR ALL transitions 't' outgoing from 'current'...
+      for (PlainAutomatonTransition t: tx.keySet()) {
+
+        // -- List for the components of the new (product) successor state
         List<AutomatonInternalState> successorComponents = Lists.newArrayListWithExpectedSize(current.getComponents().size());
 
-        // For t: Get the successor state of each component automaton state
+        // FOR 't': Get the successor state of each component automaton state
         for (AutomatonInternalState a: current.getComponents()) {
           assert !a.getDoesMatchAll();
 
+          // What other states are reachable using the same transition?
+
           // if contained: proceed to its successor, otherwise: stay in the same state
           final AutomatonInternalState succ;
-          if (containsEqualTransition(t, a.getTransitions())) {
-            succ = t.getFollowState();
-          } else {
+
+          if (containsEqualTransition(t, a.getTransitions()) == Trinary.TRUE) {
+            //succ = t.getFollowState();
+          } else { // UNKNOWN, or TRUE
             succ = a;
           }
 
-          successorComponents.add(succ);
+          //successorComponents.add(succ);
         }
 
         // Build the successor state from its components
@@ -194,11 +237,11 @@ public final class ReducedAutomatonProduct {
     return null;
   }
 
-  private static boolean containsEqualTransition(PlainAutomatonTransition pT, Collection<PlainAutomatonTransition> pC) {
-    return false;
+  private static Trinary containsEqualTransition(PlainAutomatonTransition pT, Collection<AutomatonTransition> pC) {
+    return Trinary.UNKNOWN;
   }
 
-  private static Multimap<PlainAutomatonTransition, AutomatonInternalState> getUniqueOutgoingTransitions(ProductState pCurrent) {
+  private static TransitionList getOutgoingTransitions(ProductState pCurrent) {
     return null;
 
   }

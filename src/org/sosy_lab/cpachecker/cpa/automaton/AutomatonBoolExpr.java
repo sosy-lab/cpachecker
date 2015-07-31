@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Unequalable;
+import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -59,7 +59,7 @@ import com.google.common.collect.Sets;
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
  */
-interface AutomatonBoolExpr extends AutomatonExpression, Unequalable {
+interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
 
   static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
   static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);

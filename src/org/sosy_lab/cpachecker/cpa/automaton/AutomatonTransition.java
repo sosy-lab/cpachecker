@@ -33,7 +33,7 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Unequalable;
+import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
@@ -60,7 +60,7 @@ class AutomatonTransition {
    *    the follower state.
    *    And we do not want to get into trouble with 'equals' (therefore we do not use inheritance)
    */
-  public static class PlainAutomatonTransition implements Unequalable {
+  public static class PlainAutomatonTransition implements TrinaryEqualable {
 
     private final AutomatonBoolExpr trigger;
     private final AutomatonBoolExpr assertion;

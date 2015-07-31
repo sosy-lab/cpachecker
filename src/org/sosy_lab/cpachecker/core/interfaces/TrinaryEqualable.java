@@ -35,7 +35,7 @@ package org.sosy_lab.cpachecker.core.interfaces;
  * This interface helps to implement sound verification algorithms.
  *
  */
-public interface Unequalable {
+public interface TrinaryEqualable {
 
   public enum Equality {
     /** The objects could be either EQUAL, or NOT EQUAL. Overapproximation. */
