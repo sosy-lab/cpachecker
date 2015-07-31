@@ -117,6 +117,17 @@ public final class ReducedAutomatonProduct {
       return transitions;
     }
 
+    public String getName() {
+      StringBuilder result = new StringBuilder();
+      for (AutomatonInternalState q: componentStates) {
+        if (result.length() > 0) {
+          result.append("/");
+        }
+        result.append(q.getName());
+      }
+      return result.toString();
+    }
+
     @Override
     public int hashCode() {
       final int prime = 31;
@@ -156,9 +167,10 @@ public final class ReducedAutomatonProduct {
    * @param pA2   automaton 2
    *
    * @return  product
+   * @throws InvalidAutomatonException
    */
-  public static Automaton productOf(Automaton pA1, Automaton pA2) {
-    return productOf(Lists.newArrayList(pA1, pA2));
+  public static Automaton productOf(Automaton pA1, Automaton pA2, String pProductAutomataName) throws InvalidAutomatonException {
+    return productOf(Lists.newArrayList(pA1, pA2), pProductAutomataName);
   }
 
   /**
@@ -167,8 +179,9 @@ public final class ReducedAutomatonProduct {
    * @param pAutomata   collection of control automata
    *
    * @return  product
+   * @throws InvalidAutomatonException
    */
-  public static Automaton productOf(List<Automaton> pAutomata) {
+  public static Automaton productOf(List<Automaton> pAutomata, String pProductAutomataName) throws InvalidAutomatonException {
 
     Set<ProductState> productStates = Sets.newHashSet();
 
@@ -247,11 +260,25 @@ public final class ReducedAutomatonProduct {
       }
     }
 
-    return createAutomaton(initialState, productStates);
+    return createAutomaton(initialState, productStates, pProductAutomataName);
   }
 
-  private static Automaton createAutomaton(ProductState pInitialState, Set<ProductState> pProductStates) {
-    return null;
+  private static Automaton createAutomaton(
+      ProductState pInitialState, Set<ProductState> pProductStates, String pProductAutomataName) throws InvalidAutomatonException {
+
+    final String initialStateName = pInitialState.getName();
+
+    List<AutomatonInternalState> automatonStates = Lists.newArrayList();
+
+    for (ProductState ps: pProductStates) {
+      List<AutomatonTransition> tr = Lists.newArrayList();
+      automatonStates.add(new AutomatonInternalState(ps.getName(), tr, false, true));
+      // TODO: split needed before target states!
+    }
+
+    // TODO
+
+    return new Automaton(pProductAutomataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
   }
 
   private static List<AutomatonInternalState> equalTransitionsTo(PlainAutomatonTransition pEqualTo, Collection<AutomatonTransition> pT) {
@@ -265,6 +292,7 @@ public final class ReducedAutomatonProduct {
   }
 
   private static TransitionList getReducedOutgoingTransitions(ProductState pCurrent) {
+    // TODO
     return null;
 
   }
