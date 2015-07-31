@@ -48,7 +48,7 @@ public class LoopTransitionFinder {
 
   @Option(secure=true, description="Instead of considering the entire SCC, "
       + "ignore the function nested in the loop. UNSOUND!")
-  private boolean ignoreFunctionCallsInLoop = true;
+  private boolean ignoreFunctionCallsInLoop = false;
 
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
