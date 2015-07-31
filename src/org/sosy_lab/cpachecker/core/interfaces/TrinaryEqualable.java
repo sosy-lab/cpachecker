@@ -45,7 +45,29 @@ public interface TrinaryEqualable {
     EQUAL,
 
     /** The objects are NOT equal (for sure) */
-    UNEQUAL
+    UNEQUAL;
+
+    public static Equality overall(Equality... pArgs) {
+      Equality result = UNKNOWN;
+      int values = 0;
+
+      for (Equality eqa: pArgs) {
+        values++;
+        if (values == 1) {
+          result = eqa;
+          continue;
+        }
+
+        if (eqa == UNKNOWN) {
+          return UNKNOWN;
+        } else if (eqa != result) {
+          return UNKNOWN;
+        }
+
+      }
+
+      return result;
+    }
   }
 
   /**

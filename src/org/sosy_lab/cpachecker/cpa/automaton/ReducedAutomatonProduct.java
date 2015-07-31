@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Collection;
 import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
+import org.sosy_lab.cpachecker.util.Cartesian;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -62,7 +65,7 @@ public final class ReducedAutomatonProduct {
   public static class TransitionList {
 
     private TransitionCollectionQuality quality = TransitionCollectionQuality.DISTINCT;
-    private Map<PlainAutomatonTransition, AutomatonInternalState> transitions = Maps.newIdentityHashMap();
+    private Map<PlainAutomatonTransition, Collection<AutomatonInternalState>> transitions = Maps.newIdentityHashMap();
 
     public TransitionList() {
     }
@@ -71,7 +74,7 @@ public final class ReducedAutomatonProduct {
       return quality;
     }
 
-    public ImmutableMap<PlainAutomatonTransition, AutomatonInternalState> getTransitions() {
+    public ImmutableMap<PlainAutomatonTransition, Collection<AutomatonInternalState>> getTransitions() {
       return ImmutableMap.copyOf(transitions);
     }
 
@@ -94,8 +97,16 @@ public final class ReducedAutomatonProduct {
       return componentStates;
     }
 
-    public static ProductState of(List<AutomatonInternalState> pComponents) {
-      return new ProductState(pComponents);
+    public static Iterable<ProductState> of(List<List<AutomatonInternalState>> pComponents) {
+
+      LinkedList<ProductState> result = Lists.newLinkedList();
+      Iterable<List<AutomatonInternalState>> x = Cartesian.product(pComponents);
+
+      for (List<AutomatonInternalState> componentStates: x) {
+        result.add(new ProductState(componentStates));
+      }
+
+      return result;
     }
 
     public void addTransition(PlainAutomatonTransition pT, ProductState pTarget) {
@@ -164,12 +175,12 @@ public final class ReducedAutomatonProduct {
     // Compute the initial state of the product automaton
     //
     final ProductState initialState = ProductState.of(Lists.transform(pAutomata,
-        new Function<Automaton, AutomatonInternalState>() {
+        new Function<Automaton, List<AutomatonInternalState>>() {
           @Override
-          public AutomatonInternalState apply(Automaton pA) {
-            return pA.getInitialState();
+          public List<AutomatonInternalState> apply(Automaton pA) {
+            return ImmutableList.of(pA.getInitialState());
           }
-        }));
+        })).iterator().next();
 
     productStates.add(initialState);
 
@@ -190,14 +201,14 @@ public final class ReducedAutomatonProduct {
       final ProductState current = worklist.pop();
 
       // -- The order of the transitions might be important!!!!
-      final TransitionList transitions = getOutgoingTransitions(current);
-      final ImmutableMap<PlainAutomatonTransition, AutomatonInternalState> tx = transitions.getTransitions();
+      final TransitionList transitions = getReducedOutgoingTransitions(current);
+      ImmutableMap<PlainAutomatonTransition, Collection<AutomatonInternalState>> tx = transitions.getTransitions();
 
       // FOR ALL transitions 't' outgoing from 'current'...
       for (PlainAutomatonTransition t: tx.keySet()) {
 
         // -- List for the components of the new (product) successor state
-        List<AutomatonInternalState> successorComponents = Lists.newArrayListWithExpectedSize(current.getComponents().size());
+        List<List<AutomatonInternalState>> successorComponents = Lists.newArrayListWithExpectedSize(current.getComponents().size());
 
         // FOR 't': Get the successor state of each component automaton state
         for (AutomatonInternalState a: current.getComponents()) {
@@ -206,27 +217,33 @@ public final class ReducedAutomatonProduct {
           // What other states are reachable using the same transition?
 
           // if contained: proceed to its successor, otherwise: stay in the same state
-          final AutomatonInternalState succ;
+          final List<AutomatonInternalState> succ;
 
-          if (containsEqualTransition(t, a.getTransitions()) == Trinary.TRUE) {
-            //succ = t.getFollowState();
-          } else { // UNKNOWN, or TRUE
-            succ = a;
+          // Perform the transition only if transitions of other automata are (fore sure) EQUAL!!!
+          List<AutomatonInternalState> to = equalTransitionsTo(t, a.getTransitions());
+          if (to.size() > 0) {
+            succ = to;
+          } else {
+            // Stay for this transition in the same state.
+            succ = ImmutableList.of(a);
           }
 
-          //successorComponents.add(succ);
+          successorComponents.add(succ);
         }
 
-        // Build the successor state from its components
-        ProductState next = ProductState.of(successorComponents);
-        if (productStates.add(next)) {
-          //
-          // Add it to the work list if it has not already been handled
-          worklist.add(next);
-        }
+        // Build the successor states from its components
+        final Iterable<ProductState> next = ProductState.of(successorComponents);
 
-        // Add the transition 't' to 'next' to the 'current' state!
-        current.addTransition(t, next);
+        for (ProductState n: next) {
+          if (productStates.add(n)) {
+            //
+            // Add it to the work list if it has not already been handled
+            worklist.add(n);
+          }
+
+          // Add the transition 't' to 'next' to the 'current' state!
+          current.addTransition(t, n);
+        }
       }
     }
 
@@ -237,11 +254,17 @@ public final class ReducedAutomatonProduct {
     return null;
   }
 
-  private static Trinary containsEqualTransition(PlainAutomatonTransition pT, Collection<AutomatonTransition> pC) {
-    return Trinary.UNKNOWN;
+  private static List<AutomatonInternalState> equalTransitionsTo(PlainAutomatonTransition pEqualTo, Collection<AutomatonTransition> pT) {
+    List<AutomatonInternalState> result = Lists.newArrayList();
+    for (AutomatonTransition t: pT) {
+      if (t.isEquivalentTo(pEqualTo) == Equality.EQUAL) {
+        result.add(t.getFollowState());
+      }
+    }
+    return result;
   }
 
-  private static TransitionList getOutgoingTransitions(ProductState pCurrent) {
+  private static TransitionList getReducedOutgoingTransitions(ProductState pCurrent) {
     return null;
 
   }

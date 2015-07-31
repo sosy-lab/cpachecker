@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable;
+import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
@@ -62,11 +63,11 @@ class AutomatonTransition {
    */
   public static class PlainAutomatonTransition implements TrinaryEqualable {
 
-    private final AutomatonBoolExpr trigger;
-    private final AutomatonBoolExpr assertion;
-    private final ImmutableList<AStatement> assumption;
-    private final ImmutableList<AutomatonAction> actions;
-    private final StringExpression violatedPropertyDescription;
+    final AutomatonBoolExpr trigger;
+    final AutomatonBoolExpr assertion;
+    final ImmutableList<AStatement> assumption;
+    final ImmutableList<AutomatonAction> actions;
+    final StringExpression violatedPropertyDescription;
 
     public PlainAutomatonTransition(AutomatonBoolExpr pTrigger, AutomatonBoolExpr pAssertion,
         ImmutableList<AStatement> pAssumption, ImmutableList<AutomatonAction> pActions,
@@ -243,6 +244,55 @@ class AutomatonTransition {
 
   public ImmutableList<AStatement> getAssumption() {
     return assumption;
+  }
+
+  public Equality isEquivalentTo(PlainAutomatonTransition pT) {
+
+    switch(pT.assertion.equalityTo(this.assertion)) {
+    case UNEQUAL:
+      return Equality.UNEQUAL;
+    case UNKNOWN:
+      return Equality.UNKNOWN;
+    }
+
+    switch(pT.trigger.equalityTo(this.trigger)) {
+    case UNEQUAL:
+      return Equality.UNEQUAL;
+    case UNKNOWN:
+      return Equality.UNKNOWN;
+    }
+
+    if (this.violatedPropertyDescription == null) {
+      if (pT.violatedPropertyDescription != null) {
+        return Equality.UNEQUAL;
+      }
+    } else {
+      if (!this.violatedPropertyDescription.equals(pT.violatedPropertyDescription)) {
+        return Equality.UNEQUAL;
+      }
+    }
+
+    if (this.assumption == null) {
+      if (pT.assumption != null) {
+        return Equality.UNEQUAL;
+      }
+    } else {
+      if (!this.assumption.equals(pT.assumption)) {
+        return Equality.UNEQUAL;
+      }
+    }
+
+    if (this.actions == null) {
+      if (pT.actions != null) {
+        return Equality.UNEQUAL;
+      }
+    } else {
+      if (!this.actions.equals(pT.assumption)) {
+        return Equality.UNEQUAL;
+      }
+    }
+
+    return Equality.EQUAL;
   }
 
   /**
