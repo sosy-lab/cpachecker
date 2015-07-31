@@ -117,8 +117,8 @@ public class LoopTransitionFinder {
 
       // Note that we CAN NOT ignore function calls, as the loop
       // may contain functions inside which do affect the global state.
-      CFATraversal.dfs().traverse(node, v1);
-      CFATraversal.dfs().backwards().traverse(node, v2);
+      CFATraversal.dfs().ignoreSummaryEdges().traverse(node, v1);
+      CFATraversal.dfs().ignoreSummaryEdges().backwards().traverse(node, v2);
 
       Set<CFAEdge> s1 = ImmutableSet.copyOf(v1.getVisitedEdges());
       Set<CFAEdge> s2 = ImmutableSet.copyOf(v2.getVisitedEdges());
