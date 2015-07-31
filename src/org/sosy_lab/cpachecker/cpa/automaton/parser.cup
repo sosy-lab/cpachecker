@@ -139,7 +139,7 @@ parser code {:
     }
   }
 
-  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
+  AutomatonASTComparator.ASTMatcherProvider generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
     return AutomatonASTComparator.generatePatternAST(pattern, cparser, scope);
   }
 :};

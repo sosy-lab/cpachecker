@@ -40,7 +40,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
+import org.sosy_lab.cpachecker.core.interfaces.Unequalable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -58,14 +59,25 @@ import com.google.common.collect.Sets;
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
  * The Expression can be evaluated multiple times.
  */
-interface AutomatonBoolExpr extends AutomatonExpression {
+interface AutomatonBoolExpr extends AutomatonExpression, Unequalable {
+
   static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
   static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
+
+  static abstract class AbstractAutomatonBoolExpr implements AutomatonBoolExpr {
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
+  }
 
   @Override
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-  public class MatchProgramExit implements AutomatonBoolExpr {
+  public final class MatchProgramExit extends AbstractAutomatonBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
@@ -76,13 +88,20 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
     }
 
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchProgramExit
+          ? Equality.EQUAL
+          : Equality.UNKNOWN; // Also other matches might match a program exit
+    }
+
   }
 
   /**
    * Implements a match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.
    */
-  static class MatchLabelExact implements AutomatonBoolExpr {
+  static final class MatchLabelExact extends AbstractAutomatonBoolExpr {
 
     private final String label;
 
@@ -105,16 +124,26 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchLabelExact
+          ? (this.label.equals(((MatchLabelExact)pOther).label)
+                ? Equality.EQUAL
+                : Equality.UNEQUAL)
+          : Equality.UNKNOWN; // Also other matchers might match a program exit
+    }
+
+    @Override
     public String toString() {
       return "MATCH LABEL \"" + label + "\"";
     }
   }
+
   /**
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.
    * (".*" in java-regex means "any characters")
    */
-  static class MatchLabelRegEx implements AutomatonBoolExpr {
+  static final class MatchLabelRegEx extends AbstractAutomatonBoolExpr {
 
     private final Pattern pattern;
 
@@ -139,6 +168,15 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchLabelRegEx
+          ? (this.pattern.pattern().equals(((MatchLabelRegEx)pOther).pattern.pattern())
+                ? Equality.EQUAL
+                : Equality.UNKNOWN)
+          : Equality.UNKNOWN; // Also other matchers might match a program exit
+    }
+
+    @Override
     public String toString() {
       return "MATCH LABEL [" + pattern + "]";
     }
@@ -150,12 +188,12 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    * It also displays error messages if the AST contains problems/errors.
    * The AST Comparison evaluates the pattern (coming from the Automaton Definition) and the C-Statement on the CFA Edge to ASTs and compares these with a Tree comparison algorithm.
    */
-  static class MatchCFAEdgeASTComparison implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeASTComparison extends AbstractAutomatonBoolExpr {
 
-    private final ASTMatcher patternAST;
+    private final ASTMatcherProvider patternAST;
 
-    public MatchCFAEdgeASTComparison(ASTMatcher pPatternAST) {
-      this.patternAST = pPatternAST;
+    public MatchCFAEdgeASTComparison(ASTMatcherProvider pAstMatcherProvider) {
+      this.patternAST = pAstMatcherProvider;
     }
 
     @Override
@@ -166,7 +204,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           throw new UnrecognizedCFAEdgeException(pArgs.getCfaEdge());
         }
         // some edges do not have an AST node attached to them, e.g. BlankEdges
-        if (patternAST.matches((CAstNode)ast.get(), pArgs)) {
+        if (patternAST.getMatcher().matches((CAstNode)ast.get(), pArgs)) {
           return CONST_TRUE;
         } else {
           return CONST_FALSE;
@@ -176,13 +214,22 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchCFAEdgeASTComparison
+          ? (this.patternAST.getPatternString().equals(((MatchCFAEdgeASTComparison)pOther).patternAST.getPatternString())
+                ? Equality.EQUAL
+                : Equality.UNKNOWN)
+          : Equality.UNKNOWN; // Also other matchers might match the represented edge
+    }
+
+    @Override
     public String toString() {
       return "MATCH {" + patternAST + "}";
     }
   }
 
 
-  static class MatchCFAEdgeRegEx implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeRegEx extends AbstractAutomatonBoolExpr {
 
     private final Pattern pattern;
 
@@ -200,13 +247,22 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchCFAEdgeRegEx
+          ? (this.pattern.pattern().equals(((MatchCFAEdgeRegEx)pOther).pattern.pattern())
+                ? Equality.EQUAL
+                : Equality.UNKNOWN)
+          : Equality.UNKNOWN; // Also other matchers might match similar edges
+    }
+
+    @Override
     public String toString() {
       return "MATCH [" + pattern + "]";
     }
   }
 
 
-  static class MatchCFAEdgeExact implements AutomatonBoolExpr {
+  static final class MatchCFAEdgeExact extends AbstractAutomatonBoolExpr {
 
     private final String pattern;
 
@@ -224,12 +280,22 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchCFAEdgeExact
+          ? (this.pattern.equals(((MatchCFAEdgeExact)pOther).pattern)
+                ? Equality.EQUAL
+                : Equality.UNEQUAL)
+          : Equality.UNKNOWN; // Also other matchers might match a similar set of edges
+    }
+
+
+    @Override
     public String toString() {
       return "MATCH \"" + pattern + "\"";
     }
   }
 
-  static class MatchJavaAssert implements AutomatonBoolExpr {
+  static final class MatchJavaAssert extends AbstractAutomatonBoolExpr {
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
@@ -261,9 +327,16 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH ASSUME EDGE";
     }
 
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchAssumeEdge
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
+
   }
 
-  static class MatchAssumeCase implements AutomatonBoolExpr {
+  static class MatchAssumeCase extends AbstractAutomatonBoolExpr {
 
     private final boolean matchPositiveCase;
 
@@ -288,7 +361,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
   }
 
-  static class MatchAllSuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+  static class MatchAllSuccessorEdgesBoolExpr extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr operandExpression;
 
@@ -326,7 +399,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static class MatchAnySuccessorEdgesBoolExpr implements AutomatonBoolExpr {
+  static class MatchAnySuccessorEdgesBoolExpr extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr operandExpression;
 
@@ -384,6 +457,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH PATH RELEVANT EDGE";
     }
 
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
+
   }
 
   static class MatchNonEmptyEdgeTokens implements OnRelevantEdgesBoolExpr {
@@ -403,6 +483,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH NONEMPTY TOKENS";
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
     }
 
   }
@@ -472,6 +559,13 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH TOKENS SUBSET " + matchTokens;
     }
 
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
+
   }
 
   static class IntersectionMatchEdgeTokens extends MatchEdgeTokens {
@@ -494,9 +588,16 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH TOKENS INTERSECT " + matchTokens;
     }
 
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
+
   }
 
-  static class MatchLocationDescriptor implements AutomatonBoolExpr {
+  static class MatchLocationDescriptor extends AbstractAutomatonBoolExpr {
 
     private final LocationDescriptor matchDescriptor;
 
@@ -534,7 +635,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    * Returns FALSE if all Elements returned either FALSE or an InvalidQueryException.
    * Returns MAYBE if no Element is available or the Variables could not be replaced.
    */
-  public static class ALLCPAQuery implements AutomatonBoolExpr {
+  public static class ALLCPAQuery extends AbstractAutomatonBoolExpr {
     private final String queryString;
 
     public ALLCPAQuery(String pString) {
@@ -579,7 +680,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
    */
-  static class CPAQuery implements AutomatonBoolExpr {
+  static class CPAQuery extends AbstractAutomatonBoolExpr {
     private final String cpaName;
     private final String queryString;
 
@@ -667,11 +768,18 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public String toString() {
       return "CHECK(IS_TARGET_STATE)";
     }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
   }
 
   /** Constant for true.
    */
-  static AutomatonBoolExpr TRUE = new AutomatonBoolExpr() {
+  static AutomatonBoolExpr TRUE = new AbstractAutomatonBoolExpr() {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       return CONST_TRUE;
@@ -685,7 +793,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /** Constant for false.
    */
-  static AutomatonBoolExpr FALSE = new AutomatonBoolExpr() {
+  static AutomatonBoolExpr FALSE = new AbstractAutomatonBoolExpr() {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       return CONST_FALSE;
@@ -700,7 +808,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /** Tests the equality of the values of two instances of {@link AutomatonIntExpr}.
    */
-  static class IntEqTest implements AutomatonBoolExpr {
+  static class IntEqTest extends AbstractAutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -736,7 +844,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /** Tests whether two instances of {@link AutomatonIntExpr} evaluate to different integers.
    */
-  static class IntNotEqTest implements AutomatonBoolExpr {
+  static class IntNotEqTest extends AbstractAutomatonBoolExpr {
 
     private final AutomatonIntExpr a;
     private final AutomatonIntExpr b;
@@ -772,7 +880,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /** Computes the disjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
    */
-  static class Or implements AutomatonBoolExpr {
+  static class Or extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -831,7 +939,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   /** Computes the conjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
    */
-  static class And implements AutomatonBoolExpr {
+  static class And extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -892,7 +1000,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   /**
    * Negates the result of a {@link AutomatonBoolExpr}. If the result is MAYBE it is returned unchanged.
    */
-  static class Negation implements AutomatonBoolExpr {
+  static class Negation extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
 
@@ -927,7 +1035,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   /**
    * Boolean Equality
    */
-  static class BoolEqTest implements AutomatonBoolExpr {
+  static class BoolEqTest extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;
@@ -964,7 +1072,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   /**
    * Boolean !=
    */
-  static class BoolNotEqTest implements AutomatonBoolExpr {
+  static class BoolNotEqTest extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
     private final AutomatonBoolExpr b;

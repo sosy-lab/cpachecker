@@ -91,11 +91,62 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
-    // $?-Jokers, $1-Jokers and function declaration
-    String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
+  public static class ASTMatcherProvider {
+    private final String patter;
+    private final ASTMatcher matcher;
 
-    return parse(tmp, parser, scope).accept(ASTMatcherGenerator.INSTANCE);
+    public ASTMatcherProvider(String pPattern, CParser pParser, Scope pScope)
+        throws InvalidAutomatonException, InvalidConfigurationException {
+
+      patter = pPattern;
+      String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
+      matcher = parse(tmp, pParser, pScope).accept(ASTMatcherGenerator.INSTANCE);
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((patter == null) ? 0 : patter.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ASTMatcherProvider other = (ASTMatcherProvider) obj;
+      if (patter == null) {
+        if (other.patter != null) {
+          return false;
+        }
+      } else if (!patter.equals(other.patter)) {
+        // We only compare the pattern string, but not its accepted language!
+        return false;
+      }
+      return true;
+    }
+
+    public ASTMatcher getMatcher() {
+      return matcher;
+    }
+
+    public String getPatternString() {
+      return patter;
+    }
+  }
+
+  static ASTMatcherProvider generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
+    // $?-Jokers, $1-Jokers and function declaration
+
+    return new ASTMatcherProvider(pPattern, parser, scope);
   }
 
   static CStatement generateSourceAST(String pSource, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {

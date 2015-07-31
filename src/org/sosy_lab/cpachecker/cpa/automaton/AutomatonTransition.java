@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.interfaces.Unequalable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
@@ -53,6 +54,110 @@ class AutomatonTransition {
   private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AutomatonAction> actions;
   private final StringExpression violatedPropertyDescription;
+
+  /**
+   * In some cases, we do not want AutomatonTransition because it encodes
+   *    the follower state.
+   *    And we do not want to get into trouble with 'equals' (therefore we do not use inheritance)
+   */
+  public static class PlainAutomatonTransition implements Unequalable {
+
+    private final AutomatonBoolExpr trigger;
+    private final AutomatonBoolExpr assertion;
+    private final ImmutableList<AStatement> assumption;
+    private final ImmutableList<AutomatonAction> actions;
+    private final StringExpression violatedPropertyDescription;
+
+    public PlainAutomatonTransition(AutomatonBoolExpr pTrigger, AutomatonBoolExpr pAssertion,
+        ImmutableList<AStatement> pAssumption, ImmutableList<AutomatonAction> pActions,
+        StringExpression pViolatedPropertyDescription) {
+
+      trigger = pTrigger;
+      assertion = pAssertion;
+      assumption = pAssumption;
+      actions = pActions;
+      violatedPropertyDescription = pViolatedPropertyDescription;
+    }
+
+    public static PlainAutomatonTransition deriveFrom(AutomatonTransition pT) {
+      return new PlainAutomatonTransition(
+          pT.trigger,
+          pT.assertion,
+          pT.assumption,
+          pT.actions,
+          pT.violatedPropertyDescription);
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return this.equals(pOther)
+          ? Equality.EQUAL
+          : Equality.UNKNOWN;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((actions == null) ? 0 : actions.hashCode());
+      result = prime * result + ((assertion == null) ? 0 : assertion.hashCode());
+      result = prime * result + ((assumption == null) ? 0 : assumption.hashCode());
+      result = prime * result + ((trigger == null) ? 0 : trigger.hashCode());
+      result = prime * result + ((violatedPropertyDescription == null) ? 0 : violatedPropertyDescription.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      PlainAutomatonTransition other = (PlainAutomatonTransition) obj;
+      if (actions == null) {
+        if (other.actions != null) {
+          return false;
+        }
+      } else if (!actions.equals(other.actions)) {
+        return false;
+      }
+      if (assertion == null) {
+        if (other.assertion != null) {
+          return false;
+        }
+      } else if (!assertion.equals(other.assertion)) {
+        return false;
+      }
+      if (assumption == null) {
+        if (other.assumption != null) {
+          return false;
+        }
+      } else if (!assumption.equals(other.assumption)) {
+        return false;
+      }
+      if (trigger == null) {
+        if (other.trigger != null) {
+          return false;
+        }
+      } else if (!trigger.equals(other.trigger)) {
+        return false;
+      }
+      if (violatedPropertyDescription == null) {
+        if (other.violatedPropertyDescription != null) {
+          return false;
+        }
+      } else if (!violatedPropertyDescription.equals(other.violatedPropertyDescription)) {
+        return false;
+      }
+      return true;
+    }
+
+  }
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -124,6 +229,20 @@ class AutomatonTransition {
       }
       this.assertion = lAssertion;
     }
+  }
+
+  public ImmutableList<AutomatonAction> getActions() {
+    return actions;
+  }
+
+
+  public AutomatonBoolExpr getAssertion() {
+    return assertion;
+  }
+
+
+  public ImmutableList<AStatement> getAssumption() {
+    return assumption;
   }
 
   /**

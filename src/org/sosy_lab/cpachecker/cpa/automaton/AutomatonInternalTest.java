@@ -47,10 +47,10 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -274,12 +274,10 @@ public class AutomatonInternalTest {
     }
 
     private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
-      CAstNode sourceAST;
-      ASTMatcher matcher;
-      sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
-      matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
+      CStatement sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+      ASTMatcherProvider provider = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
 
-      return matcher.matches(sourceAST, args);
+      return provider.getMatcher().matches(sourceAST, args);
     }
 
     public Matches matches(final String src) {

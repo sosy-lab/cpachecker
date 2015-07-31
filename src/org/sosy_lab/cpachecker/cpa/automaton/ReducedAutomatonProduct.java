@@ -25,9 +25,10 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Collection;
 import java.util.Deque;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
@@ -38,15 +39,15 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 
 
-public final class AutomatonProduct {
+public final class ReducedAutomatonProduct {
 
   /**
    * Product of a set of automata states.
    */
-  public static class ProductState {
+  private static class ProductState {
 
     private final ImmutableList<AutomatonInternalState> componentStates;
-    private final Multimap<AutomatonTransition, ProductState> transitions;
+    private final Multimap<PlainAutomatonTransition, ProductState> transitions;
 
     public ProductState(List<AutomatonInternalState> pComponents) {
       this.componentStates = ImmutableList.copyOf(pComponents);
@@ -61,11 +62,11 @@ public final class AutomatonProduct {
       return new ProductState(pComponents);
     }
 
-    public void addTransition(AutomatonTransition pT, ProductState pTarget) {
+    public void addTransition(PlainAutomatonTransition pT, ProductState pTarget) {
       transitions.put(pT, pTarget);
     }
 
-    public Multimap<AutomatonTransition, ProductState> getTransitions() {
+    public Multimap<PlainAutomatonTransition, ProductState> getTransitions() {
       return transitions;
     }
 
@@ -152,10 +153,10 @@ public final class AutomatonProduct {
       final ProductState current = worklist.pop();
 
       // The order of the transitions might be important!!!!
-      final LinkedHashSet<AutomatonTransition> transitions;
+      final Multimap<PlainAutomatonTransition, AutomatonInternalState> transitions;
       transitions = getUniqueOutgoingTransitions(current);
 
-      for (AutomatonTransition t: transitions) {
+      for (PlainAutomatonTransition t: transitions) {
         List<AutomatonInternalState> successorComponents = Lists.newArrayListWithExpectedSize(current.getComponents().size());
 
         // For t: Get the successor state of each component automaton state
@@ -193,11 +194,11 @@ public final class AutomatonProduct {
     return null;
   }
 
-  private static boolean containsEqualTransition(AutomatonTransition pT, Collection<AutomatonTransition> pC) {
+  private static boolean containsEqualTransition(PlainAutomatonTransition pT, Collection<PlainAutomatonTransition> pC) {
     return false;
   }
 
-  private static LinkedHashSet<AutomatonTransition> getUniqueOutgoingTransitions(ProductState pCurrent) {
+  private static Multimap<PlainAutomatonTransition, AutomatonInternalState> getUniqueOutgoingTransitions(ProductState pCurrent) {
     return null;
 
   }
