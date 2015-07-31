@@ -15,7 +15,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -28,7 +27,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -48,9 +46,9 @@ public class LoopTransitionFinder {
       + "transition relation.")
   private boolean applyORtransformation = true;
 
-  @Option(secure=true, description="Instead of considering entire SCC, "
-      + "consider only the local loop for slicing")
-  private boolean breakSCC = true;
+  @Option(secure=true, description="Instead of considering the entire SCC, "
+      + "ignore the function nested in the loop. UNSOUND!")
+  private boolean ignoreFunctionCallsInLoop = true;
 
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
@@ -104,8 +102,8 @@ public class LoopTransitionFinder {
    * @return all edges in the local {@link Loop} associated with the {@code node},
    * or an empty set, if {@code node} is not a loop-head.
    */
-  public List<CFAEdge> getEdgesInSCC(CFANode node) {
-    if (breakSCC) {
+  private List<CFAEdge> getEdgesInSCC(CFANode node) {
+    if (ignoreFunctionCallsInLoop) {
       // Returns *local* loop.
       Set<CFAEdge> out = new HashSet<>();
       for (Loop loop :
@@ -117,16 +115,15 @@ public class LoopTransitionFinder {
       EdgeCollectingCFAVisitor v1 = new EdgeCollectingCFAVisitor();
       EdgeCollectingCFAVisitor v2 = new EdgeCollectingCFAVisitor();
 
+      // Note that we CAN NOT ignore function calls, as the loop
+      // may contain functions inside which do affect the global state.
       CFATraversal.dfs().traverse(node, v1);
       CFATraversal.dfs().backwards().traverse(node, v2);
 
       Set<CFAEdge> s1 = ImmutableSet.copyOf(v1.getVisitedEdges());
       Set<CFAEdge> s2 = ImmutableSet.copyOf(v2.getVisitedEdges());
-
       Set<CFAEdge> intersection = Sets.intersection(s1, s2);
-      Set<CFAEdge> out = Sets.filter(intersection, Predicates.not(Predicates.instanceOf(
-          FunctionSummaryEdge.class)));
-      return ImmutableList.copyOf(out);
+      return ImmutableList.copyOf(intersection);
     }
   }
 
