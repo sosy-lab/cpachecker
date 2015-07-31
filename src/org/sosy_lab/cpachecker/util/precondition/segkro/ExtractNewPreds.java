@@ -29,6 +29,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.Cartesian;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;

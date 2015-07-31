@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.Cartesian;
+import org.sosy_lab.cpachecker.util.Cartesian;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
