@@ -135,10 +135,8 @@ public class InductiveWeakeningManager {
       inductiveSlice = syntacticFormulaSlicing(selectionVars, orderedList,
           transition, input);
 
-      // Sanity check. todo: remove/make optional.
-      if (!solver.isUnsat(bfmgr.and(bfmgr.and(inductiveSlice), query))) {
-        return bfmgr.makeBoolean(true);
-      }
+      // Sanity check. todo: make optional.
+      Verify.verify(solver.isUnsat(bfmgr.and(bfmgr.and(inductiveSlice), query)));
     } else {
       inductiveSlice = formulaSlicing(selectionVars,
           orderedList, query);
