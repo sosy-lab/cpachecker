@@ -56,6 +56,11 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
+
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
@@ -73,7 +78,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    return new ValueAnalysisGlobalRefiner((ARGCPA)pCpa,
+    return new ValueAnalysisGlobalRefiner(argCpa,
         checker,
         strongestPostOp,
         new ValueAnalysisPrefixProvider(logger, cfa, config),

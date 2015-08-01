@@ -109,6 +109,11 @@ public class ValueAnalysisRefiner
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
+
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
@@ -129,7 +134,7 @@ public class ValueAnalysisRefiner
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(logger, cfa, config);
 
-    return new ValueAnalysisRefiner((ARGCPA)pCpa,
+    return new ValueAnalysisRefiner(argCpa,
         checker,
         strongestPostOp,
         new PathExtractor(logger, config),

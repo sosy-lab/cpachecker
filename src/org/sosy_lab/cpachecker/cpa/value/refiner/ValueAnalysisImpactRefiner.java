@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -95,23 +94,17 @@ public class ValueAnalysisImpactRefiner
   public static ValueAnalysisImpactRefiner create(final ConfigurableProgramAnalysis pCpa)
     throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisImpactRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
+
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisImpactRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
     }
 
     valueAnalysisCpa.injectRefinablePrecision();
-
-    ARGCPA argCpa;
-
-    if (pCpa instanceof WrapperCPA) {
-      argCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(ARGCPA.class);
-    } else {
-      throw new InvalidConfigurationException("ARG CPA needed for refinement");
-    }
-    if (argCpa == null) {
-      throw new InvalidConfigurationException("ARG CPA needed for refinement");
-    }
 
     final LogManager logger = valueAnalysisCpa.getLogger();
     final Configuration config = valueAnalysisCpa.getConfiguration();
@@ -128,7 +121,7 @@ public class ValueAnalysisImpactRefiner
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(logger, cfa, config);
 
-    return new ValueAnalysisImpactRefiner((ARGCPA)pCpa,
+    return new ValueAnalysisImpactRefiner(argCpa,
                                     checker,
                                     strongestPostOperator,
                                     pathExtractor,

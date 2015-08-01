@@ -76,8 +76,13 @@ public class SymbolicValueAnalysisRefiner
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);
+
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
 
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
@@ -132,7 +137,7 @@ public class SymbolicValueAnalysisRefiner
                                     shutdownNotifier,
                                     cfa);
 
-    return new SymbolicValueAnalysisRefiner((ARGCPA)pCpa,
+    return new SymbolicValueAnalysisRefiner(argCpa,
         feasibilityChecker,
         pathInterpolator,
         new PathExtractor(logger, config),
