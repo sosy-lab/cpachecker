@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -426,6 +427,21 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
   }
 
   /**
+   * This method returns, from the subtree of the given state, the target states
+   * that have an interpolant, i.e., that were interpolated.
+   *
+   * @param state the state for which to collect the interpolated target states in its subtree.
+   * @return the target states that were interpolated
+   */
+  public Collection<ARGState> getInterpolatedTargetsInSubtree(ARGState state) {
+    return FluentIterable.from(getTargetsInSubtree(state)).filter(new Predicate<ARGState>() {
+      @Override
+      public boolean apply(ARGState targetState) {
+        return interpolants.containsKey(targetState);
+      }}).toSet();
+  }
+
+  /**
    * This method checks if for the given state a non-trivial interpolant is present.
    *
    * @param currentState the state for which to check
@@ -457,7 +473,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     return interpolants.containsKey(currentState);
   }
 
-  protected Set<Map.Entry<ARGState, I>> getInterpolantMapping() {
+  public Set<Map.Entry<ARGState, I>> getInterpolantMapping() {
     return interpolants.entrySet();
   }
 
