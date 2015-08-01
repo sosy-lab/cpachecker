@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingGlobalPathExtractor;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -99,7 +99,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     super(pArgCpa,
         pFeasibilityChecker,
         pStrongestPostOperator,
-        new SortingGlobalPathExtractor(pPrefixProvider,
+        new SortingPathExtractor(pPrefixProvider,
             pPrefixSelector,
             pLogger,
             pConfig),

@@ -102,17 +102,7 @@ public class SortingPathExtractor extends PathExtractor {
             int score1 = prefixSelector.obtainScoreForPrefixes(prefixes1, PrefixPreference.DOMAIN_GOOD_SHORT);
             int score2 = prefixSelector.obtainScoreForPrefixes(prefixes2, PrefixPreference.DOMAIN_GOOD_SHORT);
 
-            if(score1 == score2) {
-              return 0;
-            }
-
-            else if(score1 < score2) {
-              return -1;
-            }
-
-            else {
-              return 1;
-            }
+            return score1 - score2;
           }
 
           else {
@@ -123,9 +113,6 @@ public class SortingPathExtractor extends PathExtractor {
         }
       }
     };
-
-    // extract target locations from and exclude those found to be feasible before,
-    // e.g., when analysis.stopAfterError is set to false
 
     return FluentIterable.from(super.getTargetStates(pReached)).toSortedList(comparator);
   }
