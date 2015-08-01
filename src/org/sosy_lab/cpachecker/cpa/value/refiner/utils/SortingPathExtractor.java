@@ -70,7 +70,7 @@ public class SortingPathExtractor extends PathExtractor {
   ) throws InvalidConfigurationException {
 
     super(pLogger);
-    pConfig.inject(this);
+    pConfig.inject(this, SortingPathExtractor.class);
 
     prefixProvider = pPrefixProvider;
     prefixSelector = pPrefixSelector;
