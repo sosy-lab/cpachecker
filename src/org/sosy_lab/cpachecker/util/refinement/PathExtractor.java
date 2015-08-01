@@ -37,6 +37,10 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -47,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -56,7 +61,13 @@ import com.google.common.collect.Iterables;
  * Class that provides means to extract target states and paths to these from an
  * {@link ARGReachedSet}.
  */
+@Options()
 public class PathExtractor implements Statistics {
+
+  @Option(secure = true,
+      name="cegar.globalRefinement",
+      description="whether or not global refinement is performed")
+  private boolean globalRefinement = false;
 
   /**
    * keep log of feasible targets that were already found
@@ -68,7 +79,15 @@ public class PathExtractor implements Statistics {
   // For statistics
   private int targetCounter = 0;
 
+  // TODO: remove this constructor: it is only still here so that sources in symbolic package compile
   public PathExtractor(final LogManager pLogger) {
+    logger = pLogger;
+  }
+
+  public PathExtractor(final LogManager pLogger, Configuration config)
+     throws InvalidConfigurationException {
+
+    config.inject(this);
     logger = pLogger;
   }
 
@@ -106,11 +125,19 @@ public class PathExtractor implements Statistics {
    * This method extracts the last state from the ARG, which has to be a target state.
    */
   protected FluentIterable<ARGState> extractTargetStatesFromArg(final ARGReachedSet pReached) {
-    ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
+    if (globalRefinement) {
+      return from(pReached.asReachedSet())
+          .transform(AbstractStates.toState(ARGState.class))
+          .filter(AbstractStates.IS_TARGET_STATE);
+    }
 
-    assert (lastState.isTarget()) : "Last state is not a target state";
+    else {
+      ARGState lastState = ((ARGState)pReached.asReachedSet().getLastState());
 
-    return from(Collections.singleton(lastState));
+      assert (lastState.isTarget()) : "Last state is not a target state";
+
+      return from(Collections.singleton(lastState));
+    }
   }
 
   /**
