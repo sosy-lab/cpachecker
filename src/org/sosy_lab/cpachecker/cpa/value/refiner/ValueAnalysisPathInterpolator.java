@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
-import java.io.PrintStream;
 import java.util.Collections;
 import java.util.Map;
 
@@ -37,8 +36,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
@@ -58,11 +55,6 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -84,15 +76,6 @@ public class ValueAnalysisPathInterpolator
    */
   @Option(secure=true, description="whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
-
-  // statistics
-  private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
-  private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
-  private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
-  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  private final StatInt totalNumberOfPrefixes             = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
-  private final StatTimer prefixExtractionTime    = new StatTimer("Extracting infeasible sliced prefixes");
-  private final StatTimer prefixSelectionTime     = new StatTimer("Selecting infeasible sliced prefixes");
 
   /**
    * a reference to the assignment-counting state, to make the precision increment aware of thresholds
@@ -266,17 +249,5 @@ public class ValueAnalysisPathInterpolator
     else {
       return errorPath.get(1);
     }
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
-    writer.put(timerInterpolation)
-      .put(totalInterpolations)
-      .put(totalInterpolationQueries)
-      .put(sizeOfInterpolant)
-      .put(totalNumberOfPrefixes);
-    writer.put(prefixExtractionTime);
-    writer.put(prefixSelectionTime);
   }
 }
