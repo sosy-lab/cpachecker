@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
@@ -69,7 +68,6 @@ import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -131,17 +129,10 @@ public class ValueAnalysisRefiner
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(logger, cfa, config);
 
-    final PrefixSelector prefixSelector = new PrefixSelector(cfa.getVarClassification(),
-                                                             cfa.getLoopStructure());
-
     return new ValueAnalysisRefiner((ARGCPA)pCpa,
         checker,
         strongestPostOp,
-        // TODO: normal path extractor enough, only single targets here
-        // unless we can push refinement.global into extractor
-        new SortingPathExtractor(prefixProvider,
-                                 prefixSelector,
-                                 logger, config),
+        new PathExtractor(logger, config),
         prefixProvider,
         config,
         logger,
