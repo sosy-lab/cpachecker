@@ -79,11 +79,6 @@ public class PathExtractor implements Statistics {
   // For statistics
   private int targetCounter = 0;
 
-  // TODO: remove this constructor: it is only still here so that sources in symbolic package compile
-  public PathExtractor(final LogManager pLogger) {
-    logger = pLogger;
-  }
-
   public PathExtractor(final LogManager pLogger, Configuration config)
      throws InvalidConfigurationException {
 

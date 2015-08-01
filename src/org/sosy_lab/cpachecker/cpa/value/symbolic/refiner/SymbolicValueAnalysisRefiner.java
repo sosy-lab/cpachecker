@@ -135,7 +135,7 @@ public class SymbolicValueAnalysisRefiner
     return new SymbolicValueAnalysisRefiner((ARGCPA)pCpa,
         feasibilityChecker,
         pathInterpolator,
-        new PathExtractor(logger),
+        new PathExtractor(logger, config),
         config,
         logger);
   }

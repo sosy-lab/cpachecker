@@ -208,13 +208,14 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
     symbolicRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
                                                        pSymbolicFeasibilityChecker,
                                                        pSymbolicInterpolator,
-                                                       new PathExtractor(pLogger),
+                                                       new PathExtractor(pLogger, pConfig),
                                                        pConfig,
                                                        pLogger);
+
     explicitRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
                                                        pExplicitFeasibilityChecker,
                                                        pExplicitInterpolator,
-                                                       new PathExtractor(pLogger),
+                                                       new PathExtractor(pLogger, pConfig),
                                                        pConfig,
                                                        pLogger);
     logger = pLogger;
