@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
@@ -131,7 +132,7 @@ public class SymbolicValueAnalysisRefiner
                                     shutdownNotifier,
                                     cfa);
 
-    return new SymbolicValueAnalysisRefiner(
+    return new SymbolicValueAnalysisRefiner((ARGCPA)pCpa,
         feasibilityChecker,
         pathInterpolator,
         new PathExtractor(logger),
@@ -139,7 +140,7 @@ public class SymbolicValueAnalysisRefiner
         logger);
   }
 
-  public SymbolicValueAnalysisRefiner(
+  public SymbolicValueAnalysisRefiner(final ARGCPA pCpa,
       final FeasibilityChecker<ForgettingCompositeState> pFeasibilityChecker,
       final PathInterpolator<SymbolicInterpolant> pInterpolator,
       final PathExtractor pPathExtractor,
@@ -147,7 +148,8 @@ public class SymbolicValueAnalysisRefiner
       final LogManager pLogger
   ) throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
+    super(pCpa,
+          pFeasibilityChecker,
           pInterpolator,
           SymbolicInterpolantManager.getInstance(),
           pPathExtractor,

@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -129,12 +130,15 @@ public class ValueAnalysisRefiner
 
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(logger, cfa, config);
+
     final PrefixSelector prefixSelector = new PrefixSelector(cfa.getVarClassification(),
                                                              cfa.getLoopStructure());
 
-    return new ValueAnalysisRefiner(
+    return new ValueAnalysisRefiner((ARGCPA)pCpa,
         checker,
         strongestPostOp,
+        // TODO: normal path extractor enough, only single targets here
+        // unless we can push refinement.global into extractor
         new SortingPathExtractor(prefixProvider,
                                  prefixSelector,
                                  logger, config),
@@ -145,7 +149,7 @@ public class ValueAnalysisRefiner
         cfa);
   }
 
-  ValueAnalysisRefiner(
+  ValueAnalysisRefiner(final ARGCPA pArgCPA,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
@@ -154,7 +158,8 @@ public class ValueAnalysisRefiner
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
+    super(pArgCPA,
+        pFeasibilityChecker,
         new ValueAnalysisPathInterpolator(pFeasibilityChecker,
             pStrongestPostOperator,
             pPrefixProvider,

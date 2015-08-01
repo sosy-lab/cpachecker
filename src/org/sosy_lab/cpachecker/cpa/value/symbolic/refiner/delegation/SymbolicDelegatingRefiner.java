@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -179,7 +180,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             SymbolicInterpolantManager.getInstance(),
             config, logger, shutdownNotifier, cfa);
 
-    return new SymbolicDelegatingRefiner(
+    return new SymbolicDelegatingRefiner((ARGCPA)pCpa,
         feasibilityChecker,
         pathInterpolator,
         explicitFeasibilityChecker,
@@ -191,7 +192,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   }
 
 
-  public SymbolicDelegatingRefiner(
+  public SymbolicDelegatingRefiner(final ARGCPA pArgCPA,
       final SymbolicFeasibilityChecker pSymbolicFeasibilityChecker,
       final SymbolicPathInterpolator pSymbolicInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pExplicitFeasibilityChecker,
@@ -204,12 +205,14 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
 
     // Two different instances of PathExtractor have to be used, otherwise,
     // RepeatedCounterexample error will occur when symbolicRefiner starts refinement.
-    symbolicRefiner = new SymbolicValueAnalysisRefiner(pSymbolicFeasibilityChecker,
+    symbolicRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
+                                                       pSymbolicFeasibilityChecker,
                                                        pSymbolicInterpolator,
                                                        new PathExtractor(pLogger),
                                                        pConfig,
                                                        pLogger);
-    explicitRefiner = new SymbolicValueAnalysisRefiner(pExplicitFeasibilityChecker,
+    explicitRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
+                                                       pExplicitFeasibilityChecker,
                                                        pExplicitInterpolator,
                                                        new PathExtractor(pLogger),
                                                        pConfig,

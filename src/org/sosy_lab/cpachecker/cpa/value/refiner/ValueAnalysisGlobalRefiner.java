@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -72,7 +73,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    return new ValueAnalysisGlobalRefiner(
+    return new ValueAnalysisGlobalRefiner((ARGCPA)pCpa,
         checker,
         strongestPostOp,
         new ValueAnalysisPrefixProvider(logger, cfa, config),
@@ -85,6 +86,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   }
 
   ValueAnalysisGlobalRefiner(
+      final ARGCPA pArgCpa,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
@@ -94,11 +96,18 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
-          pStrongestPostOperator,
-          new SortingGlobalPathExtractor(pPrefixProvider, pPrefixSelector, pLogger, pConfig),
-          pPrefixProvider,
-          pConfig, pLogger, pShutdownNotifier, pCfa);
+    super(pArgCpa,
+        pFeasibilityChecker,
+        pStrongestPostOperator,
+        new SortingGlobalPathExtractor(pPrefixProvider,
+            pPrefixSelector,
+            pLogger,
+            pConfig),
+        pPrefixProvider,
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pCfa);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
   }
