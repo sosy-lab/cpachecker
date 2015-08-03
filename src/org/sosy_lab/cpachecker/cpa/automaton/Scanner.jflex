@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "unchecked", "fallthrough", "SelfAssignment" })
+@SuppressWarnings(value = { "all", "unchecked", "fallthrough" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE", "DM_DEFAULT_ENCODING", "SA_FIELD_SELF_ASSIGNMENT"})
 %%
 
@@ -132,7 +132,6 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "STATE"             { return symbol("STATE", AutomatonSym.STATE); }
 <YYINITIAL> "ERROR"             { return symbol("ERROR", AutomatonSym.ERROR); }
 <YYINITIAL> "STOP"              { return symbol("STOP", AutomatonSym.STOP); }
-<YYINITIAL> "INACTIVE"          { return symbol("INACTIVE", AutomatonSym.INACTIVE); }
 <YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }

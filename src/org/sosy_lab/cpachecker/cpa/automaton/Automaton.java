@@ -30,7 +30,6 @@ import java.util.regex.Matcher;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -38,7 +37,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
 public class Automaton {
-
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
@@ -46,8 +44,6 @@ public class Automaton {
   private final Map<String, AutomatonVariable> initVars;
   private final List<AutomatonInternalState> states;
   private final AutomatonInternalState initState;
-
-  private Optional<Boolean> isObservingOnly = Optional.absent();
 
   public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInitialStateName) throws InvalidAutomatonException {
@@ -124,21 +120,9 @@ public class Automaton {
   }
 
   private static String formatState(AutomatonInternalState s, String color) {
-    StringBuilder sb = new StringBuilder();
-
-    final String name = s.getName().replace("_predefinedState_", "");
-    sb.append(String.format("%d [label=\"%s\" ", s.getStateId(), name));
-
-    String shape = s.isTarget() ? "doublecircle" : "circle";
-    sb.append("shape=\"" + shape + "\" ");
-
-    if (s.getDoesMatchAll()) {
-      sb.append("style=filled ");
-    }
-
-    sb.append(String.format("]\n"));
-
-    return sb.toString();
+    String name = s.getName().replace("_predefinedState_", "");
+    String shape = s.getDoesMatchAll() ? "doublecircle" : "circle";
+    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
@@ -161,18 +145,8 @@ public class Automaton {
           if (!t.meetsObserverRequirements()) {
             throw new InvalidConfigurationException("The transition " + t
                 + " in state \"" + s + "\" is not valid for an ObserverAutomaton.");
+          }
         }
       }
     }
-
-    this.isObservingOnly = Optional.of(Boolean.TRUE);
-  }
-
-  public boolean getIsObservingOnly() {
-    if (isObservingOnly.isPresent()) {
-      return isObservingOnly.get();
-    }
-    return false;
-  }
-
 }

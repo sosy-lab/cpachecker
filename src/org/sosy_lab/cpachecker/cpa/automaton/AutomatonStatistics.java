@@ -62,8 +62,6 @@ class AutomatonStatistics extends AbstractStatistics {
       put(out, 0, "Total time for strengthen operator", trans.totalStrengthenTime);
     }
 
-    put(out, 0, "Total time for inactivity checks", trans.inactivityCheckTime);
-
     int stateBranchings = trans.automatonSuccessors.getValueCount()
         - trans.automatonSuccessors.getTimesWithValue(0)
         - trans.automatonSuccessors.getTimesWithValue(1);

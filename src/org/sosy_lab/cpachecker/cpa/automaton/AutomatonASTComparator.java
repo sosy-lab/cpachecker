@@ -36,8 +36,6 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -92,62 +90,11 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
 
-  public static class ASTMatcherProvider {
-    private final String patter;
-    private final ASTMatcher matcher;
-
-    public ASTMatcherProvider(String pPattern, CParser pParser, Scope pScope)
-        throws InvalidAutomatonException, InvalidConfigurationException {
-
-      patter = pPattern;
-      String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
-      matcher = parse(tmp, pParser, pScope).accept(ASTMatcherGenerator.INSTANCE);
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((patter == null) ? 0 : patter.hashCode());
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      ASTMatcherProvider other = (ASTMatcherProvider) obj;
-      if (patter == null) {
-        if (other.patter != null) {
-          return false;
-        }
-      } else if (!patter.equals(other.patter)) {
-        // We only compare the pattern string, but not its accepted language!
-        return false;
-      }
-      return true;
-    }
-
-    public ASTMatcher getMatcher() {
-      return matcher;
-    }
-
-    public String getPatternString() {
-      return patter;
-    }
-  }
-
-  static ASTMatcherProvider generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
     // $?-Jokers, $1-Jokers and function declaration
+    String tmp = addFunctionDeclaration(replaceJokersInPattern(pPattern));
 
-    return new ASTMatcherProvider(pPattern, parser, scope);
+    return parse(tmp, parser, scope).accept(ASTMatcherGenerator.INSTANCE);
   }
 
   static CStatement generateSourceAST(String pSource, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
@@ -156,7 +103,7 @@ class AutomatonASTComparator {
     return parse(tmp, parser, scope);
   }
 
-  static List<AStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
+  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     String tmp = addFunctionDeclaration(pSource);
 
@@ -232,7 +179,7 @@ class AutomatonASTComparator {
    * @throws InvalidConfigurationException
    * @throws CParserException
    */
-  private static List<AStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     List<CAstNode> statements;
 
     statements = parser.parseStatements(code, scope);
@@ -251,7 +198,7 @@ class AutomatonASTComparator {
       }
     };
 
-    return ImmutableList.<AStatement>copyOf(Lists.transform(statements, function));
+    return ImmutableList.copyOf(Lists.transform(statements, function));
   }
 
 
@@ -381,11 +328,6 @@ class AutomatonASTComparator {
     @Override
     public ASTMatcher visit(CPointerExpression exp) throws InvalidAutomatonException {
       return new PointerExpressionMatcher(exp, exp.getOperand().accept(this));
-    }
-
-    @Override
-    public ASTMatcher visit(CAddressOfLabelExpression exp) throws InvalidAutomatonException {
-      return new AddressOfLabelExpressionMatcher(exp);
     }
 
     @Override
@@ -816,18 +758,6 @@ class AutomatonASTComparator {
     @Override
     protected CType getFieldValueFrom(CTypeIdExpression pSource) {
       return pSource.getType();
-    }
-  }
-
-  private static class AddressOfLabelExpressionMatcher extends ExpressionWithFieldMatcher<CAddressOfLabelExpression, String> {
-
-    public AddressOfLabelExpressionMatcher(CAddressOfLabelExpression pPattern) {
-      super(CAddressOfLabelExpression.class, pPattern);
-    }
-
-    @Override
-    protected String getFieldValueFrom(CAddressOfLabelExpression pSource) {
-      return pSource.getLabelName();
     }
   }
 

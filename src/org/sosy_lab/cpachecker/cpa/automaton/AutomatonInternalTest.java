@@ -39,7 +39,9 @@ import java_cup.runtime.Symbol;
 
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
@@ -47,12 +49,11 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcherProvider;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.io.CharStreams;
 import com.google.common.truth.FailureStrategy;
@@ -73,7 +74,9 @@ public class AutomatonInternalTest {
   private static final Path defaultSpec = Paths.get("test/config/automata/defaultSpecification.spc");
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
-    config = TestDataTools.configurationForTest().build();
+    config = Configuration.builder()
+        .addConverter(FileOption.class, FileTypeConverter.createWithSafePathsOnly(Configuration.defaultConfiguration()))
+        .build();
     logger = TestLogManager.getInstance();
 
     ParserOptions options = CParser.Factory.getDefaultOptions();
@@ -197,7 +200,7 @@ public class AutomatonInternalTest {
   }
 
   @Test
-  public void transitionVariableReplacement() {
+  public void transitionVariableReplacement() throws Exception {
     LogManager mockLogger = mock(LogManager.class);
     AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, null, mockLogger);
     args.putTransitionVariable(1, "hi");
@@ -274,10 +277,12 @@ public class AutomatonInternalTest {
     }
 
     private boolean matches0(String src) throws InvalidAutomatonException, InvalidConfigurationException {
-      CStatement sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
-      ASTMatcherProvider provider = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
+      CAstNode sourceAST;
+      ASTMatcher matcher;
+      sourceAST = AutomatonASTComparator.generateSourceAST(src, parser, CProgramScope.empty());
+      matcher = AutomatonASTComparator.generatePatternAST(getSubject(), parser, CProgramScope.empty());
 
-      return provider.getMatcher().matches(sourceAST, args);
+      return matcher.matches(sourceAST, args);
     }
 
     public Matches matches(final String src) {

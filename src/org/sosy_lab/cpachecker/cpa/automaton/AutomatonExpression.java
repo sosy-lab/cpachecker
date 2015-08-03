@@ -34,45 +34,13 @@ interface AutomatonExpression {
 
   ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
+
   static class StringExpression implements AutomatonExpression {
-
     private String toPrint;
-
     public StringExpression(String pString) {
       super();
       this.toPrint = pString;
     }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((toPrint == null) ? 0 : toPrint.hashCode());
-      return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
-      StringExpression other = (StringExpression) obj;
-      if (toPrint == null) {
-        if (other.toPrint != null) {
-          return false;
-        }
-      } else if (!toPrint.equals(other.toPrint)) {
-        return false;
-      }
-      return true;
-    }
-
     @Override
     public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
@@ -91,7 +59,6 @@ interface AutomatonExpression {
         return new ResultValue<>(str);
       }
     }
-
   }
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.

@@ -28,12 +28,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 
 public class ObserverAutomatonCPA extends ControlAutomatonCPA {
 
-  private ObserverAutomatonCPA(@OptionalAnnotation Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA cfa)
+  private ObserverAutomatonCPA(@Optional Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA cfa)
       throws InvalidConfigurationException {
     super(pAutomaton, pConfig, pLogger, cfa);
     super.getAutomaton().assertObserverAutomaton();
