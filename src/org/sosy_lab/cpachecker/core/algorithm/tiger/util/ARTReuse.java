@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -345,7 +346,12 @@ public class ARTReuse {
   }
 
 
-  private static Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineLocalDifference(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton, NondeterministicFiniteAutomaton.State pPreviousState, NondeterministicFiniteAutomaton.State pCurrentState) {
+  private static Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineLocalDifference(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton,
+      NondeterministicFiniteAutomaton.State pPreviousState,
+      NondeterministicFiniteAutomaton.State pCurrentState) {
+
     Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lE1 = new HashSet<>();
     Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lE2 = new HashSet<>();
 
@@ -394,45 +400,49 @@ public class ARTReuse {
     return Pair.of(lE1, lE2);
   }
 
-  private static Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineFrontier(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
-    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lF1 = new HashSet<>();
-    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> lF2 = new HashSet<>();
-
-    LinkedList<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lWorklist = new LinkedList<>();
+  private static Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> determineFrontier(
+        NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton,
+        NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
 
     if (pPreviousAutomaton.getInitialState() != pCurrentAutomaton.getInitialState()) {
       throw new RuntimeException();
     }
 
-    lWorklist.add(Pair.of(pPreviousAutomaton.getInitialState(), pCurrentAutomaton.getInitialState()));
+    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> frontOne = new HashSet<>();
+    Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> frontTwo = new HashSet<>();
 
-    HashSet<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> lVisited = new HashSet<>();
+    Deque<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> worklist = new LinkedList<>();
+    worklist.add(Pair.of(
+        pPreviousAutomaton.getInitialState(),
+        pCurrentAutomaton.getInitialState()));
 
-    while (!lWorklist.isEmpty()) {
-      Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lCurrentPair = lWorklist.removeLast();
+    Set<Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State>> visited = new HashSet<>();
 
-      if (!lVisited.contains(lCurrentPair)) {
-        lVisited.add(lCurrentPair);
+    while (!worklist.isEmpty()) {
+      Pair<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> currentPair = worklist.removeLast();
+
+      if (!visited.contains(currentPair)) {
+        visited.add(currentPair);
 
         // determine local difference
 
-        Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineLocalDifference(pPreviousAutomaton, pCurrentAutomaton, lCurrentPair.getFirst(), lCurrentPair.getSecond());
+        Pair<Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>, Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge>> lFrontier = determineLocalDifference(pPreviousAutomaton, pCurrentAutomaton, currentPair.getFirst(), currentPair.getSecond());
 
         if (lFrontier.getFirst().isEmpty() && lFrontier.getSecond().isEmpty()) {
           // update worklist
-          for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pPreviousAutomaton.getOutgoingEdges(lCurrentPair.getFirst())) {
+          for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lEdge : pPreviousAutomaton.getOutgoingEdges(currentPair.getFirst())) {
             // was mit !lFrontier.getFirst().isEmpty() machen?
-            lWorklist.add(Pair.of(lEdge.getTarget(), lEdge.getTarget()));
+            worklist.add(Pair.of(lEdge.getTarget(), lEdge.getTarget()));
           }
         }
         else {
-          lF1.addAll(lFrontier.getFirst());
-          lF2.addAll(lFrontier.getSecond());
+          frontOne.addAll(lFrontier.getFirst());
+          frontTwo.addAll(lFrontier.getSecond());
         }
       }
     }
 
-    return Pair.of(lF1, lF2);
+    return Pair.of(frontOne, frontTwo);
   }
 
 }

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -76,7 +77,7 @@ parser code {:
       this.scope = DummyScope.getInstance();
   }
   
-  public List<CStatement> generateSourceASTOfBlock(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+  public List<AStatement> generateSourceASTOfBlock(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     return AutomatonASTComparator.generateSourceASTOfBlock(code, cparser, scope);
   }
 
@@ -93,7 +94,7 @@ parser code {:
     AutomatonTransition trans = new AutomatonTransition(
         AutomatonBoolExpr.TRUE, 
         Collections.singletonList(pA),
-        new ArrayList<CStatement>(),
+        Collections.<AStatement>emptyList(),
         Collections.<AutomatonAction>emptyList(),
         "OK");
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
@@ -139,14 +140,14 @@ parser code {:
     }
   }
 
-  AutomatonASTComparator.ASTMatcher generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
+  AutomatonASTComparator.ASTMatcherProvider generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
     return AutomatonASTComparator.generatePatternAST(pattern, cparser, scope);
   }
 :};
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, EXIT, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE ;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, INACTIVE, EXIT, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -156,7 +157,7 @@ non terminal Map<String, AutomatonVariable> LocalDefs ;
 non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
-non terminal List<CStatement> Assume ;
+non terminal List<AStatement> Assume ;
 non terminal List<AutomatonAction> Actions ;
 
 non terminal AutomatonVariable LocalDef ;
@@ -243,6 +244,8 @@ Transition   ::= Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO I
               {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression(property.toString())); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
               {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BOTTOM, null); :}
+               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts INACTIVE SEMICOLON
+              {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.INACTIVE, null); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
               {: RESULT = new AutomatonTransition(trigger, ass, a, acts, AutomatonInternalState.BREAK, null); :}
               ;
@@ -253,7 +256,7 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
 Assume    ::= ASSUME CURLYEXPR:a {: RESULT = parser.generateSourceASTOfBlock(a.toString()); :}
-             | /* empty */ {: RESULT = new ArrayList<CStatement>(); :};
+             | /* empty */ {: RESULT = new ArrayList<AStatement>(); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}

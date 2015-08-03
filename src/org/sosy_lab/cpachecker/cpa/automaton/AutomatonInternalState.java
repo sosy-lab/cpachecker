@@ -40,6 +40,12 @@ public class AutomatonInternalState {
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
 
+  /** State representing TOP */
+  static final AutomatonInternalState TOP = new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList());
+
+  /** State representing INACTIVE: an automata that is not considered any more (removed from the precision). */
+  static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE, false);
+
   /** Error State */
   static final AutomatonInternalState ERROR = new AutomatonInternalState(
       "_predefinedState_ERROR",
@@ -81,6 +87,18 @@ public class AutomatonInternalState {
     this.mAllTransitions = pAllTransitions;
   }
 
+  public AutomatonInternalState(String pName, AutomatonBoolExpr pSelfTransitionExpr, boolean pIsTarget) {
+    this.name = pName;
+    this.mIsTarget = pIsTarget;
+    this.mAllTransitions = false;
+    this.transitions = Collections.<AutomatonTransition>singletonList(new AutomatonTransition(
+        pSelfTransitionExpr,
+        Collections.<AutomatonBoolExpr>emptyList(),
+        null,
+        Collections.<AutomatonAction>emptyList(),
+        this, new StringExpression("")));
+  }
+
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
     this(pName, pTransitions, false, false);
   }
@@ -109,6 +127,21 @@ public class AutomatonInternalState {
 
   public boolean isTarget() {
     return mIsTarget;
+  }
+
+  /**
+   * @return Is it a state in that we will remain
+   *  the rest of the time?
+   */
+  public boolean isFinalSelfLoopingState() {
+    if (transitions.size() == 1) {
+      AutomatonTransition tr = transitions.get(0);
+      if (tr.getFollowState().equals(this)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public boolean getDoesMatchAll() {

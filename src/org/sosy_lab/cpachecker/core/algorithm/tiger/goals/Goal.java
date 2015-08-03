@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;
@@ -61,6 +63,16 @@ public class Goal {
 
   public int getIndex() {
     return mIndex;
+  }
+
+  public String getName() {
+    CFAEdge ce = getCriticalEdge();
+    CFANode pred = ce.getPredecessor();
+    if (pred instanceof CLabelNode && !((CLabelNode) pred).getLabel().isEmpty()) {
+      return ((CLabelNode) pred).getLabel();
+    } else {
+      return Integer.toString(getIndex());
+    }
   }
 
   public ElementaryCoveragePattern getPattern() {
