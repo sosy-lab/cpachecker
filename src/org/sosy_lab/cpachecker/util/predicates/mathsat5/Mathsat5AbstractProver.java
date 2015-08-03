@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.mathsat5;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.List;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.google.common.primitives.Longs;
 
 /**
@@ -72,7 +72,7 @@ abstract class Mathsat5AbstractProver {
   public boolean isUnsatWithAssumptions(List<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
     Preconditions.checkState(curEnv != 0);
     try {
-      long[] assumptions = Longs.toArray(from(pAssumptions).transform(new Function<BooleanFormula, Long>() {
+      long[] assumptions = Longs.toArray(Lists.transform(pAssumptions, new Function<BooleanFormula, Long>() {
         @Override
         public Long apply(BooleanFormula pInput) {
           long t = Mathsat5FormulaManager.getMsatTerm(pInput);
@@ -81,7 +81,7 @@ abstract class Mathsat5AbstractProver {
           }
           return t;
         }
-      }).toList());
+      }));
       return !msat_check_sat_with_assumptions(curEnv, assumptions);
     } catch (IllegalStateException e) {
       handleSolverExceptionInUnsatCheck(e);
