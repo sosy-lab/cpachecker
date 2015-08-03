@@ -81,7 +81,7 @@
         <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1-183-g4d3bb9f" conf="runtime->runtime; contrib->sources">
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1-220-gb0ad1e5" conf="runtime->runtime; contrib->sources">
           <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
           <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
         </dependency>
