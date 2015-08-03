@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -155,7 +156,7 @@ class AutomatonASTComparator {
     return parse(tmp, parser, scope);
   }
 
-  static List<CStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
+  static List<AStatement> generateSourceASTOfBlock(String pSource, CParser parser, Scope scope)
       throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     String tmp = addFunctionDeclaration(pSource);
 
@@ -231,7 +232,7 @@ class AutomatonASTComparator {
    * @throws InvalidConfigurationException
    * @throws CParserException
    */
-  private static List<CStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+  private static List<AStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     List<CAstNode> statements;
 
     statements = parser.parseStatements(code, scope);
@@ -250,7 +251,7 @@ class AutomatonASTComparator {
       }
     };
 
-    return ImmutableList.copyOf(Lists.transform(statements, function));
+    return ImmutableList.<AStatement>copyOf(Lists.transform(statements, function));
   }
 
 

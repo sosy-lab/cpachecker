@@ -59,11 +59,11 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -275,7 +275,7 @@ public class AutomatonGraphmlParser {
                 new AutomatonIntExpr.Constant(-distance)
                 )
             );
-        List<CStatement> assumptions = Lists.newArrayList();
+        List<AStatement> assumptions = Lists.newArrayList();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
@@ -425,7 +425,7 @@ public class AutomatonGraphmlParser {
           nonMatchingTransitions.add(createAutomatonTransition(
               not(conjunctedTriggers),
               assertions,
-              Collections.<CStatement>emptyList(),
+              Collections.<AStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId,
               leadsToViolationNode));
@@ -474,7 +474,7 @@ public class AutomatonGraphmlParser {
               and(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
               assertions,
-              Collections.<CStatement>emptyList(),
+              Collections.<AStatement>emptyList(),
               Collections.<AutomatonAction>emptyList(),
               sourceStateId,
               sourceIsViolationNode));
@@ -501,7 +501,7 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   AutomatonBoolExpr.TRUE,
                   assertions,
-                  Collections.<CStatement>emptyList(),
+                  Collections.<AStatement>emptyList(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true));
@@ -558,7 +558,7 @@ public class AutomatonGraphmlParser {
   private static AutomatonTransition createAutomatonTransition(
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
-      List<CStatement> pAssumptions,
+      List<AStatement> pAssumptions,
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode) {
@@ -606,7 +606,7 @@ public class AutomatonGraphmlParser {
     private ViolationCopyingAutomatonTransition(
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
-        List<CStatement> pAssumptions,
+        List<AStatement> pAssumptions,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
       super(pTriggers, pAssertions, pAssumptions, pActions, pTargetStateId);
@@ -654,9 +654,9 @@ public class AutomatonGraphmlParser {
    *
    * @return the duplicate-free assumptions.
    */
-  private static Collection<CStatement> removeDuplicates(Iterable<? extends CStatement> pStatements) {
-    Map<Object, CStatement> result = new HashMap<>();
-    for (CStatement statement : pStatements) {
+  private static Collection<AStatement> removeDuplicates(Iterable<? extends AStatement> pStatements) {
+    Map<Object, AStatement> result = new HashMap<>();
+    for (AStatement statement : pStatements) {
       if (statement instanceof CExpressionAssignmentStatement) {
         CExpressionAssignmentStatement assignmentStatement = (CExpressionAssignmentStatement) statement;
         result.put(assignmentStatement.getLeftHandSide(), assignmentStatement);
@@ -675,11 +675,11 @@ public class AutomatonGraphmlParser {
    *
    * @return the adjusted statements.
    */
-  private static Collection<CStatement> adjustCharAssignments(Iterable<? extends CStatement> pStatements) {
-    return FluentIterable.from(pStatements).transform(new Function<CStatement, CStatement>() {
+  private static Collection<AStatement> adjustCharAssignments(Iterable<? extends AStatement> pStatements) {
+    return FluentIterable.from(pStatements).transform(new Function<AStatement, AStatement>() {
 
       @Override
-      public CStatement apply(CStatement pStatement) {
+      public AStatement apply(AStatement pStatement) {
         if (pStatement instanceof CExpressionAssignmentStatement) {
           CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
           CLeftHandSide leftHandSide = statement.getLeftHandSide();

@@ -33,7 +33,6 @@ import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -61,7 +60,7 @@ class AutomatonTransition {
    *    the follower state.
    *    And we do not want to get into trouble with 'equals' (therefore we do not use inheritance)
    */
-  public static class PlainAutomatonTransition implements TrinaryEqualable {
+  public static final class PlainAutomatonTransition {
 
     final AutomatonBoolExpr trigger;
     final AutomatonBoolExpr assertion;
@@ -87,13 +86,6 @@ class AutomatonTransition {
           pT.assumption,
           pT.actions,
           pT.violatedPropertyDescription);
-    }
-
-    @Override
-    public Equality equalityTo(Object pOther) {
-      return this.equals(pOther)
-          ? Equality.EQUAL
-          : Equality.UNKNOWN;
     }
 
     @Override
@@ -173,32 +165,32 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AutomatonAction> pActions,
       String pFollowStateName) {
-    this(pTrigger, pAssertions, ImmutableList.copyOf(new ArrayList<CStatement>()), pActions, pFollowStateName, null, null);
+    this(pTrigger, pAssertions, ImmutableList.<AStatement>copyOf(new ArrayList<CStatement>()), pActions, pFollowStateName, null, null);
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState) {
 
-    this(pTrigger, pAssertions, ImmutableList.copyOf(new ArrayList<CStatement>()), pActions, pFollowState.getName(), pFollowState, null);
+    this(pTrigger, pAssertions, ImmutableList.<AStatement>copyOf(new ArrayList<CStatement>()), pActions, pFollowState.getName(), pFollowState, null);
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption,
+      List<AutomatonBoolExpr> pAssertions, List<AStatement> pAssumption,
       List<AutomatonAction> pActions,
       String pFollowStateName) {
     this(pTrigger, pAssertions, pAssumption, pActions, pFollowStateName, null, null);
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption, List<AutomatonAction> pActions,
+      List<AutomatonBoolExpr> pAssertions, List<AStatement> pAssumption, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState, StringExpression pViolatedPropertyDescription) {
 
     this(pTrigger, pAssertions, pAssumption, pActions, pFollowState.getName(), pFollowState, pViolatedPropertyDescription);
   }
 
   private AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption, List<AutomatonAction> pActions,
+      List<AutomatonBoolExpr> pAssertions, List<AStatement> pAssumption, List<AutomatonAction> pActions,
       String pFollowStateName, AutomatonInternalState pFollowState,
       StringExpression pViolatedPropertyDescription) {
 

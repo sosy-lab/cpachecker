@@ -877,17 +877,51 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
     }
   }
 
+  static abstract class BinaryAutomatonBoolExpr extends AbstractAutomatonBoolExpr {
+
+    protected final AutomatonBoolExpr a;
+    protected final AutomatonBoolExpr b;
+
+    public BinaryAutomatonBoolExpr(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+      this.a = pA;
+      this.b = pB;
+    }
+
+    public AutomatonBoolExpr getA() {
+      return a;
+    }
+
+    public AutomatonBoolExpr getB() {
+      return b;
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      if (!(pOther instanceof BinaryAutomatonBoolExpr)) {
+        return Equality.UNKNOWN;
+      }
+
+      BinaryAutomatonBoolExpr other = (BinaryAutomatonBoolExpr) pOther;
+
+      if (other.a.equalityTo(this.a) != Equality.EQUAL) {
+        return Equality.UNKNOWN;
+      }
+
+      if (other.b.equalityTo(this.b) != Equality.EQUAL) {
+        return Equality.UNKNOWN;
+      }
+
+      return Equality.EQUAL;
+    }
+  }
+
 
   /** Computes the disjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
    */
-  static class Or extends AbstractAutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
+  static final class Or extends BinaryAutomatonBoolExpr {
 
     public Or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+      super(pA, pB);
     }
 
     public @Override ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
@@ -927,26 +961,15 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
       return "(" + a + " || " + b + ")";
     }
 
-    public AutomatonBoolExpr getA() {
-      return a;
-    }
-
-    public AutomatonBoolExpr getB() {
-      return b;
-    }
   }
 
 
   /** Computes the conjunction of two {@link AutomatonBoolExpr} (lazy evaluation).
    */
-  static class And extends AbstractAutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
+  static final class And extends BinaryAutomatonBoolExpr {
 
     public And(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+      super(pA, pB);
     }
 
     @Override
@@ -987,20 +1010,13 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
       return "(" + a + " && " + b + ")";
     }
 
-    public AutomatonBoolExpr getA() {
-      return a;
-    }
-
-    public AutomatonBoolExpr getB() {
-      return b;
-    }
   }
 
 
   /**
    * Negates the result of a {@link AutomatonBoolExpr}. If the result is MAYBE it is returned unchanged.
    */
-  static class Negation extends AbstractAutomatonBoolExpr {
+  static final class Negation extends AbstractAutomatonBoolExpr {
 
     private final AutomatonBoolExpr a;
 
@@ -1022,6 +1038,13 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
     }
 
     @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof Negation
+          ? this.a.equalityTo(((Negation) pOther).a)
+          : Equality.UNKNOWN;
+    }
+
+    @Override
     public String toString() {
       return "!" + a;
     }
@@ -1035,14 +1058,10 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
   /**
    * Boolean Equality
    */
-  static class BoolEqTest extends AbstractAutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
+  static final class BoolEqTest extends BinaryAutomatonBoolExpr {
 
     public BoolEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+      super(pA, pB);
     }
 
     @Override
@@ -1072,14 +1091,10 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
   /**
    * Boolean !=
    */
-  static class BoolNotEqTest extends AbstractAutomatonBoolExpr {
-
-    private final AutomatonBoolExpr a;
-    private final AutomatonBoolExpr b;
+  static final class BoolNotEqTest extends BinaryAutomatonBoolExpr {
 
     public BoolNotEqTest(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-      this.a = pA;
-      this.b = pB;
+      super(pA, pB);
     }
 
     @Override
