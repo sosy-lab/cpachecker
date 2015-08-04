@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
@@ -80,7 +78,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFo
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -120,7 +117,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FunctionFormulaManagerView ffmgr;
   private final CtoFormulaConverter converter;
   private final CtoFormulaTypeHandler typeHandler;
-  private final @Nullable PointerTargetSetManager ptsManager;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -169,7 +165,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
       converter = createCtoFormulaConverterWithArrays(options, pMachineModel, pVariableClassification, typeHandler);
-      ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
@@ -177,14 +172,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
-      ptsManager = new PointerTargetSetManager(options, fmgr, aliasingTypeHandler, shutdownNotifier);
-      converter = createCToFormulaConverterWithPointerAliasing(options, pMachineModel, ptsManager, pVariableClassification, aliasingTypeHandler);
+      converter = createCToFormulaConverterWithPointerAliasing(options, pMachineModel, pVariableClassification, aliasingTypeHandler);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
       converter = createCtoFormulaConverter(options, pMachineModel, pVariableClassification, typeHandler);
-      ptsManager = null;
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
@@ -210,11 +203,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
       FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pMachineModel,
-      PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
+      Optional<VariableClassification> pVariableClassification,
       TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
 
     return new CToFormulaConverterWithPointerAliasing(
-        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification,
+        pOptions, fmgr, pMachineModel, pVariableClassification,
         logger, shutdownNotifier, pAliasingTypeHandler, direction);
   }
 
@@ -304,12 +297,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final MergeResult<SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
     final SSAMap newSSA = mergeSSAResult.getResult();
 
-    final MergeResult<PointerTargetSet> mergePtsResult;
-    if (ptsManager != null) {
-      mergePtsResult = ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
-    } else {
-      mergePtsResult = MergeResult.trivial(pts1, bfmgr);
-    }
+    final MergeResult<PointerTargetSet> mergePtsResult = converter.mergePointerTargetSets(pts1, pts2, newSSA);
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,

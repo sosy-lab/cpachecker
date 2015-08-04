@@ -67,8 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 
 import com.google.common.collect.ImmutableList;
 
-
-public class PointerTargetSetManager {
+class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";

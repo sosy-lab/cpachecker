@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -1290,6 +1291,11 @@ public class CtoFormulaConverter {
 
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
+  }
+
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
+      final PointerTargetSet pts2, final SSAMap resultSSA) throws InterruptedException {
+    return MergeResult.trivial(pts1, bfmgr);
   }
 
   protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
