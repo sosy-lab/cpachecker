@@ -128,7 +128,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -347,8 +346,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     // we empty pReachedSet to stop complaints of an incomplete analysis
     // Problem: pReachedSet does not match the internal CPA structure!
@@ -1108,7 +1106,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                     new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
 
                       @Override
-                      public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
+                      public int compare(Entry<Model.AssignableTerm, Object> pArg0, Entry<Model.AssignableTerm, Object> pArg1) {
                         assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
                         assert pArg0.getKey() instanceof Model.Variable;
                         assert pArg1.getKey() instanceof Model.Variable;
