@@ -73,6 +73,8 @@ public class PointerTargetSetManager {
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
 
+  private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
+
   static CType getFakeBaseType(int size) {
     return CTypeUtils.simplifyType(new CArrayType(false, false, CVoidType.VOID, new CIntegerLiteralExpression(FileLocation.DUMMY,
                                                                                         CNumericTypes.SIGNED_CHAR,
@@ -115,9 +117,9 @@ public class PointerTargetSetManager {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
-    final Triple<PersistentSortedMap<String, CType>,
-                 PersistentSortedMap<String, CType>,
-                 PersistentSortedMap<String, CType>> mergedBases =
+    Triple<PersistentSortedMap<String, CType>,
+           PersistentSortedMap<String, CType>,
+           PersistentSortedMap<String, CType>> mergedBases =
       mergeWithKeyDifferences(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
     shutdownNotifier.shutdownIfNecessary();
 
@@ -169,11 +171,17 @@ public class PointerTargetSetManager {
       basesMergeFormula = bfmgr.makeBoolean(true);
 
     } else {
-      // Just pick one of the two bases and ensure it gets placed after the bases
-      // of the other branch in memory.
-      assert !pts2.bases.containsKey(pts1.lastBase); // would create a cyclic address-inequality chain
-      lastBase = pts1.lastBase;
-      basesMergeFormula = getNextBaseAddressInequality(pts1.lastBase, pts2.bases, pts2.lastBase);
+      // Otherwise we have no possibility to determine which base to use as lastBase,
+      // so we create an additional fake one.
+      final CType fakeBaseType = getFakeBaseType(0);
+      final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
+          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType);
+      mergedBases = Triple.of(mergedBases.getFirst(),
+                              mergedBases.getSecond(),
+                              mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
+      lastBase = fakeBaseName;
+      basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.bases, pts1.lastBase),
+                                                 getNextBaseAddressInequality(fakeBaseName, pts2.bases, pts2.lastBase));
     }
 
     PointerTargetSet resultPTS =
