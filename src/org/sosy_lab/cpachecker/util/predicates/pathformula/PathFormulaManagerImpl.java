@@ -295,7 +295,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
 
     final MergeResult<SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMap newSSA = mergeSSAResult.getResult();
+    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
 
     final MergeResult<PointerTargetSet> mergePtsResult = converter.mergePointerTargetSets(pts1, pts2, newSSA);
 
@@ -309,7 +309,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    return new PathFormula(newFormula, newSSA, newPTS, newLength);
+    return new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
   }
 
   @Override

@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 
@@ -110,7 +110,9 @@ class PointerTargetSetManager {
   public MergeResult<PointerTargetSet>
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
-                                   final SSAMap resultSSA) throws InterruptedException {
+                                   final SSAMapBuilder resultSSA,
+                                   final CToFormulaConverterWithPointerAliasing conv)
+                                       throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
@@ -174,7 +176,7 @@ class PointerTargetSetManager {
       // so we create an additional fake one.
       final CType fakeBaseType = getFakeBaseType(0);
       final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
-          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType);
+          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, resultSSA, conv);
       mergedBases = Triple.of(mergedBases.getFirst(),
                               mergedBases.getSecond(),
                               mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
@@ -305,7 +307,7 @@ class PointerTargetSetManager {
   }
 
   private BooleanFormula makeSharingConstraints(final PersistentSortedMap<String, CType> newBases,
-      final List<Pair<CCompositeType, String>> sharedFields, final SSAMap ssa, final PointerTargetSet pts) {
+      final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa, final PointerTargetSet pts) {
     BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey()) &&
@@ -329,7 +331,7 @@ class PointerTargetSetManager {
                                                 final String variablePrefix,
                                                 final CType variableType,
                                                 final List<Pair<CCompositeType, String>> sharedFields,
-                                                final SSAMap ssa,
+                                                final SSAMapBuilder ssa,
                                                 final PointerTargetSet pts) {
 
     assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a varaible";
@@ -373,7 +375,7 @@ class PointerTargetSetManager {
 
   private Formula makeDereferece(final CType type,
                                  final Formula address,
-                                 final SSAMap ssa) {
+                                 final SSAMapBuilder ssa) {
     final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);

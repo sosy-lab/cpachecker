@@ -91,7 +91,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -470,8 +469,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(PointerTargetSet pPts1,
-      PointerTargetSet pPts2, SSAMap pResultSSA) throws InterruptedException {
-    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pResultSSA);
+      PointerTargetSet pPts2, SSAMapBuilder pResultSSA) throws InterruptedException {
+    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pResultSSA, this);
   }
 
   @Override

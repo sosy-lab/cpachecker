@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -78,9 +77,6 @@ class DynamicMemoryHandler {
   private static final String CALLOC_FUNCTION = "calloc";
 
   private static final String MALLOC_INDEX_SEPARATOR = "#";
-
-  // The counter that guarantees a unique name for each allocated memory region.
-  private static final UniqueIdGenerator dynamicAllocationCounter = new UniqueIdGenerator();
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final CFAEdge edge;
@@ -234,12 +230,12 @@ class DynamicMemoryHandler {
     }
     Formula address;
     if (newType != null) {
-      final String newBase = makeAllocVariableName(functionName, newType);
+      final String newBase = makeAllocVariableName(functionName, newType, ssa, conv);
       address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID);
+      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID, ssa, conv);
       pts.addTemporaryDeferredAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                          size != null ? new CIntegerLiteralExpression(parameter.getFileLocation(),
                                                                                       parameter.getExpressionType(),
@@ -302,12 +298,13 @@ class DynamicMemoryHandler {
     return result;
   }
 
-  static String makeAllocVariableName(final String functionName, final CType type) {
+  static String makeAllocVariableName(final String functionName, final CType type,
+      final SSAMapBuilder ssa, final CToFormulaConverterWithPointerAliasing conv) {
     return functionName
         + "_"
         + CToFormulaConverterWithPointerAliasing.getUFName(type)
         + MALLOC_INDEX_SEPARATOR
-        + dynamicAllocationCounter.getFreshId();
+        + conv.makeFreshIndex(functionName, type, ssa);
   }
 
   private static Integer tryEvaluateExpression(CExpression e) {
