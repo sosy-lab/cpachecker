@@ -115,9 +115,9 @@ public class PointerTargetSetManager {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
-    Triple<PersistentSortedMap<String, CType>,
-           PersistentSortedMap<String, CType>,
-           PersistentSortedMap<String, CType>> mergedBases =
+    final Triple<PersistentSortedMap<String, CType>,
+                 PersistentSortedMap<String, CType>,
+                 PersistentSortedMap<String, CType>> mergedBases =
       mergeWithKeyDifferences(pts1.bases, pts2.bases, BaseUnitingConflictHandler.INSTANCE);
     shutdownNotifier.shutdownIfNecessary();
 
@@ -148,14 +148,13 @@ public class PointerTargetSetManager {
 
     final String lastBase;
     final BooleanFormula basesMergeFormula;
-    if (pts1.lastBase == null && pts2.lastBase == null ||
-        pts1.lastBase != null && (pts2.lastBase == null || pts1.lastBase.equals(pts2.lastBase))) {
-      lastBase = pts1.lastBase;
-      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
-      // Nothing to do, as there were no divergence with regard to base allocations
-    } else if (pts1.lastBase == null && pts2.lastBase != null) {
-      lastBase = pts2.lastBase;
-      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
+    if (pts1.lastBase == null ||
+        pts2.lastBase == null ||
+        pts1.lastBase.equals(pts2.lastBase)) {
+      // Trivial case: either no allocations on one branch at all, or no difference.
+      // Just take the first non-null value, the second is either equal or null.
+      lastBase = (pts1.lastBase != null) ? pts1.lastBase : pts2.lastBase;
+      basesMergeFormula = bfmgr.makeBoolean(true);
 
     } else if (mergedBases.getFirst().isEmpty()) {
       assert pts2.bases.keySet().containsAll(pts1.bases.keySet());
