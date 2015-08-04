@@ -164,7 +164,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     if (handleArrays) {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
-      converter = createCtoFormulaConverterWithArrays(options, pMachineModel, pVariableClassification, typeHandler);
+      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
+          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
@@ -172,43 +173,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
-      converter = createCToFormulaConverterWithPointerAliasing(options, pMachineModel, pVariableClassification, aliasingTypeHandler);
+      converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
+          pMachineModel, pVariableClassification, logger, shutdownNotifier,
+          aliasingTypeHandler, direction);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
-      converter = createCtoFormulaConverter(options, pMachineModel, pVariableClassification, typeHandler);
+      converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
+          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
-  }
-
-  private CtoFormulaConverter createCtoFormulaConverterWithArrays(FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
-      CtoFormulaTypeHandler pTypeHandler) {
-
-    return new CToFormulaConverterWithArrays(pOptions, fmgr, pMachineModel, pVariableClassification,
-        logger, shutdownNotifier, pTypeHandler, direction);
-  }
-
-  private CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
-      CtoFormulaTypeHandler pTypeHandler) {
-
-    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification,
-        logger, shutdownNotifier, pTypeHandler, direction);
-  }
-
-  private CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
-      FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification,
-      TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
-
-    return new CToFormulaConverterWithPointerAliasing(
-        pOptions, fmgr, pMachineModel, pVariableClassification,
-        logger, shutdownNotifier, pAliasingTypeHandler, direction);
   }
 
   @Override
