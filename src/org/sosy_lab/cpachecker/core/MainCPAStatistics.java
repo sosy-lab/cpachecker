@@ -85,7 +85,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
 
 @Options
-class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
+public class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;
