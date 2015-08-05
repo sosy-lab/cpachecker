@@ -751,7 +751,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula result = bfmgr.makeBoolean(true);
     ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
-        new ToBitvectorFormulaVisitor(pManager, evaluationVisitor, variableTypes, machineModel);
+        new ToBitvectorFormulaVisitor(pManager, evaluationVisitor);
 
     final Predicate<String> acceptVariable = new Predicate<String>() {
 

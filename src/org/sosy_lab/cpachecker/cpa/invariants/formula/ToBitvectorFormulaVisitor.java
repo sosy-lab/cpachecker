@@ -63,10 +63,6 @@ public class ToBitvectorFormulaVisitor implements
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
-  private final Map<String, CType> types;
-
-  private final MachineModel machineModel;
-
   /**
    * Creates a new visitor for converting compound state invariants formulae to
    * bit vector formulae by using the given formula manager,
@@ -75,26 +71,12 @@ public class ToBitvectorFormulaVisitor implements
    * @param pFmgr the formula manager used.
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
    * compound state invariants formulae to compound states.
-   * @param pSize the bit vector size.
    */
   public ToBitvectorFormulaVisitor(FormulaManagerView pFmgr,
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-      Map<String, CType> pTypes,
-      MachineModel pMachineModel) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor) {
     this.bfmgr = pFmgr.getBooleanFormulaManager();
     this.bvfmgr = pFmgr.getBitvectorFormulaManager();
     this.evaluationVisitor = pEvaluationVisitor;
-    this.types = pTypes;
-    this.machineModel = pMachineModel;
-  }
-
-  private BitvectorFormula makeVariable(String pVariableName) {
-    CType type = types.get(pVariableName);
-    if (type == null) {
-      return null;
-    }
-    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, types.get(pVariableName));
-    return this.bvfmgr.makeVariable(bitVectorInfo.getSize(), pVariableName);
   }
 
   /**
@@ -229,7 +211,8 @@ public class ToBitvectorFormulaVisitor implements
 
   @Override
   public BitvectorFormula visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return makeVariable(pVariable.getName());
+    BitVectorInfo bitVectorInfo = pVariable.getBitVectorInfo();
+    return this.bvfmgr.makeVariable(bitVectorInfo.getSize(), pVariable.getName());
   }
 
   @Override
