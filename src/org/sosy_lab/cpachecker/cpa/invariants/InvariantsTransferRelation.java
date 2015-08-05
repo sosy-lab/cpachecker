@@ -99,8 +99,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private final EdgeAnalyzer edgeAnalyzer;
 
-  private int count = 0;
-
   public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.machineModel = pMachineModel;
@@ -134,8 +132,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     state = state.updateAbstractionState(precision, pEdge);
-
-    ++count;
 
     return Collections.singleton(state);
   }
