@@ -89,11 +89,11 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
 @Options(prefix = "cpa.bdd")
@@ -115,6 +115,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   private final NamedRegionManager rmgr;
   private final PredicateManager predmgr;
   private final MachineModel machineModel;
+  /**
+   * All states for which (stateBDD AND globalConstraint) == FALSE will be ignored.
+   */
+  private Region globalConstraint;
 
   /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
    * and the BitVectorManager. Both are used to build and manipulate BDDs,
@@ -133,6 +137,17 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
+
+    this.globalConstraint = manager.makeTrue(); // no constraint; ignore nothing
+  }
+
+  /**
+   * Adds a constraint that must be satisfied after each transition.
+   * If it is not satisfied, the new state is ignored by the analysis.
+   * @param pConstraint
+   */
+  public void setGlobalConstraint(Region pConstraint) {
+    this.globalConstraint = pConstraint;
   }
 
   @Override
@@ -142,7 +157,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return Collections.singleton(state);
     }
     // the path is not fulfilled
-    if (state.getRegion().isFalse()) {
+    if (rmgr.makeAnd(globalConstraint, state.getRegion()).isFalse()) {
+      // the new state must be ignored
       return Collections.emptyList();
     }
     return null;
@@ -167,6 +183,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
 
     assert !result.getRegion().isFalse();
+    if (rmgr.makeAnd(globalConstraint, state.getRegion()).isFalse()) {
+      // the new state must be ignored
+      return null;
+    }
     return result;
   }
 
@@ -219,6 +239,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         final Region[] regRHS = evaluateVectorExpression(partition, (CExpression) rhs, targetType, successor);
         newState = newState.addAssignment(var, regRHS);
       }
+      if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+        // the new state must be ignored
+        return null;
+      }
       return newState;
 
     } else if (rhs instanceof CFunctionCallExpression) {
@@ -233,6 +257,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       final Region[] var = predmgr.createPredicate(scopeVar(lhs), targetType, successor, bitsize, precision); // is default bitsize enough?
       newState = newState.forget(var);
 
+      if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+        // the new state must be ignored
+        return null;
+      }
       return newState;
 
     } else {
@@ -293,6 +321,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (init != null) {
         final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType(), cfaEdge.getSuccessor());
         newState = newState.addAssignment(var, rhs);
+        if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+          // the new state must be ignored
+          return null;
+        }
         return newState;
       }
     }
@@ -321,6 +353,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       final Region[] var = predmgr.createPredicate(varName, targetType, cfaEdge.getSuccessor(), getBitsize(partition, targetType), precision);
       final Region[] arg = evaluateVectorExpression(partition, args.get(i), targetType, cfaEdge.getSuccessor());
       newState = newState.addAssignment(var, arg);
+    }
+
+    if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+      // the new state must be ignored
+      return null;
     }
 
     return newState;
@@ -365,7 +402,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     } else {
       assert summaryExpr instanceof CFunctionCallStatement; // no assignment, nothing to do
     }
-
+    
+    if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+      // the new state must be ignored
+      return null;
+    }
+    
     return newState;
   }
 
@@ -402,6 +444,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
       }
     }
+    
+    if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+      // the new state must be ignored
+      return null;
+    }
 
     return newState;
   }
@@ -420,6 +467,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
         if (isLocalVariableForFunction(var, functionName)) {
           newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
         }
+      }
+      if (rmgr.makeAnd(globalConstraint, newState.getRegion()).isFalse()) {
+        // the new state must be ignored
+        return null;
       }
       return newState;
     }
@@ -449,7 +500,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // get information from region into evaluated region
     Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
-    if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
+    if (rmgr.makeAnd(globalConstraint, newRegion).isFalse()) {
+      // assumption is not fulfilled / not possible -> the new state must be ignored
+      // if globalConstraint is TRUE (not used) this is equal to newRegion.isFalse()
       return null;
     } else {
       return new BDDState(rmgr, bvmgr, newRegion);

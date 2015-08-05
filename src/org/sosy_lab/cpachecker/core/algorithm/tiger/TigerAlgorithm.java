@@ -101,6 +101,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -116,6 +117,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
@@ -874,8 +876,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     else {
       reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
 
-      AbstractState lInitialElement = lARTCPA.getInitialState(cfa.getMainFunction());
-      Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction());
+      AbstractState lInitialElement = lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
       reachedSet.add(lInitialElement, lInitialPrecision);
 
@@ -886,7 +888,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         PredicateCPA predicateCPA = lARTCPA.retrieveWrappedCpa(PredicateCPA.class);
 
         if (predicateCPA != null) {
-          reusedPrecision = (PredicatePrecision) predicateCPA.getInitialPrecision(cfa.getMainFunction());
+          reusedPrecision = (PredicatePrecision) predicateCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
         }
         else {
           logger.logf(Level.INFO, "No predicate CPA available to reuse predicates!");
@@ -926,7 +928,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         ARGStatistics lARTStatistics;
         try {
-          lARTStatistics = new ARGStatistics(internalConfiguration, lARTCPA);
+          lARTStatistics = new ARGStatistics(internalConfiguration, lARTCPA, cfa.getMachineModel());
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }
@@ -944,7 +946,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         } else if (cpa instanceof BDDCPA) {
           bddcpa = (BDDCPA) cpa;
         }
-        bddcpa.getTransferRelation().setGlobalConstraint(pRemainingPresenceCondition);
+        if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
+          ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
+        }
       }
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);

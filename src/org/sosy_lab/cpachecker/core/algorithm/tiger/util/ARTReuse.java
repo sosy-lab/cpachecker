@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -60,8 +61,8 @@ public class ARTReuse {
     assert !isDegeneratedAutomaton(pCurrentAutomaton) && !isDegeneratedAutomaton(pPreviousAutomaton);
 
     if (pReachedSet.isEmpty()/* || isDegeneratedAutomaton(pCurrentAutomaton)*/) {
-      AbstractState lInitialElement = pARTCPA.getInitialState(pEntryNode);
-      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode);
+      AbstractState lInitialElement = pARTCPA.getInitialState(pEntryNode, StateSpacePartition.getDefaultPartition());
+      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode, StateSpacePartition.getDefaultPartition());
 
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
@@ -99,8 +100,8 @@ public class ARTReuse {
     Set<AbstractState> set = new HashSet<>();
 
     if (pReachedSet.isEmpty()) {
-      AbstractState lInitialElement = pARTCPA.getInitialState(pEntryNode);
-      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode);
+      AbstractState lInitialElement = pARTCPA.getInitialState(pEntryNode, StateSpacePartition.getDefaultPartition());
+      Precision lInitialPrecision = pARTCPA.getInitialPrecision(pEntryNode, StateSpacePartition.getDefaultPartition());
 
       pReachedSet.add(lInitialElement, lInitialPrecision);
     }
