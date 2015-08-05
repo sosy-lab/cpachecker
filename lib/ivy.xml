@@ -33,9 +33,6 @@
              Contains a lot of helpful data structures. -->
         <dependency org="com.google.guava" name="guava" rev="18.0" conf="runtime->default; contrib->sources"/>
 
-        <!-- Annotations from JSR 305 (e.g., @Nullable) and FindBugs (e.g., @SuppressFBWarnings) -->
-        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.0" conf="build->default"/>
-
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
         <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
@@ -66,11 +63,11 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="1.10.14" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="1.10.19" conf="test->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.26" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth" name="truth" rev="0.27" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
         <dependency org="com.google.guava" name="guava-testlib" rev="18.0" conf="test->default; contrib->sources"/>
@@ -96,6 +93,7 @@
 
         <!-- FindBugs -->
         <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
+        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.0" conf="build->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
