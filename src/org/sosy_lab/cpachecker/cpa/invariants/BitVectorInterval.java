@@ -154,6 +154,16 @@ public class BitVectorInterval implements BitVectorType {
     return new BitVectorInterval(info, lowerBound, upperBound);
   }
 
+  public BitVectorInterval getNegativePart() {
+    Preconditions.checkArgument(containsNegative(), "This interval has no negative part.");
+    return BitVectorInterval.of(info, lowerBound, BigInteger.valueOf(-1).min(upperBound));
+  }
+
+  public BitVectorInterval getPositivePart() {
+    Preconditions.checkArgument(containsPositive(), "This interval has no positive part.");
+    return BitVectorInterval.of(info, BigInteger.ONE.max(lowerBound), upperBound);
+  }
+
   /**
    * Return whether this interval has a concrete lower bound
    * (otherwise it's positive infinity).
