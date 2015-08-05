@@ -28,14 +28,12 @@ import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
-import java_cup.runtime.ComplexSymbolFactory;
-import java_cup.runtime.Symbol;
 
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,12 +52,15 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
+import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
 import com.google.common.truth.SubjectFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Symbol;
 
 /**
  * This class contains Tests for the AutomatonAnalysis
@@ -70,7 +71,8 @@ public class AutomatonInternalTest {
   private final LogManager logger;
   private final CParser parser;
 
-  private static final Path defaultSpec = Paths.get("test/config/automata/defaultSpecification.spc");
+  private static final Path defaultSpecPath = Paths.get("test/config/automata/defaultSpecification.spc");
+  private static final CharSource defaultSpec = defaultSpecPath.asCharSource(StandardCharsets.UTF_8);
 
   public AutomatonInternalTest() throws InvalidConfigurationException {
     config = TestDataTools.configurationForTest().build();
@@ -83,8 +85,8 @@ public class AutomatonInternalTest {
   @Test
   public void testScanner() throws InvalidConfigurationException, IOException {
     ComplexSymbolFactory sf1 = new ComplexSymbolFactory();
-    try (InputStream input = defaultSpec.asByteSource().openStream()) {
-      AutomatonScanner s = new AutomatonScanner(input, defaultSpec, config, logger, sf1);
+    try (Reader input = defaultSpec.openBufferedStream()) {
+      AutomatonScanner s = new AutomatonScanner(input, defaultSpecPath, logger, sf1);
       Symbol symb = s.next_token();
       while (symb.sym != AutomatonSym.EOF) {
         symb = s.next_token();
@@ -95,8 +97,8 @@ public class AutomatonInternalTest {
   @Test
   public void testParser() throws Exception {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    try (InputStream input = defaultSpec.asByteSource().openStream()) {
-      AutomatonScanner scanner = new AutomatonScanner(input, defaultSpec, config, logger, sf);
+    try (Reader input = defaultSpec.openBufferedStream()) {
+      AutomatonScanner scanner = new AutomatonScanner(input, defaultSpecPath, logger, sf);
       Symbol symbol = new AutomatonParser(scanner, sf, logger, parser, CProgramScope.empty()).parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;

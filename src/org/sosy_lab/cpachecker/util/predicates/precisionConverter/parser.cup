@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -42,6 +41,8 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+
+import com.google.common.io.CharSource;
 
 parser code {:
   private LogManager logger;
@@ -84,9 +85,9 @@ parser code {:
 
   private static String convert0(Converter converter, String line, LogManagerWithoutDuplicates pLogger)
       throws AssertionError {
-    try (InputStream input = new ByteArrayInputStream(line.getBytes())) {
+    try (Reader input = CharSource.wrap(line).openStream()) {
       ComplexSymbolFactory sf = new ComplexSymbolFactory();
-      Scanner scanner = new FormulaScanner(input, pLogger, sf);
+      Scanner scanner = new FormulaScanner(input, sf);
       FormulaParser parser = new FormulaParser(scanner, sf, converter, pLogger);
       Symbol symbol = parser.parse();
       return ((String) symbol.value);

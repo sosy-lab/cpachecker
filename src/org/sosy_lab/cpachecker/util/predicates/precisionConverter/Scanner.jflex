@@ -1,40 +1,25 @@
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
-import java.io.Reader;
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
-import org.sosy_lab.common.log.LogManager;
-import java.io.FileNotFoundException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "unchecked", "fallthrough", "SelfAssignment" })
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE", "DM_DEFAULT_ENCODING", "SA_FIELD_SELF_ASSIGNMENT"})
+@SuppressWarnings(value = { "all" })
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
 %cup
 %class FormulaScanner
-%implements FormulaSymbols
 %line
 %column
 
 %{
   private StringBuilder string = new StringBuilder();
   private ComplexSymbolFactory sf;
-  private LogManager logger;
 
-  public FormulaScanner(java.io.InputStream r, LogManager logger, ComplexSymbolFactory sf) {
+  public FormulaScanner(java.io.Reader r, ComplexSymbolFactory sf) {
     this(r);
     this.sf = sf;
-    this.logger = logger;
   }
   
   private Location getStartLocation() {
@@ -49,17 +34,12 @@ import java.util.logging.Level;
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), name);
   }
   
-  private void error(String message) {
-    logger.log(Level.WARNING, message + " near " + getStartLocation() + " - " + getEndLocation());
-    throw new RuntimeException("Syntax error");
-  }
-  
 %}
 %eofval{
     return symbol("EOF", Symbol.EOF);
 %eofval}
 
-LineTerminator = \r|\n|\r\n
+LineTerminator = \R
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
 SMTLetter = [:letter:] | [~!@$%\^&*_+\-=<>.?/] 
@@ -101,5 +81,5 @@ Symbol = {SMTLetter} {SMTLetterDigit}*
 }
 
 /* error fallback */
-.|\n                             { return symbol(FormulaSymbols.error, yytext()); }
+[^]                              { return symbol(FormulaSymbols.error, yytext()); }
 <<EOF>>                          { return symbol(FormulaSymbols.EOF, yytext()); }

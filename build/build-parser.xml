@@ -13,7 +13,7 @@
     <property name="parser.source" value="parser.cup"/>
 
     <taskdef name="jflex"
-        classname="JFlex.anttask.JFlexTask"
+        classname="jflex.anttask.JFlexTask"
         classpath="${dir.lib}/jflex.jar"
     />
     <taskdef name="cup"

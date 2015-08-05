@@ -47,7 +47,7 @@
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
-        <dependency org="de.jflex" name="jflex" rev="1.4.3" conf="build->default"/>
+        <dependency org="de.jflex" name="jflex" rev="1.6.1" conf="build->default" transitive="false"/>
 
         <!-- CUP LALR Parser Generator for Java
              Used for generating automaton and FQL parsers. -->
