@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
@@ -84,7 +85,8 @@ public enum IICOperator implements Operator<BitVectorInterval, BitVectorInterval
           || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
         return CompoundBitVectorInterval.of(pFirstOperand);
       }
-      CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      BitVectorInfo bitVectorInfo = pFirstOperand.getBitVectorInfo();
+      CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(bitVectorInfo);
       /*
        * If zero is one of the possible shift distances, this interval is
        * contained in the overall result.
@@ -93,13 +95,13 @@ public enum IICOperator implements Operator<BitVectorInterval, BitVectorInterval
         result = result.unionWith(pFirstOperand);
       }
       /*
-       * If there are negative shift distances, extract the negative part
-       * of the shift distances from the given interval, right shift this
-       * interval by that part and include the result in the overall result.
+       * If there are negative shift distances
+       * or distances larger than the bit length,
+       * the result is undefined.
        */
-      if (pSecondOperand.containsNegative()) {
-        BitVectorInterval negPart = pSecondOperand.intersectWith(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ONE.negate()).extendToMinValue());
-        result = result.unionWith(SHIFT_RIGHT.apply(pFirstOperand, negPart.negate()));
+      if (pSecondOperand.containsNegative()
+          || pSecondOperand.intersectsWith(BitVectorInterval.singleton(bitVectorInfo, BigInteger.valueOf(bitVectorInfo.getSize())).extendToMaxValue())) {
+        return CompoundBitVectorInterval.of(bitVectorInfo.getRange());
       }
       /*
        * If there are positive shift distances, extract the positive part
@@ -137,7 +139,8 @@ public enum IICOperator implements Operator<BitVectorInterval, BitVectorInterval
           || pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
         return CompoundBitVectorInterval.of(pFirstOperand);
       }
-      CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      BitVectorInfo bitVectorInfo = pFirstOperand.getBitVectorInfo();
+      CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(bitVectorInfo);
       /*
        * If zero is one of the possible shift distances, this interval is
        * contained in the overall result.
@@ -146,13 +149,13 @@ public enum IICOperator implements Operator<BitVectorInterval, BitVectorInterval
         result = result.unionWith(pFirstOperand);
       }
       /*
-       * If there are negative shift distances, extract the negative part
-       * of the shift distances from the given interval, left shift this
-       * interval by that part and include the result in the overall result.
+       * If there are negative shift distances
+       * or distances larger than the bit length,
+       * the result is undefined.
        */
-      if (pSecondOperand.containsNegative()) {
-        BitVectorInterval negPart = pSecondOperand.intersectWith(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ONE.negate()).extendToMinValue());
-        result = result.unionWith(SHIFT_LEFT.apply(pFirstOperand, negPart.negate()));
+      if (pSecondOperand.containsNegative()
+          || pSecondOperand.intersectsWith(BitVectorInterval.singleton(bitVectorInfo, BigInteger.valueOf(bitVectorInfo.getSize())).extendToMaxValue())) {
+        return CompoundBitVectorInterval.of(bitVectorInfo.getRange());
       }
       /*
        * If there are positive shift distances, extract the positive part
@@ -161,7 +164,7 @@ public enum IICOperator implements Operator<BitVectorInterval, BitVectorInterval
        * in the overall result.
        */
       if (pSecondOperand.containsPositive()) {
-        BitVectorInterval posPart = pSecondOperand.intersectWith(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ONE).extendToMaxValue());
+        BitVectorInterval posPart = pSecondOperand.getPositivePart();
         /*
          * Shift this interval by the lower bound, then by the upper bound of
          * the positive part and span over the results.
