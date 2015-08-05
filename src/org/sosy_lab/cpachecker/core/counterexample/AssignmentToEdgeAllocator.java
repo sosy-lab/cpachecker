@@ -200,7 +200,7 @@ public class AssignmentToEdgeAllocator {
     }
 
     return "&" + dcl.getName()
-        + " = " + address.getAsNumber().toString();
+        + " = " + address.getAddressValue().toString();
   }
 
   @Nullable
@@ -626,7 +626,7 @@ public class AssignmentToEdgeAllocator {
 
       /*The evaluation of an array or a struct is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
-        return valueAddress.getAsNumber();
+        return valueAddress.getAddressValue();
       }
 
       Object value = modelAtEdge.getValueFromMemory(pIastArraySubscriptExpression,
@@ -648,7 +648,7 @@ public class AssignmentToEdgeAllocator {
 
       /*The evaluation of an array or a struct is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
-        return address.getAsNumber();
+        return address.getAddressValue();
       }
 
       Object value = modelAtEdge.getValueFromMemory(pIastFieldReference, address);
@@ -741,7 +741,7 @@ public class AssignmentToEdgeAllocator {
 
       /*The evaluation of an array or a struct is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
-        return address.getAsNumber();
+        return address.getAddressValue();
       }
 
       Object value = modelAtEdge.getValueFromMemory(pCIdExpression, address);
@@ -801,7 +801,7 @@ public class AssignmentToEdgeAllocator {
 
       /*The evaluation of an array or a struct is its address*/
       if (type instanceof CArrayType || isStructOrUnionType(type)) {
-        return address.getAsNumber();
+        return address.getAddressValue();
       }
 
       return modelAtEdge.getValueFromMemory(pPointerExpression, address);
@@ -1040,7 +1040,7 @@ public class AssignmentToEdgeAllocator {
           Address address = evaluateAddress((CLeftHandSide) pOperand);
 
           if (address != null) {
-            return new NumericValue(address.getAsNumber());
+            return new NumericValue(address.getAddressValue());
           }
         } else if (pOperand instanceof CCastExpression) {
           return handleAmper(((CCastExpression) pOperand).getOperand());
@@ -1439,7 +1439,7 @@ public class AssignmentToEdgeAllocator {
           handleMemberField(memberType, fieldAddress, pCompType);
           int offsetToNextField = machineModel.getSizeof(memberType.getType());
 
-          fieldAddress = fieldAddress.addOffset(offsetToNextField);
+          fieldAddress = fieldAddress.addOffset(BigInteger.valueOf(offsetToNextField));
         }
       }
 
@@ -1536,7 +1536,7 @@ public class AssignmentToEdgeAllocator {
         int typeSize = machineModel.getSizeof(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
 
-        Address address = pArrayAddress.addOffset(subscriptOffset);
+        Address address = pArrayAddress.addOffset(BigInteger.valueOf(subscriptOffset));
 
         BigInteger subscript = BigInteger.valueOf(pSubscript);
         CIntegerLiteralExpression litExp =
@@ -1873,7 +1873,7 @@ public class AssignmentToEdgeAllocator {
 
     public static ValueLiteral valueOf(Address address) {
 
-      Number number = address.getAsNumber();
+      Number number = address.getAddressValue();
 
       if (number instanceof Long) {
         number = BigInteger.valueOf((Long) number);
