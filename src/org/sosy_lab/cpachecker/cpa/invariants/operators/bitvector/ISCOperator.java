@@ -88,28 +88,24 @@ public enum ISCOperator implements Operator<BitVectorInterval, BigInteger, Compo
       }
       BigInteger largestPossibleValue = pValue.subtract(BigInteger.ONE);
       CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
+      if (pFirstOperand.containsZero()) {
+        result = result.unionWith(BitVectorInterval.singleton(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO));
+      }
       if (pFirstOperand.containsNegative()) {
         CompoundBitVectorInterval negRange = CompoundBitVectorInterval.of(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), largestPossibleValue.negate(), BigInteger.ZERO));
         if (pFirstOperand.hasLowerBound()) {
-          final BitVectorInterval negPart;
-          if (pFirstOperand.containsZero()) {
-            negPart = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), pFirstOperand.getLowerBound(), BigInteger.ZERO);
-          } else {
-            negPart = pFirstOperand;
+          BitVectorInterval negPart = pFirstOperand.getNegativePart();
+          BitVectorInterval negatedNegPart = negPart.negate();
+          if (!negatedNegPart.containsNegative()) {
+            negRange = apply(negatedNegPart, pValue).negate();
           }
-          negRange = apply(negPart.negate(), pValue).negate();
         }
         result = result.unionWith(negRange);
       }
       if (pFirstOperand.containsPositive()) {
         CompoundBitVectorInterval posRange = CompoundBitVectorInterval.of(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, largestPossibleValue));
         if (pFirstOperand.hasUpperBound()) {
-          final BitVectorInterval posPart;
-          if (pFirstOperand.containsZero()) {
-            posPart = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, pFirstOperand.getUpperBound());
-          } else {
-            posPart = pFirstOperand;
-          }
+          BitVectorInterval posPart = pFirstOperand.getPositivePart();
           BigInteger posPartLength = posPart.size();
           if (posPartLength.compareTo(pValue) < 0) {
             BigInteger quotient = posPart.getUpperBound().divide(pValue);
