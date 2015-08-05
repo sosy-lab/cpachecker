@@ -21,17 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.invariants.operators;
+package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
  * Instances of implementations of this interface are operators that can
  * be applied to a simple interval and a compound state, producing a
  * compound state representing the result of the operation.
  */
-public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, CompoundInterval> {
+public enum ICCOperator implements Operator<SimpleInterval, CompoundMathematicalInterval, CompoundMathematicalInterval> {
 
   /**
    * The addition operator for adding compound states to simple intervals.
@@ -39,7 +40,7 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
   ADD {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand) {
       return pSecondOperand.add(pFirstOperand);
     }
 
@@ -51,10 +52,10 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
   DIVIDE {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
-      CompoundInterval result = CompoundInterval.bottom();
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand) {
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
       for (SimpleInterval interval : pSecondOperand.getIntervals()) {
-        CompoundInterval current = IICOperator.DIVIDE.apply(pFirstOperand,interval);
+        CompoundMathematicalInterval current = IICOperator.DIVIDE.apply(pFirstOperand,interval);
         if (current != null) {
           result = result.unionWith(current);
           if (result.isTop()) {
@@ -73,10 +74,10 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
   MODULO {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
-      CompoundInterval result = CompoundInterval.bottom();
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand) {
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
       for (SimpleInterval interval : pSecondOperand.getIntervals()) {
-        CompoundInterval current = IICOperator.MODULO.apply(pFirstOperand, interval);
+        CompoundMathematicalInterval current = IICOperator.MODULO.apply(pFirstOperand, interval);
         if (current != null) {
           result = result.unionWith(current);
           if (result.isTop()) {
@@ -95,7 +96,7 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
   MULTIPLY {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand) {
       return pSecondOperand.multiply(pFirstOperand);
     }
 
@@ -107,10 +108,10 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
   SHIFT_LEFT {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
-      CompoundInterval result = CompoundInterval.bottom();
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand) {
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
       for (SimpleInterval interval : pSecondOperand.getIntervals()) {
-        CompoundInterval current = IICOperator.SHIFT_LEFT.apply(pFirstOperand,interval);
+        CompoundMathematicalInterval current = IICOperator.SHIFT_LEFT.apply(pFirstOperand,interval);
         if (current != null) {
           result = result.unionWith(current);
           if (result.isTop()) {
@@ -129,10 +130,10 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
   SHIFT_RIGHT {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand) {
-      CompoundInterval result = CompoundInterval.bottom();
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand) {
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
       for (SimpleInterval interval : pSecondOperand.getIntervals()) {
-        CompoundInterval current = IICOperator.SHIFT_RIGHT.apply(pFirstOperand,interval);
+        CompoundMathematicalInterval current = IICOperator.SHIFT_RIGHT.apply(pFirstOperand,interval);
         if (current != null) {
           result = result.unionWith(current);
           if (result.isTop()) {
@@ -150,10 +151,11 @@ public enum ICCOperator implements Operator<SimpleInterval, CompoundInterval, Co
    *
    * @param pFirstOperand the simple interval operand to apply the operator to.
    * @param pSecondOperand the compound state operand to apply the operator to.
+   *
    * @return the compound state resulting from applying the first operand to the
    * second operand.
    */
   @Override
-  public abstract CompoundInterval apply(SimpleInterval pFirstOperand, CompoundInterval pSecondOperand);
+  public abstract CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, CompoundMathematicalInterval pSecondOperand);
 
 }

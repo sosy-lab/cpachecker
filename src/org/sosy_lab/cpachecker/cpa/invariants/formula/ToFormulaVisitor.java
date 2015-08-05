@@ -28,7 +28,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 
 
-public interface ToFormulaVisitor<ConstantType, FormulaType> extends ParameterizedInvariantsFormulaVisitor<ConstantType, Map<? extends String, ? extends InvariantsFormula<ConstantType>>, FormulaType> {
+public interface ToFormulaVisitor<ConstantType, FormulaType> extends ParameterizedNumeralFormulaVisitor<ConstantType, Map<? extends String, ? extends NumeralFormula<ConstantType>>, FormulaType> {
 
   BooleanFormula asBoolean(FormulaType op1);
 

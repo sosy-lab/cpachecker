@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,34 +35,20 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
 
 import com.google.common.collect.FluentIterable;
 
 
-public enum CompoundIntervalFormulaManager {
+public class CompoundIntervalFormulaManager {
 
-  /**
-   * The invariants formula manager singleton instance.
-   */
-  INSTANCE;
-
-  private static final FormulaEvaluationVisitor<CompoundInterval> FORMULA_EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
-
-  private static final Map<String, InvariantsFormula<CompoundInterval>> EMPTY_ENVIRONMENT = Collections.emptyMap();
-
-  private static final CachingEvaluationVisitor<CompoundInterval> CACHING_EVALUATION_VISITOR = new CachingEvaluationVisitor<>(EMPTY_ENVIRONMENT, FORMULA_EVALUATION_VISITOR);
-
-  private static final InvariantsFormula<CompoundInterval> BOTTOM = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.bottom());
-
-  private static final InvariantsFormula<CompoundInterval> TOP = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
-
-  private static final InvariantsFormula<CompoundInterval> FALSE = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalFalse());
-
-  private static final InvariantsFormula<CompoundInterval> TRUE = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.logicalTrue());
-
-  private static final InvariantsFormula<CompoundInterval> MINUS_ONE = InvariantsFormulaManager.INSTANCE.asConstant(CompoundInterval.minusOne());
+  private static final Map<String, NumeralFormula<CompoundInterval>> EMPTY_ENVIRONMENT = Collections.emptyMap();
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -71,38 +58,68 @@ public enum CompoundIntervalFormulaManager {
 
   private static final SplitDisjunctionsVisitor<CompoundInterval> SPLIT_DISJUNCTIONS_VISITOR = new SplitDisjunctionsVisitor<>();
 
-  public static Set<String> collectVariableNames(InvariantsFormula<CompoundInterval> pFormula) {
+  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
+
+  private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
+
+  private final PartialEvaluator partialEvaluator;
+
+  public CompoundIntervalFormulaManager(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
+    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
+    this.partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
+  }
+
+  public static Set<String> collectVariableNames(NumeralFormula<CompoundInterval> pFormula) {
     return pFormula.accept(COLLECT_VARS_VISITOR);
   }
 
-  public static CompoundInterval evaluate(InvariantsFormula<CompoundInterval> pFormula) {
-    return pFormula.accept(CACHING_EVALUATION_VISITOR);
+  public static Set<String> collectVariableNames(BooleanFormula<CompoundInterval> pFormula) {
+    return pFormula.accept(COLLECT_VARS_VISITOR);
   }
 
-  public static boolean isDefinitelyTrue(InvariantsFormula<CompoundInterval> pFormula) {
-    return evaluate(pFormula).isDefinitelyTrue();
+  public CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
+    return pFormula.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
   }
 
-  public static boolean isDefinitelyFalse(InvariantsFormula<CompoundInterval> pFormula) {
+  public boolean isDefinitelyTrue(NumeralFormula<CompoundInterval> pFormula) {
+    if (evaluate(pFormula).isDefinitelyTrue()) {
+      return true;
+    }
+    return isDefinitelyTrue(fromNumeral(pFormula));
+  }
+
+  private boolean isDefinitelyTrue(BooleanFormula<CompoundInterval> pFormula) {
+    return BooleanConstant.isTrue(pFormula)
+        || definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>singleton(BooleanConstant.<CompoundInterval>getTrue()), pFormula);
+  }
+
+  public boolean isDefinitelyFalse(NumeralFormula<CompoundInterval> pFormula) {
     return evaluate(pFormula).isDefinitelyFalse();
   }
 
-  public static boolean isDefinitelyBottom(InvariantsFormula<CompoundInterval> pFormula) {
+  private boolean isDefinitelyFalse(BooleanFormula<CompoundInterval> pFormula) {
+    return BooleanConstant.isFalse(pFormula)
+        || isDefinitelyFalse(fromBoolean(BitVectorInfo.from(1, false), pFormula));
+  }
+
+  public boolean isDefinitelyBottom(NumeralFormula<CompoundInterval> pFormula) {
     return evaluate(pFormula).isBottom();
   }
 
-  public static boolean isDefinitelyTop(InvariantsFormula<CompoundInterval> pFormula) {
-    return (pFormula instanceof Constant<?>) && ((Constant<CompoundInterval>) pFormula).getValue().isTop();
+  public boolean containsAllPossibleValues(NumeralFormula<CompoundInterval> pFormula) {
+    return (pFormula instanceof Constant<?>)
+        && ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
   }
 
-  public static boolean definitelyImplies(Iterable<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, new HashMap<String, InvariantsFormula<CompoundInterval>>());
+  public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula) {
+    return definitelyImplies(pFormulas, pFormula, new HashMap<String, NumeralFormula<CompoundInterval>>());
   }
 
-  public static boolean definitelyImplies(Iterable<InvariantsFormula<CompoundInterval>> pFormulas, InvariantsFormula<CompoundInterval> pFormula, Map<String, InvariantsFormula<CompoundInterval>> pBaseEnvironment) {
-    Map<String, InvariantsFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
+  public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, Map<String, NumeralFormula<CompoundInterval>> pBaseEnvironment) {
+    Map<String, NumeralFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
     if (pFormula instanceof Collection<?>) {
-      return definitelyImplies((Collection<InvariantsFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false);
+      return definitelyImplies((Collection<BooleanFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false);
     }
     return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false);
   }
@@ -125,26 +142,28 @@ public enum CompoundIntervalFormulaManager {
    * @return {@code true} if the information base definitely implies the given
    * formula.
    */
-  private static boolean definitelyImplies(Collection<InvariantsFormula<CompoundInterval>> pInformationBaseFormulas, InvariantsFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, InvariantsFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete) {
-    final Collection<InvariantsFormula<CompoundInterval>> formulas;
+  private boolean definitelyImplies(Collection<BooleanFormula<CompoundInterval>> pInformationBaseFormulas, BooleanFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, NumeralFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete) {
+    final Collection<BooleanFormula<CompoundInterval>> formulas;
     if (pExtend) {
       formulas = new HashSet<>();
-      for (InvariantsFormula<CompoundInterval> formula : pInformationBaseFormulas) {
-        formulas.addAll(formula.accept(SPLIT_CONJUNCTIONS_VISITOR));
+      for (BooleanFormula<CompoundInterval> formula : pInformationBaseFormulas) {
+        for (BooleanFormula<CompoundInterval> f : formula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
+          formulas.add(f.accept(partialEvaluator, evaluationVisitor));
+        }
       }
     } else {
       formulas = pInformationBaseFormulas;
     }
 
     // If any of the conjunctive parts is a disjunction, check try each disjunctive part
-    for (InvariantsFormula<CompoundInterval> formula : formulas) {
-      Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
+    for (BooleanFormula<CompoundInterval> formula : formulas) {
+      Collection<BooleanFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
-        ArrayList<InvariantsFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
-        Map<String, InvariantsFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
+        ArrayList<BooleanFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
+        Map<String, NumeralFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
         newFormulas.remove(formula);
-        for (InvariantsFormula<CompoundInterval> disjunctivePart : disjunctions) {
-          Collection<InvariantsFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
+        for (BooleanFormula<CompoundInterval> disjunctivePart : disjunctions) {
+          Collection<BooleanFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
           newFormulas.addAll(conjunctivePartsOfDisjunctivePart);
           if (!definitelyImplies(newFormulas, pFormula, false, newBaseEnvironment, false)) {
             return false;
@@ -156,11 +175,11 @@ public enum CompoundIntervalFormulaManager {
     }
 
     // Build the environment defined by the assumptions and check whether it contradicts or implies the proposed implication
-    NonRecursiveEnvironment.Builder tmpEnvironment = NonRecursiveEnvironment.Builder.of(pInformationBaseEnvironment);
-    PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
+    NonRecursiveEnvironment.Builder tmpEnvironment = NonRecursiveEnvironment.Builder.of(compoundIntervalManagerFactory, pInformationBaseEnvironment);
+    PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, tmpEnvironment);
     if (!pEnvironmentComplete) {
-      for (InvariantsFormula<CompoundInterval> leftFormula : formulas) {
-        if (!leftFormula.accept(patev, CompoundInterval.logicalTrue())) {
+      for (BooleanFormula<CompoundInterval> leftFormula : formulas) {
+        if (!leftFormula.accept(patev, BooleanConstant.<CompoundInterval>getTrue())) {
           return false;
         }
       }
@@ -169,60 +188,145 @@ public enum CompoundIntervalFormulaManager {
     return definitelyImplies(formulas, tmpEnvironment, pFormula);
   }
 
-  public static boolean definitelyImplies(final Map<String, InvariantsFormula<CompoundInterval>> pCompleteEnvironment,
-      final InvariantsFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(Collections.<InvariantsFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula);
+  public boolean definitelyImplies(final Map<String, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
+      final BooleanFormula<CompoundInterval> pFormula) {
+    return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula);
   }
 
-  private static boolean definitelyImplies(final Collection<InvariantsFormula<CompoundInterval>> pExtendedFormulas,
-      final Map<String, InvariantsFormula<CompoundInterval>> pCompleteEnvironment,
-      final InvariantsFormula<CompoundInterval> pFormula) {
-    // Build the environment defined by the proposed implication and check for contradictions
-    NonRecursiveEnvironment.Builder tmpEnvironment2 = new NonRecursiveEnvironment.Builder();
-    CachingEvaluationVisitor<CompoundInterval> cachingEvaluationVisitor = new CachingEvaluationVisitor<>(pCompleteEnvironment, FORMULA_EVALUATION_VISITOR);
+  private boolean definitelyImplies(final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
+      final Map<String, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
+      final BooleanFormula<CompoundInterval> pFormula) {
+
+    /*
+     * Imagine this function is sound, which it should be.
+     *
+     * x implies y, and y implies z, that means that x implies z
+     *
+     * [1] implies [1,2] implies [1,2,3]
+     *
+     * Now, if the right formula is overapproximated, this function is still sound:
+     * If x is implied, anything that is implied by x is also implied.
+     * For the same transitive reason, underapproximating the environment / left side would also be sound.
+     *
+     * What does "Equal"/"==" mean with intervals?
+     * [1] == [1,10] means "[1] is element of [1,10]"
+     * x == y means "some SPECIFIC value that is element of the set of possible values of x
+     *   is equal to some SPECIFIC element of the possible values of y",
+     * however, if we do not know the specific value meant,
+     * then we cannot decide about the truth.
+     * x != y means "some SPECIFIC value that is element of the set of possible values of x
+     *   is not equal to some OTHER SPECIFIC value that is element of the set of possible values of y,
+     * so we can only decide the truth if we know that the sets do not overlap or are both singletons.
+     */
+
+    PartialEvaluator variableResolver = new PartialEvaluator(compoundIntervalManagerFactory, pCompleteEnvironment);
+    Builder impliedEnvironment = NonRecursiveEnvironment.Builder.of(compoundIntervalManagerFactory, EMPTY_ENVIRONMENT);
+
     outer:
-    for (InvariantsFormula<CompoundInterval> formula2Part : pFormula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
-      if (!pExtendedFormulas.contains(formula2Part)) {
-        Collection<InvariantsFormula<CompoundInterval>> disjunctions = formula2Part.accept(SPLIT_DISJUNCTIONS_VISITOR);
+    for (BooleanFormula<CompoundInterval> f : pFormula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
+      BooleanFormula<CompoundInterval> formulaAtom = f.accept(partialEvaluator, evaluationVisitor);
+      if (!pExtendedFormulas.contains(formulaAtom)) {
+        Collection<BooleanFormula<CompoundInterval>> disjunctions = formulaAtom.accept(SPLIT_DISJUNCTIONS_VISITOR);
         if (disjunctions.size() > 1) {
-          for (InvariantsFormula<CompoundInterval> disjunctionPart : disjunctions) {
+          for (BooleanFormula<CompoundInterval> disjunctionPart : disjunctions) {
             if (definitelyImplies(pExtendedFormulas, disjunctionPart, false, pCompleteEnvironment, true)) {
               continue outer;
             }
           }
         }
 
-        if (pFormula.accept(FORMULA_EVALUATION_VISITOR, pCompleteEnvironment).isDefinitelyTrue()) {
+        BooleanConstant<CompoundInterval> evaluated = pFormula.accept(evaluationVisitor, pCompleteEnvironment);
+        if (BooleanConstant.isTrue(evaluated)) {
           continue;
         }
+        if (BooleanConstant.isFalse(evaluated)) {
+          return false;
+        }
 
-        if (!pCompleteEnvironment.isEmpty() && formula2Part.accept(CONTAINS_ONLY_ENV_INFO_VISITOR)) {
-          tmpEnvironment2.clear();
-          Set<String> varNames = formula2Part.accept(COLLECT_VARS_VISITOR);
+        BooleanFormula<CompoundInterval> resolved = formulaAtom.accept(variableResolver, evaluationVisitor);
+
+        StateEqualsVisitor stateEqualsVisitor = new StateEqualsVisitor(evaluationVisitor, pCompleteEnvironment, compoundIntervalManagerFactory);
+
+        if (resolved instanceof Equal) {
+          Equal<CompoundInterval> equation = (Equal<CompoundInterval>) resolved;
+          NumeralFormula<CompoundInterval> op1 = equation.getOperand1();
+          NumeralFormula<CompoundInterval> op2 = equation.getOperand2();
+          if (op1.accept(stateEqualsVisitor, op2)) {
+            continue;
+          }
+          CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(op1.getBitVectorInfo());
+          CompoundInterval leftEval = op1.accept(evaluationVisitor, pCompleteEnvironment);
+          CompoundInterval rightEval = op2.accept(evaluationVisitor, pCompleteEnvironment);
+          if (!cim.doIntersect(leftEval, rightEval)) {
+            return false;
+          }
+          if (op1 instanceof Constant && rightEval.isSingleton() && cim.contains(leftEval, rightEval)
+              || op2 instanceof Constant && leftEval.isSingleton() && cim.contains(rightEval, leftEval)) {
+            continue;
+          }
+        } else if (resolved instanceof LogicalNot) {
+          LogicalNot<CompoundInterval> negation = (LogicalNot<CompoundInterval>) resolved;
+          BooleanFormula<CompoundInterval> negated = negation.getNegated();
+          if (negated instanceof Equal) {
+            Equal<CompoundInterval> equation = (Equal<CompoundInterval>) negated;
+            NumeralFormula<CompoundInterval> op1 = equation.getOperand1();
+            NumeralFormula<CompoundInterval> op2 = equation.getOperand2();
+            if (op1.accept(stateEqualsVisitor, op2)) {
+              return false;
+            }
+            CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(op1.getBitVectorInfo());
+            CompoundInterval leftEval = op1.accept(evaluationVisitor, pCompleteEnvironment);
+            CompoundInterval rightEval = op2.accept(evaluationVisitor, pCompleteEnvironment);
+            if (!cim.doIntersect(leftEval, rightEval)) {
+              continue;
+            }
+            return false;
+          }
+        }
+
+        if (!pCompleteEnvironment.isEmpty() && formulaAtom.accept(CONTAINS_ONLY_ENV_INFO_VISITOR)) {
+          impliedEnvironment.clear();
+          Set<String> varNames = formulaAtom.accept(COLLECT_VARS_VISITOR);
           if (!pCompleteEnvironment.keySet().containsAll(varNames)) {
             return false;
           }
-          PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment2);
-          formula2Part.accept(patev, CompoundInterval.logicalTrue());
+          PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, impliedEnvironment);
+          formulaAtom.accept(patev, BooleanConstant.<CompoundInterval>getTrue());
           for (String varName : varNames) {
-            InvariantsFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(varName);
-            InvariantsFormula<CompoundInterval> rightFormula = tmpEnvironment2.get(varName);
-            CompoundInterval leftValue = leftFormula == null ? CompoundInterval.top() : leftFormula.accept(cachingEvaluationVisitor);
-            CompoundInterval rightValue = rightFormula == null ? CompoundInterval.top() : rightFormula.accept(FORMULA_EVALUATION_VISITOR, tmpEnvironment2);
-            if (rightValue.isTop() || !rightValue.contains(leftValue)) {
+            NumeralFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(varName);
+            NumeralFormula<CompoundInterval> rightFormula = impliedEnvironment.get(varName);
+            if (rightFormula == null || rightFormula.equals(leftFormula)) {
+              continue;
+            }
+            if (leftFormula == null) {
               return false;
             }
+            rightFormula = rightFormula.accept(partialEvaluator, evaluationVisitor);
+            leftFormula = leftFormula.accept(partialEvaluator, evaluationVisitor);
+            if (rightFormula.equals(leftFormula)) {
+              continue;
+            }
+            if (rightFormula instanceof Constant) {
+              BitVectorInfo bitVectorInfo = rightFormula.getBitVectorInfo();
+              CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+              CompoundInterval leftValue = leftFormula == null ? cim.allPossibleValues() : leftFormula.accept(evaluationVisitor, pCompleteEnvironment);
+              CompoundInterval rightValue = rightFormula.accept(evaluationVisitor, impliedEnvironment);
+              if (cim.contains(rightValue, leftValue)) {
+                continue;
+              }
+            }
+            return false;
           }
-        } else {
-          return false;
+          continue;
         }
+        return false;
       }
     }
     return true;
   }
 
-  public static boolean definitelyImplies(InvariantsFormula<CompoundInterval> pFormula1, InvariantsFormula<CompoundInterval> pFormula2) {
-    if (isDefinitelyFalse(pFormula1) || pFormula1.equals(pFormula2)) {
+  public boolean definitelyImplies(BooleanFormula<CompoundInterval> pFormula1, BooleanFormula<CompoundInterval> pFormula2) {
+    if (BooleanConstant.isFalse(pFormula1) || pFormula1.equals(pFormula2)) {
       return true;
     }
     if (pFormula1 instanceof Equal<?> && pFormula2 instanceof Equal<?>) {
@@ -245,14 +349,16 @@ public enum CompoundIntervalFormulaManager {
           newValue = (((Constant<CompoundInterval>) p2.getOperand1()).getValue());
         }
         if (newValue != null) {
-          return newValue.contains(value);
+          BitVectorInfo bitVectorInfo = p2.getOperand1().getBitVectorInfo();
+          CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+          return cim.contains(newValue, value);
         }
       }
     }
 
-    Collection<InvariantsFormula<CompoundInterval>> leftFormulas = pFormula1.accept(SPLIT_CONJUNCTIONS_VISITOR);
+    Collection<BooleanFormula<CompoundInterval>> leftFormulas = pFormula1.accept(SPLIT_CONJUNCTIONS_VISITOR);
 
-    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<String, InvariantsFormula<CompoundInterval>>(), false);
+    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<String, NumeralFormula<CompoundInterval>>(), false);
   }
 
   /**
@@ -263,12 +369,18 @@ public enum CompoundIntervalFormulaManager {
    *
    * @return the sum of the given formulae.
    */
-  public InvariantsFormula<CompoundInterval> add(InvariantsFormula<CompoundInterval> pSummand1, InvariantsFormula<CompoundInterval> pSummand2) {
-    if (isDefinitelyBottom(pSummand1) || isDefinitelyBottom(pSummand2)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> add(NumeralFormula<CompoundInterval> pSummand1, NumeralFormula<CompoundInterval> pSummand2) {
+    if (isDefinitelyBottom(pSummand1)) {
+      return bottom(pSummand1);
     }
-    if (isDefinitelyTop(pSummand1) || isDefinitelyTop(pSummand2)) {
-      return TOP;
+    if (isDefinitelyBottom(pSummand2)) {
+      return bottom(pSummand2);
+    }
+    if (containsAllPossibleValues(pSummand1)) {
+      return allPossibleValues(pSummand1);
+    }
+    if (containsAllPossibleValues(pSummand2)) {
+      return allPossibleValues(pSummand2);
     }
     return InvariantsFormulaManager.INSTANCE.add(pSummand1, pSummand2);
   }
@@ -281,20 +393,20 @@ public enum CompoundIntervalFormulaManager {
    *
    * @return the binary and operation over the given operands.
    */
-  public InvariantsFormula<CompoundInterval> binaryAnd(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> binaryAnd(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
+    if (isDefinitelyBottom(pOperand1)) {
+      return bottom(pOperand1);
     }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
+    if (isDefinitelyBottom(pOperand2)) {
+      return bottom(pOperand2);
     }
     // Eliminate duplicate operands
-    Set<InvariantsFormula<CompoundInterval>> uniqueOperands = new HashSet<>();
-    Queue<InvariantsFormula<CompoundInterval>> unprocessedOperands = new ArrayDeque<>();
+    Set<NumeralFormula<CompoundInterval>> uniqueOperands = new HashSet<>();
+    Queue<NumeralFormula<CompoundInterval>> unprocessedOperands = new ArrayDeque<>();
     unprocessedOperands.offer(pOperand1);
     unprocessedOperands.offer(pOperand2);
     while (!unprocessedOperands.isEmpty()) {
-      InvariantsFormula<CompoundInterval> unprocessedOperand = unprocessedOperands.poll();
+      NumeralFormula<CompoundInterval> unprocessedOperand = unprocessedOperands.poll();
       if (unprocessedOperand instanceof BinaryAnd<?>) {
         BinaryAnd<CompoundInterval> and = (BinaryAnd<CompoundInterval>) unprocessedOperand;
         unprocessedOperands.offer(and.getOperand1());
@@ -304,12 +416,12 @@ public enum CompoundIntervalFormulaManager {
       }
     }
     assert !uniqueOperands.isEmpty();
-    Iterator<InvariantsFormula<CompoundInterval>> operandsIterator = uniqueOperands.iterator();
-    InvariantsFormula<CompoundInterval> result = operandsIterator.next();
+    Iterator<NumeralFormula<CompoundInterval>> operandsIterator = uniqueOperands.iterator();
+    NumeralFormula<CompoundInterval> result = operandsIterator.next();
     while (operandsIterator.hasNext()) {
-      result = InvariantsFormulaManager.INSTANCE.binaryOr(result, operandsIterator.next());
+      result = InvariantsFormulaManager.INSTANCE.binaryAnd(result, operandsIterator.next());
     }
-    return InvariantsFormulaManager.INSTANCE.binaryAnd(pOperand1, pOperand2);
+    return result;
   }
 
   /**
@@ -319,12 +431,12 @@ public enum CompoundIntervalFormulaManager {
    *
    * @return the binary negation of the given formula.
    */
-  public InvariantsFormula<CompoundInterval> binaryNot(InvariantsFormula<CompoundInterval> pToFlip) {
+  public NumeralFormula<CompoundInterval> binaryNot(NumeralFormula<CompoundInterval> pToFlip) {
     if (isDefinitelyBottom(pToFlip)) {
-      return BOTTOM;
+      return bottom(pToFlip);
     }
-    if (isDefinitelyTop(pToFlip)) {
-      return TOP;
+    if (containsAllPossibleValues(pToFlip)) {
+      return allPossibleValues(pToFlip);
     }
     return InvariantsFormulaManager.INSTANCE.binaryNot(pToFlip);
   }
@@ -339,20 +451,20 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the binary or operation over the
    * given operands.
    */
-  public InvariantsFormula<CompoundInterval> binaryOr(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> binaryOr(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
+    if (isDefinitelyBottom(pOperand1)) {
+      return bottom(pOperand1);
     }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
+    if (isDefinitelyBottom(pOperand2)) {
+      return bottom(pOperand2);
     }
     // Eliminate duplicate operands
-    Set<InvariantsFormula<CompoundInterval>> uniqueOperands = new HashSet<>();
-    Queue<InvariantsFormula<CompoundInterval>> unprocessedOperands = new ArrayDeque<>();
+    Set<NumeralFormula<CompoundInterval>> uniqueOperands = new HashSet<>();
+    Queue<NumeralFormula<CompoundInterval>> unprocessedOperands = new ArrayDeque<>();
     unprocessedOperands.offer(pOperand1);
     unprocessedOperands.offer(pOperand2);
     while (!unprocessedOperands.isEmpty()) {
-      InvariantsFormula<CompoundInterval> unprocessedOperand = unprocessedOperands.poll();
+      NumeralFormula<CompoundInterval> unprocessedOperand = unprocessedOperands.poll();
       if (unprocessedOperand instanceof BinaryOr<?>) {
         BinaryOr<CompoundInterval> or = (BinaryOr<CompoundInterval>) unprocessedOperand;
         unprocessedOperands.offer(or.getOperand1());
@@ -362,8 +474,8 @@ public enum CompoundIntervalFormulaManager {
       }
     }
     assert !uniqueOperands.isEmpty();
-    Iterator<InvariantsFormula<CompoundInterval>> operandsIterator = uniqueOperands.iterator();
-    InvariantsFormula<CompoundInterval> result = operandsIterator.next();
+    Iterator<NumeralFormula<CompoundInterval>> operandsIterator = uniqueOperands.iterator();
+    NumeralFormula<CompoundInterval> result = operandsIterator.next();
     while (operandsIterator.hasNext()) {
       result = InvariantsFormulaManager.INSTANCE.binaryOr(result, operandsIterator.next());
     }
@@ -380,37 +492,14 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the binary exclusive or operation
    * over the given operands.
    */
-  public InvariantsFormula<CompoundInterval> binaryXor(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> binaryXor(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
+    if (isDefinitelyBottom(pOperand1)) {
+      return bottom(pOperand1);
     }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
+    if (isDefinitelyBottom(pOperand2)) {
+      return bottom(pOperand2);
     }
     return InvariantsFormulaManager.INSTANCE.binaryXor(pOperand1, pOperand2);
-  }
-
-  /**
-   * Gets a invariants formula representing a constant with the given value.
-   *
-   * @param pValue the value of the constant.
-   *
-   * @return a invariants formula representing a constant with the given value.
-   */
-  public InvariantsFormula<CompoundInterval> asConstant(CompoundInterval pValue) {
-    if (pValue.isTop()) {
-      return TOP;
-    }
-    if (pValue.isBottom()) {
-      return BOTTOM;
-    }
-    if (pValue.equals(CompoundInterval.logicalTrue())) {
-      return TRUE;
-    }
-    if (pValue.equals(CompoundInterval.logicalFalse())) {
-      return FALSE;
-    }
-    return InvariantsFormulaManager.INSTANCE.asConstant(pValue);
   }
 
   /**
@@ -423,12 +512,12 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the division of the given
    * numerator formula by the given denominator formula.
    */
-  public InvariantsFormula<CompoundInterval> divide(InvariantsFormula<CompoundInterval> pNumerator, InvariantsFormula<CompoundInterval> pDenominator) {
-    if (isDefinitelyBottom(pNumerator) || isDefinitelyBottom(pDenominator)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> divide(NumeralFormula<CompoundInterval> pNumerator, NumeralFormula<CompoundInterval> pDenominator) {
+    if (isDefinitelyBottom(pNumerator)) {
+      return bottom(pNumerator);
     }
-    if (isDefinitelyTop(pNumerator) || isDefinitelyTop(pDenominator)) {
-      return TOP;
+    if (isDefinitelyBottom(pDenominator)) {
+      return bottom(pDenominator);
     }
     return InvariantsFormulaManager.INSTANCE.divide(pNumerator, pDenominator);
   }
@@ -443,13 +532,7 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the equation of the given
    * operands.
    */
-  public InvariantsFormula<CompoundInterval> equal(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
-    }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
-    }
+  public BooleanFormula<CompoundInterval> equal(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
     if (pOperand1 instanceof Union<?>) {
       Union<CompoundInterval> union = (Union<CompoundInterval>) pOperand1;
       return logicalOr(equal(union.getOperand1(), pOperand2), equal(union.getOperand2(), pOperand2));
@@ -471,7 +554,7 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing a greater-than inequation over
    * the given operands.
    */
-  public InvariantsFormula<CompoundInterval> greaterThan(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
+  public BooleanFormula<CompoundInterval> greaterThan(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
     return lessThan(pOperand2, pOperand1);
   }
 
@@ -485,7 +568,7 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing a greater-than or equal
    * inequation over the given operands.
    */
-  public InvariantsFormula<CompoundInterval> greaterThanOrEqual(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
+  public BooleanFormula<CompoundInterval> greaterThanOrEqual(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
     return lessThanOrEqual(pOperand2, pOperand1);
   }
 
@@ -499,13 +582,7 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing a less-than inequation over the
    * given operands.
    */
-  public InvariantsFormula<CompoundInterval> lessThan(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
-    }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
-    }
+  public BooleanFormula<CompoundInterval> lessThan(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
     if (pOperand1 instanceof Union<?>) {
       Union<CompoundInterval> union = (Union<CompoundInterval>) pOperand1;
       return logicalOr(lessThan(union.getOperand1(), pOperand2), lessThan(union.getOperand2(), pOperand2));
@@ -527,13 +604,7 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing a less-than or equal inequation
    * over the given operands.
    */
-  public InvariantsFormula<CompoundInterval> lessThanOrEqual(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
-    }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
-    }
+  public BooleanFormula<CompoundInterval> lessThanOrEqual(NumeralFormula<CompoundInterval> pOperand1, NumeralFormula<CompoundInterval> pOperand2) {
     if (pOperand1 instanceof Union<?>) {
       Union<CompoundInterval> union = (Union<CompoundInterval>) pOperand1;
       return logicalOr(lessThanOrEqual(union.getOperand1(), pOperand2), lessThanOrEqual(union.getOperand2(), pOperand2));
@@ -555,29 +626,23 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the logical conjunction over the
    * given operands.
    */
-  public InvariantsFormula<CompoundInterval> logicalAnd(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyFalse(pOperand1) || isDefinitelyFalse(pOperand2)) {
-      return FALSE;
+  public BooleanFormula<CompoundInterval> logicalAnd(BooleanFormula<CompoundInterval> pOperand1, BooleanFormula<CompoundInterval> pOperand2) {
+    if (BooleanConstant.isFalse(pOperand1) || BooleanConstant.isFalse(pOperand2)) {
+      return BooleanConstant.getFalse();
     }
-    if (isDefinitelyTrue(pOperand1)) {
+    if (BooleanConstant.isTrue(pOperand1)) {
       return pOperand2;
     }
-    if (isDefinitelyTrue(pOperand2)) {
+    if (BooleanConstant.isTrue(pOperand2)) {
       return pOperand1;
     }
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
+    NonRecursiveEnvironment.Builder tmpEnvironment = new NonRecursiveEnvironment.Builder(compoundIntervalManagerFactory);
+    PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, tmpEnvironment);
+    if (!pOperand1.accept(patev, BooleanConstant.<CompoundInterval>getTrue())) {
+      return BooleanConstant.getFalse();
     }
-    if (isDefinitelyTop(pOperand1) && isDefinitelyTop(pOperand2)) {
-      return TOP;
-    }
-    NonRecursiveEnvironment.Builder tmpEnvironment = new NonRecursiveEnvironment.Builder();
-    PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(FORMULA_EVALUATION_VISITOR, tmpEnvironment);
-    if (!pOperand1.accept(patev, CompoundInterval.logicalTrue())) {
-      return FALSE;
-    }
-    if (!pOperand2.accept(patev, CompoundInterval.logicalTrue())) {
-      return FALSE;
+    if (!pOperand2.accept(patev, BooleanConstant.<CompoundInterval>getTrue())) {
+      return BooleanConstant.getFalse();
     }
     if (definitelyImplies(pOperand1, pOperand2)) {
       return pOperand1;
@@ -599,23 +664,25 @@ public enum CompoundIntervalFormulaManager {
       }
       if (var != null && value != null) {
         CompoundInterval newValue = null;
+        BitVectorInfo bitVectorInfo = p2.getOperand1().getBitVectorInfo();
+        CompoundIntervalManager cim = getCompoundIntervalManager(bitVectorInfo);
         if (var.equals(p2.getOperand1()) && p2.getOperand2() instanceof Constant<?>) {
-          newValue = value.intersectWith(((Constant<CompoundInterval>) p2.getOperand2()).getValue());
+          newValue = cim.intersect(value, ((Constant<CompoundInterval>) p2.getOperand2()).getValue());
         } else if (var.equals(p2.getOperand2()) && p2.getOperand1() instanceof Constant<?>) {
-          newValue = value.intersectWith(((Constant<CompoundInterval>) p2.getOperand1()).getValue());
+          newValue = cim.intersect(value, ((Constant<CompoundInterval>) p2.getOperand1()).getValue());
         }
         if (newValue != null) {
-          if (newValue.isTop()) {
-            return TRUE;
+          if (newValue.containsAllPossibleValues()) {
+            return BooleanConstant.getTrue();
           }
           if (newValue.isBottom()) {
-            return FALSE;
+            return BooleanConstant.getFalse();
           }
-          return equal(var, asConstant(newValue));
+          return equal(var, asConstant(bitVectorInfo, newValue));
         }
       }
     }
-    return LogicalAnd.of(pOperand1, pOperand2);
+    return InvariantsFormulaManager.INSTANCE.logicalAnd(pOperand1, pOperand2);
   }
 
   /**
@@ -627,18 +694,15 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the logical negation of the given
    * operand.
    */
-  public InvariantsFormula<CompoundInterval> logicalNot(InvariantsFormula<CompoundInterval> pToNegate) {
-    if (isDefinitelyBottom(pToNegate)) {
-      return BOTTOM;
-    }
-    if (isDefinitelyTop(pToNegate)) {
-      return TOP;
-    }
-    if (isDefinitelyFalse(pToNegate)) {
-      return TRUE;
+  public BooleanFormula<CompoundInterval> logicalNot(BooleanFormula<CompoundInterval> pToNegate) {
+    if (pToNegate instanceof BooleanConstant) {
+      return ((BooleanConstant<CompoundInterval>) pToNegate).negate();
     }
     if (isDefinitelyTrue(pToNegate)) {
-      return FALSE;
+      return BooleanConstant.getFalse();
+    }
+    if (isDefinitelyFalse(pToNegate)) {
+      return BooleanConstant.getTrue();
     }
     if (pToNegate instanceof LogicalNot<?>) {
       return ((LogicalNot<CompoundInterval>) pToNegate).getNegated();
@@ -656,21 +720,15 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the logical disjunction over
    * the given operands.
    */
-  public InvariantsFormula<CompoundInterval> logicalOr(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
-    if (isDefinitelyTrue(pOperand1) || isDefinitelyTrue(pOperand2)) {
-      return TRUE;
+  public BooleanFormula<CompoundInterval> logicalOr(BooleanFormula<CompoundInterval> pOperand1, BooleanFormula<CompoundInterval> pOperand2) {
+    if (BooleanConstant.isTrue(pOperand1) || BooleanConstant.isTrue(pOperand2)) {
+      return BooleanConstant.getTrue();
     }
-    if (isDefinitelyFalse(pOperand1)) {
+    if (BooleanConstant.isFalse(pOperand1)) {
       return pOperand2;
     }
-    if (isDefinitelyFalse(pOperand2)) {
+    if (BooleanConstant.isFalse(pOperand2)) {
       return pOperand1;
-    }
-    if (isDefinitelyBottom(pOperand1) || isDefinitelyBottom(pOperand2)) {
-      return BOTTOM;
-    }
-    if (isDefinitelyTop(pOperand1) && isDefinitelyTop(pOperand2)) {
-      return TOP;
     }
     if (definitelyImplies(pOperand1, pOperand2)) {
       return pOperand2;
@@ -678,11 +736,11 @@ public enum CompoundIntervalFormulaManager {
     if (definitelyImplies(pOperand2, pOperand1)) {
       return pOperand1;
     }
-    if (pOperand1 instanceof Equal<?> && pOperand2 instanceof Equal<?>) {
+    if (pOperand1 instanceof Equal && pOperand2 instanceof Equal) {
       Equal<CompoundInterval> p1 = (Equal<CompoundInterval>) pOperand1;
       Equal<CompoundInterval> p2 = (Equal<CompoundInterval>) pOperand2;
       Variable<CompoundInterval> var = null;
-      InvariantsFormula<CompoundInterval> value = null;
+      NumeralFormula<CompoundInterval> value = null;
       if (p1.getOperand1() instanceof Variable<?>) {
         var = (Variable<CompoundInterval>) p1.getOperand1();
         value = p1.getOperand2();
@@ -691,28 +749,28 @@ public enum CompoundIntervalFormulaManager {
         value = p1.getOperand1();
       }
       if (var != null && value != null) {
-        InvariantsFormula<CompoundInterval> newValue = null;
-        InvariantsFormula<CompoundInterval> otherValue = null;
+        NumeralFormula<CompoundInterval> newValue = null;
+        NumeralFormula<CompoundInterval> otherValue = null;
         if (var.equals(p2.getOperand1())) {
           otherValue = p2.getOperand2();
         } else if (var.equals(p2.getOperand2())) {
           otherValue = p2.getOperand1();
         }
         if (otherValue != null) {
-          newValue = CompoundIntervalFormulaManager.INSTANCE.union(value, p2.getOperand2());
-          newValue = newValue.accept(new PartialEvaluator(), FORMULA_EVALUATION_VISITOR);
+          newValue = union(value, p2.getOperand2());
+          newValue = newValue.accept(new PartialEvaluator(compoundIntervalManagerFactory), evaluationVisitor);
           CompoundInterval val = evaluate(newValue);
           if (val.isTop() && newValue instanceof Constant<?>) {
-            return TRUE;
+            return BooleanConstant.getTrue();
           }
           if (val.isBottom()) {
-            return FALSE;
+            return BooleanConstant.getFalse();
           }
           boolean useNewValue = true;
           if (newValue instanceof Union<?>) {
             Union<CompoundInterval> union = (Union<CompoundInterval>) newValue;
-            InvariantsFormula<CompoundInterval> op1 = union.getOperand1();
-            InvariantsFormula<CompoundInterval> op2 = union.getOperand2();
+            NumeralFormula<CompoundInterval> op1 = union.getOperand1();
+            NumeralFormula<CompoundInterval> op2 = union.getOperand2();
             useNewValue = !(op1.equals(value) && op2.equals(otherValue) || op1.equals(otherValue) && op2.equals(value));
           }
           if (useNewValue) {
@@ -734,9 +792,9 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing a logical implication over the
    * given operands, meaning that the first operand implies the second operand.
    */
-  public InvariantsFormula<CompoundInterval> logicalImplies(InvariantsFormula<CompoundInterval> pOperand1, InvariantsFormula<CompoundInterval> pOperand2) {
+  public BooleanFormula<CompoundInterval> logicalImplies(BooleanFormula<CompoundInterval> pOperand1, BooleanFormula<CompoundInterval> pOperand2) {
     if (definitelyImplies(pOperand1, pOperand2)) {
-      return TRUE;
+      return BooleanConstant.getTrue();
     }
     return logicalNot(logicalAnd(pOperand1, logicalNot(pOperand2)));
   }
@@ -747,15 +805,16 @@ public enum CompoundIntervalFormulaManager {
    *
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
+   *
    * @return an invariants formula representing the modulo operation over the
    * given operands.
    */
-  public InvariantsFormula<CompoundInterval> modulo(InvariantsFormula<CompoundInterval> pNumerator, InvariantsFormula<CompoundInterval> pDenominator) {
-    if (isDefinitelyBottom(pNumerator) || isDefinitelyBottom(pDenominator)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> modulo(NumeralFormula<CompoundInterval> pNumerator, NumeralFormula<CompoundInterval> pDenominator) {
+    if (isDefinitelyBottom(pNumerator)) {
+      return bottom(pNumerator);
     }
-    if (isDefinitelyTop(pNumerator) || isDefinitelyTop(pDenominator)) {
-      return TOP;
+    if (isDefinitelyBottom(pDenominator)) {
+      return bottom(pDenominator);
     }
     return InvariantsFormulaManager.INSTANCE.modulo(pNumerator, pDenominator);
   }
@@ -770,13 +829,13 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the multiplication of the given
    * factors.
    */
-  public InvariantsFormula<CompoundInterval> multiply(InvariantsFormula<CompoundInterval> pFactor1,
-      InvariantsFormula<CompoundInterval> pFactor2) {
-    if (isDefinitelyBottom(pFactor1) || isDefinitelyBottom(pFactor2)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> multiply(NumeralFormula<CompoundInterval> pFactor1,
+      NumeralFormula<CompoundInterval> pFactor2) {
+    if (isDefinitelyBottom(pFactor1)) {
+      return bottom(pFactor1);
     }
-    if (isDefinitelyTop(pFactor1) || isDefinitelyTop(pFactor2)) {
-      return TOP;
+    if (isDefinitelyBottom(pFactor2)) {
+      return bottom(pFactor2);
     }
     return InvariantsFormulaManager.INSTANCE.multiply(pFactor1, pFactor2);
   }
@@ -790,24 +849,39 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the numerical negation of the
    * given invariants formula.
    */
-  public InvariantsFormula<CompoundInterval> negate(InvariantsFormula<CompoundInterval> pToNegate) {
+  public NumeralFormula<CompoundInterval> negate(NumeralFormula<CompoundInterval> pToNegate) {
     if (isDefinitelyBottom(pToNegate)) {
-      return BOTTOM;
+      return bottom(pToNegate);
     }
-    if (isDefinitelyTop(pToNegate)) {
-      return TOP;
+    if (containsAllPossibleValues(pToNegate)) {
+      return allPossibleValues(pToNegate);
     }
     if (pToNegate instanceof Multiply<?>) {
-      InvariantsFormula<CompoundInterval> factor1 = ((Multiply<CompoundInterval>) pToNegate).getFactor1();
-      InvariantsFormula<CompoundInterval> factor2 = ((Multiply<CompoundInterval>) pToNegate).getFactor2();
-      if (factor1.equals(MINUS_ONE)) {
+      NumeralFormula<CompoundInterval> factor1 = ((Multiply<CompoundInterval>) pToNegate).getFactor1();
+      NumeralFormula<CompoundInterval> factor2 = ((Multiply<CompoundInterval>) pToNegate).getFactor2();
+      if (isMinusOne(factor1)) {
         return factor2;
       }
-      if (factor2.equals(MINUS_ONE)) {
+      if (isMinusOne(factor2)) {
         return factor1;
       }
     }
-    return InvariantsFormulaManager.INSTANCE.multiply(pToNegate, MINUS_ONE);
+    BitVectorInfo bitVectorInfo = pToNegate.getBitVectorInfo();
+    CompoundIntervalManager cim = getCompoundIntervalManager(bitVectorInfo);
+    if (pToNegate instanceof Constant) {
+      return asConstant(bitVectorInfo, ((Constant<CompoundInterval>) pToNegate).getValue().negate());
+    }
+    if (cim.allPossibleValues().contains(BigInteger.valueOf(-1))) {
+      NumeralFormula<CompoundInterval> minusOne = asConstant(bitVectorInfo, cim.singleton(-1));
+      return InvariantsFormulaManager.INSTANCE.multiply(pToNegate, minusOne);
+    }
+    // TODO more precise implementation; maybe reintroduce "Negation" as a formula
+    return allPossibleValues(bitVectorInfo);
+  }
+
+  private boolean isMinusOne(NumeralFormula<CompoundInterval> pFormula) {
+    CompoundInterval value = evaluate(pFormula);
+    return value.isSingleton() && value.contains(BigInteger.valueOf(-1));
   }
 
   /**
@@ -818,13 +892,19 @@ public enum CompoundIntervalFormulaManager {
    *
    * @return the sum of the given formulae.
    */
-  public InvariantsFormula<CompoundInterval> subtract(InvariantsFormula<CompoundInterval> pMinuend,
-      InvariantsFormula<CompoundInterval> pSubtrahend) {
-    if (isDefinitelyBottom(pMinuend) || isDefinitelyBottom(pSubtrahend)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> subtract(NumeralFormula<CompoundInterval> pMinuend,
+      NumeralFormula<CompoundInterval> pSubtrahend) {
+    if (isDefinitelyBottom(pMinuend)) {
+      return bottom(pMinuend);
     }
-    if (isDefinitelyTop(pMinuend) || isDefinitelyTop(pSubtrahend)) {
-      return TOP;
+    if (isDefinitelyBottom(pSubtrahend)) {
+      return bottom(pSubtrahend);
+    }
+    if (containsAllPossibleValues(pMinuend)) {
+      return allPossibleValues(pMinuend);
+    }
+    if (containsAllPossibleValues(pSubtrahend)) {
+      return allPossibleValues(pSubtrahend);
     }
     return InvariantsFormulaManager.INSTANCE.add(pMinuend, negate(pSubtrahend));
   }
@@ -839,13 +919,16 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the left shift of the first
    * given operand by the second given operand.
    */
-  public InvariantsFormula<CompoundInterval> shiftLeft(InvariantsFormula<CompoundInterval> pToShift,
-      InvariantsFormula<CompoundInterval> pShiftDistance) {
-    if (isDefinitelyBottom(pToShift) || isDefinitelyBottom(pShiftDistance)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> shiftLeft(NumeralFormula<CompoundInterval> pToShift,
+      NumeralFormula<CompoundInterval> pShiftDistance) {
+    if (isDefinitelyBottom(pToShift)) {
+      return bottom(pToShift);
     }
-    if (isDefinitelyTop(pToShift) || isDefinitelyTop(pShiftDistance)) {
-      return TOP;
+    if (isDefinitelyBottom(pShiftDistance)) {
+      return bottom(pShiftDistance);
+    }
+    if (containsAllPossibleValues(pShiftDistance)) {
+      return allPossibleValues(pShiftDistance);
     }
     return InvariantsFormulaManager.INSTANCE.shiftLeft(pToShift, pShiftDistance);
   }
@@ -860,13 +943,16 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the right shift of the first
    * given operand by the second given operand.
    */
-  public InvariantsFormula<CompoundInterval> shiftRight(InvariantsFormula<CompoundInterval> pToShift,
-      InvariantsFormula<CompoundInterval> pShiftDistance) {
-    if (isDefinitelyBottom(pToShift) || isDefinitelyBottom(pShiftDistance)) {
-      return BOTTOM;
+  public NumeralFormula<CompoundInterval> shiftRight(NumeralFormula<CompoundInterval> pToShift,
+      NumeralFormula<CompoundInterval> pShiftDistance) {
+    if (isDefinitelyBottom(pToShift)) {
+      return bottom(pToShift);
     }
-    if (isDefinitelyTop(pToShift) || isDefinitelyTop(pShiftDistance)) {
-      return TOP;
+    if (isDefinitelyBottom(pShiftDistance)) {
+      return bottom(pShiftDistance);
+    }
+    if (containsAllPossibleValues(pShiftDistance)) {
+      return allPossibleValues(pShiftDistance);
     }
     return InvariantsFormulaManager.INSTANCE.shiftRight(pToShift, pShiftDistance);
   }
@@ -881,80 +967,147 @@ public enum CompoundIntervalFormulaManager {
    * @return an invariants formula representing the union of the given invariants
    * formulae.
    */
-  public InvariantsFormula<CompoundInterval> union(InvariantsFormula<CompoundInterval> pOperand1,
-      InvariantsFormula<CompoundInterval> pOperand2) {
+  public NumeralFormula<CompoundInterval> union(NumeralFormula<CompoundInterval> pOperand1,
+      NumeralFormula<CompoundInterval> pOperand2) {
     if (isDefinitelyBottom(pOperand1)) {
-      if (isDefinitelyBottom(pOperand2)) {
-        return BOTTOM;
-      } else {
-        return pOperand2;
-      }
-    } else if (isDefinitelyBottom(pOperand2)) {
+      return pOperand2;
+    }
+    if (isDefinitelyBottom(pOperand2)) {
       return pOperand1;
     }
-    if (isDefinitelyTop(pOperand1) || isDefinitelyTop(pOperand2)) {
-      return TOP;
+    if (containsAllPossibleValues(pOperand1)) {
+      return allPossibleValues(pOperand1);
+    }
+    if (containsAllPossibleValues(pOperand2)) {
+      return allPossibleValues(pOperand2);
     }
     if (pOperand1.equals(pOperand2)) {
       return pOperand1;
     }
     // Try reducing nested unions by temporarily representing them as a set
-    Set<InvariantsFormula<CompoundInterval>> atomicUnionParts = new HashSet<>();
-    Queue<InvariantsFormula<CompoundInterval>> unionParts = new ArrayDeque<>();
-    CompoundInterval constantPart = CompoundInterval.bottom();
+    Set<NumeralFormula<CompoundInterval>> atomicUnionParts = new HashSet<>();
+    Queue<NumeralFormula<CompoundInterval>> unionParts = new ArrayDeque<>();
+    BitVectorInfo bitVectorInfo = pOperand1.getBitVectorInfo();
+    CompoundIntervalManager cim = getCompoundIntervalManager(bitVectorInfo);
+    CompoundInterval constantPart = cim.bottom();
     unionParts.offer(pOperand1);
     unionParts.offer(pOperand2);
     while (!unionParts.isEmpty()) {
-      InvariantsFormula<CompoundInterval> currentPart = unionParts.poll();
+      NumeralFormula<CompoundInterval> currentPart = unionParts.poll();
       if (currentPart instanceof Union<?>) {
         Union<CompoundInterval> currentUnion = (Union<CompoundInterval>) currentPart;
         unionParts.add(currentUnion.getOperand1());
         unionParts.add(currentUnion.getOperand2());
       } else if (currentPart instanceof Constant<?>) {
-        constantPart = constantPart.unionWith(((Constant<CompoundInterval>) currentPart).getValue());
+        constantPart = cim.union(constantPart, ((Constant<CompoundInterval>) currentPart).getValue());
       } else {
         atomicUnionParts.add(currentPart);
       }
     }
-    return unionAll(constantPart, atomicUnionParts);
+    return unionAll(bitVectorInfo, constantPart, atomicUnionParts);
   }
 
-  private InvariantsFormula<CompoundInterval> unionAll(CompoundInterval pConstantPart, Collection<InvariantsFormula<CompoundInterval>> pFormulas) {
+  private NumeralFormula<CompoundInterval> unionAll(BitVectorInfo pBitVectorInfo, CompoundInterval pConstantPart, Collection<NumeralFormula<CompoundInterval>> pFormulas) {
     if (pFormulas.isEmpty() || pConstantPart.isTop()) {
-      return asConstant(pConstantPart);
+      return asConstant(pBitVectorInfo, pConstantPart);
     }
-    InvariantsFormula<CompoundInterval> result = null;
-    Iterator<InvariantsFormula<CompoundInterval>> atomicUnionPartsIterator = pFormulas.iterator();
+    NumeralFormula<CompoundInterval> result = null;
+    Iterator<NumeralFormula<CompoundInterval>> atomicUnionPartsIterator = pFormulas.iterator();
     result = atomicUnionPartsIterator.next();
     while (atomicUnionPartsIterator.hasNext()) {
       result = InvariantsFormulaManager.INSTANCE.union(result, atomicUnionPartsIterator.next());
     }
     if (!pConstantPart.isBottom()) {
-      InvariantsFormula<CompoundInterval> constantPartFormula = asConstant(pConstantPart);
+      NumeralFormula<CompoundInterval> constantPartFormula = asConstant(pBitVectorInfo, pConstantPart);
       result = InvariantsFormulaManager.INSTANCE.union(result, constantPartFormula);
     }
     return result;
   }
 
-  /**
-   * Gets an invariants formula representing the variable with the given name.
-   *
-   * @param pName the name of the variable.
-   *
-   * @return an invariants formula representing the variable with the given name.
-   */
-  public Variable<CompoundInterval> asVariable(String pName) {
-    return InvariantsFormulaManager.INSTANCE.asVariable(pName);
-  }
-
-  public InvariantsFormula<CompoundInterval> exclude(InvariantsFormula<CompoundInterval> pToExclude) {
+  public NumeralFormula<CompoundInterval> exclude(NumeralFormula<CompoundInterval> pToExclude) {
     if (pToExclude instanceof Constant) {
       Constant<CompoundInterval> c = (Constant<CompoundInterval>) pToExclude;
+      BitVectorInfo bitVectorInfo = pToExclude.getBitVectorInfo();
       if (c.getValue().isSingleton()) {
-        return asConstant(c.getValue().invert());
+        return asConstant(bitVectorInfo, c.getValue().invert());
       }
+      return allPossibleValues(bitVectorInfo);
     }
     return InvariantsFormulaManager.INSTANCE.exclude(pToExclude);
+  }
+
+  public NumeralFormula<CompoundInterval> ifThenElse(
+      BooleanFormula<CompoundInterval> pCondition,
+      NumeralFormula<CompoundInterval> pPositiveCase,
+      NumeralFormula<CompoundInterval> pNegativeCase) {
+    if (BooleanConstant.isTrue(pCondition)) {
+      return pPositiveCase;
+    }
+    if (BooleanConstant.isFalse(pCondition)) {
+      return pNegativeCase;
+    }
+    if (isDefinitelyBottom(pPositiveCase) && isDefinitelyBottom(pNegativeCase)) {
+      return bottom(pPositiveCase);
+    }
+    if (pCondition instanceof LogicalNot) {
+      return ifThenElse(
+          ((LogicalNot<CompoundInterval>) pCondition).getNegated(),
+          pNegativeCase,
+          pPositiveCase);
+    }
+    return InvariantsFormulaManager.INSTANCE.ifThenElse(pCondition, pPositiveCase, pNegativeCase);
+  }
+
+  public NumeralFormula<CompoundInterval> fromBoolean(
+      BitVectorInfo pBitVectorInfo,
+      BooleanFormula<CompoundInterval> pFormula) {
+    CompoundIntervalManager cim = getCompoundIntervalManager(pBitVectorInfo);
+    //NumeralFormula<CompoundInterval> trueNumeralFormula = asConstant(pBitVectorInfo, cim.singleton(BigInteger.ONE));
+    NumeralFormula<CompoundInterval> trueNumeralFormula = asConstant(pBitVectorInfo, cim.logicalTrue());
+    NumeralFormula<CompoundInterval> falseNumeralFormula = asConstant(pBitVectorInfo, cim.logicalFalse());
+    return ifThenElse(
+        pFormula,
+        trueNumeralFormula,
+        falseNumeralFormula);
+  }
+
+  public BooleanFormula<CompoundInterval> fromNumeral(NumeralFormula<CompoundInterval> pFormula) {
+    BitVectorInfo bitVectorInfo = pFormula.getBitVectorInfo();
+    CompoundIntervalManager cim = getCompoundIntervalManager(bitVectorInfo);
+    if (pFormula instanceof IfThenElse) {
+      IfThenElse<CompoundInterval> ifThenElse = (IfThenElse<CompoundInterval>) pFormula;
+      if (isDefinitelyTrue(ifThenElse.getPositiveCase()) && isDefinitelyFalse(ifThenElse.getNegativeCase())) {
+        return ifThenElse.getCondition();
+      }
+      if (isDefinitelyFalse(ifThenElse.getPositiveCase()) && isDefinitelyTrue(ifThenElse.getNegativeCase())) {
+        return logicalNot(ifThenElse.getCondition());
+      }
+    }
+    return logicalNot(equal(pFormula, asConstant(bitVectorInfo, cim.singleton(BigInteger.ZERO))));
+  }
+
+  private NumeralFormula<CompoundInterval> bottom(BitVectorInfo pBitVectorInfo) {
+    return asConstant(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).bottom());
+  }
+
+  private NumeralFormula<CompoundInterval> bottom(BitVectorType pBitVectorType) {
+    return bottom(pBitVectorType.getBitVectorInfo());
+  }
+
+  private NumeralFormula<CompoundInterval> allPossibleValues(BitVectorInfo pBitVectorInfo) {
+    return asConstant(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).allPossibleValues());
+  }
+
+  private NumeralFormula<CompoundInterval> allPossibleValues(BitVectorType pBitVectorType) {
+    return allPossibleValues(pBitVectorType.getBitVectorInfo());
+  }
+
+  private NumeralFormula<CompoundInterval> asConstant(BitVectorInfo pBitVectorInfo, CompoundInterval pValue) {
+    return InvariantsFormulaManager.INSTANCE.asConstant(pBitVectorInfo, pValue);
+  }
+
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
   }
 
 }

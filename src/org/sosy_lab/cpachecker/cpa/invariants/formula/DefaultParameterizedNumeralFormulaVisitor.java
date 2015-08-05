@@ -33,7 +33,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * @param <ParamType> the type of the visit parameter.
  * @param <ReturnType> the type of the visit return values.
  */
-public abstract class DefaultParameterizedFormulaVisitor<ConstantType, ParamType, ReturnType> implements ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> {
+public abstract class DefaultParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> implements ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> {
 
   /**
    * Provides a generic visit method that can be applied to any invariants
@@ -44,7 +44,7 @@ public abstract class DefaultParameterizedFormulaVisitor<ConstantType, ParamType
    *
    * @return the result of the generic visit.
    */
-  protected abstract ReturnType visitDefault(InvariantsFormula<ConstantType> pFormula, ParamType pParam);
+  protected abstract ReturnType visitDefault(NumeralFormula<ConstantType> pFormula, ParamType pParam);
 
   @Override
   public ReturnType visit(Add<ConstantType> pAdd, ParamType pParam) {
@@ -82,28 +82,8 @@ public abstract class DefaultParameterizedFormulaVisitor<ConstantType, ParamType
   }
 
   @Override
-  public ReturnType visit(Equal<ConstantType> pEqual, ParamType pParam) {
-    return visitDefault(pEqual, pParam);
-  }
-
-  @Override
   public ReturnType visit(Exclusion<ConstantType> pExclusion, ParamType pParam) {
     return visitDefault(pExclusion, pParam);
-  }
-
-  @Override
-  public ReturnType visit(LessThan<ConstantType> pLessThan, ParamType pParam) {
-    return visitDefault(pLessThan, pParam);
-  }
-
-  @Override
-  public ReturnType visit(LogicalAnd<ConstantType> pAnd, ParamType pParam) {
-    return visitDefault(pAnd, pParam);
-  }
-
-  @Override
-  public ReturnType visit(LogicalNot<ConstantType> pNot, ParamType pParam) {
-    return visitDefault(pNot, pParam);
   }
 
   @Override
@@ -134,6 +114,16 @@ public abstract class DefaultParameterizedFormulaVisitor<ConstantType, ParamType
   @Override
   public ReturnType visit(Variable<ConstantType> pVariable, ParamType pParam) {
     return visitDefault(pVariable, pParam);
+  }
+
+  @Override
+  public ReturnType visit(IfThenElse<ConstantType> pIfThenElse, ParamType pParam) {
+    return visitDefault(pIfThenElse, pParam);
+  }
+
+  @Override
+  public ReturnType visit(Cast<ConstantType> pCast, ParamType pParam) {
+    return visitDefault(pCast, pParam);
   }
 
 }

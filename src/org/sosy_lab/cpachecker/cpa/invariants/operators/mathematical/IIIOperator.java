@@ -21,13 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.invariants.operators;
+package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
 import java.math.BigInteger;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
  * Instances of implementations of this interface are operators that can

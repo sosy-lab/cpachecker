@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+
 /**
  * Instances of extending classes are visitors for invariants formulae which
  * use a generic visit method that can be used to handle general cases while
@@ -32,7 +33,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * formulae.
  * @param <ReturnType> the type of the visit return values.
  */
-public abstract class DefaultFormulaVisitor<ConstantType, ReturnType> implements InvariantsFormulaVisitor<ConstantType, ReturnType> {
+public abstract class DefaultBooleanFormulaVisitor<ConstantType, ReturnType> implements BooleanFormulaVisitor<ConstantType, ReturnType> {
 
   /**
    * Provides a generic visit method that can be applied to any invariants
@@ -42,51 +43,11 @@ public abstract class DefaultFormulaVisitor<ConstantType, ReturnType> implements
    *
    * @return the result of the generic visit.
    */
-  protected abstract ReturnType visitDefault(InvariantsFormula<ConstantType> pFormula);
-
-  @Override
-  public ReturnType visit(Add<ConstantType> pAdd) {
-    return visitDefault(pAdd);
-  }
-
-  @Override
-  public ReturnType visit(BinaryAnd<ConstantType> pAnd) {
-    return visitDefault(pAnd);
-  }
-
-  @Override
-  public ReturnType visit(BinaryNot<ConstantType> pNot) {
-    return visitDefault(pNot);
-  }
-
-  @Override
-  public ReturnType visit(BinaryOr<ConstantType> pOr) {
-    return visitDefault(pOr);
-  }
-
-  @Override
-  public ReturnType visit(BinaryXor<ConstantType> pXor) {
-    return visitDefault(pXor);
-  }
-
-  @Override
-  public ReturnType visit(Constant<ConstantType> pConstant) {
-    return visitDefault(pConstant);
-  }
-
-  @Override
-  public ReturnType visit(Divide<ConstantType> pDivide) {
-    return visitDefault(pDivide);
-  }
+  protected abstract ReturnType visitDefault(BooleanFormula<ConstantType> pFormula);
 
   @Override
   public ReturnType visit(Equal<ConstantType> pEqual) {
     return visitDefault(pEqual);
-  }
-
-  @Override
-  public ReturnType visit(Exclusion<ConstantType> pExclusion) {
-    return visitDefault(pExclusion);
   }
 
   @Override
@@ -105,33 +66,13 @@ public abstract class DefaultFormulaVisitor<ConstantType, ReturnType> implements
   }
 
   @Override
-  public ReturnType visit(Modulo<ConstantType> pModulo) {
-    return visitDefault(pModulo);
+  public ReturnType visitFalse() {
+    return visitDefault(BooleanConstant.<ConstantType>getFalse());
   }
 
   @Override
-  public ReturnType visit(Multiply<ConstantType> pMultiply) {
-    return visitDefault(pMultiply);
-  }
-
-  @Override
-  public ReturnType visit(ShiftLeft<ConstantType> pShiftLeft) {
-    return visitDefault(pShiftLeft);
-  }
-
-  @Override
-  public ReturnType visit(ShiftRight<ConstantType> pShiftRight) {
-    return visitDefault(pShiftRight);
-  }
-
-  @Override
-  public ReturnType visit(Union<ConstantType> pUnion) {
-    return visitDefault(pUnion);
-  }
-
-  @Override
-  public ReturnType visit(Variable<ConstantType> pVariable) {
-    return visitDefault(pVariable);
+  public ReturnType visitTrue() {
+    return visitDefault(BooleanConstant.<ConstantType>getTrue());
   }
 
 }

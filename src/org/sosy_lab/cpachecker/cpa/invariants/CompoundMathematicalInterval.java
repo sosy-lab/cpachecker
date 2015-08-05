@@ -32,43 +32,45 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cpa.invariants.operators.ICCOperator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.IICOperator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.ISCOperator;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical.ICCOperator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical.IICOperator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical.ISCOperator;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.math.IntMath;
 
 /**
  * Instances of this class represent compound states of intervals.
  */
-public class CompoundInterval {
+public class CompoundMathematicalInterval implements CompoundInterval {
 
-  private static final CompoundInterval ZERO = new CompoundInterval(SimpleInterval.singleton(BigInteger.ZERO));
+  private static final CompoundMathematicalInterval ZERO = new CompoundMathematicalInterval(SimpleInterval.singleton(BigInteger.ZERO));
 
-  private static final CompoundInterval ONE = new CompoundInterval(SimpleInterval.singleton(BigInteger.ONE));
+  private static final CompoundMathematicalInterval ONE = new CompoundMathematicalInterval(SimpleInterval.singleton(BigInteger.ONE));
 
-  private static final CompoundInterval MINUS_ONE = new CompoundInterval(SimpleInterval.singleton(BigInteger.valueOf(-1)));
+  private static final CompoundMathematicalInterval MINUS_ONE = new CompoundMathematicalInterval(SimpleInterval.singleton(BigInteger.valueOf(-1)));
   /**
    * The compound state representing "bottom".
    */
-  private static final CompoundInterval BOTTOM = new CompoundInterval();
+  private static final CompoundMathematicalInterval BOTTOM = new CompoundMathematicalInterval();
 
   /**
    * The compound state representing "top".
    */
-  private static final CompoundInterval TOP = new CompoundInterval(SimpleInterval.infinite());
+  private static final CompoundMathematicalInterval TOP = new CompoundMathematicalInterval(SimpleInterval.infinite());
 
   /**
    * The compound state representing "false".
    */
-  private static final CompoundInterval FALSE = ZERO;
+  private static final CompoundMathematicalInterval FALSE = ZERO;
 
   /**
    * The compound state representing "true":
    */
-  private static final CompoundInterval TRUE = logicalFalse().invert();
+  private static final CompoundMathematicalInterval TRUE = logicalFalse().invert();
 
   /**
    * The list of intervals this state is composed from.
@@ -78,7 +80,7 @@ public class CompoundInterval {
   /**
    * Constructs the bottom state. This should only be invoked by the constant declaration.
    */
-  private CompoundInterval() {
+  private CompoundMathematicalInterval() {
     this.intervals = new SimpleInterval[0];
   }
 
@@ -89,7 +91,7 @@ public class CompoundInterval {
    * @param pInterval the interval to compose this state from. Must not be
    * {@code null}.
    */
-  private CompoundInterval(SimpleInterval pInterval) {
+  private CompoundMathematicalInterval(SimpleInterval pInterval) {
     this.intervals = new SimpleInterval[] { pInterval };
   }
 
@@ -100,7 +102,7 @@ public class CompoundInterval {
    * @param pIntervals the intervals to compose this state from. None of the
    * intervals must be {@code null}.
    */
-  private CompoundInterval(SimpleInterval[] pIntervals) {
+  private CompoundMathematicalInterval(SimpleInterval[] pIntervals) {
     this.intervals = pIntervals;
   }
 
@@ -113,15 +115,15 @@ public class CompoundInterval {
    *
    * @return a compound interval as represented by the given interval.
    */
-  private static CompoundInterval getInternal(SimpleInterval pInterval) {
-    CompoundInterval cached = getCached(pInterval);
+  private static CompoundMathematicalInterval getInternal(SimpleInterval pInterval) {
+    CompoundMathematicalInterval cached = getCached(pInterval);
     if (cached != null) {
       return cached;
     }
-    return new CompoundInterval(pInterval);
+    return new CompoundMathematicalInterval(pInterval);
   }
 
-  private static CompoundInterval getCached(SimpleInterval pInterval) {
+  private static CompoundMathematicalInterval getCached(SimpleInterval pInterval) {
     if (pInterval.isSingleton()) {
       BigInteger value = pInterval.getLowerBound();
       if (value.equals(BigInteger.ONE)) {
@@ -146,17 +148,17 @@ public class CompoundInterval {
    *
    * @return a compound interval as represented by the given intervals.
    */
-  private static CompoundInterval getInternal(SimpleInterval[] pIntervals) {
+  private static CompoundMathematicalInterval getInternal(SimpleInterval[] pIntervals) {
     if (pIntervals.length == 0) {
       return bottom();
     }
     if (pIntervals.length == 1) {
-      CompoundInterval cached = getCached(pIntervals[0]);
+      CompoundMathematicalInterval cached = getCached(pIntervals[0]);
       if (cached != null) {
         return cached;
       }
     }
-    return new CompoundInterval(pIntervals);
+    return new CompoundMathematicalInterval(pIntervals);
   }
 
   /**
@@ -175,8 +177,21 @@ public class CompoundInterval {
    * @return an unmodifiable list containing the intervals this compound
    * state consists of.
    */
+  @Override
   public List<SimpleInterval> getIntervals() {
     return Collections.unmodifiableList(Arrays.asList(this.intervals));
+  }
+
+  @Override
+  public List<CompoundMathematicalInterval> splitIntoIntervals() {
+    return Lists.transform(Arrays.asList(this.intervals), new Function<SimpleInterval, CompoundMathematicalInterval>() {
+
+      @Override
+      public CompoundMathematicalInterval apply(SimpleInterval pInterval) {
+        return of(pInterval);
+      }
+
+    });
   }
 
   /**
@@ -185,10 +200,10 @@ public class CompoundInterval {
    *
    * @return the union of this compound state with the given compound state.
    */
-  public CompoundInterval unionWith(CompoundInterval pOther) {
+  public CompoundMathematicalInterval unionWith(CompoundMathematicalInterval pOther) {
     if (pOther == this || isTop() || pOther.isBottom()) { return this; }
     if (pOther.isTop() || isBottom()) { return pOther; }
-    CompoundInterval current = this;
+    CompoundMathematicalInterval current = this;
     for (SimpleInterval interval : pOther.intervals) {
       current = current.unionWith(interval);
     }
@@ -201,7 +216,7 @@ public class CompoundInterval {
    *
    * @return the union of this compound state with the given simple interval.
    */
-  public CompoundInterval unionWith(SimpleInterval pOther) {
+  public CompoundMathematicalInterval unionWith(SimpleInterval pOther) {
     if (contains(pOther)) { return this; }
     if (isBottom() || pOther.isTop()) { return getInternal(pOther); }
     ArrayList<SimpleInterval> resultIntervals = new ArrayList<>();
@@ -276,13 +291,13 @@ public class CompoundInterval {
    *
    * @return the compound state resulting from the intersection of this compound state with the given state.
    */
-  public CompoundInterval intersectWith(CompoundInterval pOther) {
+  public CompoundMathematicalInterval intersectWith(CompoundMathematicalInterval pOther) {
     if (isBottom() || pOther.isTop() || this == pOther) { return this; }
     if (isTop() || pOther.isBottom()) { return pOther; }
     if (pOther.contains(this)) {
       return this;
     }
-    CompoundInterval result = bottom();
+    CompoundMathematicalInterval result = bottom();
     for (SimpleInterval otherInterval : pOther.intervals) {
       result = result.unionWith(intersectWith(otherInterval));
     }
@@ -295,11 +310,11 @@ public class CompoundInterval {
    *
    * @return the compound state resulting from the intersection of this compound state with the given interval.
    */
-  public CompoundInterval intersectWith(SimpleInterval pOther) {
+  public CompoundMathematicalInterval intersectWith(SimpleInterval pOther) {
     if (isBottom() || pOther.isTop()) { return this; }
-    if (contains(pOther)) { return CompoundInterval.of(pOther); }
+    if (contains(pOther)) { return CompoundMathematicalInterval.of(pOther); }
     if (this.intervals.length == 1 && pOther.contains(this.intervals[0])) { return this; }
-    CompoundInterval result = bottom();
+    CompoundMathematicalInterval result = bottom();
     final int lbIndex;
     if (pOther.hasLowerBound()) {
       int intervalIndex = intervalIndexOf(pOther.getLowerBound());
@@ -329,7 +344,7 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if this state intersects with the given state, <code>false</code> otherwise.
    */
-  public boolean intersectsWith(CompoundInterval pOther) {
+  public boolean intersectsWith(CompoundMathematicalInterval pOther) {
     if (contains(pOther)) {
       return !pOther.isBottom();
     }
@@ -358,7 +373,7 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if the given state is contained in this compound state, <code>false</code> otherwise.
    */
-  public boolean contains(CompoundInterval pState) {
+  public boolean contains(CompoundMathematicalInterval pState) {
     if (this == pState || isTop()) {
       return true;
     }
@@ -442,6 +457,7 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if the given value is contained in the state, <code>false</code> otherwise.
    */
+  @Override
   public boolean contains(BigInteger pValue) {
     if (isTop()) { return true; }
     if (isBottom()) { return false; }
@@ -468,6 +484,7 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if this is the bottom state, <code>false</code> otherwise.
    */
+  @Override
   public boolean isBottom() {
     return this.intervals.length == 0;
   }
@@ -477,8 +494,20 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if this is the top state, <code>false</code> otherwise.
    */
+  @Override
   public boolean isTop() {
     return !isBottom() && this.intervals[0].isTop();
+  }
+
+  /**
+   * Checks if this compound state contains every possible value.
+   *
+   * @return {@code true} if this state contains every possible value,
+   * {@code false} otherwise.
+   */
+  @Override
+  public boolean containsAllPossibleValues() {
+    return isTop();
   }
 
   @Override
@@ -503,11 +532,17 @@ public class CompoundInterval {
     return sb.toString();
   }
 
+  @Override
+  public CompoundInterval cast(BitVectorInfo pBitVectorInfo) {
+    return this;
+  }
+
   /**
    * Checks if there is a lower bound to this compound state.
    *
    * @return <code>true</code> if there is an lower bound to this compound state, <code>false</code> otherwise.
    */
+  @Override
   public boolean hasLowerBound() {
     if (isTop() || isBottom()) { return false; }
     return this.intervals[0].hasLowerBound();
@@ -518,6 +553,7 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if there is an upper bound to this compound state, <code>false</code> otherwise.
    */
+  @Override
   public boolean hasUpperBound() {
     if (isTop() || isBottom()) { return false; }
     return this.intervals[this.intervals.length - 1].hasUpperBound();
@@ -528,6 +564,7 @@ public class CompoundInterval {
    *
    * @return the lower bound of the compound state.
    */
+  @Override
   public BigInteger getLowerBound() {
     return this.intervals[0].getLowerBound();
   }
@@ -537,6 +574,7 @@ public class CompoundInterval {
    *
    * @return the upper bound of the compound state.
    */
+  @Override
   public BigInteger getUpperBound() {
     return this.intervals[this.intervals.length - 1].getUpperBound();
   }
@@ -546,6 +584,7 @@ public class CompoundInterval {
    *
    * @return <code>true</code> if this state represents a single value, <code>false</code> otherwise.
    */
+  @Override
   public boolean isSingleton() {
     return !isBottom() && this.intervals.length == 1 && this.intervals[0].isSingleton();
   }
@@ -557,6 +596,7 @@ public class CompoundInterval {
    * @return some value that is contained in the state or <code>null</code>
    * if the state is the "bottom" state.
    */
+  @Override
   public @Nullable
   BigInteger getValue() {
     if (isBottom()) { return null; }
@@ -572,8 +612,8 @@ public class CompoundInterval {
   public boolean equals(Object pOther) {
     if (this == pOther) { return true; }
     if (pOther == null) { return false; }
-    if (pOther instanceof CompoundInterval) {
-      return Arrays.equals(this.intervals, ((CompoundInterval) pOther).intervals);
+    if (pOther instanceof CompoundMathematicalInterval) {
+      return Arrays.equals(this.intervals, ((CompoundMathematicalInterval) pOther).intervals);
     }
     return false;
 
@@ -589,16 +629,17 @@ public class CompoundInterval {
    *
    * @return the signum of the compound state.
    */
-  public CompoundInterval signum() {
-    CompoundInterval result = bottom();
+  @Override
+  public CompoundMathematicalInterval signum() {
+    CompoundMathematicalInterval result = bottom();
     if (containsNegative()) {
-      result = result.unionWith(CompoundInterval.singleton(-1));
+      result = result.unionWith(CompoundMathematicalInterval.singleton(-1));
     }
     if (containsZero()) {
-      result = result.unionWith(CompoundInterval.singleton(0));
+      result = result.unionWith(CompoundMathematicalInterval.singleton(0));
     }
     if (containsPositive()) {
-      result = result.unionWith(CompoundInterval.singleton(1));
+      result = result.unionWith(CompoundMathematicalInterval.singleton(1));
     }
     return result;
   }
@@ -608,7 +649,8 @@ public class CompoundInterval {
    *
    * @return the state spanning from the compound state's lower bound and its upper bound.
    */
-  public CompoundInterval span() {
+  @Override
+  public CompoundMathematicalInterval span() {
     BigInteger lowerBound = null;
     BigInteger upperBound = null;
     if (hasLowerBound()) {
@@ -617,7 +659,7 @@ public class CompoundInterval {
     if (hasUpperBound()) {
       upperBound = getUpperBound();
     }
-    return CompoundInterval.of(createSimpleInterval(lowerBound, upperBound));
+    return CompoundMathematicalInterval.of(createSimpleInterval(lowerBound, upperBound));
   }
 
   /**
@@ -626,10 +668,11 @@ public class CompoundInterval {
    *
    * @return the inverted state.
    */
-  public CompoundInterval invert() {
+  @Override
+  public CompoundMathematicalInterval invert() {
     if (isTop()) { return bottom(); }
     if (isBottom()) { return top(); }
-    CompoundInterval result = bottom();
+    CompoundMathematicalInterval result = bottom();
     int index = 0;
     BigInteger currentLowerBound = null;
     if (!hasLowerBound()) {
@@ -657,9 +700,10 @@ public class CompoundInterval {
    * Negates the state. Do not confuse this with inverting ({@link #invert()}) the state.
    * @return the negated state.
    */
-  public CompoundInterval negate() {
+  @Override
+  public CompoundMathematicalInterval negate() {
     if (isTop() || isBottom()) { return this; }
-    CompoundInterval result = bottom();
+    CompoundMathematicalInterval result = bottom();
     for (SimpleInterval simpleInterval : this.intervals) {
       result = result.unionWith(simpleInterval.negate());
     }
@@ -670,6 +714,7 @@ public class CompoundInterval {
    * Checks if positive values are contained in the state.
    * @return <code>true</code> if this state contains positive values.
    */
+  @Override
   public boolean containsPositive() {
     if (isBottom()) { return false; }
     if (isTop()) { return true; }
@@ -684,6 +729,7 @@ public class CompoundInterval {
    * Checks if negative values are contained in the state.
    * @return <code>true</code> if this state contains negative values.
    */
+  @Override
   public boolean containsNegative() {
     if (isBottom()) { return false; }
     if (isTop()) { return true; }
@@ -706,7 +752,8 @@ public class CompoundInterval {
    *
    * @return a compound state similar to this state but with a negative infinity lower bound or bottom if this state is bottom.
    */
-  public CompoundInterval extendToNegativeInfinity() {
+  @Override
+  public CompoundMathematicalInterval extendToMinValue() {
     if (!hasLowerBound()) { return this; }
     SimpleInterval[] resultIntervals = new SimpleInterval[this.intervals.length];
     resultIntervals[0] = this.intervals[0].extendToNegativeInfinity();
@@ -719,7 +766,8 @@ public class CompoundInterval {
    *
    * @return a compound state similar to this state but with a positive infinity upper bound or bottom if this state is bottom.
    */
-  public CompoundInterval extendToPositiveInfinity() {
+  @Override
+  public CompoundMathematicalInterval extendToMaxValue() {
     if (!hasUpperBound()) { return this; }
     SimpleInterval[] resultIntervals = new SimpleInterval[this.intervals.length];
     int index = this.intervals.length - 1;
@@ -736,7 +784,7 @@ public class CompoundInterval {
    * @return the state resulting from adding the given value to this
    * state.
    */
-  public CompoundInterval add(final BigInteger pValue) {
+  public CompoundMathematicalInterval add(final BigInteger pValue) {
     return applyOperationToAllAndUnite(ISCOperator.ADD, pValue);
   }
 
@@ -748,7 +796,8 @@ public class CompoundInterval {
    * @return the state resulting from adding the given value to this
    * state.
    */
-  public CompoundInterval add(final long pValue) {
+  @Override
+  public CompoundMathematicalInterval add(final long pValue) {
     return add(BigInteger.valueOf(pValue));
   }
 
@@ -760,7 +809,7 @@ public class CompoundInterval {
    * @return the state resulting from adding the given interval to this
    * state.
    */
-  public CompoundInterval add(final SimpleInterval pInterval) {
+  public CompoundMathematicalInterval add(final SimpleInterval pInterval) {
     return applyOperationToAllAndUnite(IICOperator.ADD, pInterval);
   }
 
@@ -772,7 +821,7 @@ public class CompoundInterval {
    * @return the state resulting from adding the given state to this
    * state.
    */
-  public CompoundInterval add(final CompoundInterval pState) {
+  public CompoundMathematicalInterval add(final CompoundMathematicalInterval pState) {
     return applyOperationToAllAndUnite(ICCOperator.ADD, pState);
   }
 
@@ -784,14 +833,14 @@ public class CompoundInterval {
    * @return the state resulting from multiplying this state with the
    * given value.
    */
-  public CompoundInterval multiply(final BigInteger pValue) {
+  public CompoundMathematicalInterval multiply(final BigInteger pValue) {
     if (pValue.equals(BigInteger.ZERO)) {
-      return CompoundInterval.singleton(pValue);
+      return CompoundMathematicalInterval.singleton(pValue);
     }
     if (pValue.equals(BigInteger.ONE)) {
       return this;
     }
-    CompoundInterval result = applyOperationToAllAndUnite(ISCOperator.MULTIPLY, pValue);
+    CompoundMathematicalInterval result = applyOperationToAllAndUnite(ISCOperator.MULTIPLY, pValue);
     if (result.isTop()) {
       SimpleInterval[] resultIntervals = new SimpleInterval[7];
       if (pValue.signum() >= 0) {
@@ -818,7 +867,7 @@ public class CompoundInterval {
    * @return the state resulting from multiplying this state with the
    * given interval.
    */
-  public CompoundInterval multiply(final SimpleInterval pInterval) {
+  public CompoundMathematicalInterval multiply(final SimpleInterval pInterval) {
     if (pInterval.isSingleton()) {
       return multiply(pInterval.getLowerBound());
     }
@@ -833,7 +882,7 @@ public class CompoundInterval {
    * @return the state resulting from multiplying this state with the
    * given state.
    */
-  public CompoundInterval multiply(final CompoundInterval pState) {
+  public CompoundMathematicalInterval multiply(final CompoundMathematicalInterval pState) {
     if (pState.intervals.length == 1) {
       return multiply(pState.intervals[0]);
     }
@@ -848,7 +897,7 @@ public class CompoundInterval {
    * @return the state resulting from dividing this state by the given
    * value.
    */
-  public CompoundInterval divide(final BigInteger pValue) {
+  public CompoundMathematicalInterval divide(final BigInteger pValue) {
     return applyOperationToAllAndUnite(ISCOperator.DIVIDE, pValue);
   }
 
@@ -860,7 +909,7 @@ public class CompoundInterval {
    * @return the state resulting from dividing this state by the given
    * interval.
    */
-  public CompoundInterval divide(final SimpleInterval pInterval) {
+  public CompoundMathematicalInterval divide(final SimpleInterval pInterval) {
     return applyOperationToAllAndUnite(IICOperator.DIVIDE, pInterval);
   }
 
@@ -872,7 +921,7 @@ public class CompoundInterval {
    * @return the state resulting from dividing this state by the given
    * state.
    */
-  public CompoundInterval divide(final CompoundInterval pState) {
+  public CompoundMathematicalInterval divide(final CompoundMathematicalInterval pState) {
     return applyOperationToAllAndUnite(ICCOperator.DIVIDE, pState);
   }
 
@@ -884,7 +933,7 @@ public class CompoundInterval {
    * @return the state representing the remainder of dividing this state
    * by the given value.
    */
-  public CompoundInterval modulo(final BigInteger pValue) {
+  public CompoundMathematicalInterval modulo(final BigInteger pValue) {
     return applyOperationToAllAndUnite(ISCOperator.MODULO, pValue);
   }
 
@@ -897,7 +946,7 @@ public class CompoundInterval {
    * @return the state representing the remainder of dividing this state
    * by the given interval.
    */
-  public CompoundInterval modulo(final SimpleInterval pInterval) {
+  public CompoundMathematicalInterval modulo(final SimpleInterval pInterval) {
     return applyOperationToAllAndUnite(IICOperator.MODULO, pInterval);
   }
 
@@ -909,7 +958,7 @@ public class CompoundInterval {
    * @return the state representing the remainder of dividing this state
    * by the given state.
    */
-  public CompoundInterval modulo(final CompoundInterval pState) {
+  public CompoundMathematicalInterval modulo(final CompoundMathematicalInterval pState) {
     return applyOperationToAllAndUnite(ICCOperator.MODULO, pState);
   }
 
@@ -921,7 +970,7 @@ public class CompoundInterval {
    * @return the state resulting from left shifting this state by the
    * given value.
    */
-  public CompoundInterval shiftLeft(final BigInteger pValue) {
+  public CompoundMathematicalInterval shiftLeft(final BigInteger pValue) {
     return applyOperationToAllAndUnite(ISCOperator.SHIFT_LEFT, pValue);
   }
 
@@ -933,7 +982,7 @@ public class CompoundInterval {
    * @return the state resulting from left shifting this state by the
    * given interval.
    */
-  public CompoundInterval shiftLeft(final SimpleInterval pInterval) {
+  public CompoundMathematicalInterval shiftLeft(final SimpleInterval pInterval) {
     return applyOperationToAllAndUnite(IICOperator.SHIFT_LEFT, pInterval);
   }
 
@@ -945,7 +994,7 @@ public class CompoundInterval {
    * @return the state resulting from left shifting this state by the
    * given state.
    */
-  public CompoundInterval shiftLeft(final CompoundInterval pState) {
+  public CompoundMathematicalInterval shiftLeft(final CompoundMathematicalInterval pState) {
     return applyOperationToAllAndUnite(ICCOperator.SHIFT_LEFT, pState);
   }
 
@@ -957,7 +1006,7 @@ public class CompoundInterval {
    * @return the state resulting from right shifting this state by the
    * given value.
    */
-  public CompoundInterval shiftRight(final BigInteger pValue) {
+  public CompoundMathematicalInterval shiftRight(final BigInteger pValue) {
     return applyOperationToAllAndUnite(ISCOperator.SHIFT_RIGHT, pValue);
   }
 
@@ -969,7 +1018,7 @@ public class CompoundInterval {
    * @return the state resulting from right shifting this state by the
    * given interval.
    */
-  public CompoundInterval shiftRight(final SimpleInterval pInterval) {
+  public CompoundMathematicalInterval shiftRight(final SimpleInterval pInterval) {
     return applyOperationToAllAndUnite(IICOperator.SHIFT_RIGHT, pInterval);
   }
 
@@ -981,7 +1030,7 @@ public class CompoundInterval {
    * @return the state resulting from right shifting this state by the
    * given state.
    */
-  public CompoundInterval shiftRight(final CompoundInterval pState) {
+  public CompoundMathematicalInterval shiftRight(final CompoundMathematicalInterval pState) {
     return applyOperationToAllAndUnite(ICCOperator.SHIFT_RIGHT, pState);
   }
 
@@ -1006,10 +1055,10 @@ public class CompoundInterval {
    * top if they do intersect but are not equal singletons and bottom
    * if one of the states is bottom.
    */
-  public CompoundInterval logicalEquals(final CompoundInterval pState) {
+  public CompoundMathematicalInterval logicalEquals(final CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
-    if (isSingleton() && equals(pState)) { return CompoundInterval.logicalTrue(); }
-    if (!intersectsWith(pState)) { return CompoundInterval.logicalFalse(); }
+    if (isSingleton() && equals(pState)) { return CompoundMathematicalInterval.logicalTrue(); }
+    if (!intersectsWith(pState)) { return CompoundMathematicalInterval.logicalFalse(); }
     return top();
   }
 
@@ -1020,6 +1069,7 @@ public class CompoundInterval {
    * @return <code>true</code> if this state definitely evaluates to
    * <code>false</code>, <code>false</code> otherwise.
    */
+  @Override
   public boolean isDefinitelyFalse() {
     return equals(logicalFalse());
   }
@@ -1031,6 +1081,7 @@ public class CompoundInterval {
    * @return <code>true</code> if this state definitely evaluates to
    * <code>true</code>, <code>false</code> otherwise.
    */
+  @Override
   public boolean isDefinitelyTrue() {
     return !isBottom() && !containsZero();
   }
@@ -1053,7 +1104,7 @@ public class CompoundInterval {
    * state are less than or equal to all values in the given state,
    * bottom if one of the states is bottom, top otherwise.
    */
-  public CompoundInterval greaterThan(final CompoundInterval pState) {
+  public CompoundMathematicalInterval greaterThan(final CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
     if (hasLowerBound() && pState.hasUpperBound() && getLowerBound().compareTo(pState.getUpperBound()) > 0) { return TRUE; }
     if (hasUpperBound() && pState.hasLowerBound() && getUpperBound().compareTo(pState.getLowerBound()) <= 0) { return FALSE; }
@@ -1079,7 +1130,7 @@ public class CompoundInterval {
    * values contained in this state are less than all values in the
    * given state, bottom if one of the states is bottom, top otherwise.
    */
-  public CompoundInterval greaterEqual(final CompoundInterval pState) {
+  public CompoundMathematicalInterval greaterEqual(final CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
     if (hasLowerBound() && pState.hasUpperBound() && getLowerBound().compareTo(pState.getUpperBound()) >= 0) { return TRUE; }
     if (hasUpperBound() && pState.hasLowerBound() && getUpperBound().compareTo(pState.getLowerBound()) < 0) { return FALSE; }
@@ -1104,7 +1155,7 @@ public class CompoundInterval {
    * this state are greater than or equal to all values in the given
    * state, bottom if one of the states is bottom, top otherwise.
    */
-  public CompoundInterval lessThan(final CompoundInterval pState) {
+  public CompoundMathematicalInterval lessThan(final CompoundMathematicalInterval pState) {
     return greaterEqual(pState).logicalNot();
   }
 
@@ -1127,7 +1178,7 @@ public class CompoundInterval {
    * contained in this state are greater than all values in the given
    * state, bottom if one of the states is bottom, top otherwise.
    */
-  public CompoundInterval lessEqual(final CompoundInterval pState) {
+  public CompoundMathematicalInterval lessEqual(final CompoundMathematicalInterval pState) {
     return greaterThan(pState).logicalNot();
   }
 
@@ -1143,7 +1194,7 @@ public class CompoundInterval {
    * represents true, a state representing false if one of these states
    * represents false, top otherwise.
    */
-  public CompoundInterval logicalAnd(final CompoundInterval pState) {
+  public CompoundMathematicalInterval logicalAnd(final CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
     if (isSingleton() && containsZero() || pState.isSingleton() && pState.containsZero()) { return logicalFalse(); }
     if (!containsZero() && !pState.containsZero()) { return logicalTrue(); }
@@ -1161,7 +1212,7 @@ public class CompoundInterval {
    * given state represents true, a state representing false if none of
    * these states represents true, top otherwise.
    */
-  public CompoundInterval logicalOr(final CompoundInterval pState) {
+  public CompoundMathematicalInterval logicalOr(final CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
     if (isSingleton() && containsZero() && pState.isSingleton() && pState.containsZero()) { return logicalFalse(); }
     if (!containsZero() || !pState.containsZero()) { return logicalTrue(); }
@@ -1184,7 +1235,7 @@ public class CompoundInterval {
    * false state and a state representing top if the this state
    * contains both true and false.
    */
-  public CompoundInterval logicalNot() {
+  public CompoundMathematicalInterval logicalNot() {
     if (isBottom()) { return this; }
     if (isSingleton() && containsZero()) {
       return TRUE;
@@ -1208,7 +1259,7 @@ public class CompoundInterval {
    * bit-wise and-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundInterval binaryAnd(CompoundInterval pState) {
+  public CompoundMathematicalInterval binaryAnd(CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) {
       return bottom();
     }
@@ -1218,14 +1269,14 @@ public class CompoundInterval {
     if (isSingleton() && containsZero()) {
       return this;
     }
-    CompoundInterval result;
+    CompoundMathematicalInterval result;
     if (pState.isSingleton()) {
       result = bottom();
       for (SimpleInterval interval : this.intervals) {
         if (!interval.isSingleton()) {
           // x & 1 always yields either 0 or 1
           return pState.contains(1)
-              ? CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE))
+              ? CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE))
               : top();
         }
         result = result.unionWith(SimpleInterval.singleton(interval.getLowerBound().and(pState.getValue())));
@@ -1236,8 +1287,8 @@ public class CompoundInterval {
       result = top();
     }
     if (!result.isSingleton()) {
-      CompoundInterval absThis = absolute();
-      CompoundInterval absOther = pState.absolute();
+      CompoundMathematicalInterval absThis = absolute();
+      CompoundMathematicalInterval absOther = pState.absolute();
       BigInteger smallestUpperBound = null;
       if (absThis.hasUpperBound()) {
         smallestUpperBound = absThis.getUpperBound();
@@ -1248,11 +1299,11 @@ public class CompoundInterval {
             : smallestUpperBound.min(absOther.getUpperBound());
       }
       assert smallestUpperBound == null || smallestUpperBound.signum() >= 0;
-      CompoundInterval range;
+      CompoundMathematicalInterval range;
       if (smallestUpperBound == null) {
-        range = zero().extendToPositiveInfinity();
+        range = zero().extendToMaxValue();
       } else {
-        range = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, smallestUpperBound));
+        range = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, smallestUpperBound));
       }
       if (containsNegative() && pState.containsNegative()) {
         range = range.unionWith(range.negate());
@@ -1269,11 +1320,11 @@ public class CompoundInterval {
    * @return the state resulting from computing the absolute values of this
    * state.
    */
-  public CompoundInterval absolute() {
+  public CompoundMathematicalInterval absolute() {
     if (!containsNegative()) {
       return this;
     }
-    return intersectWith(one().negate().extendToNegativeInfinity()).negate().unionWith(intersectWith(zero().extendToPositiveInfinity()));
+    return intersectWith(one().negate().extendToMinValue()).negate().unionWith(intersectWith(zero().extendToMaxValue()));
   }
 
   /**
@@ -1292,16 +1343,16 @@ public class CompoundInterval {
    * bit-wise xor-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundInterval binaryXor(CompoundInterval pState) {
+  public CompoundMathematicalInterval binaryXor(CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
-    if (isSingleton() && pState.isSingleton()) { return CompoundInterval.singleton(getValue().xor(pState.getValue())); }
+    if (isSingleton() && pState.isSingleton()) { return CompoundMathematicalInterval.singleton(getValue().xor(pState.getValue())); }
     if (pState.isSingleton() && pState.containsZero()) {
       return this;
     }
     if (isSingleton() && containsZero()) {
       return pState;
     }
-    CompoundInterval zeroToOne = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
+    CompoundMathematicalInterval zeroToOne = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, BigInteger.ONE));
     // [0,1] ^ 1 = [0,1]
     if (pState.isSingleton() && pState.contains(1) && equals(zeroToOne)) {
       return this;
@@ -1311,7 +1362,7 @@ public class CompoundInterval {
       return zeroToOne;
     }
     if (pState.isSingleton()) {
-      CompoundInterval result = bottom();
+      CompoundMathematicalInterval result = bottom();
       for (SimpleInterval interval : this.intervals) {
         if (!interval.isSingleton()) {
           return top();
@@ -1333,16 +1384,17 @@ public class CompoundInterval {
    * @return the state resulting from flipping the bits of the
    * values represented by this state.
    */
-  public CompoundInterval binaryNot() {
+  @Override
+  public CompoundMathematicalInterval binaryNot() {
     if (isBottom()) { return bottom(); }
-    CompoundInterval result = bottom();
+    CompoundMathematicalInterval result = bottom();
     for (SimpleInterval interval : this.intervals) {
       if (!interval.isSingleton()) {
         // TODO maybe a more exact implementation is possible?
         if (!containsNegative()) {
-          return singleton(0).extendToNegativeInfinity();
+          return singleton(0).extendToMinValue();
         } else if (!containsPositive()) {
-          return singleton(0).extendToPositiveInfinity();
+          return singleton(0).extendToMaxValue();
         } else {
           return top();
         }
@@ -1368,7 +1420,7 @@ public class CompoundInterval {
    * bit-wise or-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundInterval binaryOr(CompoundInterval pState) {
+  public CompoundMathematicalInterval binaryOr(CompoundMathematicalInterval pState) {
     if (isBottom() || pState.isBottom()) { return bottom(); }
     if (isSingleton() && containsZero()) {
       return pState;
@@ -1377,7 +1429,7 @@ public class CompoundInterval {
       return this;
     }
     if (pState.isSingleton()) {
-      CompoundInterval result = bottom();
+      CompoundMathematicalInterval result = bottom();
       for (SimpleInterval interval : this.intervals) {
         if (!interval.isSingleton()) {
           return top();
@@ -1408,7 +1460,7 @@ public class CompoundInterval {
    * both represent false, bottom if one of the states is bottom, top
    * otherwise.
    */
-  public CompoundInterval logicalXor(CompoundInterval pState) {
+  public CompoundMathematicalInterval logicalXor(CompoundMathematicalInterval pState) {
     return logicalAnd(logicalOr(this, pState), logicalNot(logicalAnd(this, pState)));
   }
 
@@ -1426,7 +1478,7 @@ public class CompoundInterval {
    * represents false, bottom if one of the states is bottom, top
    * otherwise.
    */
-  public static CompoundInterval logicalAnd(CompoundInterval p1, CompoundInterval p2) {
+  public static CompoundMathematicalInterval logicalAnd(CompoundMathematicalInterval p1, CompoundMathematicalInterval p2) {
     return p1.logicalAnd(p2);
   }
 
@@ -1444,7 +1496,7 @@ public class CompoundInterval {
    * states represents true, bottom if one of the states is bottom, top
    * otherwise.
    */
-  public static CompoundInterval logicalOr(CompoundInterval p1, CompoundInterval p2) {
+  public static CompoundMathematicalInterval logicalOr(CompoundMathematicalInterval p1, CompoundMathematicalInterval p2) {
     return p1.logicalOr(p2);
   }
 
@@ -1465,7 +1517,7 @@ public class CompoundInterval {
    * both represent false, bottom if one of the states is bottom, top
    * otherwise.
    */
-  public static CompoundInterval logicalXor(CompoundInterval p1, CompoundInterval p2) {
+  public static CompoundMathematicalInterval logicalXor(CompoundMathematicalInterval p1, CompoundMathematicalInterval p2) {
     return p1.logicalXor(p2);
   }
 
@@ -1486,7 +1538,7 @@ public class CompoundInterval {
    * contain the false state, bottom if the given state is bottom and a
    * top if the given state contains both true and false.
    */
-  public static CompoundInterval logicalNot(CompoundInterval pState) {
+  public static CompoundMathematicalInterval logicalNot(CompoundMathematicalInterval pState) {
     return pState.logicalNot();
   }
 
@@ -1500,10 +1552,10 @@ public class CompoundInterval {
    * each interval of this state and the given value and uniting the
    * results.
    */
-  private <T> CompoundInterval applyOperationToAllAndUnite(Operator<SimpleInterval, T, CompoundInterval> pOperator, T pOperand) {
-    CompoundInterval result = bottom();
+  private <T> CompoundMathematicalInterval applyOperationToAllAndUnite(Operator<SimpleInterval, T, CompoundMathematicalInterval> pOperator, T pOperand) {
+    CompoundMathematicalInterval result = bottom();
     for (SimpleInterval interval : this.intervals) {
-      CompoundInterval current = pOperator.apply(interval, pOperand);
+      CompoundMathematicalInterval current = pOperator.apply(interval, pOperand);
       if (current != null) {
         result = result.unionWith(current);
         if (result.isTop()) { return result; }
@@ -1580,7 +1632,7 @@ public class CompoundInterval {
    *
    * @return a new compound state representation of the given simple interval.
    */
-  public static CompoundInterval of(@Nullable SimpleInterval interval) {
+  public static CompoundMathematicalInterval of(@Nullable SimpleInterval interval) {
     if (interval == null) {
       return bottom();
     }
@@ -1594,9 +1646,9 @@ public class CompoundInterval {
    *
    * @return a compound state representing the given big integer value.
    */
-  public static CompoundInterval singleton(BigInteger pValue) {
+  public static CompoundMathematicalInterval singleton(BigInteger pValue) {
     Preconditions.checkNotNull(pValue);
-    return CompoundInterval.of(SimpleInterval.singleton(pValue));
+    return CompoundMathematicalInterval.of(SimpleInterval.singleton(pValue));
   }
 
   /**
@@ -1604,7 +1656,7 @@ public class CompoundInterval {
    * @param pValue the value to be represented by the state.
    * @return a compound state representing the given long value.
    */
-  public static CompoundInterval singleton(long pValue) {
+  public static CompoundMathematicalInterval singleton(long pValue) {
     return singleton(BigInteger.valueOf(pValue));
   }
 
@@ -1612,7 +1664,7 @@ public class CompoundInterval {
    * Gets a compound state representing "bottom".
    * @return a compound state representing "bottom".
    */
-  public static CompoundInterval bottom() {
+  public static CompoundMathematicalInterval bottom() {
     return BOTTOM;
   }
 
@@ -1620,27 +1672,27 @@ public class CompoundInterval {
    * Gets a compound state representing "top".
    * @return a compound state representing "top".
    */
-  public static CompoundInterval top() {
+  public static CompoundMathematicalInterval top() {
     return TOP;
   }
 
-  public static CompoundInterval logicalFalse() {
+  public static CompoundMathematicalInterval logicalFalse() {
     return FALSE;
   }
 
-  public static CompoundInterval logicalTrue() {
+  public static CompoundMathematicalInterval logicalTrue() {
     return TRUE;
   }
 
-  public static CompoundInterval zero() {
+  public static CompoundMathematicalInterval zero() {
     return ZERO;
   }
 
-  public static CompoundInterval one() {
+  public static CompoundMathematicalInterval one() {
     return ONE;
   }
 
-  public static CompoundInterval minusOne() {
+  public static CompoundMathematicalInterval minusOne() {
     return MINUS_ONE;
   }
 
@@ -1667,7 +1719,7 @@ public class CompoundInterval {
    * @param pRightValue one of the states to span over.
    * @return the compound state spanning from the lowest of the two given states' lower bounds to their highest upper bound.
    */
-  public static CompoundInterval span(CompoundInterval pLeftValue, CompoundInterval pRightValue) {
+  public static CompoundMathematicalInterval span(CompoundMathematicalInterval pLeftValue, CompoundMathematicalInterval pRightValue) {
     return pLeftValue.span().unionWith(pRightValue.span()).span();
   }
 
@@ -1677,7 +1729,7 @@ public class CompoundInterval {
    * @param pRightValue one of the states to be united.
    * @return the union of the given states.
    */
-  public static CompoundInterval union(CompoundInterval pLeftValue, CompoundInterval pRightValue) {
+  public static CompoundMathematicalInterval union(CompoundMathematicalInterval pLeftValue, CompoundMathematicalInterval pRightValue) {
     return pLeftValue.unionWith(pRightValue);
   }
 
@@ -1687,7 +1739,7 @@ public class CompoundInterval {
    * @param value the boolean value to represent as compound state.
    * @return the state representing the given boolean value.
    */
-  public static CompoundInterval fromBoolean(boolean value) {
+  public static CompoundMathematicalInterval fromBoolean(boolean value) {
     return value ? logicalTrue() : logicalFalse();
   }
 

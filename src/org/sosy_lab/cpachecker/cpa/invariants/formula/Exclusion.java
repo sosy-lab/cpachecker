@@ -24,15 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 
-public class Exclusion<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Exclusion<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
-  private final InvariantsFormula<ConstantType> excluded;
+  private final NumeralFormula<ConstantType> excluded;
 
-  private Exclusion(InvariantsFormula<ConstantType> pExcluded) {
+  private Exclusion(NumeralFormula<ConstantType> pExcluded) {
+    super(pExcluded.getBitVectorInfo());
     this.excluded = pExcluded;
   }
 
-  public InvariantsFormula<ConstantType> getExcluded() {
+  public NumeralFormula<ConstantType> getExcluded() {
     return this.excluded;
   }
 
@@ -58,17 +59,17 @@ public class Exclusion<ConstantType> extends AbstractFormula<ConstantType> imple
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
-  public static <ConstantType> InvariantsFormula<ConstantType> of(InvariantsFormula<ConstantType> pToExclude) {
+  public static <ConstantType> NumeralFormula<ConstantType> of(NumeralFormula<ConstantType> pToExclude) {
     return new Exclusion<>(pToExclude);
   }
 

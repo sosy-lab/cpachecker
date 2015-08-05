@@ -25,8 +25,13 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Objects;
 
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 
 /**
  * Instances of this class are visitors for compound state invariants formulae
@@ -35,26 +40,83 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
  * {@link FormulaCompoundStateEvaluationVisitor} in order to enable the CPA
  * strategy to prevent infeasible interpretation of the analyzed code.
  */
-public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisitor<CompoundInterval, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>>, CompoundInterval> implements FormulaEvaluationVisitor<CompoundInterval> {
+public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormulaVisitor<CompoundInterval, Map<? extends String, ? extends NumeralFormula<CompoundInterval>>, CompoundInterval> implements FormulaEvaluationVisitor<CompoundInterval> {
 
-  private static final FormulaCompoundStateEvaluationVisitor EVALUATION_VISITOR = new FormulaCompoundStateEvaluationVisitor();
+  private final FormulaCompoundStateEvaluationVisitor evaluationVisitor;
 
-  private static CompoundInterval abstractionOf(CompoundInterval pValue) {
+  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
+
+  public FormulaAbstractionVisitor(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
+    evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+  }
+
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  }
+
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorType pBitvectorType) {
+    return getCompoundIntervalManager(pBitvectorType.getBitVectorInfo());
+  }
+
+  @Override
+  public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return weakAdd(pAdd.getBitVectorInfo(), pAdd.getSummand1().accept(evaluationVisitor, pEnvironment), pAdd.getSummand2().accept(evaluationVisitor, pEnvironment));
+  }
+
+  @Override
+  public CompoundInterval visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return pConstant.getValue();
+  }
+
+  @Override
+  public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return weakMultiply(pMultiply.getBitVectorInfo(), pMultiply.getFactor1().accept(this, pEnvironment), pMultiply.getFactor2().accept(this, pEnvironment));
+  }
+
+  @Override
+  public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval toShift = pShiftLeft.getShifted().accept(this, pEnvironment);
+    CompoundInterval shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
+    CompoundInterval evaluation = getCompoundIntervalManager(pShiftLeft).shiftLeft(toShift, shiftDistance);
+    if (!shiftDistance.containsPositive()) {
+      return evaluation;
+    }
+    return abstractionOf(pShiftLeft.getBitVectorInfo(), evaluation);
+  }
+
+  @Override
+  public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    NumeralFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getName());
+    if (varState == null) {
+      return getCompoundIntervalManager(pVariable).allPossibleValues();
+    }
+    return varState.accept(this, pEnvironment);
+  }
+
+  @Override
+  protected CompoundInterval visitDefault(NumeralFormula<CompoundInterval> pFormula,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pParam) {
+    return abstractionOf(pFormula.getBitVectorInfo(), pFormula.accept(evaluationVisitor, pParam));
+  }
+
+  private CompoundInterval abstractionOf(BitVectorInfo pBitVectorInfo, CompoundInterval pValue) {
     if (pValue.isBottom() || pValue.isTop()) {
       return pValue;
     }
     CompoundInterval result = pValue.signum();
     boolean extendToNeg = false;
-    if (!pValue.lessThan(result).isDefinitelyFalse()) {
+    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pBitVectorInfo);
+    if (!compoundIntervalManager.lessThan(pValue, result).isDefinitelyFalse()) {
       extendToNeg = true;
     }
-    if (!pValue.greaterThan(result).isDefinitelyFalse()) {
-      result = result.extendToPositiveInfinity();
+    if (!compoundIntervalManager.greaterThan(pValue, result).isDefinitelyFalse()) {
+      result = result.extendToMaxValue();
     }
     if (extendToNeg) {
-      result = result.extendToNegativeInfinity();
+      result = result.extendToMinValue();
     }
-    assert result.unionWith(pValue).equals(result);
+    assert compoundIntervalManager.union(result, pValue).equals(result);
     return result;
   }
 
@@ -70,14 +132,14 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
    * @return a state representing possible results of adding the given summand
    * compound states up.
    */
-  private CompoundInterval weakAdd(CompoundInterval pA, CompoundInterval pB) {
-    if (pA.isSingleton() && pA.containsZero()) {
+  private CompoundInterval weakAdd(BitVectorInfo pBitVectorInfo, CompoundInterval pA, CompoundInterval pB) {
+    if (pA.isSingleton() && pA.contains(BigInteger.ZERO)) {
       return pB;
     }
-    if (pB.isSingleton() && pB.containsZero()) {
+    if (pB.isSingleton() && pB.contains(BigInteger.ZERO)) {
       return pA;
     }
-    return abstractionOf(pA.add(pB));
+    return abstractionOf(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).add(pA, pB));
   }
 
   /**
@@ -92,17 +154,17 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
    * @return a state representing possible results of multiplying the given
    * factor compound states.
    */
-  private CompoundInterval weakMultiply(CompoundInterval a, CompoundInterval b) {
-    if (a.isSingleton() && a.containsZero()) {
+  private CompoundInterval weakMultiply(BitVectorInfo pBitVectorInfo, CompoundInterval a, CompoundInterval b) {
+    if (a.isSingleton() && a.contains(BigInteger.ZERO)) {
       return a;
     }
-    if (b.isSingleton() && b.containsZero()) {
+    if (b.isSingleton() && b.contains(BigInteger.ZERO)) {
       return b;
     }
-    if (a.isSingleton() && a.contains(1)) {
+    if (a.isSingleton() && a.contains(BigInteger.ONE)) {
       return b;
     }
-    if (b.isSingleton() && b.contains(1)) {
+    if (b.isSingleton() && b.contains(BigInteger.ONE)) {
       return a;
     }
     if (a.isSingleton() && a.contains(BigInteger.ONE.negate())) {
@@ -111,48 +173,61 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedFormulaVisito
     if (b.isSingleton() && b.contains(BigInteger.ONE.negate())) {
       return a.negate();
     }
-    return abstractionOf(a.multiply(b));
+    return abstractionOf(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).multiply(a, b));
   }
 
   @Override
-  public CompoundInterval visit(Add<CompoundInterval> pAdd, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return weakAdd(pAdd.getSummand1().accept(EVALUATION_VISITOR, pEnvironment), pAdd.getSummand2().accept(EVALUATION_VISITOR, pEnvironment));
+  public BooleanConstant<CompoundInterval> visit(Equal<CompoundInterval> pEqual,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return evaluationVisitor.visit(pEqual, pEnvironment);
   }
 
   @Override
-  public CompoundInterval visit(Constant<CompoundInterval> pConstant, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return pConstant.getValue();
+  public BooleanConstant<CompoundInterval> visit(LessThan<CompoundInterval> pLessThan,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return evaluationVisitor.visit(pLessThan, pEnvironment);
   }
 
   @Override
-  public CompoundInterval visit(Multiply<CompoundInterval> pMultiply, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return weakMultiply(pMultiply.getFactor1().accept(this, pEnvironment), pMultiply.getFactor2().accept(this, pEnvironment));
+  public BooleanConstant<CompoundInterval> visit(LogicalAnd<CompoundInterval> pAnd,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return evaluationVisitor.visit(pAnd, pEnvironment);
   }
 
   @Override
-  public CompoundInterval visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval toShift = pShiftLeft.getShifted().accept(this, pEnvironment);
-    CompoundInterval shiftDistance = pShiftLeft.getShiftDistance().accept(this, pEnvironment);
-    CompoundInterval evaluation = toShift.shiftLeft(shiftDistance);
-    if (!shiftDistance.containsPositive()) {
-      return evaluation;
+  public BooleanConstant<CompoundInterval> visit(LogicalNot<CompoundInterval> pNot,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return evaluationVisitor.visit(pNot, pEnvironment);
+  }
+
+  @Override
+  public BooleanConstant<CompoundInterval> visitFalse(
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return evaluationVisitor.visitFalse(pEnvironment);
+  }
+
+  @Override
+  public BooleanConstant<CompoundInterval> visitTrue(
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return evaluationVisitor.visitTrue(pEnvironment);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(this.evaluationVisitor, this.compoundIntervalManagerFactory);
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
     }
-    return abstractionOf(evaluation);
-  }
-
-  @Override
-  public CompoundInterval visit(Variable<CompoundInterval> pVariable, Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    InvariantsFormula<CompoundInterval> varState = pEnvironment.get(pVariable.getName());
-    if (varState == null) {
-      return CompoundInterval.top();
+    if (pOther instanceof FormulaAbstractionVisitor) {
+      FormulaAbstractionVisitor other = (FormulaAbstractionVisitor) pOther;
+      return evaluationVisitor.equals(other.evaluationVisitor)
+          && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
     }
-    return varState.accept(this, pEnvironment);
-  }
-
-  @Override
-  protected CompoundInterval visitDefault(InvariantsFormula<CompoundInterval> pFormula,
-      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pParam) {
-    return abstractionOf(pFormula.accept(EVALUATION_VISITOR, pParam));
+    return false;
   }
 
 }

@@ -27,8 +27,9 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -73,7 +74,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssumption(InvariantsFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssumption(BooleanFormula<ConstantType> pAssumption) {
     Set<String> involvedVariables = pAssumption.accept(this.collectVarsVisitor);
     for (String involvedVariable : involvedVariables) {
       if (contains(involvedVariable)) {
@@ -92,7 +93,7 @@ public class AcceptSpecifiedVariableSelection<ConstantType> implements VariableS
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, InvariantsFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, NumeralFormula<ConstantType> pAssumption) {
     if (contains(pVariableName)) {
       /*
        * Extend the set of specified variables transitively.

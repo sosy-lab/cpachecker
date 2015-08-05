@@ -21,19 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.invariants.operators;
+package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
  * Instances of implementations of this interface are operators that can
  * be applied to a simple interval and a scalar value, producing a
  * compound state representing the result of the operation.
  */
-public enum ISCOperator implements Operator<SimpleInterval, BigInteger, CompoundInterval> {
+public enum ISCOperator implements Operator<SimpleInterval, BigInteger, CompoundMathematicalInterval> {
 
   /**
    * The addition operator for adding scalar values to simple intervals.
@@ -41,8 +42,8 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
   ADD {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
-      return CompoundInterval.of(ISIOperator.ADD.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
+      return CompoundMathematicalInterval.of(ISIOperator.ADD.apply(pFirstOperand, pSecondOperand));
     }
 
   },
@@ -53,8 +54,8 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
   DIVIDE {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
-      return CompoundInterval.of(ISIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
+      return CompoundMathematicalInterval.of(ISIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand));
     }
 
   },
@@ -65,10 +66,10 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
   MODULO {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pValue) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pValue) {
       // Division by zero is undefined, so bottom is returned
       if (pValue.signum() == 0) {
-        return CompoundInterval.bottom();
+        return CompoundMathematicalInterval.bottom();
       }
       /*
        * Only the absolute value of the divisor is considered (see
@@ -83,12 +84,12 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
        * remainder implementation.
        */
       if (pFirstOperand.isSingleton()) {
-        return CompoundInterval.singleton(pFirstOperand.getLowerBound().remainder(pValue));
+        return CompoundMathematicalInterval.singleton(pFirstOperand.getLowerBound().remainder(pValue));
       }
       BigInteger largestPossibleValue = pValue.subtract(BigInteger.ONE);
-      CompoundInterval result = CompoundInterval.bottom();
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
       if (pFirstOperand.containsNegative()) {
-        CompoundInterval negRange = CompoundInterval.of(SimpleInterval.of(largestPossibleValue.negate(), BigInteger.ZERO));
+        CompoundMathematicalInterval negRange = CompoundMathematicalInterval.of(SimpleInterval.of(largestPossibleValue.negate(), BigInteger.ZERO));
         if (pFirstOperand.hasLowerBound()) {
           final SimpleInterval negPart;
           if (pFirstOperand.containsZero()) {
@@ -101,7 +102,7 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
         result = result.unionWith(negRange);
       }
       if (pFirstOperand.containsPositive()) {
-        CompoundInterval posRange = CompoundInterval.of(SimpleInterval.of(BigInteger.ZERO, largestPossibleValue));
+        CompoundMathematicalInterval posRange = CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, largestPossibleValue));
         if (pFirstOperand.hasUpperBound()) {
           final SimpleInterval posPart;
           if (pFirstOperand.containsZero()) {
@@ -123,7 +124,7 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
                 && nextModBorder.compareTo(posPart.getUpperBound()) >= 0) {
               BigInteger bound1 = posPart.getLowerBound().remainder(pValue);
               BigInteger bound2 = posPart.getUpperBound().remainder(pValue);
-              posRange = CompoundInterval.of(SimpleInterval.of(bound1.min(bound2), bound1.max(bound2)));
+              posRange = CompoundMathematicalInterval.of(SimpleInterval.of(bound1.min(bound2), bound1.max(bound2)));
             } else if (modBorder.compareTo(posPart.getLowerBound()) > 0
                 && modBorder.compareTo(posPart.getUpperBound()) < 0) {
               SimpleInterval posPart1 = SimpleInterval.of(posPart.getLowerBound(), modBorder.subtract(BigInteger.ONE));
@@ -145,8 +146,8 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
   MULTIPLY {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
-      return CompoundInterval.of(ISIOperator.MULTIPLY.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
+      return CompoundMathematicalInterval.of(ISIOperator.MULTIPLY.apply(pFirstOperand, pSecondOperand));
     }
 
   },
@@ -157,8 +158,8 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
   SHIFT_LEFT {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
-      return CompoundInterval.of(ISIOperator.SHIFT_LEFT.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
+      return CompoundMathematicalInterval.of(ISIOperator.SHIFT_LEFT.apply(pFirstOperand, pSecondOperand));
     }
 
   },
@@ -169,8 +170,8 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
   SHIFT_RIGHT {
 
     @Override
-    public CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
-      return CompoundInterval.of(ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand) {
+      return CompoundMathematicalInterval.of(ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, pSecondOperand));
     }
 
   };
@@ -180,10 +181,11 @@ public enum ISCOperator implements Operator<SimpleInterval, BigInteger, Compound
    *
    * @param pFirstOperand the simple interval operand to apply the operator to.
    * @param pSecondOperand the scalar operand to apply the operator to.
+   *
    * @return the compound state resulting from applying the first operand to the
    * second operand.
    */
   @Override
-  public abstract CompoundInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand);
+  public abstract CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, BigInteger pSecondOperand);
 
 }

@@ -23,25 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.base.Preconditions;
 
 /**
  * Instances of this class represent logical negations of invariants formulae.
- *
- * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
 
   /**
    * The formula logically negated by this formula.
    */
-  private final InvariantsFormula<ConstantType> negated;
+  private final BooleanFormula<ConstantType> negated;
 
   /**
    * Creates a new logical negation of the given formula.
    *
    * @param pToNegate the formula to logically negate.
    */
-  private LogicalNot(InvariantsFormula<ConstantType> pToNegate) {
+  private LogicalNot(BooleanFormula<ConstantType> pToNegate) {
+    Preconditions.checkNotNull(pToNegate);
     this.negated = pToNegate;
   }
 
@@ -50,14 +50,14 @@ public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> impl
    *
    * @return the formula logically negated by this formula.
    */
-  public InvariantsFormula<ConstantType> getNegated() {
+  public BooleanFormula<ConstantType> getNegated() {
     return this.negated;
   }
 
   @Override
   public String toString() {
-    InvariantsFormula<ConstantType> negated = getNegated();
-    if (negated instanceof LogicalNot<?>) {
+    BooleanFormula<ConstantType> negated = getNegated();
+    if (negated instanceof LogicalNot) {
       return ((LogicalNot<?>) negated).getNegated().toString();
     }
     if (negated instanceof Equal<?>) {
@@ -73,13 +73,13 @@ public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> impl
     if (negated instanceof LogicalAnd<?>) {
       LogicalAnd<?> and = (LogicalAnd<?>) negated;
       final String left;
-      if (and.getOperand1() instanceof LogicalNot<?>) {
+      if (and.getOperand1() instanceof LogicalNot) {
         left = ((LogicalNot<?>) and.getOperand1()).getNegated().toString();
       } else {
         left = String.format("(!%s)", and.getOperand1());
       }
       final String right;
-      if (and.getOperand2() instanceof LogicalNot<?>) {
+      if (and.getOperand2() instanceof LogicalNot) {
         right = ((LogicalNot<?>) and.getOperand2()).getNegated().toString();
       } else {
         right = String.format("(!%s)", and.getOperand2());
@@ -94,7 +94,7 @@ public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> impl
     if (this == o) {
       return true;
     }
-    if (o instanceof LogicalNot<?>) {
+    if (o instanceof LogicalNot) {
       return getNegated().equals(((LogicalNot<?>) o).getNegated());
     }
     return false;
@@ -106,13 +106,13 @@ public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> impl
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(BooleanFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -125,7 +125,7 @@ public class LogicalNot<ConstantType> extends AbstractFormula<ConstantType> impl
    * @return an invariants formula representing the logical negation of the given
    * operand.
    */
-  static <ConstantType> LogicalNot<ConstantType> of(InvariantsFormula<ConstantType> pToNegate) {
+  static <ConstantType> LogicalNot<ConstantType> of(BooleanFormula<ConstantType> pToNegate) {
     return new LogicalNot<>(pToNegate);
   }
 

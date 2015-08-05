@@ -33,7 +33,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * @param <ParameterType> the type of the additional parameter.
  * @param <ReturnType> the type of the visit results.
  */
-public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterType, ReturnType> {
+public interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, ReturnType> {
 
   /**
    * Visits the given addition invariants formula.
@@ -106,16 +106,6 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   ReturnType visit(Divide<ConstantType> pDivide, ParameterType pParameter);
 
   /**
-   * Visits the given equation invariants formula.
-   *
-   * @param pEqual the equation invariants formula to visit.
-   * @param pParameter the additional parameter to take into consideration.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(Equal<ConstantType> pEqual, ParameterType pParameter);
-
-  /**
    * Visits the given exclusion invariants formula.
    *
    * @param pExclusion the exclusion formula to visit.
@@ -124,36 +114,6 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
    * @return the result of the visit.
    */
   ReturnType visit(Exclusion<ConstantType> pExclusion, ParameterType pParameter);
-
-  /**
-   * Visits the given less-than inequation invariants formula.
-   *
-   * @param pLessThan the less-than inequation invariants formula to visit.
-   * @param pParameter the additional parameter to take into consideration.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(LessThan<ConstantType> pLessThan, ParameterType pParameter);
-
-  /**
-   * Visits the given logical conjunction invariants formula.
-   *
-   * @param pAnd the logical conjunction invariants formula to visit.
-   * @param pParameter the additional parameter to take into consideration.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(LogicalAnd<ConstantType> pAnd, ParameterType pParameter);
-
-  /**
-   * Visits the given logical negation invariants formula.
-   *
-   * @param pNot the logical negation invariants formula to visit.
-   * @param pParameter the additional parameter to take into consideration.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(LogicalNot<ConstantType> pNot, ParameterType pParameter);
 
   /**
    * Visits the given modulo invariants formula.
@@ -178,7 +138,7 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   /**
    * Visits the given left shift invariants formula.
    *
-   * @param pMultiply the left shift invariants formula to visit.
+   * @param pShiftLeft the left shift invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
    *
    * @return the result of the visit.
@@ -188,7 +148,7 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   /**
    * Visits the given right shift invariants formula.
    *
-   * @param pMultiply the right shift invariants formula to visit.
+   * @param pShiftRight the right shift invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
    *
    * @return the result of the visit.
@@ -198,7 +158,7 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   /**
    * Visits the given union invariants formula.
    *
-   * @param pMultiply the union invariants formula to visit.
+   * @param pUnion the union invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
    *
    * @return the result of the visit.
@@ -208,11 +168,31 @@ public interface ParameterizedInvariantsFormulaVisitor<ConstantType, ParameterTy
   /**
    * Visits the given variable invariants formula.
    *
-   * @param pMultiply the variable invariants formula to visit.
+   * @param pVariable the variable invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
    *
    * @return the result of the visit.
    */
   ReturnType visit(Variable<ConstantType> pVariable, ParameterType pParameter);
+
+  /**
+   * Visits the given if-then-else invariants formula.
+   *
+   * @param pIfThenElse the if-then-else invariants formula to visit.
+   * @param pParameter the additional parameter to take into consideration.
+   *
+   * @return the result of the visit.
+   */
+  ReturnType visit(IfThenElse<ConstantType> pIfThenElse, ParameterType pParameter);
+
+  /**
+   * Visits the given cast invariants formula.
+   *
+   * @param pIfThenElse the cast invariants formula to visit.
+   * @param pParameter the additional parameter to take into consideration.
+   *
+   * @return the result of the visit.
+   */
+  ReturnType visit(Cast<ConstantType> pCast, ParameterType pParameter);
 
 }

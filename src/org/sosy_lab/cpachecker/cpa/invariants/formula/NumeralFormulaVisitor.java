@@ -30,7 +30,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * formulae.
  * @param <ReturnType> the type of the visit results.
  */
-public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
+public interface NumeralFormulaVisitor<ConstantType, ReturnType> {
 
   /**
    * Visits the given addition invariants formula.
@@ -96,33 +96,6 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   ReturnType visit(Divide<ConstantType> pDivide);
 
   /**
-   * Visits the given equation invariants formula.
-   *
-   * @param pEqual the equation invariants formula to visit.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(Equal<ConstantType> pEqual);
-
-  /**
-   * Visits the given less-than inequation invariants formula.
-   *
-   * @param pLessThan the less-than inequation invariants formula to visit.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(LessThan<ConstantType> pLessThan);
-
-  /**
-   * Visits the given logical conjunction invariants formula.
-   *
-   * @param pAnd the logical conjunction invariants formula to visit.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(LogicalAnd<ConstantType> pAnd);
-
-  /**
    * Visits the given exclusion invariants formula.
    *
    * @param pExclusion the exclusion formula to visit.
@@ -130,15 +103,6 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
    * @return the result of the visit.
    */
   ReturnType visit(Exclusion<ConstantType> pExclusion);
-
-  /**
-   * Visits the given logical negation invariants formula.
-   *
-   * @param pNot the logical negation invariants formula to visit.
-   *
-   * @return the result of the visit.
-   */
-  ReturnType visit(LogicalNot<ConstantType> pNot);
 
   /**
    * Visits the given modulo invariants formula.
@@ -161,7 +125,7 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   /**
    * Visits the given left shift invariants formula.
    *
-   * @param pMultiply the left shift invariants formula to visit.
+   * @param pShiftLeft the left shift invariants formula to visit.
    *
    * @return the result of the visit.
    */
@@ -170,7 +134,7 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   /**
    * Visits the given right shift invariants formula.
    *
-   * @param pMultiply the right shift invariants formula to visit.
+   * @param pShiftRight the right shift invariants formula to visit.
    *
    * @return the result of the visit.
    */
@@ -179,7 +143,7 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   /**
    * Visits the given union invariants formula.
    *
-   * @param pMultiply the union invariants formula to visit.
+   * @param pUnion the union invariants formula to visit.
    *
    * @return the result of the visit.
    */
@@ -188,10 +152,29 @@ public interface InvariantsFormulaVisitor<ConstantType, ReturnType> {
   /**
    * Visits the given variable invariants formula.
    *
-   * @param pMultiply the variable invariants formula to visit..
+   * @param pVariable the variable invariants formula to visit..
    *
    * @return the result of the visit.
    */
   ReturnType visit(Variable<ConstantType> pVariable);
+
+  /**
+   * Visits the given if-then-else invariants formula.
+   *
+   * @param pIfThenElse the if-then-else invariants formula to visit..
+   *
+   * @return the result of the visit.
+   */
+  ReturnType visit(IfThenElse<ConstantType> pIfThenElse);
+
+  /**
+   * Visits the given cast invariants formula.
+   *
+   * @param pIfThenElse the cast invariants formula to visit..
+   *
+   * @return the result of the visit.
+   */
+  ReturnType visit(Cast<ConstantType> pCast);
+
 
 }

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-interface AbstractionStateFactory {
+interface AbstractionStrategy {
 
   /**
    * Gets an abstraction state with no specific data.

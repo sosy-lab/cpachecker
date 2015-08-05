@@ -54,15 +54,19 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
@@ -81,10 +85,39 @@ import com.google.common.collect.Iterables;
 
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
-  //set of functions that may not appear in the source code
- // the value of the map entry is the explanation for the user
- private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-     = ImmutableMap.of();
+  // Set of functions that may not appear in the source code
+  // the value of the map entry is the explanation for the user
+  private static final Map<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+
+  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
+
+  private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
+
+  private final MachineModel machineModel;
+
+  private final EdgeAnalyzer edgeAnalyzer;
+
+  private int count = 0;
+
+  public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel) {
+    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    this.machineModel = pMachineModel;
+    this.edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
+    this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+  }
+
+  private CompoundIntervalManager getCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pBitVectorInfo);
+  }
+
+  private NumeralFormula<CompoundInterval> allPossibleValues(Type pType) {
+    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pType);
+    return InvariantsFormulaManager.INSTANCE.asConstant(
+        bitVectorInfo,
+        getCompoundIntervalManager(bitVectorInfo).allPossibleValues());
+  }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -102,11 +135,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     state = state.updateAbstractionState(precision, pEdge);
 
+    ++count;
+
     return Collections.singleton(state);
   }
 
   private InvariantsState getSuccessor(CFAEdge pEdge, InvariantsPrecision pPrecision, InvariantsState pState) throws UnrecognizedCFAEdgeException, UnrecognizedCodeException {
-    InvariantsState state = pState.setTypes(EdgeAnalyzer.getInvolvedVariableTypes(pEdge));
+    InvariantsState state = pState.setTypes(edgeAnalyzer.getInvolvedVariableTypes(pEdge));
     switch (pEdge.getEdgeType()) {
     case BlankEdge:
       break;
@@ -147,22 +182,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     CExpression expression = pEdge.getExpression();
 
     // Create a formula representing the edge expression
-    InvariantsFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
+    NumeralFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
+    BooleanFormula<CompoundInterval> assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
     if (!pEdge.getTruthAssumption()) {
-      expressionFormula = CompoundIntervalFormulaManager.INSTANCE.logicalNot(expressionFormula);
+      assumption = compoundIntervalFormulaManager.logicalNot(assumption);
     }
 
-    return handleAssumption(pElement, pEdge, expressionFormula, pPrecision);
+    return handleAssumption(pElement, pEdge, assumption, pPrecision);
   }
 
-  private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, InvariantsFormula<CompoundInterval> pAssumption, InvariantsPrecision pPrecision) {
-    /*
-     * If the expression definitely evaluates to false, the state is unreachable.
-     */
-    if (pState.definitelyImplies(CompoundIntervalFormulaManager.INSTANCE.logicalNot(pAssumption))) {
-      return null;
-    }
-
+  private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, BooleanFormula<CompoundInterval> pAssumption, InvariantsPrecision pPrecision) {
     /*
      * Assume the state of the expression:
      */
@@ -182,16 +211,15 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       varName = VariableNameExtractor.scope(varName, pEdge.getSuccessor().getFunctionName());
     }
 
-    InvariantsFormula<CompoundInterval> value;
+    NumeralFormula<CompoundInterval> value;
     if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
-
     } else {
-      value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+      value = allPossibleValues(decl.getType());
     }
 
     value = handlePotentialOverflow(pElement, value, decl.getType());
@@ -207,11 +235,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     int limit = Math.min(formalParams.size(), actualParams.size());
 
     ExpressionToFormulaVisitor actualParamExpressionToFormulaVisitor =
-        getExpressionToFormulaVisitor(new VariableNameExtractor(pEdge, true, pElement.getEnvironment()), pElement);
+        getExpressionToFormulaVisitor(new VariableNameExtractor(compoundIntervalManagerFactory, machineModel, pEdge, true, pElement.getEnvironment()), pElement);
 
     if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
-      return handleAssumption(pElement, pEdge, actualParams.get(0).accept(
-          actualParamExpressionToFormulaVisitor), pPrecision);
+      NumeralFormula<CompoundInterval> assumptionExpression =
+          actualParams.get(0).accept(actualParamExpressionToFormulaVisitor);
+      BooleanFormula<CompoundInterval> assumption = compoundIntervalFormulaManager.fromNumeral(assumptionExpression);
+      return handleAssumption(pElement, pEdge, assumption, pPrecision);
     }
 
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
@@ -222,7 +252,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration declaration = declarationIterator.next();
 
-      InvariantsFormula<CompoundInterval> value = actualParam.accept(actualParamExpressionToFormulaVisitor);
+      NumeralFormula<CompoundInterval> value = actualParam.accept(actualParamExpressionToFormulaVisitor);
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
@@ -235,16 +265,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return newElement;
   }
 
-  private static CompoundInterval evaluate(
-      InvariantsFormula<CompoundInterval> pFormula,
-      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), pEnvironment);
+  private CompoundInterval evaluate(
+      NumeralFormula<CompoundInterval> pFormula,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory), pEnvironment);
   }
 
-  private static InvariantsFormula<CompoundInterval> toConstant(
-      InvariantsFormula<CompoundInterval> pFormula,
-      Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    return CompoundIntervalFormulaManager.INSTANCE.asConstant(evaluate(pFormula, pEnvironment));
+  private NumeralFormula<CompoundInterval> toConstant(
+      NumeralFormula<CompoundInterval> pFormula,
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getBitVectorInfo(), evaluate(pFormula, pEnvironment));
   }
 
   private InvariantsState handleStatement(InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
@@ -264,14 +294,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
       CExpression leftHandSide = assignment.getLeftHandSide();
       CRightHandSide rightHandSide = assignment.getRightHandSide();
-      InvariantsFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
-      if (CompoundIntervalFormulaManager.isDefinitelyTop(value) && rightHandSide instanceof CFunctionCallExpression) {
+      NumeralFormula<CompoundInterval> value = assignment.getRightHandSide().accept(etfv);
+      if (compoundIntervalFormulaManager.containsAllPossibleValues(value) && rightHandSide instanceof CFunctionCallExpression) {
         CFunctionCallExpression cFunctionCallExpression = (CFunctionCallExpression) rightHandSide;
         CExpression functionNameExpression = cFunctionCallExpression.getFunctionNameExpression();
         if (functionNameExpression instanceof CIdExpression) {
           CIdExpression idExpression = (CIdExpression) functionNameExpression;
           if (idExpression.getName().equals("__VERIFIER_nondet_uint")) {
-            value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.zero().extendToPositiveInfinity());
+            BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, leftHandSide.getExpressionType());
+            value = InvariantsFormulaManager.INSTANCE.asConstant(
+                bitVectorInfo,
+                getCompoundIntervalManager(bitVectorInfo).singleton(0).extendToMaxValue());
           }
         }
       }
@@ -287,25 +320,25 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       String pFunctionName,
       CFAEdge pEdge,
       CExpression pLeftHandSide,
-      InvariantsFormula<CompoundInterval> pValue,
+      NumeralFormula<CompoundInterval> pValue,
       InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
 
-    InvariantsFormula<CompoundInterval> value = pValue;
+    NumeralFormula<CompoundInterval> value = pValue;
     if (pPrecision.getMaximumFormulaDepth() == 0) {
       CompoundInterval v = evaluate(pValue, pElement.getEnvironment());
       if (v.isSingleton()) {
-        value = CompoundIntervalFormulaManager.INSTANCE.asConstant(v);
+        value = InvariantsFormulaManager.INSTANCE.asConstant(value.getBitVectorInfo(), v);
       } else {
-        value = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
+        value = allPossibleValues(pLeftHandSide.getExpressionType());
       }
     }
 
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    VariableNameExtractor variableNameExtractor = new VariableNameExtractor(pEdge, pElement.getEnvironment());
+    VariableNameExtractor variableNameExtractor = new VariableNameExtractor(compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
       String array = variableNameExtractor.getVarName(arraySubscriptExpression.getArrayExpression());
-      InvariantsFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
+      NumeralFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
       return pElement.assignArray(array, subscript, value);
     } else {
       String varName = variableNameExtractor.getVarName(pLeftHandSide);
@@ -313,11 +346,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private InvariantsFormula<CompoundInterval> handlePotentialOverflow(
+  private NumeralFormula<CompoundInterval> handlePotentialOverflow(
       InvariantsState pState,
-      InvariantsFormula<CompoundInterval> pFormula,
+      NumeralFormula<CompoundInterval> pFormula,
       CType pType) {
-    return ExpressionToFormulaVisitor.handlePotentialOverflow(pFormula, pState.getMachineModel(), pType, pState.getEnvironment());
+    return ExpressionToFormulaVisitor.handlePotentialOverflow(compoundIntervalManagerFactory, pFormula, machineModel, pType, pState.getEnvironment());
   }
 
   private InvariantsState handleReturnStatement(InvariantsState pElement, CReturnStatementEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
@@ -326,7 +359,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       return pElement;
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    InvariantsFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
+    NumeralFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
     String returnValueName = pEdge.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName();
     return pElement.assign(returnValueName, returnedState);
   }
@@ -347,7 +380,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) expression;
 
         if (var.isPresent()) {
-          InvariantsFormula<CompoundInterval> value = CompoundIntervalFormulaManager.INSTANCE.asVariable(var.get().getQualifiedName());
+          BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, var.get().getType());
+          NumeralFormula<CompoundInterval> value = InvariantsFormulaManager.INSTANCE.asVariable(
+              bitVectorInfo,
+              var.get().getQualifiedName());
           result = handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
         }
       } else {
@@ -357,12 +393,12 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
             break;
           }
           CExpression actualParam = actualParamIterator.next();
-          InvariantsFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
+          NumeralFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
           if (actualParamFormula instanceof Variable) {
             String actualParamName = ((Variable<?>) actualParamFormula).getName();
             String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
             String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
-            for (Entry<? extends String, ? extends InvariantsFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
+            for (Entry<? extends String, ? extends NumeralFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
               String varName = entry.getKey();
               if (varName.startsWith(formalParamPrefixDeref)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
@@ -377,7 +413,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
 
       // Remove all variables that are in the scope of the returning function
-      for (String variableName : result.getEnvironment().keySet()) {
+      for (String variableName : result.getVariables()) {
         if (VariableNameExtractor.isFunctionScoped(variableName, calledFunctionName)) {
           result = result.clear(variableName);
         }
@@ -419,7 +455,6 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (locationSet.isTop()) {
           return Collections.singleton(state.clear());
         }
-        InvariantsFormula<CompoundInterval> top = CompoundIntervalFormulaManager.INSTANCE.asConstant(CompoundInterval.top());
         Iterable<String> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
         boolean moreThanOneLocation = hasMoreThanNElements(locations, 1);
         for (String location : locations) {
@@ -443,11 +478,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
             });
             if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
               for (String variableName : targets) {
-                result = result.assign(variableName, top);
+                Type type = result.getType(variableName);
+                if (type != null) {
+                  result = result.assign(variableName, allPossibleValues(type));
+                }
               }
             }
           } else if (moreThanOneLocation) {
-            result = result.assign(location, top);
+            Type type = result.getType(location);
+            if (type != null) {
+              result = result.assign(location, allPossibleValues(type));
+            }
           }
         }
       }
@@ -456,16 +497,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return null;
   }
 
-  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final InvariantsState pState) {
-    return getExpressionToFormulaVisitor(new VariableNameExtractor(pEdge, pState.getEnvironment()), pState);
+  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final InvariantsState pState) {
+    return getExpressionToFormulaVisitor(new VariableNameExtractor(compoundIntervalManagerFactory, machineModel, pEdge, pState.getEnvironment()), pState);
   }
 
-  private static ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final InvariantsState pState) {
-    return new ExpressionToFormulaVisitor(pVariableNameExtractor, pState.getEnvironment());
+  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final InvariantsState pState) {
+    return new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, pVariableNameExtractor, pState.getEnvironment());
   }
 
-  private static boolean containsArrayWildcard(InvariantsFormula<CompoundInterval> pFormula) {
-    for (String pVarName : pFormula.accept(new CollectVarsVisitor<CompoundInterval>())) {
+  private static boolean containsArrayWildcard(NumeralFormula<CompoundInterval> pFormula) {
+    for (String pVarName : pFormula.accept(COLLECT_VARS_VISITOR)) {
       if (pVarName.contains("[*]")) {
         return true;
       }
