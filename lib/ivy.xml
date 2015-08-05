@@ -51,7 +51,7 @@
 
         <!-- CUP LALR Parser Generator for Java
              Used for generating automaton and FQL parsers. -->
-        <dependency org="edu.tum.cs" name="java-cup" rev="11a" conf="build->build; runtime->runtime"/>
+        <dependency org="edu.tum.cs" name="java-cup" rev="11b-20150326" conf="build->build; runtime->runtime"/>
 
         <!-- JUnit
              Testing framework. -->
