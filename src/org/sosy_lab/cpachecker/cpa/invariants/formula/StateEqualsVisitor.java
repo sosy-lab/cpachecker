@@ -73,10 +73,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
   protected Boolean visitDefault(NumeralFormula<CompoundInterval> pFormula, NumeralFormula<CompoundInterval> pOther) {
     CompoundInterval leftValue = pFormula.accept(evaluationVisitor, environment);
     CompoundInterval rightValue = pOther.accept(evaluationVisitor, environment);
-    return compoundIntervalManagerFactory
-        .createCompoundIntervalManager(pFormula.getBitVectorInfo())
-        .logicalEquals(leftValue, rightValue)
-        .isDefinitelyTrue();
+    return leftValue.isSingleton() && leftValue.equals(rightValue);
   }
 
   private Boolean visitDefault(BooleanFormula<CompoundInterval> pFormula, BooleanFormula<CompoundInterval> pOther) {
