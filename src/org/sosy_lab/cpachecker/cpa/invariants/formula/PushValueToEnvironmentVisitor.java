@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
@@ -196,7 +198,9 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     }
 
     CompoundInterval pushLeftValue = compoundIntervalManager.intersect(leftValue, computedLeftValue);
-    CompoundInterval pushRightValue = compoundIntervalManager.divide(leftValue, parameter);
+    CompoundInterval pushRightValue = parameter.isSingleton() && parameter.contains(BigInteger.ZERO)
+        ? compoundIntervalManager.allPossibleValues()
+        : compoundIntervalManager.divide(leftValue, parameter);
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
         || !pDivide.getDenominator().accept(this, pushRightValue)) {
       return false;
