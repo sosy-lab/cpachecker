@@ -345,22 +345,37 @@ public class BitVectorInterval implements BitVectorType {
         upperBound = upperBound.add(rangeLength);
       }
       BigInteger altLB = pLowerBound.remainder(rangeLength);
+      BigInteger quotient = pLowerBound.divide(rangeLength);
       assert altLB.signum() < 0;
+      assert quotient.signum() < 0;
       altLB = altLB.add(rangeLength);
-      BigInteger altUB = pUpperBound.remainder(rangeLength);
-      assert altUB.signum() < 0;
-      altUB = altUB.add(rangeLength);
+      BigInteger altUB = pUpperBound.add(rangeLength.multiply(quotient.negate().add(BigInteger.ONE)));
       assert lowerBound.equals(altLB);
       assert upperBound.equals(altUB);
+      assert lowerBound.compareTo(pInfo.getMinValue()) >= 0;
+
+      // If the interval still exceeds the range, there is nothing we can do here
+      if (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
+        return pInfo.getRange();
+      }
     } else if (lbExceedsAbove) { // Full interval is above the maximum value
       while (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
         lowerBound = lowerBound.subtract(rangeLength);
         upperBound = upperBound.subtract(rangeLength);
       }
-      BigInteger altLB = pLowerBound.remainder(rangeLength);
       BigInteger altUB = pUpperBound.remainder(rangeLength);
+      BigInteger quotient = pUpperBound.divide(rangeLength);
+      assert altUB.signum() < 0;
+      assert quotient.signum() > 0;
+      BigInteger altLB = pLowerBound.subtract(rangeLength.multiply(quotient));
       assert lowerBound.equals(altLB);
       assert upperBound.equals(altUB);
+      assert upperBound.compareTo(pInfo.getMaxValue()) <= 0;
+
+      // If the interval still exceeds the range, there is nothing we can do here
+      if (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
+        return pInfo.getRange();
+      }
     } else if (lbExceedsBelow) { // Part of the interval is below the minimum value
       return pInfo.getRange();
     } else if (ubExceedsAbove) { // Part of the interval is above the minimum value
