@@ -293,7 +293,7 @@ public class BitVectorInterval implements BitVectorType {
     if (pInfo.isSigned()) {
       return pInfo.getRange();
     }
-    BigInteger rangeLength = pInfo.getMaxValue().subtract(pInfo.getMinValue());
+    BigInteger rangeLength = pInfo.getRange().size();
     while (pI.compareTo(pInfo.getMinValue()) < 0) {
       pI = pI.add(rangeLength);
     }
@@ -324,7 +324,7 @@ public class BitVectorInterval implements BitVectorType {
       return pInfo.getRange();
     }
 
-    BigInteger rangeLength = pInfo.getMaxValue().subtract(pInfo.getMinValue());
+    BigInteger rangeLength = pInfo.getRange().size();
     assert rangeLength.compareTo(BigInteger.ZERO) >= 0;
 
     // If the value is larger than the full range, just return the full range
