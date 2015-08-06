@@ -697,7 +697,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       BigInteger altLB = pLowerBound.remainder(rangeLength);
       assert altLB.signum() < 0;
       altLB = altLB.add(rangeLength);
-      BigInteger altUB = altLB.add(pUpperBound.subtract(pLowerBound).add(BigInteger.ONE));
+      BigInteger altUB = altLB.add(pUpperBound.subtract(pLowerBound));
       assert lowerBound.equals(altLB);
       assert upperBound.equals(altUB);
       assert lowerBound.compareTo(pInfo.getMinValue()) >= 0;
@@ -715,7 +715,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       }
       BigInteger altUB = pUpperBound.remainder(rangeLength);
       assert altUB.signum() > 0;
-      BigInteger altLB = upperBound.subtract(pUpperBound.subtract(pLowerBound).add(BigInteger.ONE));
+      BigInteger altLB = upperBound.subtract(pUpperBound.subtract(pLowerBound));
       assert lowerBound.equals(altLB);
       assert upperBound.equals(altUB);
       assert upperBound.compareTo(pInfo.getMaxValue()) <= 0;
