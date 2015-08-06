@@ -211,16 +211,25 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CUnaryExpression pCUnaryExpression) throws UnrecognizedCodeException {
+    NumeralFormula<CompoundInterval> operand = pCUnaryExpression.getOperand().accept(this);
+    BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCUnaryExpression.getExpressionType());
+    operand = InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, operand);
+    final NumeralFormula<CompoundInterval> result;
     switch (pCUnaryExpression.getOperator()) {
     case MINUS:
-      return compoundIntervalFormulaManager.negate(pCUnaryExpression.getOperand().accept(this));
+      result = compoundIntervalFormulaManager.negate(operand);
+      break;
     case TILDE:
-      return compoundIntervalFormulaManager.binaryNot(pCUnaryExpression.getOperand().accept(this));
+      result = compoundIntervalFormulaManager.binaryNot(operand);
+      break;
     case AMPER:
-      return allPossibleValues(pCUnaryExpression);
+      result = allPossibleValues(pCUnaryExpression);
+      break;
     default:
-      return super.visit(pCUnaryExpression);
+      result = super.visit(pCUnaryExpression);
+      break;
     }
+    return InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, result);
   }
 
   @Override
