@@ -181,7 +181,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   private final StateToFormulaWriter writer;
 
-  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory = CompoundBitVectorIntervalManagerFactory.ALLOW_SIGNED_WRAP_AROUND;
+  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory = CompoundMathematicalIntervalManagerFactory.INSTANCE;
 
   private final EdgeAnalyzer edgeAnalyzer;
 
