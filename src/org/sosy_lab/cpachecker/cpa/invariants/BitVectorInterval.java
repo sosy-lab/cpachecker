@@ -261,22 +261,26 @@ public class BitVectorInterval implements BitVectorType {
       }
       final BigInteger fromLB;
       final BigInteger fromUB;
+      BigInteger rangeLength = info.getRange().size();
       if (lbExceedsBelow) {
-        fromLB = info.getMaxValue().subtract(info.getMinValue()).add(newLowerBound);
+        fromLB = rangeLength.add(newLowerBound);
       } else if (lbExceedsAbove) {
-        fromLB = info.getMinValue().add(newLowerBound).subtract(info.getMaxValue());
+        fromLB = newLowerBound.subtract(rangeLength);
       } else {
         fromLB = newLowerBound;
       }
       if (ubExceedsBelow) {
-        fromUB = info.getMaxValue().subtract(info.getMinValue()).add(newUpperBound);
+        fromUB = rangeLength.add(newUpperBound);
       } else if (ubExceedsAbove) {
-        fromUB = info.getMinValue().add(newUpperBound).subtract(info.getMaxValue());
+        fromUB = newUpperBound.subtract(rangeLength);
       } else {
         fromUB = newUpperBound;
       }
-      newLowerBound = fromLB.min(fromUB);
-      newUpperBound = fromUB.max(fromUB);
+      if (fromLB.compareTo(fromUB) > 0) {
+        return info.getRange();
+      }
+      newLowerBound = fromLB;
+      newUpperBound = fromUB;
     }
 
     return new BitVectorInterval(info, newLowerBound, newUpperBound);

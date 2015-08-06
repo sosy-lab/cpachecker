@@ -736,9 +736,55 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     if (isTop() || isBottom()) { return this; }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval simpleInterval : this.intervals) {
-      result = result.unionWith(simpleInterval.negate());
+      result = negate(simpleInterval);
     }
     return result;
+  }
+
+  private CompoundBitVectorInterval negate(BitVectorInterval pInterval) {
+    BigInteger newLowerBound = pInterval.getUpperBound().negate();
+    BigInteger newUpperBound = pInterval.getLowerBound().negate();
+
+    boolean lbExceedsBelow = newLowerBound.compareTo(info.getMinValue()) < 0;
+    boolean lbExceedsAbove = !lbExceedsBelow && newLowerBound.compareTo(info.getMaxValue()) > 0;
+    boolean ubExceedsBelow = newUpperBound.compareTo(info.getMinValue()) < 0;
+    boolean ubExceedsAbove = !ubExceedsBelow && newUpperBound.compareTo(info.getMaxValue()) > 0;
+    if (lbExceedsBelow || lbExceedsAbove || ubExceedsBelow || ubExceedsAbove) {
+      if (info.isSigned()) {
+        return of(info.getRange());
+      }
+      final BigInteger fromLB;
+      final BigInteger fromUB;
+      BigInteger rangeLength = info.getRange().size();
+      if (lbExceedsBelow) {
+        fromLB = rangeLength.add(newLowerBound);
+      } else if (lbExceedsAbove) {
+        fromLB = newLowerBound.subtract(rangeLength);
+      } else {
+        fromLB = newLowerBound;
+      }
+      if (ubExceedsBelow) {
+        fromUB = rangeLength.add(newUpperBound);
+      } else if (ubExceedsAbove) {
+        fromUB = newUpperBound.subtract(rangeLength);
+      } else {
+        fromUB = newUpperBound;
+      }
+      // If, e.g., the intervals goes "from 2 to 0", use two intervals
+      if (fromLB.compareTo(fromUB) > 0) {
+        // If the borders touch anyway, return the full range
+        if (fromUB.add(BigInteger.ONE).equals(fromLB)) {
+          return of(info.getRange());
+        }
+        BitVectorInterval[] intervals = new BitVectorInterval[2];
+        intervals[0] = BitVectorInterval.singleton(info, fromUB).extendToMinValue();
+        intervals[1] = BitVectorInterval.singleton(info, fromLB).extendToMaxValue();
+        return CompoundBitVectorInterval.getInternal(info, intervals);
+      }
+      newLowerBound = fromLB;
+      newUpperBound = fromUB;
+    }
+    return CompoundBitVectorInterval.of(BitVectorInterval.of(info, newLowerBound, newUpperBound));
   }
 
   /**
