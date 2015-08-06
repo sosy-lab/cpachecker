@@ -319,7 +319,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
       cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pOther.getBitVectorInfo());
       resolvedRight = resolvedRight == null
           ? InvariantsFormulaManager.INSTANCE.asConstant(
-              pVariable.getBitVectorInfo(),
+              pOther.getBitVectorInfo(),
               cim.allPossibleValues())
           : resolvedRight;
       if (resolvedLeft.accept(this, resolvedRight)) {
