@@ -295,11 +295,14 @@ public class CompoundIntervalFormulaManager {
           for (String varName : varNames) {
             NumeralFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(varName);
             NumeralFormula<CompoundInterval> rightFormula = impliedEnvironment.get(varName);
-            if (rightFormula == null || rightFormula.equals(leftFormula)) {
-              continue;
-            }
-            if (leftFormula == null) {
+            // If the right formula is null, we learned nothing about the variable from pushing it,
+            // so continuing would be unsound.
+            // If the left formula is null, it cannot imply any information about the right variable.
+            if (rightFormula == null || leftFormula == null) {
               return false;
+            }
+            if (rightFormula.equals(leftFormula)) {
+              continue;
             }
             rightFormula = rightFormula.accept(partialEvaluator, evaluationVisitor);
             leftFormula = leftFormula.accept(partialEvaluator, evaluationVisitor);
