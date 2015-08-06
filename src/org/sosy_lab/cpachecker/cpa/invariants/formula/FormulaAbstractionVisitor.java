@@ -167,13 +167,14 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
     if (b.isSingleton() && b.contains(BigInteger.ONE)) {
       return a;
     }
+    CompoundIntervalManager cim = getCompoundIntervalManager(pBitVectorInfo);
     if (a.isSingleton() && a.contains(BigInteger.ONE.negate())) {
-      return b.negate();
+      return cim.negate(b);
     }
     if (b.isSingleton() && b.contains(BigInteger.ONE.negate())) {
-      return a.negate();
+      return cim.negate(a);
     }
-    return abstractionOf(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).multiply(a, b));
+    return abstractionOf(pBitVectorInfo, cim.multiply(a, b));
   }
 
   @Override

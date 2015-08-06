@@ -264,7 +264,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
   public CompoundInterval visit(Cast<CompoundInterval> pCast,
       Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     CompoundInterval casted = pCast.getCasted().accept(this, pEnvironment);
-    return casted.cast(pCast.getBitVectorInfo());
+    return getCompoundIntervalManager(pCast).cast(pCast.getBitVectorInfo(), casted);
   }
 
   @Override

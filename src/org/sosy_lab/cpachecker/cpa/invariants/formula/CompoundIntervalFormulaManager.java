@@ -872,7 +872,7 @@ public class CompoundIntervalFormulaManager {
     BitVectorInfo bitVectorInfo = pToNegate.getBitVectorInfo();
     CompoundIntervalManager cim = getCompoundIntervalManager(bitVectorInfo);
     if (pToNegate instanceof Constant) {
-      return asConstant(bitVectorInfo, ((Constant<CompoundInterval>) pToNegate).getValue().negate());
+      return asConstant(bitVectorInfo, cim.negate(((Constant<CompoundInterval>) pToNegate).getValue()));
     }
     if (cim.allPossibleValues().contains(BigInteger.valueOf(-1))) {
       NumeralFormula<CompoundInterval> minusOne = asConstant(bitVectorInfo, cim.singleton(-1));

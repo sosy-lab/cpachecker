@@ -80,4 +80,8 @@ public interface CompoundIntervalManager {
 
   CompoundInterval span(CompoundInterval pBorderA, CompoundInterval pBorderB);
 
+  CompoundInterval negate(CompoundInterval pToNegate);
+
+  CompoundInterval cast(BitVectorInfo pBitVectorInfo, CompoundInterval pToCast);
+
 }

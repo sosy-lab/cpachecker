@@ -29,7 +29,21 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
 
-  INSTANCE;
+  ALLOW_SIGNED_WRAP_AROUND {
+
+    @Override
+    boolean isSignedWrapAroundAllowed() {
+      return true;
+    }
+  },
+
+  FORBID_SIGNED_WRAP_AROUND {
+
+    @Override
+    boolean isSignedWrapAroundAllowed() {
+      return false;
+    }
+  };
 
   @Override
   public CompoundIntervalManager createCompoundIntervalManager(MachineModel pMachineModel, Type pType) {
@@ -38,7 +52,9 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
 
   @Override
   public CompoundIntervalManager createCompoundIntervalManager(BitVectorInfo pBitVectorInfo) {
-    return new CompoundBitVectorIntervalManager(pBitVectorInfo);
+    return new CompoundBitVectorIntervalManager(pBitVectorInfo, isSignedWrapAroundAllowed());
   }
+
+  abstract boolean isSignedWrapAroundAllowed();
 
 }

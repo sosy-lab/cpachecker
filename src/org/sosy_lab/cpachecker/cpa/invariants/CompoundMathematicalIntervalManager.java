@@ -217,10 +217,26 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
     return CompoundMathematicalInterval.span(operand1, operand2);
   }
 
+  @Override
+  public CompoundInterval negate(CompoundInterval pToNegate) {
+    if (!(pToNegate instanceof CompoundMathematicalInterval)) {
+      throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
+    }
+    return ((CompoundMathematicalInterval) pToNegate).negate();
+  }
+
+  @Override
+  public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
+    if (!(pToCast instanceof CompoundMathematicalInterval)) {
+      throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
+    }
+    return ((CompoundMathematicalInterval) pToCast).cast(pInfo);
+  }
+
   private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {
     if (!(pOperand1 instanceof CompoundMathematicalInterval)
         || !(pOperand2 instanceof CompoundMathematicalInterval)) {
-      throw new IllegalArgumentException("operand is not a compound mathematical interval.");
+      throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
     }
   }
 

@@ -532,7 +532,6 @@ public class CompoundMathematicalInterval implements CompoundInterval {
     return sb.toString();
   }
 
-  @Override
   public CompoundInterval cast(BitVectorInfo pBitVectorInfo) {
     return this;
   }
@@ -700,7 +699,6 @@ public class CompoundMathematicalInterval implements CompoundInterval {
    * Negates the state. Do not confuse this with inverting ({@link #invert()}) the state.
    * @return the negated state.
    */
-  @Override
   public CompoundMathematicalInterval negate() {
     if (isTop() || isBottom()) { return this; }
     CompoundMathematicalInterval result = bottom();
@@ -796,7 +794,6 @@ public class CompoundMathematicalInterval implements CompoundInterval {
    * @return the state resulting from adding the given value to this
    * state.
    */
-  @Override
   public CompoundMathematicalInterval add(final long pValue) {
     return add(BigInteger.valueOf(pValue));
   }

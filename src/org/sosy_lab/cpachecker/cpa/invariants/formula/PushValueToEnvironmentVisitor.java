@@ -112,15 +112,15 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pAdd);
-    CompoundInterval parameter = compoundIntervalManager.intersect(evaluate(pAdd), pParameter);
+    CompoundIntervalManager cim = getCompoundIntervalManager(pAdd);
+    CompoundInterval parameter = cim.intersect(evaluate(pAdd), pParameter);
     if (parameter.isBottom()) {
       return false;
     }
     CompoundInterval leftValue = evaluate(pAdd.getSummand1());
     CompoundInterval rightValue = evaluate(pAdd.getSummand2());
-    CompoundInterval pushLeftValue = compoundIntervalManager.add(parameter, rightValue.negate());
-    CompoundInterval pushRightValue = compoundIntervalManager.add(parameter, leftValue.negate());
+    CompoundInterval pushLeftValue = cim.negate(cim.add(parameter, rightValue));
+    CompoundInterval pushRightValue = cim.negate(cim.add(parameter, leftValue));
     if (!pAdd.getSummand1().accept(this, pushLeftValue)
         || !pAdd.getSummand2().accept(this, pushRightValue)) {
       return false;
@@ -181,8 +181,8 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pDivide);
-    CompoundInterval parameter = compoundIntervalManager.intersect(evaluate(pDivide), pParameter);
+    CompoundIntervalManager cim = getCompoundIntervalManager(pDivide);
+    CompoundInterval parameter = cim.intersect(evaluate(pDivide), pParameter);
     if (parameter.isBottom()) {
       return false;
     }
@@ -190,17 +190,17 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     CompoundInterval rightValue = evaluate(pDivide.getDenominator());
 
     // Determine the numerator but consider integer division
-    CompoundInterval computedLeftValue = compoundIntervalManager.multiply(parameter, rightValue);
+    CompoundInterval computedLeftValue = cim.multiply(parameter, rightValue);
     for (CompoundInterval interval : computedLeftValue.splitIntoIntervals()) {
       CompoundInterval borderA = interval;
-      CompoundInterval borderB = compoundIntervalManager.add(borderA, compoundIntervalManager.add(rightValue, rightValue.signum().negate()));
-      computedLeftValue = compoundIntervalManager.union(computedLeftValue, compoundIntervalManager.span(borderA, borderB));
+      CompoundInterval borderB = cim.negate(cim.add(borderA, cim.add(rightValue, rightValue.signum())));
+      computedLeftValue = cim.union(computedLeftValue, cim.span(borderA, borderB));
     }
 
-    CompoundInterval pushLeftValue = compoundIntervalManager.intersect(leftValue, computedLeftValue);
+    CompoundInterval pushLeftValue = cim.intersect(leftValue, computedLeftValue);
     CompoundInterval pushRightValue = parameter.isSingleton() && parameter.contains(BigInteger.ZERO)
-        ? compoundIntervalManager.allPossibleValues()
-        : compoundIntervalManager.divide(leftValue, parameter);
+        ? cim.allPossibleValues()
+        : cim.divide(leftValue, parameter);
     if (!pDivide.getNumerator().accept(this, pushLeftValue)
         || !pDivide.getDenominator().accept(this, pushRightValue)) {
       return false;
@@ -368,11 +368,11 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (pParameter == null || pParameter.isBottom()) {
       return false;
     }
-    if (!pCast.getCasted().accept(this, pParameter.cast(pCast.getCasted().getBitVectorInfo()))) {
+    CompoundIntervalManager cim = getCompoundIntervalManager(pCast);
+    if (!pCast.getCasted().accept(this, cim.cast(pCast.getCasted().getBitVectorInfo(), pParameter))) {
       return false;
     }
-    CompoundIntervalManager compoundIntervalManager = getCompoundIntervalManager(pCast);
-    return compoundIntervalManager.doIntersect(evaluate(pCast), pParameter);
+    return cim.doIntersect(evaluate(pCast), pParameter);
   }
 
   /**

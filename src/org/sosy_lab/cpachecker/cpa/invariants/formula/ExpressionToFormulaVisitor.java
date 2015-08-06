@@ -592,7 +592,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
     NumeralFormula<CompoundInterval> formula = InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, pFormula);
 
-    CompoundIntervalManager compoundIntervalManager = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+    CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
 
     BigInteger lowerInclusiveBound = BigInteger.ZERO;
     BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitVectorInfo.getSize());
@@ -603,13 +603,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       upperExclusiveBound = upperExclusiveBound.shiftRight(1);
       lowerInclusiveBound = upperExclusiveBound.negate();
       if (!value.hasLowerBound() || !value.hasUpperBound()) {
-        return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, compoundIntervalManager.allPossibleValues());
+        return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.allPossibleValues());
       }
       if (value.getLowerBound().compareTo(lowerInclusiveBound) < 0) {
-        return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, compoundIntervalManager.allPossibleValues());
+        return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.allPossibleValues());
       }
       if (value.getUpperBound().compareTo(upperExclusiveBound) >= 0) {
-        return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, compoundIntervalManager.allPossibleValues());
+        return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.allPossibleValues());
       }
       return formula;
     }
@@ -617,7 +617,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     assert lowerInclusiveBound.compareTo(upperExclusiveBound) < 0;
 
     if (!value.hasLowerBound()) {
-      return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, compoundIntervalManager.allPossibleValues());
+      return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.allPossibleValues());
     }
 
     if (value.getLowerBound().compareTo(lowerInclusiveBound) >= 0
@@ -626,14 +626,14 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       return formula;
     }
 
-    CompoundInterval negativePart = compoundIntervalManager.intersect(value, compoundIntervalManager.singleton(1).negate().extendToMinValue());
-    CompoundInterval negativePartMod = compoundIntervalManager.modulo(negativePart, compoundIntervalManager.singleton(upperExclusiveBound));
-    CompoundInterval negativePartResult = compoundIntervalManager.add(compoundIntervalManager.singleton(upperExclusiveBound), negativePartMod);
+    CompoundInterval negativePart = cim.intersect(value, cim.negate(cim.singleton(1)).extendToMinValue());
+    CompoundInterval negativePartMod = cim.modulo(negativePart, cim.singleton(upperExclusiveBound));
+    CompoundInterval negativePartResult = cim.add(cim.singleton(upperExclusiveBound), negativePartMod);
 
-    CompoundInterval nonNegativePart = compoundIntervalManager.intersect(value, compoundIntervalManager.singleton(0).extendToMaxValue());
-    CompoundInterval nonNegativePartResult = compoundIntervalManager.modulo(nonNegativePart, compoundIntervalManager.singleton(upperExclusiveBound));
+    CompoundInterval nonNegativePart = cim.intersect(value, cim.singleton(0).extendToMaxValue());
+    CompoundInterval nonNegativePartResult = cim.modulo(nonNegativePart, cim.singleton(upperExclusiveBound));
 
-    return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, compoundIntervalManager.union(negativePartResult, nonNegativePartResult));
+    return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.union(negativePartResult, nonNegativePartResult));
   }
 
 }

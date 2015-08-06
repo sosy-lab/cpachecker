@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
+import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
@@ -32,14 +33,17 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
 
   private final BitVectorInfo info;
 
-  public CompoundBitVectorIntervalManager(BitVectorInfo pInfo) {
+  private final boolean allowSignedWrapAround;
+
+  public CompoundBitVectorIntervalManager(BitVectorInfo pInfo, boolean pAllowSignedWrapAround) {
     Preconditions.checkNotNull(pInfo);
     this.info = pInfo;
+    this.allowSignedWrapAround = pAllowSignedWrapAround;
   }
 
   @Override
   public int hashCode() {
-    return info.hashCode();
+    return Objects.hash(info, allowSignedWrapAround);
   }
 
   @Override
@@ -48,7 +52,9 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
       return true;
     }
     if (pOther instanceof CompoundBitVectorIntervalManager) {
-      return info.equals(((CompoundBitVectorIntervalManager) pOther).info);
+      CompoundBitVectorIntervalManager other = (CompoundBitVectorIntervalManager) pOther;
+      return allowSignedWrapAround == other.allowSignedWrapAround
+          && info.equals(other.info);
     }
     return false;
   }
@@ -149,7 +155,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.modulo(operand2);
+    return operand1.modulo(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -157,7 +163,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.add(operand2);
+    return operand1.add(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -173,7 +179,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.binaryAnd(operand2);
+    return operand1.binaryAnd(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -197,7 +203,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pNumerator, pDenominator);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pNumerator;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pDenominator;
-    return operand1.divide(operand2);
+    return operand1.divide(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -205,7 +211,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.multiply(operand2);
+    return operand1.multiply(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -213,7 +219,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.shiftLeft(operand2);
+    return operand1.shiftLeft(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -221,7 +227,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.shiftRight(operand2);
+    return operand1.shiftRight(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -240,10 +246,26 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     return CompoundBitVectorInterval.span(operand1, operand2);
   }
 
+  @Override
+  public CompoundInterval negate(CompoundInterval pToNegate) {
+    if (!(pToNegate instanceof CompoundBitVectorInterval)) {
+      throw new IllegalArgumentException("operand is not a compound bit vector interval.");
+    }
+    return ((CompoundBitVectorInterval) pToNegate).negate(allowSignedWrapAround);
+  }
+
+  @Override
+  public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
+    if (!(pToCast instanceof CompoundBitVectorInterval)) {
+      throw new IllegalArgumentException("operand is not a compound bit vector interval.");
+    }
+    return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround);
+  }
+
   private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {
     if (!(pOperand1 instanceof CompoundBitVectorInterval)
         || !(pOperand2 instanceof CompoundBitVectorInterval)) {
-      throw new IllegalArgumentException("operand is not a compound bit vector interval.");
+      throw new IllegalArgumentException("Operand is not a compound bit vector interval.");
     }
   }
 

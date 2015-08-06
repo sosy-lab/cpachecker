@@ -59,8 +59,6 @@ public interface CompoundInterval {
 
   CompoundInterval span();
 
-  CompoundInterval add(long pI);
-
   /**
    * Checks if this compound state is the top state, including every possible value.
    *
@@ -76,8 +74,6 @@ public interface CompoundInterval {
    */
   boolean containsAllPossibleValues();
 
-  CompoundInterval negate();
-
   boolean containsNegative();
 
   boolean containsPositive();
@@ -87,8 +83,6 @@ public interface CompoundInterval {
   CompoundInterval signum();
 
   List<? extends CompoundInterval> splitIntoIntervals();
-
-  CompoundInterval cast(BitVectorInfo pBitVectorInfo);
 
   List<SimpleInterval> getIntervals();
 
