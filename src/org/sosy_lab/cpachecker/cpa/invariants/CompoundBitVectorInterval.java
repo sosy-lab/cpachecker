@@ -649,12 +649,96 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     CompoundBitVectorInterval result = bottom(pBitVectorInfo);
     for (BitVectorInterval interval : intervals) {
       result = result.unionWith(
-          BitVectorInterval.cast(
+          cast(
               pBitVectorInfo,
               interval.getLowerBound(),
               interval.getUpperBound()));
     }
     return result;
+  }
+
+  public static CompoundBitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound) {
+    if (pLowerBound.equals(pUpperBound)) {
+      return of(BitVectorInterval.cast(pInfo, pLowerBound));
+    }
+    BigInteger lowerBound = pLowerBound;
+    BigInteger upperBound = pUpperBound;
+
+    boolean lbExceedsBelow = lowerBound.compareTo(pInfo.getMinValue()) < 0;
+    boolean lbExceedsAbove = !lbExceedsBelow && lowerBound.compareTo(pInfo.getMaxValue()) > 0;
+    boolean ubExceedsBelow = upperBound.compareTo(pInfo.getMinValue()) < 0;
+    boolean ubExceedsAbove = !ubExceedsBelow && upperBound.compareTo(pInfo.getMaxValue()) > 0;
+
+    // If the value fits in the range, there is no problem
+    if (!(lbExceedsBelow || lbExceedsAbove || ubExceedsBelow || ubExceedsAbove)) {
+      return of(BitVectorInterval.of(pInfo, pLowerBound, pUpperBound));
+    }
+
+    // From here on out, we know the interval does not fit
+
+    // If the type is signed, overflow is undefined
+    if (pInfo.isSigned()) {
+      return of(pInfo.getRange());
+    }
+
+    BigInteger rangeLength = pInfo.getRange().size();
+    assert rangeLength.compareTo(BigInteger.ZERO) >= 0;
+
+    // If the value is larger than the full range, just return the full range
+    if (upperBound.subtract(lowerBound).add(BigInteger.ONE).compareTo(rangeLength) >= 0) {
+      return of(pInfo.getRange());
+    }
+
+    if (ubExceedsBelow) { // Full interval is below the minimum value
+      while (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
+        lowerBound = lowerBound.add(rangeLength);
+        upperBound = upperBound.add(rangeLength);
+      }
+      BigInteger altLB = pLowerBound.remainder(rangeLength);
+      assert altLB.signum() < 0;
+      altLB = altLB.add(rangeLength);
+      BigInteger altUB = altLB.add(pUpperBound.subtract(pLowerBound).add(BigInteger.ONE));
+      assert lowerBound.equals(altLB);
+      assert upperBound.equals(altUB);
+      assert lowerBound.compareTo(pInfo.getMinValue()) >= 0;
+
+      // If the interval still exceeds the range, we use multiple intervals
+      if (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
+        return union(
+            singleton(pInfo, lowerBound).extendToMaxValue(),
+            cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), upperBound));
+      }
+    } else if (lbExceedsAbove) { // Full interval is above the maximum value
+      while (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
+        lowerBound = lowerBound.subtract(rangeLength);
+        upperBound = upperBound.subtract(rangeLength);
+      }
+      BigInteger altUB = pUpperBound.remainder(rangeLength);
+      assert altUB.signum() > 0;
+      BigInteger altLB = upperBound.subtract(pUpperBound.subtract(pLowerBound).add(BigInteger.ONE));
+      assert lowerBound.equals(altLB);
+      assert upperBound.equals(altUB);
+      assert upperBound.compareTo(pInfo.getMaxValue()) <= 0;
+
+      // If the interval still exceeds the range, we use multiple intervals
+      if (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
+        return union(
+            singleton(pInfo, upperBound).extendToMinValue(),
+            cast(pInfo, pInfo.getMinValue().subtract(BigInteger.ONE), lowerBound));
+      }
+    } else if (lbExceedsBelow) { // Part of the interval is below the minimum value
+      return union(
+          cast(pInfo, pLowerBound, pInfo.getMinValue().subtract(BigInteger.ONE)),
+          cast(pInfo, pInfo.getMinValue(), pUpperBound)
+          );
+    } else if (ubExceedsAbove) { // Part of the interval is above the minimum value
+      return union(
+          cast(pInfo, pLowerBound, pInfo.getMaxValue()),
+          cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), pUpperBound)
+          );
+    }
+
+    return of(BitVectorInterval.of(pInfo, lowerBound, upperBound));
   }
 
   /**
@@ -736,26 +820,26 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     if (isTop() || isBottom()) { return this; }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval simpleInterval : this.intervals) {
-      result = negate(simpleInterval);
+      result = negate(info, simpleInterval);
     }
     return result;
   }
 
-  private CompoundBitVectorInterval negate(BitVectorInterval pInterval) {
+  private static CompoundBitVectorInterval negate(BitVectorInfo pInfo, BitVectorInterval pInterval) {
     BigInteger newLowerBound = pInterval.getUpperBound().negate();
     BigInteger newUpperBound = pInterval.getLowerBound().negate();
 
-    boolean lbExceedsBelow = newLowerBound.compareTo(info.getMinValue()) < 0;
-    boolean lbExceedsAbove = !lbExceedsBelow && newLowerBound.compareTo(info.getMaxValue()) > 0;
-    boolean ubExceedsBelow = newUpperBound.compareTo(info.getMinValue()) < 0;
-    boolean ubExceedsAbove = !ubExceedsBelow && newUpperBound.compareTo(info.getMaxValue()) > 0;
+    boolean lbExceedsBelow = newLowerBound.compareTo(pInfo.getMinValue()) < 0;
+    boolean lbExceedsAbove = !lbExceedsBelow && newLowerBound.compareTo(pInfo.getMaxValue()) > 0;
+    boolean ubExceedsBelow = newUpperBound.compareTo(pInfo.getMinValue()) < 0;
+    boolean ubExceedsAbove = !ubExceedsBelow && newUpperBound.compareTo(pInfo.getMaxValue()) > 0;
     if (lbExceedsBelow || lbExceedsAbove || ubExceedsBelow || ubExceedsAbove) {
-      if (info.isSigned()) {
-        return of(info.getRange());
+      if (pInfo.isSigned()) {
+        return of(pInfo.getRange());
       }
       final BigInteger fromLB;
       final BigInteger fromUB;
-      BigInteger rangeLength = info.getRange().size();
+      BigInteger rangeLength = pInfo.getRange().size();
       if (lbExceedsBelow) {
         fromLB = rangeLength.add(newLowerBound);
       } else if (lbExceedsAbove) {
@@ -774,17 +858,17 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       if (fromLB.compareTo(fromUB) > 0) {
         // If the borders touch anyway, return the full range
         if (fromUB.add(BigInteger.ONE).equals(fromLB)) {
-          return of(info.getRange());
+          return of(pInfo.getRange());
         }
         BitVectorInterval[] intervals = new BitVectorInterval[2];
-        intervals[0] = BitVectorInterval.singleton(info, fromUB).extendToMinValue();
-        intervals[1] = BitVectorInterval.singleton(info, fromLB).extendToMaxValue();
-        return CompoundBitVectorInterval.getInternal(info, intervals);
+        intervals[0] = BitVectorInterval.singleton(pInfo, fromUB).extendToMinValue();
+        intervals[1] = BitVectorInterval.singleton(pInfo, fromLB).extendToMaxValue();
+        return CompoundBitVectorInterval.getInternal(pInfo, intervals);
       }
       newLowerBound = fromLB;
       newUpperBound = fromUB;
     }
-    return CompoundBitVectorInterval.of(BitVectorInterval.of(info, newLowerBound, newUpperBound));
+    return CompoundBitVectorInterval.of(BitVectorInterval.of(pInfo, newLowerBound, newUpperBound));
   }
 
   /**

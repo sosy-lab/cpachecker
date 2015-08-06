@@ -335,7 +335,7 @@ public class BitVectorInterval implements BitVectorType {
     assert rangeLength.compareTo(BigInteger.ZERO) >= 0;
 
     // If the value is larger than the full range, just return the full range
-    if (upperBound.subtract(lowerBound).compareTo(rangeLength) >= 0) {
+    if (upperBound.subtract(lowerBound).add(BigInteger.ONE).compareTo(rangeLength) >= 0) {
       return pInfo.getRange();
     }
 
@@ -345,11 +345,9 @@ public class BitVectorInterval implements BitVectorType {
         upperBound = upperBound.add(rangeLength);
       }
       BigInteger altLB = pLowerBound.remainder(rangeLength);
-      BigInteger quotient = pLowerBound.divide(rangeLength);
       assert altLB.signum() < 0;
-      assert quotient.signum() < 0;
       altLB = altLB.add(rangeLength);
-      BigInteger altUB = pUpperBound.add(rangeLength.multiply(quotient.negate().add(BigInteger.ONE)));
+      BigInteger altUB = altLB.add(pUpperBound.subtract(pLowerBound).add(BigInteger.ONE));
       assert lowerBound.equals(altLB);
       assert upperBound.equals(altUB);
       assert lowerBound.compareTo(pInfo.getMinValue()) >= 0;
@@ -364,10 +362,8 @@ public class BitVectorInterval implements BitVectorType {
         upperBound = upperBound.subtract(rangeLength);
       }
       BigInteger altUB = pUpperBound.remainder(rangeLength);
-      BigInteger quotient = pUpperBound.divide(rangeLength);
-      assert altUB.signum() < 0;
-      assert quotient.signum() > 0;
-      BigInteger altLB = pLowerBound.subtract(rangeLength.multiply(quotient));
+      assert altUB.signum() > 0;
+      BigInteger altLB = upperBound.subtract(pUpperBound.subtract(pLowerBound).add(BigInteger.ONE));
       assert lowerBound.equals(altLB);
       assert upperBound.equals(altUB);
       assert upperBound.compareTo(pInfo.getMaxValue()) <= 0;

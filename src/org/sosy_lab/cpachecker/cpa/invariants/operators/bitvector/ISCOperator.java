@@ -92,7 +92,7 @@ public enum ISCOperator implements Operator<BitVectorInterval, BigInteger, Compo
         result = result.unionWith(BitVectorInterval.singleton(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO));
       }
       if (pFirstOperand.containsNegative()) {
-        CompoundBitVectorInterval negRange = CompoundBitVectorInterval.of(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), largestPossibleValue.negate(), BigInteger.ZERO));
+        CompoundBitVectorInterval negRange = CompoundBitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), largestPossibleValue.negate(), BigInteger.ZERO);
         if (pFirstOperand.hasLowerBound()) {
           BitVectorInterval negPart = pFirstOperand.getNegativePart();
           BitVectorInterval negatedNegPart = negPart.negate();
@@ -103,7 +103,7 @@ public enum ISCOperator implements Operator<BitVectorInterval, BigInteger, Compo
         result = result.unionWith(negRange);
       }
       if (pFirstOperand.containsPositive()) {
-        CompoundBitVectorInterval posRange = CompoundBitVectorInterval.of(BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, largestPossibleValue));
+        CompoundBitVectorInterval posRange = CompoundBitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), BigInteger.ZERO, largestPossibleValue);
         if (pFirstOperand.hasUpperBound()) {
           BitVectorInterval posPart = pFirstOperand.getPositivePart();
           BigInteger posPartLength = posPart.size();
