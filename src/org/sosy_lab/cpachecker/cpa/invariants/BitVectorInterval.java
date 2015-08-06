@@ -308,6 +308,9 @@ public class BitVectorInterval implements BitVectorType {
   }
 
   public static BitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound) {
+    if (pLowerBound.equals(pUpperBound)) {
+      return cast(pInfo, pLowerBound);
+    }
     BigInteger lowerBound = pLowerBound;
     BigInteger upperBound = pUpperBound;
 
