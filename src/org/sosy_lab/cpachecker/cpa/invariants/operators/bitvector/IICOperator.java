@@ -49,7 +49,10 @@ public enum IICOperator implements Operator<BitVectorInterval, BitVectorInterval
 
     @Override
     public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
-      return CompoundBitVectorInterval.of(IIIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand));
+      BitVectorInterval result = IIIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand);
+      return result == null
+          ? CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo())
+          : CompoundBitVectorInterval.of(result);
     }
 
   },
