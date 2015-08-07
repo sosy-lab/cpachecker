@@ -109,6 +109,11 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
   }
 
   @Override
+  public CompoundInterval castedSingleton(BigInteger pValue) {
+    return singleton(pValue);
+  }
+
+  @Override
   public CompoundInterval fromBoolean(boolean pValue) {
     return CompoundMathematicalInterval.fromBoolean(pValue);
   }

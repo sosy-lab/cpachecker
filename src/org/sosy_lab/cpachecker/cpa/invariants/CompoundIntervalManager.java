@@ -52,9 +52,38 @@ public interface CompoundIntervalManager {
 
   CompoundInterval greaterThan(CompoundInterval pOperand1, CompoundInterval pOperand2);
 
+  /**
+   * Gets a compound interval for the given value.
+   *
+   * @param pValue the value to convert to a compound interval.
+   *
+   * @return a compound interval for the given value.
+   * @throws IllegalArgumentException if the given value does not fit into the
+   * maximum interval range.
+   */
   CompoundInterval singleton(long pValue);
 
+  /**
+   * Gets a compound interval for the given value.
+   *
+   * @param pValue the value to convert to a compound interval.
+   *
+   * @return a compound interval for the given value.
+   * @throws IllegalArgumentException if the given value does not fit into the
+   * maximum interval range.
+   */
   CompoundInterval singleton(BigInteger pValue);
+
+  /**
+   * Gets a compound interval for the given value.
+   * If the given value does not fit into the maximum interval range,
+   * this function will apply a cast to fit the value into the range.
+   *
+   * @param pValue the value to convert to a compound interval.
+   *
+   * @return a compound interval for the given value.
+   */
+  CompoundInterval castedSingleton(BigInteger pValue);
 
   CompoundInterval fromBoolean(boolean pValue);
 

@@ -155,11 +155,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   }
 
   private NumeralFormula<CompoundInterval> asConstant(Type pType, BigInteger pValue) {
-    return asConstant(pType, getIntervalManager(pType).singleton(pValue));
+    return asConstant(pType, getIntervalManager(pType).castedSingleton(pValue));
   }
 
   private NumeralFormula<CompoundInterval> asConstant(Type pType, long pValue) {
-    return asConstant(pType, getIntervalManager(pType).singleton(pValue));
+    return asConstant(pType, BigInteger.valueOf(pValue));
   }
 
   private NumeralFormula<CompoundInterval> asConstant(Type pType, CompoundInterval pValue) {

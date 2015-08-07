@@ -138,6 +138,11 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
   }
 
   @Override
+  public CompoundInterval castedSingleton(BigInteger pValue) {
+    return CompoundBitVectorInterval.cast(info, pValue, pValue, allowSignedWrapAround);
+  }
+
+  @Override
   public CompoundInterval fromBoolean(boolean pValue) {
     return CompoundBitVectorInterval.fromBoolean(info, pValue);
   }
