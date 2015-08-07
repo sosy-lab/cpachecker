@@ -119,8 +119,8 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     }
     CompoundInterval leftValue = evaluate(pAdd.getSummand1());
     CompoundInterval rightValue = evaluate(pAdd.getSummand2());
-    CompoundInterval pushLeftValue = cim.negate(cim.add(parameter, rightValue));
-    CompoundInterval pushRightValue = cim.negate(cim.add(parameter, leftValue));
+    CompoundInterval pushLeftValue = cim.add(parameter, cim.negate(rightValue));
+    CompoundInterval pushRightValue = cim.add(parameter, cim.negate(leftValue));
     if (!pAdd.getSummand1().accept(this, pushLeftValue)
         || !pAdd.getSummand2().accept(this, pushRightValue)) {
       return false;
