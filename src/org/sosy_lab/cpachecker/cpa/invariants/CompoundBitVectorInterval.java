@@ -690,16 +690,11 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     }
 
     if (ubExceedsBelow) { // Full interval is below the minimum value
-      while (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
+      lowerBound = pLowerBound.remainder(rangeLength);
+      if (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
         lowerBound = lowerBound.add(rangeLength);
-        upperBound = upperBound.add(rangeLength);
       }
-      BigInteger altLB = pLowerBound.remainder(rangeLength);
-      assert altLB.signum() < 0;
-      altLB = altLB.add(rangeLength);
-      BigInteger altUB = altLB.add(pUpperBound.subtract(pLowerBound));
-      assert lowerBound.equals(altLB);
-      assert upperBound.equals(altUB);
+      upperBound = lowerBound.add(pUpperBound.subtract(pLowerBound));
       assert lowerBound.compareTo(pInfo.getMinValue()) >= 0;
 
       // If the interval still exceeds the range, we use multiple intervals
@@ -709,22 +704,18 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
             cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), upperBound, pAllowSignedWrapAround));
       }
     } else if (lbExceedsAbove) { // Full interval is above the maximum value
-      while (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
-        lowerBound = lowerBound.subtract(rangeLength);
+      upperBound = pUpperBound.remainder(rangeLength);
+      if (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
         upperBound = upperBound.subtract(rangeLength);
       }
-      BigInteger altUB = pUpperBound.remainder(rangeLength);
-      assert altUB.signum() > 0;
-      BigInteger altLB = upperBound.subtract(pUpperBound.subtract(pLowerBound));
-      assert lowerBound.equals(altLB);
-      assert upperBound.equals(altUB);
+      lowerBound = upperBound.subtract(pUpperBound.subtract(pLowerBound));
       assert upperBound.compareTo(pInfo.getMaxValue()) <= 0;
 
       // If the interval still exceeds the range, we use multiple intervals
       if (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
         return union(
             singleton(pInfo, upperBound).extendToMinValue(),
-            cast(pInfo, pInfo.getMinValue().subtract(BigInteger.ONE), lowerBound, pAllowSignedWrapAround));
+            cast(pInfo, lowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround));
       }
     } else if (lbExceedsBelow) { // Part of the interval is below the minimum value
       return union(
