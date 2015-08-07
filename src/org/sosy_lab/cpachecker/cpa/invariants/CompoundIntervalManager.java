@@ -99,6 +99,8 @@ public interface CompoundIntervalManager {
 
   CompoundInterval binaryXor(CompoundInterval pOperand1, CompoundInterval pOperand2);
 
+  CompoundInterval binaryNot(CompoundInterval pOperand);
+
   CompoundInterval divide(CompoundInterval pNumerator, CompoundInterval pDenominator);
 
   CompoundInterval multiply(CompoundInterval pOperand1, CompoundInterval pOperand2);

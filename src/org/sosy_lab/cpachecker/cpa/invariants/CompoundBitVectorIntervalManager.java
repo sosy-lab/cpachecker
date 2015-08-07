@@ -192,7 +192,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.binaryOr(operand2);
+    return operand1.binaryOr(operand2, allowSignedWrapAround);
   }
 
   @Override
@@ -200,7 +200,14 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.binaryXor(operand2);
+    return operand1.binaryXor(operand2, allowSignedWrapAround);
+  }
+
+  @Override
+  public CompoundInterval binaryNot(CompoundInterval pOperand) {
+    checkOperand(pOperand);
+    CompoundBitVectorInterval operand = (CompoundBitVectorInterval) pOperand;
+    return operand.binaryNot(allowSignedWrapAround);
   }
 
   @Override
@@ -253,25 +260,25 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
 
   @Override
   public CompoundInterval negate(CompoundInterval pToNegate) {
-    if (!(pToNegate instanceof CompoundBitVectorInterval)) {
-      throw new IllegalArgumentException("operand is not a compound bit vector interval.");
-    }
+    checkOperand(pToNegate);
     return ((CompoundBitVectorInterval) pToNegate).negate(allowSignedWrapAround);
   }
 
   @Override
   public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
-    if (!(pToCast instanceof CompoundBitVectorInterval)) {
-      throw new IllegalArgumentException("operand is not a compound bit vector interval.");
-    }
+    checkOperand(pToCast);
     return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround);
   }
 
-  private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {
-    if (!(pOperand1 instanceof CompoundBitVectorInterval)
-        || !(pOperand2 instanceof CompoundBitVectorInterval)) {
+  private static void checkOperand(CompoundInterval pOperand) {
+    if (!(pOperand instanceof CompoundBitVectorInterval)) {
       throw new IllegalArgumentException("Operand is not a compound bit vector interval.");
     }
+  }
+
+  private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {
+    checkOperand(pOperand1);
+    checkOperand(pOperand2);
   }
 
 }

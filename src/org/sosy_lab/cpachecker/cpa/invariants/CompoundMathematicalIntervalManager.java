@@ -175,6 +175,13 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
   }
 
   @Override
+  public CompoundInterval binaryNot(CompoundInterval pOperand) {
+    checkOperand(pOperand);
+    CompoundMathematicalInterval operand = (CompoundMathematicalInterval) pOperand;
+    return operand.binaryNot();
+  }
+
+  @Override
   public CompoundInterval divide(CompoundInterval pNumerator, CompoundInterval pDenominator) {
     checkOperands(pNumerator, pDenominator);
     CompoundMathematicalInterval operand1 = (CompoundMathematicalInterval) pNumerator;
@@ -224,25 +231,25 @@ public enum CompoundMathematicalIntervalManager implements CompoundIntervalManag
 
   @Override
   public CompoundInterval negate(CompoundInterval pToNegate) {
-    if (!(pToNegate instanceof CompoundMathematicalInterval)) {
-      throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
-    }
+    checkOperand(pToNegate);
     return ((CompoundMathematicalInterval) pToNegate).negate();
   }
 
   @Override
   public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
-    if (!(pToCast instanceof CompoundMathematicalInterval)) {
-      throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
-    }
+    checkOperand(pToCast);
     return ((CompoundMathematicalInterval) pToCast).cast(pInfo);
   }
 
-  private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {
-    if (!(pOperand1 instanceof CompoundMathematicalInterval)
-        || !(pOperand2 instanceof CompoundMathematicalInterval)) {
+  private static void checkOperand(CompoundInterval pOperand) {
+    if (!(pOperand instanceof CompoundMathematicalInterval)) {
       throw new IllegalArgumentException("Operand is not a compound mathematical interval.");
     }
+  }
+
+  private static void checkOperands(CompoundInterval pOperand1, CompoundInterval pOperand2) {
+    checkOperand(pOperand1);
+    checkOperand(pOperand2);
   }
 
 }

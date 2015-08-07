@@ -1381,7 +1381,6 @@ public class CompoundMathematicalInterval implements CompoundInterval {
    * @return the state resulting from flipping the bits of the
    * values represented by this state.
    */
-  @Override
   public CompoundMathematicalInterval binaryNot() {
     if (isBottom()) { return bottom(); }
     CompoundMathematicalInterval result = bottom();

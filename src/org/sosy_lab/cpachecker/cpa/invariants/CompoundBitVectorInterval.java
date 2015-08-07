@@ -1537,10 +1537,15 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * bit-wise xor-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryXor(CompoundBitVectorInterval pState) {
+  public CompoundBitVectorInterval binaryXor(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) { return bottom(info); }
-    if (isSingleton() && pState.isSingleton()) { return CompoundBitVectorInterval.singleton(info, getValue().xor(pState.getValue())); }
+    if (isSingleton() && pState.isSingleton()) {
+      return of(BitVectorInterval.cast(
+          info,
+          getValue().xor(pState.getValue()),
+          pAllowSignedWrapAround));
+    }
     if (pState.isSingleton() && pState.containsZero()) {
       return this;
     }
@@ -1561,11 +1566,14 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         if (!interval.isSingleton()) {
           return getInternal(info.getRange());
         }
-        result = result.unionWith(BitVectorInterval.singleton(info, interval.getLowerBound().xor(pState.getValue())));
+        result = result.unionWith(BitVectorInterval.cast(
+            info,
+            interval.getLowerBound().xor(pState.getValue()),
+            pAllowSignedWrapAround));
       }
       return result;
     } else if (isSingleton()) {
-      return pState.binaryXor(this);
+      return pState.binaryXor(this, pAllowSignedWrapAround);
     }
     // TODO maybe a more exact implementation is possible?
     return getInternal(info.getRange());
@@ -1578,8 +1586,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from flipping the bits of the
    * values represented by this state.
    */
-  @Override
-  public CompoundBitVectorInterval binaryNot() {
+  public CompoundBitVectorInterval binaryNot(boolean pAllowSignedWrapAround) {
     if (isBottom()) { return bottom(info); }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval interval : this.intervals) {
@@ -1589,9 +1596,15 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       }
       final BitVectorInterval partialResult;
       if (info.isSigned()) {
-        partialResult = BitVectorInterval.singleton(info, interval.getLowerBound().not());
+        partialResult = BitVectorInterval.cast(
+            info,
+            interval.getLowerBound().not(),
+            pAllowSignedWrapAround);
       } else {
-        partialResult = BitVectorInterval.singleton(info, new BigInteger(1, interval.getLowerBound().not().toByteArray()));
+        partialResult = BitVectorInterval.cast(
+            info,
+            new BigInteger(1, interval.getLowerBound().not().toByteArray()),
+            pAllowSignedWrapAround);
       }
       result = result.unionWith(partialResult);
     }
@@ -1615,7 +1628,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * bit-wise or-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryOr(CompoundBitVectorInterval pState) {
+  public CompoundBitVectorInterval binaryOr(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) { return bottom(info); }
     if (isSingleton() && containsZero()) {
@@ -1630,11 +1643,14 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         if (!interval.isSingleton()) {
           return getInternal(info.getRange());
         }
-        result = result.unionWith(BitVectorInterval.singleton(info, interval.getLowerBound().or(pState.getValue())));
+        result = result.unionWith(BitVectorInterval.cast(
+            info,
+            interval.getLowerBound().or(pState.getValue()),
+            pAllowSignedWrapAround));
       }
       return result;
     } else if (isSingleton()) {
-      return pState.binaryOr(this);
+      return pState.binaryOr(this, pAllowSignedWrapAround);
     }
     // TODO maybe a more exact implementation is possible?
     return getInternal(info.getRange());

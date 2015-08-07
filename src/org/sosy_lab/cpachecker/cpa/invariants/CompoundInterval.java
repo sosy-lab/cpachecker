@@ -78,8 +78,6 @@ public interface CompoundInterval {
 
   boolean containsPositive();
 
-  CompoundInterval binaryNot();
-
   CompoundInterval signum();
 
   List<? extends CompoundInterval> splitIntoIntervals();

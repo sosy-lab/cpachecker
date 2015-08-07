@@ -67,7 +67,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
 
   @Override
   public CompoundInterval visit(BinaryNot<CompoundInterval> pNot, Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return pNot.getFlipped().accept(this, pEnvironment).binaryNot();
+    return getCompoundIntervalManager(pNot).binaryNot(pNot.getFlipped().accept(this, pEnvironment));
   }
 
   @Override
