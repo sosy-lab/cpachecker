@@ -133,7 +133,7 @@ public class InductiveWeakeningManager {
 
     if (useSyntacticFormulaSlicing) {
       inductiveSlice = syntacticFormulaSlicing(selectionVars, orderedList,
-          transition, input);
+          transition);
 
       // Sanity check. todo: make optional.
       Verify.verify(solver.isUnsat(bfmgr.and(bfmgr.and(inductiveSlice), query)));
@@ -168,28 +168,25 @@ public class InductiveWeakeningManager {
     return fmgr.uninstantiate(sliced);
   }
 
+  /**
+   * Syntactic formula slicing: slices away all atoms which have variables
+   * which were changed by the transition relation.
+   *
+   * @return Set of selectors which correspond to atoms which *should*
+   *         be abstracted.
+   */
   private Set<BooleanFormula> syntacticFormulaSlicing(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       List<BooleanFormula> selectionVars,
-      PathFormula transition,
-      PathFormula initial
+      PathFormula transition
   ) throws SolverException, InterruptedException {
     Set<BooleanFormula> out = new HashSet<>();
     for (BooleanFormula selector : selectionVars) {
       BooleanFormula atom = selectionInfo.get(selector);
-      Set<String> varNames = fmgr.extractFunctionNames(fmgr.uninstantiate(atom), true);
 
-      boolean keepSelector = true;
-      for (String var : varNames) {
-
-        if (transition.getSsa().getIndex(var) != initial.getSsa().getIndex(var)) {
-          out.add(selector);
-          keepSelector = false;
-          break;
-        }
-      }
-      if (!keepSelector) {
-        break;
+      Set<String> deadVars = fmgr.getDeadVariableNames(atom, transition.getSsa());
+      if (!deadVars.isEmpty()) {
+        out.add(selector);
       }
     }
     return out;
