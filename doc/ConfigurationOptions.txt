@@ -2327,6 +2327,10 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # (see config/specification/ for examples)
 specification = no default value
 
+# (How) Should the specification (observer) automata be composed?
+specificationComposition = SEPARATE
+  enum:     [SEPARATE, UNION]
+
 # export abstract states as formula, e.g. for re-using them as
 # PredicatePrecision.
 statesToFormulas.exportFile = no default value
