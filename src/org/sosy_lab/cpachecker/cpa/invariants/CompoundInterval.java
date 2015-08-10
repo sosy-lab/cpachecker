@@ -60,13 +60,6 @@ public interface CompoundInterval {
   CompoundInterval span();
 
   /**
-   * Checks if this compound state is the top state, including every possible value.
-   *
-   * @return {@code true} if this is the top state, {@code false} otherwise.
-   */
-  boolean isTop(); // TODO: Check if this is always supposed to be equivalent to containsAllPossibleValues, and if so, remove it
-
-  /**
    * Checks if this compound state contains every possible value.
    *
    * @return {@code true} if this state contains every possible value,

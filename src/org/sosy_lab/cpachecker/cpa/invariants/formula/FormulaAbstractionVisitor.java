@@ -101,7 +101,7 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   }
 
   private CompoundInterval abstractionOf(BitVectorInfo pBitVectorInfo, CompoundInterval pValue) {
-    if (pValue.isBottom() || pValue.isTop()) {
+    if (pValue.isBottom() || pValue.containsAllPossibleValues()) {
       return pValue;
     }
     CompoundInterval result = pValue.signum();

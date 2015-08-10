@@ -763,7 +763,7 @@ public class CompoundIntervalFormulaManager {
           newValue = union(value, p2.getOperand2());
           newValue = newValue.accept(new PartialEvaluator(compoundIntervalManagerFactory), evaluationVisitor);
           CompoundInterval val = evaluate(newValue);
-          if (val.isTop() && newValue instanceof Constant<?>) {
+          if (val.containsAllPossibleValues() && newValue instanceof Constant<?>) {
             return BooleanConstant.getTrue();
           }
           if (val.isBottom()) {
@@ -1011,7 +1011,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   private NumeralFormula<CompoundInterval> unionAll(BitVectorInfo pBitVectorInfo, CompoundInterval pConstantPart, Collection<NumeralFormula<CompoundInterval>> pFormulas) {
-    if (pFormulas.isEmpty() || pConstantPart.isTop()) {
+    if (pFormulas.isEmpty() || pConstantPart.containsAllPossibleValues()) {
       return asConstant(pBitVectorInfo, pConstantPart);
     }
     NumeralFormula<CompoundInterval> result = null;

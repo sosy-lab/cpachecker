@@ -194,8 +194,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    */
   public CompoundBitVectorInterval unionWith(CompoundBitVectorInterval pOther) {
     checkBitVectorCompatibilityWith(pOther.info);
-    if (pOther == this || isTop() || pOther.isBottom()) { return this; }
-    if (pOther.isTop() || isBottom()) { return pOther; }
+    if (pOther == this || containsAllPossibleValues() || pOther.isBottom()) { return this; }
+    if (pOther.containsAllPossibleValues() || isBottom()) { return pOther; }
     CompoundBitVectorInterval current = this;
     for (BitVectorInterval interval : pOther.intervals) {
       current = current.unionWith(interval);
@@ -287,8 +287,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    */
   public CompoundBitVectorInterval intersectWith(CompoundBitVectorInterval pOther) {
     checkBitVectorCompatibilityWith(pOther.info);
-    if (isBottom() || pOther.isTop() || this == pOther) { return this; }
-    if (isTop() || pOther.isBottom()) { return pOther; }
+    if (isBottom() || pOther.containsAllPossibleValues() || this == pOther) { return this; }
+    if (containsAllPossibleValues() || pOther.isBottom()) { return pOther; }
     if (pOther.contains(this)) {
       return this;
     }
@@ -370,7 +370,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return <code>true</code> if the given state is contained in this compound state, <code>false</code> otherwise.
    */
   public boolean contains(CompoundBitVectorInterval pState) {
-    if (this == pState || isTop()) {
+    if (this == pState) {
       return true;
     }
     for (BitVectorInterval interval : pState.intervals) {
@@ -388,7 +388,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return <code>true</code> if the given interval is contained in the state, <code>false</code> otherwise.
    */
   public boolean contains(BitVectorInterval pInterval) {
-    if (isTop()) { return true; }
     if (isBottom() || pInterval.isTop()) { return false; }
     if (!pInterval.hasLowerBound() && hasLowerBound()) {
       return false;
@@ -423,7 +422,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     if (isBottom()) {
       return -1;
     }
-    if (isTop()) {
+    if (containsAllPossibleValues()) {
       return 0;
     }
     int leftInclusive = 0;
@@ -455,7 +454,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    */
   @Override
   public boolean contains(BigInteger pValue) {
-    if (isTop()) { return true; }
     if (isBottom()) { return false; }
     if (pValue.compareTo(info.getMinValue()) < 0) {
       return false;
@@ -474,7 +472,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * <code>false</code> otherwise.
    */
   public boolean contains(long pValue) {
-    if (isTop()) { return true; }
     if (isBottom()) { return false; }
     BigInteger value = BigInteger.valueOf(pValue);
     return intervalIndexOf(value) >= 0;
@@ -492,16 +489,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
   }
 
   /**
-   * Checks if this compound state is the top state, including every possible value.
-   *
-   * @return {@code true} if this is the top state, {@code false} otherwise.
-   */
-  @Override
-  public boolean isTop() {
-    return false;
-  }
-
-  /**
    * Checks if this compound state contains every possible value.
    *
    * @return {@code true} if this state contains every possible value,
@@ -516,9 +503,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
   public String toString() {
     if (isBottom()) {
       return Character.toString('\u22A5');
-    }
-    if (isTop()) {
-      return Character.toString('\u22A4');
     }
     StringBuilder sb = new StringBuilder();
     sb.append('{');
@@ -541,8 +525,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    */
   @Override
   public boolean hasLowerBound() {
-    if (isTop() || isBottom()) { return false; }
-    return this.intervals[0].hasLowerBound();
+    return !isBottom();
   }
 
   /**
@@ -552,8 +535,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    */
   @Override
   public boolean hasUpperBound() {
-    if (isTop() || isBottom()) { return false; }
-    return this.intervals[this.intervals.length - 1].hasUpperBound();
+    return !isBottom();
   }
 
   /**
@@ -596,7 +578,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
   @Override
   public @Nullable BigInteger getValue() {
     if (isBottom()) { return null; }
-    if (isTop()) { return BigInteger.ZERO; }
+    if (containsAllPossibleValues()) { return BigInteger.ZERO; }
     for (BitVectorInterval interval : this.intervals) {
       if (interval.hasLowerBound()) { return interval.getLowerBound(); }
       if (interval.hasUpperBound()) { return interval.getUpperBound(); }
@@ -807,7 +789,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the negated state.
    */
   public CompoundBitVectorInterval negate(boolean pAllowSignedWrapAround) {
-    if (isTop() || isBottom()) { return this; }
+    if (containsAllPossibleValues() || isBottom()) { return this; }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval simpleInterval : this.intervals) {
       result = negate(info, simpleInterval, pAllowSignedWrapAround);
@@ -868,7 +850,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
   @Override
   public boolean containsPositive() {
     if (isBottom()) { return false; }
-    if (isTop()) { return true; }
     for (BitVectorInterval interval : this.intervals) {
       if (interval.containsPositive()) { return true; }
     }
@@ -883,7 +864,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
   @Override
   public boolean containsNegative() {
     if (isBottom()) { return false; }
-    if (isTop()) { return true; }
     for (BitVectorInterval interval : this.intervals) {
       if (interval.containsNegative()) { return true; }
     }
@@ -1777,7 +1757,9 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       CompoundBitVectorInterval current = pOperator.apply(interval, pOperand);
       if (current != null) {
         result = result.unionWith(current);
-        if (result.isTop()) { return result; }
+        if (result.containsAllPossibleValues()) {
+          return result;
+        }
       }
     }
     return result;

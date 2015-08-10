@@ -331,7 +331,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   private NumeralFormula<CompoundInterval> topIfProblematicType(CType pType, NumeralFormula<CompoundInterval> pFormula) {
     if ((pType instanceof CSimpleType) && ((CSimpleType) pType).getCanonicalType().isUnsigned()) {
       CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
-      if (value.isTop()) {
+      if (value.containsAllPossibleValues()) {
         return pFormula;
       }
       if (value.containsNegative()) {

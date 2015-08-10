@@ -128,7 +128,7 @@ public class PartialEvaluator implements
       if (value.isSingleton() && value.getValue().equals(BigInteger.ZERO)) {
         return other;
       }
-      if (value.isTop() || value.isBottom()) {
+      if (value.containsAllPossibleValues() || value.isBottom()) {
         return c;
       }
       PushSummandVisitor<CompoundInterval> psv = new PushSummandVisitor<>(pEvaluationVisitor);

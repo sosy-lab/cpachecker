@@ -63,7 +63,7 @@ public enum ICCOperatorFactory {
           CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround).apply(pFirstOperand,interval);
           if (current != null) {
             result = result.unionWith(current);
-            if (result.isTop()) {
+            if (result.containsAllPossibleValues()) {
               return result;
             }
           }
@@ -87,7 +87,7 @@ public enum ICCOperatorFactory {
           CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround).apply(pFirstOperand, interval);
           if (current != null) {
             result = result.unionWith(current);
-            if (result.isTop()) {
+            if (result.containsAllPossibleValues()) {
               return result;
             }
           }
@@ -125,7 +125,7 @@ public enum ICCOperatorFactory {
           CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShitfLeft(pAllowSignedWrapAround).apply(pFirstOperand,interval);
           if (current != null) {
             result = result.unionWith(current);
-            if (result.isTop()) {
+            if (result.containsAllPossibleValues()) {
               return result;
             }
           }
@@ -149,7 +149,7 @@ public enum ICCOperatorFactory {
           CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround).apply(pFirstOperand,interval);
           if (current != null) {
             result = result.unionWith(current);
-            if (result.isTop()) {
+            if (result.containsAllPossibleValues()) {
               return result;
             }
           }

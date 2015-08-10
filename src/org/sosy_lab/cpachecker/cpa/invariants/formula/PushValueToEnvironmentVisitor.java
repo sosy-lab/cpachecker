@@ -301,7 +301,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (parameter.isBottom()) {
       return false;
     }
-    if (parameter.isTop()) {
+    if (parameter.containsAllPossibleValues()) {
       return true;
     }
     String varName = pVariable.getName();
@@ -321,7 +321,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (newValue.isBottom()) {
       return false;
     }
-    if (newValue.isTop()) {
+    if (newValue.containsAllPossibleValues()) {
       environment.remove(varName);
     } else {
       environment.put(varName, InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getBitVectorInfo(), newValue));

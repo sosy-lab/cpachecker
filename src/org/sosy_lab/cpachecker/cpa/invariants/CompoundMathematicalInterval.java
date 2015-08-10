@@ -494,7 +494,6 @@ public class CompoundMathematicalInterval implements CompoundInterval {
    *
    * @return <code>true</code> if this is the top state, <code>false</code> otherwise.
    */
-  @Override
   public boolean isTop() {
     return !isBottom() && this.intervals[0].isTop();
   }

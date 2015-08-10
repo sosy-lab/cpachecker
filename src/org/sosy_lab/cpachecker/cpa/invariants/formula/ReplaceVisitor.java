@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+
 /**
  * Instances of this class are invariants formula visitors used to replace
  * parts of the visited formulae with other formulae.
@@ -32,24 +38,24 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormula<T>>, BooleanFormulaVisitor<T, BooleanFormula<T>> {
 
   /**
-   * The formula to be replaced.
+   * Predicate indicating which numeral formula to replace.
    */
-  private final NumeralFormula<T> toReplaceN;
+  private final Predicate<? super NumeralFormula<T>> toReplaceN;
 
   /**
-   * The replacement formula.
+   * This function receives a formula to be replaced and produces the replacement.
    */
-  private final NumeralFormula<T> replacementN;
+  private final Function<? super NumeralFormula<T>, ? extends NumeralFormula<T>> replacementN;
 
   /**
-   * The formula to be replaced.
+   * Predicate indicating which boolean formula to replace.
    */
-  private final BooleanFormula<T> toReplaceB;
+  private final Predicate<? super BooleanFormula<T>> toReplaceB;
 
   /**
-   * The replacement formula.
+   * This function receives a formula to be replaced and produces the replacement.
    */
-  private final BooleanFormula<T> replacementB;
+  private final Function<? super BooleanFormula<T>, ? extends BooleanFormula<T>> replacementB;
 
   private final RecursiveNumeralFormulaVisitor<T> recursiveNumeralFormulaVisitor;
 
@@ -64,7 +70,27 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
    */
   public ReplaceVisitor(NumeralFormula<T> pToReplace,
       NumeralFormula<T> pReplacement) {
-    this(pToReplace, pReplacement, null, null);
+    this(pToReplace == null
+          ? Predicates.<NumeralFormula<T>>alwaysFalse()
+          : Predicates.<NumeralFormula<T>>equalTo(pToReplace),
+          Functions.constant(pReplacement),
+        Predicates.<BooleanFormula<T>>alwaysFalse(),
+        Functions.<BooleanFormula<T>>identity());
+  }
+
+  /**
+   * Creates a new replace visitor for replacing matches of given predicate
+   * by the given formula in visited formulae.
+   *
+   * @param pToReplace the predicate indicating what to replace.
+   * @param pReplacement the replacement formula.
+   */
+  public ReplaceVisitor(Predicate<? super NumeralFormula<T>> pToReplace,
+      Function<NumeralFormula<T>, NumeralFormula<T>> pReplacement) {
+    this(pToReplace,
+        pReplacement,
+        Predicates.<BooleanFormula<T>>alwaysFalse(),
+        Functions.<BooleanFormula<T>>identity());
   }
 
   /**
@@ -76,12 +102,24 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
    */
   public ReplaceVisitor(BooleanFormula<T> pToReplace,
       BooleanFormula<T> pReplacement) {
-    this(null, null, pToReplace, pReplacement);
+    this(
+        Predicates.<NumeralFormula<T>>alwaysFalse(),
+        Functions.<NumeralFormula<T>>identity(),
+        pToReplace == null
+          ? Predicates.<BooleanFormula<T>>alwaysFalse()
+          : Predicates.<BooleanFormula<T>>equalTo(pToReplace),
+        Functions.constant(pReplacement));
   }
 
-  private ReplaceVisitor(NumeralFormula<T> pToReplaceN,
-      NumeralFormula<T> pReplacementN, BooleanFormula<T> pToReplaceB,
-      BooleanFormula<T> pReplacementB) {
+  private ReplaceVisitor(
+      Predicate<? super NumeralFormula<T>> pToReplaceN,
+      Function<? super NumeralFormula<T>, ? extends NumeralFormula<T>> pReplacementN,
+      Predicate<? super BooleanFormula<T>> pToReplaceB,
+      Function<? super BooleanFormula<T>, ? extends BooleanFormula<T>> pReplacementB) {
+    Preconditions.checkNotNull(pToReplaceN);
+    Preconditions.checkNotNull(pReplacementN);
+    Preconditions.checkNotNull(pToReplaceB);
+    Preconditions.checkNotNull(pToReplaceB);
     this.toReplaceN = pToReplaceN;
     this.replacementN = pReplacementN;
     this.toReplaceB = pToReplaceB;
@@ -90,8 +128,8 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
 
       @Override
       protected NumeralFormula<T> visitPost(NumeralFormula<T> pFormula) {
-        if (pFormula.equals(toReplaceN)) {
-          return replacementN;
+        if (toReplaceN.apply(pFormula)) {
+          return replacementN.apply(pFormula);
         }
         return pFormula;
       }
@@ -101,8 +139,8 @@ public class ReplaceVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormul
 
       @Override
       protected BooleanFormula<T> visitPost(BooleanFormula<T> pFormula) {
-        if (pFormula.equals(toReplaceB)) {
-          return replacementB;
+        if (toReplaceB.apply(pFormula)) {
+          return replacementB.apply(pFormula);
         }
         return pFormula;
       }};

@@ -102,47 +102,45 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
     if (result.isDefinitelyFalse()) {
       return BooleanConstant.getFalse();
     }
-    if (result.isTop()) {
-      if (pEqual.getOperand1() instanceof Variable) {
-        Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand1();
-        NumeralFormula<CompoundInterval> value = pEnvironment.get(var.getName());
-        while (value != null) {
-          if (value instanceof Exclusion) {
-            Exclusion<CompoundInterval> exclusion = (Exclusion<CompoundInterval>) value;
-            if (exclusion.getExcluded().equals(pEqual.getOperand2())) {
-              return BooleanConstant.getFalse();
-            }
-          }
-          if (value instanceof Variable) {
-            if (value.equals(var)) {
-              return BooleanConstant.getTrue();
-            }
-            var = (Variable<CompoundInterval>) value;
-            value = pEnvironment.get(var.getName());
-          } else {
-            value = null;
+    if (pEqual.getOperand1() instanceof Variable) {
+      Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand1();
+      NumeralFormula<CompoundInterval> value = pEnvironment.get(var.getName());
+      while (value != null) {
+        if (value instanceof Exclusion) {
+          Exclusion<CompoundInterval> exclusion = (Exclusion<CompoundInterval>) value;
+          if (exclusion.getExcluded().equals(pEqual.getOperand2())) {
+            return BooleanConstant.getFalse();
           }
         }
-      }
-      if (pEqual.getOperand2() instanceof Variable) {
-        Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand2();
-        NumeralFormula<CompoundInterval> value = pEnvironment.get(var.getName());
-        while (value != null) {
-          if (value.equals(pEqual.getOperand1())) {
+        if (value instanceof Variable) {
+          if (value.equals(var)) {
             return BooleanConstant.getTrue();
           }
-          if (value instanceof Exclusion) {
-            Exclusion<CompoundInterval> exclusion = (Exclusion<CompoundInterval>) value;
-            if (exclusion.getExcluded().equals(pEqual.getOperand1())) {
-              return BooleanConstant.getFalse();
-            }
+          var = (Variable<CompoundInterval>) value;
+          value = pEnvironment.get(var.getName());
+        } else {
+          value = null;
+        }
+      }
+    }
+    if (pEqual.getOperand2() instanceof Variable) {
+      Variable<CompoundInterval> var = (Variable<CompoundInterval>) pEqual.getOperand2();
+      NumeralFormula<CompoundInterval> value = pEnvironment.get(var.getName());
+      while (value != null) {
+        if (value.equals(pEqual.getOperand1())) {
+          return BooleanConstant.getTrue();
+        }
+        if (value instanceof Exclusion) {
+          Exclusion<CompoundInterval> exclusion = (Exclusion<CompoundInterval>) value;
+          if (exclusion.getExcluded().equals(pEqual.getOperand1())) {
+            return BooleanConstant.getFalse();
           }
-          if (value instanceof Variable) {
-            var = (Variable<CompoundInterval>) value;
-            value = pEnvironment.get(var.getName());
-          } else {
-            value = null;
-          }
+        }
+        if (value instanceof Variable) {
+          var = (Variable<CompoundInterval>) value;
+          value = pEnvironment.get(var.getName());
+        } else {
+          value = null;
         }
       }
     }

@@ -284,7 +284,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
           if (newValueFormula.accept(this.evaluationVisitor, this.environment).isBottom()) {
             return false;
           }
-          if (newValueFormula instanceof Constant<?> && ((Constant<CompoundInterval>) newValueFormula).getValue().isTop()) {
+          if (newValueFormula instanceof Constant<?> && ((Constant<CompoundInterval>) newValueFormula).getValue().containsAllPossibleValues()) {
             continue;
           }
           this.environment.put(varName, newValueFormula);
