@@ -299,18 +299,19 @@ public class BitVectorInterval implements BitVectorType {
       return pInfo.getRange();
     }
     BigInteger rangeLength = pInfo.getRange().size();
-    while (pI.compareTo(pInfo.getMinValue()) < 0) {
-      pI = pI.add(rangeLength);
+    BigInteger value = pI.remainder(rangeLength);
+    if (value.compareTo(pInfo.getMinValue()) < 0) {
+      value = value.add(rangeLength);
+    } else if (value.compareTo(pInfo.getMaxValue()) > 0) {
+      value = value.subtract(rangeLength);
     }
-    while (pI.compareTo(pInfo.getMaxValue()) > 0) {
-      pI = pI.subtract(rangeLength);
-    }
-    return BitVectorInterval.singleton(pInfo, pI);
+    return BitVectorInterval.singleton(pInfo, value);
   }
 
   public static BitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound, boolean pAllowSignedWrapAround) {
     if (pLowerBound.equals(pUpperBound)) {
       return cast(pInfo, pLowerBound, pAllowSignedWrapAround);
+
     }
     BigInteger lowerBound = pLowerBound;
     BigInteger upperBound = pUpperBound;
