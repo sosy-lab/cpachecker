@@ -262,8 +262,6 @@ public final class ReducedAutomatonProduct {
 
         // FOR 't': Get the successor state of each component automaton state
         for (AutomatonInternalState a: current.getComponents()) {
-          assert !a.getDoesMatchAll();
-
           // What other states are reachable using the same transition?
 
           // if contained: proceed to its successor, otherwise: stay in the same state
@@ -288,7 +286,9 @@ public final class ReducedAutomatonProduct {
           if (productStates.add(n)) {
             //
             // Add it to the work list if it has not already been handled
-            worklist.add(n);
+            if (!isBottom(n)) {
+              worklist.add(n);
+            }
           }
 
           // Add the transition 't' to 'next' to the 'current' state!
@@ -298,6 +298,15 @@ public final class ReducedAutomatonProduct {
     }
 
     return createAutomaton(initialState, productStates, pProductAutomataName);
+  }
+
+  private static boolean isBottom(ProductState pN) {
+    for (AutomatonInternalState a: pN.getComponents()) {
+      if (a.equals(AutomatonInternalState.BOTTOM)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static Automaton createAutomaton(
