@@ -99,11 +99,11 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   private static final SplitConjunctionsVisitor<CompoundInterval> SPLIT_CONJUNCTIONS_VISITOR =
       new SplitConjunctionsVisitor<>();
 
-  private static final Predicate<? super String> IS_UNSUPPORTED_VARIABLE = new Predicate<String>() {
+  private static final Predicate<? super String> IS_UNSUPPORTED_VARIABLE_NAME = new Predicate<String>() {
 
       @Override
-      public boolean apply(String pArg0) {
-        return pArg0 == null || pArg0.contains("[");
+      public boolean apply(String pVariableName) {
+        return pVariableName == null || pVariableName.contains("[");
       }};
 
   private final Predicate<BooleanFormula<CompoundInterval>> implies = new Predicate<BooleanFormula<CompoundInterval>>() {
@@ -396,10 +396,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   private InvariantsState assignInternal(String pVarName, NumeralFormula<CompoundInterval> pValue) {
     Preconditions.checkNotNull(pValue);
     // Only use information from supported variables
-    if (IS_UNSUPPORTED_VARIABLE.apply(pVarName)) {
+    if (IS_UNSUPPORTED_VARIABLE_NAME.apply(pVarName)) {
       return this;
     }
-    if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE)) {
+    if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE_NAME)) {
       return this;
     }
 
@@ -688,7 +688,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     }
 
     // Only use information from supported variables
-    if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE)) {
+    if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE_NAME)) {
       return this;
     }
 
