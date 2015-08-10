@@ -594,14 +594,12 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
     CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
 
-    BigInteger lowerInclusiveBound = BigInteger.ZERO;
-    BigInteger upperExclusiveBound = BigInteger.ONE.shiftLeft(bitVectorInfo.getSize());
+    BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
+    BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
 
     CompoundInterval value = formula.accept(new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory), pEnvironment);
 
     if (bitVectorInfo.isSigned()) {
-      upperExclusiveBound = upperExclusiveBound.shiftRight(1);
-      lowerInclusiveBound = upperExclusiveBound.negate();
       if (!value.hasLowerBound() || !value.hasUpperBound()) {
         return InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.allPossibleValues());
       }
