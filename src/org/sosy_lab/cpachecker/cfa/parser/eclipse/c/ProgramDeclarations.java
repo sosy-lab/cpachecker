@@ -30,14 +30,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -394,6 +397,31 @@ public class ProgramDeclarations {
         return areEqualTypes(((CPointerType)type1).getType(),
                             ((CPointerType)type1).getType(),
                             foundTypes);
+
+        // handle the same issues we have with pointer types here for arrays
+    } else if (type1 instanceof CArrayType
+        && (((CArrayType)type1).getType() instanceof CComplexType
+            || ((CArrayType)type1).getType() instanceof CFunctionType
+            || ((CArrayType)type1).getType() instanceof CPointerType)) {
+
+      // first check if the lengths are matching
+      CArrayType a1 = (CArrayType) type1;
+      CArrayType a2 = (CArrayType) type2;
+      if (a1.getLength() instanceof CIntegerLiteralExpression && a2.getLength() instanceof CIntegerLiteralExpression) {
+        if (!((CIntegerLiteralExpression)a1.getLength()).getValue().equals(((CIntegerLiteralExpression)a2.getLength()).getValue())) {
+          return false;
+        }
+      } else {
+        if (!Objects.equals(a1.getLength(), a2.getLength())) {
+          return false;
+        }
+      }
+
+      // length is ok, so check the if the types are ok, too
+      return areEqualTypes(((CArrayType)type1).getType(),
+                          ((CArrayType)type1).getType(),
+                          foundTypes);
+
 
     } else if (type1 instanceof CFunctionType) {
       return areEqualFunctionTypes((CFunctionType)type1,
