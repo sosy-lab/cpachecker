@@ -1819,6 +1819,10 @@ cpa.stator.policy.usePreviousBounds = true
 cpa.stator.policy.varFiltering = ALL_LIVE
   enum:     [ALL_LIVE, ONE_LIVE, ALL]
 
+# Number of value determination steps allowed before widening is run. Value
+# of '-1' runs value determination until convergence.
+cpa.stator.policy.wideningThreshold = -1
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
