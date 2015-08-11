@@ -111,6 +111,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
   private boolean generateTemplatesUsingConvexHull = false;
 
+  @Option(secure=true, description="Number of value determination steps allowed before widening is run."
+      + " Value of '-1' runs value determination until convergence.")
+  private int wideningThreshold = -1;
+
   private final FormulaManagerView fmgr;
   private final boolean joinOnMerge;
   private final CFA cfa;
@@ -456,13 +460,23 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       if (newValue.get().getBound().compareTo(oldValue.get().getBound()) > 0) {
         newBound = newValue.get();
         updated.put(template, newValue.get());
+
+        TemplateUpdateEvent updateEvent = TemplateUpdateEvent.of(
+            newState.getLocationID(), template);
+
+        if (statistics.templateUpdateCounter.count(updateEvent) ==
+            wideningThreshold) {
+          // Set the value to infinity if the widening threshold was reached.
+          logger.log(Level.FINE, "Widening threshold for template", template,
+              "at", newState.getNode(), "was reached, widening to infinity.");
+          continue;
+        }
+
         logger.log(Level.FINE, "Updating template", template, "at",
             newState.getNode(),
             "to", newValue.get().getBound(),
             "(was: ", oldValue.get().getBound(), ")");
-        statistics.templateUpdateCounter.add(
-            TemplateUpdateEvent.of(newState.getLocationID(),
-                template));
+        statistics.templateUpdateCounter.add(updateEvent);
       } else {
         newBound = oldValue.get();
       }
