@@ -458,9 +458,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
       PolicyBound newBound;
       if (newValue.get().getBound().compareTo(oldValue.get().getBound()) > 0) {
-        newBound = newValue.get();
-        updated.put(template, newValue.get());
-
         TemplateUpdateEvent updateEvent = TemplateUpdateEvent.of(
             newState.getLocationID(), template);
 
@@ -471,6 +468,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               "at", newState.getNode(), "was reached, widening to infinity.");
           continue;
         }
+        newBound = newValue.get();
+        updated.put(template, newValue.get());
 
         logger.log(Level.FINE, "Updating template", template, "at",
             newState.getNode(),
@@ -581,6 +580,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Template template = policyValue.getKey();
         Formula objective = valDetConstraints.outVars.get(template,
             stateWithUpdates.getLocationID());
+        assert objective != null;
         PolicyBound existingBound = policyValue.getValue();
 
         int handle = optEnvironment.maximize(objective);
