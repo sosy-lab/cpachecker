@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -56,6 +57,8 @@ public class LoopTransitionFinder {
   private final LoopStructure loopStructure;
   private final FormulaSlicingStatistics statistics;
 
+  private final HashMultimap<CFANode, EdgeWrapper> cache;
+
   public LoopTransitionFinder(
       Configuration config,
       CFA pCfa, PathFormulaManager pPfmgr,
@@ -68,6 +71,8 @@ public class LoopTransitionFinder {
     fmgr = pFmgr;
     logger = pLogger;
     loopStructure = pCfa.getLoopStructure().get();
+
+    cache = HashMultimap.create();
   }
 
   public PathFormula generateLoopTransition(
@@ -79,17 +84,11 @@ public class LoopTransitionFinder {
     Preconditions.checkState(loopStructure.getAllLoopHeads()
         .contains(loopHead));
 
-      // Looping edges: intersection of forwards-reachable
-      // and backwards-reachable.
-      List<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
-
-      // Otherwise it's not a loop.
-      Preconditions.checkState(!edgesInLoop.isEmpty());
 
     PathFormula out;
     statistics.LBEencodingTimer.start();
     try {
-      out = LBE(start, pts, edgesInLoop);
+      out = LBE(loopHead, start, pts);
     } finally {
       statistics.LBEencodingTimer.stop();
     }
@@ -137,24 +136,37 @@ public class LoopTransitionFinder {
    * 2) A - s_1 -> B, A - s_2 -> B is converted to A - s_1 \/ s_2 -> B.
    *
    * Runs in cubic time, uses fixpoint computation.
-   * todo: faster computation.
    */
   private PathFormula LBE(
+      CFANode loopHead,
       SSAMap start,
-      PointerTargetSet pts,
-      List<CFAEdge> edgesInLoop)
+      PointerTargetSet pts)
       throws CPATransferException, InterruptedException {
 
-    Set<EdgeWrapper> out = convert(edgesInLoop);
 
-    boolean changed;
-    do {
-      changed = false;
-      if (applyANDtransformation && andLBETransformation(out) ||
-          applyORtransformation && orLBETransformation(out)) {
-        changed = true;
-      }
-    } while (changed);
+    Set<EdgeWrapper> out;
+    if (cache.containsKey(loopHead)) {
+
+      out = cache.get(loopHead);
+    } else {
+      // Looping edges: intersection of forwards-reachable
+      // and backwards-reachable.
+      List<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
+      out = convert(edgesInLoop);
+
+      // Otherwise it's not a loop.
+      Preconditions.checkState(!edgesInLoop.isEmpty());
+      boolean changed;
+      do {
+        changed = false;
+        if (applyANDtransformation && andLBETransformation(out) ||
+            applyORtransformation && orLBETransformation(out)) {
+          changed = true;
+        }
+      } while (changed);
+
+      cache.putAll(loopHead, out);
+    }
 
     PathFormula empty = new PathFormula(
         fmgr.getBooleanFormulaManager().makeBoolean(true),
