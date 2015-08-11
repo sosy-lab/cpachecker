@@ -792,7 +792,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     if (containsAllPossibleValues() || isBottom()) { return this; }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval simpleInterval : this.intervals) {
-      result = negate(info, simpleInterval, pAllowSignedWrapAround);
+      result = result.unionWith(negate(info, simpleInterval, pAllowSignedWrapAround));
     }
     return result;
   }
