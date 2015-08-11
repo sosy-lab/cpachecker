@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashSet;
@@ -55,8 +56,11 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
@@ -105,11 +109,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
       final EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(
           pCompoundIntervalManagerFactory,
           pMachineModel);
-      final CompoundIntervalFormulaManager compoundIntervalFormulaManager =
+      final CompoundIntervalFormulaManager cifm =
           new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
       return new AbstractionStrategy() {
-
-
 
         @Override
         public AbstractionState getAbstractionState() {
@@ -309,8 +311,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                   return Collections.emptySet();
                 }
                 return normalize(
-                    Collections.singleton(
-                        compoundIntervalFormulaManager.fromNumeral(wideningHint)));
+                    Collections.singleton(cifm.fromNumeral(wideningHint)));
               }
               return Collections.emptySet();
             }
@@ -329,11 +330,30 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     toNormalize.offer(((LogicalAnd<CompoundInterval>) hint).getOperand2());
                   } else {
                     builder.add(hint);
-                    builder.add(compoundIntervalFormulaManager.logicalNot(hint));
+                    builder.add(cifm.logicalNot(hint));
                     if (hint instanceof Equal) {
                       Equal<CompoundInterval> eq = (Equal<CompoundInterval>) hint;
-                      toNormalize.offer(compoundIntervalFormulaManager.lessThan(eq.getOperand1(), eq.getOperand2()));
-                      toNormalize.offer(compoundIntervalFormulaManager.greaterThan(eq.getOperand1(), eq.getOperand2()));
+                      toNormalize.offer(cifm.lessThan(eq.getOperand1(), eq.getOperand2()));
+                      toNormalize.offer(cifm.greaterThan(eq.getOperand1(), eq.getOperand2()));
+                    } else if (hint instanceof LessThan) {
+                      LessThan<CompoundInterval> lt = (LessThan<CompoundInterval>) hint;
+                      NumeralFormula<CompoundInterval> op1 = lt.getOperand1();
+                      NumeralFormula<CompoundInterval> op2 = lt.getOperand2();
+                      BitVectorInfo bitVectorInfo = op1.getBitVectorInfo();
+                      CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+                      if (op1 instanceof Constant) {
+                        NumeralFormula<CompoundInterval> newOp1 = InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo,
+                            cim.add(
+                                ((Constant<CompoundInterval>) op1).getValue(),
+                                cim.negate(cim.singleton(BigInteger.ONE))));
+                        builder.add(cifm.lessThan(newOp1, op2));
+                      } else if (op2 instanceof Constant) {
+                        NumeralFormula<CompoundInterval> newOp2 = InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo,
+                            cim.add(
+                                ((Constant<CompoundInterval>) op2).getValue(),
+                                cim.singleton(BigInteger.ONE)));
+                        builder.add(cifm.lessThan(op1, newOp2));
+                      }
                     }
                   }
                 }
