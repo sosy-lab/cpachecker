@@ -195,7 +195,7 @@ def execute_benchmark(benchmark, output_handler):
         _writeHashCodeCache()
 
 def stop():
-    logging.debug("Stopping tasks...")
+    logging.info("Stopping tasks on server...")
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
     global _unfinished_run_ids
     stopTasks = set()
@@ -204,7 +204,7 @@ def stop():
     for task in stopTasks:
         task.result()
     executor.shutdown(wait=True)
-    logging.debug("Stopped all tasks.")
+    logging.info("Stopped all tasks.")
 
 def _stop_run(runId):
     path = _webclient.path + "runs/" + runId
@@ -607,8 +607,9 @@ def _request(method, path, body, headers, expectedStatusCodes=[200]):
         try:
             connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
-        except:
+        except BaseException as e:
             if (counter < 5):
+                logging.debug("Exception during {} request to {}: {}".format(method, path, e))
                 # create new TCP connection and try to send the request
                 connection.close()
                 sleep(1)
