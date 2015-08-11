@@ -10,7 +10,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -28,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
@@ -460,8 +460,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             newState.getNode(),
             "to", newValue.get().getBound(),
             "(was: ", oldValue.get().getBound(), ")");
-        statistics.templateUpdateCounter.add(Pair.of(newState.getLocationID(),
-            template));
+        statistics.templateUpdateCounter.add(
+            TemplateUpdateEvent.of(newState.getLocationID(),
+                template));
       } else {
         newBound = oldValue.get();
       }
@@ -730,6 +731,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       if (optEnvironment.check() == OptEnvironment.OptStatus.UNSAT) {
 
+        logger.log(Level.INFO, "Returning BOTTOM state from abstraction");
+        logger.flush();
         // Bottom => bail early.
         return Optional.absent();
       }

@@ -4,7 +4,6 @@ import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -13,13 +12,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
 @Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
 
-  final Multiset<Pair<Integer, Template>> templateUpdateCounter
+  final Multiset<TemplateUpdateEvent> templateUpdateCounter
       = HashMultiset.create();
   final Multiset<Integer> abstractMergeCounter = HashMultiset.create();
   final Multiset<Integer> updateCounter = HashMultiset.create();
@@ -189,4 +189,35 @@ public class PolicyIterationStatistics implements Statistics {
   public String getName() {
     return "PolicyIterationCPA";
   }
+
+  static final class TemplateUpdateEvent {
+    final int locationID;
+    final Template template;
+
+    private TemplateUpdateEvent(int pLocationID, Template pTemplate) {
+      locationID = pLocationID;
+      template = pTemplate;
+    }
+
+    public static TemplateUpdateEvent of(int pLocationID, Template pTemplate) {
+      return new TemplateUpdateEvent(pLocationID, pTemplate);
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+      if (!(o instanceof TemplateUpdateEvent)) {
+        return false;
+      }
+      TemplateUpdateEvent other = (TemplateUpdateEvent) o;
+      return locationID == other.locationID &&
+          template.equals(other.template);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(locationID, template);
+    }
+  }
+
 }
