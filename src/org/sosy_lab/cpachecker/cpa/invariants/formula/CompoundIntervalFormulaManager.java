@@ -1089,6 +1089,17 @@ public class CompoundIntervalFormulaManager {
     return logicalNot(equal(pFormula, asConstant(bitVectorInfo, cim.singleton(BigInteger.ZERO))));
   }
 
+  public NumeralFormula<CompoundInterval> cast(BitVectorInfo pBitVectorInfo, NumeralFormula<CompoundInterval> pToCast) {
+    if (pToCast.getBitVectorInfo().equals(pBitVectorInfo)) {
+      return pToCast;
+    }
+    NumeralFormula<CompoundInterval> casted = InvariantsFormulaManager.INSTANCE.cast(pBitVectorInfo, pToCast);
+    if (pToCast instanceof Constant) {
+      casted = asConstant(pBitVectorInfo, casted.accept(evaluationVisitor, EMPTY_ENVIRONMENT));
+    }
+    return casted;
+  }
+
   private NumeralFormula<CompoundInterval> bottom(BitVectorInfo pBitVectorInfo) {
     return asConstant(pBitVectorInfo, getCompoundIntervalManager(pBitVectorInfo).bottom());
   }

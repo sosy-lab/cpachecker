@@ -345,7 +345,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       return this;
     }
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, variableType);
-    NumeralFormula<CompoundInterval> value = InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, pValue);
+    NumeralFormula<CompoundInterval> value = compoundIntervalFormulaManager.cast(bitVectorInfo, pValue);
     for (Map.Entry<String, NumeralFormula<CompoundInterval>> entry : this.environment.entrySet()) {
       String varName = entry.getKey();
       BitVectorInfo varBitVectorInfo = BitVectorInfo.from(machineModel, getType(varName));

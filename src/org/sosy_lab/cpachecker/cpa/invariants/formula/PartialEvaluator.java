@@ -521,7 +521,7 @@ public class PartialEvaluator implements
     if (operand == pCast.getCasted()) {
       return pCast;
     }
-    return InvariantsFormulaManager.INSTANCE.cast(pCast.getBitVectorInfo(), operand);
+    return compoundIntervalFormulaManager.cast(pCast.getBitVectorInfo(), operand);
   }
 
 }

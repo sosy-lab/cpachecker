@@ -213,7 +213,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   public NumeralFormula<CompoundInterval> visit(CUnaryExpression pCUnaryExpression) throws UnrecognizedCodeException {
     NumeralFormula<CompoundInterval> operand = pCUnaryExpression.getOperand().accept(this);
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCUnaryExpression.getExpressionType());
-    operand = InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, operand);
+    operand = compoundIntervalFormulaManager.cast(bitVectorInfo, operand);
     final NumeralFormula<CompoundInterval> result;
     switch (pCUnaryExpression.getOperator()) {
     case MINUS:
@@ -229,7 +229,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       result = super.visit(pCUnaryExpression);
       break;
     }
-    return InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, result);
+    return compoundIntervalFormulaManager.cast(bitVectorInfo, result);
   }
 
   @Override
@@ -240,7 +240,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   @Override
   public NumeralFormula<CompoundInterval> visit(CCastExpression pCCastExpression) throws UnrecognizedCodeException {
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCCastExpression.getCastType());
-    return InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, pCCastExpression.getOperand().accept(this));
+    return compoundIntervalFormulaManager.cast(bitVectorInfo, pCCastExpression.getOperand().accept(this));
   }
 
   @Override
@@ -248,9 +248,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCBinaryExpression.getCalculationType());
     NumeralFormula<CompoundInterval> left = pCBinaryExpression.getOperand1().accept(this);
     NumeralFormula<CompoundInterval> right = pCBinaryExpression.getOperand2().accept(this);
-    InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    left = ifm.cast(bitVectorInfo, left);
-    right = ifm.cast(bitVectorInfo, right);
+    left = compoundIntervalFormulaManager.cast(bitVectorInfo, left);
+    right = compoundIntervalFormulaManager.cast(bitVectorInfo, right);
     left = topIfProblematicType(pCBinaryExpression.getCalculationType(), left);
     right = topIfProblematicType(pCBinaryExpression.getCalculationType(), right);
     final NumeralFormula<CompoundInterval> result;
@@ -320,7 +319,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       result = allPossibleValues(pCBinaryExpression);
       break;
     }
-    return ifm.cast(bitVectorInfo, result);
+    return compoundIntervalFormulaManager.cast(bitVectorInfo, result);
   }
 
   @Override
@@ -550,7 +549,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   @Override
   public NumeralFormula<CompoundInterval> visit(JCastExpression pCastExpression) throws UnrecognizedCodeException {
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, pCastExpression.getCastType());
-    return InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, pCastExpression.getOperand().accept(this));
+    return compoundIntervalFormulaManager.cast(bitVectorInfo, pCastExpression.getOperand().accept(this));
   }
 
   @Override
