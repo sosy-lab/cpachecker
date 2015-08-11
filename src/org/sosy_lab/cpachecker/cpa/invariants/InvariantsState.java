@@ -963,9 +963,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
           @Override
           public boolean apply(BooleanFormula<CompoundInterval> pHint) {
-            return resEnv.keySet().containsAll(pHint.accept(COLLECT_VARS_VISITOR));
+            return environment.keySet().containsAll(pHint.accept(COLLECT_VARS_VISITOR));
           }})
-        .filter(this.implies)) {
+        .filter(implies)) {
       result = result.assume(hint);
     }
     if (equals(result)) {
