@@ -1065,8 +1065,7 @@ public class CompoundIntervalFormulaManager {
       BitVectorInfo pBitVectorInfo,
       BooleanFormula<CompoundInterval> pFormula) {
     CompoundIntervalManager cim = getCompoundIntervalManager(pBitVectorInfo);
-    //NumeralFormula<CompoundInterval> trueNumeralFormula = asConstant(pBitVectorInfo, cim.singleton(BigInteger.ONE));
-    NumeralFormula<CompoundInterval> trueNumeralFormula = asConstant(pBitVectorInfo, cim.logicalTrue());
+    NumeralFormula<CompoundInterval> trueNumeralFormula = asConstant(pBitVectorInfo, cim.singleton(BigInteger.ONE));
     NumeralFormula<CompoundInterval> falseNumeralFormula = asConstant(pBitVectorInfo, cim.logicalFalse());
     return ifThenElse(
         pFormula,
