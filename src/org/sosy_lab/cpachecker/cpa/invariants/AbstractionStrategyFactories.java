@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
@@ -260,7 +261,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
               if (pOther instanceof EnteringEdgesBasedAbstractionState) {
                 EnteringEdgesBasedAbstractionState other = (EnteringEdgesBasedAbstractionState) pOther;
                 if (!visitedEdges.containsAll(other.visitedEdges)) {
-                  return Collections.emptySet();
+                  return Sets.intersection(wideningTargets, other.wideningTargets);
                 }
                 return union(wideningTargets, other.wideningTargets);
               }
