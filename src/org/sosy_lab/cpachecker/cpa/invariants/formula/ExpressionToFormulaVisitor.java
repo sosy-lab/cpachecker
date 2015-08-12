@@ -589,7 +589,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(pMachineModel, pTargetType);
 
-    NumeralFormula<CompoundInterval> formula = InvariantsFormulaManager.INSTANCE.cast(bitVectorInfo, pFormula);
+    CompoundIntervalFormulaManager cifm = new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
+
+    NumeralFormula<CompoundInterval> formula = cifm.cast(bitVectorInfo, pFormula);
 
     CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
 
