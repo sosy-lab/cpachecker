@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import javax.annotation.CheckReturnValue;
 
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Algorithm {
 
@@ -58,13 +58,16 @@ public interface Algorithm {
   final class AlgorithmStatus {
     private final boolean isPrecise;
     private final boolean isSound;
+    private final boolean isInterrupted;
 
-    public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true);
-    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false);
+    public static final AlgorithmStatus SOUND_BUT_INTERRUPTED = new AlgorithmStatus(true, false, true);
+    public static final AlgorithmStatus SOUND_AND_PRECISE = new AlgorithmStatus(true, true, false);
+    public static final AlgorithmStatus UNSOUND_AND_PRECISE = new AlgorithmStatus(true, false, false);
 
-    private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound) {
+    private AlgorithmStatus(boolean pIsPrecise, boolean pIsSound, boolean pIsInterrupted) {
       isPrecise = pIsPrecise;
       isSound = pIsSound;
+      isInterrupted = pIsInterrupted;
     }
 
     /**
@@ -75,7 +78,8 @@ public interface Algorithm {
     public AlgorithmStatus update(AlgorithmStatus other) {
       return new AlgorithmStatus(
           isPrecise && other.isPrecise,
-          isSound && other.isSound
+          isSound && other.isSound,
+          isInterrupted || other.isInterrupted
       );
     }
 
@@ -85,7 +89,7 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
-      return new AlgorithmStatus(isPrecise, pIsSound);
+      return new AlgorithmStatus(isPrecise, pIsSound, isInterrupted);
     }
 
     /**
@@ -94,7 +98,7 @@ public interface Algorithm {
      */
     @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
-      return new AlgorithmStatus(pIsPrecise, isSound);
+      return new AlgorithmStatus(pIsPrecise, isSound, isInterrupted);
     }
 
     public boolean isSound() {
@@ -103,6 +107,10 @@ public interface Algorithm {
 
     public boolean isPrecise() {
       return isPrecise;
+    }
+
+    public boolean isInterrupted() {
+      return isInterrupted;
     }
 
     @Override

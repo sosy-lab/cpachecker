@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
@@ -222,7 +223,7 @@ public class CPAchecker {
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
-    Result result = Result.NOT_YET_STARTED;
+    Pair<Result, String> result = Pair.of(Result.NOT_YET_STARTED, "");
     String violatedPropertyDescription = "";
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
@@ -279,24 +280,8 @@ public class CPAchecker {
       }
 
       // run analysis
-      result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
-
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
-
-      violatedPropertyDescription = findViolatedProperties(reached);
-      if (violatedPropertyDescription != null) {
-        if (!status.isPrecise()) {
-          result = Result.UNKNOWN;
-        } else {
-          result = Result.FALSE;
-        }
-      } else {
-        violatedPropertyDescription = "";
-        result = analyzeResult(reached, status.isSound());
-        if (unknownAsTrue && result == Result.UNKNOWN) {
-          result = Result.TRUE;
-        }
-      }
+      result = extractResult(reached, status);
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -315,6 +300,11 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Invalid configuration");
 
     } catch (InterruptedException e) {
+      // Get intermediate verification results
+      // in case the analysis terminates
+      // before it finished its work.
+      result = extractResult(reached, AlgorithmStatus.SOUND_BUT_INTERRUPTED);
+
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
       // so we can return the partial result we have so far
@@ -328,8 +318,35 @@ public class CPAchecker {
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result,
-        violatedPropertyDescription, reached, stats);
+
+    return new CPAcheckerResult(result.getFirst(), result.getSecond(), reached, stats);
+  }
+
+  private Pair<Result, String> extractResult(ReachedSet reached, AlgorithmStatus status) {
+    String violatedPropertyDescription = findViolatedProperties(reached);
+    Result verdict;
+
+    if (violatedPropertyDescription != null) {
+      if (!status.isPrecise() || status.isInterrupted()) {
+        verdict = Result.UNKNOWN;
+      } else {
+        verdict = Result.FALSE;
+      }
+
+    } else {
+      violatedPropertyDescription = "";
+
+      if (status.isInterrupted()) {
+        verdict = Result.UNKNOWN;
+      } else {
+        verdict = analyzeResult(reached, status.isSound());
+        if (unknownAsTrue && verdict == Result.UNKNOWN) {
+          verdict = Result.TRUE;
+        }
+      }
+    }
+
+    return Pair.of(verdict, violatedPropertyDescription);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {

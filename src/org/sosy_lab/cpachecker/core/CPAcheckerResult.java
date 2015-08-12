@@ -106,21 +106,27 @@ public class CPAcheckerResult {
   }
 
   public String getResultString() {
+    StringBuilder ret = new StringBuilder();
+
     switch (result) {
       case UNKNOWN:
-        return "UNKNOWN, incomplete analysis.";
+        ret.append("UNKNOWN, incomplete analysis.");
+        break;
       case FALSE:
-        StringBuilder sb = new StringBuilder();
-        sb.append("FALSE. Property violation");
-        if (!violatedPropertyDescription.isEmpty()) {
-          sb.append(" (").append(violatedPropertyDescription).append(")");
-        }
-        sb.append(" found by chosen configuration.");
-        return sb.toString();
+        ret.append("FALSE. Property violation");
+        break;
       case TRUE:
-        return "TRUE. No property violation found by chosen configuration.";
+        ret.append("TRUE. No property violation found by chosen configuration.");
+        break;
       default:
-        return "UNKNOWN result: " + result;
+        ret.append("UNKNOWN result: " + result);
     }
+
+    if (!violatedPropertyDescription.isEmpty()) {
+      ret.append(" (").append(violatedPropertyDescription).append(")");
+    }
+    ret.append(" found by chosen configuration.");
+
+    return ret.toString();
   }
 }
