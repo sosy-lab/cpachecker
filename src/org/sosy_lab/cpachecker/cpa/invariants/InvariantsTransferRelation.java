@@ -366,7 +366,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
       CFunctionCall expression = summaryEdge.getExpression();
 
-      String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
+      final String calledFunctionName = pFunctionReturnEdge.getPredecessor().getFunctionName();
 
       Optional<CVariableDeclaration> var = pFunctionReturnEdge.getFunctionEntry().getReturnVariable();
       InvariantsState result = pElement;
@@ -409,11 +409,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
 
       // Remove all variables that are in the scope of the returning function
-      for (String variableName : result.getVariables()) {
-        if (VariableNameExtractor.isFunctionScoped(variableName, calledFunctionName)) {
-          result = result.clear(variableName);
+      result = result.clearAll(new Predicate<String>() {
+
+        @Override
+        public boolean apply(String pVariableName) {
+          return VariableNameExtractor.isFunctionScoped(pVariableName, calledFunctionName);
         }
-      }
+
+      });
 
       return result;
   }

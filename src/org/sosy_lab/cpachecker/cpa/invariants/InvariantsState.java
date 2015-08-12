@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -50,10 +51,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanConstant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectFormulasVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVarVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ContainsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Exclusion;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaAbstractionVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
@@ -548,6 +551,83 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         result.abstractionState,
         resultEnvironment,
         result.variableTypes);
+    if (equals(result)) {
+      return this;
+    }
+    return result;
+  }
+
+  public InvariantsState clearAll(Predicate<String> pVariableNamePredicate) {
+    final Set<Variable<CompoundInterval>> toClear = getVariables(pVariableNamePredicate);
+    ContainsVisitor<CompoundInterval> containsVisitor = new ContainsVisitor<>();
+    ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>();
+    Predicate<NumeralFormula<CompoundInterval>> toClearPredicate = new Predicate<NumeralFormula<CompoundInterval>>() {
+
+      @Override
+      public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
+        return toClear.contains(pFormula);
+      }
+
+    };
+    Queue<String> potentialReferrers = new ArrayDeque<>();
+    for (Map.Entry<String, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
+      if (entry.getValue().accept(containsVisitor, toClearPredicate)) {
+        potentialReferrers.add(entry.getKey());
+      }
+    }
+
+    NonRecursiveEnvironment resultEnvironment = environment;
+
+    Iterator<Variable<CompoundInterval>> toClearIterator = toClear.iterator();
+    while (toClearIterator.hasNext()) {
+      Variable<CompoundInterval> variable = toClearIterator.next();
+      String variableName = variable.getName();
+      NumeralFormula<CompoundInterval> previous = environment.get(variableName);
+      final BitVectorInfo bitVectorInfo;
+
+      if (previous == null) {
+        Type type = variableTypes.get(variableName);
+        if (type == null) {
+          continue;
+        }
+        bitVectorInfo = BitVectorInfo.from(machineModel, type);
+      } else {
+        bitVectorInfo = previous.getBitVectorInfo();
+      }
+
+      NumeralFormula<CompoundInterval> allPossibleValues = allPossibleValuesFormula(bitVectorInfo);
+      ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(
+          variable,
+          previous == null ? allPossibleValues : previous);
+
+      Iterator<String> potentialReferrerIterator = potentialReferrers.iterator();
+      while (potentialReferrerIterator.hasNext()) {
+        String key = potentialReferrerIterator.next();
+        if (key.equals(variableName)) {
+          potentialReferrerIterator.remove();
+        } else {
+          NumeralFormula<CompoundInterval> previousValue = environment.get(key);
+          if (previousValue.accept(containsVarVisitor, key)) {
+            NumeralFormula<CompoundInterval> newEnvValue =
+                previousValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor);
+            resultEnvironment = resultEnvironment.putAndCopy(key, newEnvValue);
+            if (!newEnvValue.accept(containsVisitor, toClearPredicate)) {
+              potentialReferrerIterator.remove();
+            }
+          }
+        }
+      }
+      resultEnvironment.removeAndCopy(variableName);
+      toClearIterator.remove();
+    }
+
+    InvariantsState result = new InvariantsState(
+        variableSelection,
+        compoundIntervalManagerFactory,
+        machineModel,
+        abstractionState,
+        resultEnvironment,
+        variableTypes);
     if (equals(result)) {
       return this;
     }
@@ -1109,6 +1189,34 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       Set<String> valueVars = value.accept(COLLECT_VARS_VISITOR);
       if (!valueVars.isEmpty()) {
         result = Sets.union(result, valueVars);
+      }
+    }
+    return result;
+  }
+
+  private Set<Variable<CompoundInterval>> getVariables(final Predicate<String> pVariableNamePredicate) {
+    final Set<Variable<CompoundInterval>> result = new HashSet<>();
+    Predicate<NumeralFormula<CompoundInterval>> pCondition = new Predicate<NumeralFormula<CompoundInterval>>() {
+
+      @Override
+      public boolean apply(NumeralFormula<CompoundInterval> pFormula) {
+        if (pFormula instanceof Variable) {
+          Variable<?> variable = (Variable<?>) pFormula;
+          String variableName = variable.getName();
+          return pVariableNamePredicate.apply(variableName)
+              && !result.contains(variableName);
+        }
+        return false;
+      }
+
+    };
+    CollectFormulasVisitor<CompoundInterval> collectVisitor = new CollectFormulasVisitor<>(pCondition);
+    for (Map.Entry<String, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
+      String variableName = entry.getKey();
+      result.add(InvariantsFormulaManager.INSTANCE.<CompoundInterval>asVariable(entry.getValue().getBitVectorInfo(), variableName));
+      for (NumeralFormula<CompoundInterval> formula : entry.getValue().accept(collectVisitor)) {
+        Variable<CompoundInterval> variable = (Variable<CompoundInterval>) formula;
+        result.add(variable);
       }
     }
     return result;
