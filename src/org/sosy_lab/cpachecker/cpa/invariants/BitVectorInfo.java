@@ -158,8 +158,21 @@ public class BitVectorInfo {
       type = ((CType) type).getCanonicalType();
     }
     if (type instanceof CType) {
-      return type instanceof CSimpleType;
-    } else if (type instanceof JSimpleType) {
+      if (!(type instanceof CSimpleType)) {
+        return false;
+      }
+      switch (((CSimpleType) type).getType()) {
+      case CHAR:
+      case INT:
+        return true;
+      case FLOAT:
+      case DOUBLE:
+      case UNSPECIFIED:
+      default:
+        return false;
+      }
+    }
+    if (type instanceof JSimpleType) {
       switch (((JSimpleType) type).getType()) {
       case BOOLEAN:
       case BYTE:
