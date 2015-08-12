@@ -152,4 +152,32 @@ public class BitVectorInfo {
     return from(size, signed);
   }
 
+  public static boolean isSupported(MachineModel pMachineModel, Type pType) {
+    Type type = pType;
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
+    if (type instanceof CType) {
+      return type instanceof CSimpleType;
+    } else if (type instanceof JSimpleType) {
+      switch (((JSimpleType) type).getType()) {
+      case BOOLEAN:
+      case BYTE:
+      case CHAR:
+      case SHORT:
+      case INT:
+      case LONG:
+        return true;
+      case FLOAT:
+      case DOUBLE:
+      case NULL:
+      case UNSPECIFIED:
+      case VOID:
+      default:
+        return false;
+      }
+    }
+    return false;
+  }
+
 }
