@@ -641,14 +641,16 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   public Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     if (this.environmentAsAssumptions == null) {
-      environmentAsAssumptions = getEnvironmentAsAssumptions(compoundIntervalManagerFactory, this.environment);
+      environmentAsAssumptions = getEnvironmentAsAssumptions(machineModel, compoundIntervalManagerFactory, environment, variableTypes);
     }
     return environmentAsAssumptions;
   }
 
   private static Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions(
+      MachineModel pMachineModel,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
+      Map<? extends String, ? extends Type> pVariableTypes) {
 
     CompoundIntervalFormulaManager compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
@@ -700,6 +702,30 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
       if (assumption != null) {
         environmentalAssumptions.add(assumption);
+      }
+    }
+    // Add type information
+    for (Map.Entry<? extends String, ? extends Type> typeEntry : pVariableTypes.entrySet()) {
+      String variableName = typeEntry.getKey();
+      Type type = typeEntry.getValue();
+      if (BitVectorInfo.isSupported(pMachineModel, type)
+          && !pEnvironment.containsKey(variableName)) {
+        BitVectorInfo bitVectorInfo = BitVectorInfo.from(pMachineModel, typeEntry.getValue());
+        CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+        CompoundInterval range = cim.allPossibleValues();
+        Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
+                bitVectorInfo,
+                variableName);
+        if (range.hasLowerBound()) {
+          environmentalAssumptions.add(compoundIntervalFormulaManager.greaterThanOrEqual(
+              variable,
+              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getLowerBound()))));
+        }
+        if (range.hasUpperBound()) {
+          environmentalAssumptions.add(compoundIntervalFormulaManager.lessThanOrEqual(
+              variable,
+              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getUpperBound()))));
+        }
       }
     }
     return environmentalAssumptions;
@@ -1094,6 +1120,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
           }
         }
 
+        // Compute the union of the types
+        PersistentSortedMap<String, CType> variableTypes = state1.variableTypes;
+        for (Map.Entry<String, CType> entry : state2.variableTypes.entrySet()) {
+          if (!variableTypes.containsKey(entry.getKey())) {
+            variableTypes = variableTypes.putAndCopy(entry.getKey(), entry.getValue());
+          }
+        }
+
         // Join the harder ones
         {
           // Join all those where one implies the other one
@@ -1101,7 +1135,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
           Set<String> done = new HashSet<>();
           while (cont) {
             cont = false;
-            Iterable<BooleanFormula<CompoundInterval>> assumptions = getEnvironmentAsAssumptions(compoundIntervalManagerFactory, resultEnvironment);
+            Iterable<BooleanFormula<CompoundInterval>> assumptions = getEnvironmentAsAssumptions(machineModel, compoundIntervalManagerFactory, resultEnvironment, variableTypes);
             for (String varName : todo) {
               NumeralFormula<CompoundInterval> leftFormula = environment.get(varName);
               NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
@@ -1154,13 +1188,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
 
       VariableSelection<CompoundInterval> resultVariableSelection = state1.variableSelection.join(state2.variableSelection);
-
-      PersistentSortedMap<String, CType> variableTypes = state1.variableTypes;
-      for (Map.Entry<String, CType> entry : state2.variableTypes.entrySet()) {
-        if (!variableTypes.containsKey(entry.getKey())) {
-          variableTypes = variableTypes.putAndCopy(entry.getKey(), entry.getValue());
-        }
-      }
 
       AbstractionState abstractionState1 = determineAbstractionState(pPrecision);
       AbstractionState abstractionState2 = pState2.determineAbstractionState(pPrecision);
