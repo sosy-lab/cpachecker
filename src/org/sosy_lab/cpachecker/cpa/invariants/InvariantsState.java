@@ -708,8 +708,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     for (Map.Entry<? extends String, ? extends Type> typeEntry : pVariableTypes.entrySet()) {
       String variableName = typeEntry.getKey();
       Type type = typeEntry.getValue();
-      if (BitVectorInfo.isSupported(pMachineModel, type)
-          && !pEnvironment.containsKey(variableName)) {
+      if (BitVectorInfo.isSupported(pMachineModel, type)) {
         BitVectorInfo bitVectorInfo = BitVectorInfo.from(pMachineModel, typeEntry.getValue());
         CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
         CompoundInterval range = cim.allPossibleValues();

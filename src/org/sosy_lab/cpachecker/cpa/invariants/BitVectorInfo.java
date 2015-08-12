@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
 
+import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -159,7 +160,7 @@ public class BitVectorInfo {
     }
     if (type instanceof CType) {
       if (!(type instanceof CSimpleType)) {
-        return false;
+        return type instanceof CPointerType;
       }
       switch (((CSimpleType) type).getType()) {
       case CHAR:
