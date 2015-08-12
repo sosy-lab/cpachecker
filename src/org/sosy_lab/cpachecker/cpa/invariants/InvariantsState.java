@@ -1240,7 +1240,9 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     CollectFormulasVisitor<CompoundInterval> collectVisitor = new CollectFormulasVisitor<>(pCondition);
     for (Map.Entry<String, NumeralFormula<CompoundInterval>> entry : environment.entrySet()) {
       String variableName = entry.getKey();
-      result.add(InvariantsFormulaManager.INSTANCE.<CompoundInterval>asVariable(entry.getValue().getBitVectorInfo(), variableName));
+      if (pVariableNamePredicate.apply(variableName)) {
+        result.add(InvariantsFormulaManager.INSTANCE.<CompoundInterval>asVariable(entry.getValue().getBitVectorInfo(), variableName));
+      }
       for (NumeralFormula<CompoundInterval> formula : entry.getValue().accept(collectVisitor)) {
         Variable<CompoundInterval> variable = (Variable<CompoundInterval>) formula;
         result.add(variable);
