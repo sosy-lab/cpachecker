@@ -891,15 +891,14 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       CompoundIntervalManager compoundIntervalManager = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
       currentFormula = currentFormula == null ? allPossibleValuesFormula(bitVectorInfo) : currentFormula;
       assert currentFormula.getBitVectorInfo().equals(bitVectorInfo);
-      if (!currentFormula.equals(oldFormula)
-          || currentFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > pPrecision.getMaximumFormulaDepth()) {
+      if (!currentFormula.equals(oldFormula)) {
         NumeralFormula<CompoundInterval> newValueFormula =
           compoundIntervalFormulaManager.union(
             currentFormula.accept(this.partialEvaluator, evaluationVisitor),
             oldFormula.accept(pOlderState.partialEvaluator, evaluationVisitor)).accept(new PartialEvaluator(compoundIntervalManagerFactory), evaluationVisitor);
 
-        // Allow only (singleton) constants for formula depth 0
-        if (pPrecision.getMaximumFormulaDepth() == 0) {
+        // Trim formulas that exceed the maximum depth
+        if (currentFormula.accept(FORMULA_DEPTH_COUNT_VISITOR) > pPrecision.getMaximumFormulaDepth()) {
           CompoundInterval value = compoundIntervalManager.union(
               currentFormula.accept(evaluationVisitor, environment),
               oldFormula.accept(evaluationVisitor, pOlderState.getEnvironment()));
