@@ -617,7 +617,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
           }
         }
       }
-      resultEnvironment.removeAndCopy(variableName);
+      resultEnvironment = resultEnvironment.removeAndCopy(variableName);
       toClearIterator.remove();
     }
 
