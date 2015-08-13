@@ -83,7 +83,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -1132,60 +1131,18 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
           }
         }
 
-        // Join the harder ones
-        {
-
-          // Join by constructing the union of left and right value for each variable
-          for (String varName : todo) {
-            NumeralFormula<CompoundInterval> leftFormula = environment.get(varName);
-            NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
-            assert leftFormula != null && rightFormula != null;
-            CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(leftFormula.getBitVectorInfo());
-            NumeralFormula<CompoundInterval> evaluated =
-                InvariantsFormulaManager.INSTANCE.asConstant(leftFormula.getBitVectorInfo(),
-                    cim.union(
-                        leftFormula.accept(evaluationVisitor, environment),
-                        rightFormula.accept(state2.evaluationVisitor, state2.environment)));
-            resultEnvironment = resultEnvironment.putAndCopy(varName, evaluated);
-          }
-
-          // Strengthen all those where one implies the other one
-          boolean cont = !todo.isEmpty();
-          Set<String> done = new HashSet<>();
-          while (cont) {
-            cont = false;
-            Iterable<BooleanFormula<CompoundInterval>> assumptions = getEnvironmentAsAssumptions(machineModel, compoundIntervalManagerFactory, resultEnvironment, variableTypes);
-            for (String varName : todo) {
-              NumeralFormula<CompoundInterval> leftFormula = environment.get(varName);
-              NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
-              assert leftFormula != null && rightFormula != null;
-              assert leftFormula.getBitVectorInfo().equals(rightFormula.getBitVectorInfo());
-              NumeralFormula<CompoundInterval> union = compoundIntervalFormulaManager.union(
-                  leftFormula.accept(state1.partialEvaluator, evaluationVisitor),
-                  rightFormula.accept(state2.partialEvaluator, evaluationVisitor)).accept(new PartialEvaluator(compoundIntervalManagerFactory),
-                  evaluationVisitor);
-              NumeralFormula<CompoundInterval> variable =
-                  InvariantsFormulaManager.INSTANCE.asVariable(
-                      leftFormula.getBitVectorInfo(),
-                      varName);
-              BooleanFormula<CompoundInterval> leftEquation = compoundIntervalFormulaManager.equal(variable, leftFormula);
-              BooleanFormula<CompoundInterval> rightEquation = compoundIntervalFormulaManager.equal(variable, rightFormula);
-              BooleanFormula<CompoundInterval> unionEquation = compoundIntervalFormulaManager.equal(variable, union);
-              Iterable<BooleanFormula<CompoundInterval>> candidateAssumptions = Iterables.concat(Collections.singleton(unionEquation), assumptions);
-              if (compoundIntervalFormulaManager.definitelyImplies(candidateAssumptions, leftEquation)) {
-                resultEnvironment = resultEnvironment.putAndCopy(varName, leftFormula);
-                done.add(varName);
-              } else if (compoundIntervalFormulaManager.definitelyImplies(candidateAssumptions, rightEquation)) {
-                resultEnvironment = resultEnvironment.putAndCopy(varName, rightFormula);
-                done.add(varName);
-              }
-            }
-            if (!done.isEmpty()) {
-              cont = !todo.isEmpty();
-              todo.removeAll(done);
-              done.clear();
-            }
-          }
+        // Join the harder ones by constructing the union of left and right value for each variable
+        for (String varName : todo) {
+          NumeralFormula<CompoundInterval> leftFormula = environment.get(varName);
+          NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
+          assert leftFormula != null && rightFormula != null;
+          CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(leftFormula.getBitVectorInfo());
+          NumeralFormula<CompoundInterval> evaluated =
+              InvariantsFormulaManager.INSTANCE.asConstant(leftFormula.getBitVectorInfo(),
+                  cim.union(
+                      leftFormula.accept(evaluationVisitor, environment),
+                      rightFormula.accept(state2.evaluationVisitor, state2.environment)));
+          resultEnvironment = resultEnvironment.putAndCopy(varName, evaluated);
         }
 
       }
