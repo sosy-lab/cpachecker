@@ -83,6 +83,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -650,6 +651,33 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     return environmentAsAssumptions;
   }
 
+  private Iterable<BooleanFormula<CompoundInterval>> getTypeInformationAsAssumptions() {
+    List<BooleanFormula<CompoundInterval>> assumptions = new ArrayList<>();
+    for (Map.Entry<? extends String, ? extends Type> typeEntry : variableTypes.entrySet()) {
+      String variableName = typeEntry.getKey();
+      Type type = typeEntry.getValue();
+      if (BitVectorInfo.isSupported(machineModel, type)) {
+        BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, typeEntry.getValue());
+        CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
+        CompoundInterval range = cim.allPossibleValues();
+        Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
+                bitVectorInfo,
+                variableName);
+        if (range.hasLowerBound()) {
+          assumptions.add(compoundIntervalFormulaManager.greaterThanOrEqual(
+              variable,
+              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getLowerBound()))));
+        }
+        if (range.hasUpperBound()) {
+          assumptions.add(compoundIntervalFormulaManager.lessThanOrEqual(
+              variable,
+              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getUpperBound()))));
+        }
+      }
+    }
+    return assumptions;
+  }
+
   private static Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions(
       MachineModel pMachineModel,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
@@ -706,29 +734,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
       if (assumption != null) {
         environmentalAssumptions.add(assumption);
-      }
-    }
-    // Add type information
-    for (Map.Entry<? extends String, ? extends Type> typeEntry : pVariableTypes.entrySet()) {
-      String variableName = typeEntry.getKey();
-      Type type = typeEntry.getValue();
-      if (BitVectorInfo.isSupported(pMachineModel, type)) {
-        BitVectorInfo bitVectorInfo = BitVectorInfo.from(pMachineModel, typeEntry.getValue());
-        CompoundIntervalManager cim = pCompoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
-        CompoundInterval range = cim.allPossibleValues();
-        Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
-                bitVectorInfo,
-                variableName);
-        if (range.hasLowerBound()) {
-          environmentalAssumptions.add(compoundIntervalFormulaManager.greaterThanOrEqual(
-              variable,
-              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getLowerBound()))));
-        }
-        if (range.hasUpperBound()) {
-          environmentalAssumptions.add(compoundIntervalFormulaManager.lessThanOrEqual(
-              variable,
-              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getUpperBound()))));
-        }
       }
     }
     return environmentalAssumptions;
@@ -881,7 +886,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
     };
 
-    for (BooleanFormula<CompoundInterval> assumption : getEnvironmentAsAssumptions()) {
+    for (BooleanFormula<CompoundInterval> assumption : Iterables.concat(getEnvironmentAsAssumptions(), getTypeInformationAsAssumptions())) {
       if (acceptFormula.apply(assumption)) {
         org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula assumptionFormula =
             assumption.accept(toBooleanFormulaVisitor, getEnvironment());
