@@ -1350,8 +1350,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (pVarDecl.isGlobal()) {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
-      if (offset < sizeOfType ) {
-        pNewState = writeValue(pNewState, pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType), SMGKnownSymValue.ZERO, pEdge);
+      if (offset - pOffset < sizeOfType ) {
+        pNewState = writeValue(pNewState, pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
       }
     }
 
@@ -1385,8 +1385,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
 
       int offset = pOffset + listCounter * sizeOfElementType;
-      if (offset < sizeOfType) {
-        pNewState = writeValue(pNewState, pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType-offset), SMGKnownSymValue.ZERO, pEdge);
+      if (offset - pOffset < sizeOfType) {
+        pNewState = writeValue(pNewState, pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
       }
     }
 
