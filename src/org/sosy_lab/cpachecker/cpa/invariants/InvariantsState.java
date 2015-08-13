@@ -469,18 +469,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
     }
 
-
-    NumeralFormula<CompoundInterval> previousValue = getEnvironmentValue(bitVectorInfo, pVarName);
-
-    /*
-     * A variable is newly assigned, so the appearances of this variable
-     * in any previously collected assumptions (including its new value)
-     * have to be resolved with the variable's previous value.
-     */
-    ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
-
     // Compute the assignment
-    InvariantsState result = assignInternal(pVarName, pValue, newVariableSelection, evaluationVisitor, replaceVisitor);
+    InvariantsState result = assignInternal(pVarName, pValue, newVariableSelection, evaluationVisitor);
 
     if (equals(result)) {
       return this;
@@ -490,14 +480,31 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
   private InvariantsState assignInternal(String pVarName, NumeralFormula<CompoundInterval> pValue,
       VariableSelection<CompoundInterval> newVariableSelection,
-      FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor, ReplaceVisitor<CompoundInterval> replaceVisitor) {
+      FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor) {
     NonRecursiveEnvironment resultEnvironment = this.environment;
+
+    ContainsVarVisitor<CompoundInterval> containsVarVisitor = new ContainsVarVisitor<>();
+
+    /*
+     * A variable is newly assigned, so the appearances of this variable
+     * in any previously collected assumptions (including its new value)
+     * have to be resolved with the variable's previous value.
+     */
+    BitVectorInfo bitVectorInfo = pValue.getBitVectorInfo();
+    Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
+        bitVectorInfo,
+        pVarName);
+    NumeralFormula<CompoundInterval> previousValue = getEnvironmentValue(bitVectorInfo, pVarName);
+    ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previousValue);
 
     for (Map.Entry<String, NumeralFormula<CompoundInterval>> environmentEntry : this.environment.entrySet()) {
       if (!environmentEntry.getKey().equals(pVarName)) {
-        NumeralFormula<CompoundInterval> newEnvValue =
-            environmentEntry.getValue().accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor);
-        resultEnvironment = resultEnvironment.putAndCopy(environmentEntry.getKey(), newEnvValue);
+        NumeralFormula<CompoundInterval> prevEnvValue = environmentEntry.getValue();
+        if (prevEnvValue.accept(containsVarVisitor, pVarName)) {
+          NumeralFormula<CompoundInterval> newEnvValue =
+              prevEnvValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor);
+          resultEnvironment = resultEnvironment.putAndCopy(environmentEntry.getKey(), newEnvValue);
+        }
       }
     }
     resultEnvironment = resultEnvironment.putAndCopy(pVarName, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
@@ -539,10 +546,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       bitVectorInfo = previous.getBitVectorInfo();
     }
 
-    Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(bitVectorInfo, pVariableName);
     NumeralFormula<CompoundInterval> allPossibleValues = allPossibleValuesFormula(bitVectorInfo);
-    ReplaceVisitor<CompoundInterval> replaceVisitor = new ReplaceVisitor<>(variable, previous == null ? allPossibleValues : previous);
-    InvariantsState result = assignInternal(pVariableName, allPossibleValues, variableSelection, evaluationVisitor, replaceVisitor);
+    InvariantsState result = assignInternal(pVariableName, allPossibleValues, variableSelection, evaluationVisitor);
     NonRecursiveEnvironment resultEnvironment = result.environment.removeAndCopy(pVariableName);
     result = new InvariantsState(
         result.variableSelection,
