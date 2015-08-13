@@ -341,11 +341,18 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       int offset =  bufferAddress.getOffset().getAsInt();
 
-      // TODO write explicit Value into smg
-      SMGValueAndState chAndState = evaluateExpressionValue(currentState,
-          cfaEdge, chExpr);
-      SMGSymbolicValue ch = chAndState.getValue();
-      currentState = chAndState.getSmgState();
+      SMGSymbolicValue ch;
+      if (chExpr instanceof CIntegerLiteralExpression) {
+        // evaluate non zero char value for memset
+        BigInteger value = ((CIntegerLiteralExpression)chExpr).getValue();
+        ch = SMGKnownSymValue.valueOf(value);
+      } else {
+        // TODO write explicit Value into smg
+        SMGValueAndState chAndState = evaluateExpressionValue(currentState,
+            cfaEdge, chExpr);
+        ch = chAndState.getValue();
+        currentState = chAndState.getSmgState();
+      }
 
       if (ch.isUnknown()) {
         throw new UnrecognizedCCodeException("Can't simulate memset", cfaEdge, functionCall);
