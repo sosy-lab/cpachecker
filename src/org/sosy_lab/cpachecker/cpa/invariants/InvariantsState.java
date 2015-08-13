@@ -1129,7 +1129,22 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
         // Join the harder ones
         {
-          // Join all those where one implies the other one
+
+          // Join by constructing the union of left and right value for each variable
+          for (String varName : todo) {
+            NumeralFormula<CompoundInterval> leftFormula = environment.get(varName);
+            NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
+            assert leftFormula != null && rightFormula != null;
+            CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(leftFormula.getBitVectorInfo());
+            NumeralFormula<CompoundInterval> evaluated =
+                InvariantsFormulaManager.INSTANCE.asConstant(leftFormula.getBitVectorInfo(),
+                    cim.union(
+                        leftFormula.accept(evaluationVisitor, environment),
+                        rightFormula.accept(state2.evaluationVisitor, state2.environment)));
+            resultEnvironment = resultEnvironment.putAndCopy(varName, evaluated);
+          }
+
+          // Strengthen all those where one implies the other one
           boolean cont = !todo.isEmpty();
           Set<String> done = new HashSet<>();
           while (cont) {
@@ -1165,22 +1180,6 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
               todo.removeAll(done);
               done.clear();
             }
-          }
-
-          // Join the rest
-          for (String varName : todo) {
-            NumeralFormula<CompoundInterval> leftFormula = environment.get(varName);
-            NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(varName);
-            assert leftFormula != null && rightFormula != null;
-            NumeralFormula<CompoundInterval> union = compoundIntervalFormulaManager.union(
-                leftFormula.accept(state1.partialEvaluator, evaluationVisitor),
-                rightFormula.accept(state2.partialEvaluator, evaluationVisitor)).accept(new PartialEvaluator(compoundIntervalManagerFactory),
-                evaluationVisitor);
-            NumeralFormula<CompoundInterval> evaluated =
-                InvariantsFormulaManager.INSTANCE.asConstant(
-                    union.getBitVectorInfo(),
-                    union.accept(evaluationVisitor, resultEnvironment));
-            resultEnvironment = resultEnvironment.putAndCopy(varName, evaluated);
           }
         }
 
