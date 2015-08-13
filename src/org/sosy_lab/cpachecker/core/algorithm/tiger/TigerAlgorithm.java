@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -130,6 +131,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -1104,13 +1106,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 logger.logf(Level.WARNING, "Counterexample is spurious!");
               }
               else {
-                Model model = cex.getTargetPathModel();
+                RichModel model = cex.getTargetPathModel();
 
-                Comparator<Map.Entry<Model.AssignableTerm, Object>> comp =
-                    new Comparator<Map.Entry<Model.AssignableTerm, Object>>() {
+                Comparator<Map.Entry<AssignableTerm, Object>> comp =
+                    new Comparator<Map.Entry<AssignableTerm, Object>>() {
 
                       @Override
-                      public int compare(Entry<Model.AssignableTerm, Object> pArg0, Entry<Model.AssignableTerm, Object> pArg1) {
+                      public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
                         assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
                         assert pArg0.getKey() instanceof Model.Variable;
                         assert pArg1.getKey() instanceof Model.Variable;
@@ -1123,9 +1125,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
                     };
 
-                TreeSet<Map.Entry<Model.AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+                TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
 
-                for (Map.Entry<Model.AssignableTerm, Object> e : model.entrySet()) {
+                for (Entry<AssignableTerm, Object> e : model.entrySet()) {
                   if (e.getKey() instanceof Model.Variable) {
                     Model.Variable v = (Model.Variable) e.getKey();
 
@@ -1137,7 +1139,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
                 List<BigInteger> inputValues = new ArrayList<>(inputs.size());
 
-                for (Map.Entry<Model.AssignableTerm, Object> e : inputs) {
+                for (Entry<AssignableTerm, Object> e : inputs) {
                   //assert e.getValue() instanceof BigInteger;
                   //inputValues.add((BigInteger)e.getValue());
                   inputValues.add(new BigInteger(e.getValue().toString()));
