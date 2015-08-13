@@ -587,7 +587,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     while (toClearIterator.hasNext()) {
       Variable<CompoundInterval> variable = toClearIterator.next();
       String variableName = variable.getName();
-      NumeralFormula<CompoundInterval> previous = environment.get(variableName);
+      NumeralFormula<CompoundInterval> previous = resultEnvironment.get(variableName);
       final BitVectorInfo bitVectorInfo;
 
       if (previous == null) {
@@ -611,8 +611,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         if (key.equals(variableName)) {
           potentialReferrerIterator.remove();
         } else {
-          NumeralFormula<CompoundInterval> previousValue = environment.get(key);
-          if (previousValue.accept(containsVarVisitor, key)) {
+          NumeralFormula<CompoundInterval> previousValue = resultEnvironment.get(key);
+          if (previousValue.accept(containsVarVisitor, variableName)) {
             NumeralFormula<CompoundInterval> newEnvValue =
                 previousValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor);
             resultEnvironment = resultEnvironment.putAndCopy(key, newEnvValue);
