@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -89,14 +90,14 @@ public class InvariantsMergeOperator implements MergeOperator {
     return reduceToGivenVariables(pState, pPrecision.getInterestingVariables());
   }
 
-  private static InvariantsState reduceToGivenVariables(InvariantsState pState, Iterable<? extends String> pVariables) {
-    InvariantsState result = pState;
-    for (String variableName : pState.getEnvironment().keySet()) {
-      if (!Iterables.contains(pVariables, variableName)) {
-        result = result.clear(variableName);
+  private static InvariantsState reduceToGivenVariables(final InvariantsState pState, final Iterable<? extends String> pVariables) {
+    return pState.clearAll(new Predicate<String>() {
+
+      @Override
+      public boolean apply(String pVariableName) {
+        return !Iterables.contains(pVariables, pVariableName);
       }
-    }
-    return result;
+    });
   }
 
   private static boolean environmentsEqualWithRespectToInterestingVariables(InvariantsState pState1, InvariantsState pState2, InvariantsPrecision pPrecision) {
