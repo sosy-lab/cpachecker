@@ -1009,9 +1009,17 @@ public class SMGExpressionEvaluator {
         SMGAddress address = addressAndState.getAddress();
         SMGState newState = addressAndState.getSmgState();
 
+        CType type = getRealExpressionType(pVariableName);
+        if (type instanceof CArrayType) {
+          // if function declaration is in form 'int foo(char b[32])' then omit array length
+          //TODO support C11 6.7.6.3 7:
+          // actual argument shall provide access to the first element of
+          // an array with at least as many elements as specified by the size expression
+          type = new CArrayType(type.isConst(), type.isVolatile(), ((CArrayType)type).getType(), null);
+        }
         SMGValueAndState pointerAndState =
             readValue(newState, address.getObject(),
-                address.getOffset(), getRealExpressionType(pVariableName), getCfaEdge());
+                address.getOffset(), type, getCfaEdge());
 
         SMGAddressValueAndState trueAddressAndState = getAddressFromSymbolicValue(pointerAndState);
 

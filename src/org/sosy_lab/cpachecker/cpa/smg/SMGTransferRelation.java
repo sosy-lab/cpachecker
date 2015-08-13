@@ -828,7 +828,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       String varName = paramDecl.get(i).getName();
       CType cType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
       CType rValueType = expressionEvaluator.getRealExpressionType(exp.getExpressionType());
-
+      // if function declaration is in form 'int foo(char b[32])' then omit array length
+      if (rValueType instanceof CArrayType) {
+        rValueType = new CArrayType(rValueType.isConst(), rValueType.isVolatile(), ((CArrayType)rValueType).getType(), null);
+      }
 
 
       SMGRegion newObject = values.get(i).getFirst();
