@@ -329,6 +329,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGEdgePointsToAndState.of(currentState, null);
       }
 
+      // avoid to call getPointerFromValue for memset(&param, val, size) while pointer is not registered as Edge
+      if (!currentState.isPointer(bufferAddress.getAsInt())) {
+        currentState.addPointsToEdge(bufferAddress.getObject(), bufferAddress.getOffset().getAsInt(), bufferAddress.getValue().intValue());
+      }
       SMGEdgePointsTo pointer = currentState.getPointerFromValue(bufferAddress.getAsInt());
 
       long count = countValue.getAsLong();
