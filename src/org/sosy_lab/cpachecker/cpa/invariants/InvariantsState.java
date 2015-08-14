@@ -81,7 +81,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -980,11 +979,13 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   public InvariantsState widen(InvariantsState pOlderState,
-      @Nullable InvariantsPrecision pPrecision,
-      Set<String> pWideningTargets,
+      InvariantsPrecision pPrecision,
+      @Nullable Set<String> pWideningTargets,
       Set<BooleanFormula<CompoundInterval>> pWideningHints) {
 
-    Set<String> wideningTargets = pWideningTargets == null ? environment.keySet() : pWideningTargets;
+    final Set<String> wideningTargets = pWideningTargets == null
+        ? environment.keySet()
+        : Sets.intersection(pWideningTargets, environment.keySet());
 
     if (wideningTargets.isEmpty()) {
       return this;
@@ -995,7 +996,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
     // Find entries that require widening
     Map<String, NumeralFormula<CompoundInterval>> toDo = new HashMap<>();
-    for (String varName : FluentIterable.from(pOlderState.environment.keySet()).filter(Predicates.in(wideningTargets))) {
+    for (String varName : wideningTargets) {
       NumeralFormula<CompoundInterval> oldFormula = pOlderState.environment.get(varName);
       if (oldFormula == null) {
         continue;
@@ -1076,7 +1077,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
           @Override
           public boolean apply(BooleanFormula<CompoundInterval> pHint) {
-            return environment.keySet().containsAll(pHint.accept(COLLECT_VARS_VISITOR));
+            return wideningTargets.containsAll(pHint.accept(COLLECT_VARS_VISITOR));
           }})
         .filter(implies)) {
       result = result.assume(hint);
