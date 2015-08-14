@@ -171,12 +171,12 @@ class PredicateCPAStatistics extends AbstractStatistics {
       // Use special multimaps with set-semantics and an ordering only on keys (not on values)
       this.locationInstance = MultimapBuilder
           .treeKeys(Pair.<CFANode, Integer>lexicographicalNaturalComparator())
-          .hashSetValues()
+          .linkedHashSetValues()
           .build();
 
-      this.location = MultimapBuilder.treeKeys().hashSetValues().build();
-      this.function = MultimapBuilder.treeKeys().hashSetValues().build();
-      this.global = Sets.newHashSet();
+      this.location = MultimapBuilder.treeKeys().linkedHashSetValues().build();
+      this.function = MultimapBuilder.treeKeys().linkedHashSetValues().build();
+      this.global = Sets.newLinkedHashSet();
     }
 
   }
@@ -185,7 +185,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     Preconditions.checkNotNull(targetFile);
     Preconditions.checkNotNull(predicates);
 
-    Set<AbstractionPredicate> allPredicates = Sets.newHashSet(predicates.global);
+    Set<AbstractionPredicate> allPredicates = Sets.newLinkedHashSet(predicates.global);
     allPredicates.addAll(predicates.function.values());
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
