@@ -1216,17 +1216,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGObject newObject;
 
-    if (pVarDecl.isGlobal()) {
-      newObject = pState.addGlobalVariable(cType, varName);
-    } else {
-      newObject = pState.getObjectForVisibleVariable(varName);
-
+    newObject = pState.getObjectForVisibleVariable(varName);
       /*
        *  The variable is not null if we seen the declaration already, for example in loops. Invalid
        *  occurrences (variable really declared twice) should be caught for us by the parser. If we
        *  already processed the declaration, we do nothing.
        */
-      if (newObject == null) {
+    if (newObject == null) {
+      if (pVarDecl.isGlobal()) {
+        newObject = pState.addGlobalVariable(cType, varName);
+      } else {
         newObject = pState.addLocalVariable(cType, varName);
       }
     }
