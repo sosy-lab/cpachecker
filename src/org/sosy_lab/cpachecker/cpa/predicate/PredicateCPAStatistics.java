@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -66,8 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaMan
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -164,13 +162,6 @@ class PredicateCPAStatistics extends AbstractStatistics {
    */
   private static class MutablePredicateSets {
 
-    private static Supplier<Set<AbstractionPredicate>> hashSetSupplier = new Supplier<Set<AbstractionPredicate>>() {
-        @Override
-        public Set<AbstractionPredicate> get() {
-          return Sets.newHashSet();
-        }
-      };
-
     private final SetMultimap<Pair<CFANode, Integer>, AbstractionPredicate> locationInstance;
     private final SetMultimap<CFANode, AbstractionPredicate> location;
     private final SetMultimap<String, AbstractionPredicate> function;
@@ -178,13 +169,13 @@ class PredicateCPAStatistics extends AbstractStatistics {
 
     private MutablePredicateSets() {
       // Use special multimaps with set-semantics and an ordering only on keys (not on values)
-      this.locationInstance = Multimaps.newSetMultimap(
-          new TreeMap<Pair<CFANode, Integer>, Collection<AbstractionPredicate>>(
-              Pair.<CFANode, Integer>lexicographicalNaturalComparator()),
-          hashSetSupplier);
+      this.locationInstance = MultimapBuilder
+          .treeKeys(Pair.<CFANode, Integer>lexicographicalNaturalComparator())
+          .hashSetValues()
+          .build();
 
-      this.location = Multimaps.newSetMultimap(new TreeMap<CFANode, Collection<AbstractionPredicate>>(), hashSetSupplier);
-      this.function = Multimaps.newSetMultimap(new TreeMap<String, Collection<AbstractionPredicate>>(), hashSetSupplier);
+      this.location = MultimapBuilder.treeKeys().hashSetValues().build();
+      this.function = MultimapBuilder.treeKeys().hashSetValues().build();
       this.global = Sets.newHashSet();
     }
 
