@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
