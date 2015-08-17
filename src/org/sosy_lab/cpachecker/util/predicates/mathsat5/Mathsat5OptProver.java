@@ -28,7 +28,6 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
   /**
    * Number of the objective -> objective pointer.
    */
-
   private List<Long> objectives = null;
 
   /**
@@ -46,11 +45,16 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
   private int pushCount = 0;
   private int popCount = 0;
 
-  Mathsat5OptProver(Mathsat5FormulaManager pMgr,
-      long pConfig) {
-    super(pMgr, pConfig, true, false);
+  Mathsat5OptProver(Mathsat5FormulaManager pMgr) {
+    super(pMgr, createConfig(), true, false);
     objectiveMap = new HashMap<>();
     stack = new LinkedList<>();
+  }
+
+  private static long createConfig() {
+    long cfg = msat_create_config();
+    msat_set_option_checked(cfg, "model_generation", "true");
+    return cfg;
   }
 
   @Override
@@ -88,13 +92,13 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
       if (!objectiveMap.isEmpty()) {
         objectives = new ArrayList<>();
         long it = msat_create_objective_iterator(curEnv);
-
         while (msat_objective_iterator_has_next(it) != 0) {
           long[] objectivePtr = new long[1];
           int status = msat_objective_iterator_next(it, objectivePtr);
           assert status == 0;
           objectives.add(objectivePtr[0]);
         }
+        msat_destroy_objective_iterator(it);
       }
       return OptStatus.OPT;
     } else {
@@ -141,7 +145,19 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
 
   @Override
   public Model getModel() throws SolverException {
-    msat_set_model(curEnv, objectives.get(objectiveMap.size() - 1));
+
+    // Get to the last objective in the stack.
+    // todo: code duplication.
+    long it = msat_create_objective_iterator(curEnv);
+    long[] objectivePtr = new long[1];
+    while (msat_objective_iterator_has_next(it) != 0) {
+      int status = msat_objective_iterator_next(it, objectivePtr);
+      assert status == 0;
+    }
+    msat_destroy_objective_iterator(it);
+    assert objectivePtr[0] != 0;
+
+    msat_set_model(curEnv, objectivePtr[0]);
     return super.getModel();
   }
 

@@ -207,7 +207,7 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    return new Mathsat5OptProver(this, mathsatConfig);
+    return new Mathsat5OptProver(this);
   }
 
   @Override
