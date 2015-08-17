@@ -27,6 +27,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
@@ -37,19 +39,36 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -155,6 +174,7 @@ public class TranslatorTest {
     // Test method writeVarDefinition()
     Method writeVarDefinition = CartesianRequirementsTranslator.class.getDeclaredMethod("writeVarDefinition", new Class[]{List.class, SSAMap.class});
     writeVarDefinition.setAccessible(true);
+    @SuppressWarnings("unchecked")
     List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest);
     content = new ArrayList<>();
     content.add("(declare-fun |var1@1|() Int)");
@@ -189,5 +209,104 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
     s = "(define-fun req () Bool (>= |var1@1| 0))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
+  }
+
+  @Test
+  public void testPredicateRequirementsTranslator() throws InvalidConfigurationException, CPAException {
+    FormulaManagerView fmv = new FormulaManagerView(new FormulaManagerFactory(TestDataTools.configurationForTest().build(), TestLogManager.getInstance(), ShutdownNotifier.create()), TestDataTools.configurationForTest().build(), TestLogManager.getInstance());
+    GlobalInfo gInfo = GlobalInfo.getInstance();
+    gInfo.storeFormulaManagerView(fmv);
+
+    // Region used in abstractionFormula
+    RegionManager regionManager = new SymbolicRegionManager(fmv, null);
+    Region region = regionManager.createPredicate();
+
+    // create PredicateAbstractState ptrueState
+    BooleanFormulaManager bfmgr = fmv.getBooleanFormulaManager();
+    BooleanFormula bf = bfmgr.makeBoolean(true);
+    PathFormula pathFormula = new PathFormula(bf, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
+    AbstractionFormula aFormula = new AbstractionFormula(fmv, region, bf, bf, pathFormula, Collections.<Integer>emptySet()); // TODO: ggf 2. BF mit Indizes
+    PredicateAbstractState ptrueState = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+
+    // create PredicateAbstractState pf1State
+    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr = fmv.getIntegerFormulaManager();
+    BooleanFormula bf11 = ifmgr.greaterThan(ifmgr.makeVariable("var1"), ifmgr.makeNumber(0));
+    BooleanFormula bf12 = ifmgr.equal(ifmgr.makeVariable("var3"), ifmgr.makeNumber(0));
+    BooleanFormula bf13 = ifmgr.lessThan(ifmgr.makeVariable("fun::var1"), ifmgr.makeNumber(0));
+    BooleanFormula bf14 = bfmgr.or(bf11, bf12);
+    BooleanFormula bf1 = bfmgr.and(bf14, bf13);
+    BooleanFormula bf11i = ifmgr.greaterThan(ifmgr.makeVariable("var1@1"), ifmgr.makeNumber(0));
+    BooleanFormula bf12i = ifmgr.equal(ifmgr.makeVariable("var3@1"), ifmgr.makeNumber(0));
+    BooleanFormula bf13i = ifmgr.lessThan(ifmgr.makeVariable("fun::var1"), ifmgr.makeNumber(0));
+    BooleanFormula bf14i = bfmgr.or(bf11i, bf12i);
+    BooleanFormula bf1i = bfmgr.and(bf14i, bf13i);
+    aFormula = new AbstractionFormula(fmv, region, bf1, bf1i, pathFormula, Collections.<Integer>emptySet());
+    PredicateAbstractState pf1State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+
+    // create PredicateAbstractState pf2State
+    BooleanFormula bf21 = ifmgr.greaterThan(ifmgr.makeVariable("var2"), ifmgr.makeVariable("fun::varB"));
+    BooleanFormula bf22 = ifmgr.lessThan(ifmgr.makeVariable("fun::varC"), ifmgr.makeNumber(0));
+    BooleanFormula bf2 = bfmgr.and(bf21, bf22);
+    BooleanFormula bf21i = ifmgr.greaterThan(ifmgr.makeVariable("var2@1"), ifmgr.makeVariable("fun::varB@1"));
+    BooleanFormula bf22i = ifmgr.lessThan(ifmgr.makeVariable("fun::varC@1"), ifmgr.makeNumber(0));
+    BooleanFormula bf2i = bfmgr.and(bf21i, bf22i);
+    aFormula = new AbstractionFormula(fmv, region, bf2, bf2i, pathFormula, Collections.<Integer>emptySet());
+    PredicateAbstractState pf2State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+
+    PredicateRequirementsTranslator pReqTrans = new PredicateRequirementsTranslator();
+
+    // Test method convertToFormula()
+    Pair<List<String>, String> convertedFormula = pReqTrans.convertToFormula(ptrueState, ssaTest);
+    Truth.assertThat(convertedFormula.getFirst()).isEmpty();
+    String s = "(define-fun .defci0 Bool()  true)";
+    Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
+
+    convertedFormula = pReqTrans.convertToFormula(pf1State, ssaTest);
+    List<String> list = new ArrayList<>();
+    list.add("(declare-fun |fun::var1| () Int)"); // TODO sollen die geraden Striche da sein? Ich weiß nicht wo die herkommen ...
+    list.add("(declare-fun var3 () Int)");
+    list.add("(declare-fun var1 () Int)");
+    Truth.assertThat(convertedFormula.getFirst()).containsExactlyElementsIn(list);
+    s = "(define-fun .defci1 Bool()  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))"; // TODO ohne @1?
+    Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
+
+    // Test method convertRequirements()
+    Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements = pReqTrans.convertRequirements(pf1State, Collections.<AbstractState>emptyList(), ssaTest);
+    list = new ArrayList<>();
+    list.add("(declare-fun var1 () Int)");
+    list.add("(declare-fun var3 () Int)");
+    list.add("(declare-fun |fun::var1| () Int)"); // TODO gerade Striche
+    Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list);
+    s = "(define-fun pre Bool()  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))"; // TODO gerade Striche // TODO ohne @1?
+    Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
+    Truth.assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
+    s = "(define-fun post true)"; // TODO ohne "Bool ()" ? // TODO true oder false?
+    Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
+
+    Collection<PredicateAbstractState> pAbstrStates = new ArrayList<>();
+    pAbstrStates.add(ptrueState);
+    convertedRequirements = pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest);
+    List<String> list2 = new ArrayList<>();
+    list2.add("(declare-fun var2 () Int)");
+    list2.add("(declare-fun |fun::varB| () Int)"); // TODO gerade Striche // TODO ohne @1?
+    list2.add("(declare-fun |fun::varC| () Int)"); // TODO gerade Striche
+    Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list2);
+    s = "(define-fun pre Bool()  (and (> var2 |fun::varB|) (< |fun::varC| 0)))"; // TODO gerade Striche // TODO ohne fun::varB@1?
+    Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
+    Truth.assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
+    s = "(define-fun post Bool ()  true)";
+    Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
+
+    pAbstrStates = new ArrayList<>();
+    pAbstrStates.add(pf1State);
+    pAbstrStates.add(pf2State);
+    convertedRequirements = pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest);
+//    Truth.assertThat(convertedRequirements.getFirst().getFirst()).isEmpty(); // TODO warum sollte das empty sein?
+    s = "(define-fun pre Bool () true)";
+//    Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s); // TODO warum sollte das true sein?
+    list.addAll(list2);
+    Truth.assertThat(convertedRequirements.getSecond().getFirst()).containsExactlyElementsIn(list);
+    s = "(define-fun post Bool () (or (and (or (< var1 0) (= var3 0)) (> fun::var1 0))) (and (> var2 fun::varB) (< fun::varC 0)))";
+//    Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s); // TODO totaler Muell
   }
 }

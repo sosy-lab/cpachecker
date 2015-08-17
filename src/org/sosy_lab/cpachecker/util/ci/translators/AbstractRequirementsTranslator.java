@@ -86,11 +86,12 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
         sb.append("(or ");
         BracketCounter++;
       }
-      if (formula.getSecond().indexOf("(", 1) == -1) {
+      // TODO warum Fallunterscheidung?
+//      if (formula.getSecond().indexOf("(", 1) == -1) {
         definition = formula.getSecond().substring(formula.getSecond().lastIndexOf(" "), formula.getSecond().length()-1);
-      } else {
-        definition = formula.getSecond().substring(formula.getSecond().indexOf("(", 1)+1, formula.getSecond().length()-1);
-      }
+//      } else {
+//        definition = formula.getSecond().substring(formula.getSecond().indexOf(")", 1)+1, formula.getSecond().length()-1);
+//      }
       sb.append(definition);
     }
     for (int i=0; i<BracketCounter+1; i++) {
