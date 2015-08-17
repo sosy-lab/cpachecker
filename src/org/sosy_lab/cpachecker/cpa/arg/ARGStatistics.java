@@ -23,15 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -49,24 +45,17 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 
@@ -102,15 +91,16 @@ public class ARGStatistics implements IterationStatistics {
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
-  private final CEXExporter cexExporter;
-  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel) throws InvalidConfigurationException {
+  private final CEXExporter cexExporter;
+  private final CounterexamplesSummary cexSummary;
+
+  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel, CounterexamplesSummary pCexSummary) throws InvalidConfigurationException {
     this.cpa = cpa;
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, cpa.getLogger(), pMachineModel);
 
     config.inject(this);
 
+    cexSummary = pCexSummary;
     cexExporter = new CEXExporter(config, cpa.getLogger());
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
@@ -171,7 +161,7 @@ public class ARGStatistics implements IterationStatistics {
     final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
     int cexIndex = 0;
 
-    for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
+    for (Map.Entry<ARGState, CounterexampleInfo> cex : cexSummary.getAllCounterexamples(pReached).entrySet()) {
       cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
           !cexExporter.shouldDumpErrorPathImmediately());
     }
@@ -249,67 +239,6 @@ public class ARGStatistics implements IterationStatistics {
       } catch (IOException e) {
         cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
       }
-    }
-  }
-
-  private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final ReachedSet pReached) {
-    Map<ARGState, CounterexampleInfo> probableCounterexample = cpa.getCounterexamples();
-    // This map may contain too many counterexamples
-    // (for target states that were in the mean time removed from the ReachedSet),
-    // as well as too feww counterexamples
-    // (for target states where we don't have a CounterexampleInfo
-    // because we did no refinement).
-    // So we create a map with all target states,
-    // adding the CounterexampleInfo where we have it (null otherwise).
-
-    Map<ARGState, CounterexampleInfo> counterexamples = new HashMap<>();
-
-    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
-      ARGState s = (ARGState)targetState;
-      CounterexampleInfo cex = probableCounterexample.get(s);
-      if (cex == null) {
-        ARGPath path = ARGUtils.getOnePathTo(s);
-        if (path.getInnerEdges().contains(null)) {
-          // path is invalid,
-          // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
-          // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
-        } else {
-
-          RichModel model = createModelForPath(path);
-          cex = CounterexampleInfo.feasible(path, model);
-        }
-      }
-      if (cex != null) {
-        counterexamples.put(s, cex);
-      }
-    }
-
-    return counterexamples;
-  }
-
-  private RichModel createModelForPath(ARGPath pPath) {
-
-    FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
-        CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
-
-    CFAPathWithAssumptions result = null;
-
-    // TODO Merge different paths
-    for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
-      ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, assumptionToEdgeAllocator);
-
-      if (result != null) {
-        result = result.mergePaths(cexPath);
-      } else {
-        result = cexPath;
-      }
-    }
-
-    if(result == null) {
-      return RichModel.empty();
-    } else {
-      return RichModel.empty().withAssignmentInformation(result);
     }
   }
 

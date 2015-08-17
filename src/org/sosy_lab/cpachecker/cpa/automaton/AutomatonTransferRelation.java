@@ -36,7 +36,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,10 +54,14 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
@@ -64,6 +71,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -74,8 +82,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Collect information about matched (and traversed) tokens.")
   private boolean collectTokenInformation = false;
 
+  @Option(secure=true, description = "Stop in the automata transfer relation if the analysis identified one feasible path for each target state.")
+  private boolean stopAfterOneFeasiblePathPerProperty = false;
+
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
+  private @Nullable CounterexamplesSummary cexSummary;
 
   Timer totalPostTime = new Timer();
   Timer matchTime = new Timer();
@@ -88,6 +100,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+
     this.cpa = pCpa;
     this.logger = pLogger;
   }
@@ -344,21 +357,24 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       int totalObservingAutomata = 0;
       int totalInactiveObservingAutomata = 0;
 
-      // We perform the check only for LocationState
-      //  (to avoid multiple checks for one state tuple with several AutomataStates)
+      Set<AutomatonInternalState> activeStates = Sets.newHashSet();
+
       for (AbstractState other: pOtherElements) {
         if (!(other instanceof AutomatonState)) {
           continue;
         }
 
         final AutomatonState o = (AutomatonState) other;
+        final AutomatonInternalState q = o.getInternalState();
         final Automaton a = o.getAutomatonCPA().getAutomaton();
 
         if (a.getIsObservingOnly()) {
           totalObservingAutomata++;
 
-          if (o.getInternalState().equals(AutomatonInternalState.INACTIVE)) {
+          if (q.equals(AutomatonInternalState.INACTIVE)) {
             totalInactiveObservingAutomata++;
+          } else {
+            activeStates.add(q);
           }
         }
       }
@@ -368,6 +384,23 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           // STOP exploring the path if all observing
           // automata are DISABLED/INACTIVE or have done their work.
           return Collections.emptyList();
+        }
+
+        if (stopAfterOneFeasiblePathPerProperty) {
+          if (cexSummary == null) {
+            ARGCPA argcpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+            cexSummary = argcpa.getCexSummary();
+          }
+
+          SetView<AutomatonInternalState> undone = Sets.difference(
+              activeStates,
+              cexSummary.getFeasibleReachedAcceptingStates().elementSet());
+
+          if (undone.isEmpty()) {
+            // STOP exploring the path if all observing
+            // automata are in the accepting state for AT LEAST ONE FEASIBLE path.
+            return Collections.emptyList();
+          }
         }
       }
 

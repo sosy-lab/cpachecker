@@ -343,7 +343,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       covered.removeFromARG();
     }
 
-    cpa.clearCounterexamples(ImmutableSet.of(errorState));
+    cpa.removeInfeasibleState(ImmutableSet.of(errorState));
     reached.remove(parent);
     parent.removeFromARG();
 

@@ -67,8 +67,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -322,8 +324,16 @@ public class CPAchecker {
     return new CPAcheckerResult(result.getFirst(), result.getSecond(), reached, stats);
   }
 
-  private Pair<Result, String> extractResult(ReachedSet reached, AlgorithmStatus status) {
-    String violatedPropertyDescription = findViolatedProperties(reached);
+  private Pair<Result, String> extractResult(
+      ReachedSet reached, AlgorithmStatus status) {
+
+    if (!GlobalInfo.getInstance().getCPA().isPresent()) {
+      return Pair.of(Result.UNKNOWN, "");
+    }
+
+    ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
+
+    String violatedPropertyDescription = findViolatedProperties(cpa, reached);
     Result verdict;
 
     if (violatedPropertyDescription != null) {
@@ -425,19 +435,33 @@ public class CPAchecker {
     }
   }
 
-  private @Nullable String findViolatedProperties(final ReachedSet reached) {
-    Set<String> descriptions = from(reached).filter(IS_TARGET_STATE)
-                        .transform(new Function<AbstractState, String>() {
-                                    @Override
-                                    public String apply(AbstractState s) {
-                                      return  ((Targetable)s).getViolatedPropertyDescription();
-                                    }
-                                  })
-                        .copyInto(new HashSet<String>());
+  private @Nullable String findViolatedProperties(final ConfigurableProgramAnalysis pCpa,
+      final ReachedSet reached) {
+
+    final Set<String> descriptions;
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+
+    if (argCpa != null) {
+      descriptions = Sets.newHashSet();
+      descriptions.addAll(argCpa.getCexSummary().getFeasiblePropertyViolations());
+
+    } else {
+      descriptions = from(reached).filter(IS_TARGET_STATE)
+          .transform(new Function<AbstractState, String>() {
+
+            @Override
+            public String apply(AbstractState s) {
+              return ((Targetable) s).getViolatedPropertyDescription();
+            }
+          })
+          .copyInto(new HashSet<String>());
+    }
+
     if (descriptions.isEmpty()) {
       // signal no target state -> result safe
       return null;
     }
+
     descriptions.remove("");
     return Joiner.on(", ").join(descriptions);
   }

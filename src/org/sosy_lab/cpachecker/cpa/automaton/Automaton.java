@@ -24,14 +24,19 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -44,37 +49,64 @@ public class Automaton {
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
   private final Map<String, AutomatonVariable> initVars;
-  private final List<AutomatonInternalState> states;
+  private final Set<AutomatonInternalState> states = Sets.newHashSet();
+  private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
 
   public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInitialStateName) throws InvalidAutomatonException {
+
     this.name = pName;
     this.initVars = pVars;
-    this.states = pStates;
 
-    Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
-    for (AutomatonInternalState s : pStates) {
-      if (statesMap.put(s.getName(), s) != null) {
-        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
+    Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pStates.size());
+    for (AutomatonInternalState q : pStates) {
+      // Check for duplicated state names in the input
+      if (nameToState.put(q.getName(), q) != null) {
+        throw new InvalidAutomatonException("State " + q.getName() + " exists twice in automaton " + pName);
+      }
+
+      // The collection of states is a set (unique names)
+      this.states.add(q);
+      if (q.isTarget()) {
+        this.targetStates.add(q);
       }
     }
 
-    initState = statesMap.get(pInitialStateName);
+    initState = nameToState.get(pInitialStateName);
     if (initState == null) {
       throw new InvalidAutomatonException("Inital state " + pInitialStateName + " not found in automaton " + pName);
     }
 
     // set the FollowStates of all Transitions
-    for (AutomatonInternalState s : pStates) {
-      s.setFollowStates(statesMap);
+    for (AutomatonInternalState q : pStates) {
+      q.setFollowStates(nameToState);
     }
   }
 
-  public List<AutomatonInternalState> getStates() {
+  public Set<AutomatonInternalState> getStates() {
     return states;
+  }
+
+  public int getTransitionsToTargetStatesCount() {
+    ArrayList<AutomatonTransition> result = Lists.newArrayList();
+
+    for (AutomatonInternalState q: states) {
+      for (AutomatonTransition t: q.getTransitions()) {
+
+        if (t.getFollowState().isTarget()) {
+          result.add(t);
+        }
+      }
+    }
+
+    return result.size();
+  }
+
+  public Set<AutomatonInternalState> getTargetStates() {
+    return targetStates;
   }
 
   public String getName() {
@@ -173,6 +205,16 @@ public class Automaton {
       return isObservingOnly.get();
     }
     return false;
+  }
+
+  public Set<AutomatonInternalState> getStatesThatMightReachTargetOverapprox(AutomatonInternalState pTarget) {
+    // All target states is a valid overapproximation
+    //    TODO!!
+    return targetStates;
+  }
+
+  public Set<AutomatonInternalState> getReachableTargetStatesOverapprox() {
+    return ImmutableSet.copyOf(states);
   }
 
 }
