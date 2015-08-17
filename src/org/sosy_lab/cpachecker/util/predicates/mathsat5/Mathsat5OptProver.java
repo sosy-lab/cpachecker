@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 
 class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironment{
@@ -41,9 +40,6 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
    * Some duplication, but shouldn't be too important.
    */
   private Deque<ImmutableMap<Integer, Integer>> stack;
-
-  private int pushCount = 0;
-  private int popCount = 0;
 
   Mathsat5OptProver(Mathsat5FormulaManager pMgr) {
     super(pMgr, createConfig(), true, false);
@@ -108,14 +104,12 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
 
   @Override
   public void push() {
-    pushCount++;
     msat_push_backtrack_point(curEnv);
     stack.add(ImmutableMap.copyOf(objectiveMap));
   }
 
   @Override
   public void pop() {
-    popCount++;
     msat_pop_backtrack_point(curEnv);
     objectiveMap = new HashMap<>(stack.pop());
   }
@@ -173,8 +167,6 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
 
   @Override
   public void close() {
-    Verify.verify(pushCount == popCount, "Global environment has to be left "
-        + "in the consistent state.");
     super.close();
   }
 }
