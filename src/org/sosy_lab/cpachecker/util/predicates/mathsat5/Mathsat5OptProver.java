@@ -4,29 +4,53 @@ import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5FormulaMa
 import static org.sosy_lab.cpachecker.util.predicates.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.Model;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableMap;
 
 class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironment{
-  private int noObjectives = 0;
+  private UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
+  /**
+   * Number of the objective -> objective pointer.
+   */
+
   private List<Long> objectives = null;
+
+  /**
+   * ID given to user -> number of the objective.
+   * Size corresponds to the number of currently existing objectives.
+   */
+  private Map<Integer, Integer> objectiveMap;
+
+  /**
+   * Stack of the objective maps.
+   * Some duplication, but shouldn't be too important.
+   */
+  private Deque<ImmutableMap<Integer, Integer>> stack;
+
+  private int pushCount = 0;
+  private int popCount = 0;
 
   Mathsat5OptProver(Mathsat5FormulaManager pMgr,
       long pConfig) {
-    super(pMgr, setModel(pConfig), true, false);
-  }
-
-  private static long setModel(long pConfig) {
-    msat_set_option_checked(pConfig, "model_generation", "true");
-    return pConfig;
+    super(pMgr, pConfig, true, false);
+    objectiveMap = new HashMap<>();
+    stack = new LinkedList<>();
   }
 
   @Override
@@ -36,35 +60,41 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
 
   @Override
   public int maximize(Formula objective) {
+    // todo: code duplication.
+    int id = idGenerator.getFreshId();
+    objectiveMap.put(id, objectiveMap.size());
     msat_push_maximize(
         curEnv, getMsatTerm(objective), null, null
     );
-    return noObjectives++;
+    return id;
   }
 
 
   @Override
   public int minimize(Formula objective) {
+    int id = idGenerator.getFreshId();
+    objectiveMap.put(id, objectiveMap.size());
     msat_push_minimize(
         curEnv, getMsatTerm(objective), null, null
     );
-    return noObjectives++;
+    return id;
   }
 
   @Override
   public OptStatus check()
       throws InterruptedException, SolverException {
     boolean out = msat_check_sat(curEnv);
-
     if (out) {
-      objectives = new ArrayList<>();
-      long it = msat_create_objective_iterator(curEnv);
+      if (!objectiveMap.isEmpty()) {
+        objectives = new ArrayList<>();
+        long it = msat_create_objective_iterator(curEnv);
 
-      while (msat_objective_iterator_has_next(it) != 0) {
-        long[] objectivePtr = new long[1];
-        int status = msat_objective_iterator_next(it, objectivePtr);
-        assert status == 0;
-        objectives.add(objectivePtr[0]);
+        while (msat_objective_iterator_has_next(it) != 0) {
+          long[] objectivePtr = new long[1];
+          int status = msat_objective_iterator_next(it, objectivePtr);
+          assert status == 0;
+          objectives.add(objectivePtr[0]);
+        }
       }
       return OptStatus.OPT;
     } else {
@@ -74,12 +104,16 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
 
   @Override
   public void push() {
-    // todo
+    pushCount++;
+    msat_push_backtrack_point(curEnv);
+    stack.add(ImmutableMap.copyOf(objectiveMap));
   }
 
   @Override
   public void pop() {
-    // todo
+    popCount++;
+    msat_pop_backtrack_point(curEnv);
+    objectiveMap = new HashMap<>(stack.pop());
   }
 
   @Override
@@ -93,8 +127,9 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
   }
 
   private Optional<Rational> getValue(int handle) {
-    // todo: use epsilon.
-    long objective = objectives.get(handle);
+    // todo: use epsilon if the bound is non-strict.
+
+    long objective = objectives.get(objectiveMap.get(handle));
     int isUnbounded = msat_objective_value_is_unbounded(curEnv, objective, MSAT_OPTIMUM);
     if (isUnbounded == 1) {
       return Optional.absent();
@@ -106,7 +141,7 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
 
   @Override
   public Model getModel() throws SolverException {
-    msat_set_model(curEnv, objectives.get(noObjectives-1));
+    msat_set_model(curEnv, objectives.get(objectiveMap.size() - 1));
     return super.getModel();
   }
 
@@ -118,5 +153,12 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
   @Override
   public String dump() {
     throw new UnsupportedOperationException("Mathsat solver does not constraint dumping");
+  }
+
+  @Override
+  public void close() {
+    Verify.verify(pushCount == popCount, "Global environment has to be left "
+        + "in the consistent state.");
+    super.close();
   }
 }
