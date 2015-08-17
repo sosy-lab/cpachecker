@@ -607,7 +607,7 @@ def _request(method, path, body, headers, expectedStatusCodes=[200]):
         try:
             connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
-        except BaseException as e:
+        except Exception as e:
             if (counter < 5):
                 logging.debug("Exception during {} request to {}: {}".format(method, path, e))
                 # create new TCP connection and try to send the request
