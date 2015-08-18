@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 /**
  * Waitlist implementation that sorts the abstract states by the depth of
  * their loopstack.
- * States with a bigger loopstack are considered first.
+ * States with a smaller loopstack are considered first.
  */
 public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer>{
 
@@ -42,7 +42,7 @@ public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer>{
   protected Integer getSortKey(AbstractState pState) {
     LoopstackState loopstackState =
         AbstractStates.extractStateByType(pState, LoopstackState.class);
-    return (loopstackState != null) ? loopstackState.getDepth()  : 0;
+    return (loopstackState != null) ? -loopstackState.getDepth()  : 0;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {
