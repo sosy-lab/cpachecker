@@ -221,11 +221,15 @@ public class TranslatorTest {
     RegionManager regionManager = new SymbolicRegionManager(fmv, null);
     Region region = regionManager.createPredicate();
 
-    // create PredicateAbstractState ptrueState
+    // Initialize formula manager
     BooleanFormulaManager bfmgr = fmv.getBooleanFormulaManager();
     BooleanFormula bf = bfmgr.makeBoolean(true);
+
+    // create empty path formula
     PathFormula pathFormula = new PathFormula(bf, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
-    AbstractionFormula aFormula = new AbstractionFormula(fmv, region, bf, bf, pathFormula, Collections.<Integer>emptySet()); // TODO: ggf 2. BF mit Indizes
+
+    // create PredicateAbstractState ptrueState
+    AbstractionFormula aFormula = new AbstractionFormula(fmv, region, bf, bf, pathFormula, Collections.<Integer>emptySet());
     PredicateAbstractState ptrueState = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
 
     // create PredicateAbstractState pf1State
@@ -235,22 +239,14 @@ public class TranslatorTest {
     BooleanFormula bf13 = ifmgr.lessThan(ifmgr.makeVariable("fun::var1"), ifmgr.makeNumber(0));
     BooleanFormula bf14 = bfmgr.or(bf11, bf12);
     BooleanFormula bf1 = bfmgr.and(bf14, bf13);
-    BooleanFormula bf11i = ifmgr.greaterThan(ifmgr.makeVariable("var1@1"), ifmgr.makeNumber(0));
-    BooleanFormula bf12i = ifmgr.equal(ifmgr.makeVariable("var3@1"), ifmgr.makeNumber(0));
-    BooleanFormula bf13i = ifmgr.lessThan(ifmgr.makeVariable("fun::var1"), ifmgr.makeNumber(0));
-    BooleanFormula bf14i = bfmgr.or(bf11i, bf12i);
-    BooleanFormula bf1i = bfmgr.and(bf14i, bf13i);
-    aFormula = new AbstractionFormula(fmv, region, bf1, bf1i, pathFormula, Collections.<Integer>emptySet());
+    aFormula = new AbstractionFormula(fmv, region, bf1, bfmgr.makeBoolean(true), pathFormula, Collections.<Integer>emptySet());
     PredicateAbstractState pf1State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
 
     // create PredicateAbstractState pf2State
     BooleanFormula bf21 = ifmgr.greaterThan(ifmgr.makeVariable("var2"), ifmgr.makeVariable("fun::varB"));
     BooleanFormula bf22 = ifmgr.lessThan(ifmgr.makeVariable("fun::varC"), ifmgr.makeNumber(0));
     BooleanFormula bf2 = bfmgr.and(bf21, bf22);
-    BooleanFormula bf21i = ifmgr.greaterThan(ifmgr.makeVariable("var2@1"), ifmgr.makeVariable("fun::varB@1"));
-    BooleanFormula bf22i = ifmgr.lessThan(ifmgr.makeVariable("fun::varC@1"), ifmgr.makeNumber(0));
-    BooleanFormula bf2i = bfmgr.and(bf21i, bf22i);
-    aFormula = new AbstractionFormula(fmv, region, bf2, bf2i, pathFormula, Collections.<Integer>emptySet());
+    aFormula = new AbstractionFormula(fmv, region, bf2, bfmgr.makeBoolean(true), pathFormula, Collections.<Integer>emptySet());
     PredicateAbstractState pf2State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
 
     PredicateRequirementsTranslator pReqTrans = new PredicateRequirementsTranslator();
@@ -263,35 +259,35 @@ public class TranslatorTest {
 
     convertedFormula = pReqTrans.convertToFormula(pf1State, ssaTest);
     List<String> list = new ArrayList<>();
-    list.add("(declare-fun |fun::var1| () Int)"); // TODO sollen die geraden Striche da sein? Ich weiß nicht wo die herkommen ...
-    list.add("(declare-fun var3 () Int)");
-    list.add("(declare-fun var1 () Int)");
+    list.add("(declare-fun |fun::var1| () Int)");
+    list.add("(declare-fun var3@1 () Int)");
+    list.add("(declare-fun var1@1 () Int)");
     Truth.assertThat(convertedFormula.getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun .defci1 Bool()  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))"; // TODO ohne @1?
+    s = "(define-fun .defci1 Bool()  (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0)))";
     Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
 
     // Test method convertRequirements()
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements = pReqTrans.convertRequirements(pf1State, Collections.<AbstractState>emptyList(), ssaTest);
-    list = new ArrayList<>();
+    list.clear();
     list.add("(declare-fun var1 () Int)");
     list.add("(declare-fun var3 () Int)");
-    list.add("(declare-fun |fun::var1| () Int)"); // TODO gerade Striche
+    list.add("(declare-fun |fun::var1| () Int)");
     Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun pre Bool()  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))"; // TODO gerade Striche // TODO ohne @1?
+    s = "(define-fun pre Bool()  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))";
     Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
     Truth.assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
-    s = "(define-fun post true)"; // TODO ohne "Bool ()" ? // TODO true oder false?
+    s = "(define-fun post Bool() false)";
     Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
 
     Collection<PredicateAbstractState> pAbstrStates = new ArrayList<>();
     pAbstrStates.add(ptrueState);
     convertedRequirements = pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest);
-    List<String> list2 = new ArrayList<>();
-    list2.add("(declare-fun var2 () Int)");
-    list2.add("(declare-fun |fun::varB| () Int)"); // TODO gerade Striche // TODO ohne @1?
-    list2.add("(declare-fun |fun::varC| () Int)"); // TODO gerade Striche
-    Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list2);
-    s = "(define-fun pre Bool()  (and (> var2 |fun::varB|) (< |fun::varC| 0)))"; // TODO gerade Striche // TODO ohne fun::varB@1?
+    list.clear();
+    list.add("(declare-fun var2 () Int)");
+    list.add("(declare-fun |fun::varB| () Int)");
+    list.add("(declare-fun |fun::varC| () Int)");
+    Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list);
+    s = "(define-fun pre Bool()  (and (> var2 |fun::varB|) (< |fun::varC| 0)))";
     Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
     Truth.assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
     s = "(define-fun post Bool ()  true)";
@@ -300,13 +296,19 @@ public class TranslatorTest {
     pAbstrStates = new ArrayList<>();
     pAbstrStates.add(pf1State);
     pAbstrStates.add(pf2State);
-    convertedRequirements = pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest);
-//    Truth.assertThat(convertedRequirements.getFirst().getFirst()).isEmpty(); // TODO warum sollte das empty sein?
-    s = "(define-fun pre Bool () true)";
-//    Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s); // TODO warum sollte das true sein?
-    list.addAll(list2);
+    convertedRequirements = pReqTrans.convertRequirements(ptrueState, pAbstrStates, ssaTest);
+    Truth.assertThat(convertedRequirements.getFirst().getFirst()).isEmpty();
+    s = "(define-fun pre Bool()  true)";
+    Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
+    list.clear();
+    list.add("(declare-fun var1@1 () Int)");
+    list.add("(declare-fun var3@1 () Int)");
+    list.add("(declare-fun |fun::var1| () Int)");
+    list.add("(declare-fun var2 () Int)");
+    list.add("(declare-fun |fun::varB@1| () Int)");
+    list.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(convertedRequirements.getSecond().getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun post Bool () (or (and (or (< var1 0) (= var3 0)) (> fun::var1 0))) (and (> var2 fun::varB) (< fun::varC 0)))";
-//    Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s); // TODO totaler Muell
+    s = "(define-fun post Bool () (or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0))))";
+    Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
   }
 }
