@@ -100,7 +100,7 @@ public class InductiveWeakeningManager {
 
       // Shortcut, no atoms with only non-intermediate variables existed in the
       // original formula.
-      return noIntermediateNNF;
+      return bfmgr.makeBoolean(true);
     }
 
     // Step 2: Annotate conjunctions.
