@@ -124,11 +124,11 @@ public final class AbstractStates {
       return extractsActiveTargets(wrapped);
 
     } else if (pState instanceof AbstractWrapperState) {
-      Collection<AbstractState> result = Lists.newArrayList();
+      Collection<T> result = Lists.newArrayList();
       for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
-        result.addAll(extractsActiveTargets(wrapped));
+        result.addAll((Collection<? extends T>) extractsActiveTargets(wrapped));
       }
-      return (Collection<T>) result;
+      return result;
 
     } else if (pState instanceof Targetable && ((Targetable) pState).isTarget()) {
       return ImmutableList.<T>of((T)pState);
