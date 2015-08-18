@@ -96,6 +96,12 @@ public class InductiveWeakeningManager {
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
         Tactic.NNF);
+    if (noIntermediateNNF.equals(bfmgr.makeBoolean(false))) {
+
+      // Shortcut, no atoms with only non-intermediate variables existed in the
+      // original formula.
+      return noIntermediateNNF;
+    }
 
     // Step 2: Annotate conjunctions.
 
