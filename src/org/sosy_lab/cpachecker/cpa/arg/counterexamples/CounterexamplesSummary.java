@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -66,7 +68,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 /**
  * Summary of all (so far) feasible counterexamples
@@ -91,6 +95,7 @@ public class CounterexamplesSummary implements IterationStatistics {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final Map<ARGState, ViolationInfo> feasibleViolations = new WeakHashMap<>();
   private Multiset<AutomatonInternalState> feasibleReachedAcceptingStates = HashMultiset.create();
+  private Multimap<String, AutomatonInternalState> infeasibleCexFor = HashMultimap.create();
 
   public CounterexamplesSummary(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
@@ -220,7 +225,19 @@ public class CounterexamplesSummary implements IterationStatistics {
     }
   }
 
-  public void removeInfeasibleState(Set<ARGState> toRemove) {
+  public <T extends AbstractState & Targetable> void removeInfeasibleState(Set<ARGState> toRemove) {
+
+    for (ARGState e: toRemove) {
+      Collection<T> targetComps = AbstractStates.extractsActiveTargets(e);
+
+      for (T ee: targetComps) {
+        if (ee instanceof AutomatonState) {
+          AutomatonState qe = (AutomatonState) ee;
+          infeasibleCexFor.put(qe.getViolatedPropertyDescription(), qe.getInternalState());
+        }
+      }
+    }
+
     feasibleViolations.keySet().removeAll(toRemove);
   }
 
@@ -267,6 +284,13 @@ public class CounterexamplesSummary implements IterationStatistics {
       }
     }
 
+    HashSet<String> satisfiedProps = Sets.newHashSet();
+    for (String prop: infeasibleCexFor.keySet()) {
+      if (!violatedProps.containsKey(prop)) {
+        satisfiedProps.add(prop);
+      }
+    }
+
     // Write the statistics!!
     StatisticsUtils.write(pOut, 0, cols,
         "Observing property automata",
@@ -284,8 +308,22 @@ public class CounterexamplesSummary implements IterationStatistics {
       StatisticsUtils.write(pOut, 1, cols,
           prop, "");
       StatisticsUtils.write(pOut, 2, cols,
-          "Violating ARG states", violatedProps.get(prop).size());
+          "Feasible abstract states", violatedProps.get(prop).size());
+      StatisticsUtils.write(pOut, 2, cols,
+          "Infeasible abstract states", infeasibleCexFor.get(prop).size());
     }
+
+//    StatisticsUtils.write(pOut, 0, cols,
+//        "Satisfied (distinct) properties",
+//        satisfiedProps.size());
+//    for (String prop: satisfiedProps) {
+//      StatisticsUtils.write(pOut, 1, cols,
+//          prop, "");
+//      StatisticsUtils.write(pOut, 2, cols,
+//          "Infeasible abstract states", infeasibleCexFor.get(prop).size());
+//    }
+
+
   }
 
   @Override

@@ -116,6 +116,28 @@ public final class AbstractStates {
     }
   }
 
+  @SuppressWarnings("unchecked")
+  public static <T extends AbstractState & Targetable> Collection<T> extractsActiveTargets(AbstractState pState) {
+
+    if (pState instanceof AbstractSingleWrapperState) {
+      AbstractState wrapped = ((AbstractSingleWrapperState)pState).getWrappedState();
+      return extractsActiveTargets(wrapped);
+
+    } else if (pState instanceof AbstractWrapperState) {
+      Collection<AbstractState> result = Lists.newArrayList();
+      for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
+        result.addAll(extractsActiveTargets(wrapped));
+      }
+      return (Collection<T>) result;
+
+    } else if (pState instanceof Targetable && ((Targetable) pState).isTarget()) {
+      return ImmutableList.<T>of((T)pState);
+
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
 
   /**
    * Applies {@link #extractStateByType(AbstractState, Class)} to all states
