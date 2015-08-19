@@ -178,7 +178,7 @@ analysis.traversal.order = DFS
 # AutomatonCPA enabled)
 analysis.traversal.useAutomatonInformation = false
 
-# handle states with a deeper callstack first?
+# handle states with a deeper callstack first
 # This needs the CallstackCPA instance to have any effect.
 analysis.traversal.useCallstack = false
 
@@ -186,7 +186,8 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
-# handle states with a deeper loopstack first?
+# handle states with a shallow loopstack first.
+# handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
 # Use an implementation of postorder strategy that allows to select a
