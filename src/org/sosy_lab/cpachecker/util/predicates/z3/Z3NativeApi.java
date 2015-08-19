@@ -115,6 +115,16 @@ public final class Z3NativeApi {
   public static native int optimize_check(long context, long optimize) throws Z3SolverException;
 
   /**
+   * Retrieve a string that describes the last status returned by
+   * {@link #optimize_check}.
+   * Use this method when #Z3_optimize_check returns Z3_L_UNDEF.
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native String optimize_get_reason_unknown(long c, long d);
+
+  /**
    * \brief Retrieve the model for the last #Z3_optimize_check
    * The error handler is invoked if a model is not available because
    * the commands above were not invoked for the given optimization
