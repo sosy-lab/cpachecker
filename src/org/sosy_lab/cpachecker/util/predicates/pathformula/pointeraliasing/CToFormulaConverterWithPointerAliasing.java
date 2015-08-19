@@ -402,7 +402,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return result;
   }
 
-  static List<CExpressionAssignmentStatement> expandAssignmentList(
+  private List<CExpressionAssignmentStatement> expandAssignmentList(
                                                 final CVariableDeclaration declaration,
                                                 final List<CExpressionAssignmentStatement> explicitAssignments) {
     final CType variableType = CTypeUtils.simplifyType(declaration.getType());
@@ -420,7 +420,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return defaultAssignments;
   }
 
-  private static void expandAssignmentList(CType type,
+  private void expandAssignmentList(CType type,
                                            final CLeftHandSide lhs,
                                            final Set<String> alreadyAssigned,
                                            final List<CExpressionAssignmentStatement> defaultAssignments) {
@@ -434,7 +434,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CType elementType = CTypeUtils.simplifyType(arrayType.getType());
       final Integer length = CTypeUtils.getArrayLength(arrayType);
       if (length != null) {
-        for (int i = 0; i < length; i++) {
+        for (int i = 0; i < Math.min(length, options.maxArrayLength()); i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
                                              lhs.getFileLocation(),
                                              elementType,
