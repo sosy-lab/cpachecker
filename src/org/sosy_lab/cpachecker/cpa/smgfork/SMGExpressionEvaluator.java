@@ -295,13 +295,8 @@ public class SMGExpressionEvaluator {
 
       return SMGUnknownValue.getInstance();
     } else {
-      Long longValue = value.asNumericValue().longValue();
-
-      if (longValue != null) {
-        return SMGKnownExpValue.valueOf(longValue);
-      } else {
-        return SMGUnknownValue.getInstance();
-      }
+      long longValue = value.asNumericValue().longValue();
+      return SMGKnownExpValue.valueOf(longValue);
     }
   }
 

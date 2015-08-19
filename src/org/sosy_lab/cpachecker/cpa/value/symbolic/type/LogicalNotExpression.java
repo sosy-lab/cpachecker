@@ -57,7 +57,7 @@ public class LogicalNotExpression extends UnarySymbolicExpression implements Una
   }
 
   @Override
-  public String toString() {
-    return "!" + getOperand();
+  public String getOperationString() {
+    return "!";
   }
 }

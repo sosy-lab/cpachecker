@@ -30,11 +30,13 @@ sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import base64
 import fnmatch
+import hashlib
 import io
 import logging
 import os
 import random
 import shutil
+import tempfile
 import threading
 import zlib
 import zipfile
@@ -69,6 +71,8 @@ class WebClientError(Exception):
         return repr(self.value)
 
 _connectionTimeout = 600 #seconds
+_hashCodeCachePath = os.path.join(os.path.expanduser("~"), ".verifiercloud/cache/hashCodeCache")
+_hashCodeCache = {}
 _thread_local = threading.local()
 _print_lock = threading.Lock()
 _unfinished_run_ids = set()
@@ -77,6 +81,26 @@ _webclient = None
 _base64_user_pwd = None
 _svn_branch = None
 _svn_revision = None
+
+def _readHashCodeCache():
+    if not os.path.isfile(_hashCodeCachePath):        
+        return
+        
+    with open(_hashCodeCachePath, mode='r') as hashCodeCacheFile:
+        for line in hashCodeCacheFile:
+            tokens = line.strip().split('\t')
+            if len(tokens) == 3:
+                _hashCodeCache[(tokens[0],tokens[1])]= tokens[2]
+
+def _writeHashCodeCache():
+    directory = os.path.dirname(_hashCodeCachePath)
+    os.makedirs(directory, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
+        for (path, mTime), hashValue in _hashCodeCache.items():
+            line = (path + '\t' + mTime + '\t' + hashValue + '\n').encode()
+            tmpFile.write(line)
+            
+    os.renames(tmpFile.name, _hashCodeCachePath)
 
 def resolveToolVersion(config, benchmark, webclient):
     global _svn_branch, _svn_revision
@@ -102,6 +126,7 @@ def resolveToolVersion(config, benchmark, webclient):
             _svn_revision = response.read().decode("utf-8")
         else:
             logging.warning("Could not resolve {0}:{1}: {2}".format(config.revision.branch, revision, response.read()))
+            sys.exit(1)
     except urllib2.HTTPError as e:
         try:
             if e.code == 404:
@@ -111,7 +136,7 @@ def resolveToolVersion(config, benchmark, webclient):
         except AttributeError:
             message = ""
         logging.warning("Could not resolve {0}:{1}: {2}".format(_svn_branch, revision, message))
-        return
+        sys.exit(1)
 
     benchmark.tool_version = _svn_branch + ":" + _svn_revision
     logging.info('Using tool version {0}:{1}'.format(_svn_branch, _svn_revision))
@@ -132,6 +157,7 @@ def init(config, benchmark):
     if config.cloudUser:
         _base64_user_pwd = base64.b64encode(config.cloudUser.encode("utf-8")).decode("utf-8")
 
+    _readHashCodeCache()
     _groupId = str(random.randint(0, 1000000))
 
     benchmark.executable = 'scripts/cpa.sh'
@@ -166,9 +192,10 @@ def execute_benchmark(benchmark, output_handler):
         raise
     finally:
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
+        _writeHashCodeCache()
 
 def stop():
-    logging.debug("Stopping tasks...")
+    logging.info("Stopping tasks on server...")
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
     global _unfinished_run_ids
     stopTasks = set()
@@ -177,12 +204,12 @@ def stop():
     for task in stopTasks:
         task.result()
     executor.shutdown(wait=True)
-    logging.debug("Stopped all tasks.")
+    logging.info("Stopped all tasks.")
 
 def _stop_run(runId):
     path = _webclient.path + "runs/" + runId
     try:
-        _request("DELETE", path, "", {}, 204)
+        _request("DELETE", path, "", {}, [200,204])
     except urllib2.HTTPError as e:
         logging.warn("Stopping of run {0} failed: {1}".format(runId, e.reason))
 
@@ -227,14 +254,23 @@ def _submitRunsParallel(runSet, benchmark):
     _flushRuns()
     return runIDs
 
+def _getSha1Hash(path):
+    path = os.path.abspath(path)
+    mTime = str(os.path.getmtime(path))
+    if ((path, mTime) in _hashCodeCache):
+        return _hashCodeCache[(path, mTime)]
+    else:
+        with open(path, 'rb') as file:
+            hashValue = hashlib.sha1(file.read()).hexdigest()
+            _hashCodeCache[(path, mTime)] = hashValue
+            return hashValue
+    
 def _submitRun(run, benchmark, counter = 0):
 
-    programTexts = []
+    programTextHashs = []
     for programPath in run.sourcefiles:
-        with open(programPath, 'r') as programFile:
-            programText = programFile.read()
-            programTexts.append(programText)
-    params = {'programText': programTexts}
+        programTextHashs.append(_getSha1Hash(programPath))
+    params = {'programTextHash': programTextHashs}
 
     params['svnBranch'] = _svn_branch
     params['revision'] = _svn_revision
@@ -254,6 +290,13 @@ def _submitRun(run, benchmark, counter = 0):
     if benchmark.config.cpu_model:
         params['cpuModel'] = benchmark.config.cpu_model
 
+    if benchmark.result_files_pattern:
+        params['resultFilesPattern'] = benchmark.result_files_pattern;
+    else:
+        params['resultFilesPattern'] = ''
+    if benchmark.config.cloudPriority:
+        params['priority'] = benchmark.config.cloudPriority
+
     invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
         raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
@@ -269,8 +312,24 @@ def _submitRun(run, benchmark, counter = 0):
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/"
 
-    return _request("POST", path, paramsCompressed, headers)
+    (runId, statusCode) = _request("POST", path, paramsCompressed, headers, [200, 412])
+    
+    # program files given as hash value are not known by the cloud system
+    if statusCode == 412 and counter < 1: 
+        headers = {"Content-Type": "application/octet-stream",
+               "Content-Encoding": "deflate"}
 
+        # upload all used program files
+        filePath = _webclient.path + "files/"
+        for programPath in run.sourcefiles:
+            with open(programPath, 'rb') as programFile:
+                compressedProgramText = zlib.compress(programFile.read(), 9)
+                _request('POST', filePath, compressedProgramText, headers, [200,204])
+                
+        # retry submission of run
+        return _submitRun(run, benchmark, counter + 1)
+    else:
+        return runId
 
 def _flushRuns():
     headers = {"Content-Type": "application/x-www-form-urlencoded",
@@ -281,7 +340,7 @@ def _flushRuns():
     paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
     path = _webclient.path + "runs/flush"
 
-    _request("POST", path, paramsCompressed, headers, expectedStatusCode=204)
+    _request("POST", path, paramsCompressed, headers, expectedStatusCodes=[200,204])
 
     logging.info("Run submission finished.")
 
@@ -318,15 +377,18 @@ def _handleOptions(run, params, rlimits):
                 elif option == "-skipRecursion":
                     options.append("cpa.callstack.skipRecursion=true")
                     options.append("analysis.summaryEdges=true")
-
+                       
                 elif option == "-spec":
-                    spec  = next(i)[-1].split('.')[0]
-                    if spec[-8:] == ".graphml":
-                        with open(spec, 'r') as  errorWitnessFile:
-                            errorWitnessText = errorWitnessFile.read()
-                            params['errorWitnessText'] = errorWitnessText
-                    else:
-                        params['specification'] = spec
+                    spec_path  = next(i)
+                    with open(spec_path, 'r') as  spec_file:
+                        file_text = spec_file.read()
+                        if spec_path[-8:] == ".graphml":
+                            params['errorWitnessText'] = file_text
+                        elif spec_path[-4:] == ".prp":
+                            params['propertyText'] = file_text
+                        else:
+                            params['specificationText'] = file_text
+                        
                 elif option == "-config":
                     configPath = next(i)
                     tokens = configPath.split('/')
@@ -356,17 +418,26 @@ def _getResults(runIDs, output_handler, benchmark):
     while len(runIDs) > 0 :
         start = time()
         runIDsFutures = {}
+        failedRuns = []
         for runID in runIDs:
-            if _isFinished(runID, benchmark):
+            state = _isFinished(runID)
+            if state == "FINISHED" or state == "UNKOWN":
                 run = runIDs[runID]
                 future  = executor.submit(_getAndHandleResult, runID, run, output_handler, benchmark)
                 runIDsFutures[future] = runID
+            elif state == "ERROR":
+                failedRuns.append(runID)
 
-        # remove all finished run from _unfinished_run_ids
+        # remove all finished runs from _unfinished_run_ids
         for future in as_completed(runIDsFutures.keys()):
             if future.result():
                 del runIDs[runIDsFutures[future]]
                 _unfinished_run_ids.remove(runIDsFutures[future])
+        
+        # remove failed runs from _unfinished_run_ids
+        for runID in failedRuns:
+            _unfinished_run_ids.remove(runID)
+            del runIDs[runID]
 
         end = time();
         duration = end - start
@@ -374,26 +445,21 @@ def _getResults(runIDs, output_handler, benchmark):
             sleep(5 - duration)
 
 
-def _isFinished(runID, benchmark):
+def _isFinished(runID):
     headers = {"Accept": "text/plain"}
     path = _webclient.path + "runs/" + runID + "/state"
 
     try:
-        state = _request("GET", path,"", headers).decode('utf-8')
+        (state, _) = _request("GET", path,"", headers)
 
-
+        state = state.decode('utf-8')
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
-            return True
 
-        # UNKNOWN is returned for unknown runs. This happens,
-        # when the webclient is restarted since the submission of the runs.
         if state == "UNKNOWN":
             logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))
-            return True
 
-        else:
-            return False
+        return state
 
     except urllib2.HTTPError as e:
         logging.warning('Could not get run state {0}: {1}'.format(runID, e.reason))
@@ -406,7 +472,7 @@ def _getAndHandleResult(runID, run, output_handler, benchmark):
     path = _webclient.path + "runs/" + runID + "/result"
 
     try:
-        zipContent = _request("GET", path, {}, headers)
+        (zipContent, _) = _request("GET", path, {}, headers)
     except urllib2.HTTPError as e:
         logging.info('Could not get result of run {0}: {1}'.format(run.identifier, e))
         return False
@@ -450,7 +516,7 @@ def _handleResult(resultZipFile, run, output_handler, result_files_pattern):
 
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = _parseAndSetCloudWorkerHostInformation(hostInformation, output_handler)
+            values = _parseAndSetCloudWorkerHostInformation(hostInformation, output_handler, run.runSet)
             run.values.update(values)
     else:
         logging.warning('Missing host information for run {}.'.format(run.identifier))
@@ -480,7 +546,7 @@ def _handleResult(resultZipFile, run, output_handler, result_files_pattern):
 
     return return_value
 
-def _parseAndSetCloudWorkerHostInformation(file, output_handler):
+def _parseAndSetCloudWorkerHostInformation(file, output_handler, runSet):
     values = _parseFile(file)
 
     values["host"] = values.pop("@vcloud-name", "-")
@@ -490,7 +556,8 @@ def _parseAndSetCloudWorkerHostInformation(file, output_handler):
     cpuName = values.pop("@vcloud-cpuModel", "-")
     frequency = values.pop("@vcloud-frequency", "-")
     cores = values.pop("@vcloud-cores", "-")
-    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name,
+                                     runSet=runSet)
 
     return values
 
@@ -508,7 +575,6 @@ def _parseCloudResultFile(file):
     values.pop("@vcloud-command", None)
     values.pop("@vcloud-timeLimit", None)
     values.pop("@vcloud-coreLimit", None)
-    values.pop("@vcloud-memoryLimit", None)
 
     return (walltime, cputime, return_value, values)
 
@@ -526,7 +592,7 @@ def _parseFile(file):
 
     return values
 
-def _request(method, path, body, headers, expectedStatusCode=200):
+def _request(method, path, body, headers, expectedStatusCodes=[200]):
     connection = _get_connection()
 
     headers["Connection"] = "Keep-Alive"
@@ -538,11 +604,12 @@ def _request(method, path, body, headers, expectedStatusCode=200):
     while (counter < 5):
         counter+=1
         # send request
-        connection.request(method, path, body=body, headers=headers)
         try:
+            connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
-        except:
+        except Exception as e:
             if (counter < 5):
+                logging.debug("Exception during {} request to {}: {}".format(method, path, e))
                 # create new TCP connection and try to send the request
                 connection.close()
                 sleep(1)
@@ -550,8 +617,8 @@ def _request(method, path, body, headers, expectedStatusCode=200):
             else:
                 raise
 
-        if response.status == expectedStatusCode:
-            return response.read()
+        if response.status in expectedStatusCodes:
+            return (response.read(), response.getcode())
 
         else:
             message = ""

@@ -33,6 +33,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
@@ -153,10 +155,9 @@ class CFABuilder extends ASTVisitor {
   @Override
   public int visit(IASTDeclaration declaration) {
     sideAssignmentStack.enterBlock();
-    IASTFileLocation fileloc = declaration.getFileLocation();
 
     if (declaration instanceof IASTSimpleDeclaration) {
-      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration, fileloc);
+      return handleSimpleDeclaration((IASTSimpleDeclaration)declaration);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
       IASTFunctionDefinition fd = (IASTFunctionDefinition) declaration;
@@ -195,7 +196,12 @@ class CFABuilder extends ASTVisitor {
     } else if (declaration instanceof IASTASMDeclaration) {
       // TODO Assembler code is ignored here
       encounteredAsm = true;
-      logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      @Nullable IASTFileLocation fileloc = declaration.getFileLocation();
+      if (fileloc != null) {
+        logger.log(Level.FINER, "Ignoring inline assembler code at line", fileloc.getStartingLineNumber());
+      } else {
+        logger.log(Level.FINER, "Ignoring inline assembler code at unknown line.");
+      }
       sideAssignmentStack.leaveBlock();
       return PROCESS_SKIP;
 
@@ -205,8 +211,7 @@ class CFABuilder extends ASTVisitor {
     }
   }
 
-  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd,
-      final IASTFileLocation fileloc) {
+  private int handleSimpleDeclaration(final IASTSimpleDeclaration sd) {
 
     //these are unneccesary semicolons which would cause an abort of CPAchecker
     if (sd.getDeclarators().length == 0  && sd.getDeclSpecifier() instanceof IASTSimpleDeclSpecifier) {

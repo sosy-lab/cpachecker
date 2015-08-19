@@ -1,45 +1,45 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="8">
   <option name="-disable-java-assertions"/>
   <option name="-heap">12000M</option>
   <option name="-noout"/>
 
-  <sourcefiles name="BitVectors">
+  <tasks name="BitVectors">
     <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Concurrency">
+  </tasks>
+  <tasks name="Concurrency">
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemPrecise">
+  </tasks>
+  <tasks name="ControlFlowInteger-MemPrecise">
     <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="ControlFlowInteger-MemSimple">
+  </tasks>
+  <tasks name="ControlFlowInteger-MemSimple">
     <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="DeviceDrivers64">
+  </tasks>
+  <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-64"/>
-  </sourcefiles>
-  <sourcefiles name="FeatureChecks">
+  </tasks>
+  <tasks name="FeatureChecks">
     <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="HeapManipulation">
+  </tasks>
+  <tasks name="HeapManipulation">
     <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="Loops">
+  </tasks>
+  <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="MemorySafety">
+  </tasks>
+  <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
     <option name="-preprocess"/>
-  </sourcefiles>
-  <sourcefiles name="ProductLines">
+  </tasks>
+  <tasks name="ProductLines">
     <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-  </sourcefiles>
-  <sourcefiles name="SystemC">
+  </tasks>
+  <tasks name="SystemC">
     <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-  </sourcefiles>
+  </tasks>
 
   <rundefinition name="combinations">
     <option name="-sv-comp13--combinations"/>

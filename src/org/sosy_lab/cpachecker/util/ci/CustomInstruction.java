@@ -99,7 +99,7 @@ public class CustomInstruction{
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
@@ -681,9 +681,6 @@ public class CustomInstruction{
 
     @Override
     public Void visit(final CIdExpression ciExp) throws AppliedCustomInstructionParsingFailedException {
-      if (!(aciExp instanceof CIdExpression)) {
-        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + aciExp + " is not from the type CIdExpression, but ci is.");
-      }
       if (aciExp instanceof CIdExpression) {
         CIdExpression aciIdExp = (CIdExpression) aciExp;
         if (!ciExp.getExpressionType().equals(aciIdExp.getExpressionType())) {
@@ -720,7 +717,7 @@ public class CustomInstruction{
       return null;
     }
 
-    protected void computeMapping(String ciString, String aciString) {
+    protected void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
     }
 
@@ -859,7 +856,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciCharExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the CharLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciCharExp + " (" + aciCharExp.getExpressionType() + ").");
       }
-      if (ciExp.getCharacter() == aciCharExp.getCharacter()) {
+      if (ciExp.getCharacter() != aciCharExp.getCharacter()) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CCharLiteralExpression of ci " + ciExp + " and aci " + aciCharExp + " are different.");
       }
       return null;
@@ -875,7 +872,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciFloatExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the FloatLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciFloatExp + " (" + aciFloatExp.getExpressionType() + ").");
       }
-      if (ciExp.getValue().equals(aciFloatExp.getValue())) {
+      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CCharLiteralExpression of ci " + ciExp + " and aci " + aciFloatExp + " are different.");
       }
       return null;
@@ -891,7 +888,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciIntegerLiteralExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the IntegerLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciIntegerLiteralExp + " (" + aciIntegerLiteralExp.getExpressionType() + ").");
       }
-      if (ciExp.getValue().equals(aciIntegerLiteralExp.getValue())) {
+      if (!ciExp.getValue().equals(aciIntegerLiteralExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CIntegerLiteralExpression of ci " + ciExp + " and aci " + aciIntegerLiteralExp + " are different.");
       }
       return null;
@@ -907,7 +904,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciStringLiteralExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the StringLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciStringLiteralExp + " (" + aciStringLiteralExp.getExpressionType() + ").");
       }
-      if (ciExp.getValue().equals(aciStringLiteralExp.getValue())) {
+      if (!ciExp.getValue().equals(aciStringLiteralExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CIntegerLiteralExpression of ci " + ciExp + " and aci " + aciStringLiteralExp + " are different.");
       }
       return null;
@@ -987,14 +984,14 @@ public class CustomInstruction{
 
     private final Map<String,String> currentCiVarToAciVar;
 
-    public StructureExtendedComparisonVisitor(CExpression pAciExp, Map<String, String> pCiVarToAciVar,
+    public StructureExtendedComparisonVisitor(final CExpression pAciExp, final Map<String, String> pCiVarToAciVar,
         Map<String, String> pCurrentCiVarToAciVar) {
       super(pAciExp, pCiVarToAciVar);
       currentCiVarToAciVar = pCurrentCiVarToAciVar;
     }
 
     @Override
-    protected void computeMapping(String ciString, String aciString) {
+    protected void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
       currentCiVarToAciVar.put(ciString, aciString);
     }

@@ -49,7 +49,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -69,7 +68,8 @@ import com.google.common.base.Predicate;
  * The preferred way to instantiate all of this is
  * {@link Solver#create(Configuration, LogManager, ShutdownNotifier)}.
  */
-@Options(prefix="cpa.predicate")
+@Options(deprecatedPrefix="cpa.predicate",
+         prefix="solver")
 public class FormulaManagerFactory {
 
   @VisibleForTesting
@@ -80,17 +80,16 @@ public class FormulaManagerFactory {
     PRINCESS
   }
 
-  @Option(secure=true, name="solver.logAllQueries",
+  @Option(secure=true,
       description = "Export solver queries in Smtlib format into a file.")
   private boolean logAllQueries = false;
 
-  @Option(secure=true, name="solver.logfile",
+  @Option(secure=true,
       description = "Export solver queries in Smtlib format into a file.")
   @FileOption(Type.OUTPUT_FILE)
   private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
-  @Option(secure=true, name="solver.random-seed",
-      description = "Random seed for SMT solver.")
+  @Option(secure=true, description = "Random seed for SMT solver.")
   private long randomSeed = 42;
 
   @Option(secure=true, description="Which SMT solver to use.")
@@ -147,17 +146,7 @@ public class FormulaManagerFactory {
           return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
 
       case Z3:
-        try {
-          return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
-        } catch (UnsatisfiedLinkError e) {
-          if (e.getMessage().contains("libfoci.so")) {
-            throw new InvalidConfigurationException("Z3 needs the FOCI library which is not supplied with CPAchecker."
-                + " Please download it from http://www.kenmcmil.com/foci2/ for your architecture"
-                + " and put it into " + NativeLibraries.getNativeLibraryPath() + "/.", e);
-          } else {
-            throw e;
-          }
-        }
+        return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
 
       case PRINCESS:
         // TODO: pass randomSeed to Princess
@@ -171,7 +160,7 @@ public class FormulaManagerFactory {
       throw new InvalidConfigurationException("The SMT solver " + solver
           + " is not available on this machine because of missing libraries"
           + " (" + e.getMessage() + ")."
-          + " You may experiment with SMTInterpol by setting cpa.predicate.solver=SMTInterpol.", e);
+          + " You may experiment with SMTInterpol by setting solver.solver=SMTInterpol.", e);
     }
   }
 

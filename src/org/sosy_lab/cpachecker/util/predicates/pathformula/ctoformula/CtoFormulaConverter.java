@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -225,6 +226,7 @@ public class CtoFormulaConverter {
                           final String fieldName) {
     return !variableClassification.isPresent() ||
            !options.ignoreIrrelevantVariables() ||
+           !options.ignoreIrrelevantFields() ||
            variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
   }
 
@@ -463,7 +465,7 @@ public class CtoFormulaConverter {
       }
 
       final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
-          "overflow_" + sType.toString().replace(" ", "_"),
+          String.format("__overflow_%s_%s_", signed ? "signed" : "unsigned", machineModel.getSizeofInBits(sType)),
           numberType,
           Lists.<Formula>newArrayList(value));
       addRangeConstraint(overflowUF, type, constraints);
@@ -1289,6 +1291,11 @@ public class CtoFormulaConverter {
 
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
+  }
+
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
+      final PointerTargetSet pts2, final SSAMapBuilder resultSSA) throws InterruptedException {
+    return MergeResult.trivial(pts1, bfmgr);
   }
 
   protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(

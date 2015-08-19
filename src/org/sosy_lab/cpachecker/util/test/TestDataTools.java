@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.util.test;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -63,7 +67,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 public class TestDataTools {
@@ -202,5 +214,86 @@ public class TestDataTools {
         .create());
 
     return creator.parseFileAndCreateCFA(cProgram);
+  }
+
+  /**
+   * Convert a given loop-free {@code cfa} to a single {@link PathFormula}.
+   *
+   * @param ignoreDeclarations Do not include the formula for declarations
+   * in the resulting formula.
+   * This can be very convenient if the {@link PathFormula}s from different
+   * calls to this method should be conjoined together.
+   *
+   * @param initialSSA Starting {@link SSAMap} for the resultant formula.
+   *
+   * @throws Exception if the given {@code cfa} contains loop.
+   */
+  public static PathFormula toPathFormula(
+      CFA cfa,
+      SSAMap initialSSA,
+      FormulaManagerView fmgr,
+      PathFormulaManager pfmgr,
+      boolean ignoreDeclarations
+      ) throws Exception {
+    Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.getAllNodes().size());
+    CFANode start = cfa.getMainFunction();
+
+    PathFormula initial = new PathFormula(
+        fmgr.getBooleanFormulaManager().makeBoolean(true), initialSSA,
+        PointerTargetSet.emptyPointerTargetSet(),
+        0
+    );
+
+    mapping.put(start, initial);
+    Deque<CFANode> queue = new LinkedList<>();
+    queue.add(start);
+
+    while (!queue.isEmpty()) {
+      CFANode node = queue.removeLast();
+      Preconditions.checkState(!node.isLoopStart(),
+          "Can only work on loop-free fragments");
+      PathFormula path = mapping.get(node);
+
+      for (CFAEdge e : CFAUtils.leavingEdges(node)) {
+        CFANode toNode = e.getSuccessor();
+        PathFormula old = mapping.get(toNode);
+
+        PathFormula n;
+        if (ignoreDeclarations &&
+            e instanceof CDeclarationEdge &&
+            ((CDeclarationEdge) e).getDeclaration() instanceof CVariableDeclaration) {
+
+          // Skip variable declaration edges.
+          n = path;
+        } else {
+          n = pfmgr.makeAnd(path, e);
+        }
+        PathFormula out;
+        if (old == null) {
+          out = n;
+        } else {
+          out = pfmgr.makeOr(old, n);
+          out = out.updateFormula(fmgr.simplify(out.getFormula()));
+        }
+        mapping.put(toNode, out);
+        queue.add(toNode);
+      }
+    }
+
+    PathFormula out = mapping.get(cfa.getMainFunction().getExitNode());
+    out = out.updateFormula(fmgr.simplify(out.getFormula()));
+    return out;
+  }
+
+  /**
+   * Convert a given string to a {@link CFA},
+   * assuming it is a body of a single function.
+   */
+  public static CFA toCFA(CFACreator creator, String ... parts) throws Exception {
+    return creator.parseFileAndCreateCFA(getProgram(parts));
+  }
+
+  private static String getProgram(String... parts) {
+    return "int main() {" +  Joiner.on('\n').join(parts) + "}";
   }
 }

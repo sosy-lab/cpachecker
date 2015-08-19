@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
+
 
 /**
  * The singleton instance of this class provides operations for obtaining
@@ -43,7 +46,7 @@ public enum InvariantsFormulaManager {
    *
    * @return the sum of the given formulae.
    */
-  public <T> InvariantsFormula<T> add(InvariantsFormula<T> pSummand1, InvariantsFormula<T> pSummand2) {
+  public <T> NumeralFormula<T> add(NumeralFormula<T> pSummand1, NumeralFormula<T> pSummand2) {
     return Add.of(pSummand1, pSummand2);
   }
 
@@ -55,7 +58,7 @@ public enum InvariantsFormulaManager {
    *
    * @return the binary and operation over the given operands.
    */
-  public <T> InvariantsFormula<T> binaryAnd(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> NumeralFormula<T> binaryAnd(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return BinaryAnd.of(pOperand1, pOperand2);
   }
 
@@ -66,7 +69,7 @@ public enum InvariantsFormulaManager {
    *
    * @return the binary negation of the given formula.
    */
-  public <T> InvariantsFormula<T> binaryNot(InvariantsFormula<T> pToFlip) {
+  public <T> NumeralFormula<T> binaryNot(NumeralFormula<T> pToFlip) {
     return BinaryNot.of(pToFlip);
   }
 
@@ -80,7 +83,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the binary or operation over the
    * given operands.
    */
-  public <T> InvariantsFormula<T> binaryOr(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> NumeralFormula<T> binaryOr(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return BinaryOr.of(pOperand1, pOperand2);
   }
 
@@ -94,7 +97,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the binary exclusive or operation
    * over the given operands.
    */
-  public <T> InvariantsFormula<T> binaryXor(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> NumeralFormula<T> binaryXor(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return BinaryXor.of(pOperand1, pOperand2);
   }
 
@@ -105,8 +108,20 @@ public enum InvariantsFormulaManager {
    *
    * @return a invariants formula representing a constant with the given value.
    */
-  public <T> InvariantsFormula<T> asConstant(T pValue) {
+  public <T extends BitVectorType> NumeralFormula<T> asConstant(T pValue) {
     return Constant.of(pValue);
+  }
+
+  /**
+   * Gets a invariants formula representing a constant with the given value.
+   *
+   * @param pBitVectorInfo the bit vector information for the constant.
+   * @param pValue the value of the constant.
+   *
+   * @return a invariants formula representing a constant with the given value.
+   */
+  public <T> NumeralFormula<T> asConstant(BitVectorInfo pBitVectorInfo, T pValue) {
+    return Constant.of(pBitVectorInfo, pValue);
   }
 
   /**
@@ -119,7 +134,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the division of the given
    * numerator formula by the given denominator formula.
    */
-  public <T> InvariantsFormula<T> divide(InvariantsFormula<T> pNumerator, InvariantsFormula<T> pDenominator) {
+  public <T> NumeralFormula<T> divide(NumeralFormula<T> pNumerator, NumeralFormula<T> pDenominator) {
     return Divide.of(pNumerator, pDenominator);
   }
 
@@ -133,11 +148,17 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the equation of the given
    * operands.
    */
-  public <T> InvariantsFormula<T> equal(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> equal(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
+    if (pOperand1 instanceof Exclusion) {
+      return logicalNot(Equal.of(((Exclusion<T>) pOperand1).getExcluded(), pOperand2));
+    }
+    if (pOperand2 instanceof Exclusion) {
+      return logicalNot(Equal.of(pOperand1, ((Exclusion<T>) pOperand2).getExcluded()));
+    }
     return Equal.of(pOperand1, pOperand2);
   }
 
-  public <T> InvariantsFormula<T> exclude(InvariantsFormula<T> pToExclude) {
+  public <T> NumeralFormula<T> exclude(NumeralFormula<T> pToExclude) {
     return Exclusion.of(pToExclude);
   }
 
@@ -151,7 +172,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing a greater-than inequation over
    * the given operands.
    */
-  public <T> InvariantsFormula<T> greaterThan(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> greaterThan(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return lessThan(pOperand2, pOperand1);
   }
 
@@ -165,7 +186,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing a greater-than or equal
    * inequation over the given operands.
    */
-  public <T> InvariantsFormula<T> greaterThanOrEqual(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> greaterThanOrEqual(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return logicalNot(lessThan(pOperand1, pOperand2));
   }
 
@@ -179,7 +200,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing a less-than inequation over the
    * given operands.
    */
-  public <T> InvariantsFormula<T> lessThan(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> lessThan(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return LessThan.of(pOperand1, pOperand2);
   }
 
@@ -193,7 +214,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing a less-than or equal inequation
    * over the given operands.
    */
-  public <T> InvariantsFormula<T> lessThanOrEqual(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> lessThanOrEqual(NumeralFormula<T> pOperand1, NumeralFormula<T> pOperand2) {
     return greaterThanOrEqual(pOperand2, pOperand1);
   }
 
@@ -207,7 +228,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the logical conjunction over the
    * given operands.
    */
-  public <T> InvariantsFormula<T> logicalAnd(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> logicalAnd(BooleanFormula<T> pOperand1, BooleanFormula<T> pOperand2) {
     return LogicalAnd.of(pOperand1, pOperand2);
   }
 
@@ -220,8 +241,8 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the logical negation of the given
    * operand.
    */
-  public <T> InvariantsFormula<T> logicalNot(InvariantsFormula<T> pToNegate) {
-    if (pToNegate instanceof LogicalNot<?>) {
+  public <T> BooleanFormula<T> logicalNot(BooleanFormula<T> pToNegate) {
+    if (pToNegate instanceof LogicalNot) {
       return ((LogicalNot<T>) pToNegate).getNegated();
     }
     return LogicalNot.of(pToNegate);
@@ -237,7 +258,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the logical disjunction over
    * the given operands.
    */
-  public <T> InvariantsFormula<T> logicalOr(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> logicalOr(BooleanFormula<T> pOperand1, BooleanFormula<T> pOperand2) {
     return logicalNot(LogicalAnd.of(logicalNot(pOperand1), logicalNot(pOperand2)));
   }
 
@@ -251,7 +272,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing a logical implication over the
    * given operands, meaning that the first operand implies the second operand.
    */
-  public <T> InvariantsFormula<T> logicalImplies(InvariantsFormula<T> pOperand1, InvariantsFormula<T> pOperand2) {
+  public <T> BooleanFormula<T> logicalImplies(BooleanFormula<T> pOperand1, BooleanFormula<T> pOperand2) {
     return logicalNot(LogicalAnd.of(pOperand1, logicalNot(pOperand2)));
   }
 
@@ -264,7 +285,7 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the modulo operation over the
    * given operands.
    */
-  public <T> InvariantsFormula<T> modulo(InvariantsFormula<T> pNumerator, InvariantsFormula<T> pDenominator) {
+  public <T> NumeralFormula<T> modulo(NumeralFormula<T> pNumerator, NumeralFormula<T> pDenominator) {
     return Modulo.of(pNumerator, pDenominator);
   }
 
@@ -278,8 +299,8 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the multiplication of the given
    * factors.
    */
-  public <T> InvariantsFormula<T> multiply(InvariantsFormula<T> pFactor1,
-      InvariantsFormula<T> pFactor2) {
+  public <T> NumeralFormula<T> multiply(NumeralFormula<T> pFactor1,
+      NumeralFormula<T> pFactor2) {
     return Multiply.of(pFactor1, pFactor2);
   }
 
@@ -293,8 +314,8 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the left shift of the first
    * given operand by the second given operand.
    */
-  public <T> InvariantsFormula<T> shiftLeft(InvariantsFormula<T> pToShift,
-      InvariantsFormula<T> pShiftDistance) {
+  public <T> NumeralFormula<T> shiftLeft(NumeralFormula<T> pToShift,
+      NumeralFormula<T> pShiftDistance) {
     return ShiftLeft.of(pToShift, pShiftDistance);
   }
 
@@ -308,8 +329,8 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the right shift of the first
    * given operand by the second given operand.
    */
-  public <T> InvariantsFormula<T> shiftRight(InvariantsFormula<T> pToShift,
-      InvariantsFormula<T> pShiftDistance) {
+  public <T> NumeralFormula<T> shiftRight(NumeralFormula<T> pToShift,
+      NumeralFormula<T> pShiftDistance) {
     return ShiftRight.of(pToShift, pShiftDistance);
   }
 
@@ -323,8 +344,8 @@ public enum InvariantsFormulaManager {
    * @return an invariants formula representing the union of the given invariants
    * formulae.
    */
-  public <T> InvariantsFormula<T> union(InvariantsFormula<T> pOperand1,
-      InvariantsFormula<T> pOperand2) {
+  public <T> NumeralFormula<T> union(NumeralFormula<T> pOperand1,
+      NumeralFormula<T> pOperand2) {
     if (pOperand1.equals(pOperand2)) {
       return pOperand1;
     }
@@ -334,12 +355,54 @@ public enum InvariantsFormulaManager {
   /**
    * Gets an invariants formula representing the variable with the given name.
    *
+   * @param pBitVectorInfo the bit vector information for the variable.
    * @param pName the name of the variable.
    *
    * @return an invariants formula representing the variable with the given name.
    */
-  public <T> Variable<T> asVariable(String pName) {
-    return Variable.of(pName);
+  public <T> Variable<T> asVariable(BitVectorInfo pBitVectorInfo, String pName) {
+    return Variable.of(pBitVectorInfo, pName);
+  }
+
+  /**
+   * Gets a numeral formula representing an if-then-else condition-dependent
+   * value.
+   *
+   * @param pCondition the condition the value depends on.
+   * @param pPositiveCase the value in case the condition is true.
+   * @param pNegativeCase the value in case the condition is false.
+   *
+   * @return a numeral formula representing an if-then-else condition-dependent
+   * value.
+   */
+  public <T> NumeralFormula<T> ifThenElse(
+      BooleanFormula<T> pCondition,
+      NumeralFormula<T> pPositiveCase,
+      NumeralFormula<T> pNegativeCase) {
+    if (BooleanConstant.isTrue(pCondition)) {
+      return pPositiveCase;
+    }
+    if (BooleanConstant.isFalse(pCondition)) {
+      return pNegativeCase;
+    }
+    return IfThenElse.of(pCondition, pPositiveCase, pNegativeCase);
+  }
+
+  /**
+   * Gets an invariants formula representing the cast of the given
+   * operand to the given bit vector.
+   *
+   * @param pBitVectorInfo the bit vector to cast the formula to.
+   * @param pToCast the invariants formula to cast.
+   *
+   * @return an invariants formula representing the cast of the given
+   * operand to the given bit vector.
+   */
+  public <T> NumeralFormula<T> cast(BitVectorInfo pBitVectorInfo, NumeralFormula<T> pToCast) {
+    if (pBitVectorInfo.equals(pToCast.getBitVectorInfo())) {
+      return pToCast;
+    }
+    return Cast.of(pBitVectorInfo, pToCast);
   }
 
 }

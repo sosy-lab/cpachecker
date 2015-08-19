@@ -40,7 +40,7 @@ public class PrefixSelector {
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
 
-  public static enum PrefixPreference {
+  public enum PrefixPreference {
     // returns the original error path
     NONE(),
 
@@ -93,9 +93,9 @@ public class PrefixSelector {
     ASSUMPTIONS_MOST_SHORT(FIRST_HIGHEST_SCORE),
     ASSUMPTIONS_MOST_LONG(LAST_HIGHEST_SCORE);
 
-    private PrefixPreference () {}
+    PrefixPreference () {}
 
-    private PrefixPreference (Function<Pair<Integer, Integer>, Boolean> scorer) {
+    PrefixPreference (Function<Pair<Integer, Integer>, Boolean> scorer) {
       this.scorer = scorer;
     }
 

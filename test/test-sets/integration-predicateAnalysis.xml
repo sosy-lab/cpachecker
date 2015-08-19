@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
   <option name="-noout"/>
   <option name="-heap">2000M</option>
@@ -7,13 +7,13 @@
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <rundefinition>
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
       <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.01_true-unreach-call.i.cil.c</exclude>
       <exclude>../programs/benchmarks/ssh/s3_srvr.blast.02_true-unreach-call.i.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
@@ -23,13 +23,13 @@
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
       <exclude>../programs/benchmarks/systemc/token_ring.03_true-unreach-call_false-termination.cil.c</exclude>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>integration-DeviceDrivers64.set</includesfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-isdn-mISDN-mISDN_core.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>
-    </sourcefiles>
+    </tasks>
     <option name="-predicateAnalysis"/>
   </rundefinition>
 </benchmark>

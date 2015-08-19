@@ -111,6 +111,21 @@ public class AutomatonInternalState {
     return mIsTarget;
   }
 
+  /**
+   * @return Is it a state in that we will remain
+   *  the rest of the time?
+   */
+  public boolean isFinalSelfLoopingState() {
+    if (transitions.size() == 1) {
+      AutomatonTransition tr = transitions.get(0);
+      if (tr.getFollowState().equals(this)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   public boolean getDoesMatchAll() {
     return mAllTransitions;
   }

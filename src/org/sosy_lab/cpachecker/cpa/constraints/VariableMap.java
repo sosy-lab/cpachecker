@@ -28,8 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ForwardingMap;
 
@@ -40,17 +40,14 @@ public class VariableMap extends ForwardingMap<String, Formula> {
 
   private Map<String, Formula> variableMap;
 
-  public VariableMap() {
-    variableMap = new HashMap<>();
-  }
-
   public VariableMap(Map<String, Formula> pVariableMap) {
-    final Converter symIdConverter = Converter.getInstance();
-
     variableMap = new HashMap<>();
 
     for (Map.Entry<String, Formula> entry : pVariableMap.entrySet()) {
-      String normalizedVariableName = symIdConverter.normalizeStringEncoding(entry.getKey());
+      String variableName = entry.getKey();
+      // variable name without SSA index
+      String normalizedVariableName = FormulaManagerView.parseName(variableName).getFirst();
+
       variableMap.put(normalizedVariableName, entry.getValue());
     }
   }

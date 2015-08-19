@@ -36,7 +36,7 @@ import java.util.Map;
  *
  * @param <T> the type of the constants used
  */
-public class PushSummandVisitor<T> extends DefaultParameterizedFormulaVisitor<T, T, InvariantsFormula<T>>{
+public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVisitor<T, T, NumeralFormula<T>>{
 
   private static final String SUMMAND_ALREADY_CONSUMED_MESSAGE = "Summand already consumed.";
 
@@ -45,7 +45,7 @@ public class PushSummandVisitor<T> extends DefaultParameterizedFormulaVisitor<T,
    * is required because evaluations are exclusively done on the addition and
    * negation of constants.
    */
-  private final Map<? extends String, ? extends InvariantsFormula<T>> EMPTY_ENVIRONMENT =
+  private final Map<? extends String, ? extends NumeralFormula<T>> EMPTY_ENVIRONMENT =
       Collections.emptyMap();
 
   /**
@@ -99,13 +99,13 @@ public class PushSummandVisitor<T> extends DefaultParameterizedFormulaVisitor<T,
    * summand consumed, otherwise it does nothing.
    */
   @Override
-  public InvariantsFormula<T> visit(Add<T> pAdd, T pToPush) throws IllegalStateException {
+  public NumeralFormula<T> visit(Add<T> pAdd, T pToPush) throws IllegalStateException {
     checkNotConsumed();
-    InvariantsFormula<T> candidateS1 = pAdd.getSummand1().accept(this, pToPush);
+    NumeralFormula<T> candidateS1 = pAdd.getSummand1().accept(this, pToPush);
     if (isSummandConsumed()) {
       return InvariantsFormulaManager.INSTANCE.add(candidateS1, pAdd.getSummand2());
     }
-    InvariantsFormula<T> summand2 = pAdd.getSummand2().accept(this, pToPush);
+    NumeralFormula<T> summand2 = pAdd.getSummand2().accept(this, pToPush);
     return InvariantsFormulaManager.INSTANCE.add(pAdd.getSummand1(), summand2);
   }
 
@@ -114,14 +114,14 @@ public class PushSummandVisitor<T> extends DefaultParameterizedFormulaVisitor<T,
    * summand consumed, otherwise it does nothing.
    */
   @Override
-  public InvariantsFormula<T> visit(Constant<T> pConstant, T pToPush) throws IllegalStateException {
+  public NumeralFormula<T> visit(Constant<T> pConstant, T pToPush) throws IllegalStateException {
     checkNotConsumed();
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    InvariantsFormula<T> toPush = ifm.asConstant(pToPush);
-    InvariantsFormula<T> sum = ifm.add(pConstant, toPush);
+    NumeralFormula<T> toPush = ifm.asConstant(pConstant.getBitVectorInfo(), pToPush);
+    NumeralFormula<T> sum = ifm.add(pConstant, toPush);
     this.consumed = true;
     T sumValue = sum.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
-    return InvariantsFormulaManager.INSTANCE.asConstant(sumValue);
+    return InvariantsFormulaManager.INSTANCE.asConstant(pConstant.getBitVectorInfo(), sumValue);
   }
 
   /**
@@ -129,10 +129,10 @@ public class PushSummandVisitor<T> extends DefaultParameterizedFormulaVisitor<T,
    * summand consumed, otherwise it does nothing.
    */
   @Override
-  protected InvariantsFormula<T> visitDefault(InvariantsFormula<T> pFormula, T pToPush) throws IllegalStateException {
+  protected NumeralFormula<T> visitDefault(NumeralFormula<T> pFormula, T pToPush) throws IllegalStateException {
     checkNotConsumed();
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
-    InvariantsFormula<T> toPush = ifm.asConstant(pToPush);
+    NumeralFormula<T> toPush = ifm.asConstant(pFormula.getBitVectorInfo(), pToPush);
     return ifm.add(pFormula, toPush);
   }
 

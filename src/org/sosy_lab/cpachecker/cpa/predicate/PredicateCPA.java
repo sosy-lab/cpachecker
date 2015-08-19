@@ -180,7 +180,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
         abstractionManager, formulaManager, pathFormulaManager,
         solver, config, logger, pShutdownNotifier, cfa.getLiveVariables());
 
-    transfer = new PredicateTransferRelation(this, blk, config, direction);
+    transfer = new PredicateTransferRelation(this, blk, config, direction, cfa);
 
     topState = PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),

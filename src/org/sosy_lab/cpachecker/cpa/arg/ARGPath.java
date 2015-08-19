@@ -122,6 +122,16 @@ public class ARGPath implements Appender {
   }
 
   /**
+   * This method returns the transition, as pair of state and edge, at the given offset.
+   *
+   * @param pOffset
+   * @return the pair of state and edge at the given offset
+   */
+  public Pair<ARGState, CFAEdge> obtainTransitionAt(int pOffset) {
+    return Pair.of(states.get(pOffset), edges.get(pOffset));
+  }
+
+  /**
    * This method obtains the suffix from the path, starting after the given offset.
    *
    * @param pOffset the offset

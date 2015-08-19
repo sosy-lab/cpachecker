@@ -34,8 +34,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
@@ -80,7 +78,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFo
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -120,7 +117,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FunctionFormulaManagerView ffmgr;
   private final CtoFormulaConverter converter;
   private final CtoFormulaTypeHandler typeHandler;
-  private final @Nullable PointerTargetSetManager ptsManager;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -168,8 +164,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     if (handleArrays) {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
-      converter = createCtoFormulaConverterWithArrays(options, pMachineModel, pVariableClassification, typeHandler);
-      ptsManager = null;
+      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
+          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
@@ -177,45 +173,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
-      ptsManager = new PointerTargetSetManager(options, fmgr, aliasingTypeHandler, shutdownNotifier);
-      converter = createCToFormulaConverterWithPointerAliasing(options, pMachineModel, ptsManager, pVariableClassification, aliasingTypeHandler);
+      converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
+          pMachineModel, pVariableClassification, logger, shutdownNotifier,
+          aliasingTypeHandler, direction);
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
-      converter = createCtoFormulaConverter(options, pMachineModel, pVariableClassification, typeHandler);
-      ptsManager = null;
+      converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
+          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
       logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
     }
 
     NONDET_FORMULA_TYPE = converter.getFormulaTypeFromCType(NONDET_TYPE);
-  }
-
-  private CtoFormulaConverter createCtoFormulaConverterWithArrays(FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
-      CtoFormulaTypeHandler pTypeHandler) {
-
-    return new CToFormulaConverterWithArrays(pOptions, fmgr, pMachineModel, pVariableClassification,
-        logger, shutdownNotifier, pTypeHandler, direction);
-  }
-
-  private CtoFormulaConverter createCtoFormulaConverter(FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
-      CtoFormulaTypeHandler pTypeHandler) {
-
-    return new CtoFormulaConverter(pOptions, fmgr, pMachineModel, pVariableClassification,
-        logger, shutdownNotifier, pTypeHandler, direction);
-  }
-
-  private CtoFormulaConverter createCToFormulaConverterWithPointerAliasing(
-      FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pMachineModel,
-      PointerTargetSetManager pPtsManager, Optional<VariableClassification> pVariableClassification,
-      TypeHandlerWithPointerAliasing pAliasingTypeHandler) throws InvalidConfigurationException {
-
-    return new CToFormulaConverterWithPointerAliasing(
-        pOptions, fmgr, pMachineModel, pPtsManager, pVariableClassification,
-        logger, shutdownNotifier, pAliasingTypeHandler, direction);
   }
 
   @Override
@@ -302,14 +273,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet pts2 = pathFormula2.getPointerTargetSet();
 
     final MergeResult<SSAMap> mergeSSAResult = mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMap newSSA = mergeSSAResult.getResult();
+    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
 
-    final MergeResult<PointerTargetSet> mergePtsResult;
-    if (ptsManager != null) {
-      mergePtsResult = ptsManager.mergePointerTargetSets(pts1, pts2, newSSA);
-    } else {
-      mergePtsResult = MergeResult.trivial(pts1, bfmgr);
-    }
+    final MergeResult<PointerTargetSet> mergePtsResult = converter.mergePointerTargetSets(pts1, pts2, newSSA);
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
@@ -321,7 +287,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    return new PathFormula(newFormula, newSSA, newPTS, newLength);
+    return new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
   }
 
   @Override

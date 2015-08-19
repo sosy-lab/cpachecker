@@ -41,5 +41,5 @@ public interface UnsoundRefiner extends Refiner {
    *
    * @param reached
    */
-  public void forceRestart(ReachedSet reached);
+  void forceRestart(ReachedSet reached);
 }

@@ -353,17 +353,50 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   // removal from ARG
 
   /**
-   * This method removes this element from the ARG by removing it from its
-   * parents' children list and from its children's parents list.
-   *
-   * This method also removes the element from the covered set of the other
-   * element covering this element, if it is covered.
+   * This method removes this element from the ARG and  also removes the element
+   * from the covered set of the other element covering this element, if it is
+   * covered.
    *
    * This means, if its children do not have any other parents, they will be not
    * reachable any more, i.e. they do not belong to the ARG any more. But those
    * elements will not be removed from the covered set.
    */
   public void removeFromARG() {
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    detachFromARG();
+
+    clearCoverageRelation();
+
+    destroyed = true;
+  }
+
+  /**
+   * This method removes the element from the covered set of the other
+   * element covering this element, if it is covered.
+   */
+  private void clearCoverageRelation() {
+    if (isCovered()) {
+      assert mCoveredBy.mCoveredByThis.contains(this);
+
+      mCoveredBy.mCoveredByThis.remove(this);
+      mCoveredBy = null;
+    }
+
+    if (mCoveredByThis != null) {
+      for (ARGState covered : mCoveredByThis) {
+        covered.mCoveredBy = null;
+      }
+      mCoveredByThis.clear();
+      mCoveredByThis = null;
+    }
+  }
+
+  /**
+   * This method removes this element from the ARG by removing it from its
+   * parents' children list and from its children's parents list.
+   */
+  void detachFromARG() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
 
     // clear children
@@ -379,24 +412,6 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       parent.children.remove(this);
     }
     parents.clear();
-
-    // clear coverage relation
-    if (isCovered()) {
-      assert mCoveredBy.mCoveredByThis.contains(this);
-
-      mCoveredBy.mCoveredByThis.remove(this);
-      mCoveredBy = null;
-    }
-
-    if (mCoveredByThis != null) {
-      for (ARGState covered : mCoveredByThis) {
-        covered.mCoveredBy = null;
-      }
-      mCoveredByThis.clear();
-      mCoveredByThis = null;
-    }
-
-    destroyed = true;
   }
 
   /**

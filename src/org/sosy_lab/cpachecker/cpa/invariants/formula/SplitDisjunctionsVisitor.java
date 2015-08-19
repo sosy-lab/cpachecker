@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,115 +36,64 @@ import java.util.List;
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class SplitDisjunctionsVisitor<T> implements InvariantsFormulaVisitor<T, List<InvariantsFormula<T>>> {
+public class SplitDisjunctionsVisitor<T> implements BooleanFormulaVisitor<T, List<BooleanFormula<T>>> {
 
   @Override
-  public List<InvariantsFormula<T>> visit(Add<T> pAdd) {
-    return Collections.<InvariantsFormula<T>>singletonList(pAdd);
+  public List<BooleanFormula<T>> visit(Equal<T> pEqual) {
+    return Collections.<BooleanFormula<T>>singletonList(pEqual);
   }
 
   @Override
-  public List<InvariantsFormula<T>> visit(BinaryAnd<T> pAnd) {
-    return Collections.<InvariantsFormula<T>>singletonList(pAnd);
+  public List<BooleanFormula<T>> visit(LessThan<T> pLessThan) {
+    return Collections.<BooleanFormula<T>>singletonList(pLessThan);
   }
 
   @Override
-  public List<InvariantsFormula<T>> visit(BinaryNot<T> pNot) {
-    return Collections.<InvariantsFormula<T>>singletonList(pNot);
+  public List<BooleanFormula<T>> visit(LogicalAnd<T> pAnd) {
+    return Collections.<BooleanFormula<T>>singletonList(pAnd);
   }
 
   @Override
-  public List<InvariantsFormula<T>> visit(BinaryOr<T> pOr) {
-    return Collections.<InvariantsFormula<T>>singletonList(pOr);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(BinaryXor<T> pXor) {
-    return Collections.<InvariantsFormula<T>>singletonList(pXor);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(Constant<T> pConstant) {
-    return Collections.<InvariantsFormula<T>>singletonList(pConstant);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(Divide<T> pDivide) {
-    return Collections.<InvariantsFormula<T>>singletonList(pDivide);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(Equal<T> pEqual) {
-    return Collections.<InvariantsFormula<T>>singletonList(pEqual);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(Exclusion<T> pExclusion) {
-    return Collections.<InvariantsFormula<T>>singletonList(pExclusion);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(LessThan<T> pLessThan) {
-    return Collections.<InvariantsFormula<T>>singletonList(pLessThan);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(LogicalAnd<T> pAnd) {
-    return Collections.<InvariantsFormula<T>>singletonList(pAnd);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(LogicalNot<T> pNot) {
+  public List<BooleanFormula<T>> visit(LogicalNot<T> pNot) {
     if (pNot.getNegated() instanceof LogicalAnd<?>) {
-      List<InvariantsFormula<T>> result = new ArrayList<>();
+      List<BooleanFormula<T>> result = new ArrayList<>();
       LogicalAnd<T> formula = (LogicalAnd<T>) pNot.getNegated();
-      InvariantsFormula<T> term = formula.getOperand1();
+      BooleanFormula<T> term = formula.getOperand1();
       if (!(term instanceof LogicalNot<?>)) {
-        term = InvariantsFormulaManager.INSTANCE.logicalNot(term);
+        term = LogicalNot.of(term);
       } else {
         term = ((LogicalNot<T>) term).getNegated();
       }
       result.addAll(term.accept(this));
+      // If the left operand is true, return true
+      if (result.contains(BooleanConstant.<T>getTrue())) {
+        return visitTrue();
+      }
       term = formula.getOperand2();
       if (!(term instanceof LogicalNot<?>)) {
-        term = InvariantsFormulaManager.INSTANCE.logicalNot(term);
+        term = LogicalNot.of(term);
       } else {
         term = ((LogicalNot<T>) term).getNegated();
       }
-      result.addAll(term.accept(this));
+      Collection<BooleanFormula<T>> toAdd = term.accept(this);
+      // If the right operand is true, return true
+      if (toAdd.contains(BooleanConstant.<T>getTrue())) {
+        return visitTrue();
+      }
+      result.addAll(toAdd);
       return result;
     }
-    return Collections.<InvariantsFormula<T>>singletonList(pNot);
+    return Collections.<BooleanFormula<T>>singletonList(pNot);
   }
 
   @Override
-  public List<InvariantsFormula<T>> visit(Modulo<T> pModulo) {
-    return Collections.<InvariantsFormula<T>>singletonList(pModulo);
+  public List<BooleanFormula<T>> visitFalse() {
+    return Collections.<BooleanFormula<T>>emptyList();
   }
 
   @Override
-  public List<InvariantsFormula<T>> visit(Multiply<T> pMultiply) {
-    return Collections.<InvariantsFormula<T>>singletonList(pMultiply);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(ShiftLeft<T> pShiftLeft) {
-    return Collections.<InvariantsFormula<T>>singletonList(pShiftLeft);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(ShiftRight<T> pShiftRight) {
-    return Collections.<InvariantsFormula<T>>singletonList(pShiftRight);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(Union<T> pUnion) {
-    return Collections.<InvariantsFormula<T>>singletonList(pUnion);
-  }
-
-  @Override
-  public List<InvariantsFormula<T>> visit(Variable<T> pVariable) {
-    return Collections.<InvariantsFormula<T>>singletonList(pVariable);
+  public List<BooleanFormula<T>> visitTrue() {
+    return Collections.<BooleanFormula<T>>singletonList(BooleanConstant.<T>getTrue());
   }
 
 }

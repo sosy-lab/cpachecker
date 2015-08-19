@@ -93,10 +93,6 @@ public class PolicyBound {
     return bound;
   }
 
-  public PathFormula getStartPathFormula(FormulaManagerView fmgr) {
-    return getPredecessor().getPathFormula(fmgr);
-  }
-
   public ImmutableSet<Template> getDependencies() {
     return dependencies;
   }

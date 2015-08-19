@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -110,8 +111,8 @@ parser code {:
   public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
 
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    try (InputStream input = pInputFile.asByteSource().openStream()) {
-      Scanner scanner = new AutomatonScanner(input, pInputFile, config, pLogger, sf);
+    try (Reader input = pInputFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {
+      Scanner scanner = new AutomatonScanner(input, pInputFile, pLogger, sf);
 
       AutomatonParser automatonParser;
 

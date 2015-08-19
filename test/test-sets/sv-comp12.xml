@@ -1,19 +1,19 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900" memlimit="15000" cpuCores="8">
 
   <rundefinition name="predicateAnalysis">
-    <sourcefiles>
+    <tasks>
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
       <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
       <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
       <includesfile>../programs/benchmarks/SystemC.set</includesfile>
       <includesfile>../programs/benchmarks/DeviceDrivers.set</includesfile>
-    </sourcefiles>
-    <sourcefiles>
+    </tasks>
+    <tasks>
       <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-64"/>
-    </sourcefiles>
+    </tasks>
     <option name="-sv-comp12"/>
     <option name="-heap">12500M</option>
   </rundefinition>

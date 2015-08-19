@@ -57,6 +57,11 @@ public interface BooleanFormulaManager {
    */
   public BooleanFormula equivalence(BooleanFormula formula1, BooleanFormula formula2);
 
+  /**
+   * @return {@code formula1 => formula2}.
+   */
+  public BooleanFormula implication(BooleanFormula formula1, BooleanFormula formula2);
+
   /** Check, if the formula is of the form "a==b" with two boolean args. */
   public boolean isEquivalence(BooleanFormula formula);
 
@@ -143,18 +148,26 @@ public interface BooleanFormulaManager {
 
   /** Strategies for transforming the formula AST. */
   enum Tactic {
-    NNF("nnf"),
-    CNF("tseitin-cnf")
+    NNF("nnf", "Convert the formula to NNF"),
+    CNF("tseitin-cnf", "Convert the formula to CNF using Tseitin encoding"),
+    QE_LIGHT("qe-light", "Perform light quantifier elimination"),
+    QE("qe", "Perform quantifier elimination")
     ;
 
     private final String name;
+    private final String description;
 
-    Tactic(String pName) {
+    Tactic(String pName, String pDescription) {
       name = pName;
+      description = pDescription;
     }
 
     public String getTacticName() {
       return name;
+    }
+
+    public String getDescription() {
+      return description;
     }
   }
 }

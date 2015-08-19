@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.z3;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
 
+import java.util.logging.Level;
+
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Model;
@@ -44,18 +47,21 @@ class Z3OptProver implements OptEnvironment {
 
   private final Z3FormulaManager mgr;
   private final Z3RationalFormulaManager rfmgr;
+  private final LogManager logger;
   private static final String Z3_INFINITY_REPRESENTATION = "oo";
   private long z3context;
   private long z3optContext;
   private final ShutdownNotifier shutdownNotifier;
 
-  Z3OptProver(Z3FormulaManager pMgr, ShutdownNotifier pShutdownNotifier) {
+  Z3OptProver(Z3FormulaManager pMgr, ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger) {
     mgr = pMgr;
     rfmgr = (Z3RationalFormulaManager)pMgr.getRationalFormulaManager();
     z3context = mgr.getEnvironment();
     z3optContext = mk_optimize(z3context);
     optimize_inc_ref(z3context, z3optContext);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
+    logger = pLogger;
   }
 
   @Override
@@ -85,6 +91,9 @@ class Z3OptProver implements OptEnvironment {
       if (status == Z3_LBOOL.Z3_L_FALSE.status) {
         return OptStatus.UNSAT;
       } else if (status == Z3_LBOOL.Z3_L_UNDEF.status) {
+        logger.log(Level.INFO,
+            "Solver returned an unknown status, explanation: ",
+            optimize_get_reason_unknown(z3context, z3optContext));
         return OptStatus.UNDEF;
       } else {
         return OptStatus.OPT;

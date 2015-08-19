@@ -73,6 +73,11 @@ public class LoopInvariantsWriter {
   }
 
   private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
+    if (!cfa.getAllLoopHeads().isPresent()) {
+      logger.log(Level.WARNING, "Cannot dump loop invariants because loop-structure information is not available.");
+      return null;
+    }
+
     Map<CFANode, Region> regions = Maps.newHashMap();
 
     for (AbstractState state : reached) {

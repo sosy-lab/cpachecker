@@ -34,6 +34,8 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -73,8 +76,8 @@ public class AssignmentToPathAllocator {
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
 
-  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private MemoryName memoryName = new MemoryName() {
 
@@ -87,9 +90,9 @@ public class AssignmentToPathAllocator {
     }
   };
 
-  public AssignmentToPathAllocator(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+  public AssignmentToPathAllocator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+    this.shutdownNotifier = pShutdownNotifier;
+    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
   }
 
   /**
@@ -98,7 +101,7 @@ public class AssignmentToPathAllocator {
    * {@link AssignableTerm} terms have been assigned.
    */
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
-      RichModel pModel, List<SSAMap> pSSAMaps, MachineModel pMachineModel) throws InterruptedException {
+      RichModel pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
 
     // create concrete state path, also remember at wich edge which terms were used.
     Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> concreteStatePath = createConcreteStatePath(pPath,
@@ -106,7 +109,7 @@ public class AssignmentToPathAllocator {
 
     // create the concrete error path.
     CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath.getFirst(), logger, pMachineModel);
+        CFAPathWithAssumptions.of(concreteStatePath.getFirst(), assumptionToEdgeAllocator);
 
     return Pair.of(pathWithAssignments, concreteStatePath.getSecond());
   }

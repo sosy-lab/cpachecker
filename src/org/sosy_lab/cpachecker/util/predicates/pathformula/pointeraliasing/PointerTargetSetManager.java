@@ -61,14 +61,13 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 
 import com.google.common.collect.ImmutableList;
 
-
-public class PointerTargetSetManager {
+class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -111,7 +110,9 @@ public class PointerTargetSetManager {
   public MergeResult<PointerTargetSet>
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
-                                   final SSAMap resultSSA) throws InterruptedException {
+                                   final SSAMapBuilder resultSSA,
+                                   final CToFormulaConverterWithPointerAliasing conv)
+                                       throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
@@ -150,22 +151,35 @@ public class PointerTargetSetManager {
 
     final String lastBase;
     final BooleanFormula basesMergeFormula;
-    if (pts1.lastBase == null && pts2.lastBase == null ||
-        pts1.lastBase != null && (pts2.lastBase == null || pts1.lastBase.equals(pts2.lastBase))) {
-      lastBase = pts1.lastBase;
-      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
-      // Nothing to do, as there were no divergence with regard to base allocations
-    } else if (pts1.lastBase == null && pts2.lastBase != null) {
+    if (pts1.lastBase == null ||
+        pts2.lastBase == null ||
+        pts1.lastBase.equals(pts2.lastBase)) {
+      // Trivial case: either no allocations on one branch at all, or no difference.
+      // Just take the first non-null value, the second is either equal or null.
+      lastBase = (pts1.lastBase != null) ? pts1.lastBase : pts2.lastBase;
+      basesMergeFormula = bfmgr.makeBoolean(true);
+
+    } else if (mergedBases.getFirst().isEmpty()) {
+      assert pts2.bases.keySet().containsAll(pts1.bases.keySet());
+      // One branch has a strict superset of the allocations of the other.
       lastBase = pts2.lastBase;
-      basesMergeFormula = formulaManager.getBooleanFormulaManager().makeBoolean(true);
+      basesMergeFormula = bfmgr.makeBoolean(true);
+
+    } else if (mergedBases.getSecond().isEmpty()) {
+      assert pts1.bases.keySet().containsAll(pts2.bases.keySet());
+      // One branch has a strict superset of the allocations of the other.
+      lastBase = pts1.lastBase;
+      basesMergeFormula = bfmgr.makeBoolean(true);
+
     } else {
+      // Otherwise we have no possibility to determine which base to use as lastBase,
+      // so we create an additional fake one.
       final CType fakeBaseType = getFakeBaseType(0);
       final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
-          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType);
-      mergedBases =
-        Triple.of(mergedBases.getFirst(),
-                  mergedBases.getSecond(),
-                  mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
+          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, resultSSA, conv);
+      mergedBases = Triple.of(mergedBases.getFirst(),
+                              mergedBases.getSecond(),
+                              mergedBases.getThird().putAndCopy(fakeBaseName, fakeBaseType));
       lastBase = fakeBaseName;
       basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.bases, pts1.lastBase),
                                                  getNextBaseAddressInequality(fakeBaseName, pts2.bases, pts2.lastBase));
@@ -293,7 +307,7 @@ public class PointerTargetSetManager {
   }
 
   private BooleanFormula makeSharingConstraints(final PersistentSortedMap<String, CType> newBases,
-      final List<Pair<CCompositeType, String>> sharedFields, final SSAMap ssa, final PointerTargetSet pts) {
+      final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa, final PointerTargetSet pts) {
     BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey()) &&
@@ -317,7 +331,7 @@ public class PointerTargetSetManager {
                                                 final String variablePrefix,
                                                 final CType variableType,
                                                 final List<Pair<CCompositeType, String>> sharedFields,
-                                                final SSAMap ssa,
+                                                final SSAMapBuilder ssa,
                                                 final PointerTargetSet pts) {
 
     assert !CTypeUtils.containsArray(variableType) : "Array access can't be encoded as a varaible";
@@ -361,7 +375,7 @@ public class PointerTargetSetManager {
 
   private Formula makeDereferece(final CType type,
                                  final Formula address,
-                                 final SSAMap ssa) {
+                                 final SSAMapBuilder ssa) {
     final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);

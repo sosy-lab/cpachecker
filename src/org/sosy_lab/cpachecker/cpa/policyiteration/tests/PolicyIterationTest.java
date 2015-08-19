@@ -4,7 +4,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -68,22 +67,32 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Ignore
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
-    // todo: requires re-enabling formula slicing.
-    check("pointers/pointer_past_abstraction_true_assert.c");
+    check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.stator.policy.joinOnMerge", "false"
+        )
+    );
   }
 
   @Test public void pointer_past_abstraction_false_assert() throws Exception {
-    check("pointers/pointer_past_abstraction_false_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+    check("pointers/pointer_past_abstraction_false_assert.c"
+        , ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.runCongruence", "false",
+            "cpa.stator.policy.joinOnMerge", "false"
+        )
+    );
   }
 
-  @Ignore
   @Test public void pointers_loop_true_assert() throws Exception {
-    // todo: requires re-enabling formula slicing.
     check("pointers/pointers_loop_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.stator.policy.joinOnMerge", "false"
+        ));
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
@@ -207,8 +216,8 @@ public class PolicyIterationTest {
             ))
         )
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
-        .put("cpa.predicate.solver.z3.requireProofs", "false")
-        .put("cpa.predicate.solver", "Z3")
+        .put("solver.z3.requireProofs", "false")
+        .put("solver.solver", "Z3")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "true")
         .put("cpa.predicate.maxArrayLength", "3")
@@ -224,4 +233,15 @@ public class PolicyIterationTest {
     props.putAll(extra);
     return props;
   }
+
+  private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
+          .add("cpa.location.LocationCPA")
+          .add("cpa.callstack.CallstackCPA")
+          .add("cpa.functionpointer.FunctionPointerCPA")
+          .add("cpa.loopstack.LoopstackCPA")
+          .add("cpa.formulaslicing.FormulaSlicingCPA")
+          .add("cpa.policyiteration.PolicyCPA")
+          .build()
+  );
+
 }

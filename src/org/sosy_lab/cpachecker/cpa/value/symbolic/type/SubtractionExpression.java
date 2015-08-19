@@ -59,4 +59,9 @@ public class SubtractionExpression extends BinarySymbolicExpression {
   public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
+
+  @Override
+  public String getOperationString() {
+    return "-";
+  }
 }

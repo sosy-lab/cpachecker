@@ -1595,6 +1595,12 @@ class ASTConverter {
         cStorageClass = CStorageClass.AUTO;
       }
 
+      if (!isGlobal && cStorageClass == CStorageClass.EXTERN) {
+        // TODO: implement this, it "imports" the externally declared variable
+        // into the scope of this block.
+        throw new CFAGenerationRuntimeException("Local variable declared extern is unsupported", d, niceFileNameFunction);
+      }
+
       if (!isGlobal && scope.variableNameInUse(name)) {
         String sep = "__";
         int index = 1;

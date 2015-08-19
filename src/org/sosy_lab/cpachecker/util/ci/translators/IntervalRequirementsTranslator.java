@@ -60,7 +60,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
   private String getRequirement(final String var, final Interval interval) {
     StringBuilder sb = new StringBuilder();
     boolean isMin = (interval.getLow() == Long.MIN_VALUE);
-    boolean isMax = (interval.getLow() == Long.MAX_VALUE);
+    boolean isMax = (interval.getHigh() == Long.MAX_VALUE);
     Preconditions.checkArgument(!isMin || !isMax);
     Preconditions.checkArgument(!interval.isEmpty());
 

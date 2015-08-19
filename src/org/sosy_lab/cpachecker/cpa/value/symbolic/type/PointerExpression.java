@@ -56,4 +56,9 @@ public class PointerExpression extends UnarySymbolicExpression {
   public <VisitorReturnT> VisitorReturnT accept(SymbolicValueVisitor<VisitorReturnT> pVisitor) {
     return pVisitor.visit(this);
   }
+
+  @Override
+  public String getOperationString() {
+    return "*";
+  }
 }

@@ -31,6 +31,8 @@ import java.util.Map;
  *
  * @param <T> the type of the constants used in the visited formulae.
  */
-public interface FormulaEvaluationVisitor<T> extends ParameterizedInvariantsFormulaVisitor<T, Map<? extends String, ? extends InvariantsFormula<T>>, T> {
+public interface FormulaEvaluationVisitor<T> extends
+    ParameterizedNumeralFormulaVisitor<T, Map<? extends String, ? extends NumeralFormula<T>>, T>,
+    ParameterizedBooleanFormulaVisitor<T, Map<? extends String, ? extends NumeralFormula<T>>, BooleanConstant<T>> {
 
 }

@@ -135,11 +135,13 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
                                           predicateCpa.getShutdownNotifier(),
                                           logger);
 
-    PathChecker pathChecker = new PathChecker(logger,
+    PathChecker pathChecker = new PathChecker(
+                                          predicateCpa.getConfiguration(),
+                                          logger,
                                           predicateCpa.getShutdownNotifier(),
+                                          predicateCpa.getMachineModel(),
                                           predicateCpa.getPathFormulaManager(),
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getMachineModel());
+                                          predicateCpa.getSolver());
 
 
     PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(predicateCpa.getConfiguration(),
@@ -453,8 +455,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
           openBlocks.pop();
         }
       }
-
-      predicateCpa.getReducer().clearCaches();
     }
 
     @Override

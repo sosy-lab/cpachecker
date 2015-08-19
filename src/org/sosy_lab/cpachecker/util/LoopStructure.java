@@ -118,7 +118,7 @@ public final class LoopStructure {
     // and never called after the LoopStructure information has been collected.
 
     // loopHeads is a sub-set of nodes such that all infinite paths through
-    // the set nodes will pass through at least one node in loopHeads infinitively often
+    // the set nodes will pass through at least one node in loopHeads infinitely often
     // i.e. you will have to pass through at least one loop head in every iteration
     private ImmutableSet<CFANode> loopHeads;
 

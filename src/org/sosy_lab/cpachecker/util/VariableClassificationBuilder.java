@@ -216,6 +216,7 @@ public class VariableClassificationBuilder {
     final Set<Partition> intBoolPartitions = new HashSet<>();
     final Set<Partition> intEqualPartitions = new HashSet<>();
     final Set<Partition> intAddPartitions = new HashSet<>();
+
     for (final String var : allVars) {
       // we have this hierarchy of classes for variables:
       //        IntBool < IntEqBool < IntAddEqBool < AllInt
@@ -264,7 +265,8 @@ public class VariableClassificationBuilder {
         intAddPartitions,
         dependencies.edgeToPartition,
         extractAssumedVariables(cfa.getAllNodes()),
-        extractAssignedVariables(cfa.getAllNodes()));
+        extractAssignedVariables(cfa.getAllNodes()),
+        logger);
 
     if (printStatsOnStartup) {
       printStats(result);

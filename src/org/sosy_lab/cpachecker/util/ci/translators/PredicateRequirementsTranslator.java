@@ -55,14 +55,13 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
       throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState.");
     }
 
-    BooleanFormula formulaBool = pRequirement.getAbstractionFormula().asFormula();
-    fmgr.instantiate(formulaBool, pIndices);
+    BooleanFormula formulaBool = fmgr.instantiate(pRequirement.getAbstractionFormula().asFormula(), pIndices);
 
     Pair<String, List<String>> pair = PredicatePersistenceUtils.splitFormula(fmgr, formulaBool);
-    List<String> list = pair.getSecond();
+    List<String> list = new ArrayList<>(pair.getSecond());
     List<String> removeFromList = new ArrayList<>();
     for (String stmt : list) {
-      if (!stmt.startsWith("(declare") || !stmt.startsWith("(define")) {
+      if (!stmt.startsWith("(declare") && !stmt.startsWith("(define")) {
         removeFromList.add(stmt);
       }
     }

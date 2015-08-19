@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces;
 
 import java.math.BigInteger;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
+
 /**
  * This interface represents the Bitvector-Theory
  */
@@ -45,12 +47,18 @@ public interface BitvectorFormulaManager {
 
   public BitvectorFormula subtract(BitvectorFormula number1, BitvectorFormula number2, boolean resultSigned);
 
+  /**
+   * @see BitvectorFormulaManagerView#divide(BitvectorFormula, BitvectorFormula, boolean)
+   */
   public BitvectorFormula divide(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 
+  /**
+   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
+   */
   public BitvectorFormula modulo(BitvectorFormula number1, BitvectorFormula number2, boolean signed);
 
   /**
-   * @see NumeralFormulaManager#modularCongruence(NumeralFormula, NumeralFormula, long)
+   * @see BitvectorFormulaManagerView#modularCongruence(BitvectorFormula, BitvectorFormula, long)
    */
   public BooleanFormula modularCongruence(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, long pModulo);
 

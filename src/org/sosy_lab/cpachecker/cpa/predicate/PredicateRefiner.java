@@ -51,9 +51,34 @@ public abstract class PredicateRefiner implements Refiner {
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
+    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
+    Solver solver = predicateCpa.getSolver();
+
+    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
+        config,
+        logger,
+        predicateCpa.getShutdownNotifier(),
+        predicateCpa.getPredicateManager(),
+        staticRefiner,
+        solver);
+
+    return create(pCpa, strategy);
+  }
+
+  public static PredicateCPARefiner create(
+      final ConfigurableProgramAnalysis pCpa,
+      final RefinementStrategy pRefinementStrategy
+  ) throws InvalidConfigurationException {
+
+    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    if (predicateCpa == null) {
+      throw new InvalidConfigurationException(PredicateRefiner.class.getSimpleName() + " needs a PredicateCPA");
+    }
+
+    Configuration config = predicateCpa.getConfiguration();
+    LogManager logger = predicateCpa.getLogger();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
     Solver solver = predicateCpa.getSolver();
-    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
     MachineModel machineModel = predicateCpa.getMachineModel();
     Optional<LoopStructure> loopStructure = predicateCpa.getCfa().getLoopStructure();
     Optional<VariableClassification> variableClassification = predicateCpa.getCfa().getVarClassification();
@@ -67,17 +92,15 @@ public abstract class PredicateRefiner implements Refiner {
         predicateCpa.getShutdownNotifier(),
         logger);
 
-    PathChecker pathChecker = new PathChecker(logger, predicateCpa.getShutdownNotifier(), pfmgr, solver, machineModel);
-
-    PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr);
-
-    RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
+    PathChecker pathChecker = new PathChecker(
         config,
         logger,
         predicateCpa.getShutdownNotifier(),
-        predicateCpa.getPredicateManager(),
-        staticRefiner,
+        machineModel,
+        pfmgr,
         solver);
+
+    PrefixProvider prefixProvider = new PredicateBasedPrefixProvider(config, logger, solver, pfmgr);
 
     return new PredicateCPARefiner(
         config,
@@ -87,7 +110,7 @@ public abstract class PredicateRefiner implements Refiner {
         pathChecker,
         prefixProvider,
         pfmgr,
-        strategy,
+        pRefinementStrategy,
         solver,
         predicateCpa.getAssumesStore(),
         predicateCpa.getCfa());

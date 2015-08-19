@@ -261,7 +261,7 @@ public class TaskBuilder {
 
     Set<PropertyType> properties = parser.getProperties();
     if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
-      input.specification = "sv-comp.spc";
+      input.specification = "sv-comp-errorlabel.spc";
     } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
       input.specification = "sv-comp-reachability.spc";
     }

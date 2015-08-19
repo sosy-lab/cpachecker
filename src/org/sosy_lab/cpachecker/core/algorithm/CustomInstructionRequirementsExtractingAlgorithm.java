@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
@@ -101,7 +101,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     this.shutdownNotifier = sdNotifier;
     this.config = config;
 
-    if (cpa instanceof ARGCPA) {
+    if (!(cpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
     }
 

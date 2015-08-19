@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -141,6 +142,10 @@ public class CoreComponentsFactory {
       description = "Refine the preconditions until the set of unsafe and safe states are disjoint.")
   private boolean usePreconditionRefinementAlgorithm = false;
 
+  @Option(secure=true, name="restartAlgorithmWithARGReplay",
+      description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
+  private boolean useRestartAlgorithmWithARGReplay = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -178,6 +183,9 @@ public class CoreComponentsFactory {
       }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
+
+    } else if (useRestartAlgorithmWithARGReplay) {
+      algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
@@ -249,7 +257,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {

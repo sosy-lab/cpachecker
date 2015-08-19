@@ -8,7 +8,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -69,7 +68,6 @@ public class OptProversTestSuite {
     }
   }
 
-  @Ignore
   public static abstract class OptimizationTest {
 
     private FormulaManager mgr;
@@ -84,7 +82,7 @@ public class OptProversTestSuite {
     @Before
     public void loadLibrary() throws Exception {
       Configuration config = Configuration.builder().setOption(
-          "cpa.predicate.loadOptimathsat5", "true"
+          "solver.mathsat5.loadOptimathsat5", "true"
       ).build();
 
       LogManager logger = TestLogManager.getInstance();
@@ -182,22 +180,6 @@ public class OptProversTestSuite {
         assertThat(xValue).isEqualTo(BigInteger.valueOf(10));
         assertThat(yValue).isEqualTo(BigInteger.valueOf(9));
 
-      }
-    }
-
-    @Test public void testNonlinearity() throws Exception {
-      try (OptEnvironment prover = mgr.newOptEnvironment()) {
-        IntegerFormula x, y, z, one;
-        x = ifmgr.makeVariable("x");
-        y = ifmgr.makeVariable("y");
-        one = ifmgr.makeNumber(2);
-        prover.addConstraint(ifmgr.lessOrEquals(x, ifmgr.makeNumber(10)));
-        prover.addConstraint(ifmgr.lessOrEquals(y, ifmgr.makeNumber(10)));
-
-        z = ifmgr.divide(x, one);
-
-        prover.maximize(z);
-        prover.check();
       }
     }
 

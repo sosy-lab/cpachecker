@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -137,12 +138,31 @@ public abstract class RefinementStrategy {
     ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
 
+    Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements =
+        evaluateInterpolantsOnPath(lastElement, abstractionStatesTrace, pInterpolants);
+
+    ARGState infeasiblePartOfARG = rootOfInfeasibleArgAndChangedElements.getFirst();
+    List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
+
+    // Hook
+    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample);
+
+    assert !pReached.asReachedSet().contains(lastElement);
+  }
+
+  // returns a pair consisting of the root of the infeasible part of the ARG and a list of all
+  // changed elements
+  private Pair<ARGState, List<ARGState>> evaluateInterpolantsOnPath(
+      ARGState pTargetState,
+      List<ARGState> abstractionStatesTrace,
+      List<BooleanFormula> pInterpolants) throws RefinementFailedException, SolverException, InterruptedException {
+
     // Skip the last element of the path, itp is always false there
     abstractionStatesTrace = abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1);
     assert pInterpolants.size() ==  abstractionStatesTrace.size();
 
     List<ARGState> changedElements = new ArrayList<>();
-    ARGState infeasiblePartOfART = lastElement;
+    ARGState infeasiblePartOfARG = pTargetState;
     boolean previousItpWasTrue = true;
 
     // Statistics on the current refinement
@@ -172,7 +192,7 @@ public abstract class RefinementStrategy {
       if (bfmgr.isFalse(itp)) {
         // we have reached the part of the path that is infeasible
         falseSuffixStates++;
-        infeasiblePartOfART = w;
+        infeasiblePartOfARG = w;
         if (previousItpWasTrue) {
           // If the previous itp was true, and the current one is false,
           // this means that the code block between them is in itself infeasible.
@@ -206,19 +226,16 @@ public abstract class RefinementStrategy {
     }
 
     numberOfAffectedStates.setNextValue(changedElements.size());
-    if (infeasiblePartOfART == lastElement) {
+    if (infeasiblePartOfARG == pTargetState) {
       pathLengthToInfeasibility++;
 
       if (changedElements.isEmpty()) {
         // The only reason why this might appear is that the very last block is
         // infeasible in itself, however, we check for such cases during strengthen,
         // so they shouldn't appear here.
-        throw new RefinementFailedException(RefinementFailedException.Reason.InterpolationFailed, null);
+        throw new RefinementFailedException(Reason.InterpolationFailed, null);
       }
     }
-
-    // Hook
-    finishRefinementOfPath(infeasiblePartOfART, changedElements, pReached, pRepeatedCounterexample);
 
     // Update global statistics
     truePathPrefixStates.setNextValue(truePrefixStates);
@@ -228,7 +245,7 @@ public abstract class RefinementStrategy {
     equalNontrivialInterpolants.setNextValue(equalNontrivialItps);
     totalPathLengthToInfeasibility.setNextValue(pathLengthToInfeasibility);
 
-    assert !pReached.asReachedSet().contains(lastElement);
+    return Pair.of(infeasiblePartOfARG, changedElements);
   }
 
   @ForOverride

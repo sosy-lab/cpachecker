@@ -132,7 +132,7 @@ Required:
 {
   "programText" : "...",
   "sourceFileName" : "example.c"
-  "specification" : "sv-comp.spc",
+  "specification" : "sv-comp-reachability.spc",
   "configuration" : "valueAnalysis.properties",
   "options" :
   {
@@ -195,7 +195,7 @@ Response
   "terminationDate" : "2014-02-01T15:02:58.866",
   "status" : "DONE",
   "statusMessage" : null,
-  "specification" : "sv-comp.spc",
+  "specification" : "sv-comp-reachability.spc",
   "configuration" : "valueAnalysis.properties",
   "sourceFileName" : "example.c",
   "retries" : 0,

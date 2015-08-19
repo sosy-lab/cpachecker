@@ -254,7 +254,7 @@ public class AppliedCustomInstructionParser {
     }
   }
 
-  private Collection<String> getPotentialInputVariables(CFAEdge pLeavingEdge) {
+  private Collection<String> getPotentialInputVariables(final CFAEdge pLeavingEdge) {
     if (pLeavingEdge instanceof CStatementEdge) {
       CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
 

@@ -42,7 +42,7 @@ public class PolicyMergeOperator implements MergeOperator {
     // abstract predecessors.
     PolicyIntermediateState iState1 = state1.asIntermediate();
     PolicyIntermediateState iState2 = state2.asIntermediate();
-    if (iState1.getGeneratingStates().equals(iState2.getGeneratingStates())) {
+    if (iState1.getGeneratingState().equals(iState2.getGeneratingState())) {
       return policyIterationManager.join(iState1, iState2, precision);
     } else {
       return state2;

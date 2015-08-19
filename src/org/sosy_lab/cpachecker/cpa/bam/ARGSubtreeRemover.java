@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -61,26 +60,20 @@ import com.google.common.collect.Iterables;
 public class ARGSubtreeRemover {
 
   private final BlockPartitioning partitioning;
+  private final BAMDataManager data;
   private final Reducer wrappedReducer;
   private final BAMCache bamCache;
-  private final ReachedSetFactory reachedSetFactory;
-  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet;
-  private final Timer removeCachedSubtreeTimer;
   private final LogManager logger;
+  private final Timer removeCachedSubtreeTimer;
 
-  public ARGSubtreeRemover(BlockPartitioning partitioning, Reducer reducer,
-                           BAMCache bamCache, ReachedSetFactory reachedSetFactory,
-                           Map<AbstractState, ReachedSet> abstractStateToReachedSet,
-                           Timer removeCachedSubtreeTimer, LogManager logger) {
-    this.partitioning = partitioning;
-    this.wrappedReducer = reducer;
-    this.bamCache = bamCache;
-    this.reachedSetFactory =reachedSetFactory;
-    this.abstractStateToReachedSet = abstractStateToReachedSet;
-    this.removeCachedSubtreeTimer = removeCachedSubtreeTimer;
-    this.logger = logger;
+  public ARGSubtreeRemover(BAMCPA bamCpa, Timer pRemoveCachedSubtreeTimer) {
+    this.partitioning = bamCpa.getBlockPartitioning();
+    this.data = bamCpa.getData();
+    this.wrappedReducer = bamCpa.getReducer();
+    this.bamCache = bamCpa.getData().bamCache;
+    this.logger = bamCpa.getData().logger;
+    this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
   }
-
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
                      ARGState element, List<Precision> pNewPrecisions,
@@ -119,7 +112,7 @@ public class ARGSubtreeRemover {
       if (removeCachedSubtreeArguments.getSecond() == lastRelevantNode) { // last iteration
         newPrecisions = pNewPrecisions;
       } else {
-        ReachedSet nextReachedSet = abstractStateToReachedSet.get(removeCachedSubtreeArguments.getSecond());
+        ReachedSet nextReachedSet = data.abstractStateToReachedSet.get(removeCachedSubtreeArguments.getSecond());
         // assert nextReachedSet != null : "call-state does not match reachedset";
         if (nextReachedSet != null && target.getParents().contains(nextReachedSet.getFirstState())) {
           newPrecisions = pNewPrecisions;
@@ -181,7 +174,7 @@ public class ARGSubtreeRemover {
               "(rootNode: ", rootNode, ") issued with precision", pNewPrecisions);
 
       AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
-      ReachedSet reachedSet = abstractStateToReachedSet.get(rootState);
+      ReachedSet reachedSet = data.abstractStateToReachedSet.get(rootState);
 
       if (removeElement.isDestroyed()) {
         logger.log(Level.FINER, "state was destroyed before");
@@ -324,7 +317,7 @@ public class ARGSubtreeRemover {
               && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
         // the block can be equal, if this is a loop-block.
           openSubtrees.push(partitioning.getBlockForCallNode(node));
-          openReachedSets.push(abstractStateToReachedSet.get(pPathElementToReachedState.get(pathState)));
+          openReachedSets.push(data.abstractStateToReachedSet.get(pPathElementToReachedState.get(pathState)));
           callNodes.add(pathState);
       }
     }
@@ -348,12 +341,12 @@ public class ARGSubtreeRemover {
             wrappedReducer.getVariableReducedPrecision(
                     rootPrecision, rootBlock);
 
-    UnmodifiableReachedSet innerReachedSet = abstractStateToReachedSet.get(pPathElementToReachedState.get(rootState));
+    UnmodifiableReachedSet innerReachedSet = data.abstractStateToReachedSet.get(pPathElementToReachedState.get(rootState));
     Precision usedPrecision = innerReachedSet.getPrecision(innerReachedSet.getFirstState());
 
     //add precise key for new precision if needed
     if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, rootBlock)) {
-      ReachedSet reachedSet = createInitialReachedSet(reducedRootState, reducedNewPrecision);
+      ReachedSet reachedSet = data.createInitialReachedSet(reducedRootState, reducedNewPrecision);
       bamCache.put(reducedRootState, reducedNewPrecision, rootBlock, reachedSet);
     }
 
@@ -392,12 +385,6 @@ public class ARGSubtreeRemover {
     }
 
     return foundInnerUnpreciseEntries || !isNewPrecisionEntry;
-  }
-
-  private ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(initialState, initialPredicatePrecision);
-    return reached;
   }
 
   /** remove all states after pState from path */

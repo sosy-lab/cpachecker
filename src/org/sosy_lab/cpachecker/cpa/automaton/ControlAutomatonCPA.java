@@ -63,21 +63,15 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -113,6 +107,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
   private boolean treatErrorsAsTargets = true;
 
+  @Option(secure=true, description="Merge two automata states if one of them is TOP.")
+  private boolean mergeOnTop  = false;
+
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
@@ -121,54 +118,29 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
+  private final MergeOperator mergeOperator;
   private final Statistics stats = new AutomatonStatistics(this);
 
   private final CFA cfa;
   private final LogManager logger;
 
-  protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCFA)
-      throws InvalidConfigurationException {
+  protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
+      Configuration pConfig, LogManager pLogger, CFA pCFA)
+    throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
     this.cfa = pCFA;
     this.logger = pLogger;
 
-    transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
+    this.transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
+    this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
 
-    final PrecisionAdjustment lPrecisionAdjustment;
-
-    if (breakOnTargetState > 0) {
-      lPrecisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
-
+    if (mergeOnTop) {
+      this.mergeOperator = new AutomatonTopMergeOperator(automatonDomain, topState);
     } else {
-      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+      this.mergeOperator = MergeSepOperator.getInstance();
     }
-
-    precisionAdjustment = new PrecisionAdjustment() { // Handle the BREAK state
-
-      @Override
-      public Optional<PrecisionAdjustmentResult> prec(
-          AbstractState pState, Precision pPrecision,
-          UnmodifiableReachedSet pStates,
-          Function<AbstractState, AbstractState> projection,
-          AbstractState fullState) throws CPAException, InterruptedException {
-
-        Optional<PrecisionAdjustmentResult> wrappedPrec
-            = lPrecisionAdjustment.prec(pState, pPrecision, pStates, projection, fullState);
-
-        if (!wrappedPrec.isPresent()) {
-          // Bottom.
-          return wrappedPrec;
-        }
-
-        if (((AutomatonState) pState).getInternalStateName().equals("_predefinedState_BREAK")) {
-          return Optional.of(wrappedPrec.get().withAction(Action.BREAK));
-        }
-
-        return wrappedPrec;
-      }
-    };
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
@@ -177,34 +149,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       throw new InvalidConfigurationException("Explicitly specified automaton CPA needs option cpa.automaton.inputFile!");
 
     } else {
-
-      Language language = pCFA.getLanguage();
-
-      List<Automaton> lst;
-
-      Scope scope;
-
-      switch (language) {
-      case C:
-        scope = new CProgramScope(pCFA, pLogger);
-        break;
-      default:
-        scope = DummyScope.getInstance();
-        break;
-      }
-
-      lst = AutomatonParser.parseAutomatonFile(inputFile, pConfig, pLogger, pCFA.getMachineModel(), scope, language);
-
-      if (lst.isEmpty()) {
-        throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
-      } else if (lst.size() > 1) {
-        throw new InvalidConfigurationException("Found " + lst.size()
-            + " automata in the File " + inputFile.toAbsolutePath()
-            + " The CPA can only handle ONE Automaton!");
-      }
-
-      this.automaton = lst.get(0);
+      this.automaton = constructAutomataFromFile(pConfig, inputFile);
     }
+
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
 
     if (export && exportFile != null) {
@@ -216,6 +163,41 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     }
 
     GlobalInfo.getInstance().storeAutomaton(automaton, this);
+  }
+
+  private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
+      throws InvalidConfigurationException {
+
+    Scope scope = cfa.getLanguage() == Language.C
+        ? new CProgramScope(cfa, logger)
+        : DummyScope.getInstance();
+
+    List<Automaton> lst = AutomatonParser.parseAutomatonFile(pFile, pConfig, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+
+    if (lst.isEmpty()) {
+      throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
+    } else if (lst.size() > 1) {
+      throw new InvalidConfigurationException("Found " + lst.size()
+          + " automata in the File " + inputFile.toAbsolutePath()
+          + " The CPA can only handle ONE Automaton!");
+    }
+
+    return lst.get(0);
+  }
+
+  private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
+      throws InvalidConfigurationException {
+
+    final PrecisionAdjustment lPrecisionAdjustment;
+
+    if (breakOnTargetState > 0) {
+      lPrecisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
+
+    } else {
+      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
+    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, lPrecisionAdjustment);
   }
 
   Automaton getAutomaton() {
@@ -239,7 +221,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
+    return mergeOperator;
   }
 
   @Override

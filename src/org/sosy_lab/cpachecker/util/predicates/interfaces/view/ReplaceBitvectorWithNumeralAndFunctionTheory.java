@@ -250,13 +250,63 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), getC99ReplacementForSMTlib2Division(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public BitvectorFormula modulo(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.modulo(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(getFormulaType(pNumber1), getC99ReplacementForSMTlib2Modulo(unwrap(pNumber1), unwrap(pNumber2)));
+  }
+
+
+  /**
+   * @see BitvectorFormulaManagerView#divide(BitvectorFormula, BitvectorFormula, boolean)
+   */
+  private Formula getC99ReplacementForSMTlib2Division(final T f1, final T f2) {
+
+    final T zero = numericFormulaManager.makeNumber(0);
+    final T additionalUnit = booleanFormulaManager.ifThenElse(
+        numericFormulaManager.greaterOrEquals(f2, zero),
+        numericFormulaManager.makeNumber(1),
+        numericFormulaManager.makeNumber(-1));
+    final T div = numericFormulaManager.divide(f1, f2);
+
+    // IF   first operand is positive or is divisible by second operand
+    // THEN return plain division --> here C99 is equal to SMTlib2
+    // ELSE divide and add an additional unit towards the nearest infinity.
+
+    return booleanFormulaManager.ifThenElse(
+        booleanFormulaManager.or(
+            numericFormulaManager.greaterOrEquals(f1, zero),
+            numericFormulaManager.equal(numericFormulaManager.multiply(div, f2), f1)),
+        div,
+        numericFormulaManager.add(div, additionalUnit));
+  }
+
+
+  /**
+   * @see BitvectorFormulaManagerView#modulo(BitvectorFormula, BitvectorFormula, boolean)
+   */
+  private Formula getC99ReplacementForSMTlib2Modulo(final T f1, final T f2) {
+
+    final T zero = numericFormulaManager.makeNumber(0);
+    final T additionalUnit = booleanFormulaManager.ifThenElse(
+        numericFormulaManager.greaterOrEquals(f2, zero),
+        numericFormulaManager.negate(f2),
+        f2);
+    final T mod = numericFormulaManager.modulo(f1, f2);
+
+    // IF   first operand is positive or mod-result is zero
+    // THEN return plain modulo --> here C99 is equal to SMTlib2
+    // ELSE modulo and add an additional unit towards the nearest infinity.
+
+    return booleanFormulaManager.ifThenElse(
+        booleanFormulaManager.or(
+            numericFormulaManager.greaterOrEquals(f1, zero),
+            numericFormulaManager.equal(mod, zero)),
+        mod,
+        numericFormulaManager.add(mod, additionalUnit));
   }
 
   @Override

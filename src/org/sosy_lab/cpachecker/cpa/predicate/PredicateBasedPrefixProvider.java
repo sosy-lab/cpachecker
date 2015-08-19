@@ -89,15 +89,15 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasiblePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
    */
   @Override
-  public <T> List<InfeasiblePrefix> extractInfeasiblePrefixes(
+  public List<InfeasiblePrefix> extractInfeasiblePrefixes(
       final ARGPath path) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> prefixes = new ArrayList<>();
     MutableARGPath feasiblePrefixPath = new MutableARGPath();
-    List<T> feasiblePrefixTerms = new ArrayList<>(path.size());
+    List<Object> feasiblePrefixTerms = new ArrayList<>(path.size());
 
     try (@SuppressWarnings("unchecked")
-      InterpolatingProverEnvironmentWithAssumptions<T> prover =
-      (InterpolatingProverEnvironmentWithAssumptions<T>)solver.newProverEnvironmentWithInterpolation()) {
+      InterpolatingProverEnvironmentWithAssumptions<Object> prover =
+      (InterpolatingProverEnvironmentWithAssumptions<Object>)solver.newProverEnvironmentWithInterpolation()) {
 
       PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
@@ -106,7 +106,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
         feasiblePrefixPath.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
         try {
           formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
-          T term = prover.push(formula.getFormula());
+          Object term = prover.push(formula.getFormula());
           feasiblePrefixTerms.add(term);
 
           if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {
@@ -167,13 +167,22 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     // for interpolation/refinement to work properly with existing code,
     // add another transition after the infeasible one, also add FALSE itp
-    infeasiblePrefix.add(Pair.of(Iterables.get(path.asStatesList(), infeasiblePrefix.size()), Iterables.get(path.asEdgesList(), infeasiblePrefix.size())));
+    infeasiblePrefix.add(obtainSuccessorTransition(path, currentPrefix.size()));
     interpolantSequence.add(fmgr.getBooleanFormulaManager().makeBoolean(false));
 
     // additionally, add final (target) state, also to satisfy requirements of existing code
     infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
 
     return InfeasiblePrefix.buildForPredicateDomain(infeasiblePrefix.immutableCopy(), interpolantSequence, fmgr);
+  }
+
+  /**
+   * This method returns the pair of state and edge at the given offset.
+   */
+  private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
+    Pair<ARGState, CFAEdge> transition = path.obtainTransitionAt(offset);
+    return Pair.<ARGState, CFAEdge>of(transition.getFirst(),
+        BlankEdge.buildNoopEdge(transition.getSecond().getPredecessor(), transition.getSecond().getSuccessor()));
   }
 
   private <T> Pair<ARGState, CFAEdge> removeFailingOperation(MutableARGPath feasiblePrefixPath,

@@ -141,6 +141,13 @@ typedef jobject jvoid_pointer;
     (*jenv)->SetLongField(jenv, arg##num, fid, (jlong)*z3_arg##num); \
   }
 
+#define SET_VOID_POINTER_ARG(num) \
+  { \
+    jclass cls    = (*jenv)->GetObjectClass(jenv, arg##num); \
+    jfieldID fid = (*jenv)->GetFieldID(jenv, cls, "value", "J"); \
+    (*jenv)->SetObjectField(jenv, arg##num, fid, *z3_arg##num); \
+  }
+
 
 
 

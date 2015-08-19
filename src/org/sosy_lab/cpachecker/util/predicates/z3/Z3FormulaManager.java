@@ -56,7 +56,8 @@ import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Splitter;
 
-@Options(prefix = "cpa.predicate.solver.z3")
+@Options(deprecatedPrefix="cpa.predicate.solver.z3",
+         prefix="solver.z3")
 public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> implements AutoCloseable {
 
   @Option(secure=true, description = "simplify formulas when they are asserted in a solver.")
@@ -78,11 +79,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
   private Z3AstMatcher z3astMatcher;
   private final long z3params;
   private final ShutdownNotifier shutdownNotfier;
+  private final LogManager logger;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
   private static final String OPT_PRIORITY_CONFIG_KEY = "priority";
 
-  @Options(prefix="cpa.predicate.solver.z3")
+  @Options(deprecatedPrefix="cpa.predicate.solver.z3",
+           prefix="solver.z3")
   public static class ExtraOptions {
     @Option(secure=true, description="Require proofs from SMT solver")
     boolean requireProofs = true;
@@ -105,7 +108,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
       Z3ArrayFormulaManager pArrayManager,
       Z3SmtLogger smtLogger, Configuration config, long pZ3params,
       ShutdownNotifier.ShutdownRequestListener pInterruptListener,
-      ShutdownNotifier pShutdownNotifier) throws
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger) throws
         InvalidConfigurationException {
 
     super(pFormulaCreator, pUnsafeManager, pFunctionManager, pBooleanManager,
@@ -118,6 +122,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     interruptListener = pInterruptListener;
     pShutdownNotifier.register(interruptListener);
     shutdownNotfier = pShutdownNotifier;
+    logger = pLogger;
   }
 
   public static synchronized Z3FormulaManager create(LogManager logger,
@@ -212,7 +217,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
         creator,
         unsafeManager, functionTheory, booleanTheory,
         integerTheory, rationalTheory, bitvectorTheory, quantifierManager, arrayManager,
-        smtLogger, config, z3params, interruptListener, pShutdownNotifier);
+        smtLogger, config, z3params, interruptListener, pShutdownNotifier,
+        logger);
   }
 
   @Override
@@ -232,7 +238,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   @Override
   public OptEnvironment newOptEnvironment() {
-    Z3OptProver out = new Z3OptProver(this, shutdownNotfier);
+    Z3OptProver out = new Z3OptProver(this, shutdownNotfier, logger);
     out.setParam(OPT_ENGINE_CONFIG_KEY, this.optimizationEngine);
     out.setParam(OPT_PRIORITY_CONFIG_KEY, this.objectivePrioritizationMode);
     return out;

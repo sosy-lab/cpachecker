@@ -1,29 +1,29 @@
 <?xml version="1.0"?>
-<!DOCTYPE benchmark SYSTEM "benchmark.dtd">
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpalien" timelimit="60" hardtimelimit="90" memlimit="1000" cpuCores="1">
   <option name="-noout"/>
   <option name="-heap">512M</option>
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
-  <sourcefiles name="cpalien-okay">
+  <tasks name="cpalien-okay">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-CPAlien"/>
     <option name="-preprocess" />
     <propertyfile>../programs/benchmarks/PropertyMemSafety.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="cpalien-label-okay">
+  <tasks name="cpalien-label-okay">
     <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
     <option name="-CPAlien-label"/>
     <option name="-preprocess" />
     <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
 
-  <sourcefiles name="MemorySafety">
+  <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
     <option name="-sv-comp14"/>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-  </sourcefiles>
+  </tasks>
   <rundefinition/>
 </benchmark>

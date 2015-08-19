@@ -42,6 +42,7 @@ Changes from CPAchecker 1.3.4 to CPAchecker 1.4
 * The SMT solver Princess (http://www.philipp.ruemmer.org/princess.shtml)
   has been integrated into CPAchecker's predicate analysis
   and can be selected with cpa.predicate.solver=princess
+        [15/7/2015 update: current name for the option is solver.solver]
 
 * The configuration files for value analysis have been renamed.
   Instead of -explicitAnalysis or similar,

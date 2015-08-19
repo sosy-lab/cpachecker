@@ -69,11 +69,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -113,6 +113,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
+  private boolean refineablePrecisionSet = false;
+  private ValueAnalysisConcreteErrorPathAllocator errorPathAllocator;
+
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     this.config           = config;
@@ -133,6 +136,8 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     reducer             = new ValueAnalysisReducer();
     statistics          = new ValueAnalysisCPAStatistics(this, config);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+
+    errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
   }
 
   private MergeOperator initializeMergeOperator() {
@@ -223,8 +228,9 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
   public void injectRefinablePrecision() throws InvalidConfigurationException {
 
     // replace the full precision with an empty, refinable precision
-    if (initialPrecisionFile == null) {
+    if (initialPrecisionFile == null && !refineablePrecisionSet) {
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      refineablePrecisionSet = true;
     }
   }
 
@@ -293,6 +299,7 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
     pStatsCollection.add(statistics);
     writer.collectStatistics(pStatsCollection);
     precisionAdjustment.collectStatistics(pStatsCollection);
+    transferRelation.collectStatistics(pStatsCollection);
   }
 
   public ValueAnalysisCPAStatistics getStats() {
@@ -332,9 +339,6 @@ public class ValueAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, Sta
 
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
-
-    ValueAnalysisConcreteErrorPathAllocator alloc =
-        new ValueAnalysisConcreteErrorPathAllocator(logger, shutdownNotifier, cfa.getMachineModel());
-    return alloc.allocateAssignmentsToPath(pPath);
+    return errorPathAllocator.allocateAssignmentsToPath(pPath);
   }
 }

@@ -47,7 +47,8 @@ import com.google.common.io.FileWriteMode;
 
 class Z3SmtLogger {
 
-  @Options(prefix="cpa.predicate.solver.z3.logger")
+  @Options(deprecatedPrefix="cpa.predicate.solver.z3.logger",
+           prefix="solver.z3.logger")
   private static class Z3Settings {
 
     private final @Nullable PathCounterTemplate basicLogfile;

@@ -51,13 +51,17 @@ public class ReachedSetFactory {
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(secure=true, name = "traversal.useCallstack",
-      description = "handle states with a deeper callstack first?"
+      description = "handle states with a deeper callstack first"
       + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
 
   @Option(secure=true, name="traversal.useLoopstack",
-    description= "handle states with a deeper loopstack first?")
+    description= "handle states with a deeper loopstack first.")
   boolean useLoopstack = false;
+
+  @Option(secure=true, name="traversal.useReverseLoopstack",
+      description= "handle states with a shallow loopstack first.")
+  boolean useReverseLoopstack = false;
 
   @Option(secure=true, name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
@@ -110,6 +114,9 @@ public class ReachedSetFactory {
     }
     if (useLoopstack) {
       waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);
+    }
+    if (useReverseLoopstack) {
+      waitlistFactory = LoopstackSortedWaitlist.reversedFactory(waitlistFactory);
     }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);

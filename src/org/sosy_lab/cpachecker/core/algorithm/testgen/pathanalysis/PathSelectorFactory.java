@@ -69,7 +69,7 @@ public class PathSelectorFactory {
   }
 
   @SuppressWarnings("deprecation") //suppresses deprecated CUTEBasicPathSelector
-  public PathSelector createPathSelector(AnalysisStrategySelector selector, CFA pCfa, TestGenStatistics stats) throws InvalidConfigurationException{
+  public PathSelector createPathSelector(AnalysisStrategySelector selector, CFA pCfa, TestGenStatistics stats) throws InvalidConfigurationException {
     PathSelector analysisStrategy;
     switch (selector) {
     case LOCATION_AND_VALUE_STATE_TRACKING:
@@ -88,11 +88,16 @@ public class PathSelectorFactory {
     return analysisStrategy;
   }
 
-  private PathChecker createPathChecker(CFA pCfa) throws InvalidConfigurationException
-  {
+  private PathChecker createPathChecker(CFA pCfa) throws InvalidConfigurationException {
     Solver solver = Solver.create(startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier());
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(solver.getFormulaManager(), startupConfig.getConfig(), startupConfig.getLog(), startupConfig.getShutdownNotifier(), pCfa, AnalysisDirection.FORWARD);
-    PathChecker pathChecker = new PathChecker(startupConfig.getLog(), startupConfig.getShutdownNotifier(), pfMgr, solver, pCfa.getMachineModel());
+    PathChecker pathChecker = new PathChecker(
+        startupConfig.getConfig(),
+        startupConfig.getLog(),
+        startupConfig.getShutdownNotifier(),
+        pCfa.getMachineModel(),
+        pfMgr,
+        solver);
     return pathChecker;
   }
 }

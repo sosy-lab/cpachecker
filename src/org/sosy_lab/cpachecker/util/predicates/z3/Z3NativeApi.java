@@ -56,8 +56,6 @@ public final class Z3NativeApi {
     String value;
   }
 
-  /** Start optimization - Nikolaj Bjorner branch. **/
-
   /**
    * Create a new optimize context.
    *
@@ -115,6 +113,16 @@ public final class Z3NativeApi {
    *   false, undefined or true.
    */
   public static native int optimize_check(long context, long optimize) throws Z3SolverException;
+
+  /**
+   * Retrieve a string that describes the last status returned by
+   * {@link #optimize_check}.
+   * Use this method when #Z3_optimize_check returns Z3_L_UNDEF.
+   *
+   * @param c Z3_context
+   * @param d Z3_optimize
+   */
+  public static native String optimize_get_reason_unknown(long c, long d);
 
   /**
    * \brief Retrieve the model for the last #Z3_optimize_check
@@ -553,6 +561,11 @@ public final class Z3NativeApi {
   public static native long pattern_to_ast(long context, long a1);
   public static native int get_pattern_num_terms(long context, long a1);
   public static native long get_pattern(long context, long a1, int a2);
+
+  /**
+   * @param a1 Variable AST.
+   * @return index of de-Brujin bound variable.
+   */
   public static native int get_index_value(long context, long a1);
   public static native boolean is_quantifier_forall(long context, long a1);
   public static native int get_quantifier_weight(long context, long a1);
