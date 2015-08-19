@@ -45,11 +45,21 @@ public class BAMDataManager {
 
   private final ReachedSetFactory reachedSetFactory;
 
+  /** abstractStateToReachedSet contains the mapping of non-reduced initial states
+   *  to the reached-sets, where the root-state is the corresponding reduced state. */
   final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
-  final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
-  final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
-  final Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
 
+  /** expandedToReducedCache contains the mapping of an expanded state at a block-end towards
+   * the corresponding reduced state, from which it was expanded. */
+  final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
+
+  /** expandedToBlockCache contains the mapping of an expanded state at a block-end towards
+   * the inner block of the corresponding reduced state, from which it was expanded. */
+  final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
+
+  /** forwardPrecisionToExpandedPrecision contains the mapping an expanded state at a block-end towards
+   * the corresponding expanded precision. */
+  final Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
 
   public BAMDataManager(BAMCache pArgCache, ReachedSetFactory pReachedSetFactory, LogManager pLogger) {
     bamCache = pArgCache;

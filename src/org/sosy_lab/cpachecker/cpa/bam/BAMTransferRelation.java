@@ -319,8 +319,6 @@ public class BAMTransferRelation implements TransferRelation {
 
       AbstractState expandedState =
               wrappedReducer.getVariableExpandedState(state, currentBlock, reducedState);
-      data.expandedToReducedCache.put(expandedState, reducedState);
-      data.expandedToBlockCache.put(expandedState, currentBlock);
 
       Precision expandedPrecision =
               outerSubtree == null ? reducedPrecision : // special case: return from main
@@ -329,6 +327,8 @@ public class BAMTransferRelation implements TransferRelation {
       ((ARGState)expandedState).addParent((ARGState) state);
       expandedResult.add(expandedState);
 
+      data.expandedToReducedCache.put(expandedState, reducedState);
+      data.expandedToBlockCache.put(expandedState, currentBlock);
       data.forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
     }
 
