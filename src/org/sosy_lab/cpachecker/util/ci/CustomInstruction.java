@@ -856,7 +856,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciCharExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the CharLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciCharExp + " (" + aciCharExp.getExpressionType() + ").");
       }
-      if (ciExp.getCharacter() == aciCharExp.getCharacter()) {
+      if (ciExp.getCharacter() != aciCharExp.getCharacter()) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CCharLiteralExpression of ci " + ciExp + " and aci " + aciCharExp + " are different.");
       }
       return null;
@@ -872,7 +872,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciFloatExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the FloatLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciFloatExp + " (" + aciFloatExp.getExpressionType() + ").");
       }
-      if (ciExp.getValue().equals(aciFloatExp.getValue())) {
+      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CCharLiteralExpression of ci " + ciExp + " and aci " + aciFloatExp + " are different.");
       }
       return null;
@@ -888,7 +888,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciIntegerLiteralExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the IntegerLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciIntegerLiteralExp + " (" + aciIntegerLiteralExp.getExpressionType() + ").");
       }
-      if (ciExp.getValue().equals(aciIntegerLiteralExp.getValue())) {
+      if (!ciExp.getValue().equals(aciIntegerLiteralExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CIntegerLiteralExpression of ci " + ciExp + " and aci " + aciIntegerLiteralExp + " are different.");
       }
       return null;
@@ -904,7 +904,7 @@ public class CustomInstruction{
       if (!ciExp.getExpressionType().equals(aciStringLiteralExp.getExpressionType())) {
         throw new AppliedCustomInstructionParsingFailedException("The expression type of the StringLiteralExpression of ci " + ciExp + " (" + ciExp.getExpressionType() + ") is not equal to the one of the aci " + aciStringLiteralExp + " (" + aciStringLiteralExp.getExpressionType() + ").");
       }
-      if (ciExp.getValue().equals(aciStringLiteralExp.getValue())) {
+      if (!ciExp.getValue().equals(aciStringLiteralExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException("The value of the CIntegerLiteralExpression of ci " + ciExp + " and aci " + aciStringLiteralExp + " are different.");
       }
       return null;
