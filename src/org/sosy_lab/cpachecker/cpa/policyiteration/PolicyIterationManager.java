@@ -320,7 +320,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         Optional<PolicyAbstractedState> sibling =
             findSibling(states.getReached(pArgState));
 
-        logger.log(Level.FINE, "Performing abstraction on a node " + toNode);
         Optional<PolicyAbstractedState> abstraction = performAbstraction(
             iState,
             sibling,
@@ -415,8 +414,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       statistics.simplifyTimer.stop();
     }
 
-    // No value determination, no abstraction, simply join incoming edges
-    // and the tracked templates.
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
         mergedPath,
@@ -454,9 +451,11 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Optional<PolicyBound> newValue = newState.getBound(template);
 
       if (!newValue.isPresent() || !oldValue.isPresent()) {
+
+        // Either is unbounded: no need to do anything.
         continue;
       }
-      PolicyBound newBound;
+      PolicyBound mergedBound;
       if (newValue.get().getBound().compareTo(oldValue.get().getBound()) > 0) {
         TemplateUpdateEvent updateEvent = TemplateUpdateEvent.of(
             newState.getLocationID(), template);
@@ -468,7 +467,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               "at", newState.getNode(), "was reached, widening to infinity.");
           continue;
         }
-        newBound = newValue.get();
+        mergedBound = newValue.get();
         updated.put(template, newValue.get());
 
         logger.log(Level.FINE, "Updating template", template, "at",
@@ -477,9 +476,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             "(was: ", oldValue.get().getBound(), ")");
         statistics.templateUpdateCounter.add(updateEvent);
       } else {
-        newBound = oldValue.get();
+        mergedBound = oldValue.get();
       }
-      newAbstraction.put(template, newBound);
+      newAbstraction.put(template, mergedBound);
     }
 
     BooleanFormula newPredicate = fmgr.simplify(
@@ -648,6 +647,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean shouldPerformValueDetermination(
       CFANode node,
       Map<Template, PolicyBound> updated) {
+
+    // todo: inconsistent loop detection code.
     if (!node.isLoopStart() || updated.isEmpty()) {
       return false;
     }
@@ -1053,7 +1054,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     try {
       statistics.comparisonTimer.start();
       boolean out = isLessOrEqualNoCheck(state1, state2);
-      Verify.verify(!state1.isAbstract() || (!joinOnMerge || out),
+      Verify.verify(!(state1.isAbstract() && joinOnMerge && !out),
           "In the join config '<=' check on abstracted states should always return 'true'",
           state1, state2);
       return out;

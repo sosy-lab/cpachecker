@@ -218,6 +218,10 @@ public class PolicyIterationStatistics implements Statistics {
     public int hashCode() {
       return Objects.hashCode(locationID, template);
     }
-  }
 
+    @Override
+    public String toString() {
+      return String.format("%s (%s)", template, locationID);
+    }
+  }
 }
