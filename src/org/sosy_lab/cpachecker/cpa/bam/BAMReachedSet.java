@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Collections2;
 
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
@@ -73,8 +74,13 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     this.path = pPath;
     this.subgraphStatesToReachedState = pSubgraphStatesToReachedState;
     this.rootOfSubgraph = pRootOfSubgraph;
-    this.subgraph = Lists.<AbstractState>newArrayList(rootOfSubgraph.getSubgraph());
+    this.subgraph = Collections.<AbstractState>unmodifiableCollection(subgraphStatesToReachedState.keySet());
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
+
+    assert subgraph.containsAll(path.asStatesList()) : "path should traverse reached states";
+    assert pRootOfSubgraph == path.getFirstState();
+    assert subgraph.containsAll(pRootOfSubgraph.getSubgraph()) : "reached states should match states reachable from root";
+    assert pRootOfSubgraph.getSubgraph().containsAll(subgraph) : "states reachable from root should match reached states";
   }
 
   @Override
@@ -92,7 +98,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       @Override
       public Collection<Precision> getPrecisions() {
-        return Lists.transform(path.asStatesList(), GET_PRECISION);
+        return Collections2.transform(subgraph, GET_PRECISION);
       }
 
       @Override
@@ -160,6 +166,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
+    assert subgraphStatesToReachedState.containsKey(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
     argSubtreeRemover.removeSubtree(delegate, path, element,
             newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
