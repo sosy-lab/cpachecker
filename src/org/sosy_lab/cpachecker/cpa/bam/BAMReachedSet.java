@@ -31,6 +31,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,6 +53,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final ARGState rootOfSubgraph;
   private final Collection<AbstractState> subgraph;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState;
+  private final Timer removeCachedSubtreeTimer;
 
   private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
     @Nullable
@@ -64,13 +66,15 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   };
 
   public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
-      Map<ARGState, ARGState> pSubgraphStatesToReachedState, ARGState pRootOfSubgraph) {
+      Map<ARGState, ARGState> pSubgraphStatesToReachedState, ARGState pRootOfSubgraph,
+      Timer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.path = pPath;
     this.subgraphStatesToReachedState = pSubgraphStatesToReachedState;
     this.rootOfSubgraph = pRootOfSubgraph;
     this.subgraph = Lists.<AbstractState>newArrayList(rootOfSubgraph.getSubgraph());
+    this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
   }
 
   @Override
@@ -156,14 +160,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-
-    bamCpa.getData().removeSubtreeTimer.start();
-
-    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa);
+    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
     argSubtreeRemover.removeSubtree(delegate, path, element,
             newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
-
-    bamCpa.getData().removeSubtreeTimer.stop();
   }
 
   @Override

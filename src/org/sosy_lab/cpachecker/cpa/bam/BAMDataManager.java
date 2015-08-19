@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,16 +43,13 @@ public class BAMDataManager {
    * It contains every reached-set of every sub-analysis. */
   final BAMCache bamCache;
 
-  final ReachedSetFactory reachedSetFactory;
+  private final ReachedSetFactory reachedSetFactory;
 
   final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
   final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
   final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
   final Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
 
-  final Timer recomputeARTTimer = new Timer();
-  final Timer removeCachedSubtreeTimer = new Timer();
-  final Timer removeSubtreeTimer = new Timer();
 
   public BAMDataManager(BAMCache pArgCache, ReachedSetFactory pReachedSetFactory, LogManager pLogger) {
     bamCache = pArgCache;

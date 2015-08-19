@@ -55,6 +55,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
+  final Timer removeCachedSubtreeTimer = new Timer();
 
   private final BAMCPA bamCpa;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
@@ -89,7 +90,8 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph), pPath);
+      return performRefinement0(new BAMReachedSet(bamCpa, pReached, pPath,
+          subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer), pPath);
     }
   }
 

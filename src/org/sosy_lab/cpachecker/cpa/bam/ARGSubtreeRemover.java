@@ -39,6 +39,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,13 +64,15 @@ public class ARGSubtreeRemover {
   private final Reducer wrappedReducer;
   private final BAMCache bamCache;
   private final LogManager logger;
+  private final Timer removeCachedSubtreeTimer;
 
-  public ARGSubtreeRemover(BAMCPA bamCpa) {
+  public ARGSubtreeRemover(BAMCPA bamCpa, Timer pRemoveCachedSubtreeTimer) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.data = bamCpa.getData();
     this.wrappedReducer = bamCpa.getReducer();
     this.bamCache = bamCpa.getData().bamCache;
     this.logger = bamCpa.getData().logger;
+    this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
   }
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
@@ -161,7 +164,7 @@ public class ARGSubtreeRemover {
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
                                    List<Predicate<? super Precision>> pPrecisionTypes) {
-    data.removeCachedSubtreeTimer.start();
+    removeCachedSubtreeTimer.start();
 
     try {
       CFANode rootNode = extractLocation(rootState);
@@ -210,7 +213,7 @@ public class ARGSubtreeRemover {
       }
 
     } finally {
-      data.removeCachedSubtreeTimer.stop();
+      removeCachedSubtreeTimer.stop();
     }
   }
 

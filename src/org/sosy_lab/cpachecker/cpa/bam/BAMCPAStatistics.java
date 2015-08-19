@@ -147,12 +147,11 @@ class BAMCPAStatistics implements Statistics {
     out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
-    out.println("Time for removing cached subtrees for refinement:               " + data.removeCachedSubtreeTimer);
-    out.println("Time for recomputing ARGs during counterexample analysis:       " + data.recomputeARTTimer);
     if (refiner != null) {
       out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
       out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
       out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
+      out.println("  Removing cached subtrees:                                     " + refiner.removeCachedSubtreeTimer);
     }
 
     //Add to reached set all states from BAM cache
