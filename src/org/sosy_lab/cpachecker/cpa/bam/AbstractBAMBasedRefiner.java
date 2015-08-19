@@ -100,8 +100,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     assert pLastElement.isTarget();
     assert pReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 
-    subgraphStatesToReachedState.clear();
-
     computePathTimer.start();
     try {
       computeSubtreeTimer.start();
@@ -131,7 +129,9 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   //in the constructed subtree that represents target
   private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet) {
     assert reachedSet.asReachedSet().contains(target);
-    assert subgraphStatesToReachedState.isEmpty() : "new path should be started with empty set of states.";
+
+    // cleanup old states from last refinement
+    subgraphStatesToReachedState.clear();
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, logger, subgraphStatesToReachedState);
     return cexSubgraphComputer.computeCounterexampleSubgraph(
