@@ -20,9 +20,6 @@ HEADER = '''// THIS FILE IS BUILD AUTOMATICALLY, DO NOT CHANGE!!!
 #include"includes/error_handling.h"
 '''
 
-# Add debugging statements.
-DEBUG = False
-
 
 def process_text(text):
     """
@@ -154,24 +151,18 @@ def process_text(text):
             elif len(parts) >= 2 and "[" not in param:
 
                 # type + * + pname
-                if "*" in param and parts[1] == "*":
+                if "*" in param:
                     d("branch 3-1")
-                    typ = parts[0].replace("__","")
-                    typs.append(getType(typ) + "_pointer")
-                    inp = typ.replace("Z3_", "").upper()
-                    checkAndClean(inp, "POINTER_ARG", i)
-
-                elif "*" in param:
-                    d("branch 3-2")
                     star_index = parts.index("*")
                     typ = "_".join(parts[0:star_index]).replace("__","") # unsigned + __int64
                     typs.append(getType(typ) + "_pointer")
                     inp = typ.replace("Z3_", "").upper()
                     checkAndClean(inp, "POINTER_ARG", i)
+                    cleanups.insert(0, "SET_" + inp + "_POINTER_ARG(" + str(i+1) + ")")
 
                 # type... + pname
                 else:
-                    d("branch 3-3")
+                    d("branch 3-2")
                     assert len(parts) >= 2
                     typ = "_".join(parts[0:-1]).replace("__","") # unsigned + __int64
                     typs.append(getType(typ))
