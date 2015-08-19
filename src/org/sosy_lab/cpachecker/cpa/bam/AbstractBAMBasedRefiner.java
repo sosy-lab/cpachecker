@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -60,8 +59,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   private final BAMCPA bamCpa;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
-
-  final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
   protected AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -105,7 +102,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       computeSubtreeTimer.start();
       try {
         rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
-        if (rootOfSubgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
+        if (rootOfSubgraph == BAMCEXSubgraphComputer.DUMMY_STATE_FOR_MISSING_BLOCK) {
           return null;
         }
       } finally {
@@ -134,7 +131,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     subgraphStatesToReachedState.clear();
 
     final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, logger, subgraphStatesToReachedState);
-    return cexSubgraphComputer.computeCounterexampleSubgraph(
-        target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet);
   }
 }

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.cpa.bam.AbstractBAMBasedRefiner.DUMMY_STATE_FOR_MISSING_BLOCK;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.HashMap;
@@ -49,6 +48,8 @@ public class BAMCEXSubgraphComputer {
   private final BAMDataManager data;
   private final Map<ARGState, ARGState> pathStateToReachedState;
   private final LogManager logger;
+
+  final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
   BAMCEXSubgraphComputer(BAMCPA bamCpa, LogManager pLogger, Map<ARGState, ARGState> pPathStateToReachedState) {
     this.partitioning = bamCpa.getBlockPartitioning();
@@ -76,10 +77,14 @@ public class BAMCEXSubgraphComputer {
    *         because one real state can be used multiple times in one path.
    *         The map "pathStateToReachedState" should be used to search the correct real state.
    */
-  BackwardARGState computeCounterexampleSubgraph(final ARGState target,
-      final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget) {
+  BackwardARGState computeCounterexampleSubgraph(final ARGState target, final ARGReachedSet reachedSet) {
     assert reachedSet.asReachedSet().contains(target);
+    return computeCounterexampleSubgraph(target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
+  }
 
+  private BackwardARGState computeCounterexampleSubgraph(final ARGState target,
+        final ARGReachedSet reachedSet, final BackwardARGState newTreeTarget) {
+      assert reachedSet.asReachedSet().contains(target);
     //start by creating ARGElements for each node needed in the tree
     final Map<ARGState, BackwardARGState> finishedStates = new HashMap<>();
     final NavigableSet<ARGState> waitlist = new TreeSet<>(); // for sorted IDs in ARGstates
@@ -225,8 +230,10 @@ public class BAMCEXSubgraphComputer {
   /**
    * This is a ARGState, that counts backwards, used to build the Pseudo-ARG for CEX-retrieval.
    * As the Pseudo-ARG is build backwards starting at its end-state, we count the ID backwards.
-   */
-  static class BackwardARGState extends ARGState {
+   *
+   * TODO we could replace the BackwardARGState completely by a normal ARGState,
+   * we just keep it for debugging. */
+  private static class BackwardARGState extends ARGState {
 
     private static final long serialVersionUID = -3279533907385516993L;
     private int decreasingStateID;
@@ -238,6 +245,7 @@ public class BAMCEXSubgraphComputer {
     }
 
     @Override
+    /** unused */
     public boolean isOlderThan(ARGState other) {
       if (other instanceof BackwardARGState) { return decreasingStateID < ((BackwardARGState) other).decreasingStateID; }
       return super.isOlderThan(other);
