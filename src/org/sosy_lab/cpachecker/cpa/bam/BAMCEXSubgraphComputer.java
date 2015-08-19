@@ -52,18 +52,14 @@ public class BAMCEXSubgraphComputer {
   private final Map<AbstractState, AbstractState> expandedToReducedCache;
   private final LogManager logger;
 
-  BAMCEXSubgraphComputer(BlockPartitioning partitioning, Reducer reducer, BAMCache bamCache,
-                         Map<ARGState, ARGState> pathStateToReachedState,
-                         Map<AbstractState, ReachedSet> abstractStateToReachedSet,
-                         Map<AbstractState, AbstractState> expandedToReducedCache,
-                         LogManager logger) {
-    this.partitioning = partitioning;
-    this.reducer = reducer;
-    this.bamCache = bamCache;
-    this.pathStateToReachedState = pathStateToReachedState;
-    this.abstractStateToReachedSet = abstractStateToReachedSet;
-    this.expandedToReducedCache = expandedToReducedCache;
-    this.logger = logger;
+  BAMCEXSubgraphComputer(BAMCPA bamCpa, LogManager pLogger, Map<ARGState, ARGState> pPathStateToReachedState) {
+    this.partitioning = bamCpa.getBlockPartitioning();
+    this.reducer = bamCpa.getReducer();
+    this.bamCache = bamCpa.getData().bamCache;
+    this.pathStateToReachedState = pPathStateToReachedState;
+    this.abstractStateToReachedSet = bamCpa.getData().abstractStateToReachedSet;
+    this.expandedToReducedCache = bamCpa.getData().expandedToReducedCache;
+    this.logger = pLogger;
   }
 
   /** returns the root of a subtree, leading from the root element of the given reachedSet to the target state.

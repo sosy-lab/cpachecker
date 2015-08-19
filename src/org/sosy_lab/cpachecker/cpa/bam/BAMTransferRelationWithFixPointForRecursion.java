@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -65,9 +64,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   final Map<AbstractState, Triple<AbstractState, Precision, Block>> potentialRecursionUpdateStates = new HashMap<>();
 
   public BAMTransferRelationWithFixPointForRecursion(Configuration pConfig, LogManager pLogger, BAMCPA bamCpa,
-                             ProofChecker wrappedChecker, BAMCache cache,
-      ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    super(pConfig, pLogger, bamCpa, wrappedChecker, cache, pReachedSetFactory, pShutdownNotifier);
+                             ProofChecker wrappedChecker, BAMDataManager data, ShutdownNotifier pShutdownNotifier)
+                                 throws InvalidConfigurationException {
+    super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier);
   }
 
   @Override
@@ -154,7 +153,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   /** update waitlists of all reachedsets to re-explore the previously found recursive function-call. */
   private void reAddStatesForFixPointIteration(final AbstractState pHeadOfMainFunctionState) {
     for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates.keySet()) {
-      for (final ReachedSet reachedSet : argCache.getAllCachedReachedStates()) {
+      for (final ReachedSet reachedSet : data.bamCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
           logger.log(Level.ALL, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
@@ -311,7 +310,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     // try to get previously computed states from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
             //argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-            argCache.get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
+            data.bamCache.get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
     final ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> previousResult = pair.getSecond();
     final Collection<Pair<AbstractState, Precision>> reducedResult;
@@ -328,7 +327,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       logger.logf(Level.FINEST, "skipping recursive call with cached result");
     }
 
-    abstractStateToReachedSet.put(initialState, reached);
+    data.abstractStateToReachedSet.put(initialState, reached);
 
     addBlockAnalysisInfo(pReducedInitialState);
 
@@ -397,10 +396,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     ((ARGState)expandedState).removeFromARG();
     ((ARGState)rebuildState).addParent((ARGState)entryState);
 
-    assert expandedToBlockCache.get(expandedState) == currentBlock : "returning from wrong block?";
+    assert data.expandedToBlockCache.get(expandedState) == currentBlock : "returning from wrong block?";
 
     // also clean up local data structures
-    replaceStateInCaches(expandedState, rebuildState, true);
+    data.replaceStateInCaches(expandedState, rebuildState, true);
 
     return rebuildState;
   }

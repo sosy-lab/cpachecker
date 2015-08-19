@@ -50,7 +50,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
   private int refinementNumber;
 
   private final ARGCPA argCpa;
-  private final LogManager logger;
+  protected final LogManager logger;
 
   private int counterexamplesCounter = 0;
 

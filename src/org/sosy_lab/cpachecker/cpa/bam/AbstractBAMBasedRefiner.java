@@ -56,7 +56,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
 
-  private final BAMTransferRelation transfer;
   private final BAMCPA bamCpa;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
@@ -68,7 +67,6 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     super(pCpa);
 
     bamCpa = (BAMCPA)pCpa;
-    transfer = bamCpa.getTransferRelation();
     bamCpa.getStatistics().addRefiner(this);
   }
 
@@ -91,7 +89,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph), pPath);
+      return performRefinement0(new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph), pPath);
     }
   }
 
@@ -106,7 +104,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     try {
       computeSubtreeTimer.start();
       try {
-        rootOfSubgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, subgraphStatesToReachedState);
+        rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
         if (rootOfSubgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
           return null;
         }
@@ -124,5 +122,17 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     } finally {
       computePathTimer.stop();
     }
+  }
+
+  //returns root of a subtree leading from the root element of the given reachedSet to the target state
+  //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
+  //in the constructed subtree that represents target
+  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet) {
+    assert reachedSet.asReachedSet().contains(target);
+    assert subgraphStatesToReachedState.isEmpty() : "new path should be started with empty set of states.";
+
+    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, logger, subgraphStatesToReachedState);
+    return cexSubgraphComputer.computeCounterexampleSubgraph(
+        target, reachedSet, new BAMCEXSubgraphComputer.BackwardARGState(target));
   }
 }

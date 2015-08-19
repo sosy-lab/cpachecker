@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -90,6 +88,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private final PartitioningHeuristic heuristic;
   private final CFA cfa;
   private final ProofChecker wrappedProofChecker;
+  private final BAMDataManager data;
 
   @Option(secure=true, description = "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
       + "or any class that implements a PartitioningHeuristic")
@@ -125,18 +124,19 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     }
     reducer = new TimedReducer(wrappedReducer);
     final BAMCache cache = new BAMCache(config, reducer);
+    data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     if (handleRecursiveProcedures) {
-      transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
+      transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
     } else {
-      transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, cache, pReachedSetFactory, pShutdownNotifier);
+      transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
     }
 
-    prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), transfer, logger);
+    prec = new BAMPrecisionAdjustment(pCpa.getPrecisionAdjustment(), data, transfer, logger);
     merge = new BAMMergeOperator(pCpa.getMergeOperator(), transfer);
     stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
 
-    stats = new BAMCPAStatistics(this, cache, config, logger);
+    stats = new BAMCPAStatistics(this, data, config, logger);
     heuristic = getPartitioningHeuristic();
   }
 
@@ -158,8 +158,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       }
 
       Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
-      transfer.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
-      prec.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
+      transfer.data.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
     return getWrappedCpa().getInitialState(pNode, pPartition);
   }
@@ -210,8 +209,13 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   }
 
   BlockPartitioning getBlockPartitioning() {
-    checkState(blockPartitioning != null);
+    Preconditions.checkNotNull(blockPartitioning);
     return blockPartitioning;
+  }
+
+  BAMDataManager getData() {
+    Preconditions.checkNotNull(data);
+    return data;
   }
 
   @Override
@@ -236,4 +240,5 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
+
 }

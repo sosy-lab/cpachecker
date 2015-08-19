@@ -39,7 +39,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -61,26 +59,20 @@ import com.google.common.collect.Iterables;
 public class ARGSubtreeRemover {
 
   private final BlockPartitioning partitioning;
+  private final BAMDataManager data;
   private final Reducer wrappedReducer;
   private final BAMCache bamCache;
-  private final ReachedSetFactory reachedSetFactory;
   private final Map<AbstractState, ReachedSet> abstractStateToReachedSet;
-  private final Timer removeCachedSubtreeTimer;
   private final LogManager logger;
 
-  public ARGSubtreeRemover(BlockPartitioning partitioning, Reducer reducer,
-                           BAMCache bamCache, ReachedSetFactory reachedSetFactory,
-                           Map<AbstractState, ReachedSet> abstractStateToReachedSet,
-                           Timer removeCachedSubtreeTimer, LogManager logger) {
-    this.partitioning = partitioning;
-    this.wrappedReducer = reducer;
-    this.bamCache = bamCache;
-    this.reachedSetFactory =reachedSetFactory;
-    this.abstractStateToReachedSet = abstractStateToReachedSet;
-    this.removeCachedSubtreeTimer = removeCachedSubtreeTimer;
-    this.logger = logger;
+  public ARGSubtreeRemover(BAMCPA bamCpa) {
+    this.partitioning = bamCpa.getBlockPartitioning();
+    this.data = bamCpa.getData();
+    this.wrappedReducer = bamCpa.getReducer();
+    this.bamCache = bamCpa.getData().bamCache;
+    this.abstractStateToReachedSet = bamCpa.getData().abstractStateToReachedSet;
+    this.logger = bamCpa.getData().logger;
   }
-
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
                      ARGState element, List<Precision> pNewPrecisions,
@@ -171,7 +163,7 @@ public class ARGSubtreeRemover {
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
                                    List<Predicate<? super Precision>> pPrecisionTypes) {
-    removeCachedSubtreeTimer.start();
+    data.removeCachedSubtreeTimer.start();
 
     try {
       CFANode rootNode = extractLocation(rootState);
@@ -220,7 +212,7 @@ public class ARGSubtreeRemover {
       }
 
     } finally {
-      removeCachedSubtreeTimer.stop();
+      data.removeCachedSubtreeTimer.stop();
     }
   }
 
@@ -353,7 +345,7 @@ public class ARGSubtreeRemover {
 
     //add precise key for new precision if needed
     if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, rootBlock)) {
-      ReachedSet reachedSet = createInitialReachedSet(reducedRootState, reducedNewPrecision);
+      ReachedSet reachedSet = data.createInitialReachedSet(reducedRootState, reducedNewPrecision);
       bamCache.put(reducedRootState, reducedNewPrecision, rootBlock, reachedSet);
     }
 
@@ -392,12 +384,6 @@ public class ARGSubtreeRemover {
     }
 
     return foundInnerUnpreciseEntries || !isNewPrecisionEntry;
-  }
-
-  private ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
-    ReachedSet reached = reachedSetFactory.create();
-    reached.add(initialState, initialPredicatePrecision);
-    return reached;
   }
 
   /** remove all states after pState from path */

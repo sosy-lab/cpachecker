@@ -47,7 +47,7 @@ import com.google.common.collect.Lists;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BAMTransferRelation transfer;
+  private final BAMCPA bamCpa;
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
   private final Collection<AbstractState> subgraph;
@@ -63,10 +63,10 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     }
   };
 
-  public BAMReachedSet(BAMTransferRelation pTransfer, ARGReachedSet pMainReachedSet, ARGPath pPath,
+  public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       Map<ARGState, ARGState> pSubgraphStatesToReachedState, ARGState pRootOfSubgraph) {
     super(pMainReachedSet);
-    this.transfer = pTransfer;
+    this.bamCpa = cpa;
     this.path = pPath;
     this.subgraphStatesToReachedState = pSubgraphStatesToReachedState;
     this.rootOfSubgraph = pRootOfSubgraph;
@@ -156,7 +156,14 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-    transfer.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
+
+    bamCpa.getData().removeSubtreeTimer.start();
+
+    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa);
+    argSubtreeRemover.removeSubtree(delegate, path, element,
+            newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
+
+    bamCpa.getData().removeSubtreeTimer.stop();
   }
 
   @Override
