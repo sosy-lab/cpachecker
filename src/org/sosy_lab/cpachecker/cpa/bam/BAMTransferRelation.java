@@ -175,7 +175,7 @@ public class BAMTransferRelation implements TransferRelation {
     // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
     // (except we have a full cache-hit).
 
-    if (currentBlock != null && currentBlock.isReturnNode(node) && !alreadyReturnedFromSameBlock(pState, currentBlock)) {
+    if (currentBlock != null && currentBlock.isReturnNode(node) && !data.alreadyReturnedFromSameBlock(pState, currentBlock)) {
       // we are leaving the block, do not perform analysis beyond the current block.
       // special case: returning from a recursive function is only allowed once per state.
       return Collections.emptySet();
@@ -327,9 +327,7 @@ public class BAMTransferRelation implements TransferRelation {
       ((ARGState)expandedState).addParent((ARGState) state);
       expandedResult.add(expandedState);
 
-      data.expandedToReducedCache.put(expandedState, reducedState);
-      data.expandedToBlockCache.put(expandedState, currentBlock);
-      data.forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
+      data.registerExpandedState(expandedState, expandedPrecision, reducedState, currentBlock);
     }
 
     logger.log(Level.ALL, "Expanded results:", expandedResult);
@@ -415,18 +413,6 @@ public class BAMTransferRelation implements TransferRelation {
       final Collection<AbstractState> reducedResult, final Collection<AbstractState> cachedReturnStates)
           throws CPAException, InterruptedException {
     return reducedResult; // dummy implementation, overridden in sub-class
-  }
-
-  /** checks, if the current state is at a node, where several block-exits are available and
-   * one of them was already left. */
-  private boolean alreadyReturnedFromSameBlock(AbstractState state, Block block) {
-    while (data.expandedToReducedCache.containsKey(state)) {
-      if (data.expandedToBlockCache.containsKey(state) && block == data.expandedToBlockCache.get(state)) {
-        return true;
-      }
-      state = data.expandedToReducedCache.get(state);
-    }
-    return false;
   }
 
   /** Analyse the block with a 'recursive' call to the CPAAlgorithm.

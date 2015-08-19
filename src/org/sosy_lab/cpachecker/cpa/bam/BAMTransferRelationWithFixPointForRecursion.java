@@ -396,8 +396,6 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     ((ARGState)expandedState).removeFromARG();
     ((ARGState)rebuildState).addParent((ARGState)entryState);
 
-    assert data.expandedToBlockCache.get(expandedState) == currentBlock : "returning from wrong block?";
-
     // also clean up local data structures
     data.replaceStateInCaches(expandedState, rebuildState, true);
 

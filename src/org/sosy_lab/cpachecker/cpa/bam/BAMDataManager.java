@@ -55,7 +55,7 @@ public class BAMDataManager {
 
   /** expandedToBlockCache contains the mapping of an expanded state at a block-end towards
    * the inner block of the corresponding reduced state, from which it was expanded. */
-  final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
+  private final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
 
   /** forwardPrecisionToExpandedPrecision contains the mapping an expanded state at a block-end towards
    * the corresponding expanded precision. */
@@ -94,5 +94,31 @@ public class BAMDataManager {
     ReachedSet reached = reachedSetFactory.create();
     reached.add(initialState, initialPredicatePrecision);
     return reached;
+  }
+
+  /** Register an expanded state in our data-manager,
+   * such that we know later, which state in which block was expanded to the state. */
+  void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
+      AbstractState reducedState, Block innerBlock) {
+    expandedToReducedCache.put(expandedState, reducedState);
+    expandedToBlockCache.put(expandedState, innerBlock);
+    forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
+  }
+
+  /** This method checks, if the current state is at a node,
+   * where several block-exits are available and one of them was already left.
+   * The state has to be an block-end-state.
+   * It can be a expanded or reduced (or even reduced expanded) state,
+   * because this depends on the nesting of blocks,
+   * i.e. if there are several overlapping block-end-nodes
+   * (e.g. nested loops or program calls 'exit()' inside a function). */
+  boolean alreadyReturnedFromSameBlock(AbstractState state, Block block) {
+    while (expandedToReducedCache.containsKey(state)) {
+      if (expandedToBlockCache.containsKey(state) && block == expandedToBlockCache.get(state)) {
+        return true;
+      }
+      state = expandedToReducedCache.get(state);
+    }
+    return false;
   }
 }
