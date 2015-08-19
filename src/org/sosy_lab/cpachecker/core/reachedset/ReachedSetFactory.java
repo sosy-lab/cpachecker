@@ -59,7 +59,7 @@ public class ReachedSetFactory {
     description= "handle states with a deeper loopstack first.")
   boolean useLoopstack = false;
 
-  @Option(secure=true, name="traversal.useLoopstack",
+  @Option(secure=true, name="traversal.useReverseLoopstack",
       description= "handle states with a shallow loopstack first.")
   boolean useReverseLoopstack = false;
 
