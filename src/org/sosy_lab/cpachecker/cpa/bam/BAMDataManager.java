@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 /** This class contains all additional data-structures needed to run BAM.
- * If possible, we should try to clear some of the data to avoid memory-leaks. */
+ * If possible, we should clear some data sometimes to avoid memory-leaks. */
 public class BAMDataManager {
 
   final LogManager logger;
@@ -49,8 +49,7 @@ public class BAMDataManager {
   final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
   final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
   final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
-
-  Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
+  final Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
 
   final Timer recomputeARTTimer = new Timer();
   final Timer removeCachedSubtreeTimer = new Timer();
@@ -77,10 +76,6 @@ public class BAMDataManager {
       final Precision expandedPrecision = forwardPrecisionToExpandedPrecision.remove(oldState);
       forwardPrecisionToExpandedPrecision.put(newState, expandedPrecision);
     }
-  }
-
-  void setForwardPrecisionToExpandedPrecision(Map<AbstractState, Precision> pForwardPrecisionToExpandedPrecision) {
-    forwardPrecisionToExpandedPrecision = pForwardPrecisionToExpandedPrecision;
   }
 
   /** unused? */

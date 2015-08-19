@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -156,9 +154,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       if (predicateCpa != null) {
         predicateCpa.setPartitioning(blockPartitioning);
       }
-
-      Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
-      transfer.data.setForwardPrecisionToExpandedPrecision(forwardPrecisionToExpandedPrecision);
     }
     return getWrappedCpa().getInitialState(pNode, pPartition);
   }

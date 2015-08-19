@@ -46,19 +46,15 @@ public class BAMCEXSubgraphComputer {
 
   private final BlockPartitioning partitioning;
   private final Reducer reducer;
-  private final BAMCache bamCache;
+  private final BAMDataManager data;
   private final Map<ARGState, ARGState> pathStateToReachedState;
-  private final Map<AbstractState, ReachedSet> abstractStateToReachedSet;
-  private final Map<AbstractState, AbstractState> expandedToReducedCache;
   private final LogManager logger;
 
   BAMCEXSubgraphComputer(BAMCPA bamCpa, LogManager pLogger, Map<ARGState, ARGState> pPathStateToReachedState) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
-    this.bamCache = bamCpa.getData().bamCache;
+    this.data = bamCpa.getData();
     this.pathStateToReachedState = pPathStateToReachedState;
-    this.abstractStateToReachedSet = bamCpa.getData().abstractStateToReachedSet;
-    this.expandedToReducedCache = bamCpa.getData().expandedToReducedCache;
     this.logger = pLogger;
   }
 
@@ -116,13 +112,13 @@ public class BAMCEXSubgraphComputer {
 
         final BackwardARGState newChild = finishedStates.get(child);
 
-        if (expandedToReducedCache.containsKey(child)) {
+        if (data.expandedToReducedCache.containsKey(child)) {
           // If child-state is an expanded state, we are at the exit-location of a block.
           // In this case, we enter the block (backwards).
           // We must use a cached reachedSet to process further, because the block has its own reachedSet.
           // The returned 'innerTree' is the rootNode of the subtree, created from the cached reachedSet.
           // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
-          final ARGState reducedTarget = (ARGState) expandedToReducedCache.get(child);
+          final ARGState reducedTarget = (ARGState) data.expandedToReducedCache.get(child);
           BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
           if (innerTree == DUMMY_STATE_FOR_MISSING_BLOCK) {
             ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
@@ -146,9 +142,9 @@ public class BAMCEXSubgraphComputer {
 
           // check that at block output locations the first reached state is used for the CEXsubgraph,
           // i.e. the reduced abstract state from the (most) inner block's reached set.
-          ARGState matchingChild = (ARGState) expandedToReducedCache.get(child);
-          while (expandedToReducedCache.containsKey(matchingChild)) {
-            matchingChild = (ARGState) expandedToReducedCache.get(matchingChild);
+          ARGState matchingChild = (ARGState) data.expandedToReducedCache.get(child);
+          while (data.expandedToReducedCache.containsKey(matchingChild)) {
+            matchingChild = (ARGState) data.expandedToReducedCache.get(matchingChild);
           }
           assert pathStateToReachedState.get(newChild) == matchingChild : "output-state must be from (most) inner reachedset";
 
@@ -201,7 +197,7 @@ public class BAMCEXSubgraphComputer {
     }
 
     // TODO why do we use 'abstractStateToReachedSet' to get the reachedSet and not 'bamCache'?
-    final ReachedSet reachedSet = abstractStateToReachedSet.get(expandedRoot);
+    final ReachedSet reachedSet = data.abstractStateToReachedSet.get(expandedRoot);
 
     // we found the reachedSet, corresponding to the root and precision.
     // now try to find the target in the reach set.
@@ -220,7 +216,7 @@ public class BAMCEXSubgraphComputer {
       final CFANode rootNode = extractLocation(expandedRoot);
       final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
       final AbstractState reducedRootState = reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-      bamCache.removeReturnEntry(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+      data.bamCache.removeReturnEntry(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
     }
     return result;
   }
