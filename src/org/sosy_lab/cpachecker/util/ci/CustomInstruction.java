@@ -99,7 +99,7 @@ public class CustomInstruction{
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
@@ -717,7 +717,7 @@ public class CustomInstruction{
       return null;
     }
 
-    protected void computeMapping(String ciString, String aciString) {
+    protected void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
     }
 
@@ -984,14 +984,14 @@ public class CustomInstruction{
 
     private final Map<String,String> currentCiVarToAciVar;
 
-    public StructureExtendedComparisonVisitor(CExpression pAciExp, Map<String, String> pCiVarToAciVar,
+    public StructureExtendedComparisonVisitor(final CExpression pAciExp, final Map<String, String> pCiVarToAciVar,
         Map<String, String> pCurrentCiVarToAciVar) {
       super(pAciExp, pCiVarToAciVar);
       currentCiVarToAciVar = pCurrentCiVarToAciVar;
     }
 
     @Override
-    protected void computeMapping(String ciString, String aciString) {
+    protected void computeMapping(final String ciString, final String aciString) {
       ciVarToAciVar.put(ciString, aciString);
       currentCiVarToAciVar.put(ciString, aciString);
     }
