@@ -78,7 +78,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
     assert subgraph.containsAll(path.asStatesList()) : "path should traverse reached states";
-    assert pRootOfSubgraph == path.getFirstState();
+    assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
     assert subgraph.containsAll(pRootOfSubgraph.getSubgraph()) : "reached states should match states reachable from root";
     assert pRootOfSubgraph.getSubgraph().containsAll(subgraph) : "states reachable from root should match reached states";
   }
@@ -138,7 +138,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       @Override
       public boolean contains(AbstractState state) {
-        return subgraph.contains(subgraphStatesToReachedState.get(state));
+        return subgraph.contains(state);
       }
 
       @Override
@@ -170,6 +170,17 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
     argSubtreeRemover.removeSubtree(delegate, path, element,
             newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
+
+    // post-processing, cleanup data-structures.
+    // We remove all states reachable from 'element'. This step is not precise,
+    // because sub-reached-sets might be changed and we do not remove the corresponding states.
+    // The only important step is to remove the last state of the reached-set,
+    // because without this step there is an assertion in Predicate-RefinementStrategy.
+    for (ARGState state : element.getSubgraph()) {
+      subgraphStatesToReachedState.remove(state);
+      // subgraph is backed by subgraphStatesToReachedState.keys(), so we do not need to update it.
+      state.removeFromARG();
+    }
   }
 
   @Override
