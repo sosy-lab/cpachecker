@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -81,10 +82,10 @@ public class CounterexamplesSummary implements IterationStatistics {
 
   private final static class ViolationInfo {
     final CounterexampleInfo info;
-    final Map<String, AutomatonInternalState> properties; // There might multiple violations on one (target) abstract state
+    final Map<Property, AutomatonInternalState> properties; // There might multiple violations on one (target) abstract state
 
     public ViolationInfo(CounterexampleInfo pInfo,
-        Map<String, AutomatonInternalState> pProperty) {
+        Map<Property, AutomatonInternalState> pProperty) {
       info = pInfo;
       properties = pProperty;
     }
@@ -95,7 +96,7 @@ public class CounterexamplesSummary implements IterationStatistics {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final Map<ARGState, ViolationInfo> feasibleViolations = new WeakHashMap<>();
   private Multiset<AutomatonInternalState> feasibleReachedAcceptingStates = HashMultiset.create();
-  private Multimap<String, AutomatonInternalState> infeasibleCexFor = HashMultimap.create();
+  private Multimap<Property, AutomatonInternalState> infeasibleCexFor = HashMultimap.create();
 
   public CounterexamplesSummary(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
@@ -118,8 +119,8 @@ public class CounterexamplesSummary implements IterationStatistics {
     return feasibleReachedAcceptingStates;
   }
 
-  public Multiset<String> getFeasiblePropertyViolations() {
-    HashMultiset<String> result = HashMultiset.create();
+  public Multiset<Property> getFeasiblePropertyViolations() {
+    HashMultiset<Property> result = HashMultiset.create();
     for (ARGState e: feasibleViolations.keySet()) {
       ViolationInfo v = feasibleViolations.get(e);
       result.addAll(v.properties.keySet());
@@ -136,7 +137,7 @@ public class CounterexamplesSummary implements IterationStatistics {
       checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
     }
 
-    final Map<String, AutomatonInternalState> violatedProperties = Maps.newHashMap();
+    final Map<Property, AutomatonInternalState> violatedProperties = Maps.newHashMap();
 
     // We assume that all properties are encoded in automata!!!
 
@@ -148,8 +149,9 @@ public class CounterexamplesSummary implements IterationStatistics {
         //      We have an automata that matches failing assertions, i.e., __assert_fail
         //      __assert_fail appears several times in the program; each time for a different property.
 
-        final String prop = q.getViolatedPropertyDescription();
-        violatedProperties.put(prop, q.getInternalState());
+        for (Property prop : q.getViolatedProperties()) {
+          violatedProperties.put(prop, q.getInternalState());
+        }
 
         feasibleReachedAcceptingStates.add(q.getInternalState());
       }
@@ -233,7 +235,9 @@ public class CounterexamplesSummary implements IterationStatistics {
       for (T ee: targetComps) {
         if (ee instanceof AutomatonState) {
           AutomatonState qe = (AutomatonState) ee;
-          infeasibleCexFor.put(qe.getViolatedPropertyDescription(), qe.getInternalState());
+          for (Property prop: qe.getViolatedProperties()) {
+            infeasibleCexFor.put(prop, qe.getInternalState());
+          }
         }
       }
     }
@@ -276,16 +280,16 @@ public class CounterexamplesSummary implements IterationStatistics {
     }
 
     // Determine the violated properties
-    HashMultimap<String, ARGState> violatedProps = HashMultimap.create();
+    HashMultimap<Property, ARGState> violatedProps = HashMultimap.create();
     for (ARGState e: feasibleViolations.keySet()) {
       ViolationInfo v = feasibleViolations.get(e);
-      for (String p: v.properties.keySet()) {
+      for (Property p: v.properties.keySet()) {
         violatedProps.put(p, e);
       }
     }
 
-    HashSet<String> satisfiedProps = Sets.newHashSet();
-    for (String prop: infeasibleCexFor.keySet()) {
+    HashSet<Property> satisfiedProps = Sets.newHashSet();
+    for (Property prop: infeasibleCexFor.keySet()) {
       if (!violatedProps.containsKey(prop)) {
         satisfiedProps.add(prop);
       }
@@ -304,9 +308,9 @@ public class CounterexamplesSummary implements IterationStatistics {
         "Violated (distinct) properties",
         violatedProps.keySet().size());
 
-    for (String prop: violatedProps.keySet()) {
+    for (Property prop: violatedProps.keySet()) {
       StatisticsUtils.write(pOut, 1, cols,
-          prop, "");
+          prop.toString(), "");
       StatisticsUtils.write(pOut, 2, cols,
           "Feasible abstract states", violatedProps.get(prop).size());
       StatisticsUtils.write(pOut, 2, cols,

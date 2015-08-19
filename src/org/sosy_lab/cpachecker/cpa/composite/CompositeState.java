@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 import com.google.common.base.Joiner;
@@ -65,16 +66,15 @@ public class CompositeState implements AbstractWrapperState,
   }
 
   @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    Set<String> descriptions = Sets.newHashSetWithExpectedSize(states.size());
+    Set<Property> properties = Sets.newHashSetWithExpectedSize(states.size());
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
-        descriptions.add(((Targetable)element).getViolatedPropertyDescription());
+        properties.addAll(((Targetable)element).getViolatedProperties());
       }
     }
-    descriptions.remove("");
-    return Joiner.on(", ").join(descriptions);
+    return properties;
   }
 
   @Override

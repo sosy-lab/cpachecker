@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -84,6 +85,7 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
@@ -103,6 +105,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.base.Supplier;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
@@ -337,7 +340,7 @@ public class ARGPathExport {
   private class WitnessWriter {
 
     private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
-    private final Multimap<String, String> violatedProperties = TreeMultimap.create();
+    private final Multimap<String, Property> violatedProperties = HashMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
     private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
@@ -924,8 +927,8 @@ public class ARGPathExport {
       for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");
       }
-      for (String violation : violatedProperties.get(pEntryStateNodeId)) {
-        pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation);
+      for (Property violation : violatedProperties.get(pEntryStateNodeId)) {
+        pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
       }
       pDoc.appendToAppendable(result);
     }
@@ -937,15 +940,17 @@ public class ARGPathExport {
       return Collections.emptySet();
     }
 
-    private Collection<String> extractViolatedProperties(ARGState pState) {
+    private Collection<Property> extractViolatedProperties(ARGState pState) {
+      ArrayList<Property> result = Lists.newArrayList();
       if (pState.isTarget()) {
-        String violatedPropertyDescription = pState.getViolatedPropertyDescription();
-        int pos = violatedPropertyDescription.indexOf(':');
-        if (pos >= 0) {
-          return Collections.singleton(violatedPropertyDescription.substring(0, pos));
-        }
+        result.addAll(pState.getViolatedProperties());
+        // TODO!!! What is the purpose of the following code???
+        //int pos = violatedPropertyDescription.indexOf(':');
+        //if (pos >= 0) {
+        // return Collections.singleton(violatedPropertyDescription.substring(0, pos));
+        //}
       }
-      return Collections.emptySet();
+      return result;
     }
   }
 

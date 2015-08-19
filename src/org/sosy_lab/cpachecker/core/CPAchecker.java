@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -76,7 +77,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
@@ -438,23 +438,17 @@ public class CPAchecker {
   private @Nullable String findViolatedProperties(final ConfigurableProgramAnalysis pCpa,
       final ReachedSet reached) {
 
-    final Set<String> descriptions;
+    final Set<Property> descriptions = Sets.newHashSet();
     final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
 
     if (argCpa != null) {
-      descriptions = Sets.newHashSet();
       descriptions.addAll(argCpa.getCexSummary().getFeasiblePropertyViolations());
 
     } else {
-      descriptions = from(reached).filter(IS_TARGET_STATE)
-          .transform(new Function<AbstractState, String>() {
-
-            @Override
-            public String apply(AbstractState s) {
-              return ((Targetable) s).getViolatedPropertyDescription();
-            }
-          })
-          .copyInto(new HashSet<String>());
+      for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
+        Targetable t = (Targetable) e;
+        descriptions.addAll(t.getViolatedProperties());
+      }
     }
 
     if (descriptions.isEmpty()) {
@@ -462,7 +456,6 @@ public class CPAchecker {
       return null;
     }
 
-    descriptions.remove("");
     return Joiner.on(", ").join(descriptions);
   }
 

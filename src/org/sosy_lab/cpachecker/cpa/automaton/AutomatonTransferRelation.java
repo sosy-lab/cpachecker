@@ -280,8 +280,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
+            AutomatonSafetyProperty prop = null;
             String violatedPropertyDescription = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedPropertyDescription);
+            if (violatedPropertyDescription.length() > 0) {
+              prop = new AutomatonSafetyProperty(violatedPropertyDescription, AutomatonInternalState.ERROR);
+            }
+
+            AutomatonState errorState = AutomatonState.automatonStateFactory(
+                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
@@ -309,11 +316,15 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime.stop();
-        String violatedPropertyDescription = null;
+
+        AutomatonSafetyProperty violatedProperty = null;
         if (t.getFollowState().isTarget()) {
-          violatedPropertyDescription = t.getViolatedPropertyDescription(exprArgs);
+          violatedProperty = new AutomatonSafetyProperty(t.getViolatedPropertyDescription(exprArgs), t.getFollowState());
         }
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedPropertyDescription);
+
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(
+            newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedProperty);
+
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } else {
