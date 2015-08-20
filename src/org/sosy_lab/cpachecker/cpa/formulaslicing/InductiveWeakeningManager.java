@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -21,6 +22,9 @@ import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager.Tactic;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment.OptStatus;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -50,6 +54,9 @@ public class InductiveWeakeningManager {
       + " uses only the syntactic structure of the formula and does not involve"
       + " any calls to the SMT solver.")
   private boolean useSyntacticFormulaSlicing = false;
+
+  @Option(secure=true, description="Use formula slicing based on counterexamples.")
+  private boolean useCounterexampleBasedSlicing = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
@@ -138,13 +145,20 @@ public class InductiveWeakeningManager {
     Set<BooleanFormula> inductiveSlice;
 
     if (useSyntacticFormulaSlicing) {
-      inductiveSlice = syntacticFormulaSlicing(selectionVars, orderedList,
+      inductiveSlice = syntactic(selectionVars, orderedList,
           transition);
 
       // Sanity check. todo: make optional.
       Verify.verify(solver.isUnsat(bfmgr.and(bfmgr.and(inductiveSlice), query)));
+    } else if (useCounterexampleBasedSlicing) {
+
+      // todo: make option an enum.
+      inductiveSlice = counterexampleBasedWeakening(selectionVars,
+          transition.getSsa(), query);
+      // todo: have an option to turn the result into MUS.
+
     } else {
-      inductiveSlice = formulaSlicing(selectionVars,
+      inductiveSlice = destructiveMUS(selectionVars,
           orderedList, query);
       if (inductiveSlice.size() == selectionVars.size()) {
 
@@ -178,10 +192,12 @@ public class InductiveWeakeningManager {
    * Syntactic formula slicing: slices away all atoms which have variables
    * which were changed by the transition relation.
    *
+   * @param selectionInfo selection variable -> corresponding atom (instantiated
+   * with unprimed SSA).
    * @return Set of selectors which correspond to atoms which *should*
    *         be abstracted.
    */
-  private Set<BooleanFormula> syntacticFormulaSlicing(
+  private Set<BooleanFormula> syntactic(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       List<BooleanFormula> selectionVars,
       PathFormula transition
@@ -198,6 +214,48 @@ public class InductiveWeakeningManager {
     return out;
   }
 
+  private Set<BooleanFormula> counterexampleBasedWeakening(
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      SSAMap finalSSA,
+      BooleanFormula query
+  ) throws SolverException, InterruptedException {
+    query = fmgr.simplify(query);
+    Set<BooleanFormula> out = new HashSet<>();
+
+    // todo: use ProverEnvironment instead.
+    try (OptEnvironment env = solver.newOptEnvironment()) {
+      env.push();
+      env.addConstraint(query);
+
+      while (env.check() == OptStatus.OPT) {
+        for (Entry<BooleanFormula, BooleanFormula> entry : selectionInfo.entrySet()) {
+          BooleanFormula atom = entry.getValue();
+          BooleanFormula selector = entry.getKey();
+
+          BooleanFormula primedAtom = fmgr.instantiate(
+              fmgr.uninstantiate(atom), finalSSA
+          );
+          Formula value = env.evaluate(primedAtom);
+
+          Verify.verify(
+              value.equals(bfmgr.makeBoolean(false))
+              || value.equals(bfmgr.makeBoolean(true))
+          );
+
+          if (value.equals(bfmgr.makeBoolean(false))) {
+
+            // Exclude the atom by enforcing the selector.
+            //noinspection ResultOfMethodCallIgnored
+            env.addConstraint(selector);
+            out.add(selector);
+          }
+        }
+      }
+    }
+
+    return out;
+  }
+
   /**
    * @param selectionInfo Mapping from selection variables
    *    to the atoms (possibly w/ negation) they represent.
@@ -206,8 +264,16 @@ public class InductiveWeakeningManager {
    *
    * @return Set of selectors which correspond to atoms which *should*
    *         be abstracted.
+   *
+   * Implements the destructive algorithm for MUS extraction.
+   * Starts with everything abstracted ("true" is inductive),
+   * remove selectors which can be removed while keeping the overall query
+   * inductive.
+   * This is a standard algorithm, however it pays the cost of N SMT calls
+   * upfront.
+   * // todo: can this approach can be boosted by using UNSAT cores?
    */
-  private Set<BooleanFormula> formulaSlicing(
+  private Set<BooleanFormula> destructiveMUS(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       List<BooleanFormula> selectionVars,
       BooleanFormula query
