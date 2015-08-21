@@ -167,8 +167,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return precisionAdjustment;
   }
 
-  @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public SMGState getInitialState(CFANode pNode) {
     SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined, runtimeCheck);
 
     try {
@@ -178,7 +177,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     }
 
     if (pNode instanceof CFunctionEntryNode) {
-      CFunctionEntryNode functionNode = (CFunctionEntryNode)pNode;
+      CFunctionEntryNode functionNode = (CFunctionEntryNode) pNode;
       try {
         initState.addStackFrame(functionNode.getFunctionDefinition());
         initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
@@ -188,6 +187,11 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     }
 
     return initState;
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return getInitialState(pNode);
   }
 
   @Override

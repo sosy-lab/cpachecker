@@ -45,7 +45,7 @@ public class SMGEdgeInterpolator extends GenericEdgeInterpolator<SMGState, SMGSt
       CFA pCfa, InterpolantManager<SMGState, SMGInterpolant> pSmgInterpolantManager) throws InvalidConfigurationException {
     super(pStrongestPostOperator, pFeasibilityChecker,
         pSmgInterpolantManager,
-        (SMGState) pSMGCPA.getInitialState(pCfa.getMainFunction(), null),
+        pSMGCPA.getInitialState(pCfa.getMainFunction()),
         SMGCPA.class, pConfig,
         pShutdownNotifier, pCfa);
   }

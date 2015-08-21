@@ -88,7 +88,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final StrongestPostOperator<SMGState> strongestPostOp =
         new SMGStrongestPostOperator(logger, config, cfa);
 
-    SMGState initialState = (SMGState) smgCpa.getInitialState(cfa.getMainFunction(), null);
+    SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
 
     final SMGFeasibilityChecker checker =
         new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, initialState);
