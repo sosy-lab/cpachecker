@@ -186,7 +186,6 @@ analysis.traversal.useCallstack = false
 # ExplicitCPA)
 analysis.traversal.useExplicitInformation = false
 
-# handle states with a shallow loopstack first.
 # handle states with a deeper loopstack first.
 analysis.traversal.useLoopstack = false
 
@@ -195,6 +194,9 @@ analysis.traversal.useLoopstack = false
 # postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.usePostorder = false
+
+# handle states with a shallow loopstack first.
+analysis.traversal.useReverseLoopstack = false
 
 # Use an implementation of reverse postorder strategy that allows to select a
 # secondary strategy that is used if there are two states with the same
@@ -1593,6 +1595,9 @@ cpa.slicing.sortSelectionVariablesSyntactic = true
 
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
+
+# Use formula slicing based on counterexamples.
+cpa.slicing.useCounterexampleBasedSlicing = false
 
 # Use syntactic formula slicing, which uses only the syntactic structure of
 # the formula and does not involve any calls to the SMT solver.
