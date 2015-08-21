@@ -213,6 +213,7 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
     * due to aliasing, simply create assumptions for all edges with the concrete state
     * of the last edge, thus correctly projecting all lvalues at the end of the multi edge.*/
     Set<AExpressionStatement> assumptions = new HashSet<>();
+    Set<String> assumptionCodes = new HashSet<>();
     ConcreteState lastState = state.getLastConcreteState().getConcreteState();
 
     StringBuilder comment = new StringBuilder("");
@@ -222,8 +223,9 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
 
       // throw away redundant assumptions
       for (AExpressionStatement assumption : assumptionForedge.getExpStmts()) {
-        if (!assumptions.contains(assumption)) {
+        if (!assumptionCodes.contains(assumption.toASTString())) {
           assumptions.add(assumption);
+          assumptionCodes.add(assumption.toASTString());
         }
       }
 
