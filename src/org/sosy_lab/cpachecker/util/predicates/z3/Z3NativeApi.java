@@ -573,7 +573,12 @@ public final class Z3NativeApi {
   public static native long get_quantifier_pattern_ast(long context, long a1, int a2);
   public static native int get_quantifier_num_no_patterns(long context, long a1);
   public static native long get_quantifier_no_pattern_ast(long context, long a1, int a2);
+
+  /**
+   * @return number of bound variables of quantifier.
+   */
   public static native int get_quantifier_num_bound(long context, long a1);
+
   public static native long get_quantifier_bound_name(long context, long a1, int a2);
   public static native long get_quantifier_bound_sort(long context, long a1, int a2);
   public static native long get_quantifier_body(long context, long a1);
