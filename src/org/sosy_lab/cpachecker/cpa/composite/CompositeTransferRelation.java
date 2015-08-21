@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -165,6 +165,26 @@ public final class CompositeTransferRelation implements TransferRelation {
     assert cfaEdge != null;
 
     // first, call all the post operators
+    Collection<List<AbstractState>> allResultingElements =
+        callTransferRelation(compositeState, compositePrecision, cfaEdge);
+
+    // second, call strengthen for each result
+    for (List<AbstractState> lReachedState : allResultingElements) {
+
+      Collection<List<AbstractState>> lResultingElements =
+          callStrengthen(lReachedState, compositePrecision, cfaEdge);
+
+      // finally, create a CompositeState for each result of strengthen
+      for (List<AbstractState> lList : lResultingElements) {
+        compositeSuccessors.add(new CompositeState(lList));
+      }
+    }
+  }
+
+  private Collection<List<AbstractState>> callTransferRelation(
+      final CompositeState compositeState,
+      final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
     checkArgument(componentElements.size() == size, "State with wrong number of component states given");
@@ -189,36 +209,36 @@ public final class CompositeTransferRelation implements TransferRelation {
     }
 
     // create cartesian product of all elements we got
-    Collection<List<AbstractState>> allResultingElements
-        = createCartesianProduct(allComponentsSuccessors, resultCount);
+    return createCartesianProduct(allComponentsSuccessors, resultCount);
+  }
 
+  private Collection<List<AbstractState>> callStrengthen(
+      final List<AbstractState> reachedState,
+      final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
+          throws CPATransferException, InterruptedException {
     AbstractState foundInStrengthen = null;
+    List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
+    int resultCount = 1;
 
-    // second, call strengthen for each result of the cartesian product
-    for (List<AbstractState> lReachedState : allResultingElements) {
+    for (int i = 0; i < size; i++) {
 
-      List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
+      TransferRelation lCurrentTransfer = transferRelations.get(i);
+      AbstractState lCurrentElement = reachedState.get(i);
+      Precision lCurrentPrecision = compositePrecision.get(i);
 
-      resultCount = 1;
+      Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
 
-      for (int i = 0; i < size; i++) {
+      if (lResultsList == null) {
+        lStrengthenResults.add(Collections.singleton(lCurrentElement));
+      } else {
+        resultCount *= lResultsList.size();
 
-        TransferRelation lCurrentTransfer = transferRelations.get(i);
-        AbstractState lCurrentElement = lReachedState.get(i);
-        Precision lCurrentPrecision = compositePrecision.get(i);
+        if (resultCount == 0) {
+          // shortcut
+          break;
+        }
 
-        Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, lReachedState, cfaEdge, lCurrentPrecision);
-
-        if (lResultsList == null) {
-          lStrengthenResults.add(Collections.singleton(lCurrentElement));
-        } else {
-          resultCount *= lResultsList.size();
-
-          if (resultCount == 0) {
-            // shortcut
-            break;
-          }
-
+        if (!isTargetState(lCurrentElement)) {
           if (isErrorStateDetectableInStrengthening && foundInStrengthen == null) {
             if (lCurrentElement instanceof AutomatonState) {
               for (AbstractState strengthenState : lResultsList) {
@@ -229,45 +249,39 @@ public final class CompositeTransferRelation implements TransferRelation {
               }
             }
           }
-
-          lStrengthenResults.add(lResultsList);
         }
-      }
 
-      // special case handling if we have predicate and assumption cpas
-      if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
-        AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
-        AbstractState assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
-        Precision predPrecision = compositePrecision.get(predicatesIndex);
-        TransferRelation predTransfer = transferRelations.get(predicatesIndex);
-
-        Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
-        resultCount *= predResult.size();
-
-        lStrengthenResults.set(predicatesIndex, predResult);
-      }
-
-      // special case handling error state found during strengthening if we have predicate
-      if (predicatesIndex >= 0 && foundInStrengthen!=null && resultCount > 0) {
-        AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
-        Precision predPrecision = compositePrecision.get(predicatesIndex);
-        TransferRelation predTransfer = transferRelations.get(predicatesIndex);
-
-        Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(foundInStrengthen), cfaEdge, predPrecision);
-        resultCount *= predResult.size();
-
-        lStrengthenResults.set(predicatesIndex, predResult);
-      }
-
-      // create cartesian product again
-      Collection<List<AbstractState>> lResultingElements
-          = createCartesianProduct(lStrengthenResults, resultCount);
-
-      // finally, create a CompositeState for each result of the cartesian product
-      for (List<AbstractState> lList : lResultingElements) {
-        compositeSuccessors.add(new CompositeState(lList));
+        lStrengthenResults.add(lResultsList);
       }
     }
+
+    // special case handling if we have predicate and assumption cpas
+    if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
+      AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
+      AbstractState assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
+      Precision predPrecision = compositePrecision.get(predicatesIndex);
+      TransferRelation predTransfer = transferRelations.get(predicatesIndex);
+
+      Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(assumptionElement), cfaEdge, predPrecision);
+      resultCount *= predResult.size();
+
+      lStrengthenResults.set(predicatesIndex, predResult);
+    }
+
+    // special case handling error state found during strengthening if we have predicate
+    if (predicatesIndex >= 0 && foundInStrengthen!=null && resultCount > 0) {
+      AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
+      Precision predPrecision = compositePrecision.get(predicatesIndex);
+      TransferRelation predTransfer = transferRelations.get(predicatesIndex);
+
+      Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(foundInStrengthen), cfaEdge, predPrecision);
+      resultCount *= predResult.size();
+
+      lStrengthenResults.set(predicatesIndex, predResult);
+    }
+
+    // create cartesian
+    return createCartesianProduct(lStrengthenResults, resultCount);
   }
 
   protected static Collection<List<AbstractState>> createCartesianProduct(
