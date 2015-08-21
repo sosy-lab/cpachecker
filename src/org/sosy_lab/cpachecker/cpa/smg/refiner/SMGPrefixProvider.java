@@ -23,13 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 
 
 public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
@@ -48,4 +54,30 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
         SMGCPA.class);
   }
 
+  @Override
+  public List<InfeasiblePrefix> extractInfeasiblePrefixes(ARGPath pPath, SMGState pInitial)
+      throws CPAException, InterruptedException {
+
+    List<InfeasiblePrefix> prefixes = super.extractInfeasiblePrefixes(pPath, pInitial);
+
+    // Due to SMGCPA producing infeasible paths without feasible prefixes, that may contain no state
+    // after the last edge of the error path (for example invalid read in an assumption edge), check
+    // if the prefix is the whole path, and return the path
+
+    List<Integer> wrongPrefixes = new ArrayList<>();
+
+    for (int i = 0; i < prefixes.size(); i++) {
+      InfeasiblePrefix prefix = prefixes.get(i);
+
+      if (prefix.getPath().size() == pPath.size()) {
+        wrongPrefixes.add(i);
+      }
+    }
+
+    for (int i : wrongPrefixes) {
+      prefixes.remove(i);
+    }
+
+    return prefixes;
+  }
 }
