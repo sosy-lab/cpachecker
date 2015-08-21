@@ -68,4 +68,40 @@ public abstract class AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv
   }
   protected abstract TFormulaInfo eliminateQuantifiers(TFormulaInfo pExtractInfo) throws SolverException, InterruptedException;
 
+  @Override
+  public boolean isQuantifier(BooleanFormula pF) {
+    return isQuantifier(extractInfo(pF));
+  }
+  protected abstract boolean isQuantifier(TFormulaInfo pExtractInfo);
+
+  @Override
+  public boolean isForall(BooleanFormula pF) {
+    return isForall(extractInfo(pF));
+  }
+  protected abstract boolean isForall(TFormulaInfo pExtractInfo);
+
+  @Override
+  public boolean isExists(BooleanFormula pF) {
+    return isExists(extractInfo(pF));
+  }
+  protected abstract boolean isExists(TFormulaInfo pExtractInfo);
+
+  @Override
+  public int numQuantifierBound(BooleanFormula pF) {
+    return numQuantifierBound(extractInfo(pF));
+  }
+  protected abstract int numQuantifierBound(TFormulaInfo pExtractInfo);
+
+  @Override
+  public BooleanFormula getQuantifierBody(BooleanFormula pF) {
+    return wrap(getQuantifierBody(extractInfo(pF)));
+  }
+  protected abstract TFormulaInfo getQuantifierBody(TFormulaInfo pExtractInfo);
+
+
+  public boolean isBoundByQuantifier(Formula pF) {
+    return isBoundByQuantifier(extractInfo(pF));
+  }
+
+  public abstract boolean isBoundByQuantifier(TFormulaInfo pF);
 }

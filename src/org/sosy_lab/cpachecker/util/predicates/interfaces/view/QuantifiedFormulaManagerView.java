@@ -145,4 +145,33 @@ public class QuantifiedFormulaManagerView
         ifm.lessOrEquals(pVariable, pUpperBound));
   }
 
+  @Override
+  public boolean isQuantifier(BooleanFormula pF) {
+    return manager.isQuantifier(pF);
+  }
+
+  @Override
+  public boolean isForall(BooleanFormula pF) {
+    return manager.isForall(pF);
+  }
+
+  @Override
+  public boolean isExists(BooleanFormula pF) {
+    return manager.isExists(pF);
+  }
+
+  @Override
+  public int numQuantifierBound(BooleanFormula pF) {
+    return manager.numQuantifierBound(pF);
+  }
+
+  @Override
+  public BooleanFormula getQuantifierBody(BooleanFormula pF) {
+    return manager.getQuantifierBody(pF);
+  }
+
+  @Override
+  public boolean isBoundByQuantifier(Formula pF) {
+    return manager.isBoundByQuantifier(pF);
+  }
 }

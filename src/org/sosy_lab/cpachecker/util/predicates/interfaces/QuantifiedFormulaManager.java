@@ -62,4 +62,33 @@ public interface QuantifiedFormulaManager {
    */
   public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException;
 
+  /**
+   * @return Whether {@code pF} is a quantifier.
+   */
+  boolean isQuantifier(BooleanFormula pF);
+
+  /**
+   * @return Whether {@code pF} is a forall-quantifier.
+   */
+  boolean isForall(BooleanFormula pF);
+
+  /**
+   * @return Whether {@code pF} is an exists-quantifier.
+   */
+  boolean isExists(BooleanFormula pF);
+
+  /**
+   * @return Number of variables bound by the quantifier.
+   */
+  int numQuantifierBound(BooleanFormula pF);
+
+  /**
+   * @return Body of the quantifier.
+   */
+  BooleanFormula getQuantifierBody(BooleanFormula pF);
+
+  /**
+   * @return Whether a symbol {@code pF} is bound by a quantifier.
+   */
+  boolean isBoundByQuantifier(Formula pF);
 }

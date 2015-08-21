@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
+import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -66,13 +68,43 @@ class Z3QuantifiedFormulaManager extends AbstractQuantifiedFormulaManager<Long, 
   }
 
   @Override
+  protected boolean isQuantifier(Long pExtractInfo) {
+    return Z3NativeApi.get_ast_kind(z3context, pExtractInfo) == Z3_QUANTIFIER_AST;
+  }
+
+  @Override
+  protected boolean isForall(Long pExtractInfo) {
+    return Z3NativeApi.is_quantifier_forall(z3context, pExtractInfo);
+  }
+
+  @Override
+  protected boolean isExists(Long pExtractInfo) {
+    return isQuantifier(pExtractInfo) && !isForall(pExtractInfo);
+  }
+
+  @Override
+  protected int numQuantifierBound(Long pExtractInfo) {
+    return Z3NativeApi.get_quantifier_num_bound(z3context, pExtractInfo);
+  }
+
+  @Override
+  protected Long getQuantifierBody(Long pExtractInfo) {
+    return Z3NativeApi.get_quantifier_body(z3context, pExtractInfo);
+  }
+
+  @Override
+  public boolean isBoundByQuantifier(Long pF) {
+    return Z3NativeApi.get_ast_kind(z3context, pF) == Z3_VAR_AST;
+  }
+
+  @Override
   protected Long eliminateQuantifiers(Long pExtractInfo) throws SolverException, InterruptedException {
     // It is recommended (personal communication with Nikolaj Bjorner) to run "qe-light" before "qe".
     //  "qe" does not perform a "qe-light" as a preprocessing on its own!
 
     // You might want to run the tactic "ctx-solver-simplify" on the result...
 
-    return Z3NativeApiHelpers.applyTactics(z3context, pExtractInfo, "qe-light", "qe");
+    return Z3NativeApiHelpers.applyTactics(z3context, pExtractInfo, "qe-light",
+        "qe");
   }
-
 }
