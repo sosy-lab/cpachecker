@@ -93,7 +93,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final SMGFeasibilityChecker checker =
         new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, initialState);
 
-    SMGState emptyState = (SMGState) smgCpa.getInitialState(cfa.getMainFunction(), null);
+    SMGState emptyState = smgCpa.getInitialState(cfa.getMainFunction());
 
     final GenericPrefixProvider<SMGState> prefixProvider =
         new SMGPrefixProvider(logger, cfa, config, emptyState);
