@@ -24,74 +24,15 @@
 package org.sosy_lab.cpachecker.util.predicates.z3;
 
 import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.*;
-import static org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApiConstants.*;
 
 import org.sosy_lab.cpachecker.exceptions.SolverException;
 
 
 public class Z3NativeApiHelpers {
-
-  public static long applyTactic(long z3context, Long pF, String pTactic) {
-    long tactic_qe = mk_tactic(z3context, pTactic);
-    tactic_inc_ref(z3context, tactic_qe);
-
-    long goal = mk_goal(z3context, true, true, false);
-    goal_inc_ref(z3context, goal);
-
-    try {
-      goal_assert(z3context, goal, pF);
-
-      long applyResult = tactic_apply(z3context, tactic_qe, goal);
-      apply_result_inc_ref(z3context, applyResult);
-
-      try {
-        long resultSubGoal = apply_result_get_subgoal(z3context, applyResult, 0);
-        goal_inc_ref(z3context, resultSubGoal);
-
-        // TODO: Check the reference-counting!!
-
-        // CNF!
-        int goalResultItemCount = goal_size(z3context, resultSubGoal);
-        long[] goalResultItems = new long[Math.max(1, goalResultItemCount)];
-        if (goalResultItemCount == 0) {
-          goalResultItems[0] = mk_true(z3context); // TODO: This is just a hack. Z3 provides the results for TRUE/FALSE in a different structure...
-        } else {
-          for(int i=0; i<goalResultItemCount; i++) {
-            long subGoalFormula = goal_formula(z3context, resultSubGoal, i);
-            inc_ref(z3context, subGoalFormula);
-
-            goalResultItems[i] = subGoalFormula;
-          }
-        }
-
-        goal_dec_ref(z3context, resultSubGoal);
-
-        long result;
-        if (goalResultItemCount > 1) {
-          result = mk_and(z3context, goalResultItems);
-          inc_ref(z3context, result);
-
-          for(int i=0; i<goalResultItems.length; i++) {
-            dec_ref(z3context, goalResultItems[i]);
-          }
-
-        } else {
-          result = goalResultItems[0];
-        }
-
-        return result;
-
-      } finally {
-        apply_result_dec_ref(z3context, applyResult);
-      }
-
-    } finally {
-      goal_dec_ref(z3context, goal);
-      tactic_dec_ref(z3context, tactic_qe);
-    }
-  }
-
-  public static long applyTactics(long z3context, final Long pF, String ... pTactics) throws InterruptedException, SolverException {
+  /**
+   * Apply multiple tactics in sequence.
+   */
+  static long applyTactics(long z3context, final Long pF, String ... pTactics) throws InterruptedException, SolverException {
     long overallResult = pF;
     for (String tactic: pTactics) {
       long tacticResult = applyTactic(z3context, overallResult, tactic);
@@ -103,16 +44,73 @@ public class Z3NativeApiHelpers {
     return overallResult;
   }
 
-  public static String getDeclarationSymbolText(long pContext, long pDeclaration) {
-    long symbol = get_decl_name(pContext, pDeclaration);
-    switch (get_symbol_kind(pContext, symbol)) {
-    case Z3_INT_SYMBOL:
-      return Integer.toString(get_symbol_int(pContext, symbol));
-    case Z3_STRING_SYMBOL:
-      return get_symbol_string(pContext, symbol);
-    default:
-      throw new UnsupportedOperationException("getDeclarationSymbolText: Kind of symbol not yet supported! Implement it!");
+  /**
+   * Apply tactic on a Z3_ast object, convert the result back to Z3_ast.
+   *
+   * @param z3context Z3_context
+   * @param tactic Z3 Tactic Name
+   * @param pF Z3_ast
+   * @return Z3_ast
+   */
+  static long applyTactic(long z3context, long pF, String tactic) {
+    long tseitinTactic = mk_tactic(z3context, tactic);
+    tactic_inc_ref(z3context, tseitinTactic);
+
+    long goal = mk_goal(z3context, true, false, false);
+    goal_inc_ref(z3context, goal);
+    goal_assert(z3context, goal, pF);
+
+    long result = tactic_apply(z3context, tseitinTactic, goal);
+    apply_result_inc_ref(z3context, result);
+
+    try {
+      return applyResultToAST(z3context, result);
+    } finally {
+      apply_result_dec_ref(z3context, result);
+      goal_dec_ref(z3context, goal);
+      tactic_dec_ref(z3context, tseitinTactic);
     }
   }
 
+  private static long applyResultToAST(long z3context, long applyResult) {
+    int no_subgoals = apply_result_get_num_subgoals(z3context, applyResult);
+    long[] goal_formulas = new long[no_subgoals];
+
+    for (int i=0; i<no_subgoals; i++) {
+      long subgoal = apply_result_get_subgoal(z3context, applyResult, i);
+      goal_inc_ref(z3context, subgoal);
+      long subgoal_ast = goalToAST(z3context, subgoal);
+      inc_ref(z3context, subgoal_ast);
+      goal_formulas[i] = subgoal_ast;
+      goal_dec_ref(z3context, subgoal);
+    }
+    try {
+      return goal_formulas.length == 1 ?
+          goal_formulas[0] :
+          mk_or(z3context, goal_formulas.length, goal_formulas);
+    } finally {
+      for (int i=0; i<no_subgoals; i++) {
+        dec_ref(z3context, goal_formulas[i]);
+      }
+    }
+  }
+
+  private static long goalToAST(long z3context, long goal) {
+    int no_subgoal_f = goal_size(z3context, goal);
+    long[] subgoal_formulas = new long[no_subgoal_f];
+    for (int k=0; k<no_subgoal_f; k++) {
+      long f = goal_formula(z3context, goal, k);
+      inc_ref(z3context, f);
+      subgoal_formulas[k] = f;
+    }
+    try {
+      return subgoal_formulas.length == 1 ?
+          subgoal_formulas[0] :
+          mk_and(z3context, subgoal_formulas.length, subgoal_formulas);
+    } finally {
+      for (int k=0; k<no_subgoal_f; k++) {
+        dec_ref(z3context, subgoal_formulas[k]);
+      }
+    }
+  }
 }
