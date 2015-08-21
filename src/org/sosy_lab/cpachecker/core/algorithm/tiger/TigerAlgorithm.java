@@ -161,9 +161,15 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @Option(secure = true, name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
   private boolean reusePredicates = true;
 
+  @Option(secure = true, name = "allCoveredGoalsPerTestCase", description = "Returns all test goals covered by a test case.")
+  private boolean allCoveredGoalsPerTestCase = false;
+
   @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
+
+  @Option(secure = true, name = "printLabels", description = "Prints labels reached with the error path of a test case.")
+  private boolean printLabels = false;
 
   @Option(
       secure = true,
@@ -286,7 +292,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
     }
 
-    testsuite = new TestSuite(bddCpaNamedRegionManager);
+    testsuite = new TestSuite(bddCpaNamedRegionManager, printLabels);
 
     assert TigerAlgorithm.originalMainFunction != null;
     mCoverageSpecificationTranslator =
@@ -532,6 +538,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             return true;
           }
         }
+      } else {
+        testsuite.addTestCase(testcase, lGoal);
+        return true;
       }
     }
 
@@ -540,6 +549,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   private boolean testGeneration(LinkedList<Goal> pGoalsToCover,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) throws CPAException, InterruptedException {
+    List<Goal> goals = new LinkedList<>();
+    goals.addAll(pGoalsToCover);
 
     boolean wasSound = true;
 
@@ -569,27 +580,26 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       }
 
       Boolean stop = false;
-
-      if (useTigerAlgorithm_with_pc) {
-        /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
-         * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
-         * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
-         * Keyword: overapproximation
-         */
-        reachedSet = null;
-      }
-
       while (!stop && (remainingPCforGoalCoverage != null ? !remainingPCforGoalCoverage.isFalse() : true)) {
         if (!useTigerAlgorithm_with_pc) {
           stop = true;
         }
 
         if (useTigerAlgorithm_with_pc) {
+          /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
+           * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
+           * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
+           * Keyword: overapproximation
+           */
+          reachedSet = null;
+        }
+
+        if (useTigerAlgorithm_with_pc) {
           remainingPCforGoalCoverage = getRemainingPCByTestGoalId(goal.getIndex());
-          logger.logf(Level.INFO, "Processing test goal %d of %d for PC %s.", goal.getIndex(), numberOfTestGoals,
-              bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+          logger.logf(Level.INFO, "Processing test goal %d of %d (%s) for PC %s.", goal.getIndex(), numberOfTestGoals,
+              testsuite.getTestGoalLabel(goal), bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         } else {
-          logger.logf(Level.INFO, "Processing test goal %d of %d.", goal.getIndex(), numberOfTestGoals);
+          logger.logf(Level.INFO, "Processing test goal %d of %d (%s).", goal.getIndex(), numberOfTestGoals, testsuite.getTestGoalLabel(goal));
         }
 
         if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
@@ -644,10 +654,14 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           continue;
         }
 
+        if (testsuite.getInfeasibleGoals().containsKey(goal)) {
+          continue;
+        }
+
         // goal is uncovered so far; run CPAchecker to cover it
         ReachabilityAnalysisResult result =
             runReachabilityAnalysis(goal.getIndex(), goal, previousAutomaton, pInfeasibilityPropagation,
-                getRemainingPCByTestGoalId(goal.getIndex()));
+                getRemainingPCByTestGoalId(goal.getIndex()), goals);
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
@@ -763,7 +777,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
             ReachabilityAnalysisResult result =
                 runReachabilityAnalysis(goalIndex, lGoal, previousAutomaton, pInfeasibilityPropagation,
-                    getRemainingPCByTestGoalId(goalIndex));
+                    getRemainingPCByTestGoalId(goalIndex), goals);
             if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
               logger.logf(Level.WARNING, "Analysis run was unsound!");
               wasSound = false;
@@ -801,7 +815,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
   private ReachabilityAnalysisResult runReachabilityAnalysis(int goalIndex, Goal pGoal,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition)
+      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition, List<Goal> pGoals)
       throws CPAException, InterruptedException {
     GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
 
@@ -944,6 +958,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           bddcpa = (BDDCPA) cpa;
         }
         bddcpa.getTransferRelation().setGlobalConstraint(pRemainingPresenceCondition);
+        logger.logf(Level.INFO, "Restrict BDD to %s.", bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
       }
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
@@ -1166,8 +1181,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                             Region remainingPCforGoal =
                                 bddCpaNamedRegionManager.makeAnd(remaining.getSecond(),
                                     bddCpaNamedRegionManager.makeNot(newGoal.getPresenceCondition()));
-                            logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !",
-                                newGoal.getIndex(), bddCpaNamedRegionManager.dumpRegion(remainingPCforGoal));
+                            logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s!",
+                                newGoal.getIndex(), testsuite.getTestGoalLabel(newGoal), bddCpaNamedRegionManager.dumpRegion(testCaseCriticalStateRegion));
+                            logger.logf(Level.WARNING, "Remaining PC %s!", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoal));
                             toBeAdded.add(Pair.of(remaining.getFirst(), remainingPCforGoal));
 
                             if (pathIterator.getIncomingEdge().equals(criticalEdge)) {
@@ -1212,13 +1228,21 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                     if (lCFAEdge.equals(criticalEdge)) {
                       logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
                     }
+
+                    if (allCoveredGoalsPerTestCase) {
+                      for (Goal goal : pGoals) {
+                        if (goal.getCriticalEdge().equals(lCFAEdge)) {
+                          testsuite.addTestCase(testcase, goal);
+                          break;
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
           }
-        }
-        else {
+        } else {
           // TODO: handle infeasible
           // we consider the test goals is infeasible
           logger.logf(Level.INFO, "Test goal infeasible.");
@@ -1227,7 +1251,25 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             lGoalPrediction[goalIndex - 1] = Prediction.INFEASIBLE;
           }
 
-          testsuite.addInfeasibleGoal(pGoal, pRemainingPresenceCondition);
+          if (useTigerAlgorithm_with_pc) {
+            testsuite.addInfeasibleGoal(pGoal, pRemainingPresenceCondition);
+            Goal newGoal = null;
+            int toDelete = 0;
+            for (Pair<Goal, Region> remaining : remainingPCs) {
+              if (remaining.getFirst().getIndex() == pGoal.getIndex()) {
+                newGoal =
+                    constructGoal(remaining.getFirst().getIndex(), remaining.getFirst().getPattern(),
+                        mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata,
+                        bddCpaNamedRegionManager.makeFalse());
+
+                break;
+              }
+              toDelete++;
+            }
+            remainingPCs.remove(toDelete);
+            remainingPCs.add(Pair.of(newGoal, bddCpaNamedRegionManager.makeFalse()));
+          }
+
           // TODO add missing soundness checks!
           if (pInfeasibilityPropagation.getFirst()) {
             logger.logf(Level.INFO, "Do infeasibility propagation!");
