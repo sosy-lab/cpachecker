@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.ArrayDeque;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,17 +57,17 @@ public class CLangSMG extends SMG {
    *
    * TODO: [STACK-FRAME-STRUCTURE] Perhaps it could be wrapped in a class?
    */
-  final private ArrayDeque<CLangStackFrame> stack_objects = new ArrayDeque<>();
+  final private Deque<CLangStackFrame> stack_objects = new ArrayDeque<>();
 
   /**
    * A container for objects allocated on heap
    */
-  final private HashSet<SMGObject> heap_objects = new HashSet<>();
+  final private Set<SMGObject> heap_objects = new HashSet<>();
 
   /**
    * A container for global objects
    */
-  final private HashMap<String, SMGRegion> global_objects = new HashMap<>();
+  final private Map<String, SMGRegion> global_objects = new HashMap<>();
 
   /**
    * A flag signifying the edge leading to this state caused memory to be leaked
@@ -363,7 +364,7 @@ public class CLangSMG extends SMG {
    *
    * @return Stack of frames
    */
-  public ArrayDeque<CLangStackFrame> getStackFrames() {
+  public Deque<CLangStackFrame> getStackFrames() {
     //TODO: [FRAMES-STACK-STRUCTURE] This still allows modification, as queues
     // do not have the appropriate unmodifiable method. There is probably some good
     // way how to provide a read-only view for iteration, but I do not know it
@@ -512,7 +513,7 @@ class CLangSMGConsistencyVerifier {
    * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG pSmg) {
-    ArrayDeque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
+    Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
 
     for (CLangStackFrame frame: stack_frames) {
@@ -537,7 +538,7 @@ class CLangSMGConsistencyVerifier {
    * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG pSmg) {
-    ArrayDeque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
+    Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
 
     for (CLangStackFrame frame: stack_frames) {
