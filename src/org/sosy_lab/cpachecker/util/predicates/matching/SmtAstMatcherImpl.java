@@ -29,12 +29,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Stack;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
@@ -44,14 +49,25 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 
-public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
+public class SmtAstMatcherImpl implements SmtAstMatcher {
+
+  private final UnsafeFormulaManager ufmgr;
+  private final BooleanFormulaManager bfmgr;
+  private final QuantifiedFormulaManager qfmgr;
+  private final FormulaManager fm;
 
   protected final Multimap<Comparable<?>, Comparable<?>> functionAliases = HashMultimap.create();
   protected final Multimap<Comparable<?>, Comparable<?>> functionImpliedBy = HashMultimap.create();
   protected final Map<Comparable<?>, Comparable<?>> functionRotations = Maps.newHashMap();
   protected final Set<Comparable<?>> commutativeFunctions = Sets.newTreeSet();
 
-  public AbstractSmtAstMatcher() {
+  public SmtAstMatcherImpl(
+      UnsafeFormulaManager pUfmgr, BooleanFormulaManager pBfmgr,
+      QuantifiedFormulaManager pQfmgr, FormulaManager pFm) {
+    ufmgr = pUfmgr;
+    bfmgr = pBfmgr;
+    qfmgr = pQfmgr;
+    fm = pFm;
 
     defineRotations(">=", "<="); // IMPORTANT: This should NOT define a NEGATION!
     defineRotations(">", "<");
@@ -66,16 +82,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     defineFunctionAliases("+", Sets.newHashSet("Integer__+_", "Real__+_"));
   }
 
-  //private void debugLogFromUnitTesting(Object... pDescription) {
-  //for (Object o : pDescription) {
-  //  out.print(o.toString());
-  //  out.print(" ");
-  //}
-  //out.println();
-  //}
-
   protected SmtAstMatchResult newMatchFailedResult(Object... pDescription) {
-    //debugLogFromUnitTesting(ObjectArrays.concat("FAILED MATCH", pDescription));
     return SmtAstMatchResult.NOMATCH_RESULT;
   }
 
@@ -91,19 +98,13 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
       Formula pF,
       Optional<Multimap<String, Formula>> bBindingRestrictions) {
 
-    return matchSelectionOnOneFormula(pParent, pF, new Stack<String>(), pPatternSelection, bBindingRestrictions);
+    return matchSelectionOnOneFormula(pParent, pF,
+        pPatternSelection, bBindingRestrictions);
   }
-
-  protected abstract SmtAstMatchResult internalPerform(
-      final Formula pParentFormula,
-      final Formula pRootFormula,
-      final Stack<String> pQuantifiedVariables,
-      final SmtAstPattern pP, Optional<Multimap<String, Formula>> pBindingRestrictions);
 
   private SmtAstMatchResult matchSelectionOnOneFormula(
       final Formula pParentFormula,
       final Formula pF,
-      final Stack<String> pQuantifiedVariables,
       final SmtAstPatternSelection pPatternSelection,
       final Optional<Multimap<String, Formula>> pBindingRestrictions) {
     // TODO: Cache the match result
@@ -115,9 +116,11 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
       final SmtAstMatchResult r;
       if (p instanceof SmtAstPattern) {
         SmtAstPattern asp = (SmtAstPattern) p;
-        r = internalPerform(pParentFormula, pF, pQuantifiedVariables, asp, pBindingRestrictions);
+        r = internalPerform(pParentFormula, pF,
+            asp, pBindingRestrictions);
       } else if (p instanceof SmtAstPatternSelection){
-        r = matchSelectionOnOneFormula(pParentFormula, pF, pQuantifiedVariables, (SmtAstPatternSelection) p, pBindingRestrictions);
+        r = matchSelectionOnOneFormula(pParentFormula, pF,
+            (SmtAstPatternSelection) p, pBindingRestrictions);
       } else {
         throw new UnsupportedOperationException("Unknown Ast Pattern Type!");
       }
@@ -156,7 +159,6 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
   protected SmtAstMatchResult handleFunctionApplication(
       final Formula pFunctionRootFormula,
-      final Stack<String> pBoundQuantifiedVariables,
       final SmtAstMatchResultImpl result,
       final SmtFunctionApplicationPattern fp,
       final String functionSymbol,
@@ -194,14 +196,14 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
 
     boolean initialReverseMatching = considerArgumentsInReverse;
 
-    SmtAstMatchResult argumentMatchingResult = matchFormulaChildsInSequence(
-        pFunctionRootFormula, pBoundQuantifiedVariables,
+    SmtAstMatchResult argumentMatchingResult = matchFormulaChildrenInSequence(
+        pFunctionRootFormula,
         pFunctionArguments, fp.argumentPatterns,
         pBindingRestrictions, initialReverseMatching);
 
     if (!argumentMatchingResult.matches() && isCommutative(functionSymbol)) {
-      argumentMatchingResult = matchFormulaChildsInSequence(
-          pFunctionRootFormula, pBoundQuantifiedVariables,
+      argumentMatchingResult = matchFormulaChildrenInSequence(
+          pFunctionRootFormula,
           pFunctionArguments, fp.argumentPatterns,
           pBindingRestrictions, !initialReverseMatching);
     }
@@ -215,9 +217,8 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     }
   }
 
-  protected SmtAstMatchResult matchFormulaChildsInSequence(
+  protected SmtAstMatchResult matchFormulaChildrenInSequence(
       final Formula pRootFormula,
-      final Stack<String> pBoundQuantifiedVariables,
       final List<? extends Formula> pChildFormulas,
       final SmtAstPatternSelection pChildPatterns,
       final Optional<Multimap<String, Formula>> pBindingRestrictions,
@@ -235,7 +236,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     result.setMatchingRootFormula(pRootFormula);
 
     if (logic.isDontCare()) {
-      return wrapPositiveMatchResult(result, "Dont care");
+      return wrapPositiveMatchResult(result, "Don't care");
     }
 
     // Perform the matching recursively on the arguments
@@ -253,14 +254,12 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
         functionArgumentResult = internalPerform(
             pRootFormula,
             childFormula,
-            pBoundQuantifiedVariables,
             (SmtAstPattern) argPattern,
             pBindingRestrictions);
       } else {
         functionArgumentResult = matchSelectionOnOneFormula(
             pRootFormula,
             childFormula,
-            pBoundQuantifiedVariables,
             (SmtAstPatternSelection) argPattern,
             pBindingRestrictions);
       }
@@ -294,7 +293,7 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
       return newMatchFailedResult("No match but ALL should!");
     }
 
-    return wrapPositiveMatchResult(result, "Last in matchFormulaChildsInSequence");
+    return wrapPositiveMatchResult(result, "Last in matchFormulaChildrenInSequence");
   }
 
   protected boolean isExpectedFunctionSymbol(Comparable<?> pExpectedSymbol, Comparable<?> pFound) {
@@ -346,9 +345,157 @@ public abstract class AbstractSmtAstMatcher implements SmtAstMatcher {
     functionAliases.putAll(pFunctionName, pAliases);
   }
 
+
   @Override
   public SmtAstMatchResult perform(SmtAstPatternSelection pPatternSelection, Formula pF) {
     return perform(pPatternSelection, null, pF, Optional.<Multimap<String, Formula>>absent());
+  }
+
+  protected SmtAstMatchResult internalPerform(
+      final Formula pParentFormula,
+      final Formula pRootFormula,
+      final SmtAstPattern pP, Optional<Multimap<String, Formula>> pBindingRestrictions) {
+
+    final SmtAstMatchResultImpl result = new SmtAstMatchResultImpl();
+    result.setMatchingRootFormula(pRootFormula);
+
+    if (pP.getBindMatchTo().isPresent()) {
+      final String bindMatchTo = pP.getBindMatchTo().get();
+      result.putBoundVaribale(bindMatchTo, pRootFormula);
+      result.putBoundVaribale(bindMatchTo + ".parent" , pParentFormula);
+
+      if (!bindMatchTo.contains("?")) {
+        if (pBindingRestrictions.isPresent()) {
+          Collection<Formula> variableAlreadyBoundTo = pBindingRestrictions.get().get(bindMatchTo);
+          assert variableAlreadyBoundTo.size() <= 1;
+          if (variableAlreadyBoundTo.size() > 0) {
+            if (!variableAlreadyBoundTo.contains(pRootFormula)) {
+              return newMatchFailedResult(String.format("Binding of variable %s does not match!", bindMatchTo));
+            }
+          }
+        }
+      }
+    }
+
+    if (pRootFormula instanceof BooleanFormula
+        && qfmgr.isQuantifier((BooleanFormula)pRootFormula)) {
+      BooleanFormula booleanFormula = (BooleanFormula) pRootFormula;
+
+      if (!(pP instanceof SmtQuantificationPattern)) {
+        return newMatchFailedResult("No function application!");
+      }
+      SmtQuantificationPattern qp = (SmtQuantificationPattern) pP;
+
+      SmtQuantificationPattern.QuantifierType quantifierType
+          = qfmgr.isForall(booleanFormula)
+          ? QuantifierType.FORALL
+          : QuantifierType.EXISTS;
+
+      if (qp.matchQuantificationWithType.isPresent()) {
+        if (!qp.matchQuantificationWithType.get().equals(quantifierType)) {
+          return newMatchFailedResult("Different quantifier!");
+        }
+      }
+
+      BooleanFormula bodyFormula = qfmgr.getQuantifierBody(booleanFormula);
+
+      return handleQuantification(
+          pRootFormula, result, qp, bodyFormula, pBindingRestrictions);
+
+    } else {
+      if (!(pP instanceof SmtFunctionApplicationPattern)) {
+        return newMatchFailedResult("Got unexpected function application!");
+      }
+
+      // todo: check that it is always applicable.
+      SmtFunctionApplicationPattern fp = (SmtFunctionApplicationPattern) pP;
+
+      if (fp.customFormulaMatcher.isPresent()) {
+        if (!fp.customFormulaMatcher.get().formulaMatches(fm, pRootFormula)) {
+          return newMatchFailedResult("Custom matcher not matched!");
+        }
+      }
+
+      final String functionSymbol;
+      final int functionParameterCount;
+
+      functionParameterCount = ufmgr.getArity(pRootFormula);
+      functionSymbol = ufmgr.getName(pRootFormula);
+
+      if (functionParameterCount == 0) {
+        if (pP.getBindMatchTo().isPresent()) {
+          final String bindMatchTo = pP.getBindMatchTo().get();
+          if (bindMatchTo.startsWith(".") &&
+              !qfmgr.isBoundByQuantifier(pRootFormula)) {
+
+            // No match if we are on a variable, that was not bound by a
+            // quantifier, but it is expected to be so.
+            return newMatchFailedResult("Variable not quantified, "
+                + "quantification expected");
+          }
+        }
+      }
+
+      final ArrayList<Formula> functionArguments = Lists.newArrayList();
+      for (int i=0; i<functionParameterCount; i++) {
+        final Formula argFormula = ufmgr.getArg(pRootFormula, i);
+        functionArguments.add(argFormula);
+      }
+
+      return handleFunctionApplication(
+          pRootFormula, result, fp, functionSymbol, functionArguments,
+          pBindingRestrictions);
+    }
+  }
+
+  private SmtAstMatchResult handleQuantification(
+      final Formula pRootFormula,
+      final SmtAstMatchResultImpl pResult,
+      final SmtQuantificationPattern pQp,
+      final BooleanFormula pBodyFormula,
+      final Optional<Multimap<String, Formula>> bBindingRestrictions) {
+
+    final List<BooleanFormula> bodyConjuncts = extractConjuncts(pBodyFormula, false);
+
+    SmtAstMatchResult bodyMatchingResult = matchFormulaChildrenInSequence(
+        pRootFormula,
+        bodyConjuncts, pQp.quantorBodyMatchers, bBindingRestrictions, false);
+
+    if (!bodyMatchingResult.matches() && bodyConjuncts.size() > 0) {
+      bodyMatchingResult = matchFormulaChildrenInSequence(
+          pRootFormula,
+          bodyConjuncts, pQp.quantorBodyMatchers, bBindingRestrictions, true);
+    }
+
+    if (bodyMatchingResult.matches()) {
+      pResult.addSubResults(bodyMatchingResult);
+      return pResult;
+    } else {
+      // Encodes the reason for the failure
+      return bodyMatchingResult;
+    }
+  }
+
+  private List<BooleanFormula> extractConjuncts(BooleanFormula pFormula,
+      boolean pRecursive) {
+    List<BooleanFormula> result = Lists.newArrayList();
+    if (bfmgr.isAnd(pFormula)) {
+      for (int i=0; i<ufmgr.getArity(pFormula); i++) {
+        BooleanFormula child = (BooleanFormula) ufmgr.getArg(pFormula, i);
+        if (pRecursive) {
+          result.addAll(extractConjuncts(child, true));
+        } else {
+          result.add(child);
+        }
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public <T1 extends Formula, T2 extends Formula> T1 substitute(T1 f,
+      Map<T2, T2> fromToMapping) {
+    return ufmgr.substitute(f, fromToMapping);
   }
 
 }

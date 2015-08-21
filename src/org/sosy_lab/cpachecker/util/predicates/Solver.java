@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProve
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcherImpl;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 
@@ -396,7 +397,12 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
   }
 
   public SmtAstMatcher getSmtAstMatcher() {
-    return solvingFormulaManager.getSmtAstMatcher();
+    return new SmtAstMatcherImpl(
+        solvingFormulaManager.getUnsafeFormulaManager(),
+        solvingFormulaManager.getBooleanFormulaManager(),
+        solvingFormulaManager.getQuantifiedFormulaManager(),
+        solvingFormulaManager
+    );
   }
 
   @Override

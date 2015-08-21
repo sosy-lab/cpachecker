@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.z3.Z3NativeApi.PointerToInt;
 
 import com.google.common.base.Splitter;
@@ -76,9 +75,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   // Pointer from class is needed to avoid GC claiming this listener.
   private final ShutdownNotifier.ShutdownRequestListener interruptListener;
-  private Z3AstMatcher z3astMatcher;
   private final long z3params;
-  private final ShutdownNotifier shutdownNotfier;
+  private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
 
   private static final String OPT_ENGINE_CONFIG_KEY = "optsmt_engine";
@@ -118,10 +116,9 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     config.inject(this);
     z3params = pZ3params;
     this.z3smtLogger = smtLogger;
-    this.z3astMatcher = new Z3AstMatcher(this);
     interruptListener = pInterruptListener;
     pShutdownNotifier.register(interruptListener);
-    shutdownNotfier = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
   }
 
@@ -223,7 +220,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   @Override
   public ProverEnvironment newProverEnvironment(boolean pGenerateModels, boolean pGenerateUnsatCore) {
-    return new Z3TheoremProver(this, z3params, shutdownNotfier, pGenerateUnsatCore);
+    return new Z3TheoremProver(this, z3params, shutdownNotifier, pGenerateUnsatCore);
   }
 
   @Override
@@ -232,13 +229,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
   }
 
   @Override
-  public SmtAstMatcher getSmtAstMatcher() {
-    return z3astMatcher;
-  }
-
-  @Override
   public OptEnvironment newOptEnvironment() {
-    Z3OptProver out = new Z3OptProver(this, shutdownNotfier, logger);
+    Z3OptProver out = new Z3OptProver(this, shutdownNotifier, logger);
     out.setParam(OPT_ENGINE_CONFIG_KEY, this.optimizationEngine);
     out.setParam(OPT_PRIORITY_CONFIG_KEY, this.objectivePrioritizationMode);
     return out;

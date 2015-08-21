@@ -146,9 +146,4 @@ public interface FormulaManager {
    * Get some version information of the solver.
    */
   public String getVersion();
-
-  /**
-   * @return Returns an instance of SmtAstMatcher if implemented for the specific solver; otherwise 'null'.
-   */
-  public SmtAstMatcher getSmtAstMatcher();
 }

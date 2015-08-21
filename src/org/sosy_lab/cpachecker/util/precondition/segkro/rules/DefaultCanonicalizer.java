@@ -106,14 +106,14 @@ public class DefaultCanonicalizer implements Canonicalizer {
 
   }
 
-  private static class TranswformNotGreaterThan extends PatternBasedRule {
+  private static class TransformNotGreaterThan extends PatternBasedRule {
 
     // not a > b
     // a, b: Integers
     // ====>
     // a <= b
 
-    public TranswformNotGreaterThan(Solver pSolver, SmtAstMatcher pMatcher) {
+    public TransformNotGreaterThan(Solver pSolver, SmtAstMatcher pMatcher) {
       super(pSolver, pMatcher);
     }
 
@@ -144,7 +144,7 @@ public class DefaultCanonicalizer implements Canonicalizer {
     this.axioms = Lists.<PatternBasedRule>newArrayList();
 
     axioms.add(new TransformDoubleNegations(pSolver, pSmtAstMatcher));
-    axioms.add(new TranswformNotGreaterThan(pSolver, pSmtAstMatcher));
+    axioms.add(new TransformNotGreaterThan(pSolver, pSmtAstMatcher));
     axioms.add(new TransformNotLessOrEq(pSolver, pSmtAstMatcher));
   }
 
