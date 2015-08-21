@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.composite;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.collect.Iterables.any;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.util.ArrayList;
@@ -44,11 +45,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageTransferRelation;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -70,15 +69,12 @@ public final class CompositeTransferRelation implements TransferRelation {
   private final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
-  private final boolean isErrorStateDetectableInStrengthening;
 
   public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations,
-      boolean pErrorDetctableInStrengthen, Configuration config) throws InvalidConfigurationException {
+      Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     this.transferRelations = transferRelations;
     size = transferRelations.size();
-
-    isErrorStateDetectableInStrengthening = pErrorDetctableInStrengthen;
 
     // prepare special case handling if both predicates and assumptions are used
     for (int i = 0; i < size; i++) {
@@ -216,7 +212,6 @@ public final class CompositeTransferRelation implements TransferRelation {
       final List<AbstractState> reachedState,
       final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
           throws CPATransferException, InterruptedException {
-    AbstractState foundInStrengthen = null;
     List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
     int resultCount = 1;
 
@@ -238,24 +233,12 @@ public final class CompositeTransferRelation implements TransferRelation {
           break;
         }
 
-        if (!isTargetState(lCurrentElement)) {
-          if (isErrorStateDetectableInStrengthening && foundInStrengthen == null) {
-            if (lCurrentElement instanceof AutomatonState) {
-              for (AbstractState strengthenState : lResultsList) {
-                if (((Targetable) strengthenState).isTarget()) {
-                  foundInStrengthen = strengthenState;
-                  break;
-                }
-              }
-            }
-          }
-        }
-
         lStrengthenResults.add(lResultsList);
       }
     }
 
     // special case handling if we have predicate and assumption cpas
+    // TODO remove as soon as we call strengthen in a fixpoint loop
     if (predicatesIndex >= 0 && assumptionIndex >= 0 && resultCount > 0) {
       AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
       AbstractState assumptionElement = Iterables.getOnlyElement(lStrengthenResults.get(assumptionIndex));
@@ -268,20 +251,30 @@ public final class CompositeTransferRelation implements TransferRelation {
       lStrengthenResults.set(predicatesIndex, predResult);
     }
 
-    // special case handling error state found during strengthening if we have predicate
-    if (predicatesIndex >= 0 && foundInStrengthen!=null && resultCount > 0) {
-      AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
-      Precision predPrecision = compositePrecision.get(predicatesIndex);
-      TransferRelation predTransfer = transferRelations.get(predicatesIndex);
+    // create cartesian product
+    Collection<List<AbstractState>> strengthenedStates =
+        createCartesianProduct(lStrengthenResults, resultCount);
 
-      Collection<? extends AbstractState> predResult = predTransfer.strengthen(predElement, Collections.singletonList(foundInStrengthen), cfaEdge, predPrecision);
-      resultCount *= predResult.size();
+    // If state was not a target state before but a target state was found during strengthening,
+    // we call strengthen again such that the other CPAs can act on this information.
+    // Note that this terminates because in the inner call the input state
+    // is already a target state and this branch won't be taken.
+    // TODO Generalize this into a full fixpoint algorithm.
+    if (!any(reachedState, IS_TARGET_STATE)) {
+      Collection<List<AbstractState>> newStrengthenedStates = new ArrayList<>(resultCount);
 
-      lStrengthenResults.set(predicatesIndex, predResult);
+      for (List<AbstractState> strengthenedState : strengthenedStates) {
+        if (any(strengthenedState, IS_TARGET_STATE)) {
+          newStrengthenedStates.addAll(callStrengthen(strengthenedState, compositePrecision, cfaEdge));
+        } else {
+          newStrengthenedStates.add(strengthenedState);
+        }
+      }
+      return newStrengthenedStates;
+
+    } else {
+      return strengthenedStates;
     }
-
-    // create cartesian
-    return createCartesianProduct(lStrengthenResults, resultCount);
   }
 
   protected static Collection<List<AbstractState>> createCartesianProduct(
