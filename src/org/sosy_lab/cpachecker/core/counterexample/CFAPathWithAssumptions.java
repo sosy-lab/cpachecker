@@ -26,14 +26,17 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
@@ -192,14 +195,37 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
   private static CFAEdgeWithAssumptions createCFAEdgeWithAssignment(MultiConcreteState state,
       AssumptionToEdgeAllocator pAllocator) {
 
-    MultiEdge cfaEdge = state.getCfaEdge();
-    List<CFAEdgeWithAssumptions> pEdges = new ArrayList<>(cfaEdge.getEdges().size());
+    MultiEdge multiEdge = state.getCfaEdge();
+    List<CFAEdgeWithAssumptions> pEdges = new ArrayList<>(multiEdge.getEdges().size());
 
+    // First, create all assumptions for each edge in the multi edge
     for (SingleConcreteState node : state) {
       pEdges.add(createCFAEdgeWithAssignment(node, pAllocator));
     }
 
-    CFAMultiEdgeWithAssumptions edge = CFAMultiEdgeWithAssumptions.valueOf(cfaEdge, pEdges);
+    /* Second, create all assumptions at the end of the multi edge for
+    * all changed variables. Since it is impossible to properly project
+    * the assumption from the assumptions of the edges in the multi edge,
+    * due to aliasing, simply create assumptions for all edges with the concrete state
+    * of the last edge, thus correctly projecting all lvalues at the end of the multi edge.*/
+    Set<AExpressionStatement> assumptions = new HashSet<>();
+    ConcreteState lastState = state.getLastConcreteState().getConcreteState();
+
+    for (CFAEdge cfaEdge : multiEdge) {
+      CFAEdgeWithAssumptions assumptionForedge = pAllocator.allocateAssumptionsToEdge(cfaEdge, lastState);
+
+      // throw away redundant assumptions
+      for (AExpressionStatement assumption : assumptionForedge.getExpStmts()) {
+        if (!assumptions.contains(assumption)) {
+          assumptions.add(assumption);
+        }
+      }
+    }
+
+    ArrayList<AExpressionStatement> assumptionsList = new ArrayList<>(assumptions);
+
+    // TODO Comment necessary for multi edges?
+    CFAMultiEdgeWithAssumptions edge = CFAMultiEdgeWithAssumptions.valueOf(multiEdge, pEdges, assumptionsList, "");
     return edge;
   }
 
