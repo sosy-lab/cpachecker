@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -268,19 +269,37 @@ public class AssumptionToEdgeAllocator {
   @Nullable
   private List<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
 
+    List<AExpressionStatement> result = new ArrayList<>();
+
+    // Get all Assumptions of this edge
     if (pCFAEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-      return handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
+      List<AExpressionStatement> dclAssumptions = handleDeclaration(((ADeclarationEdge) pCFAEdge).getDeclaration(),
           pCFAEdge.getPredecessor().getFunctionName(),
           pConcreteState);
+      result.addAll(dclAssumptions);
     } else if (pCFAEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      return handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState);
-    } else if (pCFAEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      return handleFunctionCall(((FunctionCallEdge) pCFAEdge), pConcreteState);
+      List<AExpressionStatement> stmtAssumptions =
+          handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState);
+      result.addAll(stmtAssumptions);
     } else if (pCFAEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
       throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
-    return Collections.emptyList();
+    // Get Assumptions of the formal parameters, if the previous ede was a function call edge
+    CFANode predNode = pCFAEdge.getPredecessor();
+
+    if (predNode.getNumEnteringEdges() <= 0) {
+      return result;
+    }
+
+    CFAEdge predEdge = predNode.getEnteringEdge(FIRST);
+
+    if (predEdge instanceof FunctionCallEdge) {
+      List<AExpressionStatement> formalVarsAssumption = handleFunctionCall((FunctionCallEdge) predEdge, pConcreteState);
+      result.addAll(formalVarsAssumption);
+    }
+
+    return result;
   }
 
   private String handleAssume(AssumeEdge pCfaEdge, ConcreteState pConcreteState) {
