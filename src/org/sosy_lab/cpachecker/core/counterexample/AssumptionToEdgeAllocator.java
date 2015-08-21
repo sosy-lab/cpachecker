@@ -256,12 +256,13 @@ public class AssumptionToEdgeAllocator {
     LModelValueVisitor v = new LModelValueVisitor(functionName, pConcreteState);
     Address address = v.getAddress(dcl);
 
-    if (address.isUnknown()) {
+    // concrete addresses already assumptions
+    if (address.isUnknown() || address.isConcrete()) {
       return "";
     }
 
     return "&" + dcl.getName()
-        + " = " + address.getCommentRepresentation();
+        + " == " + address.getCommentRepresentation();
   }
 
   @Nullable
