@@ -188,4 +188,14 @@ final public class CLangStackFrame {
   public SMGRegion getReturnObject() {
     return returnValueObject;
   }
+
+  /**
+   * returns true if stack contains the given variable, else false.
+   *
+   * @param var
+   * @return
+   */
+  public boolean hasVariable(String var) {
+    return stack_variables.containsKey(var);
+  }
 }
