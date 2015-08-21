@@ -285,7 +285,7 @@ public class AssumptionToEdgeAllocator {
       throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
-    // Get Assumptions of the formal parameters, if the previous ede was a function call edge
+    // Get Assumptions of the formal parameters, if the previous edge was a function call edge
     CFANode predNode = pCFAEdge.getPredecessor();
 
     if (predNode.getNumEnteringEdges() <= 0) {
