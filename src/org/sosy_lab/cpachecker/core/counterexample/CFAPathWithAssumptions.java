@@ -196,11 +196,15 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
       AssumptionToEdgeAllocator pAllocator) {
 
     MultiEdge multiEdge = state.getCfaEdge();
-    List<CFAEdgeWithAssumptions> pEdges = new ArrayList<>(multiEdge.getEdges().size());
+    int sizeOfMultiEdge= multiEdge.getEdges().size();
+    List<CFAEdgeWithAssumptions> edges = new ArrayList<>(sizeOfMultiEdge);
 
-    // First, create all assumptions for each edge in the multi edge
-    for (SingleConcreteState node : state) {
-      pEdges.add(createCFAEdgeWithAssignment(node, pAllocator));
+
+    // First, create all assumptions for each edge in the multi edge except the last one
+    Iterator<SingleConcreteState> it = state.iterator();
+    for (int c = 0; c < sizeOfMultiEdge - 1; c++) {
+      SingleConcreteState node = it.next();
+      edges.add(createCFAEdgeWithAssignment(node, pAllocator));
     }
 
     /* Second, create all assumptions at the end of the multi edge for
@@ -211,6 +215,8 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
     Set<AExpressionStatement> assumptions = new HashSet<>();
     ConcreteState lastState = state.getLastConcreteState().getConcreteState();
 
+    StringBuilder comment = new StringBuilder("");
+
     for (CFAEdge cfaEdge : multiEdge) {
       CFAEdgeWithAssumptions assumptionForedge = pAllocator.allocateAssumptionsToEdge(cfaEdge, lastState);
 
@@ -220,12 +226,22 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
           assumptions.add(assumption);
         }
       }
+
+      String commentOfEdge = assumptionForedge.getComment();
+
+      if(commentOfEdge != null && !commentOfEdge.isEmpty()) {
+        comment.append(commentOfEdge);
+        comment.append("\n");
+      }
     }
 
+    // Finally create Last edge and multi edge
     ArrayList<AExpressionStatement> assumptionsList = new ArrayList<>(assumptions);
+    CFAEdge lastEdge = state.getLastConcreteState().getCfaEdge();
+    CFAEdgeWithAssumptions lastAssumptionEdge = new CFAEdgeWithAssumptions(lastEdge, assumptionsList, comment.toString());
+    edges.add(lastAssumptionEdge);
 
-    // TODO Comment necessary for multi edges?
-    CFAMultiEdgeWithAssumptions edge = CFAMultiEdgeWithAssumptions.valueOf(multiEdge, pEdges, assumptionsList, "");
+    CFAMultiEdgeWithAssumptions edge = CFAMultiEdgeWithAssumptions.valueOf(multiEdge, edges, assumptionsList, comment.toString());
     return edge;
   }
 
