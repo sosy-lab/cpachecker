@@ -912,6 +912,18 @@ public class ValueAnalysisTransferRelation
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
   private ValueAnalysisState handleAssignmentToVariable(
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
+          throws UnrecognizedCCodeException {
+    // here we clone the state, because we get new information or must forget it.
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
+    return newElement;
+  }
+
+  /** This method analyses the expression with the visitor and assigns the value to lParam
+   *  to the given value Analysis state.
+   */
+  private void handleAssignmentToVariable(ValueAnalysisState newElement,
+      MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
 
     // c structs have to be handled seperatly, because we do not have a value object representing structs
@@ -920,7 +932,7 @@ public class ValueAnalysisTransferRelation
       if (canonicaltype instanceof CCompositeType
           && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
           && exp instanceof CExpression) {
-        handleAssignmentToStruct(assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+        handleAssignmentToStruct(newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
       }
     }
 
@@ -942,15 +954,12 @@ public class ValueAnalysisTransferRelation
       addMissingInformation(assignedVar, exp);
     }
 
-    // here we clone the state, because we get new information or must forget it.
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-
     if (visitor.hasMissingFieldAccessInformation()) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if (!value.isUnknown()) {
         newElement.forget(assignedVar);
-        return newElement;
+        return;
       } else {
         missingInformationRightJExpression = (JRightHandSide) exp;
         if (!missingScopedFieldName) {
@@ -977,37 +986,38 @@ public class ValueAnalysisTransferRelation
         newElement.assignConstant(assignedVar, value, lType);
       }
     }
-
-    return newElement;
   }
 
   /**
    *
    * This method transforms the assignment of the struct into assignments of its respective
-   * field references.
+   * field references and assigns them to the given value state.
    *
    */
-  private void handleAssignmentToStruct(MemoryLocation pAssignedVar, CCompositeType pLType, CExpression pExp,
+  private void handleAssignmentToStruct(ValueAnalysisState pNewElement,
+      MemoryLocation pAssignedVar,
+      CCompositeType pLType, CExpression pExp,
       ExpressionValueVisitor pVisitor) throws UnrecognizedCCodeException {
 
-    CType type =  pExp.getExpressionType().getCanonicalType();
+    CType type = pExp.getExpressionType().getCanonicalType();
 
     // simple assignments with an unequal type as expression are casted
     boolean expressionNeedsToBeCasted = !type.equals(pLType);
 
     int offset = 0;
-    for(CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
+    for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
       CExpression owner = null;
 
-      if(expressionNeedsToBeCasted) {
+      if (expressionNeedsToBeCasted) {
         owner = new CCastExpression(pExp.getFileLocation(), pLType, pExp);
       } else {
         owner = pExp;
       }
 
-      CExpression fieldReference = new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
-      handleAssignmentToVariable(assignedField, memberType.getType(), fieldReference, pVisitor);
+      CExpression fieldReference =
+          new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
+      handleAssignmentToVariable(pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
 
       offset = offset + machineModel.getSizeof(memberType.getType());
     }
