@@ -97,6 +97,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -912,6 +914,16 @@ public class ValueAnalysisTransferRelation
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
 
+    // c structs have to be handled seperatly, because we do not have a value object representing structs
+    if (lType instanceof CType) {
+      CType canonicaltype = ((CType) lType).getCanonicalType();
+      if (canonicaltype instanceof CCompositeType
+          && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
+          && exp instanceof CExpression) {
+        handleAssignmentToStruct(assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+      }
+    }
+
     Value value;
     if (exp instanceof JRightHandSide) {
        value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
@@ -967,6 +979,47 @@ public class ValueAnalysisTransferRelation
     }
 
     return newElement;
+  }
+
+  /**
+   *
+   * This method transforms the assignment of the struct into assignments of its respective
+   * field references.
+   *
+   */
+  private void handleAssignmentToStruct(MemoryLocation pAssignedVar, CCompositeType pLType, CExpression pExp,
+      ExpressionValueVisitor pVisitor) throws UnrecognizedCCodeException {
+
+    CType type =  pExp.getExpressionType().getCanonicalType();
+
+    // simple assignments with an unequal type as expression are casted
+    boolean expressionNeedsToBeCasted = !type.equals(pLType);
+
+    int offset = 0;
+    for(CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
+      MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
+      CExpression owner = null;
+
+      if(expressionNeedsToBeCasted) {
+        owner = new CCastExpression(pExp.getFileLocation(), pLType, pExp);
+      } else {
+        owner = pExp;
+      }
+
+      CExpression fieldReference = new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
+      handleAssignmentToVariable(assignedField, memberType.getType(), fieldReference, pVisitor);
+
+      offset = offset + machineModel.getSizeof(memberType.getType());
+    }
+  }
+
+  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
+
+    if (pStruct.isOnFunctionStack()) {
+      return MemoryLocation.valueOf(pStruct.getFunctionName(), pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+    } else {
+      return MemoryLocation.valueOf(pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+    }
   }
 
   private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {
