@@ -931,8 +931,9 @@ public class ValueAnalysisTransferRelation
       CType canonicaltype = ((CType) lType).getCanonicalType();
       if (canonicaltype instanceof CCompositeType
           && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
-          && exp instanceof CExpression) {
+          && exp instanceof CLeftHandSide) {
         handleAssignmentToStruct(newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+        return;
       }
     }
 
