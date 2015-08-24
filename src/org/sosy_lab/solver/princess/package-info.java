@@ -24,4 +24,4 @@
 /**
  * Interface to the SMT solver Princess.
  */
-package org.sosy_lab.solver.mathsat5;
+package org.sosy_lab.solver.princess;
