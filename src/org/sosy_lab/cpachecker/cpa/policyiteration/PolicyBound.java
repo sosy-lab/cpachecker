@@ -6,8 +6,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 

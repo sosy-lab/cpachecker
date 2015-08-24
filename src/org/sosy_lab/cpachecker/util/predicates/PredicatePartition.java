@@ -30,6 +30,7 @@ import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.Solver;
 
 /**
  * The class <code>PredicatePartition</code> represents a partition of predicates that are similar to each other.

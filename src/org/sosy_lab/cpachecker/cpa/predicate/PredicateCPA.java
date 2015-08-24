@@ -58,13 +58,13 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.solver.Solver;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -306,7 +306,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
     }
-    solver.collectStatistics(pStatsCollection);
+    solver.getFormulaManager().collectStatistics(pStatsCollection);
   }
 
   @Override

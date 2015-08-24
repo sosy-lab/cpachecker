@@ -33,9 +33,9 @@ import java.io.Serializable;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 public final class PathFormula implements Serializable {
 

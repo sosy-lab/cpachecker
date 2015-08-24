@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBitvectorFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
@@ -859,10 +859,10 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   @Override
-  public org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
+  public org.sosy_lab.solver.api.BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
     FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
-    org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula result = bfmgr.makeBoolean(true);
+    org.sosy_lab.solver.api.BooleanFormula result = bfmgr.makeBoolean(true);
     ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, evaluationVisitor);
 
@@ -887,7 +887,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
     for (BooleanFormula<CompoundInterval> assumption : Iterables.concat(getEnvironmentAsAssumptions(), getTypeInformationAsAssumptions())) {
       if (acceptFormula.apply(assumption)) {
-        org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula assumptionFormula =
+        org.sosy_lab.solver.api.BooleanFormula assumptionFormula =
             assumption.accept(toBooleanFormulaVisitor, getEnvironment());
         if (assumptionFormula != null) {
           result = bfmgr.and(result, assumptionFormula);

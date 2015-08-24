@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.Formula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;

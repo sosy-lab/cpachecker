@@ -20,7 +20,7 @@ typedef void jvoid; // for symmetry to jint, jlong etc.
 
 
 #define DEFINE_FUNC(jreturn, func_escaped) \
-  JNIEXPORT j##jreturn JNICALL Java_org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi_msat_##func_escaped
+  JNIEXPORT j##jreturn JNICALL Java_org_sosy_1lab_solver_mathsat5_Mathsat5NativeApi_msat_##func_escaped
 
 #define WITHOUT_ARGS \
   (JNIEnv *jenv, jclass jcls) {

@@ -29,6 +29,7 @@ import java.util.PriorityQueue;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.Solver;
 
 /**
  * The class <code>PredicatePartitionFrequency</code> represents a concrete partition of predicates and hence it

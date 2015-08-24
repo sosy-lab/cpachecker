@@ -29,10 +29,10 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FunctionFormulaManager;
+import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 
 import com.google.common.base.Function;
 
