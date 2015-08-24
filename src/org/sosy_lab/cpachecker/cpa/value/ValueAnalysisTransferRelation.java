@@ -999,21 +999,12 @@ public class ValueAnalysisTransferRelation
       CCompositeType pLType, CExpression pExp,
       ExpressionValueVisitor pVisitor) throws UnrecognizedCCodeException {
 
-    CType type = pExp.getExpressionType().getCanonicalType();
-
-    // simple assignments with an unequal type as expression are casted
-    boolean expressionNeedsToBeCasted = !type.equals(pLType);
-
     int offset = 0;
     for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
       MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
       CExpression owner = null;
 
-      if (expressionNeedsToBeCasted) {
-        owner = new CCastExpression(pExp.getFileLocation(), pLType, pExp);
-      } else {
-        owner = pExp;
-      }
+      owner = pExp;
 
       CExpression fieldReference =
           new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
