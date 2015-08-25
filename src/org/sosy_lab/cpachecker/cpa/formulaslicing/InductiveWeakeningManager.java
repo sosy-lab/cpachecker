@@ -220,8 +220,14 @@ public class InductiveWeakeningManager {
     for (BooleanFormula selector : selectionVars) {
       BooleanFormula atom = selectionInfo.get(selector);
 
+      // Variables which have the SSA index different to the one after the
+      // transition.
       Set<String> deadVars = fmgr.getDeadVariableNames(atom, transition.getSsa());
-      if (!deadVars.isEmpty()) {
+
+      if (!deadVars.isEmpty() ||
+
+          // todo: remove this hack.
+          atom.toString().contains("z3name")) {
         out.add(selector);
       }
     }
