@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Collection;
+
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,32 +36,68 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.Multiset;
 
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
   private final @Nullable PrecisionAdjustment wrappedPrec;
   private final AutomatonState topState;
+  private final AutomatonState bottomState;
 
-  @Option(secure=true, name="topOnFinalSelfLoopingState",
-      description="An implicit precision: consider states with a self-loop and no other outgoing edges as TOP.")
+  @Option(secure=true, description="An implicit precision: consider states with a self-loop and no other outgoing edges as TOP.")
   private boolean topOnFinalSelfLoopingState = false;
+
+  @Option(secure=true, description="Handle at most k (> 0) violation of one property.")
+  private int targetHandledAfter = 1;
+
+  enum TargetStateVisitBehaviour {
+    SIGNAL, // Signal the target state (default)
+    BOTTOM, // Change to the automata state BOTTOM (when splitting states on a violation)
+  }
+  @Option(secure=true, description="Behaviour on a property that has already been fully handled.")
+  private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
 
   public ControlAutomatonPrecisionAdjustment(
       Configuration pConfig,
       AutomatonState pTopState,
+      AutomatonState pBottomState,
       PrecisionAdjustment pWrappedPrecisionAdjustment)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.topState = pTopState;
+    this.bottomState = pBottomState;
     this.wrappedPrec = pWrappedPrecisionAdjustment;
+  }
+
+  private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState) {
+    assert pFullState instanceof Targetable;
+    assert ((Targetable) pFullState).isTarget();
+
+    Collection<Property> props = AbstractStates.extractViolatedProperties(pFullState);
+
+    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+    Multiset<Property> reachedViolations = argCpa.getCexSummary().getFeasiblePropertyViolations();
+
+    int result = Integer.MAX_VALUE;
+    for (Property p: props) {
+      result = Math.min(result, reachedViolations.count(p));
+    }
+
+    return result;
   }
 
   @Override
@@ -79,6 +117,26 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     }
 
     AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
+
+    // Handle a target state
+    //    We might disable certain target states
+    //      (they should not be considered as target states)
+    if (onHandledTarget == TargetStateVisitBehaviour.BOTTOM) {
+      assert targetHandledAfter > 0;
+
+      if (((Targetable) pFullState).isTarget()) {
+
+        int timesHandled = timesEqualTargetInReached(pStates, pFullState);
+        if (timesHandled >= targetHandledAfter) { // the new state is the ith+1
+
+          Precision adjustedPrecision = pPrecision; // TODO!
+
+          return Optional.of(PrecisionAdjustmentResult.create(
+              bottomState,
+              adjustedPrecision, Action.CONTINUE));
+        }
+      }
+    }
 
     // Handle the BREAK state
     if (internalState.getName().equals(AutomatonInternalState.BREAK.getName())) {

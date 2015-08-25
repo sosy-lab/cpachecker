@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
@@ -49,6 +50,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
 
 /**
@@ -136,6 +138,17 @@ public final class AbstractStates {
     } else {
       return Collections.emptyList();
     }
+  }
+
+  public static Collection<Property> extractViolatedProperties(AbstractState pState) {
+    Set<Property> result = Sets.newHashSet();
+    Collection<? extends Targetable> targetStates = extractsActiveTargets(pState);
+
+    for (Targetable e: targetStates) {
+      result.addAll(e.getViolatedProperties());
+    }
+
+    return result;
   }
 
 

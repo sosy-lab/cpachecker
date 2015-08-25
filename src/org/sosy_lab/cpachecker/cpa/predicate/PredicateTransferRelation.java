@@ -375,7 +375,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(element);
       }
 
-      boolean errorFound = false;
+      boolean targetFound = false;
       for (AbstractState lElement : otherElements) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
@@ -393,7 +393,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (AbstractStates.isTargetState(lElement)) {
-          errorFound = true;
+          targetFound = true;
         }
 
         if (lElement instanceof AutomatonState) {
@@ -408,7 +408,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (satCheckRequested || errorFound && targetStateSatCheck) {
+      if (satCheckRequested || targetFound && targetStateSatCheck) {
         PredicateAbstractState e = strengthenSatCheck(element, getAnalysisSuccesor(edge));
         if (e == null) {
           // successor not reachable

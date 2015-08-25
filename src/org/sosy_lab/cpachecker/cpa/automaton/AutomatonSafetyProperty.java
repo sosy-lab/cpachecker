@@ -45,4 +45,42 @@ public class AutomatonSafetyProperty implements Property {
     return propertyDescription;
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((automatonState == null) ? 0 : automatonState.hashCode());
+    result = prime * result + ((propertyDescription == null) ? 0 : propertyDescription.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    AutomatonSafetyProperty other = (AutomatonSafetyProperty) obj;
+    if (automatonState == null) {
+      if (other.automatonState != null) {
+        return false;
+      }
+    } else if (!automatonState.equals(other.automatonState)) {
+      return false;
+    }
+    if (propertyDescription == null) {
+      if (other.propertyDescription != null) {
+        return false;
+      }
+    } else if (!propertyDescription.equals(other.propertyDescription)) {
+      return false;
+    }
+    return true;
+  }
+
 }
