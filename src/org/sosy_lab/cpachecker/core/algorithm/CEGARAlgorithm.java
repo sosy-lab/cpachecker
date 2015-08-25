@@ -242,13 +242,14 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
         if (refinementNecessary(reached)) {
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
+
           // assert that reached set is free of target states,
           // if refinement was successful and initial reached set was empty (i.e. stopAfterError=true)
           if (refinementSuccessful && initialReachedSetSize == 1) {
             assert !from(reached).anyMatch(IS_TARGET_STATE);
           }
-        }
 
+        }
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
         else if(mRefiner instanceof UnsoundRefiner) {
