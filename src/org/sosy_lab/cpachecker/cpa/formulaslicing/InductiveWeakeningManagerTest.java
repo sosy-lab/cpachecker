@@ -42,7 +42,7 @@ public class InductiveWeakeningManagerTest {
             "cpa.predicate.solver", "Z3",
             "log.consoleLevel", "FINE",
 
-            // todo: just for easier debugging now.
+            // For easier debugging.
             "cpa.predicate.handlePointerAliasing", "false",
 
             "analysis.interprocedural", "false"
