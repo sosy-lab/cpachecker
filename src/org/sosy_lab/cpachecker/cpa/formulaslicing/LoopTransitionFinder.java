@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,6 +57,7 @@ public class LoopTransitionFinder {
   private final LogManager logger;
   private final LoopStructure loopStructure;
   private final FormulaSlicingStatistics statistics;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final HashMultimap<CFANode, EdgeWrapper> cache;
 
@@ -63,8 +65,9 @@ public class LoopTransitionFinder {
       Configuration config,
       CFA pCfa, PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr, LogManager pLogger,
-      FormulaSlicingStatistics pStatistics)
+      FormulaSlicingStatistics pStatistics, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    shutdownNotifier = pShutdownNotifier;
     config.inject(this);
     statistics = pStatistics;
     pfmgr = pPfmgr;
@@ -143,7 +146,6 @@ public class LoopTransitionFinder {
       PointerTargetSet pts)
       throws CPATransferException, InterruptedException {
 
-
     Set<EdgeWrapper> out;
     if (cache.containsKey(loopHead)) {
 
@@ -158,6 +160,7 @@ public class LoopTransitionFinder {
       Preconditions.checkState(!edgesInLoop.isEmpty());
       boolean changed;
       do {
+        shutdownNotifier.shutdownIfNecessary();
         changed = false;
         if (applyANDtransformation && andLBETransformation(out) ||
             applyORtransformation && orLBETransformation(out)) {
