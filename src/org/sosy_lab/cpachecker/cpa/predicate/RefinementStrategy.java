@@ -129,17 +129,18 @@ public abstract class RefinementStrategy {
   }
 
 
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
+  public void performRefinement(ARGReachedSet pReached, List<ARGState> pAbstractionStatesTrace,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
-    // Hook
-    startRefinementOfPath();
 
     // The last state along the path is the target (error) state
-    ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
+    ARGState lastElement = pAbstractionStatesTrace.get(pAbstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
 
+    // Hook
+    startRefinementOfPath(pReached, pAbstractionStatesTrace, lastElement);
+
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements =
-        evaluateInterpolantsOnPath(lastElement, abstractionStatesTrace, pInterpolants);
+        evaluateInterpolantsOnPath(lastElement, pAbstractionStatesTrace, pInterpolants);
 
     ARGState infeasiblePartOfARG = rootOfInfeasibleArgAndChangedElements.getFirst();
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
@@ -249,7 +250,7 @@ public abstract class RefinementStrategy {
   }
 
   @ForOverride
-  protected abstract void startRefinementOfPath();
+  protected abstract void startRefinementOfPath(ARGReachedSet pReached, List<ARGState> pAbstractionStatesTrace, ARGState pLastElement);
 
   /**
    * Perform refinement on one state given the interpolant that was determined

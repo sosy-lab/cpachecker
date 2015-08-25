@@ -101,12 +101,6 @@ class ImpactRefinementStrategy extends RefinementStrategy {
     impact = new ImpactUtility(config, pSolver.getFormulaManager(), pPredAbsMgr);
   }
 
-  @Override
-  protected void startRefinementOfPath() {
-    checkState(lastAbstraction == null);
-    lastAbstraction = predAbsMgr.makeTrueAbstractionFormula(null);
-  }
-
   /**
    * For each interpolant, we strengthen the corresponding state by
    * conjunctively adding the interpolant to its state formula.
@@ -168,5 +162,13 @@ class ImpactRefinementStrategy extends RefinementStrategy {
   @Override
   public Statistics getStatistics() {
     return stats;
+  }
+
+  @Override
+  protected void startRefinementOfPath(ARGReachedSet pReached, List<ARGState> pAbstractionStatesTrace,
+      ARGState pLastElement) {
+
+    checkState(lastAbstraction == null);
+    lastAbstraction = predAbsMgr.makeTrueAbstractionFormula(null);
   }
 }
