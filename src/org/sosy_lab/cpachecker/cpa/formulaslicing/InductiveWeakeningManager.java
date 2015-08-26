@@ -143,6 +143,18 @@ public class InductiveWeakeningManager {
         strengthening
     ));
 
+    if (selectionVarsInfo.size() == 0) {
+
+      // Either everything is inductive, or nothing is inductive.
+      if (solver.isUnsat(query)) {
+        return noIntermediate;
+      } else {
+
+        // Nothing is inductive.
+        return bfmgr.makeBoolean(true);
+      }
+    }
+
     // Abstracting away every single selector is inductive.
     Set<BooleanFormula> inductiveSlice = ImmutableSet.copyOf(
         selectionVarsInfo.keySet());
@@ -152,7 +164,6 @@ public class InductiveWeakeningManager {
           transition);
 
       // Sanity check.
-      // todo: figure out why this sometimes fails.
       Verify.verify(solver.isUnsat(bfmgr.and(bfmgr.and(inductiveSlice), query)));
     }
 
@@ -204,7 +215,9 @@ public class InductiveWeakeningManager {
 
   /**
    * Syntactic formula slicing: slices away all atoms which have variables
-   * which were changed by the transition relation.
+   * which were changed (== SSA index changed) by the transition relation.
+   * In that case, \phi is exactly the same as \phi',
+   * and the formula should be unsatisfiable.
    *
    * @param selectionInfo selection variable -> corresponding atom (instantiated
    * with unprimed SSA).
