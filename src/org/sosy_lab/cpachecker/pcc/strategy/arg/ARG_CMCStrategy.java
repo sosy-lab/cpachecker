@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.IOException;
@@ -38,7 +36,6 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,10 +55,9 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -444,7 +440,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     try (Writer w = Files.openOutputFile(assumptionsFile)) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
-      PCCAssumptionAutomatonWriter.writeAutomaton(w, root.getStateId(), automatonStates , new HashSet<AbstractState>(incompleteNodes));
+      AssumptionCollectorAlgorithm.writeAutomaton(w, root, automatonStates,
+          new HashSet<AbstractState>(incompleteNodes), 0, true);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
       throw new CPAException("Assumption automaton writing failed", e);
@@ -458,122 +455,5 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       }
     }
     return true;
-  }
-
-  private static class PCCAssumptionAutomatonWriter {
-
-    private static void writeAutomaton(Appendable sb, int initialStateId,
-        Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) throws IOException {
-      sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
-
-      sb.append("INITIAL STATE ARG" + initialStateId + ";\n\n");
-      sb.append("STATE __TRUE :\n");
-      sb.append("    TRUE ->  GOTO __TRUE;\n\n");
-
-      if (!falseAssumptionStates.isEmpty()) {
-        sb.append("STATE __FALSE :\n");
-        sb.append("    TRUE ->  GOTO __FALSE;\n\n");
-      }
-
-      for (final ARGState s : relevantStates) {
-        assert !s.isCovered();
-
-        if (falseAssumptionStates.contains(s)) {
-          continue;
-        }
-
-        sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-
-        final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
-        int multiEdgeID = 0;
-
-        final CFANode loc = AbstractStates.extractLocation(s);
-        for (final ARGState child : getUncoveredChildrenView(s)) {
-          assert !child.isCovered();
-
-          CFAEdge edge = loc.getEdgeTo(extractLocation(child));
-
-          if (edge instanceof MultiEdge) {
-            assert (((MultiEdge) edge).getEdges().size() > 1);
-
-            sb.append("    MATCH \"");
-            escape(((MultiEdge) edge).getEdges().get(0).getRawStatement(), sb);
-            sb.append("\" -> ");
-            sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
-
-            boolean first = true;
-            for (CFAEdge innerEdge : from(((MultiEdge) edge).getEdges()).skip(1)) {
-
-              if (!first) {
-                multiEdgeID++;
-                descriptionForInnerMultiEdges.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID + ";\n");
-                descriptionForInnerMultiEdges.append("    TRUE -> GOTO __TRUE;\n\n");
-              } else {
-                first = false;
-              }
-
-              descriptionForInnerMultiEdges.append("STATE USEFIRST ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
-
-              descriptionForInnerMultiEdges.append("    MATCH \"");
-              escape(innerEdge.getRawStatement(), descriptionForInnerMultiEdges);
-              descriptionForInnerMultiEdges.append("\" -> ");
-            }
-
-            finishTransition(descriptionForInnerMultiEdges, child, relevantStates, falseAssumptionStates);
-            descriptionForInnerMultiEdges.append(";\n");
-            descriptionForInnerMultiEdges.append("    TRUE -> GOTO __TRUE;\n\n");
-
-          } else {
-
-            sb.append("    MATCH \"");
-            escape(edge.getRawStatement(), sb);
-            sb.append("\" -> ");
-
-            finishTransition(sb, child, relevantStates, falseAssumptionStates);
-
-          }
-
-          sb.append(";\n");
-        }
-        sb.append("    TRUE -> GOTO __TRUE;\n\n");
-        sb.append(descriptionForInnerMultiEdges);
-
-      }
-      sb.append("END AUTOMATON\n");
-    }
-
-    private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
-        final Set<AbstractState> falseAssumptionStates)
-        throws IOException {
-      if (falseAssumptionStates.contains(child)) {
-        writer.append("GOTO __FALSE");
-      } else if (relevantStates.contains(child)) {
-        writer.append("GOTO ARG" + child.getStateId());
-      } else {
-        writer.append("GOTO __TRUE");
-      }
-    }
-
-    private static void escape(String s, Appendable appendTo) throws IOException {
-      for (int i = 0; i < s.length(); i++) {
-        char c = s.charAt(i);
-        switch (c) {
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
-        }
-      }
-    }
   }
 }
