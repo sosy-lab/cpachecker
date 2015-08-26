@@ -194,7 +194,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     params_set_uint(context, z3params, mk_string_symbol(context, ":random-seed"), 42);
     smtLogger.logOption("random-seed", Integer.toString((int)randomSeed));
 
-    Z3FormulaCreator creator = new Z3FormulaCreator(context, boolSort, integerSort, realSort, smtLogger);
+    Z3FormulaCreator creator = new Z3FormulaCreator(
+        context, boolSort, integerSort, realSort, smtLogger, config);
 
     // Create managers
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);

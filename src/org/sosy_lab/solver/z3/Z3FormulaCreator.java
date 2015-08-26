@@ -27,6 +27,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.solver.z3.Z3NativeApi.*;
 import static org.sosy_lab.solver.z3.Z3NativeApiConstants.*;
 
+import java.lang.ref.PhantomReference;
+import java.lang.ref.ReferenceQueue;
+import java.util.Map;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -36,21 +47,39 @@ import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 
+@Options(prefix="solver.z3")
 class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
+
+  @Option(secure=true, description="Whether to use PhantomReferences for discarding Z3 AST")
+  private boolean usePhantomReferences = false;
 
   private final Z3SmtLogger smtLogger;
 
   private final Table<Long, Long, Long> allocatedArraySorts = HashBasedTable.create();
+
+  private final ReferenceQueue<Z3Formula> referenceQueue =
+      new ReferenceQueue<>();
+  private final Map<PhantomReference<Z3Formula>, Long> referenceMap =
+      Maps.newIdentityHashMap();
+
+  // todo: getters for statistics.
+  private final StatTimer cleanupTimer =
+      new StatTimer("Time for Z3 AST cleanup");
+  private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG,
+      "Size of Z3 AST cleanup queue");
 
   Z3FormulaCreator(
       long pEnv,
       long pBoolType,
       long pIntegerType,
       long pRealType,
-      Z3SmtLogger smtLogger) {
+      Z3SmtLogger smtLogger,
+      Configuration config) throws InvalidConfigurationException {
     super(pEnv, pBoolType, pIntegerType, pRealType);
+    config.inject(this);
 
     this.smtLogger = smtLogger;
   }
@@ -125,27 +154,43 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @Override
   protected <TD extends Formula, TR extends Formula> ArrayFormula<TD, TR> encapsulateArray(Long pTerm,
       FormulaType<TD> pIndexType, FormulaType<TR> pElementType) {
-    return new Z3ArrayFormula<>(getEnv(), pTerm, pIndexType, pElementType);
+    cleanupReferences();
+    return storePhantomReference(
+        new Z3ArrayFormula<>(getEnv(), pTerm, pIndexType, pElementType),
+        pTerm);
+  }
+
+  private <T extends Z3Formula> T storePhantomReference(T out, Long pTerm) {
+    if (usePhantomReferences) {
+      PhantomReference<T> ref = new PhantomReference<>(out, referenceQueue);
+      referenceMap.put((PhantomReference<Z3Formula>)ref, pTerm);
+    }
+    return out;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> T encapsulate(FormulaType<T> pType, Long pTerm) {
+    cleanupReferences();
     if (pType.isBooleanType()) {
-      return (T)new Z3BooleanFormula(getEnv(), pTerm);
+      return (T)storePhantomReference(new Z3BooleanFormula(getEnv(), pTerm),
+          pTerm);
     } else if (pType.isIntegerType()) {
-      return (T)new Z3IntegerFormula(getEnv(), pTerm);
+      return (T)storePhantomReference(new Z3IntegerFormula(getEnv(), pTerm),
+          pTerm);
     } else if (pType.isRationalType()) {
-      return (T)new Z3RationalFormula(getEnv(), pTerm);
+      return (T)storePhantomReference(new Z3RationalFormula(getEnv(), pTerm),
+          pTerm);
     } else if (pType.isBitvectorType()) {
-      return (T)new Z3BitvectorFormula(getEnv(), pTerm);
+      return (T)storePhantomReference(new Z3BitvectorFormula(getEnv(), pTerm),
+          pTerm);
     } else if (pType.isArrayType()) {
       ArrayFormulaType<?, ?> arrFt = (ArrayFormulaType<?, ?>) pType;
-      return (T) new Z3ArrayFormula<>(
+      return (T) storePhantomReference(new Z3ArrayFormula<>(
           getEnv(),
           pTerm,
           arrFt.getIndexType(),
-          arrFt.getElementType());
+          arrFt.getElementType()), pTerm);
     }
 
     throw new IllegalArgumentException("Cannot create formulas of type " + pType + " in Z3");
@@ -153,12 +198,14 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   @Override
   public BooleanFormula encapsulateBoolean(Long pTerm) {
-    return new Z3BooleanFormula(getEnv(), pTerm);
+    cleanupReferences();
+    return storePhantomReference(new Z3BooleanFormula(getEnv(), pTerm), pTerm);
   }
 
   @Override
   public BitvectorFormula encapsulateBitvector(Long pTerm) {
-    return new Z3BitvectorFormula(getEnv(), pTerm);
+    cleanupReferences();
+    return storePhantomReference(new Z3BitvectorFormula(getEnv(), pTerm), pTerm);
   }
 
   @Override
@@ -183,5 +230,29 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   @Override
   public Long getFloatingPointType(FormulaType.FloatingPointType type) {
     throw new UnsupportedOperationException("FloatingPoint theory is not supported by Z3");
+  }
+
+
+  private void cleanupReferences() {
+    if (!usePhantomReferences) {
+      return;
+    }
+    cleanupTimer.start();
+    try {
+      int count = 0;
+      PhantomReference<? extends Z3Formula> ref;
+      while ((ref =
+          (PhantomReference<? extends Z3Formula>)referenceQueue
+              .poll()) != null) {
+        count++;
+
+        Long z3ast = referenceMap.remove(ref);
+        assert z3ast != null;
+        dec_ref(getEnv(), z3ast);
+      }
+      cleanupQueueSize.setNextValue(count);
+    } finally {
+      cleanupTimer.stop();
+    }
   }
 }

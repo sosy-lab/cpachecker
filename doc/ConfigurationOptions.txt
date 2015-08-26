@@ -1571,10 +1571,7 @@ cpa.sign.stop = "SEP"
   allowed values: [SEP, JOIN]
 
 # Apply AND- LBE transformation to loop transition relation.
-cpa.slicing.applyANDtransformation = true
-
-# Apply OR- LBE transformation to loop transition relation.
-cpa.slicing.applyORtransformation = true
+cpa.slicing.applyLBETransformation = true
 
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
@@ -2324,6 +2321,9 @@ solver.z3.requireProofs = true
 
 # simplify formulas when they are asserted in a solver.
 solver.z3.simplifyFormulas = false
+
+# Whether to use PhantomReferences for discarding Z3 AST
+solver.z3.usePhantomReferences = false
 
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
