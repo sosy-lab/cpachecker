@@ -222,7 +222,7 @@ public class InductiveWeakeningManager {
 
       // Variables which have the SSA index different to the one after the
       // transition.
-      Set<String> deadVars = fmgr.getDeadVariableNames(atom, transition.getSsa());
+      Set<String> deadVars = fmgr.getDeadFunctionNames(atom, transition.getSsa());
 
       if (!deadVars.isEmpty() ||
 
@@ -439,8 +439,7 @@ public class InductiveWeakeningManager {
     @Override
     protected BooleanFormula visitAtom(BooleanFormula atom) {
 
-      // todo: this does not deal with UFs.
-      if (!fmgr.getDeadVariableNames(atom, finalSSA).isEmpty()) {
+      if (!fmgr.getDeadFunctionNames(atom, finalSSA).isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
       }
       return atom;
