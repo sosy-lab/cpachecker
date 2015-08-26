@@ -147,7 +147,7 @@ public class LoopTransitionFinder {
       PointerTargetSet pts)
       throws CPATransferException, InterruptedException {
 
-    // predecessor -> successor -> EdgeWrapper
+    // successor -> predecessor -> EdgeWrapper
     Table<CFANode, CFANode, EdgeWrapper> out;
 
     if (LBEcache.containsKey(loopHead)) {
@@ -193,7 +193,7 @@ public class LoopTransitionFinder {
   private boolean applyLBETransformation(
       Table<CFANode, CFANode, EdgeWrapper> out) {
 
-    // predecessor (row) -> successor (column) -> EdgeWrapper (value)
+    // successor (row) -> predecessor (column) -> EdgeWrapper (value)
     for (Cell<CFANode, CFANode, EdgeWrapper> cell : out.cellSet()) {
 
       EdgeWrapper e = cell.getValue();
@@ -203,25 +203,25 @@ public class LoopTransitionFinder {
       if (loopStructure.getAllLoopHeads().contains(predecessor)) continue;
 
       // Successor equivalent to our predecessor.
-      Collection<EdgeWrapper> candidates = out.column(predecessor).values();
+      Collection<EdgeWrapper> candidates = out.row(predecessor).values();
       if (candidates.size() == 1) {
         EdgeWrapper candidate = candidates.iterator().next();
         EdgeWrapper added = new AndEdge(ImmutableList.of(candidate, e));
 
         // We need to check whether adding "added" would create a double entry.
-        EdgeWrapper alternative = out.get(added.getPredecessor(),
-            added.getSuccessor());
+        EdgeWrapper alternative = out.get(
+            added.getSuccessor(), added.getPredecessor());
 
-        out.remove(candidate.getPredecessor(), candidate.getSuccessor());
-        out.remove(e.getPredecessor(), e.getSuccessor());
+        out.remove(candidate.getSuccessor(), candidate.getPredecessor());
+        out.remove(e.getSuccessor(), e.getPredecessor());
         logger.log(Level.ALL, "Removing", e, "and", candidate);
 
         if (alternative != null) {
           added = new OrEdge(ImmutableList.of(added, alternative));
-          out.remove(alternative.getPredecessor(), alternative.getSuccessor());
+          out.remove(alternative.getSuccessor(), alternative.getPredecessor());
           logger.log(Level.ALL, "Removing", alternative);
         }
-        out.put(added.getPredecessor(), added.getSuccessor(), added);
+        out.put(added.getSuccessor(), added.getPredecessor(), added);
         logger.log(Level.ALL, "Adding", added);
 
         // Terminate the iteration on first change.
@@ -232,9 +232,10 @@ public class LoopTransitionFinder {
   }
 
   private Table<CFANode, CFANode, EdgeWrapper> convert(Collection<CFAEdge> edges) {
+    // successor -> predecessor -> EdgeWrapper.
     Table<CFANode, CFANode, EdgeWrapper> out = HashBasedTable.create();
     for (CFAEdge e : edges) {
-      out.put(e.getPredecessor(), e.getSuccessor(), new SingleEdge(e));
+      out.put(e.getSuccessor(), e.getPredecessor(), new SingleEdge(e));
     }
     return out;
   }
