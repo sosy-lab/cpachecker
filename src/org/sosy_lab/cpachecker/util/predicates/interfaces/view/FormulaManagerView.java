@@ -1455,18 +1455,27 @@ public class FormulaManagerView implements StatisticsProvider {
    *
    * A variable is considered 'dead' if its SSA index
    * is different from the index in the SSA map.
-   *
-   * @param pFormula
-   * @param pSsa
-   * @return
    */
   public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
+    return getDeadFunctionNames(pFormula, pSsa, FILTER_VARIABLES);
+  }
+
+  /**
+   * Same as {@link #getDeadVariableNames}, but returns UF's as well.
+   */
+  public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
+    return getDeadFunctionNames(pFormula, pSsa,
+        Predicates.or(FILTER_VARIABLES, FILTER_UF));
+  }
+
+  private Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa,
+      Predicate<Formula> filter) {
     Set<String> result = Sets.newHashSet();
-    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa);
+    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa,
+        filter);
     for (Formula f : varFormulas) {
       result.add(unsafeManager.getName(f));
     }
-
     return result;
   }
 
@@ -1475,11 +1484,12 @@ public class FormulaManagerView implements StatisticsProvider {
    * Do not make this method public, because the returned formulas have incorrect
    * types (they are not appropriately wrapped).
    */
-  private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
+  private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa,
+      Predicate<Formula> searchPredicate) {
     List<Formula> result = Lists.newArrayList();
 
     for (Formula varFormula: myExtractSubformulas(unwrap(pFormula),
-        FILTER_VARIABLES, true)) {
+        searchPredicate, true)) {
       Pair<String, Integer> fullName = parseName(unsafeManager.getName(varFormula));
       String varName = fullName.getFirst();
       Integer varSsaIndex = fullName.getSecond();
@@ -1524,7 +1534,8 @@ public class FormulaManagerView implements StatisticsProvider {
     Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
 
-    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa);
+    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa,
+        FILTER_VARIABLES);
 
     BooleanFormula eliminationResult = pF;
 
