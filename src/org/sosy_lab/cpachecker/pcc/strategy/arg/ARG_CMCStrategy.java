@@ -138,7 +138,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   @Override
   protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
-    roots = new ARGState[pIn.readInt()];
+      roots = new ARGState[Math.max(pIn.readInt(),0)];
   }
 
   @Override
