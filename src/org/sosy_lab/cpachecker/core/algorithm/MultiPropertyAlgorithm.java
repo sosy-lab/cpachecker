@@ -1,0 +1,134 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+package org.sosy_lab.cpachecker.core.algorithm;
+
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Precisions;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Sets;
+
+@Options
+public class MultiPropertyAlgorithm implements Algorithm {
+
+  private final Algorithm wrapped;
+  private final LogManager logger;
+  private final ConfigurableProgramAnalysis cpa;
+
+  public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
+    Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException, CPAException {
+
+    pConfig.inject(this);
+
+    this.wrapped = pAlgorithm;
+    this.logger = pLogger;
+    this.cpa = pCpa;
+  }
+
+  private Set<AbstractState> filterNewTargetStates(ReachedSet pReachedSet) {
+    HashSet<AbstractState> result = Sets.newHashSet();
+
+    // ASSUMPTION: no "global refinement" is used! (not yet implemented for this algorithm!)
+
+    if (isTargetState(pReachedSet.getLastState())) {
+      result.add(pReachedSet.getLastState());
+    }
+
+    return result;
+  }
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
+      CPAEnabledAnalysisPropertyViolationException {
+
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    Set<Property> violatedProperties = Sets.newHashSet();
+
+    do {
+      status = status.update(wrapped.run(pReachedSet));
+
+      // ASSUMPTION: The wrapped algorithm returns for each FEASIBLE counterexample that has been found!
+
+      Set<AbstractState> violating = filterNewTargetStates(pReachedSet);
+      if (!violating.isEmpty()) {
+        for (AbstractState e: violating) {
+          Set<Property> violated = AbstractStates.extractViolatedProperties(e);
+          violatedProperties.addAll(violated);
+        }
+      }
+
+      adjustAutomataPrecision(pReachedSet, violatedProperties);
+
+      // run only until the waitlist is empty
+    } while (pReachedSet.hasWaitingState());
+
+    // Compute the overall result:
+    //    Violated properties (might have multiple counterexamples)
+    //    Safe properties: Properties that were neither violated nor disabled
+    //    Not fully checked properties (that were disabled)
+    //        (could be derived from the precision of the leaf states)
+
+    return status;
+  }
+
+  private void adjustAutomataPrecision(final ReachedSet pReachedSet, final Set<Property> pViolatedProperties) {
+    // update the precision:
+    //  (optional) disable some automata transitions (global precision)
+    for (AbstractState e: pReachedSet.getWaitlist()) {
+
+      final Precision pi = pReachedSet.getPrecision(e);
+
+      final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
+        @Override
+        public Precision apply(Precision pArg0) {
+          return null;
+        }
+      });
+
+      if (piPrime != null) {
+        pReachedSet.updatePrecision(e, piPrime);
+      }
+    }
+
+
+  }
+
+}

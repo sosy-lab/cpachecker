@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -106,4 +108,20 @@ public class Precisions {
       return pNewPrecision;
     }
   }
+
+  public static Precision replaceByFunction(Precision pOldPrecision, Function<Precision, Precision> pFunction) {
+
+    if (pOldPrecision instanceof CompositePrecision) {
+      return ((CompositePrecision) pOldPrecision).replacePrecision(pFunction);
+    }
+
+    Precision result = pFunction.apply(pOldPrecision);
+
+    if (result == pOldPrecision ) {
+      return null;
+    }
+
+    return result;
+  }
+
 }

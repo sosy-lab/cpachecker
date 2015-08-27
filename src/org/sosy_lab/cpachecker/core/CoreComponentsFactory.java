@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -87,6 +88,9 @@ public class CoreComponentsFactory {
 
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
+
+  @Option(secure=true, description="check multiple, different, properties in one verification run?")
+  private boolean checkMultipleProperties = false;
 
   @Option(secure=true, name="checkCounterexamplesWithBDDCPARestriction",
       description="use counterexample check and the BDDCPA Restriction option")
@@ -208,6 +212,10 @@ public class CoreComponentsFactory {
 
       if (useBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+      }
+
+      if (checkMultipleProperties) {
+        algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (collectAssumptions) {

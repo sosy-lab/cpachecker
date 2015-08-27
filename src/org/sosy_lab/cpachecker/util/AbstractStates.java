@@ -140,7 +140,7 @@ public final class AbstractStates {
     }
   }
 
-  public static Collection<Property> extractViolatedProperties(AbstractState pState) {
+  public static Set<Property> extractViolatedProperties(AbstractState pState) {
     Set<Property> result = Sets.newHashSet();
     Collection<? extends Targetable> targetStates = extractsActiveTargets(pState);
 
