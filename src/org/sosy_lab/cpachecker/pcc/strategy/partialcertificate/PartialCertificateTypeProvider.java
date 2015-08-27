@@ -66,7 +66,7 @@ public class PartialCertificateTypeProvider {
   private PartialReachedConstructionAlgorithm getPartialCertificateConstructor(boolean pKeepARGState) {
     switch (certificateType) {
     case ARG:
-      return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState, withCMC);
+      return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
     case MONOTONESTOPARG:
       return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState, withCMC);
     default:// HEURISTIC
