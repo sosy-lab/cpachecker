@@ -127,6 +127,9 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           || !(partialReached.getFirstState() instanceof ARGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+        roots = null;
+        proofKnown = false;
+        return;
       } else {
         stats.increaseProofSize(1);
         roots[index++] = (ARGState) partialReached.getFirstState();
@@ -140,9 +143,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
       InvalidConfigurationException, InterruptedException {
     constructInternalProofRepresentation(pReached);
-    pOut.writeInt(roots.length);
-    for (ARGState root : roots) {
-      pOut.writeObject(root);
+    if (proofKnown) {
+      // proof construction succeeded
+      pOut.writeInt(roots.length);
+      for (ARGState root : roots) {
+        pOut.writeObject(root);
+      }
     }
   }
 
@@ -352,7 +358,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
       int iterationNumber, ReachedSetFactory reachedSetFactory) throws CPAException, InterruptedException,
       InvalidConfigurationException {
-   // set up proof checking configuration for next parital ARG
+   // set up proof checking configuration for next partial ARG
     ConfigurableProgramAnalysis cpa;
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
     logger.log(Level.FINEST, "Build CPA for next proof checking iteration");
