@@ -28,6 +28,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
@@ -114,6 +115,45 @@ public class CompositePrecision implements WrapperPrecision {
       }
     }
     return changed ? new CompositePrecision(newPrecisions.build()) : null;
+  }
+
+  @Override
+  public Precision replacePrecision(Function<Precision, Precision> pFunction) {
+
+    Precision result = pFunction.apply(this);
+    if (result != null && result != this) {
+      return result;
+    }
+
+    ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
+    boolean changed = false;
+
+    for (Precision oldWrapped : precisions) {
+
+      final Precision newWrapped;
+
+      if (oldWrapped instanceof WrapperPrecision) {
+        newWrapped = ((WrapperPrecision)oldWrapped).replacePrecision(pFunction);
+      } else {
+        newWrapped = pFunction.apply(oldWrapped);
+      }
+
+      if (newWrapped != null && newWrapped != oldWrapped) {
+        changed = true;
+        newPrecisions.add(newWrapped);
+
+      } else {
+        newPrecisions.add(oldWrapped);
+      }
+
+    }
+
+    return changed ? new CompositePrecision(newPrecisions.build()) : null;
+  }
+
+  @Override
+  public int getNumberOfWrapped() {
+    return precisions.size();
   }
 
   @Override
