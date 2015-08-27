@@ -49,8 +49,9 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
 
   private ConfigurableProgramAnalysis cpa;
 
-  public ARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates) {
-    super(pReturnARGStatesInsteadOfWrappedStates);
+  public ARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates,
+      final boolean withCMC) {
+    super(pReturnARGStatesInsteadOfWrappedStates, withCMC);
   }
 
   @Override

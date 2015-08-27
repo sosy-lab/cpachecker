@@ -36,9 +36,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
 
   private final boolean returnARGStates;
+  private final boolean withCMC;
 
-  public MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(final boolean pReturnARGStatesInsteadOfWrappedStates) {
+  public MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(
+      final boolean pReturnARGStatesInsteadOfWrappedStates, final boolean pWithCMC) {
     returnARGStates = pReturnARGStatesInsteadOfWrappedStates;
+    withCMC = pWithCMC;
   }
 
   @Override
@@ -86,7 +89,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
 
     protected boolean isToAdd(final ARGState pNode) {
       return pNode == root || pNode.getParents().size() > 1 || pNode.getCoveredByThis().size() > 0
-          && !pNode.isCovered();
+          && !pNode.isCovered() || withCMC && pNode.getChildren().size()>1;
     }
 
     @Override

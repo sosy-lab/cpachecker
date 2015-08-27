@@ -39,16 +39,24 @@ public class PartialCertificateTypeProvider {
     MONOTONESTOPARG
   }
 
+  private final boolean withCMC;
+
   @Option(secure=true,
       description = "Selects the strategy used for partial certificate construction")
   private PartialCertificateTypes certificateType = PartialCertificateTypes.HEURISTIC;
 
   public PartialCertificateTypeProvider(final Configuration pConfig, final boolean pHeuristicAllowed)
       throws InvalidConfigurationException {
+    this(pConfig, pHeuristicAllowed, false);
+  }
+
+  public PartialCertificateTypeProvider(final Configuration pConfig, final boolean pHeuristicAllowed,
+      final boolean partialCertificateForCMC) throws InvalidConfigurationException {
     pConfig.inject(this);
     if (!pHeuristicAllowed && certificateType == PartialCertificateTypes.HEURISTIC) {
       certificateType = PartialCertificateTypes.ARG;
     }
+    withCMC = partialCertificateForCMC;
   }
 
   public PartialReachedConstructionAlgorithm getPartialCertificateConstructor() {
@@ -58,9 +66,9 @@ public class PartialCertificateTypeProvider {
   private PartialReachedConstructionAlgorithm getPartialCertificateConstructor(boolean pKeepARGState) {
     switch (certificateType) {
     case ARG:
-      return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
+      return new ARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState, withCMC);
     case MONOTONESTOPARG:
-      return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState);
+      return new MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm(pKeepARGState, withCMC);
     default:// HEURISTIC
       return new HeuristicPartialReachedSetConstructionAlgorithm();
     }
