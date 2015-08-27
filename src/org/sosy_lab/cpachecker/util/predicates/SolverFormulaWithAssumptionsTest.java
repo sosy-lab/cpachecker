@@ -38,7 +38,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
-import org.sosy_lab.solver.SolverBasedTest0;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;

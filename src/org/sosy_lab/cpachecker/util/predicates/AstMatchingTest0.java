@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
-import org.sosy_lab.solver.Solver;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
-import org.sosy_lab.solver.SolverBasedTest0;
 import org.sosy_lab.solver.z3.Z3FormulaManager;
 
 import com.google.common.collect.Lists;

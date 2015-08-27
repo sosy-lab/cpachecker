@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.solver;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.solver.Solver;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.solver.api.ProverEnvironment;
@@ -203,7 +203,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     return true;
   }
 
-  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
+      SolverException,
+      InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
     invariantGenerator.start(initialLocation);
 

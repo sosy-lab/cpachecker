@@ -50,7 +50,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.solver.princess.PrincessFormulaManager;
@@ -61,12 +60,6 @@ import com.google.common.base.Predicate;
 
 /**
  * Factory class for loading and instantiating SMT solvers.
- * Most code should not access {@link FormulaManager} instances directly
- * and instead use the class {@link Solver} and the classes from
- * the {@link org.sosy_lab.cpachecker.util.predicates.interfaces.view} package
- * (most notably {@link FormulaManagerView}).
- * The preferred way to instantiate all of this is
- * {@link Solver#create(Configuration, LogManager, ShutdownNotifier)}.
  */
 @Options(deprecatedPrefix="cpa.predicate",
          prefix="solver")

@@ -35,9 +35,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -65,11 +63,8 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
   private final Map<PhantomReference<Z3Formula>, Long> referenceMap =
       Maps.newIdentityHashMap();
 
-  // todo: getters for statistics.
-  private final StatTimer cleanupTimer =
-      new StatTimer("Time for Z3 AST cleanup");
-  private final StatInt cleanupQueueSize = new StatInt(StatKind.AVG,
-      "Size of Z3 AST cleanup queue");
+  // todo: getters for statistic.
+  private final Timer cleanupTimer = new Timer();
 
   Z3FormulaCreator(
       long pEnv,
@@ -239,18 +234,15 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
     }
     cleanupTimer.start();
     try {
-      int count = 0;
       PhantomReference<? extends Z3Formula> ref;
       while ((ref =
           (PhantomReference<? extends Z3Formula>)referenceQueue
               .poll()) != null) {
-        count++;
 
         Long z3ast = referenceMap.remove(ref);
         assert z3ast != null;
         dec_ref(getEnv(), z3ast);
       }
-      cleanupQueueSize.setNextValue(count);
     } finally {
       cleanupTimer.stop();
     }

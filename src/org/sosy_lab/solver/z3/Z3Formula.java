@@ -42,7 +42,6 @@ abstract class Z3Formula implements Formula {
     this.z3expr = z3expr;
     this.z3context = z3context;
 
-    // NOTE: references are never removed, so eventually we run out of space.
     Z3NativeApi.inc_ref(z3context, z3expr);
   }
 

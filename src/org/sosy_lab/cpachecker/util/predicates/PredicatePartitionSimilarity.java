@@ -29,7 +29,6 @@ import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.solver.Solver;
 
 /**
  * The class <code>PredicatePartitionSimilartiy</code> represents a concrete partition of predicates and hence it

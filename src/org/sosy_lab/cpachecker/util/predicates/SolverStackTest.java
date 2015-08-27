@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.solver;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.truth.Truth.*;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -41,6 +41,9 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.solver.AssignableTerm.Function;
 import org.sosy_lab.solver.AssignableTerm.Variable;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType;

@@ -21,10 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.solver;
+package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.List;
 
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
@@ -45,7 +47,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
 public class ProverEnvironmentSubject extends Subject<ProverEnvironmentSubject, BasicProverEnvironment<?>> {
 
-  ProverEnvironmentSubject(FailureStrategy pFailureStrategy, BasicProverEnvironment<?> pStack) {
+  public ProverEnvironmentSubject(FailureStrategy pFailureStrategy, BasicProverEnvironment<?> pStack) {
     super(pFailureStrategy, pStack);
   }
 

@@ -27,7 +27,7 @@ import org.junit.Before;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
-import org.sosy_lab.solver.Solver;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
-import org.sosy_lab.solver.SolverBasedTest0;
+import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest0;
 
 
 public abstract class AbstractRuleTest0 extends SolverBasedTest0 {

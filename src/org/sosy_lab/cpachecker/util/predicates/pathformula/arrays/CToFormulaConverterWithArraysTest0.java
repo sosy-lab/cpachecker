@@ -76,7 +76,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
-import org.sosy_lab.solver.SolverBasedTest0;
+import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest0;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.annotations.VisibleForTesting;
