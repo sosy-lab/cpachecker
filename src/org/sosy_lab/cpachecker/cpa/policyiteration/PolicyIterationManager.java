@@ -356,7 +356,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Override
   public PolicyState join(PolicyState newState, PolicyState oldState,
       PolicyPrecision pPrecision)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws InterruptedException, CPAException, SolverException {
     Preconditions.checkState(oldState.isAbstract() == newState.isAbstract());
     PolicyState out;
 
@@ -378,7 +378,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private PolicyIntermediateState joinIntermediateStates(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
-  ) throws CPATransferException, InterruptedException, SolverException {
+  ) throws InterruptedException, SolverException {
 
     Preconditions.checkState(newState.getNode() == oldState.getNode(),
         "PolicyCPA must run with LocationCPA");

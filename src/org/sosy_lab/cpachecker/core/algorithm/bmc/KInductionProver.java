@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.solver.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -309,7 +310,7 @@ class KInductionProver implements AutoCloseable {
    */
   public final boolean check(final int k,
       final Set<CandidateInvariant> candidateInvariants)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, SolverException {
     stats.inductionPreparation.start();
 
     // Proving program safety with induction consists of two parts:

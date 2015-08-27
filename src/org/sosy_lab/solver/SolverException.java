@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.solver;
 
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Exception that should be used if the SMT solver did something wrong.
  */
-public class SolverException extends CPAException {
+public class SolverException extends Exception {
 
   private static final long serialVersionUID = -1557936144555925180L;
 

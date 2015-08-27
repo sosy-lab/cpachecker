@@ -248,9 +248,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
-    final List<BooleanFormula> formulas = (isRefinementSelectionEnabled(allStatesTrace))
-      ? recomputePathFormulae(allStatesTrace)
-      : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    final List<BooleanFormula> formulas;
+    try {
+      formulas = (isRefinementSelectionEnabled(allStatesTrace))
+        ? recomputePathFormulae(allStatesTrace)
+        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Exception", e);
+    }
 
     assert abstractionStatesTrace.size() == formulas.size();
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",

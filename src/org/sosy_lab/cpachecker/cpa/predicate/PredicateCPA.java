@@ -331,7 +331,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     PredicateAbstractState e2 = (PredicateAbstractState) pOtherElement;
 
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
-      return predicateManager.checkCoverage(e1.getAbstractionFormula(), pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()), e2.getAbstractionFormula());
+      try {
+        return predicateManager.checkCoverage(
+            e1.getAbstractionFormula(),
+            pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+            e2.getAbstractionFormula()
+        );
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
+      }
     } else {
       return false;
     }

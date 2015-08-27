@@ -683,9 +683,8 @@ public final class InterpolationManager {
 
     /**
      * Counterexample analysis and predicate discovery.
-     * @param pFormulas the formulas for the path
+     * @param f the formulas for the path
      * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
-     * @param itpProver interpolation solver used
      * @return counterexample info with predicated information
      * @throws CPAException
      */
@@ -693,7 +692,8 @@ public final class InterpolationManager {
         List<BooleanFormula> f,
         List<AbstractState> pAbstractionStates,
         Set<ARGState> elementsOnPath,
-        boolean computeInterpolants) throws CPAException, InterruptedException {
+        boolean computeInterpolants)
+        throws SolverException, CPATransferException, InterruptedException {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");

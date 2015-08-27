@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Throwables;
 
@@ -234,6 +235,8 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         algorithm.run(reachedSet);
         return algorithm.getCurrentInvariants();
 
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
       } finally {
         stats.invariantGeneration.stop();
         CPAs.closeCpaIfPossible(cpa, logger);

@@ -138,8 +138,13 @@ public abstract class RefinementStrategy {
     ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
 
-    Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements =
-        evaluateInterpolantsOnPath(lastElement, abstractionStatesTrace, pInterpolants);
+    Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;
+    try {
+      rootOfInfeasibleArgAndChangedElements =
+          evaluateInterpolantsOnPath(lastElement, abstractionStatesTrace, pInterpolants);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
 
     ARGState infeasiblePartOfARG = rootOfInfeasibleArgAndChangedElements.getFirst();
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();

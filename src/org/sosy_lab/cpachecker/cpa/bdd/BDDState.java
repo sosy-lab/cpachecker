@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
@@ -52,8 +53,12 @@ public class BDDState implements AbstractQueryableState,
   }
 
   @Override
-  public boolean isLessOrEqual(BDDState other) throws SolverException, InterruptedException {
-    return manager.entails(this.currentState, other.currentState);
+  public boolean isLessOrEqual(BDDState other) throws CPAException, InterruptedException {
+    try {
+      return manager.entails(this.currentState, other.currentState);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
   }
 
   @Override

@@ -128,6 +128,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     try {
       return super.run(reachedSet);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     } finally {
       invariantGenerator.cancel();
     }

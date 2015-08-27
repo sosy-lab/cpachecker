@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -173,7 +174,12 @@ public class CUTEBasicPathSelector implements PathSelector {
        * evaluate path candidate symbolically using SMT-solving
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
+      CounterexampleTraceInfo traceInfo;
+      try {
+        traceInfo = pathChecker.checkPath(newPath);
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
+      }
       stats.afterPathCheck();
       /*
        * check if path is feasible. If it's not continue to identify another decision node
@@ -233,7 +239,11 @@ public class CUTEBasicPathSelector implements PathSelector {
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException,
       InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.getInnerEdges());
+    try {
+      return pathChecker.checkPath(pExecutedPath.getInnerEdges());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
   }
 
   public class PathInfo {

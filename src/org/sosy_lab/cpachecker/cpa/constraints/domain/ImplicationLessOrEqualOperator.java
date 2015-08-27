@@ -53,7 +53,7 @@ public class ImplicationLessOrEqualOperator implements AbstractDomain {
   public boolean isLessOrEqual(
       final AbstractState pLesserState,
       final AbstractState pBiggerState
-  ) throws UnrecognizedCCodeException, InterruptedException, SolverException {
+  ) throws UnrecognizedCCodeException, InterruptedException, CPAException {
 
     assert pLesserState instanceof ConstraintsState;
     assert pBiggerState instanceof ConstraintsState;
@@ -72,8 +72,12 @@ public class ImplicationLessOrEqualOperator implements AbstractDomain {
     IdentifierAssignment lesserStateDefinites = lesserState.getDefiniteAssignment();
     IdentifierAssignment biggerStateDefinites = biggerState.getDefiniteAssignment();
 
-    return containsAll(lesserStateDefinites, biggerStateDefinites)
-        && implies(lesserState, biggerState);
+    try {
+      return containsAll(lesserStateDefinites, biggerStateDefinites)
+          && implies(lesserState, biggerState);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
 
   }
 
