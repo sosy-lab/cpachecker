@@ -99,6 +99,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
     roots = new ARGState[partialReachedSets.size()];
 
+    if (roots.length <= 0) {
+      logger.log(Level.SEVERE, "No proof parts available. Proof cannot be generated.");
+      return;
+    }
+
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
       if (partialReached.getFirstState() == null
