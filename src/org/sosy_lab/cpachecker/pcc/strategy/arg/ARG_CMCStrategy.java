@@ -32,6 +32,8 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
@@ -39,6 +41,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -70,6 +73,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
   private ARGState[] roots;
   private boolean proofKnown = false;
+
+  @Option(secure = true,
+      description = "Enable if partial ARGs can be read based using different CPA object than checker")
+  private boolean interleavedMode = true;
 
   public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa) throws InvalidConfigurationException {
@@ -134,13 +141,18 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     logger.log(Level.INFO, "Start checking partial ARGs");
     pReachedSet.popFromWaitlist();
 
-    return checkAndReadSequentially();
+    if (interleavedMode) {
+      return checkAndReadInterleaved();
+    } else {
+      return checkAndReadSequentially();
+    }
   }
 
   private boolean checkAndReadSequentially() {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
+      ConfigurableProgramAnalysis cpa;
 
       Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
       try {
@@ -151,7 +163,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         Object readARG;
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
-          GlobalInfo.getInstance().storeCPA(cpaBuilder.buildPartialCPA(i, factory, true));
+          cpa = cpaBuilder.buildPartialCPA(i, factory);
+          GlobalInfo.getInstance().storeCPA(cpa);
           readARG = o.readObject();
           if (!(readARG instanceof ARGState)) { return false; }
 
@@ -163,7 +176,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i)) {
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpa)) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -209,16 +222,123 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
   }
 
+  private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
+    final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
+    try {
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
+      final AtomicBoolean checkResult = new AtomicBoolean(true);
+      final Semaphore partitionsAvailable = new Semaphore(0);
+
+      Thread readerThread = new Thread(new Runnable() {
+
+        @Override
+        public void run() {
+          Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
+          try {
+            streams = openProofStream();
+            ObjectInputStream o = streams.getThird();
+            o.readInt();
+
+            Object readARG;
+            for (int i = 0; i < roots.length && checkResult.get(); i++) {
+              logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
+              cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
+              GlobalInfo.getInstance().storeCPA(cpas[i]);
+              readARG = o.readObject();
+              if (!(readARG instanceof ARGState)) {
+                abortPreparation();
+              }
+
+              roots[i] = (ARGState) readARG;
+
+              if (shutdown.shouldShutdown()) {
+                abortPreparation();
+                break;
+              }
+              partitionsAvailable.release();
+            }
+          } catch (IOException | ClassNotFoundException e) {
+            logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
+            abortPreparation();
+          } catch (Exception e2) {
+            logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
+            abortPreparation();
+          } finally {
+            if (streams != null) {
+              try {
+                streams.getThird().close();
+                streams.getSecond().close();
+                streams.getFirst().close();
+              } catch (IOException e) {
+              }
+            }
+          }
+        }
+
+        private void abortPreparation() {
+          checkResult.set(false);
+          partitionsAvailable.release();
+        }
+      });
+
+      try {
+        if (proofKnown) {
+          partitionsAvailable.release(roots.length);
+        } else {
+          readerThread.start();
+        }
+
+        List<ARGState> incompleteStates = new ArrayList<>();
+
+        // check partial ARGs
+        for (int i = 0; i < roots.length && checkResult.get(); i++) {
+          //wait until next partial ARG is read
+          partitionsAvailable.acquire();
+          incompleteStates.clear();
+          shutdown.shutdownIfNecessary();
+
+          // check current partial ARG
+          logger.log(Level.INFO, "Start checking partial ARG ", i);
+          if (!checkResult.get() || roots[i] == null
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpas[i])) {
+            logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
+            return false;
+          }
+          shutdown.shutdownIfNecessary();
+
+          if (i + 1 != roots.length) {
+            // write automaton for next partial ARG
+            logger
+                .log(
+                    Level.FINE,
+                    "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
+            automatonWriter.writeAutomaton(roots[i], incompleteStates);
+            shutdown.shutdownIfNecessary();
+          }
+          logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
+        }
+
+        return checkResult.get() && incompleteStates.size() == 0 && roots.length > 0;
+
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
+      } finally {
+        logger.log(Level.INFO, "Stop checking partial ARGs");
+        checkResult.set(false);
+        readerThread.interrupt();
+      }
+    } catch (InvalidConfigurationException e1) {
+      logger.log(Level.SEVERE, "Cannot create reached sets for partial ARG checking", e1);
+      return false;
+    }
+
+    return false;
+  }
+
    private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
-      int iterationNumber) throws CPAException, InterruptedException,
+      int iterationNumber, ConfigurableProgramAnalysis cpa) throws CPAException, InterruptedException,
       InvalidConfigurationException {
-   // set up proof checking configuration for next partial ARG
-    ConfigurableProgramAnalysis cpa;
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
-    logger.log(Level.FINEST, "Get CPA for next proof checking iteration");
-    cpa = GlobalInfo.getInstance().getCPA().get();
-
-
     // set up proof checker
     logger.log(Level.FINEST, "Initialize reached set");
     CFANode mainFun = AbstractStates.extractLocation(pRoot);
@@ -238,8 +358,5 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     logger.log(Level.FINER, "Start checking algorithm for partial ARG ", iterationNumber);
     return partialProofChecker.checkCertificate(pReachedSet, pRoot, pIncompleteStates);
   }
-
-
-
 
 }

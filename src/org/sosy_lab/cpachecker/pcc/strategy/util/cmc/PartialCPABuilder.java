@@ -63,7 +63,7 @@ public class PartialCPABuilder {
     shutdown = pShutdownNotifier;
   }
 
-  public ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber, ReachedSetFactory pFactory, boolean withSpecification)
+  public ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber, ReachedSetFactory pFactory)
       throws InvalidConfigurationException, CPAException {
     // create configuration for current partial ARG checking
     logger.log(Level.FINEST, "Build CPA configuration");
@@ -85,12 +85,9 @@ public class PartialCPABuilder {
 
     // create CPA to check current partial ARG
     logger.log(Level.FINEST, "Create CPA instance");
-    if (withSpecification) {
-      return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAWithSpecAutomatas(cfa);
-    } else {
-      return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAs(cfa, null);
-    }
-  }
+
+    return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAWithSpecAutomatas(cfa);
+ }
 
 
 }
