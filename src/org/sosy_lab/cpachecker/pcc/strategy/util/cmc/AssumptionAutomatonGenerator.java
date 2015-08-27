@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.pcc.strategy.util.cmc;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
@@ -61,18 +63,15 @@ public class AssumptionAutomatonGenerator {
     logger = pLogger;
   }
 
-  public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
-    assert(notCovered(incompleteNodes));
-    logger.log(Level.FINEST, "Identify states for assumption automaton");
-
-    TreeSet<ARGState> automatonStates = new TreeSet<>(incompleteNodes);
-    Deque<ARGState> toAdd = new ArrayDeque<>(incompleteNodes);
+  public Set<ARGState> getAllAncestorsFor(final Collection<ARGState> nodes) {
+    TreeSet<ARGState> uncoveredAncestors = new TreeSet<>(nodes);
+    Deque<ARGState> toAdd = new ArrayDeque<>(nodes);
 
     while (!toAdd.isEmpty()) {
       ARGState current = toAdd.pop();
       assert !current.isCovered();
 
-      if (automatonStates.add(current)) {
+      if (uncoveredAncestors.add(current)) {
         // current was not yet contained in parentSet,
         // so we need to handle its parents
 
@@ -83,10 +82,15 @@ public class AssumptionAutomatonGenerator {
         }
       }
     }
+    return uncoveredAncestors;
+  }
+
+  public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
+    assert(notCovered(incompleteNodes));
 
     try (Writer w = Files.openOutputFile(assumptionsFile)) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
-      AssumptionCollectorAlgorithm.writeAutomaton(w, root, automatonStates,
+      AssumptionCollectorAlgorithm.writeAutomaton(w, root, getAllAncestorsFor(incompleteNodes),
           new HashSet<AbstractState>(incompleteNodes), 0, true);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
