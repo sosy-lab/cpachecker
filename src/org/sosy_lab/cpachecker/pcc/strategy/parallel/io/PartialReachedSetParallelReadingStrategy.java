@@ -76,7 +76,7 @@ public class PartialReachedSetParallelReadingStrategy extends AbstractStrategy {
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
     pConfig.inject(this);
-    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
+    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     shutdownNotifier = pShutdownNotifier;
     cpa = pCpa;
     addPCCStatistic(ioHelper.getPartitioningStatistc());

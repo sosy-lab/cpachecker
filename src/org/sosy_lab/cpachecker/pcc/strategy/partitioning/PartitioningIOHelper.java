@@ -45,7 +45,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
@@ -77,8 +76,7 @@ public class PartitioningIOHelper {
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
 
   public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 

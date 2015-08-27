@@ -82,7 +82,7 @@ public class PartialReachedSetParallelIOCheckingInterleavedStrategy extends Abst
     shutdown = pShutdownNotifier;
     cpa = pCpa;
 
-    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
+    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     numReadThreads = Math.min(numReadThreads, numThreads - 1);
     numReadThreads = Math.max(0, numReadThreads);
     addPCCStatistic(ioHelper.getPartitioningStatistc());

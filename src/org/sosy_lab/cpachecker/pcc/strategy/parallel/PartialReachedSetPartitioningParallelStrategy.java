@@ -69,7 +69,7 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
     super(pConfig, pLogger);
     shutdownNotifier = pShutdownNotifier;
     cpa = pCpa;
-    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
+    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     addPCCStatistic(ioHelper.getPartitioningStatistc());
   }
 

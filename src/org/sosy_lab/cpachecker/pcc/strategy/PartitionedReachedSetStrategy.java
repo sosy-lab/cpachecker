@@ -61,7 +61,7 @@ public class PartitionedReachedSetStrategy extends AbstractStrategy {
       final ShutdownNotifier pShutdownNotifier, final PropertyCheckerCPA pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
-    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier, pCpa);
+    ioHelper = new PartitioningIOHelper(pConfig, pLogger, pShutdownNotifier);
     cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
     addPCCStatistic(ioHelper.getPartitioningStatistc());
