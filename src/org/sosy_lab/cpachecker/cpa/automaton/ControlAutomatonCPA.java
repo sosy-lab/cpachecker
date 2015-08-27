@@ -110,6 +110,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
   private final AutomatonState inactiveState = new AutomatonState.INACTIVE(this);
   private final AbstractDomain automatonDomain = new AutomatonDomain(topState, inactiveState);
+  private final AutomatonPrecision initPrecision = AutomatonPrecision.emptyBlacklist();
 
   private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
   private final AutomatonTransferRelation transferRelation;
@@ -207,7 +208,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
+    return initPrecision;
   }
 
   @Override
