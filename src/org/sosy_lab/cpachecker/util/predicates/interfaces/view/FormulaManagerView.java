@@ -55,9 +55,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -71,7 +73,6 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -152,23 +153,13 @@ public class FormulaManagerView implements StatisticsProvider {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.RATIONAL;
 
-  @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
-  private boolean ignoreExtractConcat = true;
-
-  @Option(secure=true, description="Use UFs to handle overflows when Bitvector theory was replaced with Integer or Rational theory.")
-  private boolean handleOverflowsWithUFs = false;
-
-  @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
-      + "when Bitvector theory was replaced with Integer or Rational theory.")
-  private boolean handleSignConversionWithUFs = false;
-
   public FormulaManagerView(FormulaManagerFactory solverFactory, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
     manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
-    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager();
+    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
@@ -180,8 +171,9 @@ public class FormulaManagerView implements StatisticsProvider {
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
   }
 
-  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
-  private BitvectorFormulaManager getRawBitvectorFormulaManager() throws InvalidConfigurationException, AssertionError {
+  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
+   * @param config */
+  private BitvectorFormulaManager getRawBitvectorFormulaManager(Configuration config) throws InvalidConfigurationException, AssertionError {
     final BitvectorFormulaManager rawBitvectorFormulaManager;
     switch (encodeBitvectorAs) {
     case BITVECTOR:
@@ -200,7 +192,7 @@ public class FormulaManagerView implements StatisticsProvider {
           manager.getBooleanFormulaManager(),
           manager.getIntegerFormulaManager(),
           manager.getFunctionFormulaManager(),
-          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+          new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
@@ -217,7 +209,7 @@ public class FormulaManagerView implements StatisticsProvider {
           manager.getBooleanFormulaManager(),
           rmgr,
           manager.getFunctionFormulaManager(),
-          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+          new ReplaceBitvectorEncodingOptions(config));
       break;
     case FLOAT:
       throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");

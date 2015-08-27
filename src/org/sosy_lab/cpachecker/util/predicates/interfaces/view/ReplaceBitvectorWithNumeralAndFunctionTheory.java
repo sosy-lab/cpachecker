@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
-import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
+import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -34,6 +34,10 @@ import java.util.Map;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -61,25 +65,37 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final UninterpretedFunctionDeclaration<T> leftShiftUfDecl;
   private final UninterpretedFunctionDeclaration<T> rightShiftUfDecl;
   private final FormulaType<T> formulaType;
-  private final boolean ignoreExtractConcat;
-  private final boolean handleOverflowsWithUFs;
-  private final boolean handleSignConversionWithUFs;
+  private final ReplaceBitvectorEncodingOptions options;
 
+  @Options(prefix="cpa.predicate")
+  static class ReplaceBitvectorEncodingOptions {
+
+    ReplaceBitvectorEncodingOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
+    private boolean ignoreExtractConcat = true;
+
+    @Option(secure=true, description="Use UFs to handle overflows "
+        + "when Bitvector theory was replaced with Integer or Rational theory.")
+    private boolean handleOverflowsWithUFs = false;
+
+    @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
+        + "when Bitvector theory was replaced with Integer or Rational theory.")
+    private boolean handleSignConversionWithUFs = false;
+  }
 
   public ReplaceBitvectorWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pBooleanFormulaManager,
       NumeralFormulaManager<? super T, T> rawNumericFormulaManager,
       FunctionFormulaManager rawFunctionManager,
-      final boolean ignoreExtractConcat,
-      final boolean handleOverflowsWithUFs,
-      final boolean handleSignConversionWithUFs) {
+      final ReplaceBitvectorEncodingOptions pOptions) {
     super(pWrappingHandler);
     booleanFormulaManager = pBooleanFormulaManager;
     numericFormulaManager = rawNumericFormulaManager;
-    this.ignoreExtractConcat = ignoreExtractConcat;
-    this.handleOverflowsWithUFs = handleOverflowsWithUFs;
-    this.handleSignConversionWithUFs = handleSignConversionWithUFs;
+    this.options = pOptions;
     this.functionManager = rawFunctionManager;
 
     formulaType = numericFormulaManager.getFormulaType();
@@ -223,7 +239,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   private BitvectorFormula handleOverflow(FormulaType<BitvectorFormula> pFormulaType, T pValue, boolean pSigned) {
-    if (handleOverflowsWithUFs) {
+    if (options.handleOverflowsWithUFs) {
       pValue = replaceOverflowWithUF(pValue, ((BitvectorType)pFormulaType).getSize(), pSigned);
     }
     return wrap(pFormulaType, pValue);
@@ -231,7 +247,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   private T handleOverflow(BitvectorFormula pValue, boolean pSigned) {
     T result = unwrap(pValue);
-    if (handleSignConversionWithUFs) {
+    if (options.handleSignConversionWithUFs) {
       result = replaceOverflowWithUF(result, getLength(pValue), pSigned);
     }
     return result;
@@ -381,7 +397,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     int firstLength = getLength(pFirst);
     int secoundLength = getLength(pSecound);
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(firstLength + secoundLength);
-    if (ignoreExtractConcat) {
+    if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pSecound));
     }
     UninterpretedFunctionDeclaration<T> concatUfDecl = getConcatDecl(firstLength, secoundLength);
@@ -391,7 +407,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb, boolean signed) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
-    if (ignoreExtractConcat) {
+    if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));
     }
     UninterpretedFunctionDeclaration<T> extractUfDecl = getExtractDecl(pMsb, pLsb);
@@ -401,7 +417,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(getLength(pNumber) + pExtensionBits);
-    if (ignoreExtractConcat) {
+    if (options.ignoreExtractConcat) {
       return wrap(returnType, unwrap(pNumber));
     }
     UninterpretedFunctionDeclaration<T> extendUfDecl = getUFDecl("extend", pExtensionBits, pSigned);
