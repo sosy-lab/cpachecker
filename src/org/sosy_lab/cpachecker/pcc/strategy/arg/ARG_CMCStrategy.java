@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
-import org.sosy_lab.cpachecker.pcc.strategy.cmc.util.AssumptionAutomatonGenerator;
-import org.sosy_lab.cpachecker.pcc.strategy.cmc.util.PartialCPABuilder;
+import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
+import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 

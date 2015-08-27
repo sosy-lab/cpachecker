@@ -27,4 +27,4 @@
  * from conditional model checking (CMC). The classes implement tasks common to all/many of these PCC-CMC techniques to
  * avoid code duplication.
  */
-package org.sosy_lab.cpachecker.pcc.strategy.cmc.util;
+package org.sosy_lab.cpachecker.pcc.strategy.util.cmc;
