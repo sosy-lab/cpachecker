@@ -442,7 +442,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       try {
         abstractionStorage = new PredicateAbstractionsStorage(strengthenWithReusedAbstractionsFile, logger, fmgr, converter);
       } catch (PredicateParsingFailedException e) {
-        throw new CPATransferException("cannot read abstractions from file", e);
+        throw new CPATransferException("cannot read abstractions from file, parsing fail", e);
       }
 
       abstractions = HashMultimap.create();
@@ -458,6 +458,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     CFANode node = checkNotNull(pPredicateState.getLocation());
     for (BooleanFormula possibleConstraint : abstractions.get(node.getNodeNumber())) {
+      // lets try all available abstractions formulas, perhaps more of them are valid
       addConstraintIfValid(pPredicateState, possibleConstraint);
     }
 

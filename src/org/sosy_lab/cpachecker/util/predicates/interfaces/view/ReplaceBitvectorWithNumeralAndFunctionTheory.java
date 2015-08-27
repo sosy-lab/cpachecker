@@ -175,7 +175,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   private static Pair<BigInteger, BigInteger> getMinAndMax(int pLength, boolean signed) {
-    assert pLength > 0;
+    assert pLength > 0 : "length of bitvector should be positive, instead of "+ pLength;
     BigInteger maxInt;
     BigInteger minInt;
     if (signed) {
@@ -199,6 +199,13 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
    * @param pSigned to determine the current range of values
    */
   private T replaceOverflowWithUF(T pValue, int pLength, boolean pSigned) {
+
+    if (pLength == 0) {
+      // ignore and return plain value, this happens only for special variables
+      // like {@link PointerTargetSetManager.FAKE_ALLOC_FUNCTION_NAME}
+      assert pValue.toString().contains("__VERIFIER_fake_alloc") : "invalid name: " + pValue;
+      return pValue;
+    }
 
     Pair<BigInteger, BigInteger> minMax = getMinAndMax(pLength, pSigned);
     BooleanFormula lower  = numericFormulaManager.lessOrEquals(numericFormulaManager.makeNumber(minMax.getFirst()), pValue);
