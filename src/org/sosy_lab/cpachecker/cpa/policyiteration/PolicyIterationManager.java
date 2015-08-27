@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -38,7 +39,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.Solver;
 import org.sosy_lab.solver.api.BooleanFormula;
