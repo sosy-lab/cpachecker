@@ -37,8 +37,6 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
@@ -61,7 +59,6 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -92,14 +89,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   @Option(secure = true, description = "List of files with configurations to use. ")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
-  // TODO proof checker strategy since it does not account for strengthening which is required to check assumption guiding automaton
-  @Option(secure = true,
-      description = "Which ARG strategy to use for each partial ARG, strategy based on CPA (true) or on proof checker interface (false)")
-  private boolean useArgCpaStrategy = true;
-  /* as long as formulae are read require that same manager is used for both, cannot create CPA twice, must wait until assumption automaton ready
-   * @Option(secure = true,
-      description = "Enable if partial ARGs can be read based using different CPA object than checker")*/
-  private boolean interleavedMode = true;
 
   public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa) throws InvalidConfigurationException {
@@ -162,10 +151,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Start checking partial ARGs");
     pReachedSet.popFromWaitlist();
-
-    if(interleavedMode) {
-      return checkAndReadInterleaved();
-    }
 
     return checkAndReadSequentially();
   }
@@ -242,131 +227,15 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
   }
 
-  private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
-    try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
-
-
-      final AtomicBoolean checkResult = new AtomicBoolean(true);
-      final Semaphore partitionsAvailable = new Semaphore(0);
-
-      Thread readerThread = new Thread(new Runnable() {
-
-        @Override
-        public void run() {
-          Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
-          try {
-            streams = openProofStream();
-            ObjectInputStream o = streams.getThird();
-            o.readInt();
-
-            Object readARG;
-            for (int i = 0; i < roots.length && checkResult.get(); i++) {
-              logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
-              GlobalInfo.getInstance().storeCPA(buildPartialCPA(i, factory, false));
-              readARG = o.readObject();
-              if (!(readARG instanceof ARGState)) {
-                abortPreparation();
-              }
-
-              roots[i] = (ARGState) readARG;
-
-              if (shutdown.shouldShutdown()) {
-                abortPreparation();
-                break;
-              }
-              partitionsAvailable.release();
-            }
-          } catch (IOException | ClassNotFoundException e) {
-            logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
-            abortPreparation();
-          } catch (Exception e2) {
-            logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
-            abortPreparation();
-          } finally {
-            if (streams != null) {
-              try {
-                streams.getThird().close();
-                streams.getSecond().close();
-                streams.getFirst().close();
-              } catch (IOException e) {
-              }
-            }
-          }
-        }
-
-        private void abortPreparation() {
-          checkResult.set(false);
-          partitionsAvailable.release();
-        }
-      });
-
-      try {
-
-        if (proofKnown) {
-          partitionsAvailable.release(roots.length);
-        } else {
-          readerThread.start();
-        }
-
-        List<ARGState> incompleteStates = new ArrayList<>();
-
-        // check partial ARGs
-        for (int i = 0; i < roots.length && checkResult.get(); i++) {
-          //wait until next partial ARG is read
-          partitionsAvailable.acquire();
-          incompleteStates.clear();
-          shutdown.shutdownIfNecessary();
-
-          // check current partial ARG
-          logger.log(Level.INFO, "Start checking partial ARG ", i);
-          if (!checkResult.get() || roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, factory)) {
-            logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
-            return false;
-          }
-          shutdown.shutdownIfNecessary();
-
-          if (i + 1 != roots.length) {
-            // write automaton for next partial ARG
-            logger.log(Level.FINE,
-               "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
-            writeAutomaton(roots[i], incompleteStates);
-            shutdown.shutdownIfNecessary();
-          }
-          logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
-        }
-
-
-        return checkResult.get() && incompleteStates.size() == 0 && roots.length > 0;
-
-      } catch (InvalidConfigurationException e) {
-        logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");
-      } finally {
-        logger.log(Level.INFO, "Stop checking partial ARGs");
-        checkResult.set(false);
-        readerThread.interrupt();
-      }
-    } catch (InvalidConfigurationException e1) {
-      logger.log(Level.SEVERE, "Cannot create reached sets for partial ARG checking", e1);
-      return false;
-    }
-
-    return false;
-  }
-
-  private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
+   private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
       int iterationNumber, ReachedSetFactory reachedSetFactory) throws CPAException, InterruptedException,
       InvalidConfigurationException {
    // set up proof checking configuration for next partial ARG
     ConfigurableProgramAnalysis cpa;
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
-    logger.log(Level.FINEST, "Build CPA for next proof checking iteration");
-    if (interleavedMode) {
-      cpa = buildPartialCPA(iterationNumber, reachedSetFactory, true);
-    } else {
-      cpa = GlobalInfo.getInstance().getCPA().get();
-    }
+    logger.log(Level.FINEST, "Get CPA for next proof checking iteration");
+    cpa = GlobalInfo.getInstance().getCPA().get();
+
 
     // set up proof checker
     logger.log(Level.FINEST, "Initialize reached set");
@@ -378,15 +247,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     AbstractARGStrategy partialProofChecker;
     logger.log(Level.FINEST, "Build checking instance");
-    if (useArgCpaStrategy) {
-      Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
-              "Conflicting configuration: Partial ARGs should be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
-      partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, (PropertyCheckerCPA) cpa);
-    } else {
-      Preconditions.checkState(cpa instanceof ProofChecker,
-              "Conflicting configuration: Partial ARGs should be checked with Proof Checker based strategy but CPA does not implmenet ProofChecker interface");
-      partialProofChecker = new ARGProofCheckerStrategy(globalConfig, logger, shutdown, (ProofChecker) cpa);
-    }
+    // require ARG_CPA strategy because the other ARG based strategy does not take strengthening into account
+    // strengthening is required for assumpton guiding CPA
+    Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
+            "Conflicting configuration: Partial ARGs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
+    partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, (PropertyCheckerCPA) cpa);
 
     logger.log(Level.FINER, "Start checking algorithm for partial ARG ", iterationNumber);
     return partialProofChecker.checkCertificate(pReachedSet, pRoot, pIncompleteStates);
@@ -401,7 +266,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     try {
       if (configFiles == null) {
         throw new InvalidConfigurationException(
-          "Require that option pcc.arg.configFiles is set for proof checking");
+          "Require that option pcc.arg.cmc.configFiles is set for proof checking");
       }
       singleConfigBuilder.loadFromFile(configFiles.get(iterationNumber));
     } catch (IOException e) {
