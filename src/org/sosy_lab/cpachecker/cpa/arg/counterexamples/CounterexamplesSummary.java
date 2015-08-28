@@ -317,15 +317,15 @@ public class CounterexamplesSummary implements IterationStatistics {
           "Infeasible abstract states", infeasibleCexFor.get(prop).size());
     }
 
-//    StatisticsUtils.write(pOut, 0, cols,
-//        "Satisfied (distinct) properties",
-//        satisfiedProps.size());
-//    for (String prop: satisfiedProps) {
-//      StatisticsUtils.write(pOut, 1, cols,
-//          prop, "");
-//      StatisticsUtils.write(pOut, 2, cols,
-//          "Infeasible abstract states", infeasibleCexFor.get(prop).size());
-//    }
+    StatisticsUtils.write(pOut, 0, cols,
+        "Satisfied (distinct) properties",
+        satisfiedProps.size());
+    for (Property prop: satisfiedProps) {
+      StatisticsUtils.write(pOut, 1, cols,
+          prop.toString(), "");
+      StatisticsUtils.write(pOut, 2, cols,
+          "Infeasible abstract states", infeasibleCexFor.get(prop).size());
+    }
 
 
   }
@@ -337,6 +337,23 @@ public class CounterexamplesSummary implements IterationStatistics {
 
   @Override
   public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
+
+  }
+
+  public void countInfeasibleCounterexample(ARGState pTargetState) {
+
+    Collection<? extends AbstractState> targetComps = AbstractStates.extractsActiveTargets(pTargetState);
+
+    for (AbstractState ee: targetComps) {
+      if (ee instanceof AutomatonState) {
+        AutomatonState qe = (AutomatonState) ee;
+        for (Property prop: qe.getViolatedProperties()) {
+          infeasibleCexFor.put(prop, qe.getInternalState());
+        }
+      }
+    }
+
+
 
   }
 
