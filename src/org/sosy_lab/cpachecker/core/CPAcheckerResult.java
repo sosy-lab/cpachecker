@@ -26,12 +26,16 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintStream;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+
+import com.google.common.base.Joiner;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -48,7 +52,7 @@ public class CPAcheckerResult {
 
   private final Result result;
 
-  private final String violatedPropertyDescription;
+  private final Set<Property> violatedProperties;
 
   private final @Nullable ReachedSet reached;
 
@@ -57,9 +61,9 @@ public class CPAcheckerResult {
   private @Nullable Statistics proofGeneratorStats = null;
 
   CPAcheckerResult(Result result,
-        String violatedPropertyDescription,
+        Set<Property> violatedProperties,
         @Nullable ReachedSet reached, @Nullable Statistics stats) {
-    this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
+    this.violatedProperties = checkNotNull(violatedProperties);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.stats = stats;
@@ -122,8 +126,8 @@ public class CPAcheckerResult {
         ret.append("UNKNOWN result: " + result);
     }
 
-    if (!violatedPropertyDescription.isEmpty()) {
-      ret.append(" (").append(violatedPropertyDescription).append(")");
+    if (!violatedProperties.isEmpty()) {
+      ret.append(" (").append(Joiner.on(", ").join(violatedProperties)).append(")");
     }
     ret.append(" found by chosen configuration.");
 

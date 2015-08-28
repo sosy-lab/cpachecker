@@ -31,6 +31,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -223,8 +224,7 @@ public class CPAchecker {
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
-    Pair<Result, String> result = Pair.of(Result.NOT_YET_STARTED, "");
-    String violatedPropertyDescription = "";
+    Pair<Result, Set<Property>> result = Pair.of(Result.NOT_YET_STARTED, Collections.<Property>emptySet());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -276,7 +276,7 @@ public class CPAchecker {
 
       if (disableAnalysis) {
         return new CPAcheckerResult(Result.NOT_YET_STARTED,
-            violatedPropertyDescription, null, stats);
+            ImmutableSet.<Property>of(), null, stats);
       }
 
       // run analysis
@@ -322,11 +322,11 @@ public class CPAchecker {
     return new CPAcheckerResult(result.getFirst(), result.getSecond(), reached, stats);
   }
 
-  private Pair<Result, String> extractResult(
+  private Pair<Result, Set<Property>> extractResult(
       ReachedSet reached, AlgorithmStatus status) {
 
     if (!GlobalInfo.getInstance().getCPA().isPresent()) {
-      return Pair.of(Result.UNKNOWN, "");
+      return Pair.of(Result.UNKNOWN, Collections.<Property>emptySet());
     }
 
     ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
@@ -355,7 +355,7 @@ public class CPAchecker {
       }
     }
 
-    return Pair.of(verdict, Joiner.on(", ").join(violatedProperties));
+    return Pair.of(verdict, violatedProperties);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
