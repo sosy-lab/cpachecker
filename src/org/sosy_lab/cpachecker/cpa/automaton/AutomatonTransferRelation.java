@@ -283,7 +283,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             AutomatonSafetyProperty prop = null;
             String violatedPropertyDescription = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
             if (violatedPropertyDescription.length() > 0) {
-              prop = new AutomatonSafetyProperty(violatedPropertyDescription, AutomatonInternalState.ERROR);
+              prop = new AutomatonSafetyProperty(violatedPropertyDescription, t);
             }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
@@ -319,7 +319,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
         AutomatonSafetyProperty violatedProperty = null;
         if (t.getFollowState().isTarget()) {
-          violatedProperty = new AutomatonSafetyProperty(t.getViolatedPropertyDescription(exprArgs), t.getFollowState());
+          violatedProperty = new AutomatonSafetyProperty(t.getViolatedPropertyDescription(exprArgs), t);
         }
 
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(

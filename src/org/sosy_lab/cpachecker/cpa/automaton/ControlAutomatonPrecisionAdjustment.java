@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Collection;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -55,16 +56,18 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private final @Nullable PrecisionAdjustment wrappedPrec;
   private final AutomatonState topState;
   private final AutomatonState bottomState;
-
-  @Option(secure=true, description="An implicit precision: consider states with a self-loop and no other outgoing edges as TOP.")
-  private boolean topOnFinalSelfLoopingState = false;
+  private final AutomatonState inactiveState;
 
   @Option(secure=true, description="Handle at most k (> 0) violation of one property.")
   private int targetHandledAfter = 1;
 
+  @Option(secure=true, description="Change the precision locally.")
+  private boolean localPrecisionUpdate = false;
+
   enum TargetStateVisitBehaviour {
     SIGNAL, // Signal the target state (default)
     BOTTOM, // Change to the automata state BOTTOM (when splitting states on a violation)
+    INACTIVE, // Change to the automata state INACTIVE (when NOT splitting states on a violation)
   }
   @Option(secure=true, description="Behaviour on a property that has already been fully handled.")
   private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
@@ -73,6 +76,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       Configuration pConfig,
       AutomatonState pTopState,
       AutomatonState pBottomState,
+      AutomatonState pInactiveState,
       PrecisionAdjustment pWrappedPrecisionAdjustment)
           throws InvalidConfigurationException {
 
@@ -80,20 +84,21 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     this.topState = pTopState;
     this.bottomState = pBottomState;
+    this.inactiveState = pInactiveState;
     this.wrappedPrec = pWrappedPrecisionAdjustment;
   }
 
-  private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState) {
+  private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState,
+      Collection<AutomatonSafetyProperty> pProperties) {
+
     assert pFullState instanceof Targetable;
     assert ((Targetable) pFullState).isTarget();
-
-    Collection<Property> props = AbstractStates.extractViolatedProperties(pFullState);
 
     ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
     Multiset<Property> reachedViolations = argCpa.getCexSummary().getFeasiblePropertyViolations();
 
     int result = Integer.MAX_VALUE;
-    for (Property p: props) {
+    for (Property p: pProperties) {
       result = Math.min(result, reachedViolations.count(p));
     }
 
@@ -109,6 +114,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AbstractState pFullState)
     throws CPAException, InterruptedException {
 
+    final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
+    final AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
+    final AutomatonState state = (AutomatonState) pState;
+
     Optional<PrecisionAdjustmentResult> wrappedPrecResult = wrappedPrec.prec(pState,
         pPrecision, pStates, pStateProjection, pFullState);
 
@@ -116,24 +125,40 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       return wrappedPrecResult;
     }
 
-    AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
+    final AutomatonState onHandledTargetState;
+    switch (onHandledTarget) {
+      case BOTTOM: onHandledTargetState = bottomState; break;
+      case INACTIVE: onHandledTargetState = inactiveState; break;
+      default: onHandledTargetState = state;
+    }
+
+    if (state.isTarget()) {
+      if (pi.getBlacklist().containsAll(state.getViolatedProperties())) {
+
+        return Optional.of(PrecisionAdjustmentResult.create(
+            onHandledTargetState,
+            pi, Action.CONTINUE));
+      }
+    }
 
     // Handle a target state
     //    We might disable certain target states
     //      (they should not be considered as target states)
-    if (onHandledTarget == TargetStateVisitBehaviour.BOTTOM) {
+    if (localPrecisionUpdate
+        && onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
       assert targetHandledAfter > 0;
 
-      if (((Targetable) pFullState).isTarget()) {
+      if (state.isTarget()) {
 
-        int timesHandled = timesEqualTargetInReached(pStates, pFullState);
+        Set<AutomatonSafetyProperty> properties = AbstractStates.extractViolatedProperties(state, AutomatonSafetyProperty.class);
+        int timesHandled = timesEqualTargetInReached(pStates, pFullState, properties);
         if (timesHandled >= targetHandledAfter) { // the new state is the ith+1
 
-          Precision adjustedPrecision = pPrecision; // TODO!
+          final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(properties);
 
           return Optional.of(PrecisionAdjustmentResult.create(
-              bottomState,
-              adjustedPrecision, Action.CONTINUE));
+              onHandledTargetState,
+              piPrime, Action.CONTINUE));
         }
       }
     }
@@ -141,17 +166,6 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     // Handle the BREAK state
     if (internalState.getName().equals(AutomatonInternalState.BREAK.getName())) {
       return Optional.of(wrappedPrecResult.get().withAction(Action.BREAK));
-    }
-
-    // Handle SINK state
-    if (topOnFinalSelfLoopingState
-        && internalState.isFinalSelfLoopingState()) {
-
-      AbstractState adjustedSate = topState;
-      Precision adjustedPrecision = pPrecision;
-      return Optional.of(PrecisionAdjustmentResult.create(
-          adjustedSate,
-          adjustedPrecision, Action.CONTINUE));
     }
 
     return wrappedPrecResult;

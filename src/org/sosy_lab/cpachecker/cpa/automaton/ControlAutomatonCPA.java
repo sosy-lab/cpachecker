@@ -189,7 +189,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
     }
 
-    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, bottomState, lPrecisionAdjustment);
+    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, bottomState, inactiveState, lPrecisionAdjustment);
   }
 
   Automaton getAutomaton() {

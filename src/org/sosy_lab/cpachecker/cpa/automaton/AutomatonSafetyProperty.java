@@ -29,15 +29,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 public class AutomatonSafetyProperty implements Property {
 
   private final String propertyDescription;
-  private final AutomatonInternalState automatonState;
+  private final AutomatonTransition automatonTrans;
 
-  public AutomatonSafetyProperty(String pViolatedPropertyDescription, AutomatonInternalState pInternalState) {
+  public AutomatonSafetyProperty(String pViolatedPropertyDescription, AutomatonTransition pTransition) {
     this.propertyDescription = pViolatedPropertyDescription;
-    this.automatonState = pInternalState;
+    this.automatonTrans = pTransition;
   }
 
-  public AutomatonInternalState getAutomatonState() {
-    return automatonState;
+  public AutomatonTransition getAutomatonTransition() {
+    return automatonTrans;
   }
 
   @Override
@@ -49,7 +49,7 @@ public class AutomatonSafetyProperty implements Property {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((automatonState == null) ? 0 : automatonState.hashCode());
+    result = prime * result + ((automatonTrans == null) ? 0 : automatonTrans.hashCode());
     result = prime * result + ((propertyDescription == null) ? 0 : propertyDescription.hashCode());
     return result;
   }
@@ -66,11 +66,11 @@ public class AutomatonSafetyProperty implements Property {
       return false;
     }
     AutomatonSafetyProperty other = (AutomatonSafetyProperty) obj;
-    if (automatonState == null) {
-      if (other.automatonState != null) {
+    if (automatonTrans == null) {
+      if (other.automatonTrans != null) {
         return false;
       }
-    } else if (!automatonState.equals(other.automatonState)) {
+    } else if (!automatonTrans.equals(other.automatonTrans)) {
       return false;
     }
     if (propertyDescription == null) {

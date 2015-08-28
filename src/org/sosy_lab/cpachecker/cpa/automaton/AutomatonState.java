@@ -137,7 +137,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
-  private final AutomatonSafetyProperty violatedPropertyDescription;
+  private final AutomatonSafetyProperty violatedPropertyInstance;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
@@ -178,9 +178,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     if (isTarget()) {
       checkNotNull(pViolatedPropertyDescription);
-      violatedPropertyDescription = pViolatedPropertyDescription;
+      violatedPropertyInstance = pViolatedPropertyDescription;
     } else {
-      violatedPropertyDescription = null;
+      violatedPropertyInstance = null;
     }
   }
 
@@ -192,11 +192,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return ImmutableSet.<Property>of(violatedPropertyDescription);
+    return ImmutableSet.<Property>of(violatedPropertyInstance);
   }
 
   Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
-    return Optional.<AutomatonSafetyProperty>fromNullable(violatedPropertyDescription);
+    return Optional.<AutomatonSafetyProperty>fromNullable(violatedPropertyInstance);
   }
 
   @Override

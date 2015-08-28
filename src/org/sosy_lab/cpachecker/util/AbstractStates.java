@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -140,17 +141,21 @@ public final class AbstractStates {
     }
   }
 
-  public static Set<Property> extractViolatedProperties(AbstractState pState) {
-    Set<Property> result = Sets.newHashSet();
+  public static <T extends Property> Set<T> extractViolatedProperties(AbstractState pState, Class<T> pType) {
+    Set<T> result = Sets.newHashSet();
     Collection<? extends Targetable> targetStates = extractsActiveTargets(pState);
 
     for (Targetable e: targetStates) {
-      result.addAll(e.getViolatedProperties());
+      for (Property p: e.getViolatedProperties()) {
+        Preconditions.checkState(pType.isInstance(p));
+        @SuppressWarnings("unchecked")
+        T property = (T) p;
+        result.add(property);
+      }
     }
 
     return result;
   }
-
 
   /**
    * Applies {@link #extractStateByType(AbstractState, Class)} to all states

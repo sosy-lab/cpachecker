@@ -288,7 +288,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     // thus a Multimap based on a LinkedHashMap
     // (we iterate over the keys)
 
-    Collection<Property> props = AbstractStates.extractViolatedProperties(pLastElement);
+    Collection<Property> props = AbstractStates.extractViolatedProperties(pLastElement, Property.class);
     newPredicates = new PredicatePrecisionDelta(props, refinementCount);
   }
 

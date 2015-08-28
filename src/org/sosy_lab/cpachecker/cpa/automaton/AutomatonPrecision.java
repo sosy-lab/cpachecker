@@ -23,32 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Collection;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 import com.google.common.collect.ImmutableSet;
 
-
 public class AutomatonPrecision implements Precision {
 
-  private ImmutableSet<AutomatonTransition> blacklist = ImmutableSet.of();
+  private ImmutableSet<AutomatonSafetyProperty> blacklist = ImmutableSet.of();
 
-  private AutomatonPrecision(ImmutableSet<AutomatonTransition> pBlacklist) {
+  private AutomatonPrecision(ImmutableSet<AutomatonSafetyProperty> pBlacklist) {
     this.blacklist = pBlacklist;
   }
 
   public static AutomatonPrecision emptyBlacklist() {
-    return new AutomatonPrecision(ImmutableSet.<AutomatonTransition>of());
+    return new AutomatonPrecision(ImmutableSet.<AutomatonSafetyProperty>of());
   }
 
-  public AutomatonPrecision cloneAndAddBlacklisted(Collection<AutomatonTransition> pTransitions) {
+  public AutomatonPrecision cloneAndAddBlacklisted(Set<AutomatonSafetyProperty> pProperty) {
     return new AutomatonPrecision(
-        ImmutableSet.<AutomatonTransition>builder().addAll(this.blacklist).addAll(pTransitions).build());
+        ImmutableSet.<AutomatonSafetyProperty>builder().addAll(this.blacklist).addAll(pProperty).build());
   }
 
-  public ImmutableSet<AutomatonTransition> getBlacklist() {
+  public ImmutableSet<AutomatonSafetyProperty> getBlacklist() {
     return blacklist;
+  }
+
+  @Override
+  public String toString() {
+    return blacklist.toString();
   }
 
 
