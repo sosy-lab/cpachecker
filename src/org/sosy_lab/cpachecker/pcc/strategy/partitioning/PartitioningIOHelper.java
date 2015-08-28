@@ -101,16 +101,18 @@ public class PartitioningIOHelper {
 
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
-    savedReachedSetSize = pReached.size();
+    saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached));
+  }
 
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
-        computePartialReachedSetAndPartition(pReached);
+  protected void saveInternalProof(final int size,
+      final Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> pPartitionDescription) {
+    savedReachedSetSize = size;
 
-    numPartitions = partitionDescription.getSecond().size();
+    numPartitions = pPartitionDescription.getSecond().size();
     partitions = new ArrayList<>(numPartitions);
 
-    for (Set<Integer> partition : partitionDescription.getSecond()) {
-      partitions.add(Pair.of(partitionDescription.getFirst().getSetNodes(partition, false), partitionDescription
+    for (Set<Integer> partition : pPartitionDescription.getSecond()) {
+      partitions.add(Pair.of(pPartitionDescription.getFirst().getSetNodes(partition, false), pPartitionDescription
           .getFirst()
           .getSuccessorNodesOutsideSet(partition, false)));
     }
