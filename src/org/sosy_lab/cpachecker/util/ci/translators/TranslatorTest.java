@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -37,16 +38,22 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.BasicLogManager;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -54,13 +61,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -71,6 +74,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import com.google.common.truth.Truth;
 
@@ -212,10 +218,15 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testPredicateRequirementsTranslator() throws InvalidConfigurationException, CPAException {
-    FormulaManagerView fmv = new FormulaManagerView(new FormulaManagerFactory(TestDataTools.configurationForTest().build(), TestLogManager.getInstance(), ShutdownNotifier.create()), TestDataTools.configurationForTest().build(), TestLogManager.getInstance());
-    GlobalInfo gInfo = GlobalInfo.getInstance();
-    gInfo.storeFormulaManagerView(fmv);
+  public void testPredicateRequirementsTranslator() throws InvalidConfigurationException, CPAException,
+      UnsupportedOperationException, IOException, ParserException, InterruptedException {
+    Configuration config = TestDataTools.configurationForTest().build();
+    LogManager logger = new BasicLogManager(config);
+    PredicateCPA predicateCpa = (PredicateCPA) PredicateCPA.factory().setConfiguration(config)
+        .setLogger(logger).setShutdownNotifier(ShutdownNotifier.create())
+        .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
+        .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class).createInstance();
+  FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 
     // Region used in abstractionFormula
     RegionManager regionManager = new SymbolicRegionManager(fmv, null);
@@ -249,7 +260,7 @@ public class TranslatorTest {
     aFormula = new AbstractionFormula(fmv, region, bf2, bfmgr.makeBoolean(true), pathFormula, Collections.<Integer>emptySet());
     PredicateAbstractState pf2State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
 
-    PredicateRequirementsTranslator pReqTrans = new PredicateRequirementsTranslator();
+    PredicateRequirementsTranslator pReqTrans = new PredicateRequirementsTranslator(predicateCpa);
 
     // Test method convertToFormula()
     Pair<List<String>, String> convertedFormula = pReqTrans.convertToFormula(ptrueState, ssaTest);
