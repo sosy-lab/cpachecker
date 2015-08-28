@@ -92,6 +92,9 @@ analysis.checkCounterexamples = false
 # use counterexample check and the BDDCPA Restriction option
 analysis.checkCounterexamplesWithBDDCPARestriction = false
 
+# check multiple, different, properties in one verification run?
+analysis.checkMultipleProperties = false
+
 # do analysis and then check analysis result
 analysis.checkProof = false
 
@@ -692,16 +695,15 @@ cpa.automaton.merge.onInactive = false
 # Merge two automata states if one of them is TOP.
 cpa.automaton.merge.onTop = false
 
+# Change the precision locally.
+cpa.automaton.prec.localPrecisionUpdate = false
+
 # Behaviour on a property that has already been fully handled.
 cpa.automaton.prec.onHandledTarget = SIGNAL
-  enum:     [SIGNAL, BOTTOM]
+  enum:     [SIGNAL, BOTTOM, INACTIVE]
 
 # Handle at most k (> 0) violation of one property.
 cpa.automaton.prec.targetHandledAfter = 1
-
-# An implicit precision: consider states with a self-loop and no other
-# outgoing edges as TOP.
-cpa.automaton.prec.topOnFinalSelfLoopingState = false
 
 # Stop in the automata transfer relation if the analysis identified one
 # feasible path for each target state.
