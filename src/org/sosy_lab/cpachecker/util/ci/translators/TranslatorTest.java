@@ -226,7 +226,7 @@ public class TranslatorTest {
         .setLogger(logger).setShutdownNotifier(ShutdownNotifier.create())
         .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
         .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class).createInstance();
-  FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
+    FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 
     // Region used in abstractionFormula
     RegionManager regionManager = new SymbolicRegionManager(fmv, null);
