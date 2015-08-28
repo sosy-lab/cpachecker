@@ -91,6 +91,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState,
       Collection<AutomatonSafetyProperty> pProperties) {
 
+    assert !(pFullState instanceof AutomatonState);
     assert pFullState instanceof Targetable;
     assert ((Targetable) pFullState).isTarget();
 
