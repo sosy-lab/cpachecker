@@ -195,7 +195,7 @@ analysis.traversal.useLoopstack = false
 # 'analysis.traversal.order'.
 analysis.traversal.usePostorder = false
 
-# handle states with a shallow loopstack first.
+# handle states with a more shallow loopstack first.
 analysis.traversal.useReverseLoopstack = false
 
 # Use an implementation of reverse postorder strategy that allows to select a
