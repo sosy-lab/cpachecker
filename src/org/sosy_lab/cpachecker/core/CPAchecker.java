@@ -35,8 +35,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -333,18 +331,10 @@ public class CPAchecker {
 
     ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
 
-    String violatedPropertyDescription = findViolatedProperties(cpa, reached);
+    Set<Property> violatedProperties = findViolatedProperties(cpa, reached);
     Result verdict;
 
-    if (violatedPropertyDescription != null) {
-      if (!status.isPrecise() || status.isInterrupted()) {
-        verdict = Result.UNKNOWN;
-      } else {
-        verdict = Result.FALSE;
-      }
-
-    } else {
-      violatedPropertyDescription = "";
+    if (violatedProperties.isEmpty()) {
 
       if (status.isInterrupted()) {
         verdict = Result.UNKNOWN;
@@ -354,9 +344,18 @@ public class CPAchecker {
           verdict = Result.TRUE;
         }
       }
+
+    } else {
+
+
+      if (!status.isPrecise() || status.isInterrupted()) {
+        verdict = Result.UNKNOWN;
+      } else {
+        verdict = Result.FALSE;
+      }
     }
 
-    return Pair.of(verdict, violatedPropertyDescription);
+    return Pair.of(verdict, Joiner.on(", ").join(violatedProperties));
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
@@ -435,28 +434,23 @@ public class CPAchecker {
     }
   }
 
-  private @Nullable String findViolatedProperties(final ConfigurableProgramAnalysis pCpa,
+  private Set<Property> findViolatedProperties(final ConfigurableProgramAnalysis pCpa,
       final ReachedSet reached) {
 
-    final Set<Property> descriptions = Sets.newHashSet();
+    final Set<Property> result = Sets.newHashSet();
     final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
 
     if (argCpa != null) {
-      descriptions.addAll(argCpa.getCexSummary().getFeasiblePropertyViolations());
+      result.addAll(argCpa.getCexSummary().getFeasiblePropertyViolations());
 
     } else {
       for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
         Targetable t = (Targetable) e;
-        descriptions.addAll(t.getViolatedProperties());
+        result.addAll(t.getViolatedProperties());
       }
     }
 
-    if (descriptions.isEmpty()) {
-      // signal no target state -> result safe
-      return null;
-    }
-
-    return Joiner.on(", ").join(descriptions);
+    return result;
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
