@@ -37,12 +37,16 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 @Options
@@ -90,7 +94,7 @@ public class MultiPropertyAlgorithm implements Algorithm {
       Set<AbstractState> violating = filterNewTargetStates(pReachedSet);
       if (!violating.isEmpty()) {
         for (AbstractState e: violating) {
-          Set<Property> violated = AbstractStates.extractViolatedProperties(e);
+          Set<Property> violated = AbstractStates.extractViolatedProperties(e, Property.class);
           violatedProperties.addAll(violated);
         }
       }
@@ -110,6 +114,17 @@ public class MultiPropertyAlgorithm implements Algorithm {
   }
 
   private void adjustAutomataPrecision(final ReachedSet pReachedSet, final Set<Property> pViolatedProperties) {
+
+    final HashSet<AutomatonSafetyProperty> violated = Sets.newHashSet(
+      Collections2.transform(pViolatedProperties, new Function<Property, AutomatonSafetyProperty>() {
+        @Override
+        public AutomatonSafetyProperty apply(Property pArg0) {
+          Preconditions.checkArgument(pArg0 instanceof AutomatonSafetyProperty);
+          return (AutomatonSafetyProperty) pArg0;
+        }
+
+      }).iterator());
+
     // update the precision:
     //  (optional) disable some automata transitions (global precision)
     for (AbstractState e: pReachedSet.getWaitlist()) {
@@ -119,12 +134,17 @@ public class MultiPropertyAlgorithm implements Algorithm {
       final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
         @Override
         public Precision apply(Precision pArg0) {
+          if (pArg0 instanceof AutomatonPrecision) {
+            AutomatonPrecision pi = (AutomatonPrecision) pArg0;
+            return pi.cloneAndAddBlacklisted(violated);
+          }
           return null;
         }
       });
 
       if (piPrime != null) {
         pReachedSet.updatePrecision(e, piPrime);
+        throw new RuntimeException("Merge of precisions from subgraphs to pivot states not yet implemented!!!");
       }
     }
 
