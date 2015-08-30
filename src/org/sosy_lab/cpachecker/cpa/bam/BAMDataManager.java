@@ -47,19 +47,19 @@ public class BAMDataManager {
 
   /** abstractStateToReachedSet contains the mapping of non-reduced initial states
    *  to the reached-sets, where the root-state is the corresponding reduced state. */
-  final Map<AbstractState, ReachedSet> abstractStateToReachedSet = new HashMap<>();
+  final Map<AbstractState, ReachedSet> initialStateToReachedSet = new HashMap<>();
 
   /** expandedToReducedCache contains the mapping of an expanded state at a block-end towards
    * the corresponding reduced state, from which it was expanded. */
-  final Map<AbstractState, AbstractState> expandedToReducedCache = new HashMap<>();
+  final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
 
   /** expandedToBlockCache contains the mapping of an expanded state at a block-end towards
    * the inner block of the corresponding reduced state, from which it was expanded. */
-  private final Map<AbstractState, Block> expandedToBlockCache = new HashMap<>();
+  private final Map<AbstractState, Block> expandedStateToBlock = new HashMap<>();
 
-  /** forwardPrecisionToExpandedPrecision contains the mapping an expanded state at a block-end towards
+  /** expandedStateToExpandedPrecision contains the mapping an expanded state at a block-end towards
    * the corresponding expanded precision. */
-  final Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision = new HashMap<>();
+  final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new HashMap<>();
 
   public BAMDataManager(BAMCache pArgCache, ReachedSetFactory pReachedSetFactory, LogManager pLogger) {
     bamCache = pArgCache;
@@ -68,26 +68,26 @@ public class BAMDataManager {
   }
 
   void replaceStateInCaches(AbstractState oldState, AbstractState newState, boolean oldStateMustExist) {
-    if (oldStateMustExist || expandedToReducedCache.containsKey(oldState)) {
-      final AbstractState reducedState = expandedToReducedCache.remove(oldState);
-      expandedToReducedCache.put(newState, reducedState);
+    if (oldStateMustExist || expandedStateToReducedState.containsKey(oldState)) {
+      final AbstractState reducedState = expandedStateToReducedState.remove(oldState);
+      expandedStateToReducedState.put(newState, reducedState);
     }
 
-    if (oldStateMustExist || expandedToBlockCache.containsKey(oldState)) {
-      final Block innerBlock = expandedToBlockCache.remove(oldState);
-      expandedToBlockCache.put(newState, innerBlock);
+    if (oldStateMustExist || expandedStateToBlock.containsKey(oldState)) {
+      final Block innerBlock = expandedStateToBlock.remove(oldState);
+      expandedStateToBlock.put(newState, innerBlock);
     }
 
-    if (oldStateMustExist || forwardPrecisionToExpandedPrecision.containsKey(oldState)) {
-      final Precision expandedPrecision = forwardPrecisionToExpandedPrecision.remove(oldState);
-      forwardPrecisionToExpandedPrecision.put(newState, expandedPrecision);
+    if (oldStateMustExist || expandedStateToExpandedPrecision.containsKey(oldState)) {
+      final Precision expandedPrecision = expandedStateToExpandedPrecision.remove(oldState);
+      expandedStateToExpandedPrecision.put(newState, expandedPrecision);
     }
   }
 
   /** unused? */
   void clearCaches() {
     bamCache.clear();
-    abstractStateToReachedSet.clear();
+    initialStateToReachedSet.clear();
   }
 
   ReachedSet createInitialReachedSet(AbstractState initialState, Precision initialPredicatePrecision) {
@@ -100,9 +100,9 @@ public class BAMDataManager {
    * such that we know later, which state in which block was expanded to the state. */
   void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
       AbstractState reducedState, Block innerBlock) {
-    expandedToReducedCache.put(expandedState, reducedState);
-    expandedToBlockCache.put(expandedState, innerBlock);
-    forwardPrecisionToExpandedPrecision.put(expandedState, expandedPrecision);
+    expandedStateToReducedState.put(expandedState, reducedState);
+    expandedStateToBlock.put(expandedState, innerBlock);
+    expandedStateToExpandedPrecision.put(expandedState, expandedPrecision);
   }
 
   /** This method checks, if the current state is at a node,
@@ -113,11 +113,11 @@ public class BAMDataManager {
    * i.e. if there are several overlapping block-end-nodes
    * (e.g. nested loops or program calls 'exit()' inside a function). */
   boolean alreadyReturnedFromSameBlock(AbstractState state, Block block) {
-    while (expandedToReducedCache.containsKey(state)) {
-      if (expandedToBlockCache.containsKey(state) && block == expandedToBlockCache.get(state)) {
+    while (expandedStateToReducedState.containsKey(state)) {
+      if (expandedStateToBlock.containsKey(state) && block == expandedStateToBlock.get(state)) {
         return true;
       }
-      state = expandedToReducedCache.get(state);
+      state = expandedStateToReducedState.get(state);
     }
     return false;
   }

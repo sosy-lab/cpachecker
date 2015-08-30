@@ -167,7 +167,7 @@ public class BAMTransferRelation implements TransferRelation {
       final AbstractState pState, final Precision pPrecision)
           throws CPAException, InterruptedException {
 
-    data.forwardPrecisionToExpandedPrecision.clear();
+    data.expandedStateToExpandedPrecision.clear();
 
     final CFANode node = extractLocation(pState);
 
@@ -391,7 +391,7 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     assert reached != null;
-    data.abstractStateToReachedSet.put(initialState, reached);
+    data.initialStateToReachedSet.put(initialState, reached);
 
     ARGState rootOfBlock = null;
     if (PCCInformation.isPCCEnabled()) {
