@@ -182,19 +182,20 @@ public class BAMPredicateReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
     PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
-    PredicatePrecision toplevelPrecision = rootPrecision;
+    PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
+
     if (rootPrecision instanceof ReducedPredicatePrecision) {
-      toplevelPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+      rootPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+    }
+    if (reducedPrecision instanceof ReducedPredicatePrecision) {
+      reducedPrecision = ((ReducedPredicatePrecision) reducedPrecision).getRootPredicatePrecision();
     }
 
-    PredicatePrecision derivedToplevelPrecision =
-        ((ReducedPredicatePrecision) pReducedPrecision).getRootPredicatePrecision();
+    if (rootPrecision == reducedPrecision) { return pRootPrecision; }
 
-    if (derivedToplevelPrecision == toplevelPrecision) { return pRootPrecision; }
+    PredicatePrecision mergedPrecision = rootPrecision.mergeWith(reducedPrecision);
 
-    PredicatePrecision mergedToplevelPrecision = toplevelPrecision.mergeWith(derivedToplevelPrecision);
-
-    return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
+    return getVariableReducedPrecision(mergedPrecision, pRootContext);
   }
 
   @Override
