@@ -118,11 +118,11 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         potentialRecursionUpdateStates.clear();
       }
 
-      logger.log(Level.FINE, "Starting recursive analysis of main-block");
+      logger.log(Level.FINEST, "Starting recursive analysis of main-block");
 
       resultStates = doRecursiveAnalysis(pHeadOfMainFunctionState, pPrecision, pHeadOfMainFunction);
 
-      logger.log(Level.FINE, "Finished recursive analysis of main-block");
+      logger.log(Level.FINEST, "Finished recursive analysis of main-block");
 
       // EITHER: result is an target-state, return it 'as is' and let CEGAR-algorithm perform a refinement, if needed.
       // OR:     we have completely analyzed the main-block and have not found an target-state.
@@ -155,7 +155,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates.keySet()) {
       for (final ReachedSet reachedSet : data.bamCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
-          logger.log(Level.ALL, "re-adding state", recursionUpdateState);
+          logger.log(Level.FINEST, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
         }
         // else if (pHeadOfMainFunctionState == recursionUpdateState) {
@@ -290,7 +290,6 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     for (final AbstractState expandedState : expandedFunctionReturnStates) {
       rebuildStates.add(getRebuildState(rootState, initialState, expandedState));
     }
-    logger.log(Level.ALL, "finished rebuilding of", rebuildStates.size(), "states");
 
     return rebuildStates;
   }
@@ -319,12 +318,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     if (previousResult == null) {
       // outer block was not finished, abort recursion
       reducedResult = Collections.emptySet();
-      logger.logf(Level.FINEST, "skipping recursive call with new empty result");
+      logger.logf(Level.FINEST, "skipping recursive call with new empty result (root is %s)", reached.getFirstState());
     } else {
       // use previously computed outer block as inner block,
       // this is equal to 'add one recursive step' in the recursion
       reducedResult = imbueAbstractStatesWithPrecision(reached, previousResult);
-      logger.logf(Level.FINEST, "skipping recursive call with cached result");
+      logger.logf(Level.FINEST, "skipping recursive call with cached result (root is %s)", reached.getFirstState());
     }
 
     data.initialStateToReachedSet.put(initialState, reached);
