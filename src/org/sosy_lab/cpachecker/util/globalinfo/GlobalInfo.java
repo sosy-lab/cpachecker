@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.globalinfo;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,7 +44,6 @@ public class GlobalInfo {
   private ConfigurableProgramAnalysis cpa;
   private FormulaManager formulaManager;
   private FormulaManagerView formulaManagerView;
-  private ArrayList<Serializable> helperStorages = new ArrayList<>();
   private AbstractionManager absManager;
   private ApronManager apronManager;
   private LogManager logger;
@@ -129,19 +125,6 @@ public class GlobalInfo {
 
   public LogManager getLogManager() {
     return logger;
-  }
-
-  public int addHelperStorage(Serializable e) {
-    helperStorages.add(e);
-    return helperStorages.size() - 1;
-  }
-
-  public Serializable getHelperStorage(int index) {
-    return helperStorages.get(index);
-  }
-
-  public int getNumberOfHelperStorages() {
-    return helperStorages.size();
   }
 
 }
