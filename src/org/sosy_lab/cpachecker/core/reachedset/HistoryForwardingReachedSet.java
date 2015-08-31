@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Implementation of ReachedSet that forwards all calls to another instance.
@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableSet;
  */
 public class HistoryForwardingReachedSet extends ForwardingReachedSet {
 
-  private final Collection<ReachedSet> usedReachedSets;
+  private final List<ReachedSet> usedReachedSets;
 
   public HistoryForwardingReachedSet(ReachedSet pDelegate) {
     super(pDelegate);
@@ -48,8 +48,8 @@ public class HistoryForwardingReachedSet extends ForwardingReachedSet {
     usedReachedSets.add(pDelegate);
   }
 
-  public Collection<ReachedSet> getAllReachedSetsUsedAsDelegates() {
-    return ImmutableSet.copyOf(usedReachedSets);
+  public List<ReachedSet> getAllReachedSetsUsedAsDelegates() {
+    return ImmutableList.copyOf(usedReachedSets);
   }
 
 }
