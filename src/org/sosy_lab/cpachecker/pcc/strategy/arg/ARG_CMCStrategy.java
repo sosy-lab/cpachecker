@@ -127,10 +127,17 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       InvalidConfigurationException, InterruptedException {
     constructInternalProofRepresentation(pReached);
     if (proofKnown) {
+      HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
+      if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {
+        logger.log(Level.SEVERE,
+                "Proof cannot be generated, inconsistency in number of analyses, contradicting number of CPAs and reached sets.");
+      }
       // proof construction succeeded
       pOut.writeInt(roots.length);
-      for (ARGState root : roots) {
-        pOut.writeObject(root);
+
+      for (int i=0; i<historyReached.getCPAs().size();i++) {
+        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i));
+        pOut.writeObject(roots[i]);
       }
     }
   }
@@ -313,9 +320,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
           if (i + 1 != roots.length) {
             // write automaton for next partial ARG
-            logger
-                .log(
-                    Level.FINE,
+            logger.log(Level.FINE,
                     "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
             automatonWriter.writeAutomaton(roots[i], incompleteStates);
             shutdown.shutdownIfNecessary();
