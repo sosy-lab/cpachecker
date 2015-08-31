@@ -28,18 +28,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.Model;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-
 
 public class InterpolatingProverWithAssumptionsWrapper<T> implements InterpolatingProverEnvironmentWithAssumptions<T>{
 
@@ -57,9 +55,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
   @Override
   public T push(BooleanFormula pF) {
-    Preconditions.checkState(solverAssumptionsFromPush.isEmpty(),
-                             "Pushing is not possible until the assumptions from"
-                             + " isUnsatWithAssumptions are cleared");
+    clearAssumptions();
     return delegate.push(pF);
   }
 
@@ -97,17 +93,13 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
   @Override
   public void pop() {
-    Preconditions.checkState(solverAssumptionsFromPush.isEmpty(),
-                            "Popping is not possible until the assumptions from"
-                            + " isUnsatWithAssumptions are cleared");
+    clearAssumptions();
     delegate.pop();
   }
 
   @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
-    Preconditions.checkState(solverAssumptionsFromPush.isEmpty(),
-                            "IsUnsat calls are not possible until the assumptions from"
-                            + " isUnsatWithAssumptions are cleared");
+    clearAssumptions();
     return delegate.isUnsat();
   }
 
@@ -123,9 +115,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
   @Override
   public boolean isUnsatWithAssumptions(List<BooleanFormula> assumptions) throws SolverException, InterruptedException {
-    Preconditions.checkState(solverAssumptionsFromPush.isEmpty(),
-                            "IsUnsatWithAssumptions calls are not possible until"
-                            + " the assumptions from isUnsatWithAssumptions are cleared");
+    clearAssumptions();
 
     solverAssumptionsAsFormula.addAll(assumptions);
     for (BooleanFormula formula : assumptions) {
