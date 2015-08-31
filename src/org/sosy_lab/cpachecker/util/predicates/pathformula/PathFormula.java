@@ -119,6 +119,8 @@ public final class PathFormula implements Serializable {
   }
 
   private static class SerializationProxy implements Serializable {
+    // (de)serialization only works properly for formulae which were built with the same
+    // formula manager as used by PredicateCPA
     private static final long serialVersionUID = 309890892L;
 
     private final String formulaDump;
@@ -127,7 +129,7 @@ public final class PathFormula implements Serializable {
     private final PointerTargetSet pts;
 
     public SerializationProxy(PathFormula pPathFormula) {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       formulaDump = mgr.dumpFormula(pPathFormula.formula).toString();
       ssa = pPathFormula.ssa;
       length = pPathFormula.length;
@@ -135,7 +137,7 @@ public final class PathFormula implements Serializable {
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       BooleanFormula formula = mgr.parse(formulaDump);
       return new PathFormula(formula, ssa, pts, length);
     }

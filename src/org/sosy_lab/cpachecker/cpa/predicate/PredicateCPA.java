@@ -58,10 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -72,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.solver.SolverException;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -215,9 +214,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
         cfa, config);
-
-    GlobalInfo.getInstance().storeFormulaManagerView(formulaManager);
-    GlobalInfo.getInstance().storeAbstractionManager(abstractionManager);
 
     prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
 

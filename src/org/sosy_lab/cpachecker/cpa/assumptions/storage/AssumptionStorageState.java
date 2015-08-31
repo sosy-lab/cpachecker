@@ -28,7 +28,6 @@ import java.io.Serializable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -127,12 +126,7 @@ public class AssumptionStorageState implements AbstractState, Serializable {
   }
 
   private Object readResolve() {
-    assert(GlobalInfo.getInstance().getCPA().isPresent());
-    assert(CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),
-        AssumptionStorageCPA.class)!=null);
-    FormulaManagerView fmgr = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(),
-          AssumptionStorageCPA.class).getFormulaManager();
-      GlobalInfo.getInstance().storeFormulaManagerView(fmgr);
+    FormulaManagerView fmgr = GlobalInfo.getInstance().getAssumptionStorageFormulaManager();
     return new AssumptionStorageState(fmgr, fmgr.getBooleanFormulaManager().makeBoolean(true), fmgr.getBooleanFormulaManager().makeBoolean(true));
   }
 }

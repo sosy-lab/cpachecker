@@ -157,14 +157,14 @@ public class AbstractionFormula implements Serializable {
     private final PathFormula blockFormula;
 
     public SerializationProxy(AbstractionFormula pAbstractionFormula) {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump = mgr.dumpFormula(
           pAbstractionFormula.asInstantiatedFormula()).toString();
       blockFormula = pAbstractionFormula.getBlockFormula();
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       BooleanFormula instantiatedFormula = mgr.parse(instantiatedFormulaDump);
       BooleanFormula notInstantiated = mgr.uninstantiate(instantiatedFormula);
       return new AbstractionFormula(

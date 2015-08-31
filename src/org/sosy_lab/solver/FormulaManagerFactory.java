@@ -49,7 +49,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.mathsat5.Mathsat5FormulaManager;
 import org.sosy_lab.solver.princess.PrincessFormulaManager;
@@ -118,7 +117,6 @@ public class FormulaManagerFactory {
     }
 
     fmgr = instantiateSolver(solver, config);
-    GlobalInfo.getInstance().storeFormulaManager(fmgr);
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
