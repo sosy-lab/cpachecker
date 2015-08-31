@@ -93,6 +93,7 @@ public class GlobalInfo {
         } else if (c instanceof PredicateCPA) {
           Preconditions.checkState(absManager == null);
           absManager = ((PredicateCPA) c).getAbstractionManager();
+          predicateFormulaManagerView = ((PredicateCPA) c).getSolver().getFormulaManager();
         } else if (c instanceof AssumptionStorageCPA) {
           Preconditions.checkState(assumptionFormulaManagerView == null);
           assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
