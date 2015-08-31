@@ -43,7 +43,7 @@ import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.SolverBasedTest0;
+import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;

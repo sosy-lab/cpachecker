@@ -21,13 +21,14 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.solver.z3;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Test;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.test.SolverBasedTest0;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 /**

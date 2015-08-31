@@ -1,4 +1,4 @@
-package org.sosy_lab.solver;
+package org.sosy_lab.solver.test;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -18,6 +18,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.solver.AssignableTerm.Variable;
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FormulaManager;

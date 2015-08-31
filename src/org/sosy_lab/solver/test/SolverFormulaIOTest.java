@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.solver.test;
 
 import static com.google.common.truth.Truth.*;
 
@@ -30,8 +30,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,6 +47,8 @@ import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
+
+import junit.framework.AssertionFailedError;
 
 @RunWith(Parameterized.class)
 public class SolverFormulaIOTest extends SolverBasedTest0 {
