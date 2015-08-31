@@ -124,7 +124,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     return delegate.isUnsat();
   }
 
-  public void clearAssumptions() {
+  private void clearAssumptions() {
     for (int i = 0; i < solverAssumptionsAsFormula.size(); i++) {
       delegate.pop();
     }

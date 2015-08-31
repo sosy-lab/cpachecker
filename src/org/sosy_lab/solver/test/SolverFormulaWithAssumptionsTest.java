@@ -24,6 +24,7 @@
 package org.sosy_lab.solver.test;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -33,11 +34,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -64,22 +61,15 @@ public class SolverFormulaWithAssumptionsTest extends SolverBasedTest0 {
   }
 
   /** Generate a prover environment depending on the parameter above.
+   * Can be overridden to parameterize the test.
    * @param <T>
    * @throws InvalidConfigurationException */
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private <T> InterpolatingProverEnvironmentWithAssumptions<T> newEnvironmentForTest() throws InvalidConfigurationException {
-    FormulaManagerView formulaView = new FormulaManagerView(factory,
-                                                            Configuration.builder()
-                                                                         .copyFrom(config)
-                                                                         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
-                                                                         .build(),
-                                                            TestLogManager.getInstance());
-    final InterpolatingProverEnvironment<?> proverEnvironment = mgr.newProverEnvironmentWithInterpolation(false);
-    if (proverEnvironment instanceof InterpolatingProverEnvironmentWithAssumptions) {
-      return (InterpolatingProverEnvironmentWithAssumptions<T>) proverEnvironment;
-    } else {
-      return new InterpolatingProverWithAssumptionsWrapper(proverEnvironment, formulaView);
-    }
+  protected <T> InterpolatingProverEnvironmentWithAssumptions<T> newEnvironmentForTest() throws InvalidConfigurationException {
+    InterpolatingProverEnvironment<?> env = mgr.newProverEnvironmentWithInterpolation(false);
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support solving under assumptions")
+      .that(env).isInstanceOf(InterpolatingProverEnvironmentWithAssumptions.class);
+    return (InterpolatingProverEnvironmentWithAssumptions<T>)env;
   }
 
   @Test
@@ -112,20 +102,11 @@ public class SolverFormulaWithAssumptionsTest extends SolverBasedTest0 {
                .isTrue();
     assertThat(env.getInterpolant(Collections.singletonList(firstPartForInterpolant)).toString())
               .doesNotContain("suffix");
-
-    if (env instanceof InterpolatingProverWithAssumptionsWrapper) {
-      ((InterpolatingProverWithAssumptionsWrapper<T>) env).clearAssumptions();
-    }
-
     assertThat(env.isUnsatWithAssumptions(Lists.newArrayList(bmgr.not(suffix1),
                                                              bmgr.not(suffix3),
                                                              suffix2)))
                .isTrue();
     assertThat(env.getInterpolant(Collections.singletonList(firstPartForInterpolant)).toString())
               .doesNotContain("suffix");
-
-    if (env instanceof InterpolatingProverWithAssumptionsWrapper) {
-      ((InterpolatingProverWithAssumptionsWrapper<T>) env).clearAssumptions();
-    }
   }
 }
