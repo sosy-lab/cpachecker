@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
@@ -110,7 +109,7 @@ public abstract class SolverBasedTest0 {
   }
 
   protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
-    return TestDataTools.configurationForTest()
+    return Configuration.builder()
         .setOption("solver.solver", solverToUse().toString());
   }
 
