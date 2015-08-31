@@ -82,14 +82,14 @@ public class GlobalInfo {
     if (cpa != null) {
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
         if (c instanceof ControlAutomatonCPA) {
-          //automatonInfo.register(((ControlAutomatonCPA) c)., cpa)automatonInfo.register(automaton, automatonCPA);
+          ((ControlAutomatonCPA) c).registerInAutomatonInfo(automatonInfo);
         } else if (c instanceof ApronCPA) {
           Preconditions.checkState(apronManager == null && apronLogger == null);
           ApronCPA apron = (ApronCPA) c;
           apronManager = apron.getManager();
           apronLogger = apron.getLogger();
         } else if (c instanceof AssumptionStorageCPA) {
-
+          assumptionFormulaManagerView = ((AssumptionStorageCPA) c).getFormulaManager();
         } else if (c instanceof PredicateCPA) {
           Preconditions.checkState(absManager == null);
           absManager = ((PredicateCPA) c).getAbstractionManager();
