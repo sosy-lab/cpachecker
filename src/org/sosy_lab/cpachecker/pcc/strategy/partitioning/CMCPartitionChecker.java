@@ -84,6 +84,7 @@ public class CMCPartitionChecker {
     logger = pLogger;
     shutdown = pShutdown;
 
+    inspectedStates = new ArrayList<>();
     incompleteStates = new ArrayList<>();
     toARGState = new HashMap<>();
     externalNodes = new ArrayList<>();
