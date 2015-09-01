@@ -85,7 +85,7 @@ public class PartitioningIOHelper {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 
-    partialConstructor = new PartialCertificateTypeProvider(pConfig, withCMC).getCertificateConstructor();
+    partialConstructor = new PartialCertificateTypeProvider(pConfig, false, withCMC).getCertificateConstructor();
     partitioner = GraphPartitionerFactory.createPartitioner(logger, partitioningStrategy, pShutdownNotifier, pConfig);
   }
 
