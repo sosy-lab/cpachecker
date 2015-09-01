@@ -577,6 +577,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   @Test
   public void testMakeBitVectorArray() {
     requireArrays();
+    requireBitvectors();
 
     BitvectorFormula _i = mgr.getBitvectorFormulaManager().makeVariable(64, "i");
     ArrayFormula<BitvectorFormula, BitvectorFormula> _b = amgr.makeArray("b", FormulaType.getBitvectorTypeWithSize(64), FormulaType.getBitvectorTypeWithSize(32));
