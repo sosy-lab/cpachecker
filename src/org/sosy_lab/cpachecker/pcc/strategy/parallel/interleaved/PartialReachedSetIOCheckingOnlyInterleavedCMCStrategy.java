@@ -117,6 +117,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
         for (int i = 0; checkResult.get() && i < numProofs;) {
           shutdown.shutdownIfNecessary();
 
+          partitionsAvailable.acquire();
+
+          if(!checkResult.get()) {
+            return false;
+          }
+
           // partitioning checker
           checker = new CMCPartitionChecker(cpas[i], checkResult, shutdown, logger, roots[i]);
 
@@ -125,6 +131,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           for (int j = 0; j < ioHelpers[i].getNumPartitions() && checkResult.get(); j++) {
             shutdown.shutdownIfNecessary();
             partitionsAvailable.acquire();
+
+            if(!checkResult.get()) {
+              return false;
+            }
 
             checker.checkPartition(ioHelpers[i].getPartition(j).getFirst(), ioHelpers[i].getPartition(j).getSecond(),
                 ioHelpers[i].getEdgesForPartition(j), ioHelpers[i].getSavedReachedSetSize());
@@ -204,9 +214,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
         }
 
         ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown,
-            automatonWriter.getAllAncestorsFor(unexplored), unexplored);
+            automatonWriter.getAllAncestorsFor(unexplored), unexplored, (ARGState) reached.getFirstState());
         ioHelper.writeProof(pOut, reached);
-      }
+     }
     } catch (ClassCastException e) {
       logger.log(Level.SEVERE, "Stop writing proof. Not all analysis use ARG CPA as top level CPA");
     }
@@ -274,6 +284,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             break;
           }
 
+          // release for set up checking of particular, partial proof
+          mainSemaphore.release();
+
           for (int j = 0; j < ioHelper.getNumPartitions() && checkResult.get(); j++) {
             ioHelper.readPartition(o, stats);
 
@@ -281,6 +294,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
               abortPreparation();
               break;
             }
+
+            // release to check partition
             mainSemaphore.release();
           }
         }
@@ -304,7 +319,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
 
     private void abortPreparation() {
       checkResult.set(false);
-      mainSemaphore.release();
+      mainSemaphore.release(2);
     }
 
   }

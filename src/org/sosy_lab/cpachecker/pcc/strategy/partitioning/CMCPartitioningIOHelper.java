@@ -41,7 +41,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
@@ -59,16 +58,19 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
 
   public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final Set<ARGState> pAutomatonStates,
-      final Set<ARGState> pUnexploredStates) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier);
+      final Set<ARGState> pUnexploredStates, final @Nullable ARGState pRoot) throws InvalidConfigurationException {
+    super(pConfig, pLogger, pShutdownNotifier, true);
     automatonStates = pAutomatonStates;
     unexploredStates = pUnexploredStates;
+    if(pRoot != null) {
+      root = pRoot.getWrappedState();
+    }
   }
 
   public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    this(pConfig, pLogger, pShutdownNotifier, Collections.<ARGState> emptySet(), Collections.<ARGState> emptySet());
+    this(pConfig, pLogger, pShutdownNotifier, Collections.<ARGState> emptySet(), Collections.<ARGState> emptySet(), null);
   }
 
   public @Nullable  int[][] getEdgesForPartition(final int pIndex) {
@@ -76,13 +78,6 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
       return savedSuccessors.get(pIndex);
     }
     return null;
-  }
-
-  @Override
-  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
-      throws InvalidConfigurationException, InterruptedException {
-    super.constructInternalProofRepresentation(pReached);
-    root = ((ARGState) pReached.getFirstState()).getWrappedState();
   }
 
   @Override

@@ -77,10 +77,15 @@ public class PartitioningIOHelper {
 
   public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    this(pConfig, pLogger, pShutdownNotifier, false);
+  }
+
+  protected PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final boolean withCMC) throws InvalidConfigurationException {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 
-    partialConstructor = new PartialCertificateTypeProvider(pConfig, false).getCertificateConstructor();
+    partialConstructor = new PartialCertificateTypeProvider(pConfig, withCMC).getCertificateConstructor();
     partitioner = GraphPartitionerFactory.createPartitioner(logger, partitioningStrategy, pShutdownNotifier, pConfig);
   }
 

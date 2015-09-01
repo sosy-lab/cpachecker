@@ -92,7 +92,7 @@ public class CMCPartitionChecker {
 
     root = new ARGState(pRoot, null);
     toARGState.put(pRoot, root);
-    externalNodes.add(root);
+    externalNodes.add(pRoot);
 
     CFANode main = AbstractStates.extractLocation(pRoot);
     initPrec = cpa.getInitialPrecision(main, StateSpacePartition.getDefaultPartition());
