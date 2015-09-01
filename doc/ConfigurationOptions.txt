@@ -1597,9 +1597,17 @@ cpa.slicing.useCachingPathFormulaManager = true
 # the formula and does not involve any calls to the SMT solver.
 cpa.slicing.useSyntacticFormulaSlicing = false
 
+# Array allocation functions
+cpa.smg.arrayAllocationFunctions = {
+      "calloc"}
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
+
+# Deallocation functions
+cpa.smg.deallocationFunctions = {
+      "free"}
 
 # If this Option is enabled, failure of mallocis simulated
 cpa.smg.enableMallocFail = true
@@ -1621,6 +1629,19 @@ cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
 # Sets how unknown functions are handled. One of: {strict, assume_safe}
 cpa.smg.handleUnknownFunctions = "strict"
 
+# Memory allocation functions
+cpa.smg.memoryAllocationFunctions = {
+      "malloc"}
+
+# Size parameter of memory allocation functions
+cpa.smg.memoryAllocationFunctionsSizeParameter = 0
+
+# Position of element size parameter for array allocation functions
+cpa.smg.memoryArrayAllocationFunctionsElemSizeParameter = 1
+
+# Position of number of element parameter for array allocation functions
+cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
+
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
@@ -1634,6 +1655,10 @@ cpa.smg.stop = "SEP"
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Allocation functions which set memory to zero
+cpa.smg.zeroingMemoryAllocation = {
+      "calloc"}
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
