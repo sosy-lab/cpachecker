@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
+import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -137,7 +138,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
 
       logger.log(Level.INFO,
               "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
-      if (!PartitionChecker.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
+      if (!PartitioningUtils.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
           initPrec)) {
         logger.log(Level.SEVERE,
             "Initial state or a state which should be in other partition is not covered by certificate.");
