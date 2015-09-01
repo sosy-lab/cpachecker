@@ -41,6 +41,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
@@ -51,13 +52,15 @@ import com.google.common.base.Preconditions;
 public class CMCPartitioningIOHelper extends PartitioningIOHelper{
 
   private List<int[][]> savedSuccessors;
+  private AbstractState root;
+
   private final Set<ARGState> automatonStates;
   private final Set<ARGState> unexploredStates;
 
   public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final Set<ARGState> pAutomatonStates,
       final Set<ARGState> pUnexploredStates) throws InvalidConfigurationException {
-  super(pConfig, pLogger, pShutdownNotifier);
+    super(pConfig, pLogger, pShutdownNotifier);
     automatonStates = pAutomatonStates;
     unexploredStates = pUnexploredStates;
   }
@@ -76,11 +79,17 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   }
 
   @Override
+  public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
+      throws InvalidConfigurationException, InterruptedException {
+    super.constructInternalProofRepresentation(pReached);
+    root = ((ARGState) pReached.getFirstState()).getWrappedState();
+  }
+
+  @Override
   protected void saveInternalProof(final int size,
       final Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> pPartitionDescription) {
     super.saveInternalProof(size, pPartitionDescription);
     savedSuccessors = new ArrayList<>(pPartitionDescription.getSecond().size());
-
     int[][] partitionSuccessors;
     List<Integer> successors;
     Pair<AbstractState[], AbstractState[]> partition;
@@ -193,11 +202,32 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   }
 
   @Override
+  public void writeMetadata(final ObjectOutputStream pOut, final int pReachedSetSize, final int pNumPartitions)
+      throws IOException {
+    super.writeMetadata(pOut, pReachedSetSize, pNumPartitions);
+    pOut.writeObject(root);
+  }
+
+  @Override
   public void readMetadata(final ObjectInputStream pIn, final boolean pSave) throws IOException {
     super.readMetadata(pIn, pSave);
     if (pSave) {
       savedSuccessors = new ArrayList<>(getNumPartitions());
+      try {
+        root = (AbstractState) pIn.readObject();
+      } catch (ClassNotFoundException e) {
+        root = null;
+      }
+    } else {
+      try {
+        pIn.readObject();
+      } catch (ClassNotFoundException e) {
+      }
     }
+  }
+
+  public @Nullable AbstractState getRoot() {
+    return root;
   }
 
 }
