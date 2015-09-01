@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -52,16 +54,25 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
   private final Set<ARGState> automatonStates;
   private final Set<ARGState> unexploredStates;
 
-  public CMCPartitioningIOHelper(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      Set<ARGState> pAutomatonStates, Set<ARGState> pUnexploredStates) throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier);
+  public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final Set<ARGState> pAutomatonStates,
+      final Set<ARGState> pUnexploredStates) throws InvalidConfigurationException {
+  super(pConfig, pLogger, pShutdownNotifier);
     automatonStates = pAutomatonStates;
     unexploredStates = pUnexploredStates;
   }
 
-  public CMCPartitioningIOHelper(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
+  public CMCPartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     this(pConfig, pLogger, pShutdownNotifier, Collections.<ARGState> emptySet(), Collections.<ARGState> emptySet());
+  }
+
+  public @Nullable  int[][] getEdgesForPartition(final int pIndex) {
+    if (0 <= pIndex && pIndex < getNumPartitions() && pIndex < savedSuccessors.size()) {
+      return savedSuccessors.get(pIndex);
+    }
+    return null;
   }
 
   @Override
@@ -143,7 +154,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     pOut.writeObject(successorLinks);
   }
 
-  private int findSuccessorIndex(AbstractState pNode, AbstractState[] pPartitionNodes, AbstractState[] pExternalNodes) {
+  private int findSuccessorIndex(final AbstractState pNode, final AbstractState[] pPartitionNodes, final AbstractState[] pExternalNodes) {
     for (int i = 0; i < pPartitionNodes.length; i++) {
       if (pNode == pPartitionNodes[i]) { return i; }
     }
@@ -153,11 +164,11 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
     return -1;
   }
 
-  private boolean isUnexplored(ARGState pNode) {
+  private boolean isUnexplored(final ARGState pNode) {
     return unexploredStates.contains(pNode);
   }
 
-  private boolean isAutomatonState(ARGState node) {
+  private boolean isAutomatonState(final ARGState node) {
     return automatonStates.contains(node);
   }
 
