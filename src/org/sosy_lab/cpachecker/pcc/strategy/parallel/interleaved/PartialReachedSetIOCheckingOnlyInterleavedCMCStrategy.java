@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.Sets;
 
-// TODO may be use another class which fits better for inheritance
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
 
   private final Configuration config;
