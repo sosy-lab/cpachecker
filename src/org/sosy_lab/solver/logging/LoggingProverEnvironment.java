@@ -30,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 /**
@@ -87,6 +88,11 @@ public class LoggingProverEnvironment implements ProverEnvironment {
     T result = wrapped.allSat(callback, important);
     logger.log(Level.FINE, "allsat-result:", result);
     return result;
+  }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    return wrapped.evaluate(f);
   }
 
   @Override

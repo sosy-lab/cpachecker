@@ -33,6 +33,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import scala.Option;
@@ -116,5 +117,10 @@ class PrincessTheoremProver extends PrincessAbstractProver implements ProverEnvi
     stack.pop(1);
 
     return callback.getResult();
+  }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    throw new UnsupportedOperationException("Princess solver does not support model evaluation");
   }
 }

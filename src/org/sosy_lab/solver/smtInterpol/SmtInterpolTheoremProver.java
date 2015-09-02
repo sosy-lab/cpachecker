@@ -31,6 +31,7 @@ import java.util.List;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Function;
@@ -118,5 +119,11 @@ class SmtInterpolTheoremProver implements ProverEnvironment {
       callback.apply(Lists.transform(Arrays.asList(model), encapsulateBoolean));
     }
     return callback.getResult();
+  }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    throw new UnsupportedOperationException("SmtInterpol does not support model "
+        + "evaluation");
   }
 }

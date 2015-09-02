@@ -31,6 +31,7 @@ import java.util.List;
 
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.basicimpl.LongArrayBackedList;
 import org.sosy_lab.solver.mathsat5.Mathsat5NativeApi.AllSatModelCallback;
@@ -98,6 +99,11 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
       throw new SolverException("Number of models should be finite with boolean predicates");
     }
     return callback.getResult();
+  }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    throw new UnsupportedOperationException("Mathsat5 solver does not support evaluation");
   }
 
   class MathsatAllSatCallback<T> implements  AllSatModelCallback {

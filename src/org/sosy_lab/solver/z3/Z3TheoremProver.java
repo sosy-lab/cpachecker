@@ -35,11 +35,13 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.basicimpl.LongArrayBackedList;
 import org.sosy_lab.solver.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Verify;
 
 class Z3TheoremProver implements ProverEnvironment {
 
@@ -223,5 +225,24 @@ class Z3TheoremProver implements ProverEnvironment {
     solver_pop(z3context, z3solver, 1);
     smtLogger.logPop(1);
     return callback.getResult();
+  }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    Z3Formula input = (Z3Formula) f;
+    long z3model = solver_get_model(z3context, z3solver);
+    model_inc_ref(z3context, z3model);
+
+    PointerToLong out = new PointerToLong();
+    boolean status = model_eval(z3context, z3model, input.getFormulaInfo(),
+        true, out);
+    Verify.verify(status, "Error during model evaluation");
+
+    Formula outValue = mgr.getFormulaCreator().encapsulate(
+        mgr.getFormulaType(f), out.value
+    );
+
+    model_dec_ref(z3context, z3model);
+    return outValue;
   }
 }
