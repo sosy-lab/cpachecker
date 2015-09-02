@@ -24,8 +24,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.OptEnvironment;
-import org.sosy_lab.solver.api.OptEnvironment.OptStatus;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -256,12 +254,14 @@ public class InductiveWeakeningManager {
     query = fmgr.simplify(query);
     Set<BooleanFormula> out = new HashSet<>();
 
-    // todo: use ProverEnvironment instead.
-    try (OptEnvironment env = solver.newOptEnvironment()) {
-      env.push();
-      env.addConstraint(query);
+    try (ProverEnvironment env = solver.newProverEnvironmentWithModelGeneration()) {
+      //noinspection ResultOfMethodCallIgnored
+      env.push(query);
 
-      while (env.check() == OptStatus.OPT) {
+      while (!env.isUnsat()) {
+
+        List<BooleanFormula> toPush = new ArrayList<>();
+
         for (Entry<BooleanFormula, BooleanFormula> entry : selectionInfo.entrySet()) {
           BooleanFormula atom = entry.getValue();
           BooleanFormula selector = entry.getKey();
@@ -281,10 +281,16 @@ public class InductiveWeakeningManager {
           if (value.equals(bfmgr.makeBoolean(false)) &&
               inductiveSlice.contains(selector)) {
 
-            //noinspection ResultOfMethodCallIgnored
-            env.addConstraint(selector);
+            logger.log(Level.FINE, "Abstracting away",
+                selectionInfo.get(selector));
+            toPush.add(selector);
             out.add(selector);
           }
+        }
+
+        for (BooleanFormula s : toPush) {
+          //noinspection ResultOfMethodCallIgnored
+          env.push(s);
         }
       }
     }
