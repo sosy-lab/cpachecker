@@ -90,8 +90,9 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     protected boolean isToAdd(final ARGState pNode) {
       return pNode == root || pNode.getParents().size() > 1
           || pNode.getCoveredByThis().size() > 0 && !pNode.isCovered()
-          || withCMC && (pNode.getChildren().size() > 1 || pNode.getChildren().size() == 0
-                        || pNode.getParents().iterator().next().getChildren().size() > 1);
+          || withCMC && (pNode.getChildren().size() > 1
+              || !pNode.isCovered() && (pNode.getChildren().size() == 0
+                  || pNode.getParents().iterator().next().getChildren().size() > 1));
     }
 
     @Override
