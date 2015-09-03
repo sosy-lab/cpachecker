@@ -319,7 +319,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
         List<PolicyAbstractedState> siblings =
-            findSibling(states.getReached(pArgState));
+            getSiblings(extraInvariant, states.getReached(pArgState));
 
         Optional<PolicyAbstractedState> abstraction = performAbstraction(
             iState,
@@ -341,6 +341,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           logger.log(Level.FINE,  "Emulating value determination");
           outState = joinAbstractedStates(outState.asAbstracted(),
               siblings.iterator().next().getLatestVersion(), precision);
+          for (PolicyAbstractedState sibling : siblings) {
+            sibling.setNewVersion(outState.asAbstracted());
+          }
         }
       }
 
@@ -397,8 +400,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return newState;
     }
 
-    if (!newState.getGeneratingState().getLatestVersion()
-        .equals(oldState.getGeneratingState().getLatestVersion())) {
+    if (!newState.getGeneratingState().equals(oldState.getGeneratingState())) {
 
       // Different parents: do not merge.
       return oldState;
@@ -418,7 +420,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
         mergedPath,
-        oldState.getGeneratingState().getLatestVersion()
+        oldState.getGeneratingState()
     );
 
     newState.setMergedInto(out);
@@ -1019,9 +1021,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * Find the PolicyAbstractedState sibling: something about-to-be-merged
    * with the argument state.
-   * // todo: can we return a state with different .getExtraInvariant()?
    */
-  private List<PolicyAbstractedState> findSibling(
+  private List<PolicyAbstractedState> getSiblings(
+      BooleanFormula extraInvariant,
       Collection<AbstractState> pSiblings) {
     List<PolicyAbstractedState> out = new ArrayList<>();
     if (pSiblings.isEmpty()) {
@@ -1031,7 +1033,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     for (AbstractState sibling : pSiblings) {
       PolicyAbstractedState s = AbstractStates.extractStateByType(sibling,
           PolicyAbstractedState.class);
-      if (s != null) {
+      if (s != null && s.getExtraInvariant().equals(extraInvariant)) {
         out.add(s);
       }
     }
@@ -1090,8 +1092,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState iState2 = state2.asIntermediate();
       return iState1.getPathFormula().getFormula().equals(
           iState2.getPathFormula().getFormula()
-      ) && iState1.getGeneratingState().getLatestVersion()
-              .equals(iState2.getGeneratingState().getLatestVersion())
+      ) && iState1.getGeneratingState().equals(iState2.getGeneratingState())
           || iState1.isMergedInto(iState2);
     }
   }
