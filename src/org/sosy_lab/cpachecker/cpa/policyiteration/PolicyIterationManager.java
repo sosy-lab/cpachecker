@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -317,12 +318,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
-        Optional<PolicyAbstractedState> sibling =
+        List<PolicyAbstractedState> siblings =
             findSibling(states.getReached(pArgState));
 
         Optional<PolicyAbstractedState> abstraction = performAbstraction(
             iState,
-            sibling,
+            siblings,
             templateManager.precisionForNode(toNode),
             extraInvariant
         );
@@ -334,12 +335,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         logger.log(Level.FINE, ">>> Abstraction produced a state: ",
             outState);
 
-        if (!joinOnMerge && sibling.isPresent()) {
+        if (!joinOnMerge && !siblings.isEmpty()) {
           // Run value determination inside precision adjustment if the abstract
           // states are not joined.
           logger.log(Level.FINE,  "Emulating value determination");
           outState = joinAbstractedStates(outState.asAbstracted(),
-              sibling.get().getLatestVersion(), precision);
+              siblings.iterator().next().getLatestVersion(), precision);
         }
       }
 
@@ -699,7 +700,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private Optional<PolicyAbstractedState> performAbstraction(
       final PolicyIntermediateState state,
-      final Optional<PolicyAbstractedState> otherState,
+      final List<PolicyAbstractedState> otherStates,
       PolicyPrecision precision,
       BooleanFormula extraPredicate)
       throws CPAException, InterruptedException {
@@ -707,8 +708,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
 
     int locationID;
-    if (otherState.isPresent()) {
-      locationID = otherState.get().getLocationID();
+    if (!otherStates.isEmpty()) {
+
+      // They should all share the same location ID.
+      locationID = otherStates.iterator().next().getLocationID();
     } else {
       locationID = locationIDGenerator.getFreshId();
     }
@@ -767,8 +770,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // add a lemma that the new value has to be strictly larger otherwise.
         BooleanFormula prevStateConstraint = bfmgr.makeBoolean(true);
         PolicyBound prevBound = null;
-        if (usePreviousBounds && otherState.isPresent()) {
-          PolicyAbstractedState prevState = otherState.get();
+        if (usePreviousBounds && !otherStates.isEmpty()) {
+          PolicyAbstractedState prevState = otherStates.iterator().next()
+              .getLatestVersion();
           Optional<PolicyBound> bound = prevState.getBound(template);
           if (!bound.isPresent()) {
 
@@ -1017,26 +1021,21 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * with the argument state.
    * // todo: can we return a state with different .getExtraInvariant()?
    */
-  private Optional<PolicyAbstractedState> findSibling(
+  private List<PolicyAbstractedState> findSibling(
       Collection<AbstractState> pSiblings) {
+    List<PolicyAbstractedState> out = new ArrayList<>();
     if (pSiblings.isEmpty()) {
-      return Optional.absent();
+      return out;
     }
 
-    PolicyAbstractedState out = null;
-    boolean found = false;
     for (AbstractState sibling : pSiblings) {
-      out = AbstractStates.extractStateByType(sibling,
+      PolicyAbstractedState s = AbstractStates.extractStateByType(sibling,
           PolicyAbstractedState.class);
-      if (out != null) {
-        found = true;
-        break;
+      if (s != null) {
+        out.add(s);
       }
     }
-    if (found) {
-      return Optional.of(out);
-    }
-    return Optional.absent();
+    return out;
   }
 
   @Override
