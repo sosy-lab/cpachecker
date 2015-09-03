@@ -29,5 +29,6 @@ public enum TermType {
   Integer,
   Real,
   FloatingPoint,
-  Bitvector
+  Bitvector,
+  Array
 }

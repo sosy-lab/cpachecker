@@ -37,6 +37,7 @@ import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
 import de.uni_freiburg.informatik.ultimate.logic.FunctionSymbol;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
+import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 
 /** This is a Class similiar to Mathsat-NativeApi,
@@ -149,6 +150,21 @@ class SmtInterpolUtil {
     throw new NumberFormatException("unknown format of numeric term: " + t);
   }
 
+  public static boolean isArrayTerm(Term t) {
+    boolean is = false;
+
+    if (t instanceof ApplicationTerm) {
+      ApplicationTerm at = (ApplicationTerm) t;
+      if ("store".equals(at.getFunction().getName())) {
+        is = true;
+      } else if ("select".equals(at.getFunction().getName())) {
+        is = true;
+      }
+    }
+
+    return is;
+  }
+
   public static boolean isBoolean(Term t) {
     return t.getTheory().getBooleanSort() == t.getSort();
   }
@@ -159,6 +175,13 @@ class SmtInterpolUtil {
 
   public static boolean hasRationalType(Term t) {
     return t.getTheory().getRealSort() == t.getSort();
+  }
+
+  public static boolean hasArrayType(Term t) {
+    Sort[] tmp = t.getSort().getArguments();
+    Sort newSort = t.getTheory().getSort("Array", tmp);
+    Sort termSort = t.getSort();
+    return newSort == termSort;
   }
 
   /** t1 and t2 */

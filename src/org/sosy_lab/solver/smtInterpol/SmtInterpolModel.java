@@ -47,6 +47,8 @@ class SmtInterpolModel {
       return TermType.Integer;
     } else if (SmtInterpolUtil.hasRationalType(t)) {
       return TermType.Real;
+    } else if (SmtInterpolUtil.hasArrayType(t)) {
+      return TermType.Array;
     }
 
     throw new IllegalArgumentException("Given sort cannot be converted to a TermType: " + t.getSort());
@@ -116,6 +118,11 @@ class SmtInterpolModel {
     Map<AssignableTerm, Object> model = new LinkedHashMap<>();
     for (Term lKeyTerm : SmtInterpolUtil.getVarsAndUIFs(assertedFormulas)) {
       Term lValueTerm = values.evaluate(lKeyTerm);
+
+      if (SmtInterpolUtil.isArrayTerm(lValueTerm)) {
+        // TODO Implement the parsing for array terms
+        continue;
+      }
 
       AssignableTerm lAssignable = toAssignable(lKeyTerm, values);
       Object lValue = getValue(lValueTerm);

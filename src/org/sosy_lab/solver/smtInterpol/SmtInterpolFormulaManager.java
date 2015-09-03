@@ -65,8 +65,9 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       SmtInterpolFunctionFormulaManager pFunctionManager,
       SmtInterpolBooleanFormulaManager pBooleanManager,
       SmtInterpolIntegerFormulaManager pIntegerManager,
-      SmtInterpolRationalFormulaManager pRationalManager) {
-    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null, null, null, null);
+      SmtInterpolRationalFormulaManager pRationalManager,
+      SmtInterpolArrayFormulaManager pArrayFormulaManager) {
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null, null, null, pArrayFormulaManager);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
@@ -83,9 +84,10 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
     SmtInterpolBooleanFormulaManager booleanTheory = new SmtInterpolBooleanFormulaManager(creator, env.getTheory());
     SmtInterpolIntegerFormulaManager integerTheory = new SmtInterpolIntegerFormulaManager(creator, functionTheory);
     SmtInterpolRationalFormulaManager rationalTheory = new SmtInterpolRationalFormulaManager(creator, functionTheory);
+    SmtInterpolArrayFormulaManager arrayTheory = new SmtInterpolArrayFormulaManager(creator);
 
     return new SmtInterpolFormulaManager(creator, unsafeManager, functionTheory,
-            booleanTheory, integerTheory, rationalTheory);
+            booleanTheory, integerTheory, rationalTheory, arrayTheory);
   }
 
   @Override
@@ -112,7 +114,6 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
     Term term = getOnlyElement(getEnvironment().parseStringToTerms(pS));
     return encapsulateBooleanFormula(new FormulaUnLet().unlet(term));
   }
-
 
   @Override
   public Appender dumpFormula(final Term formula) {

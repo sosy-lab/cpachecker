@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.solver.smtInterpol;
 
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
@@ -47,6 +50,21 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
     throw new IllegalArgumentException("Unknown formula type");
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+    if (pFormula instanceof ArrayFormula<?,?>) {
+      FormulaType<T> arrayIndexType = getArrayFormulaIndexType(
+          (ArrayFormula<T, T>) pFormula);
+      FormulaType<T> arrayElementType = getArrayFormulaElementType(
+          (ArrayFormula<T, T>) pFormula);
+      return (FormulaType<T>)new ArrayFormulaType<>(arrayIndexType,
+          arrayElementType);
+    }
+
+    return super.getFormulaType(pFormula);
+  }
+
   @Override
   public Term makeVariable(Sort type, String varName) {
     SmtInterpolEnvironment env = getEnv();
@@ -66,6 +84,6 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
 
   @Override
   public Sort getArrayType(Sort pIndexType, Sort pElementType) {
-    throw new IllegalArgumentException("SmtInterpol.getArrayType(): Implement me!");
+    return getEnv().getTheory().getSort("Array", pIndexType, pElementType);
   }
 }
