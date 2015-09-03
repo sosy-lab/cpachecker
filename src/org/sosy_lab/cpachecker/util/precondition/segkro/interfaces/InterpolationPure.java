@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 
 public interface InterpolationPure {

@@ -42,7 +42,7 @@ public class LoggingClassLoader extends ChildFirstPatternClassLoader {
 
   /**
    * Create a new class loader.
-   * @param pClassPattern The pattern telling which classes should never be loaded by the parent.
+   * @param pChildFirstPattern The pattern telling which classes should never be loaded by the parent.
    * @param pUrls The sources where this class loader should load classes from.
    * @param pParent The parent class loader.
    */

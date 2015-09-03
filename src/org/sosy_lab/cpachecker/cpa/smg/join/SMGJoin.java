@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -55,9 +55,9 @@ final public class SMGJoin {
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
-    ArrayDeque<CLangStackFrame> stack_in_smg1 = opSMG1.getStackFrames();
+    Deque<CLangStackFrame> stack_in_smg1 = opSMG1.getStackFrames();
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
-    ArrayDeque<CLangStackFrame> stack_in_smg2 = opSMG2.getStackFrames();
+    Deque<CLangStackFrame> stack_in_smg2 = opSMG2.getStackFrames();
 
     Set<String> globalVars = new HashSet<>();
     globalVars.addAll(globals_in_smg1.keySet());

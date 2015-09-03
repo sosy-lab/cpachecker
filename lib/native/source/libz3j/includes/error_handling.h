@@ -11,11 +11,11 @@ void Z3JavaErrorHandler(Z3_context c, Z3_error_code e) {
 
         // These errors normally should not occur and we don't wish them
         // to be caught.
-        throwException(env, "org/sosy_lab/cpachecker/util/predicates/z3/Z3SolverException", errMsg);
+        throwException(env, "org/sosy_lab/solver/z3/Z3SolverException", errMsg);
     }
 }
 
-JNIEXPORT void JNICALL Java_org_sosy_1lab_cpachecker_util_predicates_z3_Z3NativeApi_setInternalErrorHandler(
+JNIEXPORT void JNICALL Java_org_sosy_1lab_solver_z3_Z3NativeApi_setInternalErrorHandler(
     JNIEnv* env, jclass jcls, jJ_context a0) {
 
     globalEnv = env;

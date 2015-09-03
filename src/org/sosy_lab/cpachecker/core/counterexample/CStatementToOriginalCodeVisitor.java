@@ -89,7 +89,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     String leftHandSide = pIastExpressionAssignmentStatement.getLeftHandSide().accept(expressionToOrinalCodeVisitor);
     String rightHandSide = pIastExpressionAssignmentStatement.getRightHandSide().accept(expressionToOrinalCodeVisitor);
 
-    return leftHandSide + " = " + rightHandSide + "; ";
+    return leftHandSide + " == " + rightHandSide + "; ";
   }
 
   @Override
@@ -102,7 +102,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
         pIastFunctionCallAssignmentStatement.getFunctionCallExpression());
 
     return leftHandSide
-        + " = "
+        + " == "
         + rightHandSide
         + "; ";
   }
@@ -276,7 +276,7 @@ public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String,
     @Override
     public String visit(CDesignatedInitializer pCStructInitializerPart) {
       return from(pCStructInitializerPart.getDesignators()).transform(DesignatorToOriginalCodeVisitor.TO_CODE).join(Joiner.on(""))
-          + " = " + pCStructInitializerPart.getRightHandSide().accept(this);
+          + " == " + pCStructInitializerPart.getRightHandSide().accept(this);
     }
 
   }

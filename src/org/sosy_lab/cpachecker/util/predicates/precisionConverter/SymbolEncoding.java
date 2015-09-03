@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.getBitvectorTypeWithSize;
+import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.BitvectorType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;

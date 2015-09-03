@@ -26,9 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class UFCheckingProverEnvironment
@@ -53,5 +54,10 @@ public class UFCheckingProverEnvironment
       List<BooleanFormula> important)
       throws InterruptedException, SolverException {
     return delegate.allSat(callback, important);
+  }
+
+  @Override
+  public Formula evaluate(Formula f) {
+    return delegate.evaluate(f);
   }
 }

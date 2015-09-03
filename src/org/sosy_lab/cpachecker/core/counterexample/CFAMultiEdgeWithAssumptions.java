@@ -25,13 +25,9 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
-import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 
@@ -63,6 +59,8 @@ public final class CFAMultiEdgeWithAssumptions extends CFAEdgeWithAssumptions im
   @Override
   public CFAEdgeWithAssumptions mergeEdge(CFAEdgeWithAssumptions pEdge) {
 
+    CFAEdgeWithAssumptions multiEdgeMerge = super.mergeEdge(pEdge);
+
     if (!(pEdge instanceof CFAMultiEdgeWithAssumptions)) {
       return this;
     }
@@ -79,46 +77,25 @@ public final class CFAMultiEdgeWithAssumptions extends CFAEdgeWithAssumptions im
       result.add(thisEdge.mergeEdge(otherIt.next()));
     }
 
-    return valueOf((MultiEdge) pEdge.getCFAEdge(), result);
+
+    return valueOf((MultiEdge) pEdge.getCFAEdge(), result, multiEdgeMerge.getExpStmts(), multiEdgeMerge.getComment());
   }
 
   /**
-   *  Imprecisely projects the assumptions of the edges in a multi edge {@link MultiEdge} to the end of the multi edge
-   *  in the error path. Creates a edge that also contains the assumptions of the edges in the multi edge.
+   *  Creates a edge that also contains the assumptions of the edges in the multi edge.
    *
    * @param pEdge The multi edge in the error path.
    * @param pEdges The edges and assumptions that are contained in the given multi edge.
+   * @param pAssumptions The assumptions at the end of the multi edge. Should contain all
+   *        changed variables, for which a concrete value can be found.
+   * @param pComments Additional values that should be shown to the user, and do not need to be parsed.
+   *
+   *
    * @return A edge {@link CFAMultiEdgeWithAssumptions} that contain the assumptions of
    * the edges that are contained in the given multi edge.
    */
-  public static CFAMultiEdgeWithAssumptions valueOf(MultiEdge pEdge, List<CFAEdgeWithAssumptions> pEdges) {
-    // In MultiEdges, it is possible to write the same variable multiple times.
-    // This would produce illegal assumptions,
-    // thus we filter out assignments which write to the same Address.
-    LinkedHashMap<AExpression, AExpressionStatement> assignments = new LinkedHashMap<>();
-
-    for (CFAEdgeWithAssumptions edge : pEdges) {
-      for (AExpressionStatement assignment : edge.getExpStmts()) {
-        AExpression expression = assignment.getExpression();
-        if (expression instanceof ABinaryExpression) {
-          ABinaryExpression binExp = (ABinaryExpression) expression;
-          // We don't evaluate addresses in c
-          if (isDistinct(binExp)) {
-            assignments.put(binExp.getOperand1(), assignment);
-          }
-        } else {
-          throw new AssertionError("Assumption have to be binary expressions");
-        }
-      }
-    }
-
-    /*Comments only make sense in the exact location of an path*/
-    return new CFAMultiEdgeWithAssumptions(pEdge,
-        ImmutableList.copyOf(assignments.values()), pEdges, "");
-  }
-
-  private static boolean isDistinct(ABinaryExpression pBinExp) {
-    //TODO Can be made more precise
-    return pBinExp.getOperand1() instanceof AIdExpression;
+  public static CFAMultiEdgeWithAssumptions valueOf(MultiEdge pEdge, List<CFAEdgeWithAssumptions> pEdges,
+      List<AExpressionStatement> pAssumptions, String pComments) {
+    return new CFAMultiEdgeWithAssumptions(pEdge, pAssumptions, pEdges, pComments);
   }
 }

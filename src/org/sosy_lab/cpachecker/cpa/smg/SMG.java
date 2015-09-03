@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import com.google.common.collect.ImmutableList;
 
 public class SMG {
-  final private HashSet<SMGObject> objects = new HashSet<>();
-  final private HashSet<Integer> values = new HashSet<>();
-  final private HashSet<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  final private HashMap<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
-  final private HashMap<SMGObject, Boolean> object_validity = new HashMap<>();
+  final private Set<SMGObject> objects = new HashSet<>();
+  final private Set<Integer> values = new HashSet<>();
+  final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  final private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
+  final private Map<SMGObject, Boolean> object_validity = new HashMap<>();
   final private NeqRelation neq = new NeqRelation();
 
   final private MachineModel machine_model;
@@ -557,7 +557,7 @@ public class SMG {
 
     neq.mergeValues(pV1, pV2);
     removeValue(pV2);
-    HashSet<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
+    Set<SMGEdgeHasValue> new_hv_edges = new HashSet<>();
     for (SMGEdgeHasValue hv : hv_edges) {
       if (hv.getValue() != pV2) {
         new_hv_edges.add(hv);
@@ -729,7 +729,7 @@ final class SMGConsistencyVerifier {
    * @return True, if all edges in {@link pEdges} satisfy consistency criteria. False otherwise.
    */
   static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
-    ArrayList<SMGEdge> to_verify = new ArrayList<>();
+    List<SMGEdge> to_verify = new ArrayList<>();
     to_verify.addAll(pEdges);
 
     while (to_verify.size() > 0) {

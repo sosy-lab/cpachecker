@@ -28,8 +28,8 @@ import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuil
 
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.GenericPatterns;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;

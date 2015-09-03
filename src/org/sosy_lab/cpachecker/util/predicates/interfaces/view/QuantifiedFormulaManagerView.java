@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import java.util.Collections;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.QuantifiedFormulaManager;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -145,4 +145,33 @@ public class QuantifiedFormulaManagerView
         ifm.lessOrEquals(pVariable, pUpperBound));
   }
 
+  @Override
+  public boolean isQuantifier(BooleanFormula pF) {
+    return manager.isQuantifier(pF);
+  }
+
+  @Override
+  public boolean isForall(BooleanFormula pF) {
+    return manager.isForall(pF);
+  }
+
+  @Override
+  public boolean isExists(BooleanFormula pF) {
+    return manager.isExists(pF);
+  }
+
+  @Override
+  public int numQuantifierBound(BooleanFormula pF) {
+    return manager.numQuantifierBound(pF);
+  }
+
+  @Override
+  public BooleanFormula getQuantifierBody(BooleanFormula pF) {
+    return manager.getQuantifierBody(pF);
+  }
+
+  @Override
+  public boolean isBoundByQuantifier(Formula pF) {
+    return manager.isBoundByQuantifier(pF);
+  }
 }

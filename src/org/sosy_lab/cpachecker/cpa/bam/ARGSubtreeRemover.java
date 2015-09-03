@@ -112,7 +112,7 @@ public class ARGSubtreeRemover {
       if (removeCachedSubtreeArguments.getSecond() == lastRelevantNode) { // last iteration
         newPrecisions = pNewPrecisions;
       } else {
-        ReachedSet nextReachedSet = data.abstractStateToReachedSet.get(removeCachedSubtreeArguments.getSecond());
+        ReachedSet nextReachedSet = data.initialStateToReachedSet.get(removeCachedSubtreeArguments.getSecond());
         // assert nextReachedSet != null : "call-state does not match reachedset";
         if (nextReachedSet != null && target.getParents().contains(nextReachedSet.getFirstState())) {
           newPrecisions = pNewPrecisions;
@@ -174,7 +174,7 @@ public class ARGSubtreeRemover {
               "(rootNode: ", rootNode, ") issued with precision", pNewPrecisions);
 
       AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
-      ReachedSet reachedSet = data.abstractStateToReachedSet.get(rootState);
+      ReachedSet reachedSet = data.initialStateToReachedSet.get(rootState);
 
       if (removeElement.isDestroyed()) {
         logger.log(Level.FINER, "state was destroyed before");
@@ -317,7 +317,7 @@ public class ARGSubtreeRemover {
               && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
         // the block can be equal, if this is a loop-block.
           openSubtrees.push(partitioning.getBlockForCallNode(node));
-          openReachedSets.push(data.abstractStateToReachedSet.get(pPathElementToReachedState.get(pathState)));
+          openReachedSets.push(data.initialStateToReachedSet.get(pPathElementToReachedState.get(pathState)));
           callNodes.add(pathState);
       }
     }
@@ -341,7 +341,7 @@ public class ARGSubtreeRemover {
             wrappedReducer.getVariableReducedPrecision(
                     rootPrecision, rootBlock);
 
-    UnmodifiableReachedSet innerReachedSet = data.abstractStateToReachedSet.get(pPathElementToReachedState.get(rootState));
+    UnmodifiableReachedSet innerReachedSet = data.initialStateToReachedSet.get(pPathElementToReachedState.get(rootState));
     Precision usedPrecision = innerReachedSet.getPrecision(innerReachedSet.getFirstState());
 
     //add precise key for new precision if needed

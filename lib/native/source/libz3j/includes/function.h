@@ -8,7 +8,7 @@
 // return definition like STRUCT_RETURN depending on the return type
 
 #define DEFINE_FUNC(jreturn, func_escaped) \
-  JNIEXPORT j##jreturn JNICALL Java_org_sosy_1lab_cpachecker_util_predicates_z3_Z3NativeApi_##func_escaped
+  JNIEXPORT j##jreturn JNICALL Java_org_sosy_1lab_solver_z3_Z3NativeApi_##func_escaped
 
 #define WITHOUT_ARGS \
   (JNIEnv *jenv, jclass jcls) {

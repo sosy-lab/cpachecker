@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
 import java.util.Collection;
 
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 
 public interface Canonicalizer {

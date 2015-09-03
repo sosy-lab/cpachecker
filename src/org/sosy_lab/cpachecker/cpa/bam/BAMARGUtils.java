@@ -96,7 +96,7 @@ class BAMARGUtils {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
 
-    ReachedSet reachSet = cpa.getData().abstractStateToReachedSet.get(root);
+    ReachedSet reachSet = cpa.getData().initialStateToReachedSet.get(root);
     assert reachSet != null;
     return Pair.of(rootSubtree, reachSet);
   }

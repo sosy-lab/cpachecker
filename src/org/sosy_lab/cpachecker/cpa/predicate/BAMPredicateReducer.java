@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -158,19 +158,20 @@ public class BAMPredicateReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
     PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
-    PredicatePrecision toplevelPrecision = rootPrecision;
+    PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
+
     if (rootPrecision instanceof ReducedPredicatePrecision) {
-      toplevelPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+      rootPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+    }
+    if (reducedPrecision instanceof ReducedPredicatePrecision) {
+      reducedPrecision = ((ReducedPredicatePrecision) reducedPrecision).getRootPredicatePrecision();
     }
 
-    PredicatePrecision derivedToplevelPrecision =
-        ((ReducedPredicatePrecision) pReducedPrecision).getRootPredicatePrecision();
+    if (rootPrecision == reducedPrecision) { return pRootPrecision; }
 
-    if (derivedToplevelPrecision == toplevelPrecision) { return pRootPrecision; }
+    PredicatePrecision mergedPrecision = rootPrecision.mergeWith(reducedPrecision);
 
-    PredicatePrecision mergedToplevelPrecision = toplevelPrecision.mergeWith(derivedToplevelPrecision);
-
-    return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
+    return getVariableReducedPrecision(mergedPrecision, pRootContext);
   }
 
   @Override
