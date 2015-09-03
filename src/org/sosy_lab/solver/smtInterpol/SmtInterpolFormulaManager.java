@@ -67,7 +67,7 @@ class SmtInterpolFormulaManager extends AbstractFormulaManager<Term, Sort, SmtIn
       SmtInterpolIntegerFormulaManager pIntegerManager,
       SmtInterpolRationalFormulaManager pRationalManager,
       SmtInterpolArrayFormulaManager pArrayFormulaManager) {
-    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null, null, null, pArrayFormulaManager);
+    super(pCreator, pUnsafeManager, pFunctionManager, pBooleanManager, pIntegerManager, pRationalManager, null, null, null, null);
   }
 
   public static SmtInterpolFormulaManager create(Configuration config, LogManager logger,
