@@ -1,0 +1,35 @@
+<FindBugsFilter>
+    <Match><And>
+        <!-- PackageSanityTest wants @Nullable on equals(Object) parameter,
+             FindBugs does not. -->
+        <Bug pattern="NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION"/>
+        <Method name="equals" returns="boolean" params="java.lang.Object"/>
+    </And></Match>
+    <Match><And>
+        <!-- Many constructors read fields that are written via reflection. -->
+        <Bug pattern="UR_UNINIT_READ,RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE"/>
+        <Method name="&lt;init&gt;"/>
+    </And></Match>
+    <Match><And>
+        <!-- Java type system is not strong enough to prove nullity of apply methods of Function implementations. -->
+        <Bug pattern="NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE"/>
+        <Method name="apply"/>
+    </And></Match>
+    <Match>
+        <!-- Handled by Eclipse. -->
+        <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
+    </Match>
+
+    <Match><And>
+        <!-- Allow null checks for configuration-option fields,
+             they might get set to null reflectively.
+             Better match would be "annotated with @FileOption(FileOption.Type.OUTPUT_FILE)",
+             but FindBugs does not support this. -->
+        <Bug pattern="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"/>
+        <Or>
+          <Field type="org.sosy_lab.common.io.Path"/>
+          <Field type="org.sosy_lab.common.io.PathTemplate"/>
+          <Field type="org.sosy_lab.common.io.PathCounterTemplate"/>
+        </Or>
+    </And></Match>
+</FindBugsFilter>

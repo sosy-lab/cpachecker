@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="90" hardtimelimit="100" memlimit="1500" cpuCores="2">
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <option name="-noout"/>
+  <option name="-heap">1000M</option>
+
+  <tasks name="simple">
+    <include>../programs/benchmarks/recursive-simple/*.c</include>
+    <option name="-valueAnalysis-bam-rec"/>
+  </tasks>
+
+  <tasks name="svcomp">
+    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <option name="-predicateAnalysis-bam-rec-plain"/>
+  </tasks>
+
+  <rundefinition/>
+</benchmark>

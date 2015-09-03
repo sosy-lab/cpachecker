@@ -1,0 +1,28 @@
+OBSERVER AUTOMATON LockingAutomaton
+// Kommentar
+/* The Match Expressions are linked by implicit "and" */
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH  { x = $?; } -> ERROR;
+  MATCH [init\\(\\);] && MATCH "init();" &&  MATCH { init(); }  -> GOTO Unlocked;
+  MATCH { lock($?); }  -> ERROR;
+  MATCH { unlock($?); } -> ERROR;
+
+
+STATE USEFIRST Locked :
+  MATCH  { x = $?; } -> GOTO Locked; // unnecessary line
+  MATCH [init\\(\\);] &&  MATCH "init();" &&  MATCH { init(); }  ->  ERROR;
+  MATCH { lock($?); }  ->  ERROR;
+  MATCH { unlock($?); }  -> GOTO Unlocked;
+  TRUE -> GOTO Locked;
+
+STATE USEFIRST Unlocked :
+  MATCH  { x = $?; } -> ERROR;
+  MATCH [init\\(\\);] &&  MATCH "init();" &&  MATCH { init(); }  ->  ERROR;
+  MATCH { lock($?); }  -> GOTO Locked;
+  MATCH { unlock($?); }  -> ERROR;
+  TRUE -> GOTO Unlocked;
+
+END AUTOMATON

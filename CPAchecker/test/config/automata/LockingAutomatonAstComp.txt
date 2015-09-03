@@ -1,0 +1,29 @@
+OBSERVER AUTOMATON LockingAutomaton
+// Kommentar
+/* Kommentar */
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH  { x = $?; } -> ERROR;
+  MATCH  { init(); }  -> GOTO Unlocked;
+  MATCH  { lock($?); }  -> ERROR;
+  MATCH  { unlock($?); }  -> ERROR;
+
+
+STATE USEFIRST Locked :
+  MATCH  { x = $?; } -> GOTO Locked; // unnecessary line
+  MATCH  { init(); }  ->  ERROR;
+  MATCH  { lock($?); }  ->  ERROR;
+  MATCH  { unlock($?); }  -> GOTO Unlocked;
+  TRUE -> GOTO Locked;
+
+
+STATE USEFIRST Unlocked :
+  MATCH  { x = $?; } -> ERROR;
+  MATCH  { init(); }  ->  ERROR;
+  MATCH  { lock($?); }  -> GOTO Locked;
+  MATCH  { unlock($?); }  -> ERROR;
+  TRUE -> GOTO Unlocked;
+
+END AUTOMATON

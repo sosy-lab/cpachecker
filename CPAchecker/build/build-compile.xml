@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="compile" basedir=".">
+
+    <!-- Targets for compilation. -->
+
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker and VerifierCloud. -->
+
+    <!-- These properties can be overridden from including file. -->
+    <property name="source.format" value="1.7"/>
+    <property name="source.dir" value="src"/>
+    <property name="class.format" value="1.7"/>
+    <property name="class.dir" value="bin"/>
+
+    <path id="errorprone">
+        <pathelement location="${ivy.lib.dir}/build/error_prone_ant.jar"/>
+    </path>
+
+    <!-- We use error-prone as the compiler, cf. http://errorprone.info/ -->
+    <target name="build-project" depends="build-dependencies">
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               includeAntRuntime="false"
+               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-Xlint"/>
+            <compilerarg value="-Xlint:-processing"/>
+            <compilerarg value="-Werror"/>
+            <compilerclasspath refid="errorprone"/>
+        </javac>
+    </target>
+</project>

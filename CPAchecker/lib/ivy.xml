@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0"
+        xmlns:e="http://ant.apache.org/ivy/extra"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+    <info organisation="org.sosy_lab" module="CPAchecker"/>
+    <configurations>
+        <!-- All dependencies that are only needed during build. -->
+        <conf name="build" />
+
+        <!-- The normal dependencies. -->
+        <conf name="runtime" />
+
+        <!-- Dependencies needed for building or running tests. -->
+        <conf name="test" />
+
+        <!-- Dependencies needed for benchmarking. -->
+        <conf name="benchmark" />
+
+        <!-- Dependencies needed for running FindBugs. -->
+        <conf name="findbugs" />
+
+        <!-- Additional files like JavaDocs or source code that will help developers.
+             These are not downloaded by default, but only when "ant install-contrib" is called. -->
+        <conf name="contrib" />
+    </configurations>
+
+    <dependencies>
+        <!-- SoSy-Lab Common Library -->
+        <dependency org="org.sosy_lab" name="common" rev="0.531" conf="runtime->runtime; contrib->sources"/>
+
+        <!-- Google Core Libraries for Java
+             Contains a lot of helpful data structures. -->
+        <dependency org="com.google.guava" name="guava" rev="18.0" conf="runtime->default; contrib->sources"/>
+
+        <!-- JavaBDD
+             Java BDD library for predicate abstraction (uses CUDD). -->
+        <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
+
+        <!-- International Components for Unicode
+             Needed by Eclipse CDT parser for error messages. -->
+        <dependency org="com.ibm.icu" name="icu4j" rev="4.8.1.1" conf="runtime->default"/>
+
+        <!-- Dependency on Ivy itself so that we can ugprade it easily.
+             Change version number in build/build-ivy.xml for upgrading. -->
+        <dependency org="org.apache.ivy" name="ivy" rev="${ivy.version}" conf="build->default"/>
+
+        <!-- JFlex Scanner generator
+             Used for generating automaton and FQL scanners. -->
+        <dependency org="de.jflex" name="jflex" rev="1.6.1" conf="build->default" transitive="false"/>
+
+        <!-- CUP LALR Parser Generator for Java
+             Used for generating automaton and FQL parsers. -->
+        <dependency org="edu.tum.cs" name="java-cup" rev="11b-20150326" conf="build->build; runtime->runtime"/>
+
+        <!-- JUnit
+             Testing framework. -->
+        <dependency org="junit" name="junit" rev="4.12" conf="test->default"/>
+
+        <!-- The JUnit task for Ant so that we can run the tests.
+             The property used here is defined in build.xml according to the current Ant version. -->
+        <dependency org="org.apache.ant" name="ant-junit" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
+
+        <!-- Mockito
+             Mocking framework for tests. -->
+        <dependency org="org.mockito" name="mockito-core" rev="1.10.19" conf="test->default"/>
+
+        <!-- Truth
+             Library for writing literal assertions. -->
+        <dependency org="com.google.truth" name="truth" rev="0.27" conf="test->default; contrib->sources"/>
+
+        <!--  Guava-testlib contains many useful testing utilities -->
+        <dependency org="com.google.guava" name="guava-testlib" rev="18.0" conf="test->default; contrib->sources"/>
+
+        <!-- Eclipse CDT and JDT
+             Used for parsing C and Java code. -->
+        <dependency org="org.eclipse.cdt" name="core" rev="5.10.0.201506070905" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
+
+        <!-- SmtInterpol -->
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1-224-gfd408f2" conf="runtime->runtime; contrib->sources">
+          <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
+          <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
+        </dependency>
+
+        <!-- Princess -->
+        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-07-03-r2432" conf="runtime->default"/>
+
+        <!-- Google error-prone
+             Compiler adaptor with some useful checks for common errors. -->
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.4" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.4" conf="build->default; contrib->sources" />
+
+        <!-- FindBugs -->
+        <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
+        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.0" conf="build->default"/>
+
+        <!-- VerifierCloud -->
+        <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
+    </dependencies>
+</ivy-module>

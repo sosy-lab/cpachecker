@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE ivysettings> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
+<ivysettings>
+    <property name="ivy.dep.file" value="lib/ivy.xml"/>
+    <settings defaultResolver="Sosy-Lab" />
+    <resolvers>
+       <url name="Sosy-Lab" descriptor="required">
+           <ivy pattern="${ivy.repo.url}/[organisation]/[module]/ivy-[revision].xml" />
+           <artifact pattern="${ivy.repo.url}/[organisation]/[module]/[artifact]-[revision](-[classifier]).[ext]" />
+       </url>
+    </resolvers>
+    <caches lockStrategy="artifact-lock" defaultCacheDir="${ivy.cache.dir}"/>
+</ivysettings>

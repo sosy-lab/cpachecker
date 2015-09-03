@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
+<project name="CPAchecker" basedir="." default="build"
+         xmlns:ivy="antlib:org.apache.ivy.ant">
+    <!-- Include a file in which all properties can be overridden.
+         This file won't get checked in and can be used to change properties
+         locally for one machine if necessary. -->
+    <property file="build.properties"/>
+    <property environment="env"/>
+
+    <property name="version.base" value="1.4-svn"/> <!-- change here for a release -->
+
+    <!-- Customization of build process. -->
+    <property name="jar.file" value="cpachecker.jar"/>
+    <property name="ivy.settings.file" value="lib/ivysettings.xml"/>
+    <property name="junit.dir" value="output/junit"/>
+    <property name="class.main" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
+    <property name="jar.excludes" value=""/>
+    <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
+
+    <import file="build/build-ivy.xml"/>
+    <import file="build/build-compile.xml"/>
+    <import file="build/build-jar.xml"/>
+    <import file="build/build-junit.xml"/>
+    <import file="build/build-findbugs.xml"/>
+
+    <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
+    <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
+    <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
+
+    <path id="classpath">
+        <pathelement location="${class.dir}"/>
+        <fileset dir="lib" includes="*.jar" excludes="appengine-*/**,gae/**"/>
+        <fileset dir="${ivy.lib.dir}" includes="runtime/*.jar test/*.jar build/annotations.jar build/error_prone_annotations.jar"/>
+    </path>
+
+    <condition property="architecture" value="x86_64" else="x86">
+        <os arch="amd64"/>
+    </condition>
+    <condition property="os" value="linux">
+        <os name="Linux"/>
+    </condition>
+    <condition property="os" value="windows">
+        <os family="windows"/>
+    </condition>
+
+
+    <!-- Main targets -->
+
+    <target name="clean">
+        <delete includeEmptyDirs="true">
+            <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
+            <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
+        </delete>
+
+        <!-- Clean subprojects -->
+        <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
+    </target>
+
+    <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
+
+    <target name="dist" depends="zip, tar" description="Make a distributable release"/>
+
+    <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
+        <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
+        <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
+        <ivy:retrieve sync="true" pattern="${ivy.lib.dir}-benchmark/[artifact](-[classifier]).[ext]"/>
+    </target>
+
+    <target name="tests" depends="unit-tests, python-unit-tests, benchmark-tests" description="Run all tests"/>
+
+
+    <!-- Auxiliary targets -->
+
+    <target name="determine-version-revision">
+        <!-- Determine full CPAchecker version including SVN revision. -->
+        <exec executable="python"
+            outputProperty="version.revision"
+            failifexecutionfails="false"
+            logError="true">
+            <arg value="scripts/determine-revision.py"/>
+            <arg value="${basedir}"/>
+        </exec>
+    </target>
+
+    <target name="create-version-file-exact" depends="determine-version-revision">
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <condition property="version" value="${version.base} ${version.revision}" else="${version.base}">
+            <contains string="${version.base}" substring="-svn"/>
+        </condition>
+        <echo message="${version}" file="${version.file}"/>
+    </target>
+
+    <target name="determine-version" depends="create-version-file-exact"/>
+
+    <target name="create-version-file" unless="version">
+        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
+        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
+        <echo message="${version.base}" file="${version.file}"/>
+    </target>
+
+    <target name="init" depends="create-version-file">
+        <echo message="Building ${ant.project.name} ${version.base}"/>
+    </target>
+
+    <target name="build-subprojects">
+            <echo message="Generate automaton parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <echo message="Generate precision-rewriting parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
+    </target>
+
+    <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
+
+    <available file=".factorypath" property="factorypath.present"/>
+    <target name="-warn-factorypath" unless="factorypath.present">
+        <echo level="warning">If you use Eclipse, please copy .factorypath.template to .factorypath and (if necessary) adjust the path to your CPAchecker directory in it.</echo>
+        <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
+    </target>
+
+    <target name="build-project" depends="build-dependencies">
+        <property name="javac.compiler" value="modern"/> <!-- fallback value -->
+        <depend srcdir="${source.dir}" destdir="${class.dir}"/>
+        <echo message="Compiling CPAchecker"/>
+        <javac debug="true"
+               debuglevel="source,lines,vars"
+               destdir="${class.dir}"
+               source="${source.format}"
+               target="${class.format}"
+               includeAntRuntime="false"
+               compiler="com.google.errorprone.ErrorProneAntCompilerAdapter"
+               encoding="UTF-8">
+            <src path="${source.dir}"/>
+            <classpath refid="classpath"/>
+            <compilerarg value="-Xlint:deprecation"/>
+            <!-- exclude for now since necessary JARs might not be installed -->
+            <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
+            <compilerclasspath refid="errorprone"/>
+        </javac>
+    </target>
+
+    <property name="outputfile" value="doc/ConfigurationOptions.txt"/>
+    <uptodate property="documentation.uptodate" targetfile="${outputfile}">
+        <srcfiles dir="${source.dir}" includes="**/*.java"/>
+    </uptodate>
+
+    <target name="build-documentation" depends="build-project" unless="documentation.uptodate">
+        <echo message="running OptionCollector..." level="info"/>
+
+        <echo file="${outputfile}" append="false" message="# This is an auto-generated file, DO NOT EDIT!${line.separator}# Run ant to generate it.${line.separator}"/>
+        <!-- the output of OptionCollector is written into "doc/ConfigurationOptions.txt" -->
+        <java classname="org.sosy_lab.common.configuration.OptionCollector"
+            fork="true"
+            output="${outputfile}" append="true"
+            logError="true">
+
+            <classpath refid="classpath"/>
+            <jvmarg value="-Djava.library.path=lib/native/${architecture}-${os}/"/>
+
+            <!-- "-v" is a optional param for verbose output of OptionCollector -->
+            <!-- <arg value="-v"/> -->
+        </java>
+        <echo message="Options collected." level="info"/>
+    </target>
+
+    <!-- Release for Windows -->
+    <target name="zip" depends="jar">
+        <property name="namez" value="CPAchecker-${version}-windows"/>
+        <zip destfile="${namez}.zip" whenempty="fail">
+            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
+        </zip>
+    </target>
+
+    <!-- Release for GNU/Linux -->
+    <target name="tar" depends="jar">
+        <property name="namet" value="CPAchecker-${version}-unix"/>
+        <tar destfile="${namet}.tar.bz2" compression="bzip2">
+            <tarfileset dir="."
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"
+                prefix="${namet}/"/>
+            <tarfileset dir="scripts"
+                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
+                excludes="*.bat *.sh *.py"
+                prefix="${namet}/scripts/"/>
+            <tarfileset dir="." filemode="755"
+                includes="scripts/*.sh scripts/*.py lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/**"
+                prefix="${namet}/"/>
+        </tar>
+    </target>
+
+    <target name="python-unit-tests" description="Run unit tests of python scripts">
+        <!-- Tests are only executed if python is available, ignored otherwise. -->
+        <exec executable="python"
+            failonerror="true"
+            failifexecutionfails="false">
+            <arg line="-m unittest discover scripts"/>
+        </exec>
+    </target>
+
+    <target name="benchmark-tests" depends="build" description="Run CPAchecker on some simple test cases in various configurations">
+        <!-- TODO run benchmark.py with some benchmark definitions and check results like in BuildBot -->
+    </target>
+
+    <!-- Targets for downloading CPAchecker instead of building it.
+         This downloads CPAchecker from the VerifierCloud and is used by the BuildBot.
+         Warning: this might overwrite local changes. -->
+    <target name="download-cpachecker" depends="determine-version-revision, resolve-dependencies">
+        <script language="javascript"><![CDATA[
+            var revision = project.getProperty("version.revision");
+            project.setProperty("version.revision.without-suffix", revision.replaceAll("[A-Za-z]*$", ''));
+        ]]></script>
+        <get src="http://vcloud.sosy-lab.org/webclient/tool?revision=${version.revision.without-suffix}" dest="CPAchecker.zip" verbose="false"/>
+        <unzip src="CPAchecker.zip" dest="." failOnEmptyArchive="true" overwrite="true">
+            <patternset>
+                <include name="cpachecker.jar"/>
+            </patternset>
+        </unzip>
+    </target>
+
+    <target name="starexec" depends="build" description="Pack CPAchecker and configs for starexec upload">
+	<echo message="Put all solver configurations in a folder called starexec. Solver configurations should be in the style of doc/examples/starexec.sh"/>
+        <tar destfile="starexec.tar.gz" compression="gzip">
+            <tarfileset dir="."
+                includes="config/** cpachecker.jar lib/*.* lib/java/runtime/*"
+                excludes="lib/ivy*"/>
+	    <tarfileset dir="scripts"
+		includes="cpa.sh"
+		prefix="bin"/>
+	    <tarfileset dir="starexec"
+		includes="*.*"
+		prefix="bin"/>
+            <tarfileset dir="." filemode="755"
+                includes="lib/native/**"
+                excludes="lib/native/source/** lib/native/*win*/** lib/native/x86-linux/**"/>
+        </tar>
+    </target>
+</project>
