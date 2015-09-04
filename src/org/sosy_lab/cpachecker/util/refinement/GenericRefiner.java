@@ -166,9 +166,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     // refiner, where the in-between value-analysis refinement happens to only affect paths in a
     // (ABE) block, which may not be visible when constructing the target path in the next refinement.
     if (!madeProgress(pTargetPath)) {
-      logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
-          "so instead, refiner uses an error path extracted from the reachset.");
-      targetPathToUse = pathExtractor.getTargetPaths(targets).get(0);
+      for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
+        if (!targetPathToUse.equals(pTargetPath)) {
+          logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
+              "so instead, refiner uses a new error path extracted from the reachset.");
+          targetPathToUse = targetPath;
+          break;
+        }
+      }
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
     return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
