@@ -1822,6 +1822,9 @@ cpa.stator.policy.useCachingPathFormulaManager = true
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
 
+# Use latest version of abstracted states
+cpa.stator.policy.useLatestVersion = true
+
 # Use the optimized abstraction, which takes into the account the previously
 # obtained bound at the location.
 cpa.stator.policy.usePreviousBounds = true

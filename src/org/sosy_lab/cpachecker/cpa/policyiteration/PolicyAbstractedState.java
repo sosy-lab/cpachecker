@@ -90,6 +90,11 @@ public final class PolicyAbstractedState extends PolicyState
    * Only used in {@code joinOnMerge} configuration.
    */
   public PolicyAbstractedState getLatestVersion() {
+    if (!manager.shouldUseLatestVersion()) {
+      // An option to make this operation non-op.
+      return this;
+    }
+
     PolicyAbstractedState latest = this;
     List<PolicyAbstractedState> toUpdate = new ArrayList<>();
 

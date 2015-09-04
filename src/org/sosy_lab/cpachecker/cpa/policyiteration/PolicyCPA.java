@@ -133,7 +133,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         formulaManager,
         statistics, pathFormulaManager);
     StateFormulaConversionManager stateFormulaConversionManager =
-        new StateFormulaConversionManager(formulaManager,
+        new StateFormulaConversionManager(
+            config,
+            formulaManager,
             pathFormulaManager, pCongruenceManager, templateManager,
             invariantGenerator);
     ValueDeterminationManager valueDeterminationFormulaManager =
