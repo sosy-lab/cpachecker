@@ -69,7 +69,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
@@ -96,7 +95,7 @@ public class CounterexamplesSummary implements IterationStatistics {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final Map<ARGState, ViolationInfo> feasibleViolations = new WeakHashMap<>();
   private Multiset<AutomatonInternalState> feasibleReachedAcceptingStates = HashMultiset.create();
-  private Multimap<Property, AutomatonInternalState> infeasibleCexFor = HashMultimap.create();
+  private Multiset<Property> infeasibleCexFor = HashMultiset.create();
 
   public CounterexamplesSummary(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
@@ -113,6 +112,15 @@ public class CounterexamplesSummary implements IterationStatistics {
         return pArg0.info;
       }
     });
+  }
+
+  public int getMaxInfeasibleCexCountFor(Set<? extends Property> pProperties) {
+    int result = Integer.MIN_VALUE;
+    for (Property p : pProperties) {
+      int violations = infeasibleCexFor.count(p);
+      result = Math.max(violations, result);
+    }
+    return result;
   }
 
   public Multiset<AutomatonInternalState> getFeasibleReachedAcceptingStates() {
@@ -236,7 +244,7 @@ public class CounterexamplesSummary implements IterationStatistics {
         if (ee instanceof AutomatonState) {
           AutomatonState qe = (AutomatonState) ee;
           for (Property prop: qe.getViolatedProperties()) {
-            infeasibleCexFor.put(prop, qe.getInternalState());
+            infeasibleCexFor.add(prop);
           }
         }
       }
@@ -289,7 +297,7 @@ public class CounterexamplesSummary implements IterationStatistics {
     }
 
     HashSet<Property> satisfiedProps = Sets.newHashSet();
-    for (Property prop: infeasibleCexFor.keySet()) {
+    for (Property prop: infeasibleCexFor) {
       if (!violatedProps.containsKey(prop)) {
         satisfiedProps.add(prop);
       }
@@ -314,17 +322,17 @@ public class CounterexamplesSummary implements IterationStatistics {
       StatisticsUtils.write(pOut, 2, cols,
           "Feasible abstract states", violatedProps.get(prop).size());
       StatisticsUtils.write(pOut, 2, cols,
-          "Infeasible abstract states", infeasibleCexFor.get(prop).size());
+          "Infeasible abstract states", infeasibleCexFor.count(prop));
     }
 
     StatisticsUtils.write(pOut, 0, cols,
-        "Satisfied (distinct) properties",
+        "Satisfied or incomplete (distinct) properties",
         satisfiedProps.size());
     for (Property prop: satisfiedProps) {
       StatisticsUtils.write(pOut, 1, cols,
           prop.toString(), "");
       StatisticsUtils.write(pOut, 2, cols,
-          "Infeasible abstract states", infeasibleCexFor.get(prop).size());
+          "Infeasible abstract states", infeasibleCexFor.count(prop));
     }
 
 
@@ -348,7 +356,7 @@ public class CounterexamplesSummary implements IterationStatistics {
       if (ee instanceof AutomatonState) {
         AutomatonState qe = (AutomatonState) ee;
         for (Property prop: qe.getViolatedProperties()) {
-          infeasibleCexFor.put(prop, qe.getInternalState());
+          infeasibleCexFor.add(prop);
         }
       }
     }

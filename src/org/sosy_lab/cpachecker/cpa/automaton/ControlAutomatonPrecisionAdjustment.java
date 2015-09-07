@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Collection;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -59,7 +58,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private final AutomatonState inactiveState;
 
   @Option(secure=true, description="Handle at most k (> 0) violation of one property.")
-  private int targetHandledAfter = 1;
+  private int targetHandledAfterViolations = 1;
+
+  @Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
+  private int targetDisabledAfterRefinements = 0;
 
   @Option(secure=true, description="Change the precision locally.")
   private boolean localPrecisionUpdate = false;
@@ -88,8 +90,13 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     this.wrappedPrec = pWrappedPrecisionAdjustment;
   }
 
+  private int maxInfeasibleCexFor(Set<? extends Property> pProperties) {
+    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+    return argCpa.getCexSummary().getMaxInfeasibleCexCountFor(pProperties);
+  }
+
   private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState,
-      Collection<AutomatonSafetyProperty> pProperties) {
+      Set<? extends Property> pProperties) {
 
     assert !(pFullState instanceof AutomatonState);
     assert pFullState instanceof Targetable;
@@ -147,14 +154,18 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     //      (they should not be considered as target states)
     if (localPrecisionUpdate
         && onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
-      assert targetHandledAfter > 0;
+      assert targetHandledAfterViolations > 0 || targetDisabledAfterRefinements > 0;
 
       if (state.isTarget()) {
 
         Set<AutomatonSafetyProperty> properties = AbstractStates.extractViolatedProperties(state, AutomatonSafetyProperty.class);
         int timesHandled = timesEqualTargetInReached(pStates, pFullState, properties);
-        if (timesHandled >= targetHandledAfter) { // the new state is the ith+1
+        int maxInfeasibleCexs = maxInfeasibleCexFor(properties);
 
+        final boolean disable = (timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
+                 || (maxInfeasibleCexs > targetDisabledAfterRefinements);
+
+        if (disable) {
           final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(properties);
 
           return Optional.of(PrecisionAdjustmentResult.create(

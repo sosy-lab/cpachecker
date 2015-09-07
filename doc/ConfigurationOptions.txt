@@ -702,8 +702,12 @@ cpa.automaton.prec.localPrecisionUpdate = false
 cpa.automaton.prec.onHandledTarget = SIGNAL
   enum:     [SIGNAL, BOTTOM, INACTIVE]
 
+# Disable a property after a specific number of refinements has been
+# performed for it.
+cpa.automaton.prec.targetDisabledAfterRefinements = 0
+
 # Handle at most k (> 0) violation of one property.
-cpa.automaton.prec.targetHandledAfter = 1
+cpa.automaton.prec.targetHandledAfterViolations = 1
 
 # Stop in the automata transfer relation if the analysis identified one
 # feasible path for each target state.
