@@ -50,6 +50,8 @@ class Z3Model {
       return TermType.Real;
     case Z3_BV_SORT:
       return TermType.Bitvector;
+    case Z3_ARRAY_SORT:
+      return TermType.Array;
     default:
       // TODO Uninterpreted;
       throw new IllegalArgumentException("Given parameter cannot be converted to a TermType!");
@@ -185,6 +187,10 @@ class Z3Model {
         case Bitvector:
           lValue = interpretBitvector(z3context, value);
           break;
+
+        case Array:
+          // TODO Implement the parsing for array terms
+          continue;
 
         default:
           throw new IllegalArgumentException("Z3 expr with unhandled type " + lAssignable.getType());
