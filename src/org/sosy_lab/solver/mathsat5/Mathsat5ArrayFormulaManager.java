@@ -27,6 +27,7 @@ import static org.sosy_lab.solver.mathsat5.Mathsat5NativeApi.*;
 
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.basicimpl.AbstractArrayFormulaManager;
 
 class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long, Long> {
@@ -50,14 +51,20 @@ class Mathsat5ArrayFormulaManager extends AbstractArrayFormulaManager<Long, Long
   }
 
   @Override
-  protected <TI extends Formula, TE extends Formula> Long internalMakeArray(String pName, FormulaType<TI> pIndexType,
+  protected <TI extends Formula, TE extends Formula> Long internalMakeArray(
+      String pName, FormulaType<TI> pIndexType,
       FormulaType<TE> pElementType) {
-    throw new UnsupportedOperationException("Please implement me!");
+    //throw new UnsupportedOperationException("Please implement me!");
+    final ArrayFormulaType<TI, TE> arrayFormulaType = FormulaType.getArrayType(
+        pIndexType, pElementType);
+    final Long mathsatArrayType = toSolverType(arrayFormulaType);
+
+    return getFormulaCreator().makeVariable(mathsatArrayType, pName);
   }
 
   @Override
   protected Long equivalence(Long pArray1, Long pArray2) {
-    throw new UnsupportedOperationException("Please implement me!");
+    return msat_make_equal(mathsatEnv, pArray1, pArray2);
   }
 
 }

@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.solver.mathsat5;
 
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 
@@ -57,6 +59,23 @@ abstract class Mathsat5Formula implements Formula {
   long getTerm() {
     return msatTerm;
   }
+}
+
+class Mathsat5ArrayFormula<TI extends Formula, TE extends Formula>
+    extends Mathsat5Formula implements ArrayFormula<TI, TE> {
+
+  private final FormulaType<TI> indexType;
+  private final FormulaType<TE> elementType;
+
+  public Mathsat5ArrayFormula(long pTerm,
+      FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+    super(pTerm);
+    indexType = pIndexType;
+    elementType = pElementType;
+  }
+
+  public FormulaType<TI> getIndexType() { return indexType; }
+  public FormulaType<TE> getElementType() { return elementType; }
 }
 
 class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula {
