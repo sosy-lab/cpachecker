@@ -211,6 +211,13 @@ public class BlockPartitioningBuilder {
     Set<CFANode> returnNodes = collectReturnNodes(nodes, mainFunction);
     Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
 
+    if (callNodes.isEmpty()) {
+      /* What shall we do with function, which is not called from anywhere?
+       * I remove it.
+       */
+      return;
+    }
+
     CFANode registerNode = null;
     for (CFANode node : callNodes) {
       registerNode = node;
