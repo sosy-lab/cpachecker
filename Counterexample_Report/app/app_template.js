@@ -20,40 +20,77 @@
             document.getElementsByClassName("prettyprint")[errorPath[index].line].className = "markedSourceLine";
             this.lineMarked = true;
         };
-        /*        var cfa_nodes = {};
-         var arg_nodes = {};
-         var nodeReferences = document.getElementsByClassName("node");
-         for(var i=0; i<nodeReferences.length; i++){
-         var node = nodeReferences[i];
-         var nodeTitle = node.getElementsByTagName("title")[0].innerHTML;
-         if(node.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML === "ARG"){
-         arg_nodes[nodeTitle] = node;
-         }
-         else {
-         cfa_nodes[nodeTitle] = node;
-         }
-         }
-         var cfa_edges = {};
-         var arg_edges = {};
-         var edgeReferences = document.getElementsByClassName("edge");
-         for(var j=0; j<edgeReferences.length; i++){
-         var edge = edgeReferences[i];
-         var edgeTitle = (edge.getElementsByTagName("title")[0].innerHTML);
-         if(edge.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML === "ARG"){
-         arg_edges[edgeTitle] = edge;
-         }
-         else{
-         cfa_edges[edgeTitle] = edge;
-         }
-         }
-         for(var k=0; k<errorPath.length; k++){
-         var errEdge = cfa_edges[errorPath[k].source + "&#45;&gt;" + errorPath[k].target];
-         var path = errEdge.getElementsByTagName("path")[0];
-         var poly = errEdge.getElementsByTagName("polygon")[0];
-         path.setAttribute("stroke", "red");
-         poly.setAttribute("stroke", "red");
-         poly.setAttribute("fill", "red");
-         }*/
+        this.setReferences = function(){
+            var cfa_nodes = {};
+            var arg_nodes = {};
+            var nodeReferences = document.getElementsByClassName("node");
+            for(var i=0; i<nodeReferences.length; i++){
+                var node = nodeReferences[i];
+                var nodeTitle = node.getElementsByTagName("title")[0].innerHTML;
+                if(node.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML === "ARG"){
+                    arg_nodes[nodeTitle] = node;
+                }
+                else {
+                    cfa_nodes[nodeTitle] = node;
+                }
+            }
+            var cfa_edges = {};
+            var arg_edges = {};
+            var edgeReferences = document.getElementsByClassName("edge");
+            for(var j=0; j<edgeReferences.length; j++){
+                var edge = edgeReferences[j];
+                var fromto = [];
+                if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
+                } else if (edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>")[1] != null) {
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>");
+                } else if (edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;")[1] != null) {
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;");
+                } else {
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("->");
+                }
+                var edgeTitle = fromto[0] + "->" + fromto[1];
+                if(edge.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML === "ARG"){
+                    arg_edges[edgeTitle] = edge;
+                }
+                else{
+                    cfa_edges[edgeTitle] = edge;
+                }
+            }
+
+            var errorPath_extended = [];
+            n = 0;
+            for (m = 0; m < errorPath.length; m++) {
+                if (errorPath[m].source in fCallEdges) {
+                    errorPath_extended[n] = {
+                        "source": errorPath[m].source,
+                        "target": fCallEdges[errorPath[m].source][0]
+                    };
+                    n += 1;
+                }
+            }
+
+            for (var k = 0; k < errorPath.length; k++) {
+                if ((errorPath[k].source + "->" + errorPath[k].target) in cfa_edges) {
+                    var errEdge = cfa_edges[errorPath[k].source + "->" + errorPath[k].target];
+                    var path = errEdge.getElementsByTagName("path")[0];
+                    var poly = errEdge.getElementsByTagName("polygon")[0];
+                    path.setAttribute("stroke", "red");
+                    poly.setAttribute("stroke", "red");
+                    poly.setAttribute("fill", "red");
+                }
+            }
+            for(var l=0; l<errorPath_extended.length; l++){
+                if ((errorPath_extended[l].source + "->" + errorPath_extended[l].target) in cfa_edges) {
+                    var errEdge1 = cfa_edges[errorPath_extended[l].source + "->" + errorPath_extended[l].target];
+                    var path1 = errEdge1.getElementsByTagName("path")[0];
+                    var poly1 = errEdge1.getElementsByTagName("polygon")[0];
+                    path1.setAttribute("stroke", "red");
+                    poly1.setAttribute("stroke", "red");
+                    poly1.setAttribute("fill", "red");
+                }
+            }
+        };
 
     });
 

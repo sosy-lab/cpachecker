@@ -12,9 +12,81 @@
             var z = x.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML;
             window.alert(y + z);
         };
+        this.setReferences = function(){
+            var cfa_nodes = {};
+            var arg_nodes = {};
+            var nodeReferences = document.getElementsByClassName("node");
+            for(var i=0; i<nodeReferences.length; i++){
+                var node = nodeReferences[i];
+                var nodeTitle = node.getElementsByTagName("title")[0].innerHTML;
+                if(node.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML === "ARG"){
+                    arg_nodes[nodeTitle] = node;
+                }
+                else {
+                    cfa_nodes[nodeTitle] = node;
+                }
+            }
+            var cfa_edges = {};
+            var arg_edges = {};
+            var edgeReferences = document.getElementsByClassName("edge");
+            for(var j=0; j<edgeReferences.length; j++){
+                var edge = edgeReferences[j];
+                var fromto = [];
+                if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
+                } else if (edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>")[1] != null) {
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>");
+                } else if (edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;")[1] != null) {
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;");
+                } else {
+                    fromto = edge.getElementsByTagName("title")[0].innerHTML.split("->");
+                }
+                var edgeTitle = fromto[0] + "->" + fromto[1];
+                if(edge.parentElement.parentElement.getElementsByTagName("title")[0].innerHTML === "ARG"){
+                    arg_edges[edgeTitle] = edge;
+                }
+                else{
+                    cfa_edges[edgeTitle] = edge;
+                }
+            }
+
+            var errorPath_extended = [];
+                            n = 0;
+                for (m = 0; m < errorPath.length; m++) {
+                    if (errorPath[m].source in fCallEdges) {
+                        errorPath_extended[n] = {
+                            "source": errorPath[m].source,
+                            "target": fCallEdges[errorPath[m].source][0]
+                        };
+                        n += 1;
+                    }
+                }
+
+            for (var k = 0; k < errorPath.length; k++) {
+                if ((errorPath[k].source + "->" + errorPath[k].target) in cfa_edges) {
+                    var errEdge = cfa_edges[errorPath[k].source + "->" + errorPath[k].target];
+                    var path = errEdge.getElementsByTagName("path")[0];
+                    var poly = errEdge.getElementsByTagName("polygon")[0];
+                    path.setAttribute("stroke", "red");
+                    poly.setAttribute("stroke", "red");
+                    poly.setAttribute("fill", "red");
+               }
+            }
+            for(var l=0; l<errorPath_extended.length; l++){
+                if ((errorPath_extended[l].source + "->" + errorPath_extended[l].target) in cfa_edges) {
+                    var errEdge1 = cfa_edges[errorPath_extended[l].source + "->" + errorPath_extended[l].target];
+                    var path1 = errEdge1.getElementsByTagName("path")[0];
+                    var poly1 = errEdge1.getElementsByTagName("polygon")[0];
+                    path1.setAttribute("stroke", "red");
+                    poly1.setAttribute("stroke", "red");
+                    poly1.setAttribute("fill", "red");
+                }
+            }
+        };
+
         this.lineMarked = false;
-        this.markSource = function(index){
-            if(this.lineMarked) {
+        this.markSource = function(index) {
+            if (this.lineMarked) {
                 document.getElementsByClassName("markedSourceLine")[0].className = "prettyprint";
             }
             document.getElementsByClassName("prettyprint")[errorPath[index].line].className = "markedSourceLine";
@@ -76,6 +148,7 @@
             return value === this.selectedOption;
         };
     });
+})();
 
     var wholeWidth;
     var mouseDown = false;
@@ -88,4 +161,4 @@ var errorPath = [{"val":"","desc":"INIT GLOBAL VARS","source":688,"file":"<none>
 var combinedNodes = {"137":137,"275":277,"409":406,"4":4,"140":137,"5":4,"544":532,"277":277,"280":277,"406":406,"404":406,"135":137,"152":152,"259":256,"256":256,"155":152,"387":387,"385":387,"390":387,"150":152,"517":502,"169":169,"655":655,"518":502,"445":447,"447":447,"172":169,"167":169,"316":318,"318":318,"668":655,"424":424,"532":532,"187":184,"184":184,"428":424,"295":297,"297":297,"182":184,"300":297,"336":333,"202":199,"351":351,"197":199,"349":351,"199":199,"216":216,"219":216,"321":318,"455":454,"454":454,"214":216,"333":333,"450":447,"331":333,"239":236,"236":236,"234":236,"370":367,"502":502,"593":593,"254":256,"354":351,"365":367,"367":367,"605":605,"607":593,"606":605};
 
 
-})();
+

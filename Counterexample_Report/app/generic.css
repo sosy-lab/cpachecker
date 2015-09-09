@@ -97,7 +97,7 @@ td:first-child {
     margin: 0px;
     border: none;
 }
-.sourceContent tr:nth-child(2n+1) td pre.prettyprint {
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
     background-color: #f3f3f3;
 }
 .markedSourceLine{
