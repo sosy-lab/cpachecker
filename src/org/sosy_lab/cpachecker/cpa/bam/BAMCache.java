@@ -28,12 +28,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -73,9 +75,12 @@ public class BAMCache {
   private ARGState lastAnalyzedBlock = null;
   private final Reducer reducer;
 
-  public BAMCache(Configuration config, Reducer reducer) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public BAMCache(Configuration config, Reducer reducer, LogManager logger) throws InvalidConfigurationException {
     config.inject(this);
     this.reducer = reducer;
+    this.logger = logger;
   }
 
   public boolean doesAggressiveCaching() {
@@ -152,6 +157,7 @@ public class BAMCache {
     ReachedSet result = preciseReachedCache.get(hash);
     if (result != null) {
       setLastAnalyzedBlock(hash);
+      logger.log(Level.FINEST, "CACHE_ACCESS: precise entry");
       return Pair.of(result, returnCache.get(hash));
     }
 
@@ -160,6 +166,7 @@ public class BAMCache {
       if (result != null) {
         AbstractStateHash unpreciseHash = getHashCode(stateKey, result.getPrecision(result.getFirstState()), context);
         setLastAnalyzedBlock(unpreciseHash);
+        logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, directly from cache");
         return Pair.of(result, returnCache.get(unpreciseHash));
       }
 
@@ -170,11 +177,13 @@ public class BAMCache {
         unpreciseReachedCache.put(hash, pair.getFirst());
         setLastAnalyzedBlock(getHashCode(stateKey, pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
                 context));
+        logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, searched in cache");
         return pair;
       }
     }
 
     lastAnalyzedBlock = null;
+    logger.log(Level.FINEST, "CACHE_ACCESS: entry not available");
     return Pair.of(null, null);
   }
 
