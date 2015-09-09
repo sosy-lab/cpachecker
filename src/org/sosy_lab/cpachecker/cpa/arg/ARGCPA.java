@@ -243,7 +243,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     return cexSummary.getCounterexamples();
   }
 
-  public void addCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample) {
+  public void addFeasibleCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample) {
     cexSummary.addFeasibleCounterexample(pTargetState, pCounterexample);
   }
 

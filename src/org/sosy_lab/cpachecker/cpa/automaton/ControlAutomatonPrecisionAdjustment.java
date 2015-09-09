@@ -163,7 +163,8 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
         int maxInfeasibleCexs = maxInfeasibleCexFor(properties);
 
         final boolean disable = (timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
-                 || (maxInfeasibleCexs > targetDisabledAfterRefinements);
+                 || (targetDisabledAfterRefinements > 0
+                     && maxInfeasibleCexs > targetDisabledAfterRefinements);
 
         if (disable) {
           final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(properties);

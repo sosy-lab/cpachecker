@@ -108,7 +108,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
-      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), RichModel
+      argCpa.addFeasibleCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), RichModel
           .empty()));
       throw e;
     }
@@ -124,7 +124,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
         assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
       }
 
-      argCpa.addCounterexample(lastElement, counterexample);
+      argCpa.addFeasibleCounterexample(lastElement, counterexample);
 
       logger.log(Level.FINEST, "Counterexample", counterexamplesCounter, "has been found.");
 

@@ -281,7 +281,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         counterexample = CounterexampleInfo.feasible(targetPath, RichModel
             .of(model));
       }
-      ((ARGCPA) cpa).addCounterexample(targetPath.getLastState(), counterexample);
+      ((ARGCPA) cpa).addFeasibleCounterexample(targetPath.getLastState(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();

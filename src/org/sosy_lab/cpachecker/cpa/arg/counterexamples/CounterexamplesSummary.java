@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -66,8 +65,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -96,6 +95,7 @@ public class CounterexamplesSummary implements IterationStatistics {
   private final Map<ARGState, ViolationInfo> feasibleViolations = new WeakHashMap<>();
   private Multiset<AutomatonInternalState> feasibleReachedAcceptingStates = HashMultiset.create();
   private Multiset<Property> infeasibleCexFor = HashMultiset.create();
+  private Multiset<Property> feasibleCexFor = HashMultiset.create();
 
   public CounterexamplesSummary(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
@@ -127,13 +127,8 @@ public class CounterexamplesSummary implements IterationStatistics {
     return feasibleReachedAcceptingStates;
   }
 
-  public Multiset<Property> getFeasiblePropertyViolations() {
-    HashMultiset<Property> result = HashMultiset.create();
-    for (ARGState e: feasibleViolations.keySet()) {
-      ViolationInfo v = feasibleViolations.get(e);
-      result.addAll(v.properties.keySet());
-    }
-    return result;
+  public ImmutableMultiset<Property> getFeasiblePropertyViolations() {
+    return ImmutableMultiset.<Property>copyOf(feasibleCexFor);
   }
 
   public void addFeasibleCounterexample(ARGState pTargetState, CounterexampleInfo pCounterexample) {
@@ -167,6 +162,7 @@ public class CounterexamplesSummary implements IterationStatistics {
 
     final ViolationInfo vi = new ViolationInfo(pCounterexample, violatedProperties);
     feasibleViolations.put(pTargetState, vi);
+    feasibleCexFor.addAll(violatedProperties.keySet());
   }
 
   public Map<ARGState, CounterexampleInfo> getAllCounterexamples(final ReachedSet pReached) {
@@ -287,19 +283,10 @@ public class CounterexamplesSummary implements IterationStatistics {
       }
     }
 
-    // Determine the violated properties
-    HashMultimap<Property, ARGState> violatedProps = HashMultimap.create();
-    for (ARGState e: feasibleViolations.keySet()) {
-      ViolationInfo v = feasibleViolations.get(e);
-      for (Property p: v.properties.keySet()) {
-        violatedProps.put(p, e);
-      }
-    }
-
-    HashSet<Property> satisfiedProps = Sets.newHashSet();
-    for (Property prop: infeasibleCexFor) {
-      if (!violatedProps.containsKey(prop)) {
-        satisfiedProps.add(prop);
+    Set<Property> notYetViolatedProperties = Sets.newHashSet();
+    for (Property prop: infeasibleCexFor.elementSet()) {
+      if (!feasibleCexFor.contains(prop)) {
+        notYetViolatedProperties.add(prop);
       }
     }
 
@@ -314,26 +301,36 @@ public class CounterexamplesSummary implements IterationStatistics {
 
     StatisticsUtils.write(pOut, 0, cols,
         "Violated (distinct) properties",
-        violatedProps.keySet().size());
+        feasibleCexFor.elementSet().size());
 
-    for (Property prop: violatedProps.keySet()) {
+    int maxInfeasibleStates = 0;
+
+    for (Property prop: feasibleCexFor.elementSet()) {
       StatisticsUtils.write(pOut, 1, cols,
           prop.toString(), "");
       StatisticsUtils.write(pOut, 2, cols,
-          "Feasible abstract states", violatedProps.get(prop).size());
+          "Feasible abstract states", feasibleCexFor.count(prop));
       StatisticsUtils.write(pOut, 2, cols,
           "Infeasible abstract states", infeasibleCexFor.count(prop));
+
+      maxInfeasibleStates = Math.max(maxInfeasibleStates, infeasibleCexFor.count(prop));
     }
 
     StatisticsUtils.write(pOut, 0, cols,
-        "Satisfied or incomplete (distinct) properties",
-        satisfiedProps.size());
-    for (Property prop: satisfiedProps) {
+        "Only infeasible counterexamples for %d properties:",
+        notYetViolatedProperties.size());
+    for (Property prop: notYetViolatedProperties) {
       StatisticsUtils.write(pOut, 1, cols,
           prop.toString(), "");
       StatisticsUtils.write(pOut, 2, cols,
           "Infeasible abstract states", infeasibleCexFor.count(prop));
+
+      maxInfeasibleStates = Math.max(maxInfeasibleStates, infeasibleCexFor.count(prop));
     }
+
+    StatisticsUtils.write(pOut, 0, cols,
+        "Max. infeasible abstract states",
+        maxInfeasibleStates);
 
 
   }
@@ -360,8 +357,6 @@ public class CounterexamplesSummary implements IterationStatistics {
         }
       }
     }
-
-
 
   }
 
