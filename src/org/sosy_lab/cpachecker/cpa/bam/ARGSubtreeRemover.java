@@ -80,13 +80,15 @@ public class ARGSubtreeRemover {
                      List<Predicate<? super Precision>> pNewPrecisionTypes,
                      Map<ARGState, ARGState> pPathElementToReachedState) {
 
-    List<ARGState> path = trimPath(pPath, element);
-    assert path.get(path.size() - 1).equals(element);
-    assert path.size() >= 2; // extreme case of length 2: [root, target]
+    final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
+    final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
 
-    List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path);
-    assert path.containsAll(relevantCallNodes) : "only nodes of path are relevant";
-    assert relevantCallNodes.get(0) == path.get(0) : "root should be relevant";
+    assert pPathElementToReachedState.get(pPath.asStatesList().get(0)) == firstState : "path should start with root state";
+    assert pPathElementToReachedState.get(Iterables.getLast(pPath.asStatesList())) == lastState : "path should end with target state";
+    assert lastState.isTarget();
+
+    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(pPath.asStatesList(), element, pPathElementToReachedState);
+    assert pPathElementToReachedState.get(relevantCallNodes.get(0)) == firstState : "root should be relevant";
     assert relevantCallNodes.size() >= 1 : "at least the main-function should be open at the target-state";
 
     Set<Pair<ARGState, ARGState>> neededRemoveCachedSubtreeCalls = new LinkedHashSet<>();
@@ -128,7 +130,6 @@ public class ARGSubtreeRemover {
 
     // the main-reachedset contains only the root, exit-states and targets.
     // we assume, that the current refinement was caused by a target-state.
-    final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
     assert lastState.isTarget();
     mainReachedSet.removeSubtree(lastState);
   }
@@ -228,39 +229,44 @@ public class ARGSubtreeRemover {
     }
   }
 
-  /** returns only those states/nodes, where a new block starts that is 'open' at the end of the path. */
-  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path) {
-    Deque<ARGState> openCallElements = new ArrayDeque<>();
-    Deque<Block> openSubtrees = new ArrayDeque<>();
+  /** returns only those states, where a block starts that is 'open' at the cutState. */
+  private List<ARGState> getRelevantDefinitionNodes(List<ARGState> path, ARGState bamCutState, Map<ARGState, ARGState> pathElementToReachedState) {
+    final Deque<ARGState> openCallStates = new ArrayDeque<>();
+    for (final ARGState bamState : path) {
 
-    final ARGState lastState = path.get(path.size() - 1);
-    for (final ARGState pathState : path) {
-      assert openSubtrees.size() == openCallElements.size();
-      CFANode node = extractLocation(pathState);
+      final ARGState state = pathElementToReachedState.get(bamState);
+
+      // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
-      while (!openSubtrees.isEmpty() && openSubtrees.getLast().isReturnNode(node) && pathState != lastState) {
-        // we are leaving a block,
-        // remove/pop the block and its start-state from the stacks
-        openCallElements.removeLast();
-        Block lastBlock = openSubtrees.removeLast();
-
-        if (BAMTransferRelation.isFunctionBlock(lastBlock)) {
-          // we assume that leaving a function-block is only done once.
-          break;
-        }
+      ARGState tmp = state;
+      while (data.expandedStateToReducedState.containsKey(tmp) && bamCutState != bamState) {
+        assert partitioning.isReturnNode(extractLocation(tmp)) : "the mapping of expanded to reduced state should only exist for block-return-locations";
+        // we are leaving a block, remove the start-state from the stack.
+        tmp = (ARGState) data.expandedStateToReducedState.get(tmp);
+        openCallStates.removeLast();
+        // INFO:
+        // if we leave several blocks at once, we leave the blocks in reverse order,
+        // because the call-state of the most outer block is popped first.
+        // We ignore this here, because we just need the 'number' of block-exits.
       }
 
-      if (partitioning.isCallNode(node)
-              && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
-        // we have a callnode, but current block is wrong, add new currentBlock and state as relevant.
-        // the block can be equal, if this is a loop-block.
-        openCallElements.addLast(pathState);
-        openSubtrees.addLast(partitioning.getBlockForCallNode(node));
+      if (data.initialStateToReachedSet.containsKey(state)) {
+        assert partitioning.isCallNode(extractLocation(state)) : "the mapping of initial state to reached-set should only exist for block-start-locations";
+        // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
+        // if we are at lastState, we do not want to enter the block
+        openCallStates.addLast(bamState);
+      }
+
+      if (bamCutState == bamState) {
+        // TODO:
+        // current solution: when we found the cutState, we only enter new blocks, but never leave one.
+        // maybe better solution: do not enter or leave a block, when we found the cutState.
+        break;
       }
     }
 
-    return new ArrayList<>(openCallElements);
+    return new ArrayList<>(openCallStates);
   }
 
   private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, final ARGState pElement,
@@ -396,15 +402,5 @@ public class ARGSubtreeRemover {
     }
 
     return foundInnerUnpreciseEntries || !isNewPrecisionEntry;
-  }
-
-  /** remove all states after pState from path */
-  private static List<ARGState> trimPath(final ARGPath pPath, final ARGState pState) {
-    final List<ARGState> result = new ArrayList<>();
-    for (ARGState state : pPath.asStatesList()) {
-      result.add(state);
-      if (state.equals(pState)) { return result; }
-    }
-    throw new IllegalArgumentException("State " + pState + " could not be found in path " + pPath + ".");
   }
 }
