@@ -134,7 +134,14 @@ public class ARGSubtreeRemover {
   }
 
   private ARGState getReachedState(Map<ARGState, ARGState> pathElementToReachedState, ARGState state) {
-    return pathElementToReachedState.get(state);
+    return getMostInnerState(pathElementToReachedState.get(state));
+  }
+
+  private ARGState getMostInnerState(ARGState state) {
+    while (data.expandedStateToReducedState.containsKey(state)) {
+      state = (ARGState) data.expandedStateToReducedState.get(state);
+    }
+    return state;
   }
 
   /**
