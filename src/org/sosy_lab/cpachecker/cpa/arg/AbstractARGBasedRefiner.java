@@ -132,7 +132,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       argCpa.exportCounterexampleOnTheFly(lastElement, counterexample, counterexamplesCounter);
       counterexamplesCounter++;
     } else {
-      argCpa.countInfeasibleCounterexample(lastElement);
+      argCpa.countInfeasibleCounterexample(path, lastElement);
     }
 
     logger.log(Level.FINEST, "ARG based refinement finished, result is", counterexample.isSpurious());

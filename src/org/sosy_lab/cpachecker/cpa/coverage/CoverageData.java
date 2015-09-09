@@ -39,9 +39,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 
-class CoverageData {
+public class CoverageData {
 
   public enum CoverageMode { NONE, REACHED, TRANSFER }
+  public static enum CoverageCountMode { EXISTING, VISITED, ONINFEASIBLE_PATH }
 
   private final Map<String, FileCoverage> infosPerFile;
   private final CoverageMode coverageMode;
@@ -91,9 +92,9 @@ class CoverageData {
     return true;
   }
 
-  void handleEdgeCoverage(
+  public void handleEdgeCoverage(
       final CFAEdge pEdge,
-      final boolean pVisited) {
+      final CoverageCountMode pCountAs) {
 
     final FileLocation loc = pEdge.getFileLocation();
     if (loc.getStartingLineNumber() == 0) {
@@ -116,15 +117,21 @@ class CoverageData {
     }
 
     if (pEdge instanceof AssumeEdge) {
-      if (pVisited) {
-        collector.addExistingAssume((AssumeEdge) pEdge);
-        collector.addVisitedAssume((AssumeEdge) pEdge);
-      } else {
-        collector.addExistingAssume((AssumeEdge) pEdge);
+      AssumeEdge a = (AssumeEdge) pEdge;
+
+      if (pCountAs == CoverageCountMode.VISITED) {
+        collector.addExistingAssume(a);
+        collector.addVisitedAssume(a);
+
+      } else if (pCountAs == CoverageCountMode.ONINFEASIBLE_PATH) {
+        collector.addAssumeOnInfeasiblePath(a);
+
+      } else if (pCountAs == CoverageCountMode.EXISTING) {
+        collector.addExistingAssume(a);
       }
     }
 
-    if (pVisited) {
+    if (pCountAs == CoverageCountMode.VISITED) {
       for (int line = startingLine; line <= endingLine; line++) {
         collector.addVisitedLine(line);
       }
@@ -160,6 +167,11 @@ class CoverageData {
     final Set<FunctionInfo> allFunctions = new HashSet<>();
     final Set<AssumeEdge> allAssumes = new HashSet<>();
     final Set<AssumeEdge> visitedAssumes = new HashSet<>();
+    final Set<AssumeEdge> assumesOnInfeasiblePaths = new HashSet<>();
+
+    public void addAssumeOnInfeasiblePath(AssumeEdge pEdge) {
+      assumesOnInfeasiblePaths.add(pEdge);
+    }
 
     public void addVisitedAssume(AssumeEdge pEdge) {
       visitedAssumes.add(pEdge);

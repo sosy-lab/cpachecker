@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -247,8 +249,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     cexSummary.addFeasibleCounterexample(pTargetState, pCounterexample);
   }
 
-  public void countInfeasibleCounterexample(ARGState pTargetState) {
-    cexSummary.countInfeasibleCounterexample(pTargetState);
+  public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {
+    cexSummary.countInfeasibleCounterexample(pPath, pTargetState);
   }
 
   public void removeInfeasibleState(Set<ARGState> pToRemove) {

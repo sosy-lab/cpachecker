@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -55,11 +56,11 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         if (edge instanceof MultiEdge) {
           for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            cov.handleEdgeCoverage(innerEdge, false);
+            cov.handleEdgeCoverage(innerEdge, CoverageCountMode.EXISTING);
           }
 
         } else {
-          cov.handleEdgeCoverage(edge, false);
+          cov.handleEdgeCoverage(edge, CoverageCountMode.EXISTING);
         }
       }
     }
@@ -90,7 +91,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private void handleNonMultiEdge(CFAEdge pEdge) {
 
-    cov.handleEdgeCoverage(pEdge, true);
+    cov.handleEdgeCoverage(pEdge, CoverageCountMode.VISITED);
 
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
       cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());

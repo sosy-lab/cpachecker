@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -117,12 +118,17 @@ public class CoverageStatistics extends AbstractStatistics {
         boolean visited = reachedLocations.contains(edge.getPredecessor())
             && reachedLocations.contains(edge.getSuccessor());
 
+        CoverageCountMode countAs = visited
+            ? CoverageCountMode.VISITED
+                : CoverageCountMode.EXISTING;
+
         if (edge instanceof MultiEdge) {
           for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            cov.handleEdgeCoverage(innerEdge, visited);
+            cov.handleEdgeCoverage(innerEdge, countAs);
           }
+
         } else {
-          cov.handleEdgeCoverage(edge, visited);
+          cov.handleEdgeCoverage(edge, countAs);
         }
       }
     }

@@ -34,10 +34,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -58,6 +61,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageData;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageCountMode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -345,7 +351,7 @@ public class CounterexamplesSummary implements IterationStatistics {
 
   }
 
-  public void countInfeasibleCounterexample(ARGState pTargetState) {
+  public void countInfeasibleCounterexample(@Nullable ARGPath pPath, ARGState pTargetState) {
 
     Collection<? extends AbstractState> targetComps = AbstractStates.extractsActiveTargets(pTargetState);
 
@@ -354,6 +360,18 @@ public class CounterexamplesSummary implements IterationStatistics {
         AutomatonState qe = (AutomatonState) ee;
         for (Property prop: qe.getViolatedProperties()) {
           infeasibleCexFor.add(prop);
+        }
+      }
+    }
+
+    // Collect coverage information
+    if (pPath != null) {
+      for (CFAEdge t: pPath.asEdgesList()) {
+        if (t != null) {
+          CoverageData cd = CoverageCPA.getCoverageData();
+          if (cd != null) {
+            CoverageCPA.getCoverageData().handleEdgeCoverage(t, CoverageCountMode.ONINFEASIBLE_PATH);
+          }
         }
       }
     }
