@@ -195,7 +195,7 @@ public class ARGSubtreeRemover {
       assert reachedSet.contains(removeElement) : "removing state from wrong reachedSet: " + removeElement;
 
       Precision removePrecision = reachedSet.getPrecision(removeElement);
-      ArrayList<Precision> newReducedRemovePrecision = null; // TODO newReducedRemovePrecision: NullPointerException 20 lines later!
+      ArrayList<Precision> newReducedRemovePrecision = null;
 
       if (pNewPrecisions != null) {
         newReducedRemovePrecision = new ArrayList<>(1);
@@ -217,7 +217,7 @@ public class ARGSubtreeRemover {
 
       logger.log(Level.FINEST, "Removing subtree, adding a new cached entry, and removing the former cached entries");
 
-      if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionTypes)) {
+      if (removeSubtree(reachedSet, removeElement, newReducedRemovePrecision, pPrecisionTypes) && newReducedRemovePrecision != null) {
         logger.log(Level.FINER, "updating cache");
         bamCache.updatePrecisionForEntry(reducedRootState, reducedRootPrecision, rootSubtree, newReducedRemovePrecision.get(0));
       }
