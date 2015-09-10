@@ -29,15 +29,12 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -273,10 +270,8 @@ public class ARGSubtreeRemover {
   private void ensureExactCacheHitsOnPath(ARGReachedSet mainReachedSet, ARGPath pPath, final ARGState pElement,
                                           List<Precision> pNewPrecisions, Map<ARGState, ARGState> pPathElementToReachedState,
                                           Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
-    Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<>();
-    Pair<Set<ARGState>, Set<ARGState>> pair =
-            getCallAndReturnNodes(pPath, pathElementToOuterReachedSet, mainReachedSet.asReachedSet(),
-                    pPathElementToReachedState);
+    Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = getReachedSetMapping(
+        pPath, mainReachedSet.asReachedSet(), pPathElementToReachedState);
 
     Deque<ARGState> remainingPathElements = new LinkedList<>(pPath.asStatesList());
 
@@ -302,42 +297,36 @@ public class ARGSubtreeRemover {
     }
   }
 
-  private Pair<Set<ARGState>, Set<ARGState>> getCallAndReturnNodes(ARGPath path,
-                                                                   Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet, UnmodifiableReachedSet mainReachedSet,
+  private Map<ARGState, UnmodifiableReachedSet> getReachedSetMapping(ARGPath path,
+                                                                   UnmodifiableReachedSet mainReachedSet,
                                                                    Map<ARGState, ARGState> pPathElementToReachedState) {
-    Set<ARGState> callNodes = new HashSet<>();
-    Set<ARGState> returnNodes = new HashSet<>();
 
-    Deque<Block> openSubtrees = new ArrayDeque<>();
-
+    Map<ARGState, UnmodifiableReachedSet> pathElementToOuterReachedSet = new HashMap<>();
     Deque<UnmodifiableReachedSet> openReachedSets = new ArrayDeque<>();
     openReachedSets.push(mainReachedSet);
 
     for (ARGState pathState : path.asStatesList()) {
-      CFANode node = extractLocation(pathState);
+      ARGState state = pPathElementToReachedState.get(pathState);
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       // we have to handle returnNodes before entryNodes, because some nodes can be both,
       // and the transferRelation also handles entryNodes as first case.
-      while (!openSubtrees.isEmpty() && openSubtrees.peek().isReturnNode(node)) {
-        openSubtrees.pop();
+      ARGState tmp = state;
+      while (data.expandedStateToReducedState.containsKey(tmp)) {
+        tmp = (ARGState)data.expandedStateToReducedState.get(tmp);
         openReachedSets.pop();
-        returnNodes.add(pathState);
       }
 
       // this line comes after handling returnStates --> returnStates from path are part of the outer-block-reachedSet
       pathElementToOuterReachedSet.put(pathState, openReachedSets.peek());
 
-      if (partitioning.isCallNode(node)
-              && !partitioning.getBlockForCallNode(node).equals(openSubtrees.peek())) {
+      if (data.initialStateToReachedSet.containsKey(state)) {
         // the block can be equal, if this is a loop-block.
-          openSubtrees.push(partitioning.getBlockForCallNode(node));
-          openReachedSets.push(data.initialStateToReachedSet.get(getReachedState(pPathElementToReachedState, pathState)));
-          callNodes.add(pathState);
+          openReachedSets.push(data.initialStateToReachedSet.get(state));
       }
     }
 
-    return Pair.of(callNodes, returnNodes);
+    return pathElementToOuterReachedSet;
   }
 
   private boolean removeUnpreciseCacheEntriesOnPath(ARGState rootState, AbstractState reducedRootState,
