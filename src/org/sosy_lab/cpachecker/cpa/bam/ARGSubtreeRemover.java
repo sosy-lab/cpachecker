@@ -281,15 +281,15 @@ public class ARGSubtreeRemover {
 
     Deque<ARGState> remainingPathElements = new LinkedList<>(pPath.asStatesList());
 
-    boolean starting = false;
+    // we pop states until the cutState has been found
+    // this code is ugly, we should improve it!
+    while (!remainingPathElements.peek().equals(pElement)) {
+      remainingPathElements.pop();
+    }
+    assert remainingPathElements.peek() == pElement;
+
     while (!remainingPathElements.isEmpty()) {
       ARGState currentElement = remainingPathElements.pop();
-
-      if (currentElement.equals(pElement)) {
-        starting = true;
-      }
-
-      if (starting) {
         if (callNodes.contains(currentElement)) {
           ARGState currentReachedState = getReachedState(pPathElementToReachedState, currentElement);
           CFANode node = extractLocation(currentReachedState);
@@ -300,7 +300,6 @@ public class ARGSubtreeRemover {
                   remainingPathElements, pPathElementToReachedState, callNodes, returnNodes, pathElementToOuterReachedSet,
                   neededRemoveCachedSubtreeCalls);
         }
-      }
     }
   }
 
