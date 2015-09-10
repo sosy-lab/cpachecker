@@ -347,25 +347,9 @@ public class ARGSubtreeRemover {
                                                     Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls) {
     UnmodifiableReachedSet outerReachedSet = pathElementToOuterReachedSet.get(rootState);
 
-    Precision rootPrecision = outerReachedSet.getPrecision(getReachedState(pPathElementToReachedState, rootState));
-
-    for (Precision pNewPrecision : pNewPrecisions) {
-      rootPrecision = Precisions.replaceByType(rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
-    }
-    Precision reducedNewPrecision =
-            wrappedReducer.getVariableReducedPrecision(
-                    rootPrecision, rootBlock);
-
-    UnmodifiableReachedSet innerReachedSet = data.initialStateToReachedSet.get(getReachedState(pPathElementToReachedState, rootState));
-    Precision usedPrecision = innerReachedSet.getPrecision(innerReachedSet.getFirstState());
-
-    //add precise key for new precision if needed
-    if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, rootBlock)) {
-      ReachedSet reachedSet = data.createInitialReachedSet(reducedRootState, reducedNewPrecision);
-      bamCache.put(reducedRootState, reducedNewPrecision, rootBlock, reachedSet);
-    }
-
-    boolean isNewPrecisionEntry = usedPrecision.equals(reducedNewPrecision);
+    boolean isNewPrecisionEntry = createNewPreciseEntry(
+        getReachedState(pPathElementToReachedState, rootState),
+        reducedRootState, pNewPrecisions, rootBlock, outerReachedSet);
 
     //fine, this block will not lead to any problems anymore, but maybe inner blocks will?
     //-> check other (inner) blocks on path
@@ -400,5 +384,26 @@ public class ARGSubtreeRemover {
     }
 
     return foundInnerUnpreciseEntries || !isNewPrecisionEntry;
+  }
+
+  /** This method creates a new precise entry if necessary, and returns whether the used entry needs a new precision. */
+  private boolean createNewPreciseEntry(final ARGState initialState, final AbstractState reducedRootState,
+      final List<Precision> pNewPrecisions, final Block context, final UnmodifiableReachedSet outerReachedSet) {
+    Precision rootPrecision = outerReachedSet.getPrecision(initialState);
+    for (Precision pNewPrecision : pNewPrecisions) {
+      rootPrecision = Precisions.replaceByType(rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
+    }
+    Precision reducedNewPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, context);
+
+    // add precise key for new precision if needed
+    if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, context)) {
+      ReachedSet reachedSet = data.createInitialReachedSet(reducedRootState, reducedNewPrecision);
+      bamCache.put(reducedRootState, reducedNewPrecision, context, reachedSet);
+    }
+
+    UnmodifiableReachedSet innerReachedSet = data.initialStateToReachedSet.get(initialState);
+    Precision usedPrecision = innerReachedSet.getPrecision(innerReachedSet.getFirstState());
+    boolean isNewPrecisionEntry = usedPrecision.equals(reducedNewPrecision);
+    return isNewPrecisionEntry;
   }
 }
