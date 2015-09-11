@@ -43,6 +43,7 @@ import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
+import org.sosy_lab.solver.mathsat5.Mathsat5FormulaManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -571,7 +572,14 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     ArrayFormula<IntegerFormula, IntegerFormula> _b = amgr.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
     IntegerFormula _b_at_i_plus_1 = amgr.select(_b, _i_plus_1);
 
-    assertThat(_b_at_i_plus_1.toString()).isEqualTo("(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+    if (solver == Solvers.MATHSAT5) {
+      // Mathsat5 has a different internal representation of the formula
+      assertThat(_b_at_i_plus_1.toString()).isEqualTo(
+          "(`read_int_int` b (`+_int` i 1))");
+    } else {
+      assertThat(_b_at_i_plus_1.toString()).isEqualTo(
+          "(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
+    }
   }
 
   @Test
@@ -583,6 +591,13 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     ArrayFormula<BitvectorFormula, BitvectorFormula> _b = amgr.makeArray("b", FormulaType.getBitvectorTypeWithSize(64), FormulaType.getBitvectorTypeWithSize(32));
     BitvectorFormula _b_at_i = amgr.select(_b, _i);
 
-    assertThat(_b_at_i.toString()).isEqualTo("(select b i)"); // Compatibility to all solvers not guaranteed
+    if (solver == Solvers.MATHSAT5) {
+      // Mathsat5 has a different internal representation of the formula
+      assertThat(_b_at_i.toString()).isEqualTo(
+         "(`read_<BitVec, 64, >_<BitVec, 32, >` b i)");
+    } else {
+      assertThat(_b_at_i.toString()).isEqualTo(
+          "(select b i)"); // Compatibility to all solvers not guaranteed
+    }
   }
 }

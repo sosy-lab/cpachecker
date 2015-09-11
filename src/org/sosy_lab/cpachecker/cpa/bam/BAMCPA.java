@@ -121,7 +121,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       this.wrappedProofChecker = null;
     }
     reducer = new TimedReducer(wrappedReducer);
-    final BAMCache cache = new BAMCache(config, reducer);
+    final BAMCache cache = new BAMCache(config, reducer, logger);
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     if (handleRecursiveProcedures) {

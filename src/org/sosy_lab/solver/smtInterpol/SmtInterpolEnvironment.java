@@ -131,7 +131,7 @@ class SmtInterpolEnvironment {
         script.setOption(":unsat-core-check-mode", true);
         script.setOption(":model-check-mode", true);
       }
-      script.setLogic(Logics.QF_UFLIRA);
+      script.setLogic(Logics.QF_AUFLIRA);
     } catch (SMTLIBException e) {
       throw new AssertionError(e);
     }

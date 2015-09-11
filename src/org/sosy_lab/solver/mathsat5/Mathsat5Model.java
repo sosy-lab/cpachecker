@@ -64,6 +64,8 @@ class Mathsat5Model {
       return TermType.Bitvector; // all other values are bitvectors of different sizes
     } else if (msat_is_fp_type(e, mType)) {
       return TermType.FloatingPoint;
+    } else if (msat_is_array_type(e, mType)) {
+      return TermType.Array;
     } else {
       throw new IllegalArgumentException("Given parameter is not a mathsat type!");
     }
@@ -146,6 +148,15 @@ class Mathsat5Model {
 
       long lKeyTerm = lModelElement[0];
       long lValueTerm = lModelElement[1];
+
+      String tmp = msat_term_repr(lValueTerm);
+      if (msat_is_array_type(sourceEnvironment, lValueTerm)
+          || msat_term_is_array_const(sourceEnvironment, lValueTerm)
+          || msat_term_is_array_read(sourceEnvironment, lValueTerm)
+          || msat_term_is_array_write(sourceEnvironment, lValueTerm)) {
+        // TODO Implement the parsing for array terms
+        continue;
+      }
 
       AssignableTerm lAssignable = toAssignable(sourceEnvironment, lKeyTerm);
 
