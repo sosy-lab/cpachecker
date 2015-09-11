@@ -53,7 +53,6 @@ import com.google.common.collect.Multiset;
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
   private final @Nullable PrecisionAdjustment wrappedPrec;
-  private final AutomatonState topState;
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
 
@@ -84,7 +83,6 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     pConfig.inject(this);
 
-    this.topState = pTopState;
     this.bottomState = pBottomState;
     this.inactiveState = pInactiveState;
     this.wrappedPrec = pWrappedPrecisionAdjustment;
@@ -93,6 +91,13 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private int maxInfeasibleCexFor(Set<? extends Property> pProperties) {
     ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
     return argCpa.getCexSummary().getMaxInfeasibleCexCountFor(pProperties);
+  }
+
+  private void signalDisablingProperties(Set<? extends Property> pProperty) {
+    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+    for (Property p: pProperty) {
+      argCpa.getCexSummary().signalPropertyDisabled(p);
+    }
   }
 
   private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState,
@@ -122,10 +127,12 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AbstractState pFullState)
     throws CPAException, InterruptedException {
 
+    // Casts to the AutomataCPA-specific types
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
     final AutomatonState state = (AutomatonState) pState;
 
+    // This operator might wrap another precision adjustment operator!
     Optional<PrecisionAdjustmentResult> wrappedPrecResult = wrappedPrec.prec(pState,
         pPrecision, pStates, pStateProjection, pFullState);
 
@@ -133,30 +140,30 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       return wrappedPrecResult;
     }
 
-    final AutomatonState onHandledTargetState;
-    switch (onHandledTarget) {
-      case BOTTOM: onHandledTargetState = bottomState; break;
-      case INACTIVE: onHandledTargetState = inactiveState; break;
-      default: onHandledTargetState = state;
-    }
-
+    // Specific handling of potential target states!!!
     if (state.isTarget()) {
-      if (pi.getBlacklist().containsAll(state.getViolatedProperties())) {
 
+      final AutomatonState stateOnHandledTarget;
+      switch (onHandledTarget) {
+        case BOTTOM: stateOnHandledTarget = bottomState; break;
+        case INACTIVE: stateOnHandledTarget = inactiveState; break;
+        default: stateOnHandledTarget = state;
+      }
+
+      // A property might have already been disabled!
+      //    Handling of blacklisted (disabled) states:
+      if (pi.getBlacklist().containsAll(state.getViolatedProperties())) {
         return Optional.of(PrecisionAdjustmentResult.create(
-            onHandledTargetState,
+            stateOnHandledTarget,
             pi, Action.CONTINUE));
       }
-    }
 
-    // Handle a target state
-    //    We might disable certain target states
-    //      (they should not be considered as target states)
-    if (localPrecisionUpdate
-        && onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
-      assert targetHandledAfterViolations > 0 || targetDisabledAfterRefinements > 0;
-
-      if (state.isTarget()) {
+      // Handle a target state
+      //    We might disable certain target states
+      //      (they should not be considered as target states)
+      if (localPrecisionUpdate
+          && onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
+        assert targetHandledAfterViolations > 0 || targetDisabledAfterRefinements > 0;
 
         Set<AutomatonSafetyProperty> properties = AbstractStates.extractViolatedProperties(state, AutomatonSafetyProperty.class);
         int timesHandled = timesEqualTargetInReached(pStates, pFullState, properties);
@@ -168,9 +175,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
         if (disable) {
           final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(properties);
+          signalDisablingProperties(properties);
 
           return Optional.of(PrecisionAdjustmentResult.create(
-              onHandledTargetState,
+              stateOnHandledTarget,
               piPrime, Action.CONTINUE));
         }
       }

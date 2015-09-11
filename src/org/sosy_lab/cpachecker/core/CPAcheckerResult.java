@@ -53,6 +53,7 @@ public class CPAcheckerResult {
   private final Result result;
 
   private final Set<Property> violatedProperties;
+  private final Set<Property> deactivatedProperties;
 
   private final @Nullable ReachedSet reached;
 
@@ -60,11 +61,14 @@ public class CPAcheckerResult {
 
   private @Nullable Statistics proofGeneratorStats = null;
 
-  CPAcheckerResult(Result result,
-        Set<Property> violatedProperties,
+  CPAcheckerResult(Result pResult,
+        Set<Property> pViolatedProperties,
+        Set<Property> pDeactivatedProperties,
         @Nullable ReachedSet reached, @Nullable Statistics stats) {
-    this.violatedProperties = checkNotNull(violatedProperties);
-    this.result = checkNotNull(result);
+
+    this.violatedProperties = checkNotNull(pViolatedProperties);
+    this.deactivatedProperties = checkNotNull(pDeactivatedProperties);
+    this.result = checkNotNull(pResult);
     this.reached = reached;
     this.stats = stats;
   }
@@ -107,9 +111,22 @@ public class CPAcheckerResult {
 
     out.print("Verification result: ");
     out.println(getResultString());
+
+    out.println(String.format("\tNumber of violated properties: %d", violatedProperties.size()));
+    out.println(String.format("\tNumber of deactivated properties: %d", deactivatedProperties.size()));
+
+    out.println("\tStatus by property:");
+    for (Property violated: violatedProperties) {
+      out.println(String.format("\t\tProperty %s: %s", violated.toString(), "FALSE"));
+    }
+    for (Property deactivated: deactivatedProperties) {
+      if (!(violatedProperties.contains(deactivated))) {
+        out.println(String.format("\t\tProperty \"%s\": %s", deactivated.toString(), "INACTIVE"));
+      }
+    }
   }
 
-  public String getResultString() {
+  private String getResultString() {
     StringBuilder ret = new StringBuilder();
 
     switch (result) {

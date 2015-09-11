@@ -73,6 +73,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -102,6 +103,7 @@ public class CounterexamplesSummary implements IterationStatistics {
   private Multiset<AutomatonInternalState> feasibleReachedAcceptingStates = HashMultiset.create();
   private Multiset<Property> infeasibleCexFor = HashMultiset.create();
   private Multiset<Property> feasibleCexFor = HashMultiset.create();
+  private Set<Property> disabledProperties = Sets.newHashSet();
 
   public CounterexamplesSummary(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
@@ -377,6 +379,16 @@ public class CounterexamplesSummary implements IterationStatistics {
     }
 
   }
+
+  public void signalPropertyDisabled(Property pProperty) {
+    disabledProperties.add(pProperty);
+  }
+
+
+  public ImmutableSet<Property> getDisabledProperties() {
+    return ImmutableSet.copyOf(disabledProperties);
+  }
+
 
 
 }

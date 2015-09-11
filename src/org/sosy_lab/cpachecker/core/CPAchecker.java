@@ -37,9 +37,9 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -224,7 +224,8 @@ public class CPAchecker {
 
     MainCPAStatistics stats = null;
     ReachedSet reached = null;
-    Pair<Result, Set<Property>> result = Pair.of(Result.NOT_YET_STARTED, Collections.<Property>emptySet());
+    Triple<Result, Set<Property>, Set<Property>> result = Triple.of(
+        Result.NOT_YET_STARTED, Collections.<Property>emptySet(), Collections.<Property>emptySet());
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -276,7 +277,7 @@ public class CPAchecker {
 
       if (disableAnalysis) {
         return new CPAcheckerResult(Result.NOT_YET_STARTED,
-            ImmutableSet.<Property>of(), null, stats);
+            ImmutableSet.<Property>of(), ImmutableSet.<Property>of(), null, stats);
       }
 
       // run analysis
@@ -319,20 +320,26 @@ public class CPAchecker {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
 
-    return new CPAcheckerResult(result.getFirst(), result.getSecond(), reached, stats);
+    return new CPAcheckerResult(result.getFirst(), result.getSecond(), result.getThird(), reached, stats);
   }
 
-  private Pair<Result, Set<Property>> extractResult(
+  private Triple<Result, Set<Property>, Set<Property>> extractResult(
       ReachedSet reached, AlgorithmStatus status) {
 
     if (!GlobalInfo.getInstance().getCPA().isPresent()) {
-      return Pair.of(Result.UNKNOWN, Collections.<Property>emptySet());
+      return Triple.of(Result.UNKNOWN, Collections.<Property>emptySet(), Collections.<Property>emptySet());
     }
 
     ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
 
     Set<Property> violatedProperties = findViolatedProperties(cpa, reached);
+    Set<Property> deactivatedProperties = Collections.<Property>emptySet();
     Result verdict;
+
+    ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
+    if (argCpa != null) {
+      deactivatedProperties = argCpa.getCexSummary().getDisabledProperties();
+    }
 
     if (violatedProperties.isEmpty()) {
 
@@ -347,7 +354,6 @@ public class CPAchecker {
 
     } else {
 
-
       if (!status.isPrecise() || status.isInterrupted()) {
         verdict = Result.UNKNOWN;
       } else {
@@ -355,7 +361,7 @@ public class CPAchecker {
       }
     }
 
-    return Pair.of(verdict, violatedProperties);
+    return Triple.of(verdict, violatedProperties, deactivatedProperties);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
