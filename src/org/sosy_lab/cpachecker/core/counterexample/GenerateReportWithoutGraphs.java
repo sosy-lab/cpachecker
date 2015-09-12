@@ -7,8 +7,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 
 public class GenerateReportWithoutGraphs {
+  private static LogManager logger;
   static String sourceFile = "";
   static String configFile = "output/UsedConfiguration.properties";
   static String statisticsFile = "output/Statistics.txt";
@@ -18,6 +21,10 @@ public class GenerateReportWithoutGraphs {
   static String cfaInfoFile ="output/cfainfo.json";
   static String fCallEdgesFile = "output/fcalledges.json";
   static String outputDir = "output";
+  
+  public GenerateReportWithoutGraphs(LogManager plogger) { 
+    logger = plogger;
+  }
 
   public static void writeSource(String source) { 
     sourceFile = source;
@@ -74,7 +81,7 @@ public class GenerateReportWithoutGraphs {
         bufferedReader = new BufferedReader(new FileReader(file));
         String line;
         while (null != (line = bufferedReader.readLine())) { 
-          line = "<pre id=\"statistics-l" + iterator + "\">" + line + "</pre>\n";
+          line = "<pre id=\"statistics-" + iterator + "\">" + line + "</pre>\n";
           bufferedWriter.write(line);
           iterator++;
         }
@@ -104,7 +111,7 @@ public class GenerateReportWithoutGraphs {
         String line;
         while (null != (line = bufferedReader.readLine())) { 
           line = "<td><pre class=\"prettyprint\">" + line + "</pre></td>";
-          bufferedWriter.write("<tr id=\"source-l" + iterator + "\"><td><pre>" + iterator + "</pre></td>" + line + "</tr>\n");
+          bufferedWriter.write("<tr id=\"source-" + iterator + "\"><td><pre>" + iterator + "</pre></td>" + line + "</tr>\n");
           iterator++;
         }
       } else { 
@@ -132,7 +139,7 @@ public class GenerateReportWithoutGraphs {
         String line;
         int iterator = 0;
         while (null != (line = bufferedReader.readLine())) { 
-          line = "<pre id=\"config-l" + iterator + "\">" + line + "</pre>\n";
+          line = "<pre id=\"config-" + iterator + "\">" + line + "</pre>\n";
           bufferedWriter.write(line);
           iterator++;
         }
@@ -161,7 +168,7 @@ public class GenerateReportWithoutGraphs {
         bufferedReader = new BufferedReader(new FileReader(file));
         String line;
         while (null != (line = bufferedReader.readLine())) { 
-          line = "<pre id=\"log-l" + iterator + "\">" + line + "</pre>\n";
+          line = "<pre id=\"log-" + iterator + "\">" + line + "</pre>\n";
           bufferedWriter.write(line);
           iterator++;
         }
@@ -310,7 +317,7 @@ public class GenerateReportWithoutGraphs {
       try { 
         bufferedReader = new BufferedReader(new FileReader(inputFile));
         String line;
-        bufferedWriter.write("var errorPath = ");
+        bufferedWriter.write("var errorPathData = ");
         while (null != (line = bufferedReader.readLine())) { 
           bufferedWriter.write(line);
         }

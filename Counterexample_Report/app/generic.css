@@ -47,7 +47,7 @@ height: 25px;
 }
 
 
-#errorpath{
+#errorpath_section{
     position:relative;
     float: left;
     width: 25%;
@@ -70,7 +70,7 @@ height: 25px;
 #middleLine:hover{
     background-color: grey;
 }
-#pictures{
+#externalFiles_section{
     float: right;
     width: 75%;
     height: inherit;

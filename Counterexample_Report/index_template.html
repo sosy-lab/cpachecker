@@ -13,7 +13,7 @@
     <meta charset="UTF-8">
     <title>CPAchecker Report</title>
 </head>
-<body ng-controller="ReportController as report" onload="prettyPrint()">
+<body ng-controller="ReportController as report" onload="prettyPrint(); init()">
     <header class="header">
 
         <h3><img ng-src="{{report.logo}}"/> Report</h3>
@@ -21,47 +21,47 @@
         <em> Generated: {{report.date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
     </header>
 
-    <div class="sections" ng-controller="SectionsController as sec" ng-mousemove="sec.setWidth($event)" ng-mouseup="sec.setMouseUp()">
-        <section id="errorpath" ng-controller="CodeController as code">
-            <div id="middleLine" ng-mousedown="code.setMouseDown()"></div>
+    <div class="sections" ng-mousemove="report.setWidth($event)" ng-mouseup="report.setMouseUp()">
+        <section id="errorpath_section">
+            <div id="middleLine" ng-mousedown="report.setMouseDown()"></div>
             <header>
                 <div class="btn-group">
-                    <button class="btn btn-success" ng-click="code.setLine(code.selected_ErrLine - 1, 0)">Prev</button>
-                    <button class="btn btn-warning" ng-click="code.setLine(0, 0)">Start</button>
-                    <button class="btn btn-success" ng-click="code.setLine(code.selected_ErrLine + 1, 0)">Next</button>
+                    <button class="btn btn-success">Prev</button>
+                    <button class="btn btn-warning">Start</button>
+                    <button class="btn btn-success">Next</button>
                 </div>
             </header>
             <div class="fileContent">
                 <table id="err_table">
-                    <tr ng-click="code.setLine($index)" ng-repeat="line in code.errorPath">
+                    <tr id="errpath-{{$index}}" ng-click="report.clickedErrpathElement($event)" ng-repeat="line in report.errorPathData">
                         <td><pre>{{line.source}}</pre></td>
                         <td><pre>{{line.desc}}</pre></td>
                     </tr>
                 </table>
             </div>
         </section>
-        <section id="pictures" ng-controller="TabController as tab">
+        <section id="externalFiles_section">
             <ul class="nav nav-pills">
-                <li ng-class="{active: tab.isSet(1)}">
-                    <a href ng-click="tab.setTab(1)">CFA</a>
+                <li ng-class="{active: report.tabIsSet(1)}">
+                    <a href ng-click="report.setTab(1)">CFA</a>
                 </li>
-                <li ng-class="{active: tab.isSet(2)}">
-                    <a href ng-click="tab.setTab(2)">ARG</a>
+                <li ng-class="{active: report.tabIsSet(2)}">
+                    <a href ng-click="report.setTab(2)">ARG</a>
                 </li>
-                <li ng-class="{active: tab.isSet(3)}">
-                    <a href ng-click="tab.setTab(3)">Source</a>
+                <li ng-class="{active: report.tabIsSet(3)}">
+                    <a href ng-click="report.setTab(3)">Source</a>
                 </li>
-                <li ng-class="{active: tab.isSet(4)}">
-                    <a href ng-click="tab.setTab(4)">Log</a>
+                <li ng-class="{active: report.tabIsSet(4)}">
+                    <a href ng-click="report.setTab(4)">Log</a>
                 </li>
-                <li ng-class="{active: tab.isSet(5)}">
-                    <a href ng-click="tab.setTab(5)">Statistics</a>
+                <li ng-class="{active: report.tabIsSet(5)}">
+                    <a href ng-click="report.setTab(5)">Statistics</a>
                 </li>
-                <li ng-class="{active: tab.isSet(6)}">
-                    <a href ng-click="tab.setTab(6)">Configurations</a>
+                <li ng-class="{active: report.tabIsSet(6)}">
+                    <a href ng-click="report.setTab(6)">Configurations</a>
                 </li>
             </ul>
-            <div class="fileContent" ng-controller="CFAController as cfa" ng-show="tab.isSet(1)">
+            <div class="fileContent" ng-show="report.tabIsSet(1)">
                 <div class="dropdown-line">
                     <div class="dropdown">
                         <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -69,30 +69,30 @@
                             <span class="caret"></span>
                         </button>
                         <ul class="dropdown-menu">
-                            <li ng-repeat="func in cfa.functions"><a ng-click="cfa.setOption($index)">{{func}}</a></li>
+                            <li ng-repeat="func in report.functions"><a ng-click="report.setCFAFunction($index)">{{func}}</a></li>
                         </ul>
                     </div>
-                    <label>{{cfa.functions[cfa.selectedOption]}}</label>
+                    <label>{{report.functions[report.selectedOption]}}</label>
                 </div>
-                <div class="cfaContent"  ng-init="report.setReferences()">
+                <div class="cfaContent">
                     <!--CFAFUNCTIONGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent" ng-show="tab.isSet(2)">
+            <div class="fileContent" ng-show="report.tabIsSet(2)">
                 <!--ARGGRAPHS-->
             </div>
-            <div class="fileContent" ng-show="tab.isSet(3)">
+            <div class="fileContent" ng-show="report.tabIsSet(3)">
 		<table class="sourceContent">
             <!--SOURCE-->
 		</table>
             </div>
-            <div class="fileContent" ng-show="tab.isSet(4)">
+            <div class="fileContent" ng-show="report.tabIsSet(4)">
                 <!--LOG-->
             </div>
-            <div class="fileContent"  ng-show="tab.isSet(5)">
+            <div class="fileContent"  ng-show="report.tabIsSet(5)">
                 <!--STATISTICS-->
             </div>
-            <div class="fileContent" ng-show="tab.isSet(6)">
+            <div class="fileContent" ng-show="report.tabIsSet(6)">
                 <!--CONFIGURATION-->
             </div>
         </section>
