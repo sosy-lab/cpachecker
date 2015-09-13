@@ -8,6 +8,14 @@
         this.date = date;
         this.logo = logo;
 
+        //preprocess Errorpath-Data for left content
+        this.errorPathData = [];
+        for(var j = 0; j<errorPathData.length; j++){
+            if (errorPathData[j].desc.substring(0, "Return edge from".length) != "Return edge from" && errorPathData[j].desc != "Function start dummy edge") {
+                this.errorPathData.push(errorPathData[j]);
+            }
+        }
+
         //Behaviour for Click-Elements in Errorpath, CFA, ARG
         this.clickedCFAElement = function($event){
             var y = $event.currentTarget.id;
@@ -23,9 +31,6 @@
             var y = $event.currentTarget.id;
             this.setLine(y);
         };
-
-
-
 
         this.lineMarked = false;
         this.markSource = function(index){
@@ -83,7 +88,6 @@
 
 
         //Code-Controller
-        this.errorPathData = errorPathData;
         this.selected_ErrLine = null;
         this.setMouseDown = function(){
             mouseDown = true;
@@ -100,18 +104,18 @@
             this.selected_ErrLine = id;
         };
     });
-
-    var date = Date.now();
-    var logo = "http://cpachecker.sosy-lab.org/logo.svg";
-    var wholeWidth;
-    var mouseDown = false;
-    var functions = []; //FUNCTIONS
-    var fCallEdges = {}; //FCALLEDGES
-    var cfaInfo = {}; //CFAINFO
-    var errorPathData = {}; //ERRORPATH
-    var combinedNodes = {}; //COMBINEDNODES
-
 })();
+
+var date = Date.now();
+var logo = "http://cpachecker.sosy-lab.org/logo.svg";
+var wholeWidth;
+var mouseDown = false;
+var functions = []; //FUNCTIONS
+var fCallEdges = {}; //FCALLEDGES
+var cfaInfo = {}; //CFAINFO
+var errorPathData = {}; //ERRORPATH
+var combinedNodes = {}; //COMBINEDNODES
+
 
 function init(){
     var svgElements = document.getElementsByTagName("svg");
@@ -139,4 +143,39 @@ function init(){
             edge.id = "cfa-" + fromto[0] + "->" + fromto[1];
         }
     }
+
+    //prepare Errorpath-Data for marking in the cfa
+    var returnedges = {};
+    for(key in fCallEdges){
+        var fcalledge = fCallEdges[key];
+        returnedges[fcalledge[1]] = fcalledge[0];
+    }
+    var errPathDataForCFA = [];
+    for(var j = 0; j < errorPathData.length; j++){
+        var source = errorPathData[j].source;
+        var target = errorPathData[j].target;
+        if(source in combinedNodes && target in combinedNodes){
+
+        }
+        else if(source in combinedNodes){
+            errPathDataForCFA.push(combinedNodes[source] + "->" + target);
+        }
+        else if (source in fCallEdges){
+            errPathDataForCFA.push(source + "->" + fCallEdges[source][0]);
+        }
+        else if (target in returnedges){
+            errPathDataForCFA.push(returnedges[target] + "->" + target);
+        } else {
+            errPathDataForCFA.push(source + "->" + target);
+        }
+    }
+    for(var m = 0; m < errPathDataForCFA.length; m++){
+        var cfaEdge = document.getElementById("cfa-" + errPathDataForCFA[m]);
+        var path = cfaEdge.getElementsByTagName("path")[0];
+        var poly = cfaEdge.getElementsByTagName("polygon")[0];
+        path.setAttribute("stroke", "red");
+        poly.setAttribute("stroke", "red");
+        poly.setAttribute("fill", "red");
+    }
+
 };
