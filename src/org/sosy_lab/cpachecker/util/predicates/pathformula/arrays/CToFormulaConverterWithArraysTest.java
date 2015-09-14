@@ -704,12 +704,40 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   @Test
   @Ignore
   public void testMultiDimensionalAssign() throws UnrecognizedCCodeException, InterruptedException {
-    /*
-     * java.lang.AssertionError: The subject was expected to be false, but was true
-     */
     // a2d[3][7] = 23;
 
-    assertThat(true).isFalse();
+    final CArrayType arrayWith10 = new CArrayType(
+        false, false, CNumericTypes.INT, CIntegerLiteralExpression
+            .createDummyLiteral(10, CNumericTypes.INT));
+    final CArrayType typeOf_arr2d = new CArrayType(
+        false, false, arrayWith10, CIntegerLiteralExpression
+            .createDummyLiteral(10, CNumericTypes.INT));
+    final Triple<CDeclarationEdge, CVariableDeclaration, CIdExpression> _arr2d
+        = makeDeclaration("a2d", typeOf_arr2d, null);
+    CArraySubscriptExpression _arr2d_at_3_7 = new CArraySubscriptExpression(
+        FileLocation.DUMMY, CNumericTypes.INT,
+        new CArraySubscriptExpression(
+            FileLocation.DUMMY, arrayWith10, _arr2d.getThird(),
+            CIntegerLiteralExpression.createDummyLiteral(3, CNumericTypes.INT)),
+        CIntegerLiteralExpression.createDummyLiteral(7, CNumericTypes.INT));
+
+    Pair<CFAEdge, CExpressionAssignmentStatement> op = TestDataTools.makeAssignment(
+        _arr2d_at_3_7,
+        CIntegerLiteralExpression.createDummyLiteral(23, CNumericTypes.INT));
+
+    SSAMapBuilder ssa = SSAMap.emptySSAMap().builder();
+    BooleanFormula result = ctfFwd.makeAssignment(
+        op.getSecond().getLeftHandSide(),
+        op.getSecond().getLeftHandSide(),
+        op.getSecond().getRightHandSide(),
+        op.getFirst(),
+        "foo", ssa, null, null, null);
+
+    assertThat(mgr.getUnsafeFormulaManager().simplify(result))
+        .isEqualTo(
+            amgr.store(_smt_a2d, imgr.makeNumber(3),
+                amgr.store(amgr.select(_smt_a2d, imgr.makeNumber(3)),
+                    imgr.makeNumber(7), imgr.makeNumber(23))));
   }
 
   @Test
