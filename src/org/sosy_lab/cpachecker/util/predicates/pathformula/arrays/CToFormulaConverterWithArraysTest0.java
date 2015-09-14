@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.arrays;
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -62,15 +65,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.NumeralType;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.solver.test.SolverBasedTest0;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
@@ -82,6 +76,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.NumeralType;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
@@ -111,20 +114,31 @@ import com.google.common.collect.Lists;
 @RunWith(Parameterized.class)
 public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
-  @Parameters(name="{0}")
-  public static Object[] getAllSolvers() {
-    //return Solvers.values();
-    // TODO Make this as generic as possible while using Solvers.values()
-    return new Object[] { Solvers.SMTINTERPOL, Solvers.MATHSAT5, Solvers.Z3 };
-    //return new Object[] { Solvers.Z3 };
+  @Parameters(name="{0} {1}")
+  public static List<Object[]> getAllSolvers() {
+    List<Object[]> parameters = new ArrayList<>();
+    for (Solvers solver : Solvers.values()) {
+      for (MachineModel machineModel : MachineModel.values()) {
+        parameters.add(new Object[]{solver, machineModel});
+      }
+    }
+    return parameters;
   }
 
   @Parameter(0)
   public Solvers solver;
 
+  @Parameter(1)
+  public MachineModel machineModel;
+
   @Override
   protected Solvers solverToUse() {
     return solver;
+  }
+
+  @Before
+  public void allTestsRequireArrays() {
+    super.requireArrays();
   }
 
   @VisibleForTesting
@@ -208,18 +222,17 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    MachineModel mm = MachineModel.LINUX32;
     mgrv = new FormulaManagerView(factory, config, logger);
     FormulaEncodingOptions opts = new FormulaEncodingOptions(
         Configuration.defaultConfiguration());
     CtoFormulaTypeHandlerWithArrays th = new CtoFormulaTypeHandlerWithArrays(
-        logger, opts, mm, mgrv);
-    expressionBuilder = new CBinaryExpressionBuilder(mm, logger);
+        logger, opts, machineModel, mgrv);
+    expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
 
     ctfBwd = new CToFormulaConverterWithArraysUnderTest(
         opts,
         mgrv,
-        mm,
+        machineModel,
         Optional.<VariableClassification>absent(),
         logger,
         ShutdownNotifier.create(),
@@ -229,7 +242,7 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
     ctfFwd = new CToFormulaConverterWithArraysUnderTest(
         opts,
         mgrv,
-        mm,
+        machineModel,
         Optional.<VariableClassification>absent(),
         logger,
         ShutdownNotifier.create(),
