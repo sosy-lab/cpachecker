@@ -112,7 +112,7 @@ import com.google.common.collect.Lists;
  */
 @SuppressWarnings("unused")
 @RunWith(Parameterized.class)
-public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
+public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
 
   @Parameters(name="{0} {1}")
   public static List<Object[]> getAllSolvers() {
