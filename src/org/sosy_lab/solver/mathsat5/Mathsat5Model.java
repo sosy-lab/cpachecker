@@ -149,7 +149,6 @@ class Mathsat5Model {
       long lKeyTerm = lModelElement[0];
       long lValueTerm = lModelElement[1];
 
-      String tmp = msat_term_repr(lValueTerm);
       if (msat_is_array_type(sourceEnvironment, lValueTerm)
           || msat_term_is_array_const(sourceEnvironment, lValueTerm)
           || msat_term_is_array_read(sourceEnvironment, lValueTerm)
