@@ -270,25 +270,25 @@ public class CToFormulaConverterWithArraysTest0 extends SolverBasedTest0 {
 
     _b_at_i = new CArraySubscriptExpression(
         FileLocation.DUMMY,
-        unlimitedIntArrayType,
+        CNumericTypes.INT,
         _b.getThird(),
         _i.getThird());
 
     _a_at_i = new CArraySubscriptExpression(
         FileLocation.DUMMY,
-        unlimitedIntArrayType,
+        CNumericTypes.INT,
         _a.getThird(),
         _i.getThird());
 
     _a_at_1 = new CArraySubscriptExpression(
         FileLocation.DUMMY,
-        unlimitedIntArrayType,
+        CNumericTypes.INT,
         _a.getThird(),
         CIntegerLiteralExpression.ONE);
 
     _a_at_2 = new CArraySubscriptExpression(
         FileLocation.DUMMY,
-        unlimitedIntArrayType,
+        CNumericTypes.INT,
         _a.getThird(),
         CIntegerLiteralExpression.createDummyLiteral(2, CNumericTypes.INT));
 
