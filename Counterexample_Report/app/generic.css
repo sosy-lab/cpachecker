@@ -101,8 +101,33 @@ td:first-child {
     background-color: #f3f3f3;
 }
 .markedSourceLine{
-    background-color: orange;
+    background-color: #ff9c00;
 }
+.markedCFAEdge path{
+    stroke: #ff9c00;
+}
+.markedCFAEdge polygon{
+    fill: #ff9c00;
+    stroke: #ff9c00;
+}
+.markedCFAEdge text{
+    fill: #ff9c00;
+}
+
+.markedCFANode text{
+    fill: #ff9c00;
+}
+.markedCFANode ellipse{
+    stroke: #ff9c00;
+}
+.markedCFANode polygon{
+    stroke: #ff9c00;
+}
+
+.markedARGNode polygon{
+    fill: #ff9c00;
+}
+
 .cfaContent{
     margin: 20px;
     margin-top: 40px;

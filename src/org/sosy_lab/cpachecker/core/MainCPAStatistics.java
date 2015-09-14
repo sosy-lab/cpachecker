@@ -111,7 +111,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   
   @Option(secure=true, name="newCounterexampleReport",
     description="insert all files except cfa/arg-graphs in html/js-template")
-  private boolean generateNewCounterexampleReport = false;
+  private boolean generateNewCounterexampleReport = true;
 
   private final LogManager logger;
   private final Collection<Statistics> subStats;

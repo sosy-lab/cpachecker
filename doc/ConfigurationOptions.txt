@@ -2093,7 +2093,7 @@ merge = "JOIN"
   allowed values: [SEP, JOIN]
 
 # insert all files except cfa/arg-graphs in html/js-template
-newCounterexampleReport = false
+newCounterexampleReport = true
 
 # C dialect for parser
 parser.dialect = GNUC

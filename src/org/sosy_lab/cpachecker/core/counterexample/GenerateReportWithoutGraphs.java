@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
+import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 
 public class GenerateReportWithoutGraphs {
@@ -26,8 +27,11 @@ public class GenerateReportWithoutGraphs {
     logger = plogger;
   }
 
-  public static void writeSource(String source) { 
+  public static void writeSource(String source) {
     sourceFile = source;
+  }
+  public static void writeSources(List<String> sources){
+    //TODO: handle more than one sourcefile
   }
 
   public static void fillOutHTMLTemplate(String inputPath, String outputPath) { 

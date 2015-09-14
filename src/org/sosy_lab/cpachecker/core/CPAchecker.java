@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -216,7 +217,18 @@ public class CPAchecker {
     factory = new CoreComponentsFactory(pConfiguration, pLogManager, shutdownNotifier);
   }
 
+  private void writeSourceForCounterexampleReport(String programDenotation) { 
+    if (programDenotation.contains(",")) { 
+      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
+      GenerateReportWithoutGraphs.writeSources(commaSplitter.splitToList(programDenotation));
+    } else { 
+      GenerateReportWithoutGraphs.writeSource(programDenotation);
+    }
+  }
+
   public CPAcheckerResult run(String programDenotation) {
+
+    writeSourceForCounterexampleReport(programDenotation);
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
@@ -389,7 +401,6 @@ public class CPAchecker {
 
     stats.startAnalysisTimer();
     try {
-
       do {
         status = status.update(algorithm.run(reached));
 
