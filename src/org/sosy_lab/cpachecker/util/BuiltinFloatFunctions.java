@@ -51,9 +51,13 @@ public class BuiltinFloatFunctions {
   private static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
 
   private static final String FLOAT_CLASSIFY = "__fpclassify";
+  private static final String IS_FINITE = "__finite";
+  private static final String IS_NAN = "__isnan";
+  private static final String IS_INFINITY = "__isinf";
 
   private static final ImmutableList<String> possiblePrefixes = ImmutableList.of(
-      INFINITY, HUGE_VAL, NOT_A_NUMBER, ABSOLUTE_VAL, FLOAT_CLASSIFY);
+      INFINITY, HUGE_VAL, NOT_A_NUMBER, ABSOLUTE_VAL,
+      FLOAT_CLASSIFY, IS_FINITE, IS_NAN, IS_INFINITY);
 
   /**
    * Check whether a given function is a builtin function specific to floats
@@ -214,4 +218,41 @@ public class BuiltinFloatFunctions {
   public static boolean matchesFloatClassify(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, FLOAT_CLASSIFY);
   }
+
+  /**
+   * Returns whether the given function name is any builtin function
+   * that checks whether a float is finite.
+   *
+   * @param pFunctionName the function name to check
+   * @return <code>true</code> if the given function name is any builtin finite-function,
+   *   <code>false</code> otherwise
+   */
+  public static boolean matchesFinite(String pFunctionName) {
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_FINITE);
+  }
+
+  /**
+   * Returns whether the given function name is any builtin function
+   * that checks whether a float is NaN.
+   *
+   * @param pFunctionName the function name to check
+   * @return <code>true</code> if the given function name is any builtin isnan-function,
+   *   <code>false</code> otherwise
+   */
+  public static boolean matchesIsNaN(String pFunctionName) {
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_NAN);
+  }
+
+  /**
+   * Returns whether the given function name is any builtin function
+   * that checks whether a float is infinite.
+   *
+   * @param pFunctionName the function name to check
+   * @return <code>true</code> if the given function name is any builtin isinf-function,
+   *   <code>false</code> otherwise
+   */
+  public static boolean matchesIsInfinity(String pFunctionName) {
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, IS_INFINITY);
+  }
+
 }

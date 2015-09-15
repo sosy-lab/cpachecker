@@ -577,6 +577,60 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
+      } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            return conv.bfmgr.ifThenElse(
+                conv.bfmgr.or(fpfmgr.isInfinity(param), fpfmgr.isNaN(param)),
+                mgr.makeNumber(resultType, 0),
+                mgr.makeNumber(resultType, 1));
+          }
+        }
+
+      } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            return conv.bfmgr.ifThenElse(
+                fpfmgr.isNaN(param),
+                mgr.makeNumber(resultType, 1),
+                mgr.makeNumber(resultType, 0));
+          }
+        }
+
+      } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FormulaType.FloatingPointType)formulaType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = mgr.makeNumber(resultType, 0);
+            Formula one = mgr.makeNumber(resultType, 1);
+            Formula minus_one = mgr.makeNumber(resultType, -1);
+
+            return conv.bfmgr.ifThenElse(fpfmgr.isInfinity(param),
+                conv.bfmgr.ifThenElse(fpfmgr.lessThan(param, fp_zero), minus_one, one),
+                zero);
+          }
+        }
       } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
 
         if (parameters.size() == 1) {
