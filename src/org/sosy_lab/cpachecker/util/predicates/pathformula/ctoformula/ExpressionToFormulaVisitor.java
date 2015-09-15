@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
 import java.util.ArrayList;
@@ -59,16 +60,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FloatingPointFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FloatingPointFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCCodeException>
                                         implements CRightHandSideVisitor<Formula, UnrecognizedCCodeException> {
@@ -526,10 +527,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
-      } else if (BuiltinFunctions.isInfinity(functionName)) {
+      } else if (BuiltinFloatFunctions.isInfinity(functionName)) {
 
         if (parameters.size() == 0) {
-          CType resultType = BuiltinFunctions.getFunctionType(functionName);
+          CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
@@ -538,10 +539,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFunctions.isHugeVal(functionName)) {
+      } else if (BuiltinFloatFunctions.isHugeVal(functionName)) {
 
         if (parameters.size() == 0) {
-          CType resultType = BuiltinFunctions.getFunctionType(functionName);
+          CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
@@ -550,10 +551,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFunctions.isNaN(functionName)) {
+      } else if (BuiltinFloatFunctions.isNaN(functionName)) {
 
         if (parameters.size() == 1) {
-          CType resultType = BuiltinFunctions.getFunctionType(functionName);
+          CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
           if (formulaType.isFloatingPointType()) {
@@ -562,10 +563,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFunctions.isAbsolute(functionName)) {
+      } else if (BuiltinFloatFunctions.isAbsolute(functionName)) {
 
         if (parameters.size() == 1) {
-          CType paramType = BuiltinFunctions.getFunctionType(functionName);
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
             Formula param = processOperand(parameters.get(0), paramType, paramType);
@@ -576,10 +577,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFunctions.isFloatClassify(functionName)) {
+      } else if (BuiltinFloatFunctions.isFloatClassify(functionName)) {
 
         if (parameters.size() == 1) {
-          CType paramType = BuiltinFunctions.getFunctionType(functionName);
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
