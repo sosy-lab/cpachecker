@@ -55,10 +55,6 @@ public class BuiltinFunctions {
   public static final String ABSOLUTE_VAL = "__builtin_fabs";
   public static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
 
-  public static final String TYPES_COMPATIBLE = "__builtin_types_compatible_p";
-  public static final String CONSTANT_AT_COMPILE_TIME = "__builtin_constant_p";
-  public static final String EXPECT = "__builtin_expect";
-
   public static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String FLOAT_CLASSIFY_FLOAT = "__fpclassifyf";
   private static final String FLOAT_CLASSIFY_DOUBLE = "__fpclassifyd";
@@ -168,18 +164,6 @@ public class BuiltinFunctions {
   public static boolean isAbsolute(String pFunctionName) {
     return isAbsoluteDouble(pFunctionName) || isAbsoluteFloat(pFunctionName)
         || isAbsoluteLongDouble(pFunctionName);
-  }
-
-  public static boolean isTypesCompatible(String pFunctionName) {
-    return TYPES_COMPATIBLE.equals(pFunctionName);
-  }
-
-  public static boolean isConstantAtCompileTime(String pFunctionName) {
-    return CONSTANT_AT_COMPILE_TIME.equals(pFunctionName);
-  }
-
-  public static boolean isExpect(String pFunctionName) {
-    return EXPECT.equals(pFunctionName);
   }
 
   public static boolean isFloatClassify(String pFunctionName) {
