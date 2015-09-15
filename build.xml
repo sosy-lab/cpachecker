@@ -179,11 +179,11 @@
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2">
             <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/*"
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
+                includes="*.* benchmark/**"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"
