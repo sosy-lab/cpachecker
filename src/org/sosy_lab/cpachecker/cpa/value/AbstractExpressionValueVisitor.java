@@ -686,7 +686,7 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFloatFunctions.isAbsolute(functionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
           assert parameterValues.size() == 1;
 
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
@@ -704,33 +704,33 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(absoluteValue);
           }
 
-        } else if (BuiltinFloatFunctions.isHugeVal(functionName)
-            || BuiltinFloatFunctions.isInfinity(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
+            || BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
           assert parameterValues.isEmpty();
-          if (BuiltinFloatFunctions.isHugeValFloat(functionName)
-              || BuiltinFloatFunctions.isInfinityFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesHugeValFloat(functionName)
+              || BuiltinFloatFunctions.matchesInfinityFloat(functionName)) {
 
             return new NumericValue(Float.POSITIVE_INFINITY);
 
           } else {
-            assert BuiltinFloatFunctions.isInfinityDouble(functionName)
-                || BuiltinFloatFunctions.isInfinityLongDouble(functionName)
-                || BuiltinFloatFunctions.isHugeValDouble(functionName)
-                || BuiltinFloatFunctions.isHugeValLongDouble(functionName)
+            assert BuiltinFloatFunctions.matchesInfinityDouble(functionName)
+                || BuiltinFloatFunctions.matchesInfinityLongDouble(functionName)
+                || BuiltinFloatFunctions.matchesHugeValDouble(functionName)
+                || BuiltinFloatFunctions.matchesHugeValLongDouble(functionName)
                 : " Unhandled builtin function for infinity: " + functionName;
 
             return new NumericValue(Double.POSITIVE_INFINITY);
           }
 
-        } else if (BuiltinFloatFunctions.isNaN(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
           assert parameterValues.isEmpty() || parameterValues.size() == 1;
 
-          if (BuiltinFloatFunctions.isNaNFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesNaNFloat(functionName)) {
             return new NumericValue(Float.NaN);
           } else {
-            assert BuiltinFloatFunctions.isNaNDouble(functionName)
-                || BuiltinFloatFunctions.isNaNLongDouble(functionName)
+            assert BuiltinFloatFunctions.matchesNaNDouble(functionName)
+                || BuiltinFloatFunctions.matchesNaNLongDouble(functionName)
                 : "Unhandled builtin function for NaN: " + functionName;
 
             return new NumericValue(Double.NaN);

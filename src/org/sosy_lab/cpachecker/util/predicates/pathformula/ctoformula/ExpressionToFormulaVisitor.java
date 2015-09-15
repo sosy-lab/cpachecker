@@ -527,7 +527,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
         throw new UnsupportedCCodeException(CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
-      } else if (BuiltinFloatFunctions.isInfinity(functionName)) {
+      } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
         if (parameters.size() == 0) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
@@ -539,7 +539,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFloatFunctions.isHugeVal(functionName)) {
+      } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)) {
 
         if (parameters.size() == 0) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
@@ -551,7 +551,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFloatFunctions.isNaN(functionName)) {
+      } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
 
         if (parameters.size() == 1) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
@@ -563,7 +563,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFloatFunctions.isAbsolute(functionName)) {
+      } else if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);
@@ -577,7 +577,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
-      } else if (BuiltinFloatFunctions.isFloatClassify(functionName)) {
+      } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
 
         if (parameters.size() == 1) {
           CType paramType = getTypeOfBuiltinFloatFunction(functionName);

@@ -112,15 +112,15 @@ public class BuiltinFloatFunctions {
     throw new IllegalArgumentException("Invalid function name " + pFunctionName);
   }
 
-  public static boolean isInfinityFloat(String pFunctionName) {
+  public static boolean matchesInfinityFloat(String pFunctionName) {
     return INFINITY_FLOAT.equals(pFunctionName);
   }
 
-  public static boolean isInfinityDouble(String pFunctionName) {
+  public static boolean matchesInfinityDouble(String pFunctionName) {
     return INFINITY.equals(pFunctionName);
   }
 
-  public static boolean isInfinityLongDouble(String pFunctionName) {
+  public static boolean matchesInfinityLongDouble(String pFunctionName) {
     return INFINITY_LONG_DOUBLE.equals(pFunctionName);
   }
 
@@ -131,19 +131,19 @@ public class BuiltinFloatFunctions {
    * @return <code>true</code> if the given function name is any builtin infinity-function,
    *   <code>false</code> otherwise
    */
-  public static boolean isInfinity(String pFunctionName) {
+  public static boolean matchesInfinity(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, INFINITY);
   }
 
-  public static boolean isHugeValFloat(String pFunctionName) {
+  public static boolean matchesHugeValFloat(String pFunctionName) {
     return HUGE_VAL_FLOAT.equals(pFunctionName);
   }
 
-  public static boolean isHugeValDouble(String pFunctionName) {
+  public static boolean matchesHugeValDouble(String pFunctionName) {
     return HUGE_VAL.equals(pFunctionName);
   }
 
-  public static boolean isHugeValLongDouble(String pFunctionName) {
+  public static boolean matchesHugeValLongDouble(String pFunctionName) {
     return HUGE_VAL_LONG_DOUBLE.equals(pFunctionName);
   }
 
@@ -154,19 +154,19 @@ public class BuiltinFloatFunctions {
    * @return <code>true</code> if the given function name is any builtin huge_val-function,
    *   <code>false</code> otherwise
    */
-  public static boolean isHugeVal(String pFunctionName) {
+  public static boolean matchesHugeVal(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, HUGE_VAL);
   }
 
-  public static boolean isNaNFloat(String pFunctionName) {
+  public static boolean matchesNaNFloat(String pFunctionName) {
     return NOT_A_NUMBER_FLOAT.equals(pFunctionName);
   }
 
-  public static boolean isNaNDouble(String pFunctionName) {
+  public static boolean matchesNaNDouble(String pFunctionName) {
     return NOT_A_NUMBER.equals(pFunctionName);
   }
 
-  public static boolean isNaNLongDouble(String pFunctionName) {
+  public static boolean matchesNaNLongDouble(String pFunctionName) {
     return NOT_A_NUMBER_LONG_DOUBLE.equals(pFunctionName);
   }
 
@@ -177,19 +177,19 @@ public class BuiltinFloatFunctions {
    * @return <code>true</code> if the given function name is any builtin NaN-function,
    *   <code>false</code> otherwise
    */
-  public static boolean isNaN(String pFunctionName) {
+  public static boolean matchesNaN(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, NOT_A_NUMBER);
   }
 
-  public static boolean isAbsoluteFloat(String pFunctionName) {
+  public static boolean matchesAbsoluteFloat(String pFunctionName) {
     return ABSOLUTE_VAL_FLOAT.equals(pFunctionName);
   }
 
-  public static boolean isAbsoluteDouble(String pFunctionName) {
+  public static boolean matchesAbsoluteDouble(String pFunctionName) {
     return ABSOLUTE_VAL.equals(pFunctionName);
   }
 
-  public static boolean isAbsoluteLongDouble(String pFunctionName) {
+  public static boolean matchesAbsoluteLongDouble(String pFunctionName) {
     return ABSOLUTE_VAL_LONG_DOUBLE.equals(pFunctionName);
   }
 
@@ -200,7 +200,7 @@ public class BuiltinFloatFunctions {
    * @return <code>true</code> if the given function name is any builtin absolute-function,
    *   <code>false</code> otherwise
    */
-  public static boolean isAbsolute(String pFunctionName) {
+  public static boolean matchesAbsolute(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, ABSOLUTE_VAL);
   }
 
@@ -211,7 +211,7 @@ public class BuiltinFloatFunctions {
    * @return <code>true</code> if the given function name is any builtin fpclassify-function,
    *   <code>false</code> otherwise
    */
-  public static boolean isFloatClassify(String pFunctionName) {
+  public static boolean matchesFloatClassify(String pFunctionName) {
     return isBuiltinFloatFunctionWithPrefix(pFunctionName, FLOAT_CLASSIFY);
   }
 }
