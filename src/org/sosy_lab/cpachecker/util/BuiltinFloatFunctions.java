@@ -51,24 +51,38 @@ public class BuiltinFloatFunctions {
   private static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
 
   private static final String FLOAT_CLASSIFY = "__fpclassify";
-  private static final String FLOAT_CLASSIFY_FLOAT = "__fpclassifyf";
-  private static final String FLOAT_CLASSIFY_LONG_DOUBLE = "__fpclassifyl";
 
   private static final ImmutableList<String> possiblePrefixes = ImmutableList.of(
       INFINITY, HUGE_VAL, NOT_A_NUMBER, ABSOLUTE_VAL, FLOAT_CLASSIFY);
 
+  /**
+   * Check whether a given function is a builtin function specific to floats
+   * that can be further analyzed with this class.
+   */
   public static boolean isBuiltinFloatFunction(String pFunctionName) {
-    for (String p : possiblePrefixes) {
-      if (pFunctionName.startsWith(p)) {
-        String suffix = pFunctionName.substring(p.length());
-
-        return suffix.isEmpty()
-            || suffix.equals("f")
-            || suffix.equals("l");
+    for (String prefix : possiblePrefixes) {
+      if (isBuiltinFloatFunctionWithPrefix(pFunctionName, prefix)) {
+        return true;
       }
     }
 
     return false;
+  }
+
+  private static boolean isBuiltinFloatFunctionWithPrefix(String pFunctionName,
+      String pPrefix) {
+    int length = pFunctionName.length();
+    int prefixLength = pPrefix.length();
+    if ((length != prefixLength) && (length != prefixLength+1)) {
+      return false;
+    }
+    if (!pFunctionName.startsWith(pPrefix)) {
+      return false;
+    }
+    String suffix = pFunctionName.substring(prefixLength);
+    return suffix.isEmpty()
+        || suffix.equals("f")
+        || suffix.equals("l");
   }
 
   /**
@@ -118,8 +132,7 @@ public class BuiltinFloatFunctions {
    *   <code>false</code> otherwise
    */
   public static boolean isInfinity(String pFunctionName) {
-    return isInfinityDouble(pFunctionName) || isInfinityFloat(pFunctionName)
-        || isInfinityLongDouble(pFunctionName);
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, INFINITY);
   }
 
   public static boolean isHugeValFloat(String pFunctionName) {
@@ -142,8 +155,7 @@ public class BuiltinFloatFunctions {
    *   <code>false</code> otherwise
    */
   public static boolean isHugeVal(String pFunctionName) {
-    return isHugeValFloat(pFunctionName) || isHugeValDouble(pFunctionName)
-        || isHugeValLongDouble(pFunctionName);
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, HUGE_VAL);
   }
 
   public static boolean isNaNFloat(String pFunctionName) {
@@ -166,7 +178,7 @@ public class BuiltinFloatFunctions {
    *   <code>false</code> otherwise
    */
   public static boolean isNaN(String pFunctionName) {
-    return isNaNDouble(pFunctionName) || isNaNFloat(pFunctionName) || isNaNLongDouble(pFunctionName);
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, NOT_A_NUMBER);
   }
 
   public static boolean isAbsoluteFloat(String pFunctionName) {
@@ -189,13 +201,17 @@ public class BuiltinFloatFunctions {
    *   <code>false</code> otherwise
    */
   public static boolean isAbsolute(String pFunctionName) {
-    return isAbsoluteDouble(pFunctionName) || isAbsoluteFloat(pFunctionName)
-        || isAbsoluteLongDouble(pFunctionName);
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, ABSOLUTE_VAL);
   }
 
+  /**
+   * Returns whether the given function name is any builtin fpclassify-function.
+   *
+   * @param pFunctionName the function name to check
+   * @return <code>true</code> if the given function name is any builtin fpclassify-function,
+   *   <code>false</code> otherwise
+   */
   public static boolean isFloatClassify(String pFunctionName) {
-    return FLOAT_CLASSIFY.equals(pFunctionName)
-        || FLOAT_CLASSIFY_FLOAT.equals(pFunctionName)
-        || FLOAT_CLASSIFY_LONG_DOUBLE.equals(pFunctionName);
+    return isBuiltinFloatFunctionWithPrefix(pFunctionName, FLOAT_CLASSIFY);
   }
 }
