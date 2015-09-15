@@ -33,29 +33,25 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  * This class provides constants for builtin function's names and methods for checking whether
  * a function is a specific builtin one.
  * The builtin functions of gcc are used as a reference for the provided function names.
- *
- * <p>While the provided constants will always be identified by their
- * <code>is$FUNCTION_NAME(String)</code> counterparts, these methods might be able to identify
- * different names for one function and should be preferred to <code>equals(String)</code>.</p>
  */
 public class BuiltinFunctions {
 
-  public static final String INFINITY_FLOAT = "__builtin_inff";
-  public static final String HUGE_VAL_FLOAT = "__builtin_huge_valf";
-  public static final String INFINITY = "__builtin_inf";
-  public static final String HUGE_VAL = "__builtin_huge_val";
-  public static final String INFINITY_LONG_DOUBLE = "__builtin_infl";
-  public static final String HUGE_VAL_LONG_DOUBLE = "__builtin_huge_vall";
+  private static final String INFINITY_FLOAT = "__builtin_inff";
+  private static final String HUGE_VAL_FLOAT = "__builtin_huge_valf";
+  private static final String INFINITY = "__builtin_inf";
+  private static final String HUGE_VAL = "__builtin_huge_val";
+  private static final String INFINITY_LONG_DOUBLE = "__builtin_infl";
+  private static final String HUGE_VAL_LONG_DOUBLE = "__builtin_huge_vall";
 
-  public static final String NOT_A_NUMBER_FLOAT = "__builtin_nanf";
-  public static final String NOT_A_NUMBER = "__builtin_nan";
-  public static final String NOT_A_NUMBER_LONG_DOUBLE = "__builtin_nanl";
+  private static final String NOT_A_NUMBER_FLOAT = "__builtin_nanf";
+  private static final String NOT_A_NUMBER = "__builtin_nan";
+  private static final String NOT_A_NUMBER_LONG_DOUBLE = "__builtin_nanl";
 
-  public static final String ABSOLUTE_VAL_FLOAT  = "__builtin_fabsf";
-  public static final String ABSOLUTE_VAL = "__builtin_fabs";
-  public static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
+  private static final String ABSOLUTE_VAL_FLOAT  = "__builtin_fabsf";
+  private static final String ABSOLUTE_VAL = "__builtin_fabs";
+  private static final String ABSOLUTE_VAL_LONG_DOUBLE = "__builtin_fabsl";
 
-  public static final String FLOAT_CLASSIFY = "__fpclassify";
+  private static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String FLOAT_CLASSIFY_FLOAT = "__fpclassifyf";
   private static final String FLOAT_CLASSIFY_DOUBLE = "__fpclassifyd";
   private static final String FLOAT_CLASSIFY_LONG_DOUBLE = "__fpclassifyl";
