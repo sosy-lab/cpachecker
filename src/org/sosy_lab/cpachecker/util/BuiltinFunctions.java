@@ -53,7 +53,6 @@ public class BuiltinFunctions {
 
   private static final String FLOAT_CLASSIFY = "__fpclassify";
   private static final String FLOAT_CLASSIFY_FLOAT = "__fpclassifyf";
-  private static final String FLOAT_CLASSIFY_DOUBLE = "__fpclassifyd";
   private static final String FLOAT_CLASSIFY_LONG_DOUBLE = "__fpclassifyl";
 
   private static final String FREE = "free";
@@ -163,7 +162,7 @@ public class BuiltinFunctions {
   }
 
   public static boolean isFloatClassify(String pFunctionName) {
-    return FLOAT_CLASSIFY.equals(pFunctionName) || FLOAT_CLASSIFY_DOUBLE.equals(pFunctionName)
+    return FLOAT_CLASSIFY.equals(pFunctionName)
         || FLOAT_CLASSIFY_FLOAT.equals(pFunctionName)
         || FLOAT_CLASSIFY_LONG_DOUBLE.equals(pFunctionName);
   }
@@ -189,8 +188,6 @@ public class BuiltinFunctions {
           switch (suffix.charAt(0)) {
             case 'f':
               return CNumericTypes.FLOAT;
-            case 'd':
-              return CNumericTypes.DOUBLE;
             case 'l':
               return CNumericTypes.LONG_DOUBLE;
             default:
