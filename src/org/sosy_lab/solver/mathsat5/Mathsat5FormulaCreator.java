@@ -36,10 +36,6 @@ import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-
-
 class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   public Mathsat5FormulaCreator(final Long msatEnv) {
