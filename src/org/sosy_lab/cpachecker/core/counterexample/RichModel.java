@@ -35,10 +35,10 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
+import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.solver.Model;
 
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableListMultimap;

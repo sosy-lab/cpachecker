@@ -30,7 +30,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -119,18 +117,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         index++;
       }while (continueWriting);
 
-      ze = new ZipEntry("Helper");
-      zos.putNextEntry(ze);
-      //write helper storages
-      o = new ObjectOutputStream(zos);
-      int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
-      o.writeInt(numberOfStorages);
-      for (int i = 0; i < numberOfStorages; ++i) {
-        o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
-      }
-
-      o.flush();
-      zos.closeEntry();
       zos.close();
     } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
@@ -154,45 +140,11 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Override
   public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException {
-
-    InputStream fis = null;
-    try {
-
-      fis = file.asByteSource().openStream();
-      ZipInputStream zis = new ZipInputStream(fis);
-
-      ZipEntry entry = zis.getNextEntry();
-      assert entry.getName().equals("Proof");
-
-      do {
-        zis.closeEntry();
-        entry = zis.getNextEntry();
-      } while (entry.getName().startsWith("Additional "));
-
-      assert entry.getName().equals("Helper");
-      ObjectInputStream o = new ObjectInputStream(zis);
-      //read helper storages
-      int numberOfStorages = o.readInt();
-      for (int i = 0; i < numberOfStorages; ++i) {
-        Serializable storage = (Serializable) o.readObject();
-        GlobalInfo.getInstance().addHelperStorage(storage);
-      }
-      zis.closeEntry();
-
-      o.close();
-      zis.close();
-      fis.close();
-
-      Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
-      readProofFromStream(proofStream.getThird());
-      proofStream.getThird().close();
-      proofStream.getSecond().close();
-      proofStream.getFirst().close();
-    } finally {
-      if (fis != null) {
-        fis.close();
-      }
-    }
+    Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
+    readProofFromStream(proofStream.getThird());
+    proofStream.getThird().close();
+    proofStream.getSecond().close();
+    proofStream.getFirst().close();
   }
 
   protected boolean writeAdditionalProofStream(final ObjectOutputStream pOut) throws IOException {

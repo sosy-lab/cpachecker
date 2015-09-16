@@ -178,7 +178,12 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
 
-    int index = size - 1;
+    // we have the state for the last edge
+    iterator.previous();
+    singleConcreteStates[size - 1] = createConcreteState(pValueState, pVariableAddresses);
+
+    int index = size - 2;
+
     while (iterator.hasPrevious()) {
       CFAEdge cfaEdge = iterator.previous();
 
@@ -232,7 +237,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
     }
 
-    return false;
+    // If the statement is not an assignment, the lvalue does not exist
+    return true;
   }
 
   private boolean isLeftHandSideValueKnown(CLeftHandSide pLHS, Set<CLeftHandSide> pAlreadyAssigned) {
@@ -309,7 +315,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       return isLeftHandSideValueKnown(idExp, pAlreadyAssigned);
     }
 
-    return false;
+    // only variable declaration matter for value analysis
+    return true;
   }
 
   private Map<LeftHandSide, Address> generateVariableAddresses(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {

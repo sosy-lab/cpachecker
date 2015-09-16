@@ -46,7 +46,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstr
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -108,6 +109,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       }
 
 
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     } finally {
       totalPrecTime.stop();
     }
@@ -118,7 +121,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
    */
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
       ComputeAbstractionState element,
-      PredicatePrecision precision) throws CPAException, InterruptedException {
+      PredicatePrecision precision)
+      throws SolverException, CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();

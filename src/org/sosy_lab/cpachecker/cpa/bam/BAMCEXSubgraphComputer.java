@@ -117,13 +117,14 @@ public class BAMCEXSubgraphComputer {
 
         final BackwardARGState newChild = finishedStates.get(child);
 
-        if (data.expandedToReducedCache.containsKey(child)) {
+        if (data.expandedStateToReducedState.containsKey(child)) {
+          assert data.initialStateToReachedSet.containsKey(currentState) : "parent should be initial state of reached-set";
           // If child-state is an expanded state, we are at the exit-location of a block.
           // In this case, we enter the block (backwards).
           // We must use a cached reachedSet to process further, because the block has its own reachedSet.
           // The returned 'innerTree' is the rootNode of the subtree, created from the cached reachedSet.
           // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
-          final ARGState reducedTarget = (ARGState) data.expandedToReducedCache.get(child);
+          final ARGState reducedTarget = (ARGState) data.expandedStateToReducedState.get(child);
           BackwardARGState innerTree = computeCounterexampleSubgraphForBlock(currentState, reducedTarget, newChild);
           if (innerTree == DUMMY_STATE_FOR_MISSING_BLOCK) {
             ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
@@ -146,12 +147,10 @@ public class BAMCEXSubgraphComputer {
           assert pathStateToReachedState.get(newCurrentState) == currentState : "input-state must be from outer reachedset";
 
           // check that at block output locations the first reached state is used for the CEXsubgraph,
-          // i.e. the reduced abstract state from the (most) inner block's reached set.
-          ARGState matchingChild = (ARGState) data.expandedToReducedCache.get(child);
-          while (data.expandedToReducedCache.containsKey(matchingChild)) {
-            matchingChild = (ARGState) data.expandedToReducedCache.get(matchingChild);
-          }
-          assert pathStateToReachedState.get(newChild) == matchingChild : "output-state must be from (most) inner reachedset";
+          // i.e. the reduced abstract state from the (next) inner block's reached set.
+          assert pathStateToReachedState.get(newChild) == data.expandedStateToReducedState.get(child) : "output-state must be from (next) inner reachedset";
+
+          pathStateToReachedState.put(newChild, child); // override previous entry for newChild with child-state of most outer block-exit.
 
         } else {
           // child is a normal successor
@@ -202,7 +201,7 @@ public class BAMCEXSubgraphComputer {
     }
 
     // TODO why do we use 'abstractStateToReachedSet' to get the reachedSet and not 'bamCache'?
-    final ReachedSet reachedSet = data.abstractStateToReachedSet.get(expandedRoot);
+    final ReachedSet reachedSet = data.initialStateToReachedSet.get(expandedRoot);
 
     // we found the reachedSet, corresponding to the root and precision.
     // now try to find the target in the reach set.

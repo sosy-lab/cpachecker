@@ -42,9 +42,9 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -133,7 +133,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         formulaManager,
         statistics, pathFormulaManager);
     StateFormulaConversionManager stateFormulaConversionManager =
-        new StateFormulaConversionManager(formulaManager,
+        new StateFormulaConversionManager(
+            config,
+            formulaManager,
             pathFormulaManager, pCongruenceManager, templateManager,
             invariantGenerator);
     ValueDeterminationManager valueDeterminationFormulaManager =

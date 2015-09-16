@@ -35,6 +35,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -94,6 +95,10 @@ public class PartialReachedSetDirectedGraph {
     return ImmutableList.copyOf(nodes);
   }
 
+  public AbstractState getNode(int nodeIndex){
+    Preconditions.checkArgument(nodeIndex>=0 && nodeIndex<numNodes);
+    return nodes[nodeIndex];
+  }
 
   public ImmutableList<ImmutableList<Integer>> getAdjacencyList() {
     return adjacencyList;

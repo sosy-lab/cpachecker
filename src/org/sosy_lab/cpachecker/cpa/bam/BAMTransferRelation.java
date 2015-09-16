@@ -167,7 +167,7 @@ public class BAMTransferRelation implements TransferRelation {
       final AbstractState pState, final Precision pPrecision)
           throws CPAException, InterruptedException {
 
-    data.forwardPrecisionToExpandedPrecision.clear();
+    data.expandedStateToExpandedPrecision.clear();
 
     final CFANode node = extractLocation(pState);
 
@@ -255,7 +255,7 @@ public class BAMTransferRelation implements TransferRelation {
     currentBlock = partitioning.getBlockForCallNode(node);
     assert currentBlock.getCallNodes().contains(node);
 
-    logger.log(Level.ALL, "Reducing state", initialState);
+    logger.log(Level.FINEST, "Reducing state", initialState);
     final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, currentBlock, node);
     final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, currentBlock);
 
@@ -290,8 +290,6 @@ public class BAMTransferRelation implements TransferRelation {
     final Collection<Pair<AbstractState, Precision>> reducedResult =
             getReducedResult(entryState, reducedInitialState, reducedInitialPrecision);
 
-    logger.log(Level.ALL, "Resulting states:", reducedResult);
-
     addBlockAnalysisInfo(reducedInitialState);
 
     if (breakAnalysis) {
@@ -309,8 +307,8 @@ public class BAMTransferRelation implements TransferRelation {
           final Collection<Pair<AbstractState, Precision>> reducedResult,
           final Block outerSubtree, final AbstractState state, final Precision precision) {
 
-    logger.log(Level.ALL, "Expanding states with initial state", state);
-    logger.log(Level.ALL, "Expanding states", reducedResult);
+    logger.log(Level.FINEST, "Expanding states with initial state", state);
+    logger.log(Level.FINEST, "Expanding states", reducedResult);
 
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
     for (Pair<AbstractState, Precision> reducedPair : reducedResult) {
@@ -330,7 +328,7 @@ public class BAMTransferRelation implements TransferRelation {
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, currentBlock);
     }
 
-    logger.log(Level.ALL, "Expanded results:", expandedResult);
+    logger.log(Level.FINEST, "Expanded results:", expandedResult);
 
     return expandedResult;
   }
@@ -358,7 +356,7 @@ public class BAMTransferRelation implements TransferRelation {
     if (cachedReturnStates != null && !reached.hasWaitingState()) {
 
       // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit with finished reachedset.");
+      logger.log(Level.FINEST, "Cache hit with finished reached-set with root", reached.getFirstState());
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = reducedResult;
 
@@ -368,7 +366,7 @@ public class BAMTransferRelation implements TransferRelation {
               "cache hit only allowed for finished reached-sets or target-states";
 
       // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit with target-state.");
+      logger.log(Level.FINEST, "Cache hit with target-state in reached-set with root", reached.getFirstState());
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = cachedReturnStates;
 
@@ -380,7 +378,7 @@ public class BAMTransferRelation implements TransferRelation {
         data.bamCache.put(reducedInitialState, reducedInitialPrecision, currentBlock, reached);
         logger.log(Level.FINEST, "Cache miss: starting recursive CPAAlgorithm with new initial reached-set.");
       } else {
-        logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set.");
+        logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root", reached.getFirstState());
       }
 
       reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached);
@@ -391,7 +389,7 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     assert reached != null;
-    data.abstractStateToReachedSet.put(initialState, reached);
+    data.initialStateToReachedSet.put(initialState, reached);
 
     ARGState rootOfBlock = null;
     if (PCCInformation.isPCCEnabled()) {

@@ -395,6 +395,9 @@ public class DeterministicVariablesTransferRelation
 
     writer.put(numberOfAssumes)
       .put(numberOfNonDetAssumes)
-      .put("Level of non-determism", StatisticsUtils.toPercent(numberOfNonDetAssumes.getValue(), numberOfAssumes.getValue()));
+      .put("Level of non-determism",
+          (numberOfAssumes.getValue() == 0)
+          ? "0%"
+          : StatisticsUtils.toPercent(numberOfNonDetAssumes.getValue(), numberOfAssumes.getValue()));
   }
 }

@@ -74,8 +74,14 @@ public class PathToCTranslator extends PathTranslator {
   }
 
   @Override
+  protected Appender generateCCode() {
+    mGlobalDefinitionsList.add("extern void __VERIFIER_error(void);");
+    return super.generateCCode();
+  }
+
+  @Override
   protected String getTargetState() {
-    return "assert(0); // target state";
+    return "__VERIFIER_error(); // target state";
   }
 
 }

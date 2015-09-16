@@ -1934,14 +1934,25 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements,
       CFAEdge cfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
 
-    Collection<? extends AbstractState> retVal = null;
+    ArrayList<SMGState> toStrengthen = new ArrayList<>();
+    ArrayList<SMGState> result = new ArrayList<>();
+    toStrengthen.add((SMGState) element);
+    result.add((SMGState) element);
 
     for (AbstractState ae : elements) {
       if (ae instanceof AutomatonState) {
-        retVal = strengthen((AutomatonState) ae, (SMGState) element, cfaEdge);
-        if (retVal.size() == 0) {
-          break;
+        // New result
+        result.clear();
+        for (SMGState state : toStrengthen) {
+          Collection<SMGState> ret = strengthen((AutomatonState) ae, state, cfaEdge);
+          if (ret == null) {
+            result.add(state);
+          } else {
+            result.addAll(ret);
+          }
         }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       }
     }
 
@@ -1949,10 +1960,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     possibleMallocFail = false;
     hasChanged = false;
     oldState = null;
-    return retVal;
+    return result;
   }
 
-  private Collection<? extends AbstractState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
+  private Collection<SMGState> strengthen(AutomatonState pAutomatonState, SMGState pElement,
       CFAEdge pCfaEdge) throws CPATransferException {
 
     List<AssumeEdge> assumptions = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());

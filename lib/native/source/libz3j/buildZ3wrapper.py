@@ -292,7 +292,7 @@ def main():
     result_text = process_text(api)
     result_interp = process_text(interp_api)
 
-    out_f = open("org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c","w")
+    out_f = open("org_sosy_lab_solver_z3_Z3NativeApi.c","w")
 
     # Write result
     out_f.write(HEADER)

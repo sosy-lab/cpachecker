@@ -299,8 +299,8 @@ def _submitRun(run, benchmark, counter = 0):
 
     invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
-        raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
-            .format(run.options, run.identifier))
+        raise WebClientError('Command {0} of run {1}  contains option "{2}" that is not usable with the webclient. '\
+            .format(run.options, run.identifier, invalidOption))
 
     params['groupId'] = _groupId;
 
@@ -364,6 +364,8 @@ def _handleOptions(run, params, rlimits):
                 elif option == "-stats":
                     #ignore, is always set by this script
                     pass
+                elif option == "-disable-java-assertions":
+                    params['disableJavaAssertions'] = 'true' 
                 elif option == "-java":
                     options.append("language=JAVA")
                 elif option == "-32":
@@ -394,7 +396,7 @@ def _handleOptions(run, params, rlimits):
                     tokens = configPath.split('/')
                     if not (tokens[0] == "config" and len(tokens) == 2):
                         logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
-                        return True
+                        return configPath
                     config  = next(i).split('/')[2].split('.')[0]
                     params['configuration'] = config
 
@@ -404,13 +406,13 @@ def _handleOptions(run, params, rlimits):
                 elif option[0] == '-' and 'configuration' not in params :
                     params['configuration'] = option[1:]
                 else:
-                    return True
+                    return option
 
             except StopIteration:
                 break
 
     params['option'] = options
-    return False
+    return None
 
 def _getResults(runIDs, output_handler, benchmark):
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)

@@ -120,8 +120,8 @@ final public class CLangStackFrame {
   @Override
   public String toString() {
     StringBuilder to_return = new StringBuilder("<");
-    for (String key : stack_variables.keySet()) {
-      to_return.append(" ").append(stack_variables.get(key));
+    for (SMGRegion region : stack_variables.values()) {
+      to_return.append(" ").append(region);
     }
     to_return.append(" >");
     return to_return.toString();
@@ -187,5 +187,15 @@ final public class CLangStackFrame {
    */
   public SMGRegion getReturnObject() {
     return returnValueObject;
+  }
+
+  /**
+   * returns true if stack contains the given variable, else false.
+   *
+   * @param var
+   * @return
+   */
+  public boolean hasVariable(String var) {
+    return stack_variables.containsKey(var);
   }
 }

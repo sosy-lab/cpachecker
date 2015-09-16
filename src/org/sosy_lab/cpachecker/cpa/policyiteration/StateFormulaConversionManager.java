@@ -6,14 +6,18 @@ import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -22,7 +26,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 /**
  * Class responsible for converting states to formulas.
  */
+@Options(prefix="cpa.stator.policy")
 public class StateFormulaConversionManager {
+
+  @Option(secure=true, description="Use latest version of abstracted states")
+  private boolean useLatestVersion = true;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
@@ -31,15 +40,24 @@ public class StateFormulaConversionManager {
   private final InvariantGenerator invariantGenerator;
   private @Nullable InvariantSupplier invariants = null;
 
-  public StateFormulaConversionManager(FormulaManagerView pFmgr,
+  public StateFormulaConversionManager(
+      Configuration config,
+      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr, CongruenceManager pCongruenceManager,
-      TemplateManager pTemplateManager, InvariantGenerator pInvariantGenerator) {
+      TemplateManager pTemplateManager, InvariantGenerator pInvariantGenerator)
+      throws InvalidConfigurationException {
+
+    config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     congruenceManager = pCongruenceManager;
     templateManager = pTemplateManager;
     invariantGenerator = pInvariantGenerator;
     bfmgr = pFmgr.getBooleanFormulaManager();
+  }
+
+  public boolean shouldUseLatestVersion() {
+    return useLatestVersion;
   }
 
   /**

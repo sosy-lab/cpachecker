@@ -29,14 +29,14 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.ExistentialRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.PatternBasedPremise;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.NumeralType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FormulaType.NumeralType;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 
 import com.google.common.collect.Lists;

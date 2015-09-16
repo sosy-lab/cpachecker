@@ -28,7 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.Formula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

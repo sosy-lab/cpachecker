@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.matching;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.Formula;
 
 /**
  * A collection of SmtAstPattern that is connected

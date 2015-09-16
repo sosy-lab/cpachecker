@@ -109,12 +109,12 @@ public class ValueAnalysisReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
-    //ValueAnalysisPrecision rootPrecision = (ValueAnalysisPrecision)pRootPrecision;
+    VariableTrackingPrecision rootPrecision = (VariableTrackingPrecision)pRootPrecision;
     VariableTrackingPrecision reducedPrecision = (VariableTrackingPrecision)pReducedPrecision;
-
-    // TODO: anything meaningful we can do here?
-
-    return reducedPrecision;
+    // After a refinement, rootPrecision can contain more variables than reducedPrecision.
+    // This happens for recursive files or imprecise caching.
+    // In this case we just merge the two precisions.
+    return reducedPrecision.join(rootPrecision);
   }
 
   @Override

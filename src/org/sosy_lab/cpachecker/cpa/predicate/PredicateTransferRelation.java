@@ -69,12 +69,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsSt
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -442,7 +442,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       try {
         abstractionStorage = new PredicateAbstractionsStorage(strengthenWithReusedAbstractionsFile, logger, fmgr, converter);
       } catch (PredicateParsingFailedException e) {
-        throw new CPATransferException("cannot read abstractions from file", e);
+        throw new CPATransferException("cannot read abstractions from file, parsing fail", e);
       }
 
       abstractions = HashMultimap.create();
@@ -458,6 +458,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     CFANode node = checkNotNull(pPredicateState.getLocation());
     for (BooleanFormula possibleConstraint : abstractions.get(node.getNodeNumber())) {
+      // lets try all available abstractions formulas, perhaps more of them are valid
       addConstraintIfValid(pPredicateState, possibleConstraint);
     }
 

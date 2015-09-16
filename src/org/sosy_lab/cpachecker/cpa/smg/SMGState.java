@@ -52,11 +52,13 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, ForgetfulState<SMGStateInformation> {
 
   // Properties:
   public static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -206,6 +208,26 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pInvalidFree;
     invalidRead = pInvalidRead;
     invalidWrite = pInvalidWrite;
+  }
+
+  public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+      CLangSMG pHeap,
+      LogManager pLogger) {
+
+    heap = pHeap;
+    logger = pLogger;
+    explicitValues.putAll(pExplicitValues);
+
+    unknownOnUndefined = false;
+    runtimeCheckLevel = SMGRuntimeCheck.NONE;
+    predecessorId = -1;
+    memoryErrors = false;
+    invalidWrite = false;
+    invalidRead = false;
+    invalidFree = false;
+    id_counter = new AtomicInteger(1);
+    id = 0;
+
   }
 
   /**
@@ -931,14 +953,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   @Nullable
   public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
-    SMGObject object = pValue.getObject();
-    long offset = pValue.getOffset().getAsLong();
-
-    if (isGlobal(object) || isHeapObject(object)) {
-      return MemoryLocation.valueOf(object.getLabel(), offset);
-    } else {
-      return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);
-    }
+    return heap.resolveMemLoc(pValue, pFunctionName);
   }
 
   /**
@@ -1082,5 +1097,33 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   IDExpression createIDExpression(SMGObject pObject) {
     return heap.createIDExpression(pObject);
+  }
+
+  @Override
+  public SMGStateInformation forget(MemoryLocation pLocation) {
+    return heap.forget(pLocation);
+  }
+
+  @Override
+  public void remember(MemoryLocation pLocation, SMGStateInformation pForgottenInformation) {
+    heap.remember(pLocation, pForgottenInformation);
+  }
+
+  @Override
+  public Set<MemoryLocation> getTrackedMemoryLocations() {
+    return heap.getTrackedMemoryLocations();
+  }
+
+  @Override
+  public int getSize() {
+    return heap.getHVEdges().size();
+  }
+
+  public SMGInterpolant createInterpolant() {
+    return new SMGInterpolant(explicitValues, heap, logger);
+  }
+
+  public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
+    return heap.getTypeForMemoryLocation(pMemoryLocation);
   }
 }

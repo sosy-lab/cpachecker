@@ -30,6 +30,8 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -55,9 +57,10 @@ public class FiducciaMattheysesBalancedGraphPartitioner implements BalancedGraph
 
   private final BalancedGraphPartitioner partitioner;
 
-  public FiducciaMattheysesBalancedGraphPartitioner(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-
-    shutdownNotifier = pShutdownNotifier;
+  public FiducciaMattheysesBalancedGraphPartitioner(Configuration pConfig, LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
 
     switch (initialPartitioningStrategy) {

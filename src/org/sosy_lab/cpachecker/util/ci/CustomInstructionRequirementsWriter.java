@@ -38,12 +38,16 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.ci.translators.AbstractRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.IntervalRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.PredicateRequirementsTranslator;
@@ -61,15 +65,15 @@ public class CustomInstructionRequirementsWriter {
   private final LogManager logger;
 
   public CustomInstructionRequirementsWriter(final String pFilePrefix, final Class<?> reqirementsState,
-      final Configuration config, final ShutdownNotifier shutdownNotifier, final LogManager log)
-      throws CPAException{
-    filePrefix = pFilePrefix;
+      final Configuration config, final ShutdownNotifier shutdownNotifier, final LogManager log,
+      final ConfigurableProgramAnalysis cpa) throws CPAException {
+   filePrefix = pFilePrefix;
     fileID = 0;
     this.requirementsState = reqirementsState;
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     logger = log;
-    createRequirementTranslator();
+    createRequirementTranslator(cpa);
   }
 
   public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
@@ -107,7 +111,7 @@ public class CustomInstructionRequirementsWriter {
     return duplicateFreeSet;
   }
 
-  private void createRequirementTranslator() throws CPAException {
+  private void createRequirementTranslator(final ConfigurableProgramAnalysis cpa) throws CPAException {
     if (requirementsState.equals(SignState.class)) {
       abstractReqTranslator = new SignRequirementsTranslator(config, shutdownNotifier, logger);
     } else if (requirementsState.equals(ValueAnalysisState.class)) {
@@ -115,7 +119,13 @@ public class CustomInstructionRequirementsWriter {
     } else if (requirementsState.equals(IntervalAnalysisState.class)) {
       abstractReqTranslator = new IntervalRequirementsTranslator(config, shutdownNotifier, logger);
     } else if (requirementsState.equals(PredicateAbstractState.class)) {
-      abstractReqTranslator = new PredicateRequirementsTranslator();
+      PredicateCPA pCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+      if (pCpa == null) {
+        pCpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);
+      }
+      if (pCpa == null) { throw new CPAException(
+          "Cannot extract analysis which was responsible for construction PredicateAbstract States"); }
+      abstractReqTranslator = new PredicateRequirementsTranslator(pCpa);
     } else {
       throw new CPAException("There is no suitable requirementTranslator available.");
     }
