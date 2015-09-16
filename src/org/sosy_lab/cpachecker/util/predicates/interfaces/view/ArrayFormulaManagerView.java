@@ -79,22 +79,22 @@ public class ArrayFormulaManagerView
     return wrap(inputArrayType, result);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray) {
+  public <TI extends Formula> FormulaType<TI> getIndexType(ArrayFormula<TI, ?> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
-      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula<?,?>) pArray).getType();
-      return (FTI) t.getIndexType();
+      @SuppressWarnings("unchecked")
+      ArrayFormulaType<TI, ?> t = (ArrayFormulaType<TI, ?>) ((WrappingFormula<?, ?>) pArray).getType();
+      return t.getIndexType();
     }
     return manager.getIndexType(pArray);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
+  public <TE extends Formula> FormulaType<TE> getElementType(ArrayFormula<?, TE> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
-      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula<?,?>) pArray).getType();
-      return (FTE) t.getElementType();
+      @SuppressWarnings("unchecked")
+      ArrayFormulaType<?, TE> t = (ArrayFormulaType<?, TE>) ((WrappingFormula<?, ?>) pArray).getType();
+      return t.getElementType();
     }
     return manager.getElementType(pArray);
   }
