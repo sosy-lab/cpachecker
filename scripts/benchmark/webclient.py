@@ -51,7 +51,7 @@ from  http.client import HTTPSConnection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
-from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
+from benchexec.model import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT,CORELIMIT
 
 RESULT_KEYS = ["cputime", "walltime"]
 
@@ -289,6 +289,8 @@ def _submitRun(run, benchmark, counter = 0):
         params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
     if TIMELIMIT in limits:
         params['timeLimitation'] = limits[TIMELIMIT]
+    if SOFTTIMELIMIT in limits:
+        params['softTimeLimitation'] = limits[SOFTTIMELIMIT]
     if CORELIMIT in limits:
         params['coreLimitation'] = limits[CORELIMIT]
     if benchmark.config.cpu_model:
