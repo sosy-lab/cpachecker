@@ -143,6 +143,10 @@ def resolveToolVersion(config, benchmark, webclient):
 
 def init(config, benchmark):
     global _webclient, _base64_user_pwd, _groupId
+    
+    if not benchmark.config.cpu_model:
+        logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
+                        "Otherwise the used machines and CPU models are undefined.")
 
     if config.cloudMaster:
         if not benchmark.config.cloudMaster[-1] == '/':
