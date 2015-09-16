@@ -37,13 +37,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CArrayType extends AArrayType implements CType, Serializable {
-
+@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
+    justification="handled by serialization proxy")
+public final class CArrayType extends AArrayType implements CType, Serializable {
 
   private static final long serialVersionUID = -6314468260643330323L;
 
-  private final CExpression    length;
+  private final transient CExpression    length;
   private boolean   isConst;
   private boolean   isVolatile;
 
