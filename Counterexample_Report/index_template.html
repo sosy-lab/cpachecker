@@ -26,9 +26,9 @@
             <div id="middleLine" ng-mousedown="report.setMouseDown()"></div>
             <header>
                 <div class="btn-group">
-                    <button class="btn btn-success">Prev</button>
-                    <button class="btn btn-warning">Start</button>
-                    <button class="btn btn-success">Next</button>
+                    <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Prev</button>
+                    <button class="btn btn-warning" ng-click="report.clickedErrpathButton($event)">Start</button>
+                    <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Next</button>
                 </div>
             </header>
             <div class="fileContent">

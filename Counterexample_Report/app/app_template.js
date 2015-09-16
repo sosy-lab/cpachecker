@@ -4,7 +4,7 @@
 //(function(){})() --> diese Schreibweise macht eine Funktion in JS "self-invoking"
 (function() {
     var app = angular.module('report', []);
-    app.controller('ReportController', ['$anchorScroll', function($anchorScroll){
+    app.controller('ReportController', ['$anchorScroll', '$location', function($anchorScroll, $location){
         this.date = date;
         this.logo = logo;
 
@@ -41,19 +41,29 @@
         this.clickedCFAElement = function($event){
             var y = $event.currentTarget.id;
             if (document.getElementById(y).classList.contains("edge")){
-                this.tab = 3;
-                var line = cfaInfo["edges"][y.substring("cfa-".length)]["line"];
+                this.setTab(3);
+                var line;
+                var source;
+                if (y.split("->")[1] > 100000 || y.split("->")[0].substring("cfa-".length) > 100000){
+                    source = y.split("->")[0].substring("cfa-".length);
+                    line = cfaInfo["edges"][source + "->" + fCallEdges[source][1]]["line"];
+                } else if (y.split("->")[0].substring("cfa-".length) in combinedNodes){
+                    var textfields = document.getElementById("cfa-" + y.split("->")[0].substring("cfa-".length)).getElementsByTagName("text");
+                    source = textfields[textfields.length - 2].innerHTML;
+                    line = cfaInfo["edges"][source + "->" + y.split("->")[1]]["line"];
+                } else {
+                    line = cfaInfo["edges"][y.substring("cfa-".length)]["line"];
+                }
                 this.markSource(line);
             } else if (document.getElementById(y).classList.contains("node") && (y.substring("cfa-".length) > 100000)) {
                 var func = document.getElementById(y).getElementsByTagName("text")[0].innerHTML;
-                window.alert(func);
                 this.selectedCFAFunction = functions.indexOf(func);
             }
         };
         this.clickedARGElement = function($event){
             var y = $event.currentTarget.id;
             if (document.getElementById(y).classList.contains("edge")){
-                this.tab = 3;
+                this.setTab(3);
                 var line = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split(":")[0].substring("Line ".length);
                 this.markSource(line);
             } else if (document.getElementById(y).classList.contains("node")){
@@ -69,13 +79,26 @@
             this.markARGnode(y.substring("errpath-".length));
         };
 
+        this.clickedErrpathButton = function($event){
+            var button = $event.currentTarget.innerHTML;
+            if (button == "Prev" && (this.selected_ErrLine.substring("errpath-".length) == 0 || this.selected_ErrLine == null)) {
+
+            } else if (button == "Prev") {
+                this.setLine("errpath-" + (this.selected_ErrLine.substring("errpath-".length) - 1));
+            } else if (button == "Start") {
+
+            } else if (button == "Next") {
+
+            }
+        };
+
         this.lineMarked = false;
         this.markSource = function(line){
             if (this.lineMarked) {
                 document.getElementsByClassName("markedSourceLine")[0].className = "prettyprint";
             }
             document.getElementById("source-" + line).getElementsByTagName("pre")[1].className = "markedSourceLine";
-            $anchorScroll("source-" + line);
+            $location.hash("source-" + line);
             this.lineMarked = true;
         };
 
@@ -92,8 +115,18 @@
                     document.getElementsByClassName("markedCFAEdge")[0].classList.remove("markedCFAEdge");
                 }
                 document.getElementById("cfa-" + source + "->" + target).classList.add("markedCFAEdge");
+                this.scrollToElement("cfa-" + source + "->" + target);
                 this.cfaEdgeMarked = true;
             }
+        };
+
+        this.scrollToElement = function(id){
+            var element = document.getElementById(id);
+            var box = document.getElementsByClassName("cfaContent")[0].parentNode.getBoundingClientRect();
+            var xScroll = document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft;
+            var yScroll = document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop;
+            var bcr = element.getBoundingClientRect();
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTo(bcr.left + xScroll - box.left - (bcr.right-bcr.left), bcr.top + yScroll - box.top - (bcr.bottom-bcr.top));
         };
 
         this.cfaNodeMarked = false;
@@ -181,6 +214,7 @@ var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
 
 
+
 function init(){
     var svgElements = document.getElementsByTagName("svg");
     //set IDs for all CFA-SVGs
@@ -260,11 +294,11 @@ function init(){
         var path = cfaEdge.getElementsByTagName("path")[0];
         var poly = cfaEdge.getElementsByTagName("polygon")[0];
         var text = cfaEdge.getElementsByTagName("text")[0];
-        path.setAttribute("stroke", "#1e90ff");
-        poly.setAttribute("stroke", "#1e90ff");
-        poly.setAttribute("fill", "#1e90ff");
+        path.setAttribute("stroke", "red");
+        poly.setAttribute("stroke", "red");
+        poly.setAttribute("fill", "red");
         if(text != undefined) {
-            text.setAttribute("fill", "#1e90ff");
+            text.setAttribute("fill", "red");
         }
 
     }
