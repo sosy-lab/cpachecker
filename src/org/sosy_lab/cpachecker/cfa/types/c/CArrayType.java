@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -44,7 +48,7 @@ public class CArrayType extends AArrayType implements CType, Serializable {
   private boolean   isVolatile;
 
   public CArrayType(boolean pConst, boolean pVolatile,
-      CType pType, CExpression pLength) {
+      CType pType, @Nullable CExpression pLength) {
     super(pType);
     isConst = pConst;
     isVolatile = pVolatile;
@@ -56,12 +60,13 @@ public class CArrayType extends AArrayType implements CType, Serializable {
     return (CType) super.getType();
   }
 
-  public CExpression getLength() {
+  public @Nullable CExpression getLength() {
     return length;
   }
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         +  getType().toASTString(pDeclarator+ ("[" + (length != null ? length.toASTString() : "") + "]"))
@@ -108,7 +113,7 @@ public class CArrayType extends AArrayType implements CType, Serializable {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
