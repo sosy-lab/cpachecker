@@ -1,6 +1,6 @@
 /**
- * Created by magdalena on 06.07.15.
- */
+* Created by magdalena on 06.07.15.
+*/
 //(function(){})() --> diese Schreibweise macht eine Funktion in JS "self-invoking"
 (function() {
     var app = angular.module('report', []);
@@ -24,6 +24,17 @@
             this.selectedCFAFunction = 0;
         }
 
+        /*
+         this.getValues = function(val){
+         var values = {};
+         if(val != "") {
+         var singleStatements = val.split("\n");
+         for (var i = 0; i < singleStatements.length - 1; i++) {
+         values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim();
+         }
+         }
+         return values;
+         };*/
 
         //preprocess Errorpath-Data for left content
         this.errorPathData = [];
@@ -33,9 +44,25 @@
                 if(errPathElem.source in fCallEdges){
                     errPathElem.target = fCallEdges[errPathElem.source][0];
                 }
+                /*var newValues;
+                 //get Values
+                 if(j >= 1) {
+                 newValues = this.getValues(errPathElem.val);
+                 errPathElem.val = errorPathData[j - 1].val;
+                 for (key in newValues) {
+                 errPathElem.val[key] = newValues[key];
+                 }
+                 } else {
+                 newValues = this.getValues(errPathElem.val);
+                 errPathElem.val = newValues;
+                 }*/
                 this.errorPathData.push(errPathElem);
             }
         }
+
+
+
+
 
         //Behaviour for Click-Elements in Errorpath, CFA, ARG
         this.clickedCFAElement = function($event){
@@ -57,7 +84,7 @@
                 this.markSource(line);
             } else if (document.getElementById(y).classList.contains("node") && (y.substring("cfa-".length) > 100000)) {
                 var func = document.getElementById(y).getElementsByTagName("text")[0].innerHTML;
-                this.selectedCFAFunction = functions.indexOf(func);
+                this.setCFAFunction(functions.indexOf(func));
             }
         };
         this.clickedARGElement = function($event){
@@ -81,14 +108,28 @@
 
         this.clickedErrpathButton = function($event){
             var button = $event.currentTarget.innerHTML;
+            var line;
             if (button == "Prev" && (this.selected_ErrLine.substring("errpath-".length) == 0 || this.selected_ErrLine == null)) {
 
             } else if (button == "Prev") {
-                this.setLine("errpath-" + (this.selected_ErrLine.substring("errpath-".length) - 1));
+                line = parseInt(this.selected_ErrLine.substring("errpath-".length)) - 1;
+                this.setLine("errpath-" + line);
+                this.markSource(this.errorPathData[line].line);
+                this.markCFAedge(line);
+                this.markARGnode(line);
             } else if (button == "Start") {
+                this.setLine("errpath-" + 0);
+                this.markSource(this.errorPathData[0].line);
+                this.markCFAedge(0);
+                this.markARGnode(0);
+            } else if (button == "Next" && (this.selected_ErrLine.substring("errpath-".length) == this.errorPathData.length -1)) {
 
             } else if (button == "Next") {
-
+                line = parseInt(this.selected_ErrLine.substring("errpath-".length)) + 1;
+                this.setLine("errpath-" + line);
+                this.markSource(this.errorPathData[line].line);
+                this.markCFAedge(line);
+                this.markARGnode(line);
             }
         };
 
@@ -106,7 +147,12 @@
         this.markCFAedge = function(index){
             var source = this.errorPathData[index].source;
             var target = this.errorPathData[index].target;
-            this.selectedCFAFunction = this.functions.indexOf(cfaInfo["nodes"][source]["func"]);
+            var funcIndex = this.functions.indexOf(cfaInfo["nodes"][source]["func"]);
+            /*var funcChanged = false;
+             if (!(this.cfaFunctionIsSet(funcIndex))){
+             funcChanged = true;
+             }*/
+            this.setCFAFunction(funcIndex);
             if(!(source in combinedNodes && target in combinedNodes)) {
                 if(source in combinedNodes){
                     source = combinedNodes[source];
@@ -115,28 +161,51 @@
                     document.getElementsByClassName("markedCFAEdge")[0].classList.remove("markedCFAEdge");
                 }
                 document.getElementById("cfa-" + source + "->" + target).classList.add("markedCFAEdge");
-                this.scrollToElement("cfa-" + source + "->" + target);
+                this.scrollToCFAElement("cfa-" + source + "->" + target);
                 this.cfaEdgeMarked = true;
+            } else {
+                this.scrollToCFAElement("cfa-" + combinedNodes[source]);
             }
         };
 
-        this.scrollToElement = function(id){
+        this.scrollToCFAElement = function(id){
             var element = document.getElementById(id);
             var box = document.getElementsByClassName("cfaContent")[0].parentNode.getBoundingClientRect();
-            var xScroll = document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft;
-            var yScroll = document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop;
+            /* FUNKTIONIERT auch nicht, weil es nachm cfa-function-wechseln nicht in Kraft tritt
+             if (funcChanged) {
+             xScroll = 0;
+             yScroll = 0;
+             }*/
+            //PROBLEM: Koordinaten des Elements sind 0,wenn es nicht sichtbar ist
             var bcr = element.getBoundingClientRect();
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTo(bcr.left + xScroll - box.left - (bcr.right-bcr.left), bcr.top + yScroll - box.top - (bcr.bottom-bcr.top));
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = bcr.left - box.left - 10;
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = bcr.top - box.top - 50;
+        };
+
+        this.scrollToARGElement = function(id){
+            var element = document.getElementById(id);
+            var box = document.getElementsByClassName("argContent")[0].getBoundingClientRect();
+            var xScroll = document.getElementsByClassName("argContent")[0].scrollLeft;
+            var yScroll = document.getElementsByClassName("argContent")[0].scrollTop;
+            var bcr = element.getBoundingClientRect();
+            document.getElementsByClassName("argContent")[0].scrollLeft = bcr.left + xScroll - box.left - 10;
+            document.getElementsByClassName("argContent")[0].scrollTop =  bcr.top + yScroll - box.top - 50;
         };
 
         this.cfaNodeMarked = false;
         this.markCFANode = function(nodenumber){
+            this.setTab(1);
             if(this.cfaNodeMarked){
                 document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
             }
-            document.getElementById("cfa-" + nodenumber).classList.add("markedCFANode");
-            this.selectedCFAFunction = this.functions.indexOf(cfaInfo["nodes"][nodenumber]["func"]);
-            this.tab = 1;
+            this.setCFAFunction(this.functions.indexOf(cfaInfo["nodes"][nodenumber]["func"]));
+            if(!(nodenumber in combinedNodes)) {
+                document.getElementById("cfa-" + nodenumber).classList.add("markedCFANode");
+                this.scrollToCFAElement("cfa-" + nodenumber);
+            } else {
+                document.getElementById("cfa-" + combinedNodes[nodenumber]).classList.add("markedCFANode");
+                this.scrollToCFAElement("cfa-" + combinedNodes[nodenumber]);
+            }
             this.cfaNodeMarked = true;
         };
 
@@ -148,10 +217,13 @@
             }
             document.getElementById("arg-" + argElement).classList.add("markedARGNode");
             this.argNodeMarked = true;
+            this.scrollToARGElement("arg-" + argElement);
         };
 
         //CFA-Controller
         this.setCFAFunction = function(value){
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = 0;
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = 0;
             this.selectedCFAFunction = value;
         };
 
@@ -300,7 +372,5 @@ function init(){
         if(text != undefined) {
             text.setAttribute("fill", "red");
         }
-
     }
-
 };

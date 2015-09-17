@@ -36,6 +36,7 @@
                     <tr id="errpath-{{$index}}" ng-click="report.clickedErrpathElement($event)" ng-repeat="line in report.errorPathData">
                         <td><pre>{{line.source}}</pre></td>
                         <td><pre>{{line.desc}}</pre></td>
+                        <td><pre>{{line.val}}</pre></td>
                     </tr>
                 </table>
             </div>
@@ -2982,7 +2983,7 @@
 </svg>
                 </div>
             </div>
-            <div class="fileContent" ng-show="report.tabIsSet(2)">
+            <div class="fileContent argContent" ng-show="report.tabIsSet(2)">
 <svg width="19379pt" height="4142pt"
  viewBox="0.00 0.00 19378.50 4142.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 4138)">
