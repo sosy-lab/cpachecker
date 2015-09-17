@@ -37,32 +37,32 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
   private final TWrap wrapped;
   private final FormulaType<TOut> type;
 
-  WrappingFormula(FormulaType<TOut> pType, TWrap pWrapped) {
+  private WrappingFormula(FormulaType<TOut> pType, TWrap pWrapped) {
     wrapped = checkNotNull(pWrapped);
     type = checkNotNull(pType);
   }
 
-  TWrap getWrapped() {
+  final TWrap getWrapped() {
     return wrapped;
   }
 
-  FormulaType<TOut> getType() {
+  final FormulaType<TOut> getType() {
     return type;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return wrapped.toString();
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     final int prime = 31;
     return (prime + type.hashCode()) * prime + wrapped.hashCode();
   }
 
   @Override
-  public boolean equals(Object pObj) {
+  public final boolean equals(Object pObj) {
     if ((pObj == null)
         || !getClass().equals(pObj.getClass())) {
       return false;
@@ -73,31 +73,31 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
     return wrapped.equals(other.wrapped)
         && type.equals(other.type);
   }
-}
 
-final class WrappingBitvectorFormula<TWrap extends Formula>
-    extends WrappingFormula<TWrap, BitvectorFormula>
-    implements BitvectorFormula {
+  static final class WrappingBitvectorFormula<TWrap extends Formula>
+      extends WrappingFormula<TWrap, BitvectorFormula>
+      implements BitvectorFormula {
 
-  WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
-    super(type, pToWrap);
+    WrappingBitvectorFormula(FormulaType<BitvectorFormula> type, TWrap pToWrap) {
+      super(type, pToWrap);
+    }
   }
-}
 
-final class WrappingFloatingPointFormula<TWrap extends Formula>
-    extends WrappingFormula<TWrap, FloatingPointFormula>
-    implements FloatingPointFormula {
+  static final class WrappingFloatingPointFormula<TWrap extends Formula>
+      extends WrappingFormula<TWrap, FloatingPointFormula>
+      implements FloatingPointFormula {
 
-  WrappingFloatingPointFormula(FormulaType<FloatingPointFormula> type, TWrap pToWrap) {
-    super(type, pToWrap);
+    WrappingFloatingPointFormula(FormulaType<FloatingPointFormula> type, TWrap pToWrap) {
+      super(type, pToWrap);
+    }
   }
-}
 
-final class WrappingArrayFormula<TWrap extends Formula, TI extends Formula, TE extends Formula>
-extends WrappingFormula<TWrap, ArrayFormula<TI, TE>>
-implements ArrayFormula<TI, TE> {
+  static final class WrappingArrayFormula<TWrap extends Formula, TI extends Formula, TE extends Formula>
+      extends WrappingFormula<TWrap, ArrayFormula<TI, TE>>
+      implements ArrayFormula<TI, TE> {
 
-WrappingArrayFormula(FormulaType<ArrayFormula<TI, TE>> type, TWrap pToWrap) {
-  super(type, pToWrap);
-}
+    WrappingArrayFormula(FormulaType<ArrayFormula<TI, TE>> type, TWrap pToWrap) {
+      super(type, pToWrap);
+    }
+  }
 }

@@ -38,7 +38,7 @@ abstract class Z3Formula implements Formula {
 
   private int hashCache = 0;
 
-  Z3Formula(long z3context, long z3expr) {
+  private Z3Formula(long z3context, long z3expr) {
     this.z3expr = z3expr;
     this.z3context = z3context;
 
@@ -46,12 +46,12 @@ abstract class Z3Formula implements Formula {
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return Z3NativeApi.ast_to_string(z3context, z3expr);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public final boolean equals(Object obj) {
     if (obj == null || !(obj instanceof Z3Formula)) { return false; }
     Z3Formula other = (Z3Formula) obj;
     return (z3context == other.z3context)
@@ -59,58 +59,58 @@ abstract class Z3Formula implements Formula {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     if (hashCache == 0) {
       hashCache = Z3NativeApi.get_ast_hash(z3context, z3expr);
     }
     return hashCache;
   }
 
-  public Long getFormulaInfo() {
+  final long getFormulaInfo() {
     return z3expr;
   }
-}
 
-class Z3ArrayFormula<TI extends Formula, TE extends Formula> extends Z3Formula
-implements ArrayFormula<TI, TE> {
+  static final class Z3ArrayFormula<TI extends Formula, TE extends Formula> extends Z3Formula
+      implements ArrayFormula<TI, TE> {
 
-  private final FormulaType<TI> indexType;
-  private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
+    private final FormulaType<TE> elementType;
 
-  public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
-    super(pZ3context, pZ3expr);
-    indexType = pIndexType;
-    elementType = pElementType;
+    public Z3ArrayFormula(long pZ3context, long pZ3expr, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+      super(pZ3context, pZ3expr);
+      indexType = pIndexType;
+      elementType = pElementType;
+    }
+
+    public FormulaType<TI> getIndexType() { return indexType; }
+    public FormulaType<TE> getElementType() { return elementType; }
   }
 
-  public FormulaType<TI> getIndexType() { return indexType; }
-  public FormulaType<TE> getElementType() { return elementType; }
-}
+  static final class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
 
-class Z3BitvectorFormula extends Z3Formula implements BitvectorFormula {
-
-  public Z3BitvectorFormula(long z3context, long z3expr) {
-    super(z3context, z3expr);
+    public Z3BitvectorFormula(long z3context, long z3expr) {
+      super(z3context, z3expr);
+    }
   }
-}
 
-class Z3IntegerFormula extends Z3Formula implements IntegerFormula {
+  static final class Z3IntegerFormula extends Z3Formula implements IntegerFormula {
 
-  public Z3IntegerFormula(long z3context, long z3expr) {
-    super(z3context, z3expr);
+    public Z3IntegerFormula(long z3context, long z3expr) {
+      super(z3context, z3expr);
+    }
   }
-}
 
-class Z3RationalFormula extends Z3Formula implements RationalFormula {
+  static final class Z3RationalFormula extends Z3Formula implements RationalFormula {
 
-  public Z3RationalFormula(long z3context, long z3expr) {
-    super(z3context, z3expr);
+    public Z3RationalFormula(long z3context, long z3expr) {
+      super(z3context, z3expr);
+    }
   }
-}
 
-class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
-  public Z3BooleanFormula(long z3context, long z3expr) {
-    super(z3context, z3expr);
+  static final class Z3BooleanFormula extends Z3Formula implements BooleanFormula {
+    public Z3BooleanFormula(long z3context, long z3expr) {
+      super(z3context, z3expr);
+    }
   }
 }
 

@@ -35,6 +35,12 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
+import org.sosy_lab.solver.mathsat5.Mathsat5Formula.Mathsat5ArrayFormula;
+import org.sosy_lab.solver.mathsat5.Mathsat5Formula.Mathsat5BitvectorFormula;
+import org.sosy_lab.solver.mathsat5.Mathsat5Formula.Mathsat5BooleanFormula;
+import org.sosy_lab.solver.mathsat5.Mathsat5Formula.Mathsat5FloatingPointFormula;
+import org.sosy_lab.solver.mathsat5.Mathsat5Formula.Mathsat5IntegerFormula;
+import org.sosy_lab.solver.mathsat5.Mathsat5Formula.Mathsat5RationalFormula;
 
 class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
 

@@ -73,7 +73,7 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
     long[] terms = msat_get_unsat_core(curEnv);
     List<BooleanFormula> result = new ArrayList<>(terms.length);
     for (long t : terms) {
-      result.add(new Mathsat5BooleanFormula(t));
+      result.add(mgr.encapsulateBooleanFormula(t));
     }
     return result;
   }

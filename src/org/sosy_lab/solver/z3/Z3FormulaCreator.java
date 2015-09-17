@@ -43,6 +43,11 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
+import org.sosy_lab.solver.z3.Z3Formula.Z3ArrayFormula;
+import org.sosy_lab.solver.z3.Z3Formula.Z3BitvectorFormula;
+import org.sosy_lab.solver.z3.Z3Formula.Z3BooleanFormula;
+import org.sosy_lab.solver.z3.Z3Formula.Z3IntegerFormula;
+import org.sosy_lab.solver.z3.Z3Formula.Z3RationalFormula;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Maps;
