@@ -51,7 +51,7 @@ from  http.client import HTTPSConnection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
-from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
+from benchexec.model import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT,CORELIMIT
 
 RESULT_KEYS = ["cputime", "walltime"]
 
@@ -143,6 +143,10 @@ def resolveToolVersion(config, benchmark, webclient):
 
 def init(config, benchmark):
     global _webclient, _base64_user_pwd, _groupId
+    
+    if not benchmark.config.cpu_model:
+        logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
+                        "Otherwise the used machines and CPU models are undefined.")
 
     if config.cloudMaster:
         if not benchmark.config.cloudMaster[-1] == '/':
@@ -285,6 +289,8 @@ def _submitRun(run, benchmark, counter = 0):
         params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
     if TIMELIMIT in limits:
         params['timeLimitation'] = limits[TIMELIMIT]
+    if SOFTTIMELIMIT in limits:
+        params['softTimeLimitation'] = limits[SOFTTIMELIMIT]
     if CORELIMIT in limits:
         params['coreLimitation'] = limits[CORELIMIT]
     if benchmark.config.cpu_model:

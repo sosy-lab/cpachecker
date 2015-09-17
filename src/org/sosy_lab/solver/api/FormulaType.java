@@ -183,11 +183,11 @@ public abstract class FormulaType<T extends Formula> {
       this.elementType = Preconditions.checkNotNull(pElementType);
     }
 
-    public FormulaType<? extends Formula> getElementType() {
+    public FormulaType<TE> getElementType() {
       return elementType;
     }
 
-    public FormulaType<? extends Formula> getIndexType() {
+    public FormulaType<TI> getIndexType() {
       return indexType;
     }
 

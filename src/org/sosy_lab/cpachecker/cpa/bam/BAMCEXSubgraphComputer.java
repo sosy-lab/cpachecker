@@ -51,12 +51,12 @@ public class BAMCEXSubgraphComputer {
 
   final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
-  BAMCEXSubgraphComputer(BAMCPA bamCpa, LogManager pLogger, Map<ARGState, ARGState> pPathStateToReachedState) {
+  BAMCEXSubgraphComputer(BAMCPA bamCpa, Map<ARGState, ARGState> pPathStateToReachedState) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
     this.pathStateToReachedState = pPathStateToReachedState;
-    this.logger = pLogger;
+    this.logger = bamCpa.getLogger();
   }
 
   /** returns the root of a subtree, leading from the root element of the given reachedSet to the target state.

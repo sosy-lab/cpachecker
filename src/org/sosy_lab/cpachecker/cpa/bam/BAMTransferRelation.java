@@ -175,9 +175,8 @@ public class BAMTransferRelation implements TransferRelation {
     // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
     // (except we have a full cache-hit).
 
-    if (currentBlock != null && currentBlock.isReturnNode(node) && !data.alreadyReturnedFromSameBlock(pState, currentBlock)) {
+    if (exitBlockAnalysis(pState, node)) {
       // we are leaving the block, do not perform analysis beyond the current block.
-      // special case: returning from a recursive function is only allowed once per state.
       return Collections.emptySet();
     }
 
@@ -211,8 +210,15 @@ public class BAMTransferRelation implements TransferRelation {
     return result;
   }
 
+  /** When a block-start-location is reached, we start a new sub-analysis for the entered block. */
   protected boolean startNewBlockAnalysis(final AbstractState pState, final CFANode node) {
     return partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock);
+  }
+
+  /** When finding a block-exit-location, we do not return any further states.
+   * This stops the current running CPA-algorithm, when its waitlist is emtpy. */
+  protected boolean exitBlockAnalysis(final AbstractState pState, final CFANode node) {
+    return currentBlock != null && currentBlock.isReturnNode(node);
   }
 
   /**

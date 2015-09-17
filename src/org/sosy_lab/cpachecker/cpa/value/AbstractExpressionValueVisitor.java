@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.base.Optional;
@@ -685,7 +686,7 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if (BuiltinFunctions.isAbsolute(functionName)) {
+        if (BuiltinFloatFunctions.matchesAbsolute(functionName)) {
           assert parameterValues.size() == 1;
 
           final CType parameterType = parameterExpressions.get(0).getExpressionType();
@@ -703,33 +704,33 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(absoluteValue);
           }
 
-        } else if (BuiltinFunctions.isHugeVal(functionName)
-            || BuiltinFunctions.isInfinity(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)
+            || BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
           assert parameterValues.isEmpty();
-          if (BuiltinFunctions.isHugeValFloat(functionName)
-              || BuiltinFunctions.isInfinityFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesHugeValFloat(functionName)
+              || BuiltinFloatFunctions.matchesInfinityFloat(functionName)) {
 
             return new NumericValue(Float.POSITIVE_INFINITY);
 
           } else {
-            assert BuiltinFunctions.isInfinityDouble(functionName)
-                || BuiltinFunctions.isInfinityLongDouble(functionName)
-                || BuiltinFunctions.isHugeValDouble(functionName)
-                || BuiltinFunctions.isHugeValLongDouble(functionName)
+            assert BuiltinFloatFunctions.matchesInfinityDouble(functionName)
+                || BuiltinFloatFunctions.matchesInfinityLongDouble(functionName)
+                || BuiltinFloatFunctions.matchesHugeValDouble(functionName)
+                || BuiltinFloatFunctions.matchesHugeValLongDouble(functionName)
                 : " Unhandled builtin function for infinity: " + functionName;
 
             return new NumericValue(Double.POSITIVE_INFINITY);
           }
 
-        } else if (BuiltinFunctions.isNaN(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesNaN(functionName)) {
           assert parameterValues.isEmpty() || parameterValues.size() == 1;
 
-          if (BuiltinFunctions.isNaNFloat(functionName)) {
+          if (BuiltinFloatFunctions.matchesNaNFloat(functionName)) {
             return new NumericValue(Float.NaN);
           } else {
-            assert BuiltinFunctions.isNaNDouble(functionName)
-                || BuiltinFunctions.isNaNLongDouble(functionName)
+            assert BuiltinFloatFunctions.matchesNaNDouble(functionName)
+                || BuiltinFloatFunctions.matchesNaNLongDouble(functionName)
                 : "Unhandled builtin function for NaN: " + functionName;
 
             return new NumericValue(Double.NaN);

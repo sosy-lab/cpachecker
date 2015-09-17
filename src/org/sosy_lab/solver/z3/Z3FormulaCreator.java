@@ -155,6 +155,7 @@ class Z3FormulaCreator extends FormulaCreator<Long, Long, Long> {
         pTerm);
   }
 
+  @SuppressWarnings("unchecked")
   private <T extends Z3Formula> T storePhantomReference(T out, Long pTerm) {
     if (usePhantomReferences) {
       PhantomReference<T> ref = new PhantomReference<>(out, referenceQueue);

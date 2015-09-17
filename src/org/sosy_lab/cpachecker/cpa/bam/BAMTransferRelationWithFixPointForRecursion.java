@@ -92,6 +92,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
                 || isFunctionBlock(partitioning.getBlockForCallNode(node)));
   }
 
+  @Override
+  protected boolean exitBlockAnalysis(final AbstractState pState, final CFANode node) {
+    // special case: returning from a recursive function is only allowed once per state.
+    return super.exitBlockAnalysis(pState, node) && !data.alreadyReturnedFromSameBlock(pState, currentBlock);
+  }
+
   /** recursion is handled by callstack-reduction, so we do not check it here. */
   @Override
   protected boolean isRecursiveCall(final CFANode node) {

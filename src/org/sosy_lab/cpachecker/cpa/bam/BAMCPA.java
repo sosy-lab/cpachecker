@@ -213,6 +213,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return data;
   }
 
+  LogManager getLogger() {
+    return logger;
+  }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);

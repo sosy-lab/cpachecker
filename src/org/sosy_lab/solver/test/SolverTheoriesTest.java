@@ -43,7 +43,6 @@ import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
-import org.sosy_lab.solver.mathsat5.Mathsat5FormulaManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;

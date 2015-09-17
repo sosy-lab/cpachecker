@@ -294,9 +294,19 @@ public class ValueAnalysisRefiner
    * A simple heuristic to detect similar repeated refinements.
    */
   private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
-    // a refinement is a similar, repeated refinement
-    // if the (sorted) precision increment was already added in a previous refinement
-    return avoidSimilarRepeatedRefinement && !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+
+    boolean isSimilar = false;
+    int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
+
+    // a refinement is considered a similar, repeated refinement
+    // if the current increment was added in a previous refinement, already
+    if (avoidSimilarRepeatedRefinement) {
+      isSimilar = previousRefinementIds.contains(currentRefinementId);
+    }
+
+    previousRefinementIds.add(currentRefinementId);
+
+    return isSimilar;
   }
 
   /**
@@ -412,7 +422,7 @@ public class ValueAnalysisRefiner
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
     writer.put(rootRelocations)
-        .put(repeatedRefinements);
+        .put(repeatedRefinements)
+        .put("Number of unique precision increments", previousRefinementIds.size());
   }
 }
-

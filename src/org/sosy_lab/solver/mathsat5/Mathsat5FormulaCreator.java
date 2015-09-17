@@ -36,13 +36,7 @@ import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
-
-
 class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
-
-  private final Table<Long, Long, Long> allocatedArraySorts = HashBasedTable.create();
 
   public Mathsat5FormulaCreator(final Long msatEnv) {
     super(msatEnv,
@@ -132,7 +126,7 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
       return (T)new Mathsat5RationalFormula(pTerm);
     } else if (pType.isArrayType()) {
       ArrayFormulaType<?, ?> arrFt = (ArrayFormulaType<?, ?>) pType;
-      return (T)new Mathsat5ArrayFormula(pTerm,
+      return (T)new Mathsat5ArrayFormula<>(pTerm,
           arrFt.getIndexType(), arrFt.getElementType());
     } else if (pType.isBitvectorType()) {
       return (T)new Mathsat5BitvectorFormula(pTerm);

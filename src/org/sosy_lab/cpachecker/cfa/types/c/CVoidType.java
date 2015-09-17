@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +84,7 @@ public final class CVoidType implements CType, Serializable {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     List<String> parts = new ArrayList<>();
 
     if (isConst()) {

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Objects;
 
 
@@ -34,7 +36,7 @@ public abstract class AArrayType implements Type {
 
 
   public AArrayType(Type pElementType) {
-    elementType = pElementType;
+    elementType = checkNotNull(pElementType);
   }
 
   public Type getType() {

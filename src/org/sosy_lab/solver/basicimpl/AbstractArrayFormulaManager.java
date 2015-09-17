@@ -81,16 +81,14 @@ public abstract class AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv>
   protected abstract <TI extends Formula, TE extends Formula> TFormulaInfo internalMakeArray(
       String pName, FormulaType<TI> pIndexType, FormulaType<TE> pElementType);
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray) {
-    return (FTI) getFormulaCreator().getArrayFormulaIndexType(pArray);
+  public <TI extends Formula> FormulaType<TI> getIndexType(ArrayFormula<TI, ?> pArray) {
+    return getFormulaCreator().getArrayFormulaIndexType(pArray);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
-    return (FTE) getFormulaCreator().getArrayFormulaElementType(pArray);
+  public <TE extends Formula> FormulaType<TE> getElementType(ArrayFormula<?, TE> pArray) {
+    return getFormulaCreator().getArrayFormulaElementType(pArray);
   }
 
   @Override

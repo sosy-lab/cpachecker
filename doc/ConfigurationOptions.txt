@@ -1898,6 +1898,9 @@ cpa.value.interpolation.applyRenamingOptimization = true
 # apply optimizations based on infeasibility of suffix
 cpa.value.interpolation.applyUnsatSuffixOptimization = true
 
+# whether or not to manage the callstack, which is needed for BAM
+cpa.value.interpolation.manageCallstack = true
+
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
   allowed values: [SEP, JOIN]

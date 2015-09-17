@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -52,12 +53,14 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
 
   private final List<StatCounter> totalRefinementsSelected;
   private final List<StatCounter> totalRefinementsFinished;
+  private final LogManager logger;
 
   public DelegatingBAMRefiner(
       final ConfigurableProgramAnalysis pCpa, final AbstractBAMBasedRefiner... pRefiners)
       throws InvalidConfigurationException {
     super(pCpa);
 
+    logger = ((BAMCPA) pCpa).getLogger();
     refiners = Arrays.asList(pRefiners);
 
     totalRefinementsSelected = new ArrayList<>();

@@ -70,8 +70,8 @@ public interface ArrayFormulaManager {
   public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(
       ArrayFormula<TI, TE> pArray1, ArrayFormula<TI, TE> pArray2);
 
-  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray);
-  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray);
+  public <TI extends Formula> FormulaType<TI> getIndexType(ArrayFormula<TI, ?> pArray);
+  public <TE extends Formula> FormulaType<TE> getElementType(ArrayFormula<?, TE> pArray);
 
 }
 
