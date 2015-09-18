@@ -24,17 +24,17 @@
             this.selectedCFAFunction = 0;
         }
 
-/*
+
         this.getValues = function(val){
             var values = {};
             if(val != "") {
                 var singleStatements = val.split("\n");
-                for (var i = 0; i < singleStatements.length - 1; i++) {
+                for (var i = 0; i < singleStatements.length-1; i++) {
                     values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim();
                 }
             }
             return values;
-        };*/
+        };
 
         //preprocess Errorpath-Data for left content
         this.errorPathData = [];
@@ -44,18 +44,18 @@
                 if(errPathElem.source in fCallEdges){
                     errPathElem.target = fCallEdges[errPathElem.source][0];
                 }
-                /*var newValues;
-                //get Values
-                if(j >= 1) {
-                    newValues = this.getValues(errPathElem.val);
-                    errPathElem.val = errorPathData[j - 1].val;
-                    for (key in newValues) {
+                var newValues = this.getValues(errPathElem.val);
+                errPathElem.val = {};
+                if (j>0) {
+                    for (key in this.errorPathData[this.errorPathData.length - 1].val) {
+                        errPathElem.val[key] = this.errorPathData[this.errorPathData.length - 1].val[key];
+                    }
+                }
+                if (newValues != {}) {
+                    for(key in newValues){
                         errPathElem.val[key] = newValues[key];
                     }
-                } else {
-                    newValues = this.getValues(errPathElem.val);
-                    errPathElem.val = newValues;
-                }*/
+                }
                 this.errorPathData.push(errPathElem);
             }
         }
