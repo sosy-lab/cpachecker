@@ -102,7 +102,7 @@ public class FormulaManagerFactory {
   public FormulaManagerFactory(Configuration config, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config.inject(this);
-    logger = pLogger;
+    logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
 
     if (!logAllQueries) {

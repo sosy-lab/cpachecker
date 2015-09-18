@@ -24,6 +24,10 @@
 package org.sosy_lab.solver.basicimpl;
 
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -42,13 +46,11 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula {
   private final TFormulaInfo formulaInfo;
 
   protected AbstractFormula(TFormulaInfo formulaInfo) {
-    assert formulaInfo != null;
-
-    this.formulaInfo = formulaInfo;
+    this.formulaInfo = checkNotNull(formulaInfo);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (!(o instanceof AbstractFormula)) { return false; }
     return formulaInfo.equals(((AbstractFormula<?>) o).formulaInfo);
   }
@@ -80,8 +82,8 @@ class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
 
   public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
     super(info);
-    this.indexType = pIndexType;
-    this.elementType = pElementType;
+    this.indexType = checkNotNull(pIndexType);
+    this.elementType = checkNotNull(pElementType);
   }
 
   public FormulaType<TI> getIndexType() {

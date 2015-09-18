@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,22 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.solver;
+package org.sosy_lab.solver.api;
 
-import javax.annotation.Nullable;
+import com.google.common.testing.AbstractPackageSanityTests;
 
-/**
- * Exception that should be used if the SMT solver did something wrong.
- */
-public class SolverException extends Exception {
+public class PackageSanityTest extends AbstractPackageSanityTests {
 
-  private static final long serialVersionUID = -1557936144555925180L;
-
-  public SolverException(@Nullable String msg) {
-    super(msg);
-  }
-
-  public SolverException(@Nullable String msg, @Nullable Throwable t) {
-    super(msg, t);
+  {
+    setDistinctValues(FormulaType.class, FormulaType.BooleanType, FormulaType.IntegerType);
   }
 }

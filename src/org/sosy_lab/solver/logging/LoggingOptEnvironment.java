@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.solver.logging;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.OptEnvironment;
@@ -44,8 +46,8 @@ public class LoggingOptEnvironment implements OptEnvironment {
   LogManager logger;
 
   public LoggingOptEnvironment(LogManager logger, OptEnvironment oe) {
-    this.wrapped = oe;
-    this.logger = logger;
+    this.wrapped = checkNotNull(oe);
+    this.logger = checkNotNull(logger);
   }
 
   @Override
