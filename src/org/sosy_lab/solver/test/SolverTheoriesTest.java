@@ -64,6 +64,38 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   }
 
   @Test
+  public void basicBoolTest() throws Exception {
+    BooleanFormula a = bmgr.makeVariable("a");
+    BooleanFormula b = bmgr.makeBoolean(false);
+    BooleanFormula c = bmgr.xor(a, b);
+    BooleanFormula d = bmgr.makeVariable("b");
+    BooleanFormula e = bmgr.xor(a, d);
+
+    BooleanFormula notImpl = bmgr.and(a, bmgr.not(e));
+
+    assert_().about(BooleanFormula()).that(a).implies(c);
+    assert_().about(BooleanFormula()).that(notImpl).isSatisfiable();
+  }
+
+  @Test
+  public void basicIntTest() {
+    IntegerFormula a = imgr.makeVariable("a");
+    IntegerFormula b = imgr.makeVariable("b");
+    assertThat(a).isNotEqualTo(b);
+  }
+
+  @Test
+  public void basisRatTest() throws Exception {
+    requireRationals();
+
+    RationalFormula a = rmgr.makeVariable("int_c");
+    RationalFormula num = rmgr.makeNumber(4);
+
+    BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
+    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+  }
+
+  @Test
   public void intTest1() throws Exception {
     IntegerFormula a = imgr.makeVariable("int_a");
     IntegerFormula num = imgr.makeNumber(2);
