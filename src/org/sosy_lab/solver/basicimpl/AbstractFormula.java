@@ -45,98 +45,98 @@ abstract class AbstractFormula<TFormulaInfo> implements Formula {
 
   private final TFormulaInfo formulaInfo;
 
-  protected AbstractFormula(TFormulaInfo formulaInfo) {
+  private AbstractFormula(TFormulaInfo formulaInfo) {
     this.formulaInfo = checkNotNull(formulaInfo);
   }
 
   @Override
-  public boolean equals(@Nullable Object o) {
+  public final boolean equals(@Nullable Object o) {
     if (!(o instanceof AbstractFormula)) { return false; }
     return formulaInfo.equals(((AbstractFormula<?>) o).formulaInfo);
   }
 
-  TFormulaInfo getFormulaInfo() {
+  final TFormulaInfo getFormulaInfo() {
     return formulaInfo;
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return formulaInfo.hashCode();
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return formulaInfo.toString();
   }
-}
 
-/**
- * Simple ArrayFormula implementation.
- */
-class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
-    extends AbstractFormula<TFormulaInfo>
-    implements ArrayFormula<TI, TE> {
+  /**
+   * Simple ArrayFormula implementation.
+   */
+  static final class ArrayFormulaImpl<TI extends Formula, TE extends Formula, TFormulaInfo>
+      extends AbstractFormula<TFormulaInfo>
+      implements ArrayFormula<TI, TE> {
 
-  private final FormulaType<TI> indexType;
-  private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
+    private final FormulaType<TE> elementType;
 
-  public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
-    super(info);
-    this.indexType = checkNotNull(pIndexType);
-    this.elementType = checkNotNull(pElementType);
+    public ArrayFormulaImpl(TFormulaInfo info, FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+      super(info);
+      this.indexType = checkNotNull(pIndexType);
+      this.elementType = checkNotNull(pElementType);
+    }
+
+    public FormulaType<TI> getIndexType() {
+      return indexType;
+    }
+
+    public FormulaType<TE> getElementType() {
+      return elementType;
+    }
   }
 
-  public FormulaType<TI> getIndexType() {
-    return indexType;
+  /**
+   * Simple BooleanFormula implementation. Just tracing the size and the sign-treatment
+   */
+  static final class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BitvectorFormula {
+    public BitvectorFormulaImpl(TFormulaInfo info) {
+      super(info);
+    }
   }
 
-  public FormulaType<TE> getElementType() {
-    return elementType;
+  /**
+   * Simple FloatingPointFormula implementation.
+   */
+  static final class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements FloatingPointFormula {
+    public FloatingPointFormulaImpl(TFormulaInfo info) {
+      super(info);
+    }
   }
-}
 
-/**
- * Simple BooleanFormula implementation. Just tracing the size and the sign-treatment
- */
-class BitvectorFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BitvectorFormula {
-  public BitvectorFormulaImpl(TFormulaInfo info) {
-    super(info);
+  /**
+   * Simple BooleanFormula implementation.
+   */
+  static final class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BooleanFormula {
+    public BooleanFormulaImpl(TFormulaInfo pT) {
+      super(pT);
+    }
   }
-}
 
-/**
- * Simple FloatingPointFormula implementation.
- */
-class FloatingPointFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements FloatingPointFormula {
-  public FloatingPointFormulaImpl(TFormulaInfo info) {
-    super(info);
+  /**
+   * Simple IntegerFormula implementation.
+   */
+  static final class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements IntegerFormula {
+    public IntegerFormulaImpl(TFormulaInfo pTerm) {
+      super(pTerm);
+    }
   }
-}
 
-/**
- * Simple BooleanFormula implementation.
- */
-class BooleanFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements BooleanFormula {
-  public BooleanFormulaImpl(TFormulaInfo pT) {
-    super(pT);
-  }
-}
-
-/**
- * Simple IntegerFormula implementation.
- */
-class IntegerFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements IntegerFormula {
-  public IntegerFormulaImpl(TFormulaInfo pTerm) {
-    super(pTerm);
-  }
-}
-
-/**
- * Simple RationalFormula implementation.
- */
-class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
-  public RationalFormulaImpl(TFormulaInfo pTerm) {
-    super(pTerm);
+  /**
+   * Simple RationalFormula implementation.
+   */
+  static final class RationalFormulaImpl<TFormulaInfo> extends AbstractFormula<TFormulaInfo> implements RationalFormula {
+    public RationalFormulaImpl(TFormulaInfo pTerm) {
+      super(pTerm);
+    }
   }
 }
 

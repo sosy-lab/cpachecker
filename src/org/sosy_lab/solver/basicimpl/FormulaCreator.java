@@ -36,7 +36,12 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-
+import org.sosy_lab.solver.basicimpl.AbstractFormula.ArrayFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.BitvectorFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.BooleanFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.FloatingPointFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.IntegerFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.RationalFormulaImpl;
 
 /**
  * This is a helper class with several methods that are commonly used
