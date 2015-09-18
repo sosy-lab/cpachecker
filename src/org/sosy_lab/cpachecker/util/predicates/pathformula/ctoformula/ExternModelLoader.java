@@ -133,18 +133,10 @@ public class ExternModelLoader {
                   constraintPart = bfmgr.not(formulaVar);
                 }
               }
-              if (constraint == null) {
-                constraint = constraintPart;
-              } else {
-                constraint = bfmgr.or(constraint, constraintPart);
-              }
+              constraint = bfmgr.or(constraint, constraintPart);
             }
           }
-          if (externalModel == null) {
-            externalModel = constraint;
-          } else {
-            externalModel = bfmgr.and(externalModel, constraint);
-          }
+          externalModel = bfmgr.and(externalModel, constraint);
         }
       }// end of while
       return externalModel;
