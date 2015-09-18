@@ -55,10 +55,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.solver.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
@@ -127,11 +127,11 @@ public class FormulaManagerView implements StatisticsProvider {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
+  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
-  private final QuantifiedFormulaManagerView quantifiedFormulaManager;
-  private final ArrayFormulaManagerView arrayFormulaManager;
+  private QuantifiedFormulaManagerView quantifiedFormulaManager;
+  private ArrayFormulaManagerView arrayFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -162,12 +162,10 @@ public class FormulaManagerView implements StatisticsProvider {
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
-    integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
-    quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
-    arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
   }
 
@@ -760,11 +758,13 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+    if (integerFormulaManager == null) {
+      integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
+    }
     return integerFormulaManager;
   }
 
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
-    // lazy initialisation, because not all SMT-solvers support Rationals and maybe we only want to use Integers.
     if (rationalFormulaManager == null) {
       rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getRationalFormulaManager());
     }
@@ -788,10 +788,16 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
+    if (quantifiedFormulaManager == null) {
+      quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
+    }
     return quantifiedFormulaManager;
   }
 
   public ArrayFormulaManagerView getArrayFormulaManager() {
+    if (arrayFormulaManager == null) {
+      arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+    }
     return arrayFormulaManager;
   }
 
