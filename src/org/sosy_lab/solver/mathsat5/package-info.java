@@ -24,4 +24,7 @@
 /**
  * Interface to the SMT solver MathSAT5 (based on the native C API and JNI).
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.solver.mathsat5;

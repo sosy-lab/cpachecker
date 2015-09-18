@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.solver.z3;
 
+import javax.annotation.Nullable;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /** This class contains the native calls for Z3.
@@ -53,7 +55,7 @@ public final class Z3NativeApi {
   public static class PointerToString {
     @SuppressFBWarnings(value = "UUF_UNUSED_FIELD",
         justification = "Read by native code")
-    String value;
+    @Nullable String value;
   }
 
   /**

@@ -91,7 +91,7 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     @Option(secure=true, description="Activate replayable logging in Z3."
         + " The log can be given as an input to the solver and replayed.")
     @FileOption(Type.OUTPUT_FILE)
-    Path log = null;
+    @Nullable Path log = null;
   }
 
   private Z3FormulaManager(

@@ -28,8 +28,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sosy_lab.solver.SolverException;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
@@ -43,7 +45,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 class SmtInterpolTheoremProver implements ProverEnvironment {
 
   private final SmtInterpolFormulaManager mgr;
-  private SmtInterpolEnvironment env;
+  private @Nullable SmtInterpolEnvironment env;
   private final List<Term> assertedTerms;
 
   private final Function<Term, BooleanFormula> encapsulateBoolean = new Function<Term, BooleanFormula>() {

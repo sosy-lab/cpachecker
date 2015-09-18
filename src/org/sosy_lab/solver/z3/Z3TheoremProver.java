@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
@@ -56,7 +58,7 @@ class Z3TheoremProver implements ProverEnvironment {
 
   private static final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
 
-  private final Map<String, BooleanFormula> storedConstraints;
+  private final @Nullable Map<String, BooleanFormula> storedConstraints;
 
   Z3TheoremProver(Z3FormulaManager pMgr, long z3params,
       ShutdownNotifier pShutdownNotifier, boolean generateUnsatCore) {

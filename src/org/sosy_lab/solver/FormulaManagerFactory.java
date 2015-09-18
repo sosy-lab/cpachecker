@@ -79,7 +79,7 @@ public class FormulaManagerFactory {
   @Option(secure=true,
       description = "Export solver queries in Smtlib format into a file.")
   @FileOption(Type.OUTPUT_FILE)
-  private PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
+  private @Nullable PathCounterTemplate logfile = PathCounterTemplate.ofFormatString("smtquery.%03d.smt2");
 
   @Option(secure=true, description = "Random seed for SMT solver.")
   private long randomSeed = 42;
@@ -88,7 +88,7 @@ public class FormulaManagerFactory {
   private Solvers solver = Solvers.SMTINTERPOL;
 
   @Option(secure=true, description="Which solver to use specifically for interpolation (default is to use the main one).")
-  private Solvers interpolationSolver = null;
+  private @Nullable Solvers interpolationSolver = null;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -96,7 +96,7 @@ public class FormulaManagerFactory {
   private final FormulaManager fmgr;
   private final FormulaManager itpFmgr;
 
-  private volatile SolverFactory smtInterpolFactory = null;
+  private volatile @Nullable SolverFactory smtInterpolFactory = null;
 
   @VisibleForTesting
   public FormulaManagerFactory(Configuration config, LogManager pLogger,
