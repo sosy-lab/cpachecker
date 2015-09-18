@@ -2270,7 +2270,6 @@ restartAlgorithmWithARGReplay.configFiles = no default value
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
-solver.checkUFs = no default value
 
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
@@ -2279,42 +2278,32 @@ solver.interpolationSolver = no default value
 
 # Export solver queries in Smtlib format into a file.
 solver.logAllQueries = false
-solver.logAllQueries = no default value
-solver.logfile = "smtquery.%03d.smt2"
 solver.logfile = no default value
 
 # List of further options which will be passed to Mathsat in addition to the
 # default options. Format is 'key1=value1,key2=value2'
 solver.mathsat5.furtherOptions = ""
-solver.mathsat5.furtherOptions = no default value
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
-solver.mathsat5.loadOptimathsat5 = no default value
 
 # Random seed for SMT solver.
 solver.randomSeed = 42
-solver.randomSeed = no default value
 
 # Double check generated results like interpolants and models whether they
 # are correct
 solver.smtinterpol.checkResults = false
-solver.smtinterpol.checkResults = no default value
 
 # List of further options which will be set to true for SMTInterpol in
 # addition to the default options. Format is 'option1,option2,option3'
 solver.smtinterpol.furtherOptions = []
-solver.smtinterpol.furtherOptions = no default value
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
-solver.solver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # log some solver actions, this may be slow!
 solver.useLogger = false
-solver.useLogger = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -2324,28 +2313,20 @@ solver.z3.log = no default value
 # different solvers, choose target-solver.
 solver.z3.logger.target = Z3
   allowed values: [Z3, MATHSAT5]
-solver.z3.logger.target = no default value
-  allowed values: [Z3, MATHSAT5]
 
 # Ordering for objectives in the optimization context
 solver.z3.objectivePrioritizationMode = "box"
-  allowed values: [lex, pareto, box]
-solver.z3.objectivePrioritizationMode = no default value
   allowed values: [lex, pareto, box]
 
 # Engine to use for the optimization
 solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
-solver.z3.optimizationEngine = no default value
-  allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
 solver.z3.requireProofs = true
-solver.z3.requireProofs = no default value
 
 # simplify formulas when they are asserted in a solver.
 solver.z3.simplifyFormulas = false
-solver.z3.simplifyFormulas = no default value
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
