@@ -33,9 +33,9 @@
             </header>
             <div class="fileContent">
                 <table id="err_table">
-                    <tr id="errpath-{{$index}}" ng-click="report.clickedErrpathElement($event)" ng-repeat="line in report.errorPathData">
-                        <td><pre>{{line.source}}</pre></td>
-                        <td><pre>{{line.desc}}</pre></td>
+                    <tr id="errpath-{{$index}}" ng-repeat="line in report.errorPathData">
+                        <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>{{line.source}}</pre></td>
+                        <td ng-click="report.clickedErrpathElement($event)"><pre>{{line.desc}}</pre></td>
                     </tr>
                 </table>
             </div>
@@ -78,7 +78,7 @@
                     <!--CFAFUNCTIONGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent" ng-show="report.tabIsSet(2)">
+            <div class="fileContent argContent" ng-show="report.tabIsSet(2)">
                 <!--ARGGRAPHS-->
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(3)">

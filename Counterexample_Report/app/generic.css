@@ -57,6 +57,7 @@ height: 25px;
     border-color: lightgrey;
     padding: 5px;
 }
+
 #middleLine{
     cursor: col-resize;
     position: absolute;
@@ -78,6 +79,16 @@ height: 25px;
     padding: 5px;
     border: solid 4px;
     border-color: lightgrey;
+}
+
+.popover{
+    min-width: 500px;
+    max-height: 500px;
+    white-space: pre-line;
+    overflow: auto;
+    background-color: #f5fff8;
+    border: solid 2px;
+    border-color: #00d415;
 }
 
 .fileContent {
@@ -126,6 +137,10 @@ td:first-child {
 
 .markedARGNode polygon{
     fill: #ff9c00;
+}
+.markedTableElement{
+    border: solid 2px;
+    border-color: #00d415;
 }
 
 .cfaContent{
