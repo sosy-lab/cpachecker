@@ -39,26 +39,28 @@
             return values;
         };
 
-        for(var j = 0; j<errorPathData.length; j++) {
-            var errPathElem = errorPathData[j];
+        for(var a = 0; a<errorPathData.length; a++) {
+            var errPathElem = errorPathData[a];
             if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
                 if (errPathElem.source in fCallEdges) {
                     errPathElem.target = fCallEdges[errPathElem.source][0];
                 }
                 var newValues = this.getValues(errPathElem.val);
-                errPathElem.val = {};
+                errPathElem["valDict"] = {};
                 errPathElem["valString"] = "";
-                if (j > 0) {
-                    for (key in this.errorPathData[this.errorPathData.length - 1].val) {
-                        errPathElem.val[key] = this.errorPathData[this.errorPathData.length - 1].val[key];
-                        errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.val[key] + "\n";
+                if (a > 0) {
+                    for (key in this.errorPathData[this.errorPathData.length - 1].valDict) {
+                        errPathElem.valDict[key] = this.errorPathData[this.errorPathData.length - 1].valDict[key];
                     }
                 }
                 if (newValues != {}) {
                     for (key in newValues) {
-                        errPathElem.val[key] = newValues[key];
-                        errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.val[key] + "\n";
+                        errPathElem.valDict[key] = newValues[key];
                     }
+                }
+                // if I do it in one of the for-loops before I get the new values doubled
+                for (key in errPathElem.valDict){
+                    errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.valDict[key] + "\n";
                 }
                 this.errorPathData.push(errPathElem);
             }
@@ -108,6 +110,47 @@
                 element.classList.remove("markedTableElement");
             } else {
                 element.classList.add("markedTableElement");
+            }
+        };
+
+        this.numOfValueMatches = 0;
+        this.numOfDescriptionMatches = 0;
+        this.searchFor = function(){
+            this.numOfValueMatches = 0;
+            this.numOfDescriptionMatches = 0;
+            var allMarkedValueElements = document.getElementsByClassName("markedValueElement");
+            //window.alert(allMarkedValueElements.length);
+            while(allMarkedValueElements.length != 0){
+                allMarkedValueElements[0].classList.remove("markedValueElement");
+            }
+            var allMarkedDescElements = document.getElementsByClassName("markedDescElement");
+            //window.alert(allMarkedDescElements.length);
+            while(allMarkedDescElements.length != 0){
+                allMarkedDescElements[0].classList.remove("markedDescElement");
+            }
+            var allMarkedValueDescElements = document.getElementsByClassName("markedValueDescElement");
+            //window.alert(allMarkedValueDescElements.length);
+            while(allMarkedValueDescElements.length != 0){
+                allMarkedValueDescElements[0].classList.remove("markedValueDescElement");
+            }
+            var searchedString = document.getElementsByClassName("search-input")[0].value;
+            if(searchedString.trim() != "") {
+                for (var l = 0; l < this.errorPathData.length; l++) {
+                    var errorPathElem = this.errorPathData[l];
+                    if (errorPathElem.val.contains(searchedString) && errorPathElem.desc.contains(searchedString)) {
+                        this.numOfValueMatches = this.numOfValueMatches + 1;
+                        this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
+                        document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueDescElement");
+                    }
+                    else if (errorPathElem.val.contains(searchedString)) {
+                        this.numOfValueMatches = this.numOfValueMatches + 1;
+                        document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueElement");
+                    }
+                    else if (errorPathElem.desc.contains(searchedString)) {
+                        this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
+                        document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedDescElement");
+                    }
+                }
             }
         };
 
@@ -320,16 +363,16 @@ $(function () {
 function init(){
     var svgElements = document.getElementsByTagName("svg");
     //set IDs for all CFA-SVGs
-    for(var i = 0; i<svgElements.length-1; i++){
-        var graph = svgElements[i].getElementsByTagName("g")[0];
-        graph.id = "cfaGraph-" + i.toString();
+    for(var r = 0; r<svgElements.length-1; r++){
+        var graph = svgElements[r].getElementsByTagName("g")[0];
+        graph.id = "cfaGraph-" + r.toString();
         var nodes = graph.getElementsByClassName("node");
-        for(var k = 0; k < nodes.length; k++){
-            nodes[k].id = "cfa-" + nodes[k].getElementsByTagName("title")[0].innerHTML;
+        for(var s = 0; s < nodes.length; s++){
+            nodes[s].id = "cfa-" + nodes[s].getElementsByTagName("title")[0].innerHTML;
         }
         var edges = graph.getElementsByClassName("edge");
-        for(var l=0; l<edges.length; l++){
-            var edge = edges[l];
+        for(var t=0; t<edges.length; t++){
+            var edge = edges[t];
             var fromto = [];
             if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
                 fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
@@ -347,12 +390,12 @@ function init(){
     graph = svgElements[svgElements.length-1].getElementsByTagName("g")[0];
     graph.id = "argGraph-" + (svgElements.length-1).toString();
     nodes = graph.getElementsByClassName("node");
-    for(var n = 0; n < nodes.length; n++){
-        nodes[n].id = "arg-" + nodes[n].getElementsByTagName("title")[0].innerHTML;
+    for(var u = 0; u < nodes.length; u++){
+        nodes[u].id = "arg-" + nodes[u].getElementsByTagName("title")[0].innerHTML;
     }
     edges = graph.getElementsByClassName("edge");
-    for(var o=0; o<edges.length; o++){
-        edge = edges[o];
+    for(var v=0; v<edges.length; v++){
+        edge = edges[v];
         fromto = [];
         if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
             fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
@@ -373,9 +416,9 @@ function init(){
         returnedges[fcalledge[1]] = fcalledge[0];
     }
     var errPathDataForCFA = [];
-    for(var j = 0; j < errorPathData.length; j++){
-        var source = errorPathData[j].source;
-        var target = errorPathData[j].target;
+    for(var w = 0; w < errorPathData.length; w++){
+        var source = errorPathData[w].source;
+        var target = errorPathData[w].target;
         if(source in combinedNodes && target in combinedNodes){
 
         }
@@ -391,8 +434,8 @@ function init(){
             errPathDataForCFA.push(source + "->" + target);
         }
     }
-    for(var m = 0; m < errPathDataForCFA.length; m++){
-        var cfaEdge = document.getElementById("cfa-" + errPathDataForCFA[m]);
+    for(var x = 0; x < errPathDataForCFA.length; x++){
+        var cfaEdge = document.getElementById("cfa-" + errPathDataForCFA[x]);
         var path = cfaEdge.getElementsByTagName("path")[0];
         var poly = cfaEdge.getElementsByTagName("polygon")[0];
         var text = cfaEdge.getElementsByTagName("text")[0];

@@ -21,61 +21,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="app_template.js" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/app/app_template.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.31317204">
-              <caret line="61" column="17" selection-start-line="61" selection-start-column="17" selection-end-line="61" selection-end-column="17" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="index_WithoutGraphs.html" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/index_WithoutGraphs.html">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-0.0">
-              <caret line="906" column="41" selection-start-line="906" selection-start-column="41" selection-end-line="906" selection-end-column="41" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="index.html" pinned="false" current-in-tab="false">
+      <file leaf-file-name="index.html" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/index.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-7.6363635">
-              <caret line="36" column="155" selection-start-line="36" selection-start-column="155" selection-end-line="36" selection-end-column="155" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="generic.css" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/app/generic.css">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-42.580647">
-              <caret line="88" column="30" selection-start-line="88" selection-start-column="30" selection-end-line="88" selection-end-column="30" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="index_template.html" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/index_template.html">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-7.5">
-              <caret line="36" column="161" selection-start-line="36" selection-start-column="161" selection-end-line="36" selection-end-column="161" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="app.js" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/app/app.js">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-7.032258">
-              <caret line="61" column="17" selection-start-line="61" selection-start-column="17" selection-end-line="61" selection-end-column="17" />
+            <state vertical-scroll-proportion="0.5193076">
+              <caret line="26" column="20" selection-start-line="26" selection-start-column="20" selection-end-line="26" selection-end-column="20" />
               <folding />
             </state>
           </provider>
@@ -99,11 +49,11 @@
         <option value="$PROJECT_DIR$/index_template_java.html" />
         <option value="$PROJECT_DIR$/dropdown.html" />
         <option value="$PROJECT_DIR$/index_WithoutGraphs.html" />
-        <option value="$PROJECT_DIR$/app/generic.css" />
-        <option value="$PROJECT_DIR$/index.html" />
-        <option value="$PROJECT_DIR$/index_template.html" />
         <option value="$PROJECT_DIR$/app/app.js" />
+        <option value="$PROJECT_DIR$/index.html" />
+        <option value="$PROJECT_DIR$/app/generic.css" />
         <option value="$PROJECT_DIR$/app/app_template.js" />
+        <option value="$PROJECT_DIR$/index_template.html" />
       </list>
     </option>
   </component>
@@ -181,6 +131,38 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="Counterexample_Report" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="BlankReport" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Counterexample_Report" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="bootstrap-3.3.5-dist" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="BlankReport" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Counterexample_Report" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="bootstrap-3.3.5-dist" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="css" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -666,13 +648,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/bootstrap.min.css">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="172.25807">
-          <caret line="4" column="56681" selection-start-line="4" selection-start-column="56668" selection-end-line="4" selection-end-column="56681" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/dropdown.html">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.44573644">
@@ -687,14 +662,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/generic.css">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-42.580647">
-          <caret line="88" column="30" selection-start-line="88" selection-start-column="30" selection-end-line="88" selection-end-column="30" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/index_WithoutGraphs.html">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -703,34 +670,49 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/index.html">
+    <entry file="file://$PROJECT_DIR$/bootstrap-3.3.5-dist/css/bootstrap.min.css">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-7.6363635">
-          <caret line="36" column="155" selection-start-line="36" selection-start-column="155" selection-end-line="36" selection-end-column="155" />
-          <folding />
+        <state vertical-scroll-proportion="0.33333334">
+          <caret line="4" column="36132" selection-start-line="4" selection-start-column="36120" selection-end-line="4" selection-end-column="36132" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/index_template.html">
+    <entry file="file://$PROJECT_DIR$/app/app_template.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-7.5">
-          <caret line="36" column="161" selection-start-line="36" selection-start-column="161" selection-end-line="36" selection-end-column="161" />
+        <state vertical-scroll-proportion="8.670968">
+          <caret line="448" column="2" selection-start-line="448" selection-start-column="2" selection-end-line="448" selection-end-column="2" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/app/app.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-7.032258">
-          <caret line="61" column="17" selection-start-line="61" selection-start-column="17" selection-end-line="61" selection-end-column="17" />
+        <state vertical-scroll-proportion="0.30967742">
+          <caret line="358" column="0" selection-start-line="358" selection-start-column="0" selection-end-line="448" selection-end-column="2" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/app/app_template.js">
+    <entry file="file://$PROJECT_DIR$/app/generic.css">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.31317204">
-          <caret line="61" column="17" selection-start-line="61" selection-start-column="17" selection-end-line="61" selection-end-column="17" />
+        <state vertical-scroll-proportion="3.1741936">
+          <caret line="164" column="30" selection-start-line="164" selection-start-column="30" selection-end-line="164" selection-end-column="30" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/index_template.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.17976032">
+          <caret line="48" column="35" selection-start-line="48" selection-start-column="35" selection-end-line="48" selection-end-column="35" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/index.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.5193076">
+          <caret line="26" column="20" selection-start-line="26" selection-start-column="20" selection-end-line="26" selection-end-column="20" />
           <folding />
         </state>
       </provider>

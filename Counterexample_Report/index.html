@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html ng-app='report'>
 <head>
-    <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="bootstrap-3.3.5-dist/css/bootstrap.min.css"/>
     <link href="app/generic.css" rel="stylesheet" type="text/css">
     <link href="prettify.css" rel="stylesheet" type="text/css">
     <!--the jquery-script is necessary for bootstrap has to be added BEFORE the bootstrap-script-->
     <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
-    <script type="text/javascript" src="bootstrap.min.js"></script>
+    <script type="text/javascript" src="bootstrap-3.3.5-dist/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="angular.js"></script>
     <script type ="text/javascript" src="app/app.js"></script>
     <script type="text/javascript" src="prettify.js"></script>
@@ -29,6 +29,18 @@
                     <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Prev</button>
                     <button class="btn btn-warning" ng-click="report.clickedErrpathButton($event)">Start</button>
                     <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Next</button>
+                </div>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control search-input" placeholder="Search for...">
+                    <span class="input-group-btn">
+                        <button ng-click="report.searchFor()" class="btn btn-default" type="button">
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                        </button>
+                    </span>
+                </div>
+                <div>
+                    <p class="markedValues">Matches in "values": {{report.numOfValueMatches}}</p>
+                    <p class="markedDescriptions">Matches in "description": {{report.numOfDescriptionMatches}}</p>
                 </div>
             </header>
             <div class="fileContent">

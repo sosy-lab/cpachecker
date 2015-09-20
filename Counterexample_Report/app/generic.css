@@ -58,6 +58,11 @@ height: 25px;
     padding: 5px;
 }
 
+#errorpath_section header .input-group{
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
 #middleLine{
     cursor: col-resize;
     position: absolute;
@@ -91,7 +96,12 @@ height: 25px;
     border-color: #00d415;
 }
 
-.fileContent {
+#errorpath_section .fileContent {
+    height: calc(100% - 130px);
+    margin: 5px;
+    overflow: auto;
+}
+#externalFiles_section .fileContent {
     height: calc(100% - 50px);
     margin: 5px;
     overflow: auto;
@@ -141,6 +151,27 @@ td:first-child {
 .markedTableElement{
     border: solid 2px;
     border-color: #00d415;
+}
+.markedValueElement{
+    background-color: #83d480;
+}
+.markedDescElement{
+    background-color: #71afff;
+}
+.markedValueDescElement{
+    background: linear-gradient(#83d480, #71afff);
+}
+.markedValues{
+    background-color: #83d480;
+    margin-bottom: 2px;
+    padding: 2px;
+    max-width: 200px;
+}
+.markedDescriptions{
+    background-color: #71afff;
+    padding: 2px;
+    margin-bottom: 2px;
+    max-width: 200px;
 }
 
 .cfaContent{
