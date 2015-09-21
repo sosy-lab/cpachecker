@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -151,83 +150,5 @@ final public class SMGJoin {
 
   public CLangSMG getJointSMG() {
     return smg;
-  }
-}
-
-class SMGNodeMapping {
-  final private Map<SMGObject, SMGObject> object_map = new HashMap<>();
-  final private Map<Integer, Integer> value_map = new HashMap<>();
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((object_map == null) ? 0 : object_map.hashCode());
-    result = prime * result + ((value_map == null) ? 0 : value_map.hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    SMGNodeMapping other = (SMGNodeMapping) obj;
-    if (object_map == null) {
-      if (other.object_map != null) {
-        return false;
-      }
-    } else if (!object_map.equals(other.object_map)) {
-      return false;
-    }
-    if (value_map == null) {
-      if (other.value_map != null) {
-        return false;
-      }
-    } else if (!value_map.equals(other.value_map)) {
-      return false;
-    }
-    return true;
-  }
-
-  public SMGNodeMapping() {}
-
-  public SMGNodeMapping(SMGNodeMapping origin) {
-    object_map.putAll(origin.object_map);
-    value_map.putAll(origin.value_map);
-  }
-
-  public Integer get(Integer i) {
-    return value_map.get(i);
-  }
-
-  public SMGObject get (SMGObject o) {
-    return object_map.get(o);
-  }
-
-  public void map(SMGObject key, SMGObject value) {
-    object_map.put(key, value);
-  }
-
-  public void map(Integer key, Integer value) {
-    value_map.put(key, value);
-  }
-
-  public boolean containsKey(Integer key) {
-    return value_map.containsKey(key);
-  }
-
-  public boolean containsKey(SMGObject key) {
-    return object_map.containsKey(key);
-  }
-
-  public boolean containsValue(SMGObject value) {
-    return object_map.containsValue(value);
   }
 }
