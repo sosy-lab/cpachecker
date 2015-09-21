@@ -85,6 +85,9 @@
                         </ul>
                     </div>
                     <label>{{report.functions[report.selectedCFAFunction]}}</label>
+                    <div>
+                        <input id="cfa-scalingField" type="number" min="0" max="200" value="100" ngchange="report.setZoom()">
+                    </div>
                 </div>
                 <div class="cfaContent">
                     <!--CFAFUNCTIONGRAPHS-->

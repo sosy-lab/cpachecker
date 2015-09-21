@@ -163,12 +163,14 @@ td:first-child {
 }
 .markedValues{
     background-color: #83d480;
+    border-radius: 25px;
     margin-bottom: 2px;
     padding: 2px;
     max-width: 200px;
 }
 .markedDescriptions{
     background-color: #71afff;
+    border-radius: 20px;
     padding: 2px;
     margin-bottom: 2px;
     max-width: 200px;
@@ -180,15 +182,24 @@ td:first-child {
 }
 .dropdown-line{
     position: fixed;
-    width: inherit;
     background-color: white;
     padding: 5px;
 }
 .dropdown-line div{
-    display: inline;
+    display: inline-block;
 }
 .dropdown-line label{
-    display: inline;
+    display: inline-block;
+}
+#cfa-scalingField{
+    margin-left: 100px;
+    width: 50px;
+    display: inline-block;
+}
+#cfa-scalingSlider{
+    margin-left: 10px;
+    width: 200px;
+    display: inline-block;
 }
 
 div pre{

@@ -85,6 +85,9 @@
                         </ul>
                     </div>
                     <label>{{report.functions[report.selectedCFAFunction]}}</label>
+                    <div>
+                        <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactor" ng-change="report.setZoom()"/>
+                    </div>
                 </div>
                 <div class="cfaContent">
 <svg  ng-show = "report.cfaFunctionIsSet(0)" width="2384pt" height="129pt"

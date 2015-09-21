@@ -24,6 +24,7 @@
             this.selectedCFAFunction = 0;
         }
 
+        this.zoomFactor = 100;
 
         //preprocess Errorpath-Data for left content
         this.errorPathData = [];
@@ -188,6 +189,7 @@
                 this.markSource(line);
             } else if (document.getElementById(y).classList.contains("node")){
                 var cfaNodeNumber = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split("N")[1];
+                this.setTab(1);
                 this.markCFANode(cfaNodeNumber);
             }
         };
@@ -236,7 +238,6 @@
         //mark correct CFA-node
         this.cfaNodeMarked = false;
         this.markCFANode = function(nodenumber){
-            this.setTab(1);
             if(this.cfaNodeMarked){
                 document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
             }
@@ -323,6 +324,7 @@
             this.tab = value;
         };
         this.tabIsSet = function(value){
+            $anchorScroll();
             return this.tab === value;
         };
 
@@ -341,6 +343,10 @@
             }
             document.getElementById(id).style.outline = "red solid 1px";
             this.selected_ErrLine = id;
+        };
+
+        this.setZoom = function(){
+            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor/100, this.zoomFactor/100);
         };
     }]);
 })();
@@ -447,3 +453,4 @@ function init(){
         }
     }
 };
+
