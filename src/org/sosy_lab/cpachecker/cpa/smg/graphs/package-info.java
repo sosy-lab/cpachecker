@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,11 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
-
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-
-public interface SMGAbstractionCandidate {
-  public int getScore();
-  public CLangSMG execute(CLangSMG pSMG);
-}
+/**
+ * Package with the classes representing the memory graphs.
+ */
+package org.sosy_lab.cpachecker.cpa.smg.graphs;
