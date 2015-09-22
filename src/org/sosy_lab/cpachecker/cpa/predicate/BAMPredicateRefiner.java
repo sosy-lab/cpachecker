@@ -398,7 +398,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
     @Override
     public void performRefinement(
         ARGReachedSet pReached,
-        List<ARGState> pPath,
+        List<ARGState> abstractionStatesTrace,
         List<BooleanFormula> pInterpolants,
         boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
 
@@ -409,14 +409,14 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
       if (pRepeatedCounterexample) {
         //block formulas are the same as last time; check if abstractions also agree
-        pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
+        pRepeatedCounterexample = getRegionsForPath(abstractionStatesTrace).equals(lastAbstractions);
 
         final RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
         if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer
             && relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
           //even abstractions agree; try refining relevant predicates reducer
           RelevantPredicatesComputer newRelevantPredicatesComputer =
-              refineRelevantPredicatesComputer(pPath, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
+              refineRelevantPredicatesComputer(abstractionStatesTrace, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
 
           if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
             // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
@@ -434,9 +434,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         }
       }
 
-      lastAbstractions = getRegionsForPath(pPath);
+      lastAbstractions = getRegionsForPath(abstractionStatesTrace);
       refinedLastRelevantPredicatesComputer = refinedRelevantPredicatesComputer;
-      super.performRefinement(pReached, pPath, pInterpolants, pRepeatedCounterexample);
+      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
     }
 
     /**
@@ -446,7 +446,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
      * where substring-matching against block-local variables is performed.
      * @return the refined relevantPredicateComputer
      */
-    private RelevantPredicatesComputer refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached,
+    private RelevantPredicatesComputer refineRelevantPredicatesComputer(List<ARGState> abstractionStatesTrace, ARGReachedSet pReached,
         RefineableRelevantPredicatesComputer relevantPredicatesComputer) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastState());
@@ -455,7 +455,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
       Deque<Block> openBlocks = new ArrayDeque<>();
       openBlocks.push(partitioning.getMainBlock());
-      for (ARGState pathElement : pPath) {
+      for (ARGState pathElement : abstractionStatesTrace) {
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
         Integer currentNodeInstance = getPredicateState(pathElement)
                                       .getAbstractionLocationsOnPath().get(currentNode);
