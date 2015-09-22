@@ -286,6 +286,11 @@ public class BAMPredicateReducer implements Reducer {
           && pObj instanceof ReducedPredicatePrecision
           && rootPredicatePrecision.equals(((ReducedPredicatePrecision)pObj).getRootPredicatePrecision());
     }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + 17 * rootPredicatePrecision.hashCode();
+    }
   }
 
   @Override
