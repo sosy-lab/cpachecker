@@ -24,4 +24,7 @@
 /**
  * Solver-independent tests and test utilities for the solver API.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+// TODO: Should be ReturnValuesAreNonnullByDefault in next version of SoSy-Lab Common
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 package org.sosy_lab.solver.test;

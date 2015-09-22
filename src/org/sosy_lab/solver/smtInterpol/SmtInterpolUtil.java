@@ -32,6 +32,8 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.FormulaUnLet;
@@ -238,7 +240,7 @@ class SmtInterpolUtil {
     }
   }
 
-  public static Term getArg(Term t, int i) {
+  public static @Nullable Term getArg(Term t, int i) {
     if (t instanceof ApplicationTerm) {
       return ((ApplicationTerm) t).getParameters()[i];
     } else {

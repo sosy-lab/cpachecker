@@ -23,14 +23,16 @@
  */
 package org.sosy_lab.solver.princess;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.solver.Model;
 
 abstract class PrincessAbstractProver {
 
-  protected PrincessStack stack;
-  protected PrincessFormulaManager mgr;
+  protected @Nullable PrincessStack stack;
+  protected @Nullable PrincessFormulaManager mgr;
 
   protected PrincessAbstractProver(PrincessFormulaManager pMgr, boolean useForInterpolation) {
     this.mgr = pMgr;
@@ -41,6 +43,7 @@ abstract class PrincessAbstractProver {
    * if their conjunction is SAT or UNSAT.
    */
   public boolean isUnsat() {
+    checkState(stack != null);
     return !stack.checkSat();
   }
 

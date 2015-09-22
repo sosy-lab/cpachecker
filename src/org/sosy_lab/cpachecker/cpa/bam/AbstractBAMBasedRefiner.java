@@ -136,7 +136,7 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner im
     // cleanup old states from last refinement
     subgraphStatesToReachedState.clear();
 
-    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, logger, subgraphStatesToReachedState);
+    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, subgraphStatesToReachedState);
     return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet);
   }
 }

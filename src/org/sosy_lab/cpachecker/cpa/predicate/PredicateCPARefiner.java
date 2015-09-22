@@ -126,7 +126,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   Configuration config;
 
   // the previously analyzed counterexample to detect repeated counterexamples
-  private List<BooleanFormula> lastErrorPath = null;
+  private List<CFANode> lastErrorPath = null;
 
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
@@ -273,8 +273,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      boolean repeatedCounterexample = formulas.equals(lastErrorPath);
-      lastErrorPath = formulas;
+      final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+      boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
+      lastErrorPath = errorPath;
 
       strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
 

@@ -54,11 +54,6 @@ class PrincessFormulaCreator extends FormulaCreator<IExpression, TermType, Princ
   }
 
   @Override
-  public TermType getRationalType() {
-    throw new UnsupportedOperationException("Rational theory is not supported by Princess");
-  }
-
-  @Override
   public TermType getBitvectorType(int pBitwidth) {
     throw new UnsupportedOperationException("Bitvector theory is not supported by Princess");
   }

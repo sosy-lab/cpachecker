@@ -56,21 +56,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
-enum SMGRuntimeCheck {
-  FORCED(-1),
-  NONE(0),
-  HALF(1),
-  FULL(2);
-
-  private final int id;
-  SMGRuntimeCheck(int pId) { id = pId; }
-  public int getValue() { return id; }
-
-  public boolean isFinerOrEqualThan(SMGRuntimeCheck other) {
-    return id >= other.id;
-  }
-}
-
 @Options(prefix="cpa.smg")
 public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex {
 

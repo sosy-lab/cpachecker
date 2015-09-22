@@ -99,6 +99,7 @@ public abstract class AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv
   protected abstract TFormulaInfo getQuantifierBody(TFormulaInfo pExtractInfo);
 
 
+  @Override
   public boolean isBoundByQuantifier(Formula pF) {
     return isBoundByQuantifier(extractInfo(pF));
   }

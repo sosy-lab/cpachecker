@@ -32,6 +32,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -52,7 +54,7 @@ class Z3InterpolatingProver implements InterpolatingProverEnvironment<Long> {
   private long z3solver;
   private final Z3SmtLogger smtLogger;
   private int level = 0;
-  private List<Long> assertedFormulas = new LinkedList<>();
+  private @Nullable List<Long> assertedFormulas = new LinkedList<>();
 
   Z3InterpolatingProver(Z3FormulaManager mgr, long z3params) {
     this.mgr = mgr;

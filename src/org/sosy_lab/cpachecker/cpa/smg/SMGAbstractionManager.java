@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
 
 public class SMGAbstractionManager {

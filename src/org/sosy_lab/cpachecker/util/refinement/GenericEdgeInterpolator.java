@@ -64,6 +64,9 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   @Option(secure=true, description="apply optimizations based on infeasibility of suffix")
   private boolean applyUnsatSuffixOptimization = true;
 
+  @Option(secure=true, description="whether or not to manage the callstack, which is needed for BAM")
+  private boolean manageCallstack = true;
+
   /**
    * the shutdownNotifier in use
    */
@@ -267,12 +270,12 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     S oldState = pInitialState;
 
     // we enter a function, so lets add the previous state to the stack
-    if (pInitialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+    if (manageCallstack && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       oldState = postOperator.handleFunctionCall(oldState, pInitialEdge, pCallstack);
     }
 
     // we leave a function, so rebuild return-state before assigning the return-value.
-    if (!pCallstack.isEmpty() && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+    if (manageCallstack && !pCallstack.isEmpty() && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
       oldState = postOperator.handleFunctionReturn(oldState, pInitialEdge, pCallstack);
     }
 

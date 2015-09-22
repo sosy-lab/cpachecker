@@ -31,13 +31,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.basicimpl.LongArrayBackedList;
+import org.sosy_lab.solver.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.solver.z3.Z3NativeApiConstants.Z3_LBOOL;
 
 import com.google.common.base.Preconditions;
@@ -55,7 +58,7 @@ class Z3TheoremProver implements ProverEnvironment {
 
   private static final String UNSAT_CORE_TEMP_VARNAME = "UNSAT_CORE_%d";
 
-  private final Map<String, BooleanFormula> storedConstraints;
+  private final @Nullable Map<String, BooleanFormula> storedConstraints;
 
   Z3TheoremProver(Z3FormulaManager pMgr, long z3params,
       ShutdownNotifier pShutdownNotifier, boolean generateUnsatCore) {
@@ -89,12 +92,9 @@ class Z3TheoremProver implements ProverEnvironment {
 
     if (storedConstraints != null) { // Unsat core generation is on.
       String varName = String.format(UNSAT_CORE_TEMP_VARNAME, track_no);
-      // TODO: can we do with no casting?
-      Z3BooleanFormula t =
-          (Z3BooleanFormula) mgr.getBooleanFormulaManager().makeVariable(
-              varName);
+      BooleanFormula t = mgr.getBooleanFormulaManager().makeVariable(varName);
 
-      solver_assert_and_track(z3context, z3solver, e, t.getFormulaInfo());
+      solver_assert_and_track(z3context, z3solver, e, mgr.extractInfo(t));
       storedConstraints.put(varName, f);
     } else {
       solver_assert(z3context, z3solver, e);

@@ -43,7 +43,6 @@ import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
-import org.sosy_lab.solver.mathsat5.Mathsat5FormulaManager;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -62,6 +61,38 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   @Override
   protected Solvers solverToUse() {
     return solver;
+  }
+
+  @Test
+  public void basicBoolTest() throws Exception {
+    BooleanFormula a = bmgr.makeVariable("a");
+    BooleanFormula b = bmgr.makeBoolean(false);
+    BooleanFormula c = bmgr.xor(a, b);
+    BooleanFormula d = bmgr.makeVariable("b");
+    BooleanFormula e = bmgr.xor(a, d);
+
+    BooleanFormula notImpl = bmgr.and(a, bmgr.not(e));
+
+    assert_().about(BooleanFormula()).that(a).implies(c);
+    assert_().about(BooleanFormula()).that(notImpl).isSatisfiable();
+  }
+
+  @Test
+  public void basicIntTest() {
+    IntegerFormula a = imgr.makeVariable("a");
+    IntegerFormula b = imgr.makeVariable("b");
+    assertThat(a).isNotEqualTo(b);
+  }
+
+  @Test
+  public void basisRatTest() throws Exception {
+    requireRationals();
+
+    RationalFormula a = rmgr.makeVariable("int_c");
+    RationalFormula num = rmgr.makeNumber(4);
+
+    BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
+    assert_().about(BooleanFormula()).that(f).isSatisfiable();
   }
 
   @Test

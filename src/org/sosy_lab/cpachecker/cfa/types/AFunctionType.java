@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +45,7 @@ public class AFunctionType implements IAFunctionType, Serializable {
       List<? extends Type> pParameters,
       boolean pTakesVarArgs) {
 
-    returnType = pReturnType;
+    returnType = checkNotNull(pReturnType);
     parameters = ImmutableList.copyOf(pParameters);
     takesVarArgs = pTakesVarArgs;
   }

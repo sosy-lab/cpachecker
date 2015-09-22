@@ -303,9 +303,8 @@ final class TypeHierarchy {
 
       Map<JClassOrInterfaceType, Set<JMethodDeclaration>> tmp = new HashMap<>();
 
-      for (JClassOrInterfaceType type : methodDeclarationsOfType.keySet()) {
-        Set<JMethodDeclaration> set = methodDeclarationsOfType.get(type);
-        tmp.put(type, ImmutableSet.copyOf(set));
+      for (Map.Entry<JClassOrInterfaceType, Set<JMethodDeclaration>> entry : methodDeclarationsOfType.entrySet()) {
+        tmp.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
       }
 
       return ImmutableMap.copyOf(tmp);
@@ -314,9 +313,8 @@ final class TypeHierarchy {
     public Map<JClassOrInterfaceType, Set<JFieldDeclaration>> getFieldDeclarationsOfType() {
       Map<JClassOrInterfaceType, Set<JFieldDeclaration>> tmp = new HashMap<>();
 
-      for (JClassOrInterfaceType type : fieldDeclarationsOfType.keySet()) {
-        Set<JFieldDeclaration> set = fieldDeclarationsOfType.get(type);
-        tmp.put(type, ImmutableSet.copyOf(set));
+      for (Map.Entry<JClassOrInterfaceType, Set<JFieldDeclaration>> entry : fieldDeclarationsOfType.entrySet()) {
+        tmp.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
       }
 
       return ImmutableMap.copyOf(tmp);

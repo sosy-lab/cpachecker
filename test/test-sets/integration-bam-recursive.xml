@@ -13,7 +13,7 @@
   </tasks>
 
   <tasks name="svcomp">
-    <includesfile>../programs/benchmarks/Recursive.set</includesfile>
+    <include>../programs/benchmarks/recursive/*.c</include>
     <option name="-predicateAnalysis-bam-rec-plain"/>
   </tasks>
 

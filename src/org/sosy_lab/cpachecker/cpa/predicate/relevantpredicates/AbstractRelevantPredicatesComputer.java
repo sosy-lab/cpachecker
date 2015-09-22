@@ -38,7 +38,7 @@ import com.google.errorprone.annotations.ForOverride;
 
 public abstract class AbstractRelevantPredicatesComputer<T> implements RelevantPredicatesComputer {
 
-  private final FormulaManagerView fmgr;
+  protected final FormulaManagerView fmgr;
 
   protected final Map<Pair<T, AbstractionPredicate>, Boolean> relevantPredicates = Maps.newHashMap();
 

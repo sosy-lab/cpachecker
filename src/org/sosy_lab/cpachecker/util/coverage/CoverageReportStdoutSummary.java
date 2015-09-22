@@ -62,9 +62,7 @@ class CoverageReportStdoutSummary implements CoverageWriter {
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
-    for (String sourcefile: pCoverage.keySet()) {
-      FileCoverageInformation info = pCoverage.get(sourcefile);
-
+    for (FileCoverageInformation info: pCoverage.values()) {
       numTotalFunctions =+ info.allFunctions.size();
       numVisitedFunctions =+ info.visitedFunctions.size();
 

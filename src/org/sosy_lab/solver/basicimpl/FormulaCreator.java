@@ -25,6 +25,8 @@ package org.sosy_lab.solver.basicimpl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -34,7 +36,12 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-
+import org.sosy_lab.solver.basicimpl.AbstractFormula.ArrayFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.BitvectorFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.BooleanFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.FloatingPointFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.IntegerFormulaImpl;
+import org.sosy_lab.solver.basicimpl.AbstractFormula.RationalFormulaImpl;
 
 /**
  * This is a helper class with several methods that are commonly used
@@ -50,15 +57,15 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
 
   private final TType boolType;
-  private final TType integerType;
-  private final TType rationalType;
+  private final @Nullable TType integerType;
+  private final @Nullable TType rationalType;
   private final TEnv environment;
 
   protected FormulaCreator(
       TEnv env,
       TType boolType,
-      TType pIntegerType,
-      TType pRationalType
+      @Nullable TType pIntegerType,
+      @Nullable TType pRationalType
       ) {
     this.environment = env;
     this.boolType = boolType;
@@ -70,15 +77,21 @@ public abstract class FormulaCreator<TFormulaInfo, TType, TEnv> {
     return environment;
   }
 
-  public TType getBoolType() {
+  public final TType getBoolType() {
     return boolType;
   }
 
-  public TType getIntegerType() {
+  public final TType getIntegerType() {
+    if (integerType == null) {
+      throw new UnsupportedOperationException("Integer theory is not supported by this solver.");
+    }
     return integerType;
   }
 
-  public TType getRationalType() {
+  public final TType getRationalType() {
+    if (rationalType == null) {
+      throw new UnsupportedOperationException("Rational theory is not supported by this solver.");
+    }
     return rationalType;
   }
 

@@ -29,6 +29,8 @@ import static org.sosy_lab.solver.mathsat5.Mathsat5NativeApi.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -60,7 +62,7 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
   }
 
   @Override
-  public Void push(BooleanFormula f) {
+  public @Nullable Void push(BooleanFormula f) {
     Preconditions.checkState(curEnv != 0);
     msat_push_backtrack_point(curEnv);
     msat_assert_formula(curEnv, getMsatTerm(f));
@@ -73,7 +75,7 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
     long[] terms = msat_get_unsat_core(curEnv);
     List<BooleanFormula> result = new ArrayList<>(terms.length);
     for (long t : terms) {
-      result.add(new Mathsat5BooleanFormula(t));
+      result.add(mgr.encapsulateBooleanFormula(t));
     }
     return result;
   }

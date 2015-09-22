@@ -59,7 +59,7 @@ class Z3SmtLogger {
             values = { Z3, MATHSAT5 }, toUppercase = true)
     private String target = Z3;
 
-    private Z3Settings(Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
+    private Z3Settings(Configuration config, @Nullable PathCounterTemplate logfile) throws InvalidConfigurationException {
       config.inject(this);
       basicLogfile = logfile;
     }
@@ -69,7 +69,7 @@ class Z3SmtLogger {
   private static final String Z3 = "Z3";
   // TODO support for smtinterpol?
 
-  private final Path logfile;
+  private final @Nullable Path logfile;
   private final Z3Settings settings;
   private final long z3context;
 
@@ -78,7 +78,7 @@ class Z3SmtLogger {
   private int itpIndex = 0; // each interpolation gets its own index
   private final HashMap<Long, String> interpolationFormulas = Maps.newHashMap(); // for mathsat-compatibility
 
-  Z3SmtLogger(long z3context, Configuration config, PathCounterTemplate logfile) throws InvalidConfigurationException {
+  Z3SmtLogger(long z3context, Configuration config, @Nullable PathCounterTemplate logfile) throws InvalidConfigurationException {
     this(z3context, new Z3Settings(config, logfile));
   }
 
