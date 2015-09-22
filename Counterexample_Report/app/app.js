@@ -216,7 +216,9 @@
              if (!(this.cfaFunctionIsSet(funcIndex))){
              funcChanged = true;
              }*/
-            this.setCFAFunction(funcIndex);
+            if(funcIndex != this.selectedCFAFunction) {
+                this.setCFAFunction(funcIndex);
+            }
             if(!(source in combinedNodes && target in combinedNodes)) {
                 if(source in combinedNodes){
                     source = combinedNodes[source];
@@ -284,12 +286,12 @@
         // scroll to correct ARG-node
         this.scrollToARGElement = function(id){
             var element = document.getElementById(id);
-            var box = document.getElementsByClassName("argContent")[0].getBoundingClientRect();
-            var xScroll = document.getElementsByClassName("argContent")[0].scrollLeft;
-            var yScroll = document.getElementsByClassName("argContent")[0].scrollTop;
+            var box = document.getElementsByClassName("argContent")[0].parentNode.getBoundingClientRect();
+            var xScroll = document.getElementsByClassName("argContent")[0].parentNode.scrollLeft;
+            var yScroll = document.getElementsByClassName("argContent")[0].parentNode.scrollTop;
             var bcr = element.getBoundingClientRect();
-            document.getElementsByClassName("argContent")[0].scrollLeft = bcr.left + xScroll - box.left - 10;
-            document.getElementsByClassName("argContent")[0].scrollTop =  bcr.top + yScroll - box.top - 50;
+            document.getElementsByClassName("argContent")[0].parentNode.scrollLeft = bcr.left + xScroll - box.left - 10;
+            document.getElementsByClassName("argContent")[0].parentNode.scrollTop =  bcr.top + yScroll - box.top - 50;
         };
 
 
@@ -297,6 +299,7 @@
         this.setCFAFunction = function(value){
             document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = 0;
             document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = 0;
+            this.clearZoom();
             this.selectedCFAFunction = value;
         };
         this.cfaFunctionIsSet = function(value){
@@ -345,9 +348,17 @@
             this.selected_ErrLine = id;
         };
 
-        this.setZoom = function(){
-            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor/100, this.zoomFactor/100);
+        this.setZoom = function(id){
+            if (id.contains("cfa")) {
+                document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor / 100, this.zoomFactor / 100);
+            } else if (id.contains("arg")){
+                document.getElementById("argGraph-" + this.functions.length).transform.baseVal.getItem(0).setScale(this.zoomFactor / 100, this.zoomFactor / 100);
+            }
         };
+        this.clearZoom = function(){
+            this.zoomFactor = 100;
+            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor/100, this.zoomFactor/100);
+        }
     }]);
 })();
 

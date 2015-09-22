@@ -178,27 +178,35 @@ td:first-child {
 
 .cfaContent{
     margin: 20px;
-    margin-top: 40px;
+    margin-top: 45px;
 }
-.dropdown-line{
+.argContent{
+    margin: 20px;
+    margin-top: 45px;
+}
+.edit-line{
     position: fixed;
     background-color: white;
     padding: 5px;
 }
-.dropdown-line div{
+.edit-line div{
     display: inline-block;
 }
-.dropdown-line label{
+.edit-line label{
+    margin-right: 100px;
+    display: inline-block;
+}
+.edit-line p{
     display: inline-block;
 }
 #cfa-scalingField{
-    margin-left: 100px;
+    margin-left: 5px;
     width: 50px;
     display: inline-block;
 }
-#cfa-scalingSlider{
-    margin-left: 10px;
-    width: 200px;
+#arg-scalingField{
+    margin-left: 5px;
+    width: 50px;
     display: inline-block;
 }
 
@@ -208,4 +216,11 @@ div pre{
     margin: 0;
     padding: 0;
     overflow: visible;
+}
+.help_button{
+    padding: 0px;
+    border: 0px;
+    margin:0px;
+    display: inline-block;
+    float: right;
 }

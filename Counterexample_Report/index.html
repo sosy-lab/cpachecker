@@ -30,6 +30,9 @@
                     <button class="btn btn-warning" ng-click="report.clickedErrpathButton($event)">Start</button>
                     <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Next</button>
                 </div>
+                <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="Hilfe für Errorpath" class="btn btn-default btn-lg help_button" type="button">
+                    <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+                </button>
                 <div class="input-group input-group-sm">
                     <input type="text" class="form-control search-input" placeholder="Search for...">
                     <span class="input-group-btn">
@@ -72,9 +75,12 @@
                 <li ng-class="{active: report.tabIsSet(6)}">
                     <a href ng-click="report.setTab(6)">Configurations</a>
                 </li>
+                <button data-toggle="popover" data-placement="left" data-trigger="click" data-content="Hilfe für External Files" class="btn btn-default btn-lg help_button" type="button">
+                    <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+                </button>
             </ul>
             <div class="fileContent" ng-show="report.tabIsSet(1)">
-                <div class="dropdown-line">
+                <div class="edit-line">
                     <div class="dropdown">
                         <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
                             Displayed CFA
@@ -86,7 +92,8 @@
                     </div>
                     <label>{{report.functions[report.selectedCFAFunction]}}</label>
                     <div>
-                        <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactor" ng-change="report.setZoom()"/>
+                        <p>Zoom Factor (%)</p>
+                        <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactor" ng-change="report.setZoom('cfa-scalingField')"/>
                     </div>
                 </div>
                 <div class="cfaContent">
@@ -2997,7 +3004,14 @@
 </svg>
                 </div>
             </div>
-            <div class="fileContent argContent" ng-show="report.tabIsSet(2)">
+            <div class="fileContent" ng-show="report.tabIsSet(2)">
+                <div class="edit-line">
+                    <div>
+                        <p>Zoom Factor (%)</p>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactor" ng-change="report.setZoom('arg-scalingField')"/>
+                    </div>
+                </div>
+                <div class="argContent">
 <svg width="19379pt" height="4142pt"
  viewBox="0.00 0.00 19378.50 4142.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 4138)">
@@ -3706,6 +3720,7 @@
 </g>
 </g>
 </svg>
+                </div>
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(3)">
 		<table class="sourceContent">
