@@ -450,17 +450,21 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         CFANode currentNode = AbstractStates.extractLocation(pathElement);
         Integer currentNodeInstance = getPredicateState(pathElement)
                                       .getAbstractionLocationsOnPath().get(currentNode);
-        if (partitioning.isCallNode(currentNode)) {
-          openBlocks.push(partitioning.getBlockForCallNode(currentNode));
-        }
 
         Set<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
         for (Block block : openBlocks) {
           relevantPredicatesComputer = relevantPredicatesComputer.considerPredicatesAsRelevant(block, localPreds);
         }
 
-        while (openBlocks.peek().isReturnNode(currentNode)) {
+        // first pop, then push -- otherwise we loose blocks that are entered at block-exit-locations.
+        while (!openBlocks.isEmpty() && openBlocks.peek().isReturnNode(currentNode)) {
           openBlocks.pop();
+        }
+
+        if (partitioning.isCallNode(currentNode)) {
+          final Block calledBlock = partitioning.getBlockForCallNode(currentNode);
+          relevantPredicatesComputer = relevantPredicatesComputer.considerPredicatesAsRelevant(calledBlock, localPreds);
+          openBlocks.push(calledBlock);
         }
       }
       return relevantPredicatesComputer;
