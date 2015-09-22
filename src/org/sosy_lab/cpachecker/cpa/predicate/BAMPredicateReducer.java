@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -62,16 +61,16 @@ public class BAMPredicateReducer implements Reducer {
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
-  private final RelevantPredicatesComputer relevantComputer;
+  private final BAMPredicateCPA cpa;
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
 
-  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
+  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
-    this.relevantComputer = pRelevantPredicatesComputer;
+    this.cpa = cpa;
   }
 
   @Override
@@ -91,7 +90,7 @@ public class BAMPredicateReducer implements Reducer {
 
       Collection<AbstractionPredicate> predicates = extractPredicates(oldRegion);
       Collection<AbstractionPredicate> removePredicates =
-          relevantComputer.getIrrelevantPredicates(pContext, predicates);
+          cpa.getRelevantPredicatesComputer().getIrrelevantPredicates(pContext, predicates);
 
       PathFormula pathFormula = predicateElement.getPathFormula();
 
@@ -127,7 +126,7 @@ public class BAMPredicateReducer implements Reducer {
 
       Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
-          relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
+          cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       PathFormula oldPathFormula = reducedState.getPathFormula();
@@ -213,14 +212,14 @@ public class BAMPredicateReducer implements Reducer {
     // create reduced precision
 
     // we only need global predicates with used variables
-    final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(
+    final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(cpa.getRelevantPredicatesComputer().getRelevantPredicates(
         context, expandedPredicatePrecision.getGlobalPredicates()));
 
     // we only need function predicates with used variables
     final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
     for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
       // TODO only add vars if functionname is used in block?
-      functionPredicatesBuilder.putAll(functionname, relevantComputer.getRelevantPredicates(
+      functionPredicatesBuilder.putAll(functionname, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
           context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
     }
     final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
@@ -231,7 +230,7 @@ public class BAMPredicateReducer implements Reducer {
       if (context.getNodes().contains(node)) {
         // TODO handle location-instance-specific predicates
         // Without support for them, we can just pass 0 as locInstance parameter
-        localPredicatesBuilder.putAll(node, relevantComputer.getRelevantPredicates(
+        localPredicatesBuilder.putAll(node, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
             context, expandedPredicatePrecision.getPredicates(node, 0)));
       }
     }
@@ -307,7 +306,7 @@ public class BAMPredicateReducer implements Reducer {
 
     Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
-        relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
+        cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
     PathFormula oldPathFormula = reducedState.getPathFormula();

@@ -80,10 +80,9 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     } else {
       relevantPredicatesComputer = new RefineableOccurrenceComputer(fmgr);
     }
-    relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
-    this.relevantPredicatesComputer = relevantPredicatesComputer;
+    this.relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
 
-    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this, relevantPredicatesComputer);
+    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this);
     blk = pBlk;
     stats = new BAMPredicateCPAStatistics(reducer);
   }

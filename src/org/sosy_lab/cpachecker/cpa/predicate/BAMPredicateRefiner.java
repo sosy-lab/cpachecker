@@ -72,13 +72,13 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -360,9 +360,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
    */
   private static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
-    private final RefineableRelevantPredicatesComputer relevantPredicatesComputer;
     private final BAMPredicateCPA predicateCpa;
-
     private List<Region> lastAbstractions = null;
     private boolean refinedLastRelevantPredicatesComputer = false;
 
@@ -374,14 +372,6 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
             throws CPAException, InvalidConfigurationException {
 
       super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
-
-      RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
-      if (relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
-        this.relevantPredicatesComputer = (RefineableRelevantPredicatesComputer)relevantPredicatesComputer;
-      } else {
-        this.relevantPredicatesComputer = null;
-      }
-
       this.predicateCpa = predicateCpa;
     }
 
@@ -417,9 +407,11 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         //block formulas are the same as last time; check if abstractions also agree
         pRepeatedCounterexample = getRegionsForPath(pPath).equals(lastAbstractions);
 
-        if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer && relevantPredicatesComputer != null) {
+        final RelevantPredicatesComputer relevantPredicatesComputer = predicateCpa.getRelevantPredicatesComputer();
+        if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer
+            && relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
           //even abstractions agree; try refining relevant predicates reducer
-          refineRelevantPredicatesComputer(pPath, pReached);
+          refineRelevantPredicatesComputer(pPath, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
           pRepeatedCounterexample = false;
           refinedRelevantPredicatesComputer = true;
         }
@@ -430,7 +422,14 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
       super.performRefinement(pReached, pPath, pInterpolants, pRepeatedCounterexample);
     }
 
-    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached) {
+    /**
+     * In case of repeated counter-example, we try to improve the (dynamic) predicate-reducer
+     * by adding all predicates (that match the block's locations) as relevant predicates.
+     * This overrides/improves the formula-based reducing of abstractions and precision,
+     * where substring-matching against block-local variables is performed.
+     */
+    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached,
+        RefineableRelevantPredicatesComputer relevantPredicatesComputer) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastState());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
