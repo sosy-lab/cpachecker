@@ -81,11 +81,11 @@ class SmtInterpolFormulaCreator
   @SuppressWarnings("unchecked")
   @Override
   public <T extends Formula> FormulaType<T> getFormulaType(final T pFormula) {
-    if (pFormula instanceof ArrayFormula<?,?>) {
-      final FormulaType<T> arrayIndexType = getArrayFormulaIndexType(
-          (ArrayFormula<T, T>) pFormula);
-      final FormulaType<T> arrayElementType = getArrayFormulaElementType(
-          (ArrayFormula<T, T>) pFormula);
+    if (pFormula instanceof ArrayFormula<?, ?>) {
+      final FormulaType<?> arrayIndexType = getArrayFormulaIndexType(
+          (ArrayFormula<?, ?>) pFormula);
+      final FormulaType<?> arrayElementType = getArrayFormulaElementType(
+          (ArrayFormula<?, ?>) pFormula);
       return (FormulaType<T>)new ArrayFormulaType<>(arrayIndexType,
           arrayElementType);
     }
