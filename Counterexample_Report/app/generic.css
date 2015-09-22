@@ -28,8 +28,31 @@ body {
 .btn{
     cursor: pointer;
 }
-section ul li a{
-    cursor:pointer;
+#err_table td{
+    cursor: pointer;
+}
+#err_table td:hover{
+    font-weight: bold;
+}
+.edge{
+    cursor: pointer;
+}
+.edge:hover{
+    font-weight: bold;
+    stroke-width: 2;
+}
+.argContent .node{
+    cursor: pointer;
+}
+.argContent .node:hover{
+    font-weight: bold;
+}
+.functionNode{
+    cursor: pointer;
+}
+.functionNode:hover{
+    font-weight: bold;
+    stroke-width: 2;
 }
 
 .header h3 img{
@@ -94,6 +117,9 @@ height: 25px;
     background-color: #f5fff8;
     border: solid 2px;
     border-color: #00d415;
+}
+#externalFiles_section .popover{
+    overflow: hidden;
 }
 
 #errorpath_section .fileContent {

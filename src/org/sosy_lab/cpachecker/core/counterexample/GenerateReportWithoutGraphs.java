@@ -44,7 +44,7 @@ public class GenerateReportWithoutGraphs {
       bufferedWriter = new BufferedWriter(new FileWriter(outputFile));
       String line;
       while (null != (line = bufferedTemplateReader.readLine())) { 
-        if (line.contains("CONFIG")) { 
+        if (line.contains("CONFIGURATION")) { 
           insertConfiguration(configFile, bufferedWriter);
         } else if (line.contains("STATISTICS")) { 
           insertStatistics(statisticsFile, bufferedWriter);
@@ -148,7 +148,7 @@ public class GenerateReportWithoutGraphs {
           iterator++;
         }
       } else { 
-        bufferedWriter.write("<p>No Config-File available</p>");
+        bufferedWriter.write("<p>No Configuration-File available</p>");
       }
     } catch (IOException e) { 
       logger.logUserException(Level.WARNING, e, "insertConfiguration: file couldn't have been reached");

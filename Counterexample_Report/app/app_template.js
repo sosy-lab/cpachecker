@@ -17,6 +17,10 @@
         //Available Functions (CFA-Graphs)
         this.functions = functions;
 
+        //Help-Button-Content
+        this.help_errorpath = help_errorpath;
+        this.help_externalFiles = help_externalFiles;
+
         //Selected CFA-Graph
         if (functions.indexOf("main" != -1)) {
             this.selectedCFAFunction = functions.indexOf("main");
@@ -216,7 +220,9 @@
              if (!(this.cfaFunctionIsSet(funcIndex))){
              funcChanged = true;
              }*/
-            this.setCFAFunction(funcIndex);
+            if(funcIndex != this.selectedCFAFunction) {
+                this.setCFAFunction(funcIndex);
+            }
             if(!(source in combinedNodes && target in combinedNodes)) {
                 if(source in combinedNodes){
                     source = combinedNodes[source];
@@ -284,12 +290,12 @@
         // scroll to correct ARG-node
         this.scrollToARGElement = function(id){
             var element = document.getElementById(id);
-            var box = document.getElementsByClassName("argContent")[0].getBoundingClientRect();
-            var xScroll = document.getElementsByClassName("argContent")[0].scrollLeft;
-            var yScroll = document.getElementsByClassName("argContent")[0].scrollTop;
+            var box = document.getElementsByClassName("argContent")[0].parentNode.getBoundingClientRect();
+            var xScroll = document.getElementsByClassName("argContent")[0].parentNode.scrollLeft;
+            var yScroll = document.getElementsByClassName("argContent")[0].parentNode.scrollTop;
             var bcr = element.getBoundingClientRect();
-            document.getElementsByClassName("argContent")[0].scrollLeft = bcr.left + xScroll - box.left - 10;
-            document.getElementsByClassName("argContent")[0].scrollTop =  bcr.top + yScroll - box.top - 50;
+            document.getElementsByClassName("argContent")[0].parentNode.scrollLeft = bcr.left + xScroll - box.left - 10;
+            document.getElementsByClassName("argContent")[0].parentNode.scrollTop =  bcr.top + yScroll - box.top - 50;
         };
 
 
@@ -297,6 +303,7 @@
         this.setCFAFunction = function(value){
             document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = 0;
             document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = 0;
+            this.clearZoom();
             this.selectedCFAFunction = value;
         };
         this.cfaFunctionIsSet = function(value){
@@ -345,9 +352,17 @@
             this.selected_ErrLine = id;
         };
 
-        this.setZoom = function(){
-            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor/100, this.zoomFactor/100);
+        this.setZoom = function(id){
+            if (id.contains("cfa")) {
+                document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor / 100, this.zoomFactor / 100);
+            } else if (id.contains("arg")){
+                document.getElementById("argGraph-" + this.functions.length).transform.baseVal.getItem(0).setScale(this.zoomFactor / 100, this.zoomFactor / 100);
+            }
         };
+        this.clearZoom = function(){
+            this.zoomFactor = 100;
+            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor/100, this.zoomFactor/100);
+        }
     }]);
 })();
 
@@ -361,6 +376,21 @@ var cfaInfo = {}; //CFAINFO
 var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
 
+var help_externalFiles = "CFA (control flow automaton) shows the control flow of the program (one cfa for one function in the source-code)\n" +
+    " - the errorpath is highlighted in red\n" +
+    " - click on the 'function'-nodes to jump to CFA of this function\n - click on edges to jump to the relating line in the source-code\n\n" +
+    "ARG shows the errorpath as a graph\n" +
+    " - the errorpath is highlighted in red\n" +
+    "- click on nodes to jump to the relating node in the CFA\n " +
+    "- click on edge to jump to the relating line in the source-code";
+var help_errorpath = "The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)\n\n" +
+    "left column: the source-node of the relating edge in the CFA\n" +
+    " - click on the number : show all initialized variables and their values at that point\n\n" +
+    "right column: the description (what is executed at this point)\n" +
+    " - click on the text : jump to the relating edge in the CFA or node in the ARG or line in Source (depending on active tab)\n\n" +
+    "Buttons (Prev, Start, Next) : click to navigate through the errorpath and jump to the relating position in the active tab\n\n" +
+    "Search : you can search for words or numbers in the 'description'-part (blue)\n  and you can search for variables and their value - it will only show you, where the variable has been initialized or where it has changed its value (green)\n" +
+    "tip: if you search for the (full) name of a variable, add a blank space at the end";
 
 $(function () {
     $('[data-toggle="popover"]').popover()
@@ -375,6 +405,9 @@ function init(){
         var nodes = graph.getElementsByClassName("node");
         for(var s = 0; s < nodes.length; s++){
             nodes[s].id = "cfa-" + nodes[s].getElementsByTagName("title")[0].innerHTML;
+            if(nodes[s].getElementsByTagName("title")[0].innerHTML > 100000){
+                nodes[s].classList.add("functionNode");
+            }
         }
         var edges = graph.getElementsByClassName("edge");
         for(var t=0; t<edges.length; t++){
@@ -453,4 +486,5 @@ function init(){
         }
     }
 };
+
 
