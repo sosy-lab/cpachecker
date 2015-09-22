@@ -59,7 +59,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   private final BAMPredicateReducer reducer;
   private final BAMBlockOperator blk;
   private final BAMPredicateCPAStatistics stats;
-  private final RelevantPredicatesComputer relevantPredicatesComputer;
+  private RelevantPredicatesComputer relevantPredicatesComputer;
 
   @Option(secure=true, description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
@@ -89,6 +89,10 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {
     return relevantPredicatesComputer;
+  }
+
+  void setRelevantPredicatesComputer(RelevantPredicatesComputer pRelevantPredicatesComputer) {
+    relevantPredicatesComputer = pRelevantPredicatesComputer;
   }
 
   BlockPartitioning getPartitioning() {

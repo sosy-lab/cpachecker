@@ -38,6 +38,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -68,6 +69,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableReleva
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -412,7 +415,20 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
         if (pRepeatedCounterexample && !refinedLastRelevantPredicatesComputer
             && relevantPredicatesComputer instanceof RefineableRelevantPredicatesComputer) {
           //even abstractions agree; try refining relevant predicates reducer
-          refineRelevantPredicatesComputer(pPath, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
+          RelevantPredicatesComputer newRelevantPredicatesComputer =
+              refineRelevantPredicatesComputer(pPath, pReached, (RefineableRelevantPredicatesComputer)relevantPredicatesComputer);
+
+          if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
+            // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
+            // TODO if this happens, there might be a bug in the analysis!
+            throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+          } else {
+            // we have a better relevantPredicatesComputer, thus update it.
+            logger.logf(Level.FINEST, "refining relevantPredicatesComputer from %s to %s",
+                relevantPredicatesComputer, newRelevantPredicatesComputer);
+            predicateCpa.setRelevantPredicatesComputer(newRelevantPredicatesComputer);
+          }
+
           pRepeatedCounterexample = false;
           refinedRelevantPredicatesComputer = true;
         }
@@ -428,8 +444,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
      * by adding all predicates (that match the block's locations) as relevant predicates.
      * This overrides/improves the formula-based reducing of abstractions and precision,
      * where substring-matching against block-local variables is performed.
+     * @return the refined relevantPredicateComputer
      */
-    private void refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached,
+    private RelevantPredicatesComputer refineRelevantPredicatesComputer(List<ARGState> pPath, ARGReachedSet pReached,
         RefineableRelevantPredicatesComputer relevantPredicatesComputer) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastState());
@@ -448,13 +465,14 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
 
         Set<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
         for (Block block : openBlocks) {
-          relevantPredicatesComputer.considerPredicatesAsRelevant(block, localPreds);
+          relevantPredicatesComputer = relevantPredicatesComputer.considerPredicatesAsRelevant(block, localPreds);
         }
 
         while (openBlocks.peek().isReturnNode(currentNode)) {
           openBlocks.pop();
         }
       }
+      return relevantPredicatesComputer;
     }
 
     @Override

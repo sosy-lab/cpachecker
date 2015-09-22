@@ -32,7 +32,8 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 public interface RefineableRelevantPredicatesComputer extends RelevantPredicatesComputer {
 
   /** returns a new instance of this computer,
-   * where all new predicates are added as relevant predicates. */
-  public void considerPredicatesAsRelevant(Block block, Set<AbstractionPredicate> predicates);
+   * where all new predicates are added as relevant predicates.
+   * Returns itself, if nothing is changed. */
+  public RefineableRelevantPredicatesComputer considerPredicatesAsRelevant(Block block, Set<AbstractionPredicate> predicates);
 
 }
