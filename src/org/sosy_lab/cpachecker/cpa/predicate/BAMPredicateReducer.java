@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -174,7 +175,19 @@ public class BAMPredicateReducer implements Reducer {
     PredicateAbstractState element = (PredicateAbstractState) pElementKey;
     PredicatePrecision precision = (PredicatePrecision) pPrecisionKey;
 
-    return Pair.of(element.getAbstractionFormula().asRegion(), precision);
+    /*
+    Normally a getHashCodeForState is just the pair of state and precision.
+    For PredicateAnalysis, we need to refine the RelevantPredicatesComputer (in some cases),
+    thus the reduce-operator changes and we should clear the cache completely after such a refinement.
+    Instead of doing this, we use the RelevantPredicatesComputer as (third) part of the cache-key,
+    such that after refining the RelevantPredicatesComputer, each new access results in a cache-miss.
+    The benefit is that we keep existing ARGs for statistics or other usage.
+    The drawback is the memory-usage through some cached states,
+    that will never be visited again, because the reduce-operator has changed.
+    */
+    // TODO is Object-equality for RelevantPredicatesComputer enough or should we implement RelevantPredicatesComputer.equals()?
+
+    return Triple.of(element.getAbstractionFormula().asRegion(), precision, cpa.getRelevantPredicatesComputer());
   }
 
   @Override
