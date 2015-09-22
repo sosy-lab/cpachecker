@@ -29,16 +29,21 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
-import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
-import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
-import de.uni_freiburg.informatik.ultimate.logic.Theory;
 
-class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
+class SmtInterpolFormulaCreator
+    extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
-  SmtInterpolFormulaCreator(SmtInterpolEnvironment env) {
+  private final Sort booleanSort;
+  private final Sort integerSort;
+  private final Sort realSort;
+
+  SmtInterpolFormulaCreator(final SmtInterpolEnvironment env) {
     super(env, env.getBooleanSort(), env.getIntegerSort(), env.getRealSort());
+    booleanSort = env.getBooleanSort();
+    integerSort = env.getIntegerSort();
+    realSort = env.getRealSort();
   }
 
   @Override
@@ -62,16 +67,11 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
   }
 
   private FormulaType<?> getFormulaTypeOfSort(final Sort pSort) {
-    final Theory theory = getEnv().getTheory();
-    final Sort integer = theory.getNumericSort();
-    final Sort rational = theory.getRealSort();
-    final Sort bool = theory.getBooleanSort();
-
-    if (pSort == integer) {
+    if (pSort == integerSort) {
       return FormulaType.IntegerType;
-    } else if (pSort == rational) {
+    } else if (pSort == realSort) {
       return FormulaType.RationalType;
-    } else if (pSort == bool) {
+    } else if (pSort == booleanSort) {
       return FormulaType.BooleanType;
     } else {
       throw new IllegalArgumentException("Unknown formula type");
@@ -80,11 +80,11 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
+  public <T extends Formula> FormulaType<T> getFormulaType(final T pFormula) {
     if (pFormula instanceof ArrayFormula<?,?>) {
-      FormulaType<T> arrayIndexType = getArrayFormulaIndexType(
+      final FormulaType<T> arrayIndexType = getArrayFormulaIndexType(
           (ArrayFormula<T, T>) pFormula);
-      FormulaType<T> arrayElementType = getArrayFormulaElementType(
+      final FormulaType<T> arrayElementType = getArrayFormulaElementType(
           (ArrayFormula<T, T>) pFormula);
       return (FormulaType<T>)new ArrayFormulaType<>(arrayIndexType,
           arrayElementType);
@@ -94,24 +94,26 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
   }
 
   @Override
-  public Term makeVariable(Sort type, String varName) {
+  public Term makeVariable(final Sort type, final String varName) {
     SmtInterpolEnvironment env = getEnv();
     env.declareFun(varName, new Sort[]{}, type);
     return env.term(varName);
   }
 
   @Override
-  public Sort getBitvectorType(int pBitwidth) {
-    throw new UnsupportedOperationException("Bitvector theory is not supported by SmtInterpol");
+  public Sort getBitvectorType(final int pBitwidth) {
+    throw new UnsupportedOperationException("Bitvector theory is not supported "
+        + "by SmtInterpol");
   }
 
   @Override
-  public Sort getFloatingPointType(FormulaType.FloatingPointType type) {
-    throw new UnsupportedOperationException("FloatingPoint theory is not supported by SmtInterpol");
+  public Sort getFloatingPointType(final FormulaType.FloatingPointType type) {
+    throw new UnsupportedOperationException("FloatingPoint theory is not "
+        + "supported by SmtInterpol");
   }
 
   @Override
-  public Sort getArrayType(Sort pIndexType, Sort pElementType) {
+  public Sort getArrayType(final Sort pIndexType, final Sort pElementType) {
     return getEnv().getTheory().getSort("Array", pIndexType, pElementType);
   }
 }
