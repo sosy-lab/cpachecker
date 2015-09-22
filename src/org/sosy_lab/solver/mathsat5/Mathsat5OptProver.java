@@ -10,10 +10,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.OptEnvironment;
@@ -27,7 +29,7 @@ class Mathsat5OptProver  extends Mathsat5AbstractProver implements OptEnvironmen
   /**
    * Number of the objective -> objective pointer.
    */
-  private List<Long> objectives = null;
+  private @Nullable List<Long> objectives = null;
 
   /**
    * ID given to user -> number of the objective.

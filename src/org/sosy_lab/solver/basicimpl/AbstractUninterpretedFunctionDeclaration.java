@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
@@ -53,7 +55,7 @@ class AbstractUninterpretedFunctionDeclaration<T extends Formula, TFuncDecl> ext
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

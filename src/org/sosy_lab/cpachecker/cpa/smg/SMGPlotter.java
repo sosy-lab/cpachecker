@@ -36,6 +36,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -44,84 +45,84 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
-final class SMGObjectNode {
-  private final String name;
-  private final String definition;
-  static private int counter = 0;
-
-  public SMGObjectNode(String pType, String pDefinition) {
-    name = "node_" + pType + "_" + counter++;
-    definition = pDefinition;
-  }
-
-  public SMGObjectNode(String pName) {
-    name = pName;
-    definition = null;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public String getDefinition() {
-    return name + "[" + definition + "];";
-  }
-}
-
-class SMGNodeDotVisitor implements SMGObjectVisitor {
-  final private CLangSMG smg;
-  private SMGObjectNode node = null;
-
-  public SMGNodeDotVisitor(CLangSMG pSmg) {
-    smg = pSmg;
-  }
-
-  private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
-    return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject.toString() + "\"";
-  }
-
-  @Override
-  public void visit(SMGRegion pRegion) {
-    String shape = "rectangle";
-    String color;
-    String style;
-    if (smg.isObjectValid(pRegion)) {
-      color="black"; style="solid";
-    } else {
-      color="red"; style="dotted";
-    }
-
-    node = new SMGObjectNode("region", defaultDefinition(color, shape, style, pRegion));
-  }
-
-  @Override
-  public void visit(SMGSingleLinkedList pSll) {
-    String shape = "rectangle";
-    String color = "blue";
-
-    if (! smg.isObjectValid(pSll)) {
-      color="red";
-    }
-
-    String style = "dashed";
-    node = new SMGObjectNode("sll", defaultDefinition(color, shape, style, pSll));
-  }
-
-  @Override
-  public void visit (SMGObject pObject) {
-    if (pObject.notNull()) {
-      pObject.accept(this);
-    } else {
-      node = new SMGObjectNode("NULL");
-    }
-  }
-
-  public SMGObjectNode getNode() {
-    return node;
-  }
-}
-
 public final class SMGPlotter {
+  private static final class SMGObjectNode {
+    private final String name;
+    private final String definition;
+    static private int counter = 0;
+
+    public SMGObjectNode(String pType, String pDefinition) {
+      name = "node_" + pType + "_" + counter++;
+      definition = pDefinition;
+    }
+
+    public SMGObjectNode(String pName) {
+      name = pName;
+      definition = null;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public String getDefinition() {
+      return name + "[" + definition + "];";
+    }
+  }
+
+  private static final class SMGNodeDotVisitor implements SMGObjectVisitor {
+    final private CLangSMG smg;
+    private SMGObjectNode node = null;
+
+    public SMGNodeDotVisitor(CLangSMG pSmg) {
+      smg = pSmg;
+    }
+
+    private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
+      return "color=" + pColor + ", shape=" + pShape + ", style=" + pStyle + ", label =\"" + pObject.toString() + "\"";
+    }
+
+    @Override
+    public void visit(SMGRegion pRegion) {
+      String shape = "rectangle";
+      String color;
+      String style;
+      if (smg.isObjectValid(pRegion)) {
+        color="black"; style="solid";
+      } else {
+        color="red"; style="dotted";
+      }
+
+      node = new SMGObjectNode("region", defaultDefinition(color, shape, style, pRegion));
+    }
+
+    @Override
+    public void visit(SMGSingleLinkedList pSll) {
+      String shape = "rectangle";
+      String color = "blue";
+
+      if (! smg.isObjectValid(pSll)) {
+        color="red";
+      }
+
+      String style = "dashed";
+      node = new SMGObjectNode("sll", defaultDefinition(color, shape, style, pSll));
+    }
+
+    @Override
+    public void visit (SMGObject pObject) {
+      if (pObject.notNull()) {
+        pObject.accept(this);
+      } else {
+        node = new SMGObjectNode("NULL");
+      }
+    }
+
+    public SMGObjectNode getNode() {
+      return node;
+    }
+  }
+
   static public void debuggingPlot(CLangSMG pSmg, String pId, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) throws IOException {
     PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-debug-%s.dot");
     pId = pId.replace("\"", "");

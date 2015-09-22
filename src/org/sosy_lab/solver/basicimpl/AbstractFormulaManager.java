@@ -25,6 +25,8 @@ package org.sosy_lab.solver.basicimpl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -42,23 +44,23 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
  */
 public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implements FormulaManager {
 
-  private final AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager;
+  private final @Nullable AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager;
 
   private final AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager;
 
-  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> integerManager;
+  private final @Nullable AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> integerManager;
 
-  private final AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> rationalManager;
+  private final @Nullable AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> rationalManager;
 
-  private final AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
+  private final @Nullable AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager;
 
-  private final AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
+  private final @Nullable AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager;
 
   private final AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager;
 
   private final AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager;
 
-  private final AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager;
+  private final @Nullable AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager;
 
   private final FormulaCreator<TFormulaInfo, TType, TEnv> formulaCreator;
 
@@ -76,12 +78,12 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
       AbstractUnsafeFormulaManager<TFormulaInfo, TType, TEnv> unsafeManager,
       AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> functionManager,
       AbstractBooleanFormulaManager<TFormulaInfo, TType, TEnv> booleanManager,
-      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
-      AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
-      AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
-      AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
-      AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
-      AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
+      @Nullable AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, IntegerFormula, IntegerFormula> pIntegerManager,
+      @Nullable AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv, NumeralFormula, RationalFormula> pRationalManager,
+      @Nullable AbstractBitvectorFormulaManager<TFormulaInfo, TType, TEnv> bitvectorManager,
+      @Nullable AbstractFloatingPointFormulaManager<TFormulaInfo, TType, TEnv> floatingPointManager,
+      @Nullable AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> quantifiedManager,
+      @Nullable AbstractArrayFormulaManager<TFormulaInfo, TType, TEnv> arrayManager) {
 
     if (functionManager == null || booleanManager == null || unsafeManager == null) {
       throw new IllegalArgumentException("boolean, function and unsafe manager instances have to be valid!");
@@ -175,11 +177,17 @@ public abstract class AbstractFormulaManager<TFormulaInfo, TType, TEnv> implemen
 
   @Override
   public AbstractQuantifiedFormulaManager<TFormulaInfo, TType, TEnv> getQuantifiedFormulaManager() {
+    if (quantifiedManager == null){
+      throw new UnsupportedOperationException();
+    }
     return quantifiedManager;
   }
 
   @Override
   public ArrayFormulaManager getArrayFormulaManager() {
+    if (arrayManager == null) {
+      throw new UnsupportedOperationException();
+    }
     return arrayManager;
   }
 

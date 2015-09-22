@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.solver.test;
 
+import static com.google.common.collect.Iterables.getLast;
 import static com.google.common.truth.Truth.*;
 
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,12 +40,14 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multiset;
 
 import junit.framework.AssertionFailedError;
 
@@ -94,37 +95,6 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void basicBoolTest() throws Exception {
-    BooleanFormula a = bmgr.makeVariable("a");
-    BooleanFormula b = bmgr.makeBoolean(false);
-    BooleanFormula c = bmgr.xor(a, b);
-    BooleanFormula d = bmgr.makeVariable("b");
-    BooleanFormula e = bmgr.xor(a, d);
-
-    BooleanFormula notImpl = bmgr.and(a, bmgr.not(e));
-
-    assert_().about(BooleanFormula()).that(a).implies(c);
-    assert_().about(BooleanFormula()).that(notImpl).isSatisfiable();
-  }
-
-  @Test
-  public void basicIntTest() {
-    IntegerFormula a = imgr.makeVariable("a");
-    IntegerFormula b = imgr.makeVariable("b");
-    assertThat(a).isNotEqualTo(b);
-  }
-  @Test
-  public void basisRatTest() throws Exception {
-    requireRationals();
-
-    RationalFormula a = rmgr.makeVariable("int_c");
-    RationalFormula num = rmgr.makeNumber(4);
-
-    BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
-    assert_().about(BooleanFormula()).that(f).isSatisfiable();
-  }
-
-  @Test
   public void varDumpTest() {
     BooleanFormula a = bmgr.makeVariable("a");
     BooleanFormula b = bmgr.makeVariable("b");
@@ -133,10 +103,9 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     BooleanFormula d = bmgr.and(c1, c2);
 
     String formDump = mgr.dumpFormula(d).toString();
-    assert_().that(formDump).contains("(declare-fun a () Bool)");
-    assert_().that(formDump).contains("(declare-fun b () Bool)");
-    String[] lines = formDump.split("\n");
-    checkThatAssertIsInLastLine(lines);
+    assertThat(formDump).contains("(declare-fun a () Bool)");
+    assertThat(formDump).contains("(declare-fun b () Bool)");
+    checkThatAssertIsInLastLine(formDump);
   }
 
   @Test
@@ -159,10 +128,9 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     BooleanFormula branchComp = bmgr.or(branch1, branch2);
 
     String formDump = mgr.dumpFormula(branchComp).toString();
-    assert_().that(formDump).contains("(declare-fun a () Bool)");
-    assert_().that(formDump).contains("(declare-fun b () Bool)");
-    String[] lines = formDump.split("\n");
-    checkThatAssertIsInLastLine(lines);
+    assertThat(formDump).contains("(declare-fun a () Bool)");
+    assertThat(formDump).contains("(declare-fun b () Bool)");
+    checkThatAssertIsInLastLine(formDump);
   }
 
   @Test
@@ -178,8 +146,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     BooleanFormula valComp5 = bmgr.or(valComp3, valComp4);
 
     String formDump = mgr.dumpFormula(valComp5).toString();
-    String[] lines = formDump.split("\n");
-    checkThatAssertIsInLastLine(lines);
+    checkThatAssertIsInLastLine(formDump);
   }
 
   @Test
@@ -189,11 +156,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     BooleanFormula formula = imgr.equal(f1, val);
 
     String formDump = mgr.dumpFormula(formula).toString();
-    String[] lines = formDump.split("\n");
 
     // check that int variable is declared correctly + necessary assert that has to be there
-    assert_().that(formDump).contains("(declare-fun a () Int)");
-    checkThatAssertIsInLastLine(lines);
+    assertThat(formDump).contains("(declare-fun a () Int)");
+    checkThatAssertIsInLastLine(formDump);
   }
 
   @Test
@@ -209,11 +175,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     BooleanFormula formula = imgr.equal(res1, var);
 
     String formDump = mgr.dumpFormula(formula).toString();
-    String[] lines = formDump.split("\n");
 
     // check that function is dumped correctly + necessary assert that has to be there
-    assert_().that(formDump).contains("(declare-fun fun_a (Int Int) Int)");
-    checkThatAssertIsInLastLine(lines);
+    assertThat(formDump).contains("(declare-fun fun_a (Int Int) Int)");
+    checkThatAssertIsInLastLine(formDump);
   }
 
   @Test
@@ -314,35 +279,31 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     // check if dumped formula fits our specification
     checkThatFunOnlyDeclaredOnce(formDump);
-    checkThatAssertIsInLastLine(formDump.split("\n"));
+    checkThatAssertIsInLastLine(formDump);
   }
 
   @Test
   public void funDeclareTest2() {
     IntegerFormula int1 = imgr.makeNumber(1);
     IntegerFormula int2 = imgr.makeNumber(2);
-    List<IntegerFormula> args1 = new LinkedList<>();
-    List<IntegerFormula> args2 = new LinkedList<>();
-    args1.add(int1);
-    args2.add(int2);
 
     UninterpretedFunctionDeclaration<IntegerFormula> funA = fmgr.declareUninterpretedFunction("fun_a", FormulaType.IntegerType, FormulaType.IntegerType);
-    IntegerFormula res1 = fmgr.callUninterpretedFunction(funA, args1);
-    IntegerFormula res2 = fmgr.callUninterpretedFunction(funA, args2);
+    IntegerFormula res1 = fmgr.callUninterpretedFunction(funA, ImmutableList.of(int1));
+    IntegerFormula res2 = fmgr.callUninterpretedFunction(funA, ImmutableList.of(int2));
 
     IntegerFormula calc = imgr.add(res1, res2);
     String formDump = mgr.dumpFormula(imgr.equal(calc, int1)).toString();
 
     // check if dumped formula fits our specification
     checkThatFunOnlyDeclaredOnce(formDump);
-    checkThatAssertIsInLastLine(formDump.split("\n"));
+    checkThatAssertIsInLastLine(formDump);
   }
 
   private void compareParseWithOrgExprFirst(String textToParse, Supplier<BooleanFormula> fun)
       throws SolverException, InterruptedException {
     // check if input is correct
     checkThatFunOnlyDeclaredOnce(textToParse);
-    checkThatAssertIsInLastLine(textToParse.split("\n"));
+    checkThatAssertIsInLastLine(textToParse);
 
     // actual test
     BooleanFormula expr = fun.get();
@@ -354,7 +315,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
       throws SolverException, InterruptedException {
     // check if input is correct
     checkThatFunOnlyDeclaredOnce(textToParse);
-    checkThatAssertIsInLastLine(textToParse.split("\n"));
+    checkThatAssertIsInLastLine(textToParse);
 
     // actual test
     BooleanFormula parsedForm = mgr.parse(textToParse);
@@ -363,32 +324,29 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
   }
 
   private void checkThatFunOnlyDeclaredOnce(String formDump) {
-    Iterable<String> lines = Splitter.on("\n").split(formDump);
-    List<String> funDeclares = new LinkedList<>();
+    Multiset<String> funDeclares = HashMultiset.create();
 
-    for (String line: lines) {
+    for (String line: Splitter.on('\n').split(formDump)) {
       if (line.startsWith("(declare-fun ")) {
         funDeclares.add(line.replaceAll("\\s+", ""));
       }
     }
 
-    assert_().that(findDuplicates(funDeclares)).isEmpty();
-  }
-
-  private void checkThatAssertIsInLastLine(String[] lines) {
-    assert_().that(lines[lines.length - 1]).startsWith("(assert ");
-  }
-
-  public <T> List<T> findDuplicates(List<T> list) {
-    List<T> duplicates = new LinkedList<>();
-    Set<T> set = new HashSet<>();
-
-    for (T element : list) {
-      if (!set.add(element)) {
-        duplicates.add(element);
+    // remove non-duplicates
+    Iterator<Multiset.Entry<String>> it = funDeclares.entrySet().iterator();
+    while (it.hasNext()) {
+      if (it.next().getCount() <= 1) {
+        it.remove();
       }
     }
-    return duplicates;
+    assertThat(funDeclares).named("duplicate function declarations").isEmpty();
+  }
+
+  private void checkThatAssertIsInLastLine(String lines) {
+    lines = lines.trim();
+    assertThat(getLast(Splitter.on('\n').split(lines)))
+      .named("last line of <\n"+lines+">")
+      .startsWith("(assert ");
   }
 
   private BooleanFormula genBoolExpr() {
@@ -427,9 +385,8 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
   private BooleanFormula functionExprGen() {
     IntegerFormula arg = imgr.makeNumber(1);
-    List<IntegerFormula> args = Collections.singletonList(arg);
     UninterpretedFunctionDeclaration<BooleanFormula> funA = fmgr.declareUninterpretedFunction("fun_b", FormulaType.BooleanType, FormulaType.IntegerType);
-    BooleanFormula res1 = fmgr.callUninterpretedFunction(funA, args);
+    BooleanFormula res1 = fmgr.callUninterpretedFunction(funA, ImmutableList.of(arg));
     return bmgr.and(res1, bmgr.makeBoolean(true));
   }
 }

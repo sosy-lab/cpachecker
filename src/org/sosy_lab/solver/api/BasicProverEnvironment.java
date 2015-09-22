@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.solver.api;
 
-import org.sosy_lab.solver.SolverException;
+import javax.annotation.Nullable;
+
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 
 /**
  * Super interface for {@link ProverEnvironment} and {@link InterpolatingProverEnvironment}
@@ -38,7 +40,7 @@ public interface BasicProverEnvironment<T> extends AutoCloseable {
    * The return value may be used to identify this formula later on
    * in a query (this depends on the sub-type of the environment).
    */
-  T push(BooleanFormula f);
+  @Nullable T push(BooleanFormula f);
 
   /**
    * Remove one formula from the environment stack.

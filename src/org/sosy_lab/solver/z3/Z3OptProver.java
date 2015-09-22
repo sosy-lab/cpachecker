@@ -31,11 +31,12 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.z3.Z3Formula.Z3RationalFormula;
 import org.sosy_lab.solver.z3.Z3NativeApi.PointerToLong;
 import org.sosy_lab.solver.z3.Z3NativeApiConstants.Z3_LBOOL;
 
@@ -66,8 +67,8 @@ class Z3OptProver implements OptEnvironment {
 
   @Override
   public void addConstraint(BooleanFormula constraint) {
-    Z3BooleanFormula z3Constraint = (Z3BooleanFormula) constraint;
-    optimize_assert(z3context, z3optContext, z3Constraint.getFormulaInfo());
+    long z3Constraint = mgr.extractInfo(constraint);
+    optimize_assert(z3context, z3optContext, z3Constraint);
   }
 
   @Override

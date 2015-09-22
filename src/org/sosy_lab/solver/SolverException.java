@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.solver;
 
+import javax.annotation.Nullable;
 
 /**
  * Exception that should be used if the SMT solver did something wrong.
@@ -31,11 +32,11 @@ public class SolverException extends Exception {
 
   private static final long serialVersionUID = -1557936144555925180L;
 
-  public SolverException(String msg) {
+  public SolverException(@Nullable String msg) {
     super(msg);
   }
 
-  public SolverException(String msg, Throwable t) {
+  public SolverException(@Nullable String msg, @Nullable Throwable t) {
     super(msg, t);
   }
 }

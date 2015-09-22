@@ -419,7 +419,7 @@ class SmtInterpolEnvironment {
   }
 
   public Term term(String funcname, BigInteger[] indices,
-      Sort returnSort, Term... params) {
+      @Nullable Sort returnSort, Term... params) {
     try {
       return script.term(funcname, indices, returnSort, params);
     } catch (SMTLIBException e) {

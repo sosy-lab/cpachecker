@@ -36,74 +36,74 @@ abstract class Mathsat5Formula implements Formula {
 
   private final long msatTerm;
 
-  public Mathsat5Formula(long term) {
+  Mathsat5Formula(long term) {
     this.msatTerm = term;
   }
 
   @Override
-  public String toString() {
+  public final String toString() {
     return Mathsat5NativeApi.msat_term_repr(msatTerm);
   }
 
   @Override
-  public boolean equals(Object o) {
+  public final boolean equals(Object o) {
     if (!(o instanceof Mathsat5Formula)) {return false;}
     return msatTerm == ((Mathsat5Formula)o).msatTerm;
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return (int) msatTerm;
   }
 
-  long getTerm() {
+  final long getTerm() {
     return msatTerm;
   }
-}
 
-class Mathsat5ArrayFormula<TI extends Formula, TE extends Formula>
-    extends Mathsat5Formula implements ArrayFormula<TI, TE> {
+  static final class Mathsat5ArrayFormula<TI extends Formula, TE extends Formula>
+      extends Mathsat5Formula implements ArrayFormula<TI, TE> {
 
-  private final FormulaType<TI> indexType;
-  private final FormulaType<TE> elementType;
+    private final FormulaType<TI> indexType;
+    private final FormulaType<TE> elementType;
 
-  public Mathsat5ArrayFormula(long pTerm,
-      FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
-    super(pTerm);
-    indexType = pIndexType;
-    elementType = pElementType;
+    public Mathsat5ArrayFormula(long pTerm,
+        FormulaType<TI> pIndexType, FormulaType<TE> pElementType) {
+      super(pTerm);
+      indexType = pIndexType;
+      elementType = pElementType;
+    }
+
+    public FormulaType<TI> getIndexType() { return indexType; }
+    public FormulaType<TE> getElementType() { return elementType; }
   }
 
-  public FormulaType<TI> getIndexType() { return indexType; }
-  public FormulaType<TE> getElementType() { return elementType; }
-}
-
-class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula {
-  public Mathsat5BitvectorFormula(long pTerm) {
-    super(pTerm);
+  static final class Mathsat5BitvectorFormula extends Mathsat5Formula implements BitvectorFormula {
+    public Mathsat5BitvectorFormula(long pTerm) {
+      super(pTerm);
+    }
   }
-}
 
-class Mathsat5FloatingPointFormula extends Mathsat5Formula implements FloatingPointFormula {
-  public Mathsat5FloatingPointFormula(long pTerm) {
-    super(pTerm);
+  static final class Mathsat5FloatingPointFormula extends Mathsat5Formula implements FloatingPointFormula {
+    public Mathsat5FloatingPointFormula(long pTerm) {
+      super(pTerm);
+    }
   }
-}
 
-class Mathsat5IntegerFormula extends Mathsat5Formula implements IntegerFormula {
-  public Mathsat5IntegerFormula(long pTerm) {
-    super(pTerm);
+  static final class Mathsat5IntegerFormula extends Mathsat5Formula implements IntegerFormula {
+    public Mathsat5IntegerFormula(long pTerm) {
+      super(pTerm);
+    }
   }
-}
 
-class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula {
-  public Mathsat5RationalFormula(long pTerm) {
-    super(pTerm);
+  static final class Mathsat5RationalFormula extends Mathsat5Formula implements RationalFormula {
+    public Mathsat5RationalFormula(long pTerm) {
+      super(pTerm);
+    }
   }
-}
 
-class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
-  public Mathsat5BooleanFormula(long pTerm) {
-    super(pTerm);
+  static final class Mathsat5BooleanFormula extends Mathsat5Formula implements BooleanFormula {
+    public Mathsat5BooleanFormula(long pTerm) {
+      super(pTerm);
+    }
   }
 }

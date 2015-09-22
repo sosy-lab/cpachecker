@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -46,7 +48,7 @@ import de.uni_freiburg.informatik.ultimate.logic.Term;
 class SmtInterpolInterpolatingProver implements InterpolatingProverEnvironment<String> {
 
   protected final SmtInterpolFormulaManager mgr;
-  private SmtInterpolEnvironment env;
+  private @Nullable SmtInterpolEnvironment env;
 
   private final List<String> assertedFormulas; // Collection of termNames
   private final Map<String, Term> annotatedTerms; // Collection of termNames

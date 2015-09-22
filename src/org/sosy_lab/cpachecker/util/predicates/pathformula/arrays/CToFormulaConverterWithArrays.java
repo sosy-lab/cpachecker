@@ -165,15 +165,16 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
     } else if (pLhs instanceof CArraySubscriptExpression) {
 
-      // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
-      if (pLhs.getExpressionType() instanceof CArrayType
-          && ((CArrayType) pLhs.getExpressionType()).getType() instanceof CArrayType) {
+      // a[e]
+      final CArraySubscriptExpression lhsExpr = (CArraySubscriptExpression) pLhs;
 
-        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!", pEdge.getRawStatement());
+      // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
+      if (lhsExpr.getArrayExpression() instanceof CArraySubscriptExpression) {
+        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported "
+            + "multi-dimensional arrays found!", pEdge.getRawStatement());
         return bfmgr.makeBoolean(true);
       }
 
-      final CArraySubscriptExpression lhsExpr = (CArraySubscriptExpression) pLhs; // a[e]
       // .getArrayExpression() provides a CIdExpression
       //    with type CArrayType; this would be different for multi-dimensional arrays!!
       Verify.verify(lhsExpr.getArrayExpression() instanceof CIdExpression);

@@ -55,7 +55,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   private final BAMPredicateReducer reducer;
   private final BAMBlockOperator blk;
-  private final RelevantPredicatesComputer relevantPredicatesComputer;
+  private RelevantPredicatesComputer relevantPredicatesComputer;
 
   @Option(secure=true, description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
@@ -76,15 +76,18 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     } else {
       relevantPredicatesComputer = new RefineableOccurrenceComputer(fmgr);
     }
-    relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
-    this.relevantPredicatesComputer = relevantPredicatesComputer;
+    this.relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
 
-    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this, relevantPredicatesComputer);
+    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this);
     blk = pBlk;
   }
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {
     return relevantPredicatesComputer;
+  }
+
+  void setRelevantPredicatesComputer(RelevantPredicatesComputer pRelevantPredicatesComputer) {
+    relevantPredicatesComputer = pRelevantPredicatesComputer;
   }
 
   BlockPartitioning getPartitioning() {

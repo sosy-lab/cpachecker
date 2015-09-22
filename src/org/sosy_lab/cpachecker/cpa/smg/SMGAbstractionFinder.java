@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+
 public interface SMGAbstractionFinder {
   public Set<SMGAbstractionCandidate> traverse(CLangSMG pSmg);
 }

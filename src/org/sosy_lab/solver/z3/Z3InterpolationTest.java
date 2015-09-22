@@ -26,6 +26,8 @@ package org.sosy_lab.solver.z3;
 
 import java.util.Collections;
 
+import javax.annotation.Nullable;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -37,8 +39,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 public class Z3InterpolationTest {
-  private Z3FormulaManager mgr;
-  private Z3IntegerFormulaManager ifmgr;
+  private @Nullable Z3FormulaManager mgr;
+  private @Nullable Z3IntegerFormulaManager ifmgr;
 
   @Before
   public void loadZ3() throws Exception {

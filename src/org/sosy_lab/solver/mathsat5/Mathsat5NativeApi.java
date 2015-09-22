@@ -30,6 +30,7 @@ package org.sosy_lab.solver.mathsat5;
 import java.util.NoSuchElementException;
 
 import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.UnmodifiableIterator;
@@ -445,7 +446,8 @@ class Mathsat5NativeApi {
    * @param lower The string representing the value of an initial lower bound.
    * @param upper The string representing the value of an initial upper bound.
    */
-  public static native void msat_push_minimize(long e, long term, String lower, String upper);
+  public static native void msat_push_minimize(long e, long term,
+      @Nullable String lower, @Nullable String upper);
 
   /**
    * Push on the stack the new objective 'max(term)' with optional
@@ -456,8 +458,8 @@ class Mathsat5NativeApi {
    * @param lower The string representing the value of an initial lower bound.
    * @param upper The string representing the value of an initial upper bound.
    */
-  public static native void msat_push_maximize(long e, long term, String lower,
-      String upper);
+  public static native void msat_push_maximize(long e, long term,
+      @Nullable String lower, @Nullable String upper);
 
   /**
    * Push on the stack the new objective 'min(max(term0), ..., max(termN))'
@@ -470,7 +472,7 @@ class Mathsat5NativeApi {
    * @param upper The string representing the value of an initial upper bound.
    */
   public static native void msat_push_minmax(long e, int len, long[] terms,
-      String lower, String upper);
+      @Nullable String lower, @Nullable String upper);
 
   /**
    * Push on the stack the new objective 'max(min(term0), ..., min(termN))'
@@ -483,7 +485,7 @@ class Mathsat5NativeApi {
    * @param upper The string representing the value of an initial upper bound.
    */
   public static native void msat_push_maxmin(long e, int len, long[] terms,
-      String lower, String upper);
+      @Nullable String lower, @Nullable String upper);
 
   /**
    * \brief Associate a weight to a term declaration with respect to a MaxSMT
