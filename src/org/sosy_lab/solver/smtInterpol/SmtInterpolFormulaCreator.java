@@ -29,8 +29,11 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 import org.sosy_lab.solver.basicimpl.FormulaCreator;
 
+import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Sort;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
+import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
+import de.uni_freiburg.informatik.ultimate.logic.Theory;
 
 class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEnvironment> {
 
@@ -39,15 +42,40 @@ class SmtInterpolFormulaCreator extends FormulaCreator<Term, Sort, SmtInterpolEn
   }
 
   @Override
-  public FormulaType<?> getFormulaType(Term pFormula) {
+  public FormulaType<?> getFormulaType(final Term pFormula) {
     if (SmtInterpolUtil.isBoolean(pFormula)) {
       return FormulaType.BooleanType;
     } else if (SmtInterpolUtil.hasIntegerType(pFormula)) {
       return FormulaType.IntegerType;
     } else if (SmtInterpolUtil.hasRationalType(pFormula)) {
       return FormulaType.RationalType;
+    } else if (SmtInterpolUtil.hasArrayType(pFormula)){
+      Sort[] argumentSorts = pFormula.getSort().getArguments();
+      assert argumentSorts.length == 2 : "Array sort has to have two arguments,"
+          + " one for index type and one for element type!";
+
+      return new FormulaType.ArrayFormulaType<>(
+          getFormulaTypeOfSort(argumentSorts[0]),
+          getFormulaTypeOfSort(argumentSorts[1]));
     }
     throw new IllegalArgumentException("Unknown formula type");
+  }
+
+  private FormulaType<?> getFormulaTypeOfSort(final Sort pSort) {
+    final Theory theory = getEnv().getTheory();
+    final Sort integer = theory.getNumericSort();
+    final Sort rational = theory.getRealSort();
+    final Sort bool = theory.getBooleanSort();
+
+    if (pSort == integer) {
+      return FormulaType.IntegerType;
+    } else if (pSort == rational) {
+      return FormulaType.RationalType;
+    } else if (pSort == bool) {
+      return FormulaType.BooleanType;
+    } else {
+      throw new IllegalArgumentException("Unknown formula type");
+    }
   }
 
   @SuppressWarnings("unchecked")
