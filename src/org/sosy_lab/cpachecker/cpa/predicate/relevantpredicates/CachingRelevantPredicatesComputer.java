@@ -90,10 +90,10 @@ public class CachingRelevantPredicatesComputer implements RefineableRelevantPred
   }
 
   @Override
-  public void considerPredicateAsRelevant(Block pBlock, AbstractionPredicate pPredicate) {
+  public void considerPredicatesAsRelevant(Block pBlock, Set<AbstractionPredicate> pPredicates) {
     if (delegate instanceof RefineableRelevantPredicatesComputer) {
       RefineableRelevantPredicatesComputer refineableDelegate = (RefineableRelevantPredicatesComputer)delegate;
-      refineableDelegate.considerPredicateAsRelevant(pBlock, pPredicate);
+      refineableDelegate.considerPredicatesAsRelevant(pBlock, pPredicates);
       removeCacheEntriesForBlock(pBlock, irrelevantCache);
       removeCacheEntriesForBlock(pBlock, relevantCache);
     }
@@ -109,5 +109,10 @@ public class CachingRelevantPredicatesComputer implements RefineableRelevantPred
     for (Pair<Block, U> key : removeKeys) {
       pCache.remove(key);
     }
+  }
+
+  @Override
+  public String toString() {
+    return "CachingRelevantPredicatesComputer (" + delegate + ")";
   }
 }

@@ -23,10 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 
 public interface RefineableRelevantPredicatesComputer extends RelevantPredicatesComputer {
-  public void considerPredicateAsRelevant(Block block, AbstractionPredicate predicate);
+
+  /** returns a new instance of this computer,
+   * where all new predicates are added as relevant predicates. */
+  public void considerPredicatesAsRelevant(Block block, Set<AbstractionPredicate> predicates);
+
 }

@@ -56,9 +56,19 @@ public class RefineableOccurrenceComputer extends OccurrenceComputer implements 
   }
 
   @Override
-  public void considerPredicateAsRelevant(Block pBlock,
-      AbstractionPredicate pPredicate) {
-    definitelyRelevantPredicates.put(pBlock, pPredicate);
-    CachingRelevantPredicatesComputer.removeCacheEntriesForBlock(pBlock, relevantPredicates);
+  public void considerPredicatesAsRelevant(
+      Block block, Set<AbstractionPredicate> predicates) {
+
+    if (predicates.isEmpty()) {
+      return;
+    }
+
+    definitelyRelevantPredicates.putAll(block, predicates);
+    CachingRelevantPredicatesComputer.removeCacheEntriesForBlock(block, relevantPredicates);
+  }
+
+  @Override
+  public String toString() {
+    return "RefineableOccurrenceComputer (" + definitelyRelevantPredicates + ")";
   }
 }

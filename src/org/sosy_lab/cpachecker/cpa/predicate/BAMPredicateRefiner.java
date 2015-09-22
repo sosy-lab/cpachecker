@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -445,11 +446,9 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implement
           openBlocks.push(partitioning.getBlockForCallNode(currentNode));
         }
 
-        Collection<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
+        Set<AbstractionPredicate> localPreds = oldPredicatePrecision.getPredicates(currentNode, currentNodeInstance);
         for (Block block : openBlocks) {
-          for (AbstractionPredicate pred : localPreds) {
-            relevantPredicatesComputer.considerPredicateAsRelevant(block, pred);
-          }
+          relevantPredicatesComputer.considerPredicatesAsRelevant(block, localPreds);
         }
 
         while (openBlocks.peek().isReturnNode(currentNode)) {
