@@ -49,7 +49,7 @@
         <div class="fileContent">
             <table id="err_table">
                 <tr id="errpath-{{$index}}" ng-repeat="line in report.errorPathData">
-                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>{{line.source}}</pre></td>
+                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" title="Instantiated Variables" data-trigger="click" data-content="{{line.valString}}"><pre>{{line.source}}</pre></td>
                     <td ng-click="report.clickedErrpathElement($event)"><pre>{{line.desc}}</pre></td>
                 </tr>
             </table>
@@ -93,7 +93,7 @@
                 <label>{{report.functions[report.selectedCFAFunction]}}</label>
                 <div>
                     <p>Zoom Factor (%)</p>
-                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactor" ng-change="report.setZoom('cfa-scalingField')"/>
+                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorCFA" ng-change="report.setZoom('cfa-scalingField')"/>
                 </div>
             </div>
             <div class="cfaContent">
@@ -3004,7 +3004,14 @@
 </svg>
                 </div>
             </div>
-            <div class="fileContent argContent" ng-show="report.tabIsSet(2)">
+            <div class="fileContent" ng-show="report.tabIsSet(2)">
+                <div class="edit-line">
+                    <div>
+                        <p>Zoom Factor (%)</p>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorARG" ng-change="report.setZoom('arg-scalingField')"/>
+                    </div>
+                </div>
+                <div class="argContent">
 <svg width="19379pt" height="4142pt"
  viewBox="0.00 0.00 19378.50 4142.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 4138)">
@@ -3713,6 +3720,7 @@
 </g>
 </g>
 </svg>
+                </div>
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(3)">
 		<table class="sourceContent">

@@ -28,7 +28,8 @@
             this.selectedCFAFunction = 0;
         }
 
-        this.zoomFactor = 100;
+        this.zoomFactorCFA = 100;
+        this.zoomFactorARG = 100;
 
         //preprocess Errorpath-Data for left content
         this.errorPathData = [];
@@ -207,6 +208,7 @@
             }
             document.getElementById("source-" + line).getElementsByTagName("pre")[1].className = "markedSourceLine";
             $location.hash("source-" + line);
+            $anchorScroll();
             this.lineMarked = true;
         };
 
@@ -272,8 +274,10 @@
              }*/
             //PROBLEM: Koordinaten des Elements sind 0,wenn es nicht sichtbar ist
             var bcr = element.getBoundingClientRect();
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = bcr.left - box.left - 10;
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = bcr.top - box.top - 50;
+            var xScroll = document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft;
+            var yScroll =  document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop;
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = bcr.left + xScroll - box.left - 10;
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = bcr.top + yScroll - box.top - 50;
         };
 
         //mark correct ARG-node
@@ -303,7 +307,7 @@
         this.setCFAFunction = function(value){
             document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = 0;
             document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = 0;
-            this.clearZoom();
+            this.clearZoomCFA();
             this.selectedCFAFunction = value;
         };
         this.cfaFunctionIsSet = function(value){
@@ -331,7 +335,6 @@
             this.tab = value;
         };
         this.tabIsSet = function(value){
-            $anchorScroll();
             return this.tab === value;
         };
 
@@ -354,15 +357,14 @@
 
         this.setZoom = function(id){
             if (id.contains("cfa")) {
-                document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor / 100, this.zoomFactor / 100);
+                document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactorCFA / 100, this.zoomFactorCFA / 100);
             } else if (id.contains("arg")){
-                
-                document.getElementById("argGraph-" + this.functions.length).transform.baseVal.getItem(0).setScale(this.zoomFactor / 100, this.zoomFactor / 100);
+                document.getElementById("argGraph-" + this.functions.length).transform.baseVal.getItem(0).setScale(this.zoomFactorARG / 100, this.zoomFactorARG / 100);
             }
         };
-        this.clearZoom = function(){
-            this.zoomFactor = 100;
-            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactor/100, this.zoomFactor/100);
+        this.clearZoomCFA = function(){
+            this.zoomFactorCFA = 100;
+            document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactorCFA/100, this.zoomFactorCFA/100);
         }
     }]);
 })();

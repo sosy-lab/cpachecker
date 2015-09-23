@@ -93,15 +93,23 @@
                 <label>{{report.functions[report.selectedCFAFunction]}}</label>
                 <div>
                     <p>Zoom Factor (%)</p>
-                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactor" ng-change="report.setZoom('cfa-scalingField')"/>
+                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorCFA" ng-change="report.setZoom('cfa-scalingField')"/>
                 </div>
             </div>
             <div class="cfaContent">
                     <!--CFAFUNCTIONGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent argContent" ng-show="report.tabIsSet(2)">
-                <!--ARGGRAPHS-->
+            <div class="fileContent" ng-show="report.tabIsSet(2)">
+                <div class="edit-line">
+                    <div>
+                        <p>Zoom Factor (%)</p>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorARG" ng-change="report.setZoom('arg-scalingField')"/>
+                    </div>
+                </div>
+                <div class="argContent">
+                    <!--ARGGRAPHS-->
+                </div>
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(3)">
 		<table class="sourceContent">
