@@ -325,7 +325,7 @@ public class CounterexamplesSummary implements IterationStatistics {
     }
 
     StatisticsUtils.write(pOut, 0, cols,
-        "Only infeasible counterexamples for n properties:",
+        "Only infeasible counterexamples for n properties",
         notYetViolatedProperties.size());
     for (Property prop: notYetViolatedProperties) {
       StatisticsUtils.write(pOut, 1, cols,
