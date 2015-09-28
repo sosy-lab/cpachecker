@@ -144,16 +144,16 @@ class DynamicBindingCreator {
 
   private void completeMethodBindings() {
 
-    for (String key :  subMethodsOfMethod.keySet()) {
-      methodTypeBindingsOfMethod.put(key,
-                                     new LinkedList<>(subMethodsOfMethod.get(key)));
+    for (Map.Entry<String, List<MethodDefinition>> entry :  subMethodsOfMethod.entrySet()) {
+      methodTypeBindingsOfMethod.put(entry.getKey(),
+                                     new LinkedList<>(entry.getValue()));
     }
 
     Map<String, List<MethodDefinition>> workMap = new HashMap<>();
 
-    for (String key : subMethodsOfMethod.keySet()) {
-      workMap.put(key,
-                  new LinkedList<>(subMethodsOfMethod.get(key)));
+    for (Map.Entry<String, List<MethodDefinition>> entry : subMethodsOfMethod.entrySet()) {
+      workMap.put(entry.getKey(),
+                  new LinkedList<>(entry.getValue()));
     }
 
 

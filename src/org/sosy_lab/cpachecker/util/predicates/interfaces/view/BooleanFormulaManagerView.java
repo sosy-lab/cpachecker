@@ -33,11 +33,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.UnsafeFormulaManager;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -224,11 +224,20 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       }
 
       if (bfmgr.isAnd(f)) {
-        assert unsafe.getArity(f) >= 2;
+        if (unsafe.getArity(f) == 0) {
+          return visitTrue();
+        } else if (unsafe.getArity(f) == 1) {
+          return visit(getArg(f, 0));
+        }
         return visitAnd(getAllArgs(f));
       }
+
       if (bfmgr.isOr(f)) {
-        assert unsafe.getArity(f) >= 2;
+        if (unsafe.getArity(f) == 0) {
+          return visitFalse();
+        } else if (unsafe.getArity(f) == 1) {
+          return visit(getArg(f, 0));
+        }
         return visitOr(getAllArgs(f));
       }
 

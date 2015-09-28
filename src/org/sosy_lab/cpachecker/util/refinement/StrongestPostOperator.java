@@ -54,8 +54,39 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
   Optional<S> getStrongestPost(
       S origin, Precision precision, CFAEdge operation) throws CPAException, InterruptedException;
 
+  /**
+   * Handles the scoping during a function call.
+   * The usage of this method depends on {@link #handleFunctionReturn}.
+   * The default implementation pushes the calling state onto the stack for later reuse
+   * and then returns it without any change.
+   * This method is important for the analysis of recursive procedures in combination with BAM.
+   *
+   * @param state the state before calling the function
+   * @param edge the function-call-edge, where the parameters are assigned
+   * @param callstack data-structure to store information about scopes
+   */
   S handleFunctionCall(S state, CFAEdge edge, Deque<S> callstack);
 
+  /**
+   * Handles the scoping during a function return.
+   * The usage of this method depends on {@link #handleFunctionCall}.
+   * The default implementation pops the (old) calling state from the stack
+   * and rebuilds the return-state with information from the calling scope.
+   * We override values of the function's local variables,
+   * thus we assume that no local variable of the function-call is accessed
+   * (not even deleted or removed from the state) after calling this method,
+   * except the optional function-return-variable.
+   * We will not touch the optional function-return-variable and
+   * the user has to handle this with {@link #getStrongestPost}.
+   * This method is important for the analysis of recursive procedures in combination with BAM.
+   *
+   * @param state the state before exiting the function
+   *        (but after assigning a value to the return-variable, if necessary)
+   * @param edge the function-return-edge,
+   *        where the return-variable is copied into the calling scope and
+   *        assigned to the left-hand-side of the function-call
+   * @param callstack data-structure to store information about scopes
+   */
   S handleFunctionReturn(S next, CFAEdge edge, Deque<S> callstack);
 
   S performAbstraction(S next, CFANode currNode, ARGPath errorPath, Precision precision);

@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -87,6 +88,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   protected final LogManager logger;
 
+  private final ARGCPA argCpa;
+
   private final PathInterpolator<I> interpolator;
 
   private final FeasibilityChecker<S> checker;
@@ -103,6 +106,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
 
   public GenericRefiner(
+      final ARGCPA pArgCpa,
       final FeasibilityChecker<S> pFeasibilityChecker,
       final PathInterpolator<I> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
@@ -114,6 +118,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     pConfig.inject(this, GenericRefiner.class);
 
     logger = pLogger;
+    argCpa = pArgCpa;
     interpolator = pPathInterpolator;
     interpolantManager = pInterpolantManager;
     checker = pFeasibilityChecker;
@@ -131,7 +136,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
-    return performRefinement(new ARGReachedSet(pReached)).isSpurious();
+    return performRefinement(new ARGReachedSet(pReached, argCpa)).isSpurious();
   }
 
   public CounterexampleInfo performRefinement(final ARGReachedSet pReached)

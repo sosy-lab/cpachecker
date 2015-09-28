@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 
 
 public interface VariableSelection<ConstantType> {
 
   boolean contains(String pVariableName);
 
-  VariableSelection<ConstantType> acceptAssumption(InvariantsFormula<ConstantType> pAssumption);
+  VariableSelection<ConstantType> acceptAssumption(BooleanFormula<ConstantType> pAssumption);
 
-  VariableSelection<ConstantType> acceptAssignment(String pVariableName, InvariantsFormula<ConstantType> pAssumption);
+  VariableSelection<ConstantType> acceptAssignment(String pVariableName, NumeralFormula<ConstantType> pAssumption);
 
   VariableSelection<ConstantType> join(VariableSelection<ConstantType> pOther);
 

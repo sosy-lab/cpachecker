@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 
 /**
  * Abstract helper class that does nothing more than providing access

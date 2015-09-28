@@ -51,7 +51,7 @@ from  http.client import HTTPSConnection
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
-from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
+from benchexec.model import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT,CORELIMIT
 
 RESULT_KEYS = ["cputime", "walltime"]
 
@@ -143,6 +143,10 @@ def resolveToolVersion(config, benchmark, webclient):
 
 def init(config, benchmark):
     global _webclient, _base64_user_pwd, _groupId
+    
+    if not benchmark.config.cpu_model:
+        logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
+                        "Otherwise the used machines and CPU models are undefined.")
 
     if config.cloudMaster:
         if not benchmark.config.cloudMaster[-1] == '/':
@@ -195,7 +199,7 @@ def execute_benchmark(benchmark, output_handler):
         _writeHashCodeCache()
 
 def stop():
-    logging.debug("Stopping tasks...")
+    logging.info("Stopping tasks on server...")
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
     global _unfinished_run_ids
     stopTasks = set()
@@ -204,7 +208,7 @@ def stop():
     for task in stopTasks:
         task.result()
     executor.shutdown(wait=True)
-    logging.debug("Stopped all tasks.")
+    logging.info("Stopped all tasks.")
 
 def _stop_run(runId):
     path = _webclient.path + "runs/" + runId
@@ -285,6 +289,8 @@ def _submitRun(run, benchmark, counter = 0):
         params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
     if TIMELIMIT in limits:
         params['timeLimitation'] = limits[TIMELIMIT]
+    if SOFTTIMELIMIT in limits:
+        params['softTimeLimitation'] = limits[SOFTTIMELIMIT]
     if CORELIMIT in limits:
         params['coreLimitation'] = limits[CORELIMIT]
     if benchmark.config.cpu_model:
@@ -299,8 +305,8 @@ def _submitRun(run, benchmark, counter = 0):
 
     invalidOption = _handleOptions(run, params, limits)
     if invalidOption:
-        raise WebClientError('Command {0} of run {1}  contains option that is not usable with the webclient. '\
-            .format(run.options, run.identifier))
+        raise WebClientError('Command {0} of run {1}  contains option "{2}" that is not usable with the webclient. '\
+            .format(run.options, run.identifier, invalidOption))
 
     params['groupId'] = _groupId;
 
@@ -364,6 +370,8 @@ def _handleOptions(run, params, rlimits):
                 elif option == "-stats":
                     #ignore, is always set by this script
                     pass
+                elif option == "-disable-java-assertions":
+                    params['disableJavaAssertions'] = 'true' 
                 elif option == "-java":
                     options.append("language=JAVA")
                 elif option == "-32":
@@ -377,21 +385,24 @@ def _handleOptions(run, params, rlimits):
                 elif option == "-skipRecursion":
                     options.append("cpa.callstack.skipRecursion=true")
                     options.append("analysis.summaryEdges=true")
-
+                       
                 elif option == "-spec":
-                    spec  = next(i)[-1].split('.')[0]
-                    if spec[-8:] == ".graphml":
-                        with open(spec, 'r') as  errorWitnessFile:
-                            errorWitnessText = errorWitnessFile.read()
-                            params['errorWitnessText'] = errorWitnessText
-                    else:
-                        params['specification'] = spec
+                    spec_path  = next(i)
+                    with open(spec_path, 'r') as  spec_file:
+                        file_text = spec_file.read()
+                        if spec_path[-8:] == ".graphml":
+                            params['errorWitnessText'] = file_text
+                        elif spec_path[-4:] == ".prp":
+                            params['propertyText'] = file_text
+                        else:
+                            params['specificationText'] = file_text
+                        
                 elif option == "-config":
                     configPath = next(i)
                     tokens = configPath.split('/')
                     if not (tokens[0] == "config" and len(tokens) == 2):
                         logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
-                        return True
+                        return configPath
                     config  = next(i).split('/')[2].split('.')[0]
                     params['configuration'] = config
 
@@ -401,13 +412,13 @@ def _handleOptions(run, params, rlimits):
                 elif option[0] == '-' and 'configuration' not in params :
                     params['configuration'] = option[1:]
                 else:
-                    return True
+                    return option
 
             except StopIteration:
                 break
 
     params['option'] = options
-    return False
+    return None
 
 def _getResults(runIDs, output_handler, benchmark):
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
@@ -415,17 +426,26 @@ def _getResults(runIDs, output_handler, benchmark):
     while len(runIDs) > 0 :
         start = time()
         runIDsFutures = {}
+        failedRuns = []
         for runID in runIDs:
-            if _isFinished(runID, benchmark):
+            state = _isFinished(runID)
+            if state == "FINISHED" or state == "UNKOWN":
                 run = runIDs[runID]
                 future  = executor.submit(_getAndHandleResult, runID, run, output_handler, benchmark)
                 runIDsFutures[future] = runID
+            elif state == "ERROR":
+                failedRuns.append(runID)
 
-        # remove all finished run from _unfinished_run_ids
+        # remove all finished runs from _unfinished_run_ids
         for future in as_completed(runIDsFutures.keys()):
             if future.result():
                 del runIDs[runIDsFutures[future]]
                 _unfinished_run_ids.remove(runIDsFutures[future])
+        
+        # remove failed runs from _unfinished_run_ids
+        for runID in failedRuns:
+            _unfinished_run_ids.remove(runID)
+            del runIDs[runID]
 
         end = time();
         duration = end - start
@@ -433,7 +453,7 @@ def _getResults(runIDs, output_handler, benchmark):
             sleep(5 - duration)
 
 
-def _isFinished(runID, benchmark):
+def _isFinished(runID):
     headers = {"Accept": "text/plain"}
     path = _webclient.path + "runs/" + runID + "/state"
 
@@ -443,16 +463,11 @@ def _isFinished(runID, benchmark):
         state = state.decode('utf-8')
         if state == "FINISHED":
             logging.debug('Run {0} finished.'.format(runID))
-            return True
 
-        # UNKNOWN is returned for unknown runs. This happens,
-        # when the webclient is restarted since the submission of the runs.
         if state == "UNKNOWN":
             logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))
-            return True
 
-        else:
-            return False
+        return state
 
     except urllib2.HTTPError as e:
         logging.warning('Could not get run state {0}: {1}'.format(runID, e.reason))
@@ -600,8 +615,9 @@ def _request(method, path, body, headers, expectedStatusCodes=[200]):
         try:
             connection.request(method, path, body=body, headers=headers)
             response = connection.getresponse()
-        except:
+        except Exception as e:
             if (counter < 5):
+                logging.debug("Exception during {} request to {}: {}".format(method, path, e))
                 # create new TCP connection and try to send the request
                 connection.close()
                 sleep(1)

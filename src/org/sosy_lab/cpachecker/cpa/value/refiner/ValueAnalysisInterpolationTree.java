@@ -61,7 +61,7 @@ class ValueAnalysisInterpolationTree extends InterpolationTree<ValueAnalysisStat
 
   // Implement method here to make it visible to package classes
   @Override
-  protected Set<Map.Entry<ARGState, ValueAnalysisInterpolant>> getInterpolantMapping() {
+  public Set<Map.Entry<ARGState, ValueAnalysisInterpolant>> getInterpolantMapping() {
     return super.getInterpolantMapping();
   }
 }

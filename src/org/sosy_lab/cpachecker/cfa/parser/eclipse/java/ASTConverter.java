@@ -2121,6 +2121,9 @@ class ASTConverter {
         return BinaryOperator.EQUALS;
       } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
         return BinaryOperator.NOT_EQUALS;
+      } else if (op.equals(InfixExpression.Operator.PLUS)
+          && (isStringType(pOp1Type) || isStringType(pOp2Type))) {
+        return BinaryOperator.STRING_CONCATENATION;
       } else {
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
@@ -2141,6 +2144,11 @@ class ASTConverter {
   private boolean isBooleanCompatible(JBasicType pType) {
     return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
 
+  }
+
+  private boolean isStringType(JType t) {
+    return t instanceof JClassOrInterfaceType
+        && ((JClassOrInterfaceType)t).getName().equals("java.lang.String");
   }
 
   private BinaryOperator convertNumericOperator(InfixExpression.Operator op) {

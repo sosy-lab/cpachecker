@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.smg.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -96,8 +96,8 @@ public class SMGIsLessOrEqual {
       }
     }
 
-    ArrayDeque<CLangStackFrame> stack_in_smg1 = pSMG1.getStackFrames();
-    ArrayDeque<CLangStackFrame> stack_in_smg2 = pSMG2.getStackFrames();
+    Deque<CLangStackFrame> stack_in_smg1 = pSMG1.getStackFrames();
+    Deque<CLangStackFrame> stack_in_smg2 = pSMG2.getStackFrames();
 
     Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
     Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();

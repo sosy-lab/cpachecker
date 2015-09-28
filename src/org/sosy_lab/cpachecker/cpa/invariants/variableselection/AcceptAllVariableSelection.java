@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 
 
 public class AcceptAllVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
@@ -34,12 +35,12 @@ public class AcceptAllVariableSelection<ConstantType> implements VariableSelecti
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssumption(InvariantsFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssumption(BooleanFormula<ConstantType> pAssumption) {
     return this;
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, InvariantsFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, NumeralFormula<ConstantType> pAssumption) {
     return this;
   }
 

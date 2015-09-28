@@ -28,12 +28,12 @@ import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 
 public class PredicateRequirementsTranslator extends AbstractRequirementsTranslator<PredicateAbstractState>{
@@ -41,9 +41,9 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
   private final FormulaManagerView fmgr;
   private int counter;
 
-  public PredicateRequirementsTranslator() {
+  public PredicateRequirementsTranslator(PredicateCPA cpa) {
     super(PredicateAbstractState.class);
-    fmgr = GlobalInfo.getInstance().getFormulaManagerView();
+    fmgr = cpa.getSolver().getFormulaManager();
     counter = 0;
   }
 
@@ -55,14 +55,13 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
       throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState.");
     }
 
-    BooleanFormula formulaBool = pRequirement.getAbstractionFormula().asFormula();
-    fmgr.instantiate(formulaBool, pIndices);
+    BooleanFormula formulaBool = fmgr.instantiate(pRequirement.getAbstractionFormula().asFormula(), pIndices);
 
     Pair<String, List<String>> pair = PredicatePersistenceUtils.splitFormula(fmgr, formulaBool);
-    List<String> list = pair.getSecond();
+    List<String> list = new ArrayList<>(pair.getSecond());
     List<String> removeFromList = new ArrayList<>();
     for (String stmt : list) {
-      if (!stmt.startsWith("(declare") || !stmt.startsWith("(define")) {
+      if (!stmt.startsWith("(declare") && !stmt.startsWith("(define")) {
         removeFromList.add(stmt);
       }
     }

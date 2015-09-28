@@ -49,9 +49,7 @@ class CoverageReportStdoutSummary {
 
     Map<String, FileCoverage> infos = pData.getInfosPerFile();
 
-    for (String sourcefile: infos.keySet()) {
-      FileCoverage info =  infos.get(sourcefile);
-
+    for (FileCoverage info: infos.values()) {
       numTotalFunctions =+ info.allFunctions.size();
       numVisitedFunctions =+ info.visitedFunctions.size();
 

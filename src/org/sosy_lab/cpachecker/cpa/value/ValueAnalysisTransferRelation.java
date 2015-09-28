@@ -97,6 +97,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -910,7 +912,30 @@ public class ValueAnalysisTransferRelation
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
   private ValueAnalysisState handleAssignmentToVariable(
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
+          throws UnrecognizedCCodeException {
+    // here we clone the state, because we get new information or must forget it.
+    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
+    return newElement;
+  }
+
+  /** This method analyses the expression with the visitor and assigns the value to lParam
+   *  to the given value Analysis state.
+   */
+  private void handleAssignmentToVariable(ValueAnalysisState newElement,
+      MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
+
+    // c structs have to be handled seperatly, because we do not have a value object representing structs
+    if (lType instanceof CType) {
+      CType canonicaltype = ((CType) lType).getCanonicalType();
+      if (canonicaltype instanceof CCompositeType
+          && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
+          && exp instanceof CLeftHandSide) {
+        handleAssignmentToStruct(newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+        return;
+      }
+    }
 
     Value value;
     if (exp instanceof JRightHandSide) {
@@ -930,15 +955,12 @@ public class ValueAnalysisTransferRelation
       addMissingInformation(assignedVar, exp);
     }
 
-    // here we clone the state, because we get new information or must forget it.
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-
     if (visitor.hasMissingFieldAccessInformation()) {
       // This may happen if an object of class is created which could not be parsed,
       // In  such a case, forget about it
       if (!value.isUnknown()) {
         newElement.forget(assignedVar);
-        return newElement;
+        return;
       } else {
         missingInformationRightJExpression = (JRightHandSide) exp;
         if (!missingScopedFieldName) {
@@ -965,8 +987,41 @@ public class ValueAnalysisTransferRelation
         newElement.assignConstant(assignedVar, value, lType);
       }
     }
+  }
 
-    return newElement;
+  /**
+   *
+   * This method transforms the assignment of the struct into assignments of its respective
+   * field references and assigns them to the given value state.
+   *
+   */
+  private void handleAssignmentToStruct(ValueAnalysisState pNewElement,
+      MemoryLocation pAssignedVar,
+      CCompositeType pLType, CExpression pExp,
+      ExpressionValueVisitor pVisitor) throws UnrecognizedCCodeException {
+
+    int offset = 0;
+    for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pLType.getMembers()) {
+      MemoryLocation assignedField = createFieldMemoryLocation(pAssignedVar, offset);
+      CExpression owner = null;
+
+      owner = pExp;
+
+      CExpression fieldReference =
+          new CFieldReference(pExp.getFileLocation(), memberType.getType(), memberType.getName(), owner, false);
+      handleAssignmentToVariable(pNewElement, assignedField, memberType.getType(), fieldReference, pVisitor);
+
+      offset = offset + machineModel.getSizeof(memberType.getType());
+    }
+  }
+
+  private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
+
+    if (pStruct.isOnFunctionStack()) {
+      return MemoryLocation.valueOf(pStruct.getFunctionName(), pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+    } else {
+      return MemoryLocation.valueOf(pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+    }
   }
 
   private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {

@@ -21,7 +21,11 @@
     <available file="${ivy.lib.dir}-contrib" property="ivy.contrib.present"/>
 
     <property environment="env"/>
-    <condition property="tmp.ivy.cache.dir" value="${env.IVY_CACHE_DIR}" else="${user.home}/.ivy2/cache">
+    <!-- Use $HOME with fallback of ${user.home} for home directory to avoid use of hardcoded home directory path in Java. -->
+    <condition property="home.dir" value="${env.HOME}" else="${user.home}">
+        <isset property="env.HOME"/>
+    </condition>
+    <condition property="tmp.ivy.cache.dir" value="${env.IVY_CACHE_DIR}" else="${home.dir}/.ivy2/cache">
         <isset property="env.IVY_CACHE_DIR" />
     </condition>
     <property name="ivy.cache.dir" location="${tmp.ivy.cache.dir}" />

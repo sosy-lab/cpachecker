@@ -58,8 +58,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -238,8 +239,13 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
           BooleanFormula itp = interpolationPoint.getFirst();
           ARGState element = interpolationPoint.getSecond();
 
-          boolean stateChanged = impact.strengthenStateWithInterpolant(
-                                                itp, element, lastAbstraction);
+          boolean stateChanged;
+          try {
+            stateChanged = impact.strengthenStateWithInterpolant(
+                                                  itp, element, lastAbstraction);
+          } catch (SolverException e) {
+            throw new CPAException("Solver failure", e);
+          }
           if (stateChanged) {
             arg.removeCoverageOf(element);
           }

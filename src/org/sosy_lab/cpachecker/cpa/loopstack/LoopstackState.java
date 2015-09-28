@@ -25,22 +25,41 @@ package org.sosy_lab.cpachecker.cpa.loopstack;
 
 import static com.google.common.base.Preconditions.*;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Objects;
 
 public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
 
-  private final LoopstackState previousState;
-  private final Loop loop;
+  /**
+   * Parent loop.
+   */
+  private final @Nullable LoopstackState previousState;
+
+  /**
+   * The loop we are currently in.
+   */
+  private final @Nullable Loop loop;
+
+  /**
+   * The depth of the stack of LoopstackStates.
+   */
   private final int depth;
+
+  /**
+   * Number of iterations within the current loop.
+   * Starts at one for any state inside the loop returned by
+   * LoopstackTransferRelation.
+   */
   private final int iteration;
   private final boolean stop;
 

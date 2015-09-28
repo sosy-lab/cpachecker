@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -48,10 +50,11 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.FormulaCompoundStateEvaluationVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 
@@ -59,35 +62,51 @@ public class VariableNameExtractor {
 
   private final String functionName;
 
-  private final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> environment;
+  private final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> environment;
+
+  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
+
+  private final MachineModel machineModel;
 
   public VariableNameExtractor(
+      final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      final MachineModel pMachineModel,
       final CFAEdge pEdge) {
-    this(pEdge, false, Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap());
+    this(pCompoundIntervalManagerFactory, pMachineModel, pEdge, false, Collections.<String, NumeralFormula<CompoundInterval>>emptyMap());
   }
 
   public VariableNameExtractor(
+      final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      final MachineModel pMachineModel,
       final CFAEdge pEdge,
-      final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    this(pEdge, false, pEnvironment);
+      final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    this(pCompoundIntervalManagerFactory, pMachineModel, pEdge, false, pEnvironment);
   }
 
   public VariableNameExtractor(
+      final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      final MachineModel pMachineModel,
       final CFAEdge pEdge,
       final boolean pUsePredecessorFunctionName,
-      final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    this(pUsePredecessorFunctionName ? pEdge.getPredecessor() : pEdge.getSuccessor(), pEnvironment);
+      final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    this(pCompoundIntervalManagerFactory, pMachineModel, pUsePredecessorFunctionName ? pEdge.getPredecessor() : pEdge.getSuccessor(), pEnvironment);
   }
 
   private VariableNameExtractor(
-      CFANode pFunctionNode,
-      final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
-    this(pFunctionNode.getFunctionName(), pEnvironment);
+      final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      final MachineModel pMachineModel,
+      final CFANode pFunctionNode,
+      final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    this(pCompoundIntervalManagerFactory, pMachineModel, pFunctionNode.getFunctionName(), pEnvironment);
   }
 
   public VariableNameExtractor(
-      String pFunctionName,
-      final Map<? extends String, ? extends InvariantsFormula<CompoundInterval>> pEnvironment) {
+      final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      final MachineModel pMachineModel,
+      final String pFunctionName,
+      final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    this.machineModel = pMachineModel;
     this.functionName = pFunctionName;
     this.environment = pEnvironment;
   }
@@ -132,15 +151,17 @@ public class VariableNameExtractor {
       if (pe.getOperand() instanceof CLeftHandSide) {
         return String.format("*(%s)", getVarName(pe.getOperand()));
       }
-      return pLhs.toString();
+      return scope(pLhs.toString());
     } else if (pLhs instanceof CCastExpression) {
       CCastExpression cast = (CCastExpression) pLhs;
       return getVarName(cast.getOperand());
     } else if (pLhs instanceof JCastExpression) {
       JCastExpression cast = (JCastExpression) pLhs;
       return getVarName(cast.getOperand());
+    } else if (pLhs instanceof CUnaryExpression && ((CUnaryExpression) pLhs).getOperator() == UnaryOperator.AMPER) {
+      return String.format("&(%s)", getVarName(((CUnaryExpression) pLhs).getOperand()));
     } else {
-      return pLhs.toString(); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
+      return scope(pLhs.toString()); // This actually seems wrong but is currently the only way to deal with some cases of pointer arithmetics
     }
   }
 
@@ -173,13 +194,13 @@ public class VariableNameExtractor {
     }
     final CompoundInterval subscriptValue;
     ExpressionToFormulaVisitor expressionToFormulaVisitor =
-        new ExpressionToFormulaVisitor(this, environment);
+        new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, this, environment);
     if (pSubscript instanceof CExpression) {
       subscriptValue = evaluate(((CExpression) pSubscript).accept(expressionToFormulaVisitor));
     } else if (pSubscript instanceof JExpression) {
       subscriptValue = evaluate(((JExpression) pSubscript).accept(expressionToFormulaVisitor));
     } else {
-      subscriptValue = CompoundInterval.top();
+      subscriptValue = compoundIntervalManagerFactory.createCompoundIntervalManager(machineModel, pOwner.getExpressionType()).allPossibleValues();
     }
     if (subscriptValue.isSingleton()) {
       return String.format("%s[%d]", getVarName(pOwner), subscriptValue.getValue()).toString();
@@ -187,8 +208,8 @@ public class VariableNameExtractor {
     return String.format("%s[*]", getVarName(pOwner));
   }
 
-  private CompoundInterval evaluate(InvariantsFormula<CompoundInterval> pFormula) {
-    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(), environment);
+  private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
+    return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory), environment);
   }
 
   private String scope(String pVar) {

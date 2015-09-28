@@ -31,7 +31,7 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 
@@ -96,5 +96,23 @@ public class Converter {
   private static Pair<String, Type<FormulaType<?>>> wrap(String s) {
     // return dummy type with size 0
     return Pair.of(s,  new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(0)));
+  }
+
+  public enum PrecisionConverter {DISABLE, INT2BV, BV2INT}
+
+  public static Converter getConverter(PrecisionConverter encodePredicates, CFA cfa, LogManager logger) {
+    switch (encodePredicates) {
+    case INT2BV: {
+      return new BVConverter(cfa, logger);
+    }
+    case BV2INT: {
+      return new IntConverter(cfa, logger);
+    }
+    case DISABLE: {
+      return null;
+    }
+    default:
+      throw new AssertionError("invalid value for option");
+    }
   }
 }

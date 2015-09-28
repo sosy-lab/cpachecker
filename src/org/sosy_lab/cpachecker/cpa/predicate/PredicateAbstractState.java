@@ -27,8 +27,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import java.io.Serializable;
-
-import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -38,11 +38,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
@@ -154,6 +156,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
+  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
+      justification="these objects never end up in the reached set and are never serialized")
   public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;
@@ -162,20 +166,17 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     /** A constraint is boolean formula that is valid for the current abstraction
      * and should be conjuncted with the result of the abstraction computation.
      * The constraint is a not instantiated formula. */
-    private transient final @Nullable BooleanFormula constraint;
+    private transient final List<BooleanFormula> constraint;
 
     public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
         CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pf, pA, pAbstractionLocations);
       location = pLoc;
-      constraint = null; // NULL represents TRUE, because we do not have a FormulaManager here.
+      constraint = new ArrayList<>(); // NULL represents TRUE, because we do not have a FormulaManager here.
     }
 
-    public ComputeAbstractionState(PathFormula pf, AbstractionFormula pA,
-        CFANode pLoc, PersistentMap<CFANode, Integer> pAbstractionLocations, BooleanFormula pConstraint) {
-      super(pf, pA, pAbstractionLocations);
-      location = pLoc;
-      constraint = pConstraint;
+    public void addConstraint(BooleanFormula pConstraint) {
+      constraint.add(pConstraint);
     }
 
     @Override
@@ -197,7 +198,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
       return location;
     }
 
-    public @Nullable BooleanFormula getConstraint() {
+    public List<BooleanFormula> getConstraints() {
       return constraint;
     }
   }

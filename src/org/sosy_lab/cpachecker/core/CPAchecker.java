@@ -257,7 +257,7 @@ public class CPAchecker {
         ConfigurableProgramAnalysis cpa = factory.createCPA(
             cfa, stats,
             speComposition);
-        GlobalInfo.getInstance().storeCPA(cpa);
+        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
         algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
 

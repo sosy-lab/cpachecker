@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
@@ -91,7 +90,6 @@ public class CPAMain {
       return;
     }
     cpaConfig.enableLogging(logManager);
-    GlobalInfo.getInstance().storeLogManager(logManager);
 
     // create everything
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();

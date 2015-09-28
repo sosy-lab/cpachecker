@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.ArrayFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
 
 public class ArrayFormulaManagerView
   extends BaseManagerView
@@ -79,22 +79,22 @@ public class ArrayFormulaManagerView
     return wrap(inputArrayType, result);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TI extends Formula, FTI extends FormulaType<TI>> FTI getIndexType(ArrayFormula<TI, ?> pArray) {
+  public <TI extends Formula> FormulaType<TI> getIndexType(ArrayFormula<TI, ?> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
-      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula<?,?>) pArray).getType();
-      return (FTI) t.getIndexType();
+      @SuppressWarnings("unchecked")
+      ArrayFormulaType<TI, ?> t = (ArrayFormulaType<TI, ?>) ((WrappingFormula<?, ?>) pArray).getType();
+      return t.getIndexType();
     }
     return manager.getIndexType(pArray);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <TE extends Formula, FTE extends FormulaType<TE>> FTE getElementType(ArrayFormula<?, TE> pArray) {
+  public <TE extends Formula> FormulaType<TE> getElementType(ArrayFormula<?, TE> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
-      ArrayFormulaType<?, ?> t = (ArrayFormulaType<?, ?>) ((WrappingFormula<?,?>) pArray).getType();
-      return (FTE) t.getElementType();
+      @SuppressWarnings("unchecked")
+      ArrayFormulaType<?, TE> t = (ArrayFormulaType<?, TE>) ((WrappingFormula<?, ?>) pArray).getType();
+      return t.getElementType();
     }
     return manager.getElementType(pArray);
   }

@@ -53,8 +53,8 @@ public final class CEnumType implements CComplexType {
     isConst = pConst;
     isVolatile = pVolatile;
     enumerators = ImmutableList.copyOf(pEnumerators);
-    name = pName;
-    origName = pOrigName;
+    name = pName.intern();
+    origName = pOrigName.intern();
   }
 
   @Override
@@ -93,6 +93,7 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -179,7 +180,7 @@ public final class CEnumType implements CComplexType {
      */
     public void setEnum(CEnumType pEnumType) {
       checkState(enumType == null);
-      enumType = pEnumType;
+      enumType = checkNotNull(pEnumType);
     }
 
     @Override
@@ -240,7 +241,7 @@ public final class CEnumType implements CComplexType {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -256,7 +257,7 @@ public final class CEnumType implements CComplexType {
   }
 
   @Override
-  public boolean equalsWithOrigName(Object obj) {
+  public boolean equalsWithOrigName(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -56,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
 import org.sosy_lab.cpachecker.util.refinement.InterpolationTree;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -110,6 +109,11 @@ public class ValueAnalysisRefiner
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
+
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
@@ -129,15 +133,11 @@ public class ValueAnalysisRefiner
 
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(logger, cfa, config);
-    final PrefixSelector prefixSelector = new PrefixSelector(cfa.getVarClassification(),
-                                                             cfa.getLoopStructure());
 
-    return new ValueAnalysisRefiner(
+    return new ValueAnalysisRefiner(argCpa,
         checker,
         strongestPostOp,
-        new SortingPathExtractor(prefixProvider,
-                                 prefixSelector,
-                                 logger, config),
+        new PathExtractor(logger, config),
         prefixProvider,
         config,
         logger,
@@ -145,7 +145,7 @@ public class ValueAnalysisRefiner
         cfa);
   }
 
-  ValueAnalysisRefiner(
+  ValueAnalysisRefiner(final ARGCPA pArgCPA,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
@@ -154,7 +154,8 @@ public class ValueAnalysisRefiner
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
+    super(pArgCPA,
+        pFeasibilityChecker,
         new ValueAnalysisPathInterpolator(pFeasibilityChecker,
             pStrongestPostOperator,
             pPrefixProvider,
@@ -293,9 +294,19 @@ public class ValueAnalysisRefiner
    * A simple heuristic to detect similar repeated refinements.
    */
   private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
-    // a refinement is a similar, repeated refinement
-    // if the (sorted) precision increment was already added in a previous refinement
-    return avoidSimilarRepeatedRefinement && !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+
+    boolean isSimilar = false;
+    int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
+
+    // a refinement is considered a similar, repeated refinement
+    // if the current increment was added in a previous refinement, already
+    if (avoidSimilarRepeatedRefinement) {
+      isSimilar = previousRefinementIds.contains(currentRefinementId);
+    }
+
+    previousRefinementIds.add(currentRefinementId);
+
+    return isSimilar;
   }
 
   /**
@@ -411,7 +422,7 @@ public class ValueAnalysisRefiner
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
     writer.put(rootRelocations)
-        .put(repeatedRefinements);
+        .put(repeatedRefinements)
+        .put("Number of unique precision increments", previousRefinementIds.size());
   }
 }
-

@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -216,6 +217,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           continue;
         }
 
+        if (reached instanceof HistoryForwardingReachedSet) {
+          ((HistoryForwardingReachedSet) reached).saveCPA(currentCpa);
+        }
         reached.setDelegate(currentReached);
 
         if (currentAlgorithm instanceof StatisticsProvider) {

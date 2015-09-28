@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
 
@@ -23,7 +24,8 @@ public interface IPolicyIterationManager {
   PolicyState join(
       PolicyState oldState,
       PolicyState newState,
-      PolicyPrecision pPrecision) throws CPAException, InterruptedException;
+      PolicyPrecision pPrecision) throws CPAException, SolverException,
+      InterruptedException;
 
   Collection<? extends PolicyState> getAbstractSuccessors(
       PolicyState state,

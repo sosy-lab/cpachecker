@@ -27,10 +27,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
@@ -40,11 +37,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.MultimapBuilder;
 
 
 class PredicateRefinementSummary {
@@ -67,14 +63,7 @@ class PredicateRefinementSummary {
       // needs to be a fully deterministic data structure,
       // thus a Multimap based on a LinkedHashMap
       // (we iterate over the keys)
-      newPredicates = Multimaps.newListMultimap(
-          new LinkedHashMap<Pair<CFANode, Integer>, Collection<AbstractionPredicate>>(),
-            new Supplier<List<AbstractionPredicate>>() {
-              @Override
-              public List<AbstractionPredicate> get() {
-                return new ArrayList<>();
-              }
-            });
+      newPredicates = MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
       forProperties = pProps;
       refinementNumber = pRefinementNumber;

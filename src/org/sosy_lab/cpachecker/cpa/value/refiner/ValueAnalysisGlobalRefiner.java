@@ -33,10 +33,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingGlobalPathExtractor;
+import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -55,6 +56,11 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   public static ValueAnalysisGlobalRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
+
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(ValueAnalysisGlobalRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
@@ -72,7 +78,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    return new ValueAnalysisGlobalRefiner(
+    return new ValueAnalysisGlobalRefiner(argCpa,
         checker,
         strongestPostOp,
         new ValueAnalysisPrefixProvider(logger, cfa, config),
@@ -85,6 +91,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   }
 
   ValueAnalysisGlobalRefiner(
+      final ARGCPA pArgCpa,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
@@ -94,11 +101,18 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
-          pStrongestPostOperator,
-          new SortingGlobalPathExtractor(pPrefixProvider, pPrefixSelector, pLogger, pConfig),
-          pPrefixProvider,
-          pConfig, pLogger, pShutdownNotifier, pCfa);
+    super(pArgCpa,
+        pFeasibilityChecker,
+        pStrongestPostOperator,
+        new SortingPathExtractor(pPrefixProvider,
+            pPrefixSelector,
+            pLogger,
+            pConfig),
+        pPrefixProvider,
+        pConfig,
+        pLogger,
+        pShutdownNotifier,
+        pCfa);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
   }

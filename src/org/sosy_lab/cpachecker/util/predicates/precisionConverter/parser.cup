@@ -23,12 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.HashMap;
+import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,13 +33,16 @@ import java_cup.runtime.Scanner;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.Type;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.solver.api.FormulaType;
 
-import com.google.common.base.Throwables;
+import com.google.common.io.CharSource;
 
 parser code {:
   private LogManager logger;
@@ -65,20 +63,44 @@ parser code {:
     logger.log(Level.WARNING, errorString);
   }
 
+  /**
+   * This method converts a formula with the given converter.
+   * If the converter is NULL or the formula is a solver-specific string, it is returned unchanged.
+   * Otherwise the converter converts the formula, for example from Integer-logic to BV-logic.
+   * If a symbol cannot be parsed, the returned formula-string is NULL.
+   */
+  public static String convertFormula(@Nullable Converter converter, String line, LogManagerWithoutDuplicates pLogger) {
 
-  public static String convertFormula(Converter converter, String str, LogManager pLogger)
-      throws UnknownFormulaSymbolException {
-    ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    try (InputStream input = new ByteArrayInputStream(str.getBytes())) {
-      Scanner scanner = new FormulaScanner(input, pLogger, sf);
+    if (converter == null) {
+      return line;
+    }
+
+    if (!line.startsWith("(define-fun ") && !line.startsWith("(declare-fun ") && !line.startsWith("(assert ")) {
+      // ignore solver-specific lines
+      return line;
+    }
+
+    return convert0(converter, line, pLogger);
+  }
+
+  private static String convert0(Converter converter, String line, LogManagerWithoutDuplicates pLogger)
+      throws AssertionError {
+    try (Reader input = CharSource.wrap(line).openStream()) {
+      ComplexSymbolFactory sf = new ComplexSymbolFactory();
+      Scanner scanner = new FormulaScanner(input, sf);
       FormulaParser parser = new FormulaParser(scanner, sf, converter, pLogger);
       Symbol symbol = parser.parse();
       return ((String) symbol.value);
     } catch (UnknownFormulaSymbolException e) {
-      // we throw 'e' again to have it in the signature of this method
-      throw e;
+      //if (e.getMessage().contains("unknown symbol in formula: .def_")) {
+        // ignore Mathsat5-specific helper symbols,
+        // they are based on 'real' unknown symbols.
+      //} else {
+        pLogger.logOnce(Level.INFO, e.getMessage());
+      //}
+      return null;
     } catch (Exception e) {
-      throw new AssertionError("There was a problem while parsing the formula '''" + str + "'''.", e);
+      throw new AssertionError("There was a problem while parsing the formula '''" + line + "'''.", e);
     }
   }
 

@@ -66,16 +66,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.Model;
+import org.sosy_lab.solver.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BasicProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.BasicProverEnvironment;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
@@ -683,9 +683,8 @@ public final class InterpolationManager {
 
     /**
      * Counterexample analysis and predicate discovery.
-     * @param pFormulas the formulas for the path
+     * @param f the formulas for the path
      * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
-     * @param itpProver interpolation solver used
      * @return counterexample info with predicated information
      * @throws CPAException
      */
@@ -693,7 +692,8 @@ public final class InterpolationManager {
         List<BooleanFormula> f,
         List<AbstractState> pAbstractionStates,
         Set<ARGState> elementsOnPath,
-        boolean computeInterpolants) throws CPAException, InterruptedException {
+        boolean computeInterpolants)
+        throws SolverException, CPATransferException, InterruptedException {
 
       // Check feasibility of counterexample
       logger.log(Level.FINEST, "Checking feasibility of counterexample trace");

@@ -83,13 +83,13 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   protected int interpolationOffset = -1;
 
   // statistics
-  private StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
-  private StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
-  private StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
-  private StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
-  protected StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of sliced prefixes");
-  private final StatTimer prefixExtractionTime    = new StatTimer("Extracting infeasible sliced prefixes");
-  private final StatTimer prefixSelectionTime     = new StatTimer("Selecting infeasible sliced prefixes");
+  protected final StatCounter totalInterpolations   = new StatCounter("Number of interpolations");
+  protected final StatInt totalInterpolationQueries = new StatInt(StatKind.SUM, "Number of interpolation queries");
+  protected final StatInt sizeOfInterpolant         = new StatInt(StatKind.AVG, "Size of interpolant");
+  protected final StatTimer timerInterpolation      = new StatTimer("Time for interpolation");
+  private final StatInt totalPrefixes               = new StatInt(StatKind.SUM, "Number of sliced prefixes");
+  private final StatTimer prefixExtractionTime      = new StatTimer("Extracting infeasible sliced prefixes");
+  private final StatTimer prefixSelectionTime       = new StatTimer("Selecting infeasible sliced prefixes");
 
   private final CFA cfa;
   private final LogManager logger;

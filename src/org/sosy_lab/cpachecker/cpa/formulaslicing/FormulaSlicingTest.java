@@ -37,7 +37,9 @@ public class FormulaSlicingTest {
   }
 
   @Test public void slicing_nested_true_assert() throws Exception {
-    check("slicing_nested_true_assert.c");
+    check("slicing_nested_true_assert.c", ImmutableMap.of(
+        "cpa.slicing.ignoreFunctionCallsInLoop", "true"
+    ));
   }
 
   @Test public void slicing_nested_false_assert() throws Exception {

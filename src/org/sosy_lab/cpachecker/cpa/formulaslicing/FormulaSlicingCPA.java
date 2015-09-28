@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -93,7 +93,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     }
 
     LoopTransitionFinder ltf = new LoopTransitionFinder(
-        pConfiguration, cfa, pathFormulaManager, formulaManager, pLogger);
+        pConfiguration, cfa, pathFormulaManager, formulaManager, pLogger,
+        statistics, shutdownNotifier);
 
     InductiveWeakeningManager pInductiveWeakeningManager =
         new InductiveWeakeningManager(pConfiguration,

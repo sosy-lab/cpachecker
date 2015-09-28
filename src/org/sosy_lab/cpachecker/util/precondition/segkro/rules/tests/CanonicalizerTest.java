@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 import static com.google.common.truth.Truth.assertThat;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Canonicalizer;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.DefaultCanonicalizer;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 public class CanonicalizerTest extends AbstractRuleTest0 {
 

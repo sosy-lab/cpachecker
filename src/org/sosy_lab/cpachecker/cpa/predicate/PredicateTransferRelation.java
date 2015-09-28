@@ -40,10 +40,14 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -63,23 +67,28 @@ import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.BVConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 /**
  * Transfer relation for symbolic predicate abstraction. First it computes
@@ -108,12 +117,19 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Check satisfiability when a observer automaton state with this name is reached.")
   private Pattern satCheckStatenameRegexp = Pattern.compile("^SAT(_.*)?");
 
+  @Option(secure=true, description = "try to reuse old abstractions from file during strengthening")
+  private boolean strengthenWithReusedAbstractions = false;
+  @Option(description="file that consists of old abstractions, to be used during strengthening")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path strengthenWithReusedAbstractionsFile = Paths.get("abstractions.txt");
+
   // statistics
   final Timer postTimer = new Timer();
   final Timer satCheckTimer = new Timer();
   final Timer pathFormulaTimer = new Timer();
   final Timer strengthenTimer = new Timer();
   final Timer strengthenCheckTimer = new Timer();
+  final Timer strengthenReuseReadTimer = new Timer();
   final Timer strengthenReuseConvertTimer = new Timer();
   final Timer strengthenReuseCheckTimer = new Timer();
   final Timer abstractionCheckTimer = new Timer();
@@ -375,14 +391,20 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(element);
       }
 
+
+      if (element instanceof ComputeAbstractionState && strengthenWithReusedAbstractions) {
+        element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element, otherElements);
+      }
+
       boolean targetFound = false;
+
       for (AbstractState lElement : otherElements) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
         }
 
-        if (lElement instanceof ARGReplayState) {
-          element = strengthen(element, (ARGReplayState) lElement);
+        if (element instanceof ComputeAbstractionState && lElement instanceof ARGReplayState) {
+          element = strengthen((ComputeAbstractionState)element, (ARGReplayState) lElement);
         }
 
         /*
@@ -429,19 +451,53 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private PredicateAbstractState strengthen(PredicateAbstractState predicateState, ARGReplayState state)
-      throws SolverException, InterruptedException {
-    if (predicateState instanceof ComputeAbstractionState) {
-      // we have following step: [transfer, strengthen, refine]
-      // in "refine" the expansive abstraction is computed,
-      // so we try to get information from other states to avoid abstraction.
-      for (ARGState innerState : state.getStates()) {
-        PredicateAbstractState oldPredicateState = AbstractStates.extractStateByType(innerState, PredicateAbstractState.class);
-        if (oldPredicateState != null && oldPredicateState.isAbstractionState()) {
-          PredicateCPA oldPredicateCPA = CPAs.retrieveCPA(state.getCPA(), PredicateCPA.class);
-          predicateState = updateComputeAbstractionState((ComputeAbstractionState)predicateState, oldPredicateState, oldPredicateCPA);
-          break;
+  private Multimap<Integer, BooleanFormula> abstractions = null; // lazy initialization
+
+  private PredicateAbstractState updateStateWithAbstractionFromFile(ComputeAbstractionState pPredicateState,
+      List<AbstractState> pOtherElements) throws CPATransferException, SolverException, InterruptedException {
+
+    if (abstractions == null) { // lazy initialization
+      strengthenReuseReadTimer.start();
+
+      PredicateAbstractionsStorage abstractionStorage;
+      Converter converter = Converter.getConverter(PrecisionConverter.INT2BV, cfa, logger);
+      try {
+        abstractionStorage = new PredicateAbstractionsStorage(strengthenWithReusedAbstractionsFile, logger, fmgr, converter);
+      } catch (PredicateParsingFailedException e) {
+        throw new CPATransferException("cannot read abstractions from file, parsing fail", e);
+      }
+
+      abstractions = HashMultimap.create();
+      for (AbstractionNode absNode : abstractionStorage.getAbstractions().values()) {
+        Optional<Integer> location = absNode.getLocationId();
+        if (location.isPresent()) {
+          abstractions.put(location.get(), absNode.getFormula());
         }
+      }
+
+      strengthenReuseReadTimer.stop();
+    }
+
+    CFANode node = checkNotNull(pPredicateState.getLocation());
+    for (BooleanFormula possibleConstraint : abstractions.get(node.getNodeNumber())) {
+      // lets try all available abstractions formulas, perhaps more of them are valid
+      addConstraintIfValid(pPredicateState, possibleConstraint);
+    }
+
+    return pPredicateState;
+  }
+
+  private PredicateAbstractState strengthen(ComputeAbstractionState predicateState, ARGReplayState state)
+      throws SolverException, InterruptedException {
+    // we have following step: [transfer, strengthen, refine]
+    // in "refine" the expansive abstraction is computed,
+    // so we try to get information from other states to avoid abstraction.
+    for (ARGState innerState : state.getStates()) {
+      PredicateAbstractState oldPredicateState = AbstractStates.extractStateByType(innerState, PredicateAbstractState.class);
+      if (oldPredicateState != null && oldPredicateState.isAbstractionState()) {
+        PredicateCPA oldPredicateCPA = CPAs.retrieveCPA(state.getCPA(), PredicateCPA.class);
+        predicateState = updateComputeAbstractionState(predicateState, oldPredicateState, oldPredicateCPA);
+        // we can either break here, or we use all available matching states.
       }
     }
     return predicateState;
@@ -452,13 +508,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           throws SolverException, InterruptedException {
     // TODO while converting constraints from  INT to BV, re-use as many sub-formula as possible for all old abstractions,
     // such that we get the same BDD-nodes for atoms of different old abstractions.
-    BooleanFormula constraint = pOldPredicateState.getAbstractionFormula().asFormula();
 
     strengthenReuseConvertTimer.start();
 
     StringBuilder in = new StringBuilder();
-    BVConverter converter = new BVConverter(cfa, logger);
-    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(constraint);
+    Converter converter = Converter.getConverter(PrecisionConverter.INT2BV, cfa, logger);
+    Appender app = oldPredicateCPA.getTransferRelation().fmgr.dumpFormula(
+        pOldPredicateState.getAbstractionFormula().asFormula());
 
     try {
       app.appendTo(in);
@@ -466,39 +522,37 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       throw new AssertionError(e.getMessage());
     }
 
+    LogManagerWithoutDuplicates logger2 = new LogManagerWithoutDuplicates(logger);
     StringBuilder out = new StringBuilder();
     for (String line : in.toString().split("\n")) {
-      if (line.startsWith("(define-fun ") || line.startsWith("(declare-fun ") || line.startsWith("(assert ")) {
-        try {
-          line = FormulaParser.convertFormula(checkNotNull(converter), line, logger);
-        } catch (UnknownFormulaSymbolException e) {
-          throw new AssertionError(e.getMessage());
-        }
+      line = FormulaParser.convertFormula(checkNotNull(converter), line, logger2);
+      if (line != null) {
+        out.append(line).append("\n");
       }
-      out.append(line);
     }
 
-    constraint = this.fmgr.parse(out.toString());
+    BooleanFormula constraint = this.fmgr.parse(out.toString());
 
     strengthenReuseConvertTimer.stop();
 
+    addConstraintIfValid(pPredicateState, constraint);
+
+    return pPredicateState;
+  }
+
+  private void addConstraintIfValid(ComputeAbstractionState pPredicateState,
+      BooleanFormula constraint) throws SolverException, InterruptedException {
     strengthenReuseCheckTimer.start();
 
-    if (!isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
-      constraint = null; // ignore constraint
-      numStrengthenReusedInvalidAbstractions++;
-    } else {
+    if (isValidConstraint(pPredicateState.getAbstractionFormula(), pPredicateState.getPathFormula(), constraint)) {
       numStrengthenReusedValidAbstractions++;
+      pPredicateState.addConstraint(constraint);
+    } else {
+      // ignore constraint
+      numStrengthenReusedInvalidAbstractions++;
     }
 
     strengthenReuseCheckTimer.stop();
-
-    return new ComputeAbstractionState(
-        pPredicateState.getPathFormula(),
-        pPredicateState.getAbstractionFormula(),
-        pPredicateState.getLocation(),
-        pPredicateState.getAbstractionLocationsOnPath(),
-        constraint);
   }
 
   /** return, whether the newAbstraction is a valid expression,

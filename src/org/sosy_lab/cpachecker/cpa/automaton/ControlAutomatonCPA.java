@@ -69,7 +69,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -153,8 +153,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
         pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
       }
     }
-
-    GlobalInfo.getInstance().storeAutomaton(automaton, this);
   }
 
   private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
@@ -194,6 +192,10 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   Automaton getAutomaton() {
     return this.automaton;
+  }
+
+  public void registerInAutomatonInfo(AutomatonInfo info) {
+    info.register(automaton, this);
   }
 
   @Override

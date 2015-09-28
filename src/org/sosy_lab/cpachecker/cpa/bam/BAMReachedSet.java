@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -42,16 +44,17 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Collections2;
 
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BAMTransferRelation transfer;
+  private final BAMCPA bamCpa;
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
   private final Collection<AbstractState> subgraph;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState;
+  private final Timer removeCachedSubtreeTimer;
 
   private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
     @Nullable
@@ -63,14 +66,21 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     }
   };
 
-  public BAMReachedSet(BAMTransferRelation pTransfer, ARGReachedSet pMainReachedSet, ARGPath pPath,
-      Map<ARGState, ARGState> pSubgraphStatesToReachedState, ARGState pRootOfSubgraph) {
+  public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+      Map<ARGState, ARGState> pSubgraphStatesToReachedState, ARGState pRootOfSubgraph,
+      Timer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
-    this.transfer = pTransfer;
+    this.bamCpa = cpa;
     this.path = pPath;
     this.subgraphStatesToReachedState = pSubgraphStatesToReachedState;
     this.rootOfSubgraph = pRootOfSubgraph;
-    this.subgraph = Lists.<AbstractState>newArrayList(rootOfSubgraph.getSubgraph());
+    this.subgraph = Collections.<AbstractState>unmodifiableCollection(subgraphStatesToReachedState.keySet());
+    this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
+
+    assert subgraph.containsAll(path.asStatesList()) : "path should traverse reached states";
+    assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
+    assert subgraph.containsAll(pRootOfSubgraph.getSubgraph()) : "reached states should match states reachable from root";
+    assert pRootOfSubgraph.getSubgraph().containsAll(subgraph) : "states reachable from root should match reached states";
   }
 
   @Override
@@ -88,7 +98,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       @Override
       public Collection<Precision> getPrecisions() {
-        return Lists.transform(path.asStatesList(), GET_PRECISION);
+        return Collections2.transform(subgraph, GET_PRECISION);
       }
 
       @Override
@@ -128,7 +138,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       @Override
       public boolean contains(AbstractState state) {
-        return subgraph.contains(subgraphStatesToReachedState.get(state));
+        return subgraph.contains(state);
       }
 
       @Override
@@ -156,7 +166,21 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(ARGState element, List<Precision> newPrecisions, List<Predicate<? super Precision>> pPrecisionTypes) {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-    transfer.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
+    assert subgraphStatesToReachedState.containsKey(element);
+    final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
+    argSubtreeRemover.removeSubtree(delegate, path, element,
+            newPrecisions, pPrecisionTypes, subgraphStatesToReachedState);
+
+    // post-processing, cleanup data-structures.
+    // We remove all states reachable from 'element'. This step is not precise,
+    // because sub-reached-sets might be changed and we do not remove the corresponding states.
+    // The only important step is to remove the last state of the reached-set,
+    // because without this step there is an assertion in Predicate-RefinementStrategy.
+    for (ARGState state : element.getSubgraph()) {
+      subgraphStatesToReachedState.remove(state);
+      // subgraph is backed by subgraphStatesToReachedState.keys(), so we do not need to update it.
+      state.removeFromARG();
+    }
   }
 
   @Override

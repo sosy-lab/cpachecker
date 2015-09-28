@@ -27,8 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 /** Represents a State in the automaton.
  */

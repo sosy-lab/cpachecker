@@ -1,28 +1,31 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager.Tactic;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -42,9 +45,25 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.slicing")
 public class InductiveWeakeningManager {
 
+  @Option(secure=true, description="Use syntactic formula slicing, which"
+      + " uses only the syntactic structure of the formula and does not involve"
+      + " any calls to the SMT solver.")
+  private boolean runSyntacticSlicing = false;
+
+  @Option(secure=true, description="Run destructive formula slicing, which starts with an "
+  + "unsatisfiable set and tries to add elements to it, making sure it stays unsatisfiable.")
+  private boolean runDestructiveSlicing = true;
+
+  @Option(secure=true, description="Use formula slicing based on counterexamples.")
+  private boolean runCounterexampleBasedSlicing = false;
+
   @Option(secure=true, description="Sort selection variables based on syntactic "
       + "similarity to the transition relation")
   private boolean sortSelectionVariablesSyntactic = true;
+
+  @Option(secure=true, description="Limits the number of iteration for the "
+      + "destructive slicing strategy. Set to -1 for no limit.")
+  private int destructiveIterationLimit = -1;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
@@ -91,12 +110,18 @@ public class InductiveWeakeningManager {
 
     BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
         Tactic.NNF);
+    if (noIntermediateNNF.equals(bfmgr.makeBoolean(false))) {
+
+      // Shortcut, no atoms with only non-intermediate variables existed in the
+      // original formula.
+      return bfmgr.makeBoolean(true);
+    }
 
     // Step 2: Annotate conjunctions.
 
     // Selection variables -> atoms.
-    Map<BooleanFormula, BooleanFormula> selectionVars = new HashMap<>();
-    BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVars).visit(
+    Map<BooleanFormula, BooleanFormula> selectionVarsInfo = new HashMap<>();
+    BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVarsInfo).visit(
         noIntermediateNNF);
 
     // This is possible since the formula does not have any intermediate
@@ -116,28 +141,61 @@ public class InductiveWeakeningManager {
         strengthening
     ));
 
-    List<BooleanFormula> orderedList;
-    if (sortSelectionVariablesSyntactic) {
-      orderedList =
-          sortBySyntacticSimilarity(selectionVars, transition.getFormula());
-    } else {
-      orderedList = new ArrayList<>(selectionVars.keySet());
+    if (selectionVarsInfo.size() == 0) {
+
+      // Either everything is inductive, or nothing is inductive.
+      if (solver.isUnsat(query)) {
+        return noIntermediate;
+      } else {
+
+        // Nothing is inductive.
+        return bfmgr.makeBoolean(true);
+      }
     }
 
-    Set<BooleanFormula> inductiveSlice = formulaSlicing(selectionVars,
-        orderedList, query);
-    if (inductiveSlice.size() == selectionVars.size()) {
+    // Abstracting away every single selector is inductive.
+    Set<BooleanFormula> inductiveSlice = ImmutableSet.copyOf(
+        selectionVarsInfo.keySet());
+
+    if (runSyntacticSlicing) {
+      inductiveSlice = syntacticWeakening(selectionVarsInfo, inductiveSlice,
+          transition);
+
+      // Sanity check.
+      Verify.verify(solver.isUnsat(bfmgr.and(bfmgr.and(inductiveSlice), query)));
+    }
+
+    if (runCounterexampleBasedSlicing) {
+      inductiveSlice = counterexampleBasedWeakening(
+          selectionVarsInfo, transition.getSsa(), query, inductiveSlice);
+    }
+
+    if (runDestructiveSlicing) {
+      List<BooleanFormula> orderedList;
+      if (sortSelectionVariablesSyntactic) {
+        orderedList = sortBySyntacticSimilarity(
+                selectionVarsInfo, inductiveSlice, transition.getFormula());
+      } else {
+        orderedList = new ArrayList<>(selectionVarsInfo.keySet());
+      }
+
+      inductiveSlice = destructiveMUS(
+          selectionVarsInfo, orderedList, query);
+    }
+
+    if (inductiveSlice.size() == selectionVarsInfo.size()) {
 
       // Everything was abstracted => return a trivial invariant "true".
       return bfmgr.makeBoolean(true);
     }
+
 
     // Step 3: Apply the transformation, replace the atoms marked by the
     // selector variables with 'Top'.
     // note: it would be probably better to move those different steps to
     // different subroutines.
     Map<BooleanFormula, BooleanFormula> replacement = new HashMap<>();
-    for (BooleanFormula f : selectionVars.keySet()) {
+    for (BooleanFormula f : selectionVarsInfo.keySet()) {
 
       if (inductiveSlice.contains(f)) {
         replacement.put(f, bfmgr.makeBoolean(true));
@@ -154,38 +212,134 @@ public class InductiveWeakeningManager {
   }
 
   /**
+   * Syntactic formula slicing: slices away all atoms which have variables
+   * which were changed (== SSA index changed) by the transition relation.
+   * In that case, \phi is exactly the same as \phi',
+   * and the formula should be unsatisfiable.
+   *
+   * @param selectionInfo selection variable -> corresponding atom (instantiated
+   * with unprimed SSA).
+   * @return Set of selectors which correspond to atoms which *should*
+   *         be abstracted.
+   */
+  private Set<BooleanFormula> syntacticWeakening(
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      Collection<BooleanFormula> selectionVars,
+      PathFormula transition
+  ) throws SolverException, InterruptedException {
+    Set<BooleanFormula> out = new HashSet<>();
+    for (BooleanFormula selector : selectionVars) {
+      BooleanFormula atom = selectionInfo.get(selector);
+
+      // Variables which have the SSA index different to the one after the
+      // transition.
+      Set<String> deadVars = fmgr.getDeadFunctionNames(atom, transition.getSsa());
+
+      if (!deadVars.isEmpty() ||
+
+          // todo: remove this hack.
+          atom.toString().contains("z3name")) {
+        out.add(selector);
+      }
+    }
+    return out;
+  }
+
+  private Set<BooleanFormula> counterexampleBasedWeakening(
+      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      SSAMap finalSSA,
+      BooleanFormula query,
+      Set<BooleanFormula> inductiveSlice
+  ) throws SolverException, InterruptedException {
+    query = fmgr.simplify(query);
+    Set<BooleanFormula> out = new HashSet<>();
+
+    try (ProverEnvironment env = solver.newProverEnvironmentWithModelGeneration()) {
+      //noinspection ResultOfMethodCallIgnored
+      env.push(query);
+
+      while (!env.isUnsat()) {
+
+        List<BooleanFormula> toPush = new ArrayList<>();
+
+        for (Entry<BooleanFormula, BooleanFormula> entry : selectionInfo.entrySet()) {
+          BooleanFormula atom = entry.getValue();
+          BooleanFormula selector = entry.getKey();
+
+          BooleanFormula primedAtom = fmgr.instantiate(
+              fmgr.uninstantiate(atom), finalSSA
+          );
+          Formula value = env.evaluate(primedAtom);
+
+          Verify.verify(
+              value.equals(bfmgr.makeBoolean(false))
+              || value.equals(bfmgr.makeBoolean(true))
+          );
+
+          // Exclude the atom by enforcing the selector,
+          // only if the atom is contained in the already present refinement.
+          if (value.equals(bfmgr.makeBoolean(false)) &&
+              inductiveSlice.contains(selector)) {
+
+            logger.log(Level.FINE, "Abstracting away",
+                selectionInfo.get(selector));
+            toPush.add(selector);
+            out.add(selector);
+          }
+        }
+
+        for (BooleanFormula s : toPush) {
+          //noinspection ResultOfMethodCallIgnored
+          env.push(s);
+        }
+      }
+    }
+
+    return out;
+  }
+
+  /**
    * @param selectionInfo Mapping from selection variables
    *    to the atoms (possibly w/ negation) they represent.
-   * @param selectionVars List of selection variables.
+   * @param selectionVars List of selection variables, already determined to
+   *    be inductive.
    *    The order is very important and determines which MUS we will get out.
    *
-   * @return An assignment to boolean variables:
-   *         returned as a subset of {@code selectionVars},
-   *         which should be abstracted.
+   * @return Set of selectors which correspond to atoms which *should*
+   *         be abstracted.
+   *
+   * Implements the destructive algorithm for MUS extraction.
+   * Starts with everything abstracted ("true" is inductive),
+   * remove selectors which can be removed while keeping the overall query
+   * inductive.
+   * This is a standard algorithm, however it pays the cost of N SMT calls
+   * upfront.
+   * Note that since at every iteration the set of abstracted variables is
+   * inductive, the algorithm can be terminated early.
    */
-  private Set<BooleanFormula> formulaSlicing(
+  private Set<BooleanFormula> destructiveMUS(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       List<BooleanFormula> selectionVars,
       BooleanFormula query
   ) throws SolverException, InterruptedException {
 
     query = fmgr.simplify(query);
-
-    if (solver.isUnsat(query)) { // Questionable, but very useful for testing.
-      logger.log(Level.INFO, "Everything is inductive under the transition!",
-          "That looks suspicious");
-      return ImmutableSet.of();
-    }
-
-    List<BooleanFormula> selection = selectionVars;
+    List<BooleanFormula> abstractedSelectors = selectionVars;
 
     try (ProverEnvironment env = solver.newProverEnvironment()) {
 
       //noinspection ResultOfMethodCallIgnored
       env.push(query);
 
+      if (env.isUnsat()) {
+        // Questionable, but very useful for testing.
+        logger.log(Level.INFO, "Everything is inductive under the transition!",
+            "That looks suspicious");
+        return ImmutableSet.of();
+      }
+
       // Make everything abstracted.
-      BooleanFormula selectionFormula = bfmgr.and(selection);
+      BooleanFormula selectionFormula = bfmgr.and(abstractedSelectors);
 
       //noinspection ResultOfMethodCallIgnored
       env.push(selectionFormula);
@@ -202,9 +356,13 @@ public class InductiveWeakeningManager {
 
       int noRemoved = 0;
       for (int i=0; i<selectionVars.size(); i++) {
+        if (destructiveIterationLimit != -1 && i == destructiveIterationLimit) {
+          // Terminate early.
+          break;
+        }
 
         // Remove this variable from the selection.
-        List<BooleanFormula> newSelection = Lists.newArrayList(selection);
+        List<BooleanFormula> newSelection = Lists.newArrayList(abstractedSelectors);
 
         BooleanFormula selVar = selectionVars.get(i);
         Verify.verify(selVar.equals(newSelection.get(i - noRemoved)));
@@ -219,10 +377,9 @@ public class InductiveWeakeningManager {
         env.push(bfmgr.and(newSelection));
 
         if (env.isUnsat()) {
-          logger.log(Level.FINE, "Query is still unsat: atom added!");
 
           // Still unsat: keep that element non-abstracted.
-          selection = newSelection;
+          abstractedSelectors = newSelection;
           noRemoved++;
         } else {
           logger.log(Level.FINE, "Query became non-inductive: not adding the atom");
@@ -232,17 +389,15 @@ public class InductiveWeakeningManager {
       }
 
       //noinspection ResultOfMethodCallIgnored
-      env.push(bfmgr.and(selection));
+      env.push(bfmgr.and(abstractedSelectors));
 
-      // todo: what if we end up with a SAT formula in the end?
-      // What does it come down to?
       Verify.verify(env.isUnsat());
     }
-    return new HashSet<>(selection);
+    return new HashSet<>(abstractedSelectors);
   }
 
   /**
-   * Sort selectors by syntactic similarity, variables most similar to the
+   * Sort selectors by syntacticWeakening similarity, variables most similar to the
    * transition relation come last.
    *
    * todo: might be a good idea to use the information about the variables
@@ -250,12 +405,13 @@ public class InductiveWeakeningManager {
    */
   private List<BooleanFormula> sortBySyntacticSimilarity(
       final Map<BooleanFormula, BooleanFormula> selectors,
+      Collection<BooleanFormula> inductiveSlice,
       BooleanFormula transitionRelation
   ) {
 
     final Set<String> transitionVars = fmgr.extractFunctionNames(
         fmgr.uninstantiate(transitionRelation), true);
-    List<BooleanFormula> selectorVars = new ArrayList<>(selectors.keySet());
+    List<BooleanFormula> selectorVars = new ArrayList<>(inductiveSlice);
     Collections.sort(selectorVars, new Comparator<BooleanFormula>() {
       @Override
       public int compare(BooleanFormula s1, BooleanFormula s2) {
@@ -302,8 +458,7 @@ public class InductiveWeakeningManager {
     @Override
     protected BooleanFormula visitAtom(BooleanFormula atom) {
 
-      // todo: this does not deal with UFs.
-      if (!fmgr.getDeadVariableNames(atom, finalSSA).isEmpty()) {
+      if (!fmgr.getDeadFunctionNames(atom, finalSSA).isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
       }
       return atom;

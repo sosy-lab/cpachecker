@@ -29,7 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new multiplication formula with the given factors.
@@ -37,8 +37,8 @@ public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> 
    * @param pFactor1 the first factor.
    * @param pFactor2 the second factor.
    */
-  private Multiply(InvariantsFormula<ConstantType> pFactor1,
-      InvariantsFormula<ConstantType> pFactor2) {
+  private Multiply(NumeralFormula<ConstantType> pFactor1,
+      NumeralFormula<ConstantType> pFactor2) {
     super("*", true, pFactor1, pFactor2);
   }
 
@@ -47,7 +47,7 @@ public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> 
    *
    * @return the first factor of the multiplication.
    */
-  public InvariantsFormula<ConstantType> getFactor1() {
+  public NumeralFormula<ConstantType> getFactor1() {
     return super.getOperand1();
   }
 
@@ -56,18 +56,18 @@ public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> 
    *
    * @return the second factor of the multiplication.
    */
-  public InvariantsFormula<ConstantType> getFactor2() {
+  public NumeralFormula<ConstantType> getFactor2() {
     return super.getOperand2();
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -81,7 +81,7 @@ public class Multiply<ConstantType> extends AbstractBinaryFormula<ConstantType> 
    * @return an invariants formula representing the multiplication of the given
    * factors.
    */
-  static <ConstantType> Multiply<ConstantType> of(InvariantsFormula<ConstantType> pFactor1, InvariantsFormula<ConstantType> pFactor2) {
+  static <ConstantType> Multiply<ConstantType> of(NumeralFormula<ConstantType> pFactor1, NumeralFormula<ConstantType> pFactor2) {
     return new Multiply<>(pFactor1, pFactor2);
   }
 

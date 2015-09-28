@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.RefinableConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -89,8 +90,13 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   public static SymbolicDelegatingRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
     final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
     final ConstraintsCPA constraintsCpa = CPAs.retrieveCPA(pCpa, ConstraintsCPA.class);
+
+    if (argCpa == null) {
+      throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
+    }
 
     if (valueAnalysisCpa == null) {
       throw new InvalidConfigurationException(SymbolicValueAnalysisRefiner.class.getSimpleName()
@@ -179,7 +185,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             SymbolicInterpolantManager.getInstance(),
             config, logger, shutdownNotifier, cfa);
 
-    return new SymbolicDelegatingRefiner(
+    return new SymbolicDelegatingRefiner(argCpa,
         feasibilityChecker,
         pathInterpolator,
         explicitFeasibilityChecker,
@@ -191,7 +197,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
   }
 
 
-  public SymbolicDelegatingRefiner(
+  public SymbolicDelegatingRefiner(final ARGCPA pArgCPA,
       final SymbolicFeasibilityChecker pSymbolicFeasibilityChecker,
       final SymbolicPathInterpolator pSymbolicInterpolator,
       final FeasibilityChecker<ForgettingCompositeState> pExplicitFeasibilityChecker,
@@ -204,14 +210,17 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
 
     // Two different instances of PathExtractor have to be used, otherwise,
     // RepeatedCounterexample error will occur when symbolicRefiner starts refinement.
-    symbolicRefiner = new SymbolicValueAnalysisRefiner(pSymbolicFeasibilityChecker,
+    symbolicRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
+                                                       pSymbolicFeasibilityChecker,
                                                        pSymbolicInterpolator,
-                                                       new PathExtractor(pLogger),
+                                                       new PathExtractor(pLogger, pConfig),
                                                        pConfig,
                                                        pLogger);
-    explicitRefiner = new SymbolicValueAnalysisRefiner(pExplicitFeasibilityChecker,
+
+    explicitRefiner = new SymbolicValueAnalysisRefiner(pArgCPA,
+                                                       pExplicitFeasibilityChecker,
                                                        pExplicitInterpolator,
-                                                       new PathExtractor(pLogger),
+                                                       new PathExtractor(pLogger, pConfig),
                                                        pConfig,
                                                        pLogger);
     logger = pLogger;

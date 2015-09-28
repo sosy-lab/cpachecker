@@ -80,7 +80,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
   private int loopIterationsBeforeAbstraction = 0;
 
   @Option(secure=true, description="threshold for unrolling loops of the program (0 is infinite)\n"
-  + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
+  + "The option is ignored unless AssumptionStorageCPA is enabled (as otherwise it is unsound).")
   private int maxLoopIterations = 0;
 
   @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")

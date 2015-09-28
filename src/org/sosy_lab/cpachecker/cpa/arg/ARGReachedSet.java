@@ -181,7 +181,12 @@ public class ARGReachedSet {
    * @param argState the state to be removed including its subtree
    */
   public void cutOffSubtree(ARGState argState) {
-    mReached.removeAll(argState.getSubgraph());
+    Set<ARGState> subgraph = argState.getSubgraph();
+    mReached.removeAll(subgraph);
+
+    for (ARGState ae : subgraph) {
+      ae.detachFromARG();
+    }
   }
 
   /**
@@ -195,6 +200,10 @@ public class ARGReachedSet {
   public void readdToWaitlist(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
     mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
     mReached.reAddToWaitlist(state);
+  }
+
+  public void updatePrecisionForState(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
+    mReached.updatePrecision(state, adaptPrecision(mReached.getPrecision(state), precision, pPrecisionType));
   }
 
   /**

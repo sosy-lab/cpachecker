@@ -4,6 +4,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Preconditions;
 
@@ -20,17 +21,21 @@ public class PolicyMergeOperator implements MergeOperator {
   @Override
   public AbstractState merge(AbstractState state1, AbstractState state2,
       Precision precision) throws CPAException, InterruptedException {
-    if (joinOnMerge) {
-      return mergeJoin((PolicyState)state1, (PolicyState)state2,
-          (PolicyPrecision)precision);
-    } else {
-      return mergeABE((PolicyState)state1, (PolicyState)state2,
-          (PolicyPrecision)precision);
+    try {
+      if (joinOnMerge) {
+        return mergeJoin((PolicyState)state1, (PolicyState)state2,
+            (PolicyPrecision)precision);
+      } else {
+        return mergeABE((PolicyState)state1, (PolicyState)state2,
+            (PolicyPrecision)precision);
+      }
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     }
   }
 
   public PolicyState mergeABE(PolicyState state1, PolicyState state2,
-      PolicyPrecision precision) throws CPAException, InterruptedException {
+      PolicyPrecision precision) throws SolverException, CPAException, InterruptedException {
     Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
     if (state1.isAbstract()) {
 
@@ -50,7 +55,7 @@ public class PolicyMergeOperator implements MergeOperator {
   }
 
   public PolicyState mergeJoin(PolicyState state1, PolicyState state2,
-      PolicyPrecision precision) throws CPAException, InterruptedException {
+      PolicyPrecision precision) throws SolverException, CPAException, InterruptedException {
     return policyIterationManager.join(state1, state2, precision);
   }
 }

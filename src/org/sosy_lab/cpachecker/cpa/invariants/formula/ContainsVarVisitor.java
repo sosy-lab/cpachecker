@@ -31,15 +31,15 @@ import java.util.Map;
  *
  * @param <T> the type of the constants used in the visited formulae.
  */
-public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisitor<T, String, Boolean> {
+public class ContainsVarVisitor<T> implements ParameterizedNumeralFormulaVisitor<T, String, Boolean>, ParameterizedBooleanFormulaVisitor<T, String, Boolean> {
 
-  private final Map<? extends String, ? extends InvariantsFormula<T>> environment;
+  private final Map<? extends String, ? extends NumeralFormula<T>> environment;
 
   public ContainsVarVisitor() {
     this(null);
   }
 
-  public ContainsVarVisitor(Map<? extends String, ? extends InvariantsFormula<T>> pEnvironment) {
+  public ContainsVarVisitor(Map<? extends String, ? extends NumeralFormula<T>> pEnvironment) {
     this.environment = pEnvironment;
   }
 
@@ -141,15 +141,37 @@ public class ContainsVarVisitor<T> implements ParameterizedInvariantsFormulaVisi
   }
 
   @Override
+  public Boolean visitFalse(String pParameter) {
+    return false;
+  }
+
+  @Override
+  public Boolean visitTrue(String pParameter) {
+    return false;
+  }
+
+  @Override
   public Boolean visit(Variable<T> pVariable, String pVarName) {
     return pVariable.getName().equals(pVarName) || refersTo(pVariable, pVarName);
+  }
+
+  @Override
+  public Boolean visit(Cast<T> pCast, String pVarName) {
+    return pCast.getCasted().accept(this, pVarName);
+  }
+
+  @Override
+  public Boolean visit(IfThenElse<T> pIfThenElse, String pVarName) {
+    return pIfThenElse.getCondition().accept(this, pVarName)
+        || pIfThenElse.getPositiveCase().accept(this, pVarName)
+        || pIfThenElse.getNegativeCase().accept(this, pVarName);
   }
 
   private boolean refersTo(Variable<T> pVariable, String pVarName) {
     if (this.environment == null) {
       return false;
     }
-    InvariantsFormula<T> value = this.environment.get(pVariable.getName());
+    NumeralFormula<T> value = this.environment.get(pVariable.getName());
     if (value == null) {
       return false;
     }

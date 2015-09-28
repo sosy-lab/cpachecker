@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import apron.ApronException;
@@ -124,7 +123,6 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     ApronDomain apronDomain = new ApronDomain(logger);
 
     apronManager = new ApronManager(config);
-    GlobalInfo.getInstance().storeApronManager(apronManager);
 
     this.transferRelation = new ApronTransferRelation(logger, cfa.getLoopStructure().get(), splitDisequalities);
 

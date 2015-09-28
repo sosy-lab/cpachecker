@@ -42,12 +42,13 @@ import com.google.common.collect.ImmutableSet;
 
 public class InvariantsPrecision implements Precision {
 
-  public static InvariantsPrecision getEmptyPrecision() {
+  public static InvariantsPrecision getEmptyPrecision(
+      AbstractionStrategy pAbstractionStrategy) {
     return new InvariantsPrecision(
         Collections.<CFAEdge>emptySet(),
         Collections.<String>emptySet(),
         0,
-        AbstractionStateFactories.ALWAYS) {
+        pAbstractionStrategy) {
 
       @Override
       public boolean isRelevant(CFAEdge pEdge) {
@@ -68,24 +69,24 @@ public class InvariantsPrecision implements Precision {
 
   private final int maximumFormulaDepth;
 
-  private final AbstractionStateFactory abstractionStateFactory;
+  private final AbstractionStrategy abstractionStrategy;
 
   public InvariantsPrecision(Set<CFAEdge> pRelevantEdges,
       Set<String> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStateFactory pAbstractionStateFactory) {
+      AbstractionStrategy pAbstractionStrategy) {
     this(asImmutableRelevantEdges(pRelevantEdges),
         ImmutableSet.<String>copyOf(pInterestingVariables),
         pMaximumFormulaDepth,
-        pAbstractionStateFactory);
+        pAbstractionStrategy);
   }
 
   public InvariantsPrecision(ImmutableSet<CFAEdge> pRelevantEdges,
       ImmutableSet<String> pInterestingVariables, int pMaximumFormulaDepth,
-      AbstractionStateFactory pAbstractionStateFactory) {
+      AbstractionStrategy pAbstractionStrategy) {
     this.relevantEdges = pRelevantEdges;
     this.interestingVariables = pInterestingVariables;
     this.maximumFormulaDepth = pMaximumFormulaDepth;
-    this.abstractionStateFactory = pAbstractionStateFactory;
+    this.abstractionStrategy = pAbstractionStrategy;
   }
 
   public boolean isRelevant(CFAEdge pEdge) {
@@ -135,8 +136,8 @@ public class InvariantsPrecision implements Precision {
     return this.maximumFormulaDepth;
   }
 
-  public AbstractionStateFactory getAbstractionStateFactory() {
-    return this.abstractionStateFactory;
+  public AbstractionStrategy getAbstractionStrategy() {
+    return this.abstractionStrategy;
   }
 
   private static ImmutableSet<CFAEdge> asImmutableRelevantEdges(Set<CFAEdge> pRelevantEdges) {

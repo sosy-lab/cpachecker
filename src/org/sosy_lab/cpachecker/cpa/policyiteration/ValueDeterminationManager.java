@@ -9,8 +9,8 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -30,6 +30,7 @@ public class ValueDeterminationManager {
   private final LogManager logger;
   private final TemplateManager templateManager;
   private final PathFormulaManager pfmgr;
+  private final StateFormulaConversionManager stateFormulaConversionManager;
 
   /** Constants */
   private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
@@ -39,9 +40,11 @@ public class ValueDeterminationManager {
       FormulaManagerView fmgr,
       LogManager logger,
       TemplateManager pTemplateManager,
-      PathFormulaManager pPfmgr) {
+      PathFormulaManager pPfmgr,
+      StateFormulaConversionManager pStateFormulaConversionManager) {
 
     this.fmgr = fmgr;
+    stateFormulaConversionManager = pStateFormulaConversionManager;
     this.bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     templateManager = pTemplateManager;
@@ -187,7 +190,9 @@ public class ValueDeterminationManager {
           }
         };
     PathFormula policyFormula = bound.getFormula();
-    PathFormula startPathFormula = bound.getStartPathFormula(fmgr);
+
+    PathFormula startPathFormula = stateFormulaConversionManager.getPathFormula(
+        bound.getPredecessor(), fmgr, true);
 
     final Formula policyOutTemplate = fmgr.renameFreeVariablesAndUFs(
         templateManager.toFormula(pfmgr, fmgr, template, policyFormula), addPrefix);

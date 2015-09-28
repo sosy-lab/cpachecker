@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

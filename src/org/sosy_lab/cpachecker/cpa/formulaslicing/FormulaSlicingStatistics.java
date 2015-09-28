@@ -15,11 +15,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
  */
 public class FormulaSlicingStatistics implements Statistics {
   final Timer formulaSlicingTimer = new Timer();
+  final Timer LBEencodingTimer = new Timer();
 
   @Override
   public void printStatistics(PrintStream out, Result result,
       ReachedSet reached) {
     printTimer(out, formulaSlicingTimer, "formula slicing");
+    printTimer(out, LBEencodingTimer, "LBE encoding");
   }
 
   private void printTimer(PrintStream out, Timer t, String name) {

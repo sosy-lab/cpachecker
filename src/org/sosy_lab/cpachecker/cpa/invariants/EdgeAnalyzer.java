@@ -62,10 +62,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormula;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Optional;
@@ -73,6 +74,19 @@ import com.google.common.collect.Iterables;
 
 
 public class EdgeAnalyzer {
+
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+
+  private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
+
+  private final MachineModel machineModel;
+
+  public EdgeAnalyzer(
+      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
+      MachineModel pMachineModel) {
+    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    this.machineModel = pMachineModel;
+  }
 
   /**
    * Gets the variables involved in the given edge.
@@ -82,7 +96,7 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given edge.
    */
-  public static Map<String, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
+  public Map<String, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
@@ -127,8 +141,10 @@ public class EdgeAnalyzer {
       for (AExpression argument : functionCallEdge.getArguments()) {
         result.putAll(getInvolvedVariableTypes(argument,
             new VariableNameExtractor(
+                compoundIntervalManagerFactory,
+                machineModel,
                 callerFunctionName,
-                Collections.<String, InvariantsFormula<CompoundInterval>>emptyMap())));
+                Collections.<String, NumeralFormula<CompoundInterval>>emptyMap())));
       }
 
       // Extract formal parameters
@@ -145,7 +161,8 @@ public class EdgeAnalyzer {
         Map<String, CType> result = new HashMap<>();
         Optional<? extends AVariableDeclaration> retVar = returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
         if (retVar.isPresent()) {
-          result.put(retVar.get().getQualifiedName(), (CType) returnExpression.getExpressionType());
+          CType type = (CType) retVar.get().getType();
+          result.put(retVar.get().getQualifiedName(), type);
         }
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
         return result;
@@ -194,7 +211,7 @@ public class EdgeAnalyzer {
           Map<String, CType> result = new HashMap<>();
           Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
           if (retVar.isPresent()) {
-            result.put(retVar.get().getQualifiedName(), (CType) functionCallExpression.getExpressionType());
+            result.put(retVar.get().getQualifiedName(), (CType) retVar.get().getType());
           }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
@@ -208,12 +225,14 @@ public class EdgeAnalyzer {
     }
   }
 
-
-  private static Map<? extends String, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
+  private Map<? extends String, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
       CFAEdge pCFAEdge) {
     if (pParameter.getType() instanceof CType) {
       return Collections.singletonMap(
-          new VariableNameExtractor(pCFAEdge).getVarName(pParameter),
+          new VariableNameExtractor(
+              compoundIntervalManagerFactory,
+              machineModel,
+              pCFAEdge).getVarName(pParameter),
           (CType) pParameter.getType());
     }
     return Collections.emptyMap();
@@ -228,7 +247,7 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given CInitializer.
    */
-  private static Map<String, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
+  private Map<String, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
@@ -252,11 +271,13 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given expression.
    */
-  public static Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
+  public Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
     return getInvolvedVariableTypes(pExpression,
         new VariableNameExtractor(
+            compoundIntervalManagerFactory,
+            machineModel,
             pCFAEdge,
-            Collections.<String, InvariantsFormula<CompoundInterval>> emptyMap())
+            Collections.<String, NumeralFormula<CompoundInterval>> emptyMap())
     );
   }
 
@@ -268,18 +289,18 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given expression.
    */
-  public static Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, VariableNameExtractor pVariableNameExtractor) {
+  public Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, VariableNameExtractor pVariableNameExtractor) {
     if (pExpression == null) { return Collections.emptyMap(); }
     if (pExpression instanceof CExpression) {
       Map<String, CType> result = new HashMap<>();
 
       for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(LHSVisitor.INSTANCE)) {
-        InvariantsFormula<CompoundInterval> formula;
+        NumeralFormula<CompoundInterval> formula;
         try {
-          formula = ((CExpression) leftHandSide).accept(new ExpressionToFormulaVisitor(
-              pVariableNameExtractor));
+          formula = ((CExpression) leftHandSide).accept(
+              new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, pVariableNameExtractor));
 
-          for (String variableName : formula.accept(new CollectVarsVisitor<CompoundInterval>())) {
+          for (String variableName : formula.accept(COLLECT_VARS_VISITOR)) {
             result.put(variableName, (CType) leftHandSide.getExpressionType());
           }
         } catch (UnrecognizedCodeException e) {
