@@ -714,6 +714,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
+    CAssignment returnAssignment = returnEdge.asAssignment().get();
+    if (returnAssignment != null) {
+      expType = returnAssignment.getLeftHandSide().getExpressionType();
+    }
 
     if (tmpFieldMemory != null) {
       return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
@@ -1074,7 +1078,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   // assign value of given expression to State at given location
   private SMGState assignFieldToState(SMGState pNewState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, CType pFieldType, CRightHandSide rValue)
+      SMGObject memoryOfField, int fieldOffset, CType pLFieldType, CRightHandSide rValue)
       throws CPATransferException {
 
     CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
@@ -1088,11 +1092,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     //6.5.16.1 right operand is converted to type of assignment expression
     // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
-    rValueType = pFieldType;
+    rValueType = pLFieldType;
 
     newState = assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue);
 
-    newState = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, value, rValueType);
+    newState = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, value, rValueType);
 
     return newState;
   }
@@ -1189,12 +1193,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private SMGState handleAssignmentToField(SMGState state, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, CType pFieldType, CRightHandSide rValue)
+      SMGObject memoryOfField, int fieldOffset, CType pLFieldType, CRightHandSide rValue)
       throws CPATransferException {
 
     SMGState newState = new SMGState(state);
 
-    newState = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pFieldType, rValue);
+    newState = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, rValue);
 
     // If Assignment contained malloc, handle possible fail with
     // alternate State (don't create state if not enabled)
