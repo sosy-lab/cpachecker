@@ -84,7 +84,7 @@ public class FunctionApplicationManager {
     }
     }
 
-    if (func.getName().startsWith("__overflow_")) {
+    if (func.getName().startsWith("_overflow")) {
       return OVERFLOW.apply(func, value);
     }
 
@@ -276,11 +276,11 @@ public class FunctionApplicationManager {
 
     @Override
     BigInteger compute(Function func, BigInteger p1) {
-      String[] parts = func.getName().split("_");
-      assert parts.length == 5 : "we expect a function-name like '__overflow_signed_32_'.";
-      assert "signed".equals(parts[3]) || "unsigned".equals(parts[3]);
-
-      return overflow("signed".equals(parts[3]), Integer.parseInt(parts[4]), p1);
+      final String name = func.getName();
+      assert name.startsWith("_overflowSigned") || name.startsWith("_overflowUnsigned");
+      final boolean signed = name.startsWith("_overflowSigned");
+      String length = name.substring(name.indexOf("(") + 1, name.indexOf(")"));
+      return overflow(signed, Integer.parseInt(length), p1);
     }
 
     private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {

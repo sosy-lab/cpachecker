@@ -465,7 +465,8 @@ public class CtoFormulaConverter {
       }
 
       final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
-          String.format("__overflow_%s_%s_", signed ? "signed" : "unsigned", machineModel.getSizeofInBits(sType)),
+          // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
+          String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
           numberType,
           Lists.<Formula>newArrayList(value));
       addRangeConstraint(overflowUF, type, constraints);
