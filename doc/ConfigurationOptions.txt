@@ -1482,6 +1482,12 @@ cpa.predicate.satCheck = 0
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
 
+# C99 only defines the overflow of unsigned integer type.
+cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
+
+# How often should we try to get a better evaluation?
+cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
+
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
 cpa.predicate.stop = "SEP"

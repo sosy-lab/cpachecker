@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 public class UFCheckingProverEnvironment
     extends UFCheckingBasicProverEnvironment<Void>
@@ -39,8 +39,8 @@ public class UFCheckingProverEnvironment
   private final ProverEnvironment delegate;
 
   public UFCheckingProverEnvironment(LogManager pLogger, ProverEnvironment pe,
-      FormulaManagerView pFmgr) {
-    super(pLogger, pe, pFmgr);
+      FormulaManagerView pFmgr, UFCheckingProverOptions options) {
+    super(pLogger, pe, pFmgr, options);
     this.delegate = pe;
   }
 

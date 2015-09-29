@@ -27,21 +27,25 @@ import java.math.BigInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.solver.AssignableTerm.Function;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /** This class contains code for a better evaluation of UFs. */
 public class FunctionApplicationManager {
 
   private final FormulaManagerView fmgr;
   private final LogManager logger;
+  private final UFCheckingProverOptions options;
 
-  public FunctionApplicationManager(FormulaManagerView pFmgr, LogManager pLogger) {
+  public FunctionApplicationManager(FormulaManagerView pFmgr, LogManager pLogger,
+      UFCheckingProverOptions pOptions) {
     this.fmgr = pFmgr;
     this.logger = pLogger;
+    this.options = pOptions;
   }
 
   /**
@@ -154,6 +158,11 @@ public class FunctionApplicationManager {
 
       BigInteger p1 = (BigInteger) func.getArgument(0);
       BigInteger validResult = compute(func, p1);
+
+      if (validResult == null) {
+        // evaluation not possible, ignore UF
+        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+      }
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
@@ -275,6 +284,14 @@ public class FunctionApplicationManager {
     }
 
     private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
+
+      if (signed && !options.isSignedOverflowSafe()) {
+        // According to C99-standard, signed integer overflow is not specified.
+        // Thus no evaluation is possible, every value is allowed.
+        // As the SMT-solver has a satisfiable term with this value, just return NULL to ignore the value.
+        return null;
+      }
+
       final BigInteger range = BigInteger.ONE.shiftLeft(bitsize);
 
       // (value % range) is guaranteed to be in range, and always >=0.
@@ -285,7 +302,6 @@ public class FunctionApplicationManager {
       if (signed && value.compareTo(max) >= 0) {
         value = value.subtract(range);
       }
-
       return value;
     }
   };

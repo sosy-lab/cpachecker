@@ -27,14 +27,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm.Function;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Iterables;
 
@@ -45,26 +49,46 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   private final BooleanFormulaManager bfmgr;
   private final FunctionApplicationManager faMgr;
 
+  private final UFCheckingProverOptions options;
+
   // We count the number of pushed constraints,
   // because we keep constraints, until the last pushed formula is popped.
   private int pushedConstraintsSinceLastPush = 0;
   private final List<Integer> pushedConstraints = new ArrayList<>();
 
-  /**
-   * For some UFs we can compute the correct result for the given parameters,
-   * but then the solver chooses new parameters and we have to compute a new result. Again, and again.
-   * Thus we abort after some iterations and ignore the invalid result of the UF.
-   * This procedure should be sound.
-   */
-  // TODO magic number, because we have 10 fingers
-  private final static int MAX_ITERATION_COUNT = 10;
+
+  @Options(prefix="cpa.predicate.solver.ufCheckingProver")
+  public static class UFCheckingProverOptions {
+
+    /**
+     * For some UFs we can compute the correct result for the given parameters,
+     * but then the solver chooses new parameters and we have to compute a new result. Again, and again.
+     * Example: we try to solve "a=2 & UF_multiply(a,b)=5" and try b=[1,2,3,...].
+     * Thus we abort after some iterations and ignore the invalid result of the UF.
+     * This procedure should be sound.
+     */
+    @Option(description = "How often should we try to get a better evaluation?")
+    private int maxIterationNum = 5;
+
+    @Option(description = "C99 only defines the overflow of unsigned integer type.")
+    private boolean isSignedOverflowSafe = true;
+
+    public UFCheckingProverOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    boolean isSignedOverflowSafe() {
+      return isSignedOverflowSafe;
+    }
+  }
 
   public UFCheckingBasicProverEnvironment(LogManager pLogger, BasicProverEnvironment<T> bpe,
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr, UFCheckingProverOptions options) {
     this.delegate = bpe;
     this.logger = pLogger;
     this.bfmgr = pFmgr.getBooleanFormulaManager();
-    this.faMgr = new FunctionApplicationManager(pFmgr, pLogger);
+    this.faMgr = new FunctionApplicationManager(pFmgr, pLogger, options);
+    this.options = options;
   }
 
   @Override
@@ -116,7 +140,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
         break;
       }
 
-      if (additionalLevels > MAX_ITERATION_COUNT) {
+      if (additionalLevels > options.maxIterationNum) {
         logger.log(Level.INFO, "aborting further sat-checks with UF-checking");
         break;
       }
