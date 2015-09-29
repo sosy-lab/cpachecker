@@ -79,11 +79,11 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
     @Option(secure=true, description="Use UFs to handle overflows "
         + "when Bitvector theory was replaced with Integer or Rational theory.")
-    private boolean handleOverflowsWithUFs = false;
+    private boolean replaceOverflowsWithUFs = false;
 
     @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
         + "when Bitvector theory was replaced with Integer or Rational theory.")
-    private boolean handleSignConversionWithUFs = false;
+    private boolean replaceSignConversionWithUFs = false;
   }
 
   public ReplaceBitvectorWithNumeralAndFunctionTheory(
@@ -239,7 +239,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   private BitvectorFormula handleOverflow(FormulaType<BitvectorFormula> pFormulaType, T pValue, boolean pSigned) {
-    if (options.handleOverflowsWithUFs) {
+    if (options.replaceOverflowsWithUFs) {
       pValue = replaceOverflowWithUF(pValue, ((BitvectorType)pFormulaType).getSize(), pSigned);
     }
     return wrap(pFormulaType, pValue);
@@ -247,7 +247,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   private T handleOverflow(BitvectorFormula pValue, boolean pSigned) {
     T result = unwrap(pValue);
-    if (options.handleSignConversionWithUFs) {
+    if (options.replaceSignConversionWithUFs) {
       result = replaceOverflowWithUF(result, getLength(pValue), pSigned);
     }
     return result;

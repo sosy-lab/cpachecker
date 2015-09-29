@@ -1197,6 +1197,10 @@ cpa.predicate.encodeBitvectorAs = INTEGER
 cpa.predicate.encodeFloatAs = RATIONAL
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
+# Replace possible overflows with an ITE-structure, which returns either the
+# normal value or an UF representing the overflow.
+cpa.predicate.encodeOverflowsWithUFs = false
+
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -1216,17 +1220,9 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
-# Use UFs to handle overflows when Bitvector theory was replaced with Integer
-# or Rational theory.
-cpa.predicate.handleOverflowsWithUFs = false
-
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
-
-# Use UFs to handle sign-conversion (from signed to unsigned or back) when
-# Bitvector theory was replaced with Integer or Rational theory.
-cpa.predicate.handleSignConversionWithUFs = false
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1464,9 +1460,13 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
-# Replace possible overflows with an ITE-structure, which returns either the
-# normal value or an UF representing the overflow.
+# Use UFs to handle overflows when Bitvector theory was replaced with Integer
+# or Rational theory.
 cpa.predicate.replaceOverflowsWithUFs = false
+
+# Use UFs to handle sign-conversion (from signed to unsigned or back) when
+# Bitvector theory was replaced with Integer or Rational theory.
+cpa.predicate.replaceSignConversionWithUFs = false
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
