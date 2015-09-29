@@ -236,7 +236,7 @@ class WebInterface:
                     self.__request('POST', filePath, compressedProgramText, headers, [200,204], user_pwd)
                     
             # retry submission of run
-            return self.__submitRun( run, limits, cpu_model, result_files_pattern, priority, user_pwd, svn_branch, svn_revision, counter + 1)
+            return self.__submit(run, limits, cpu_model, result_files_pattern, priority, user_pwd, svn_branch, svn_revision, counter + 1)
         
         else:
             run_id = run_id.decode("UTF-8")
