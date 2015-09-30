@@ -104,9 +104,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (memoryErrors) {
-      logger.log(Level.WARNING, pMessage);
+      logger.log(Level.INFO, pMessage);
     } else if (pUndefinedBehavior) {
-      logger.log(Level.WARNING, pMessage );
+      logger.log(Level.INFO, pMessage );
       logger.log(Level.WARNING, "Non-target undefined behavior detected. The verification result is unreliable.");
     }
   }
