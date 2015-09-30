@@ -291,7 +291,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @return true, it the path is feasible, else false
    * @throws CPAException
    */
-  private boolean isRemainingPathFeasible(ARGPath remainingErrorPath, S state)
+  public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, S state)
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
     return checker.isFeasible(remainingErrorPath, state);

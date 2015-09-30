@@ -148,4 +148,9 @@ public class SMGInterpolant implements Interpolant<SMGState> {
   public static SMGInterpolant getFalseInterpolant() {
     return FALSE;
   }
+
+  @Override
+  public String toString() {
+    return heap.toString() + "\n" + explicitValues.toString();
+  }
 }
