@@ -120,6 +120,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -714,9 +715,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
-    CAssignment returnAssignment = returnEdge.asAssignment().get();
-    if (returnAssignment != null) {
-      expType = returnAssignment.getLeftHandSide().getExpressionType();
+    Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
+    if (returnAssignment.isPresent()) {
+      expType = returnAssignment.get().getLeftHandSide().getExpressionType();
     }
 
     if (tmpFieldMemory != null) {
