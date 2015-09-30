@@ -109,7 +109,10 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
 
     try {
       MutableARGPath currentPrefix = new MutableARGPath();
-      SMGState next = pStartingPoint;
+
+      //TODO ugly, copying SMGState
+      // We don't want sideffects of smg transfer relation propagating.
+      SMGState next = new SMGState(pStartingPoint);
       CFAEdge edge = null;
 
       PathIterator iterator = pPath.pathIterator();
