@@ -151,6 +151,11 @@ public class SMGInterpolant implements Interpolant<SMGState> {
 
   @Override
   public String toString() {
-    return heap.toString() + "\n" + explicitValues.toString();
+
+    if (isFalse()) {
+      return "FALSE";
+    } else {
+      return heap.toString() + "\n" + explicitValues.toString();
+    }
   }
 }
