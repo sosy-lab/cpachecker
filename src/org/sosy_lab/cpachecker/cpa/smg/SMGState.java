@@ -1122,7 +1122,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGInterpolant createInterpolant() {
-    return new SMGInterpolant(explicitValues, heap, logger);
+    // TODO Copy necessary?
+    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
   }
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
