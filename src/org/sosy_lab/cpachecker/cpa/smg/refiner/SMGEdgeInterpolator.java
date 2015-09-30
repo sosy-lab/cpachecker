@@ -71,7 +71,7 @@ public class SMGEdgeInterpolator extends GenericEdgeInterpolator<SMGState, SMGSt
   public boolean isRemainingPathFeasible(ARGPath pRemainingErrorPath, SMGState pState)
       throws CPAException, InterruptedException {
     numberOfInterpolationQueries++;
-    return checker.isFeasible(pRemainingErrorPath, automatons);
+    return checker.isFeasible(pRemainingErrorPath, pState, automatons);
   }
 
   @Override
