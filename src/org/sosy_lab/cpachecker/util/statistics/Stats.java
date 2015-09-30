@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.util.statistics.interfaces.Aggregateable;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.Context;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.ContextKey;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.NoStatisticsException;
+import org.sosy_lab.cpachecker.util.statistics.interfaces.RetrospectiveContext;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.TimeMeasurementListener;
 
 import com.google.common.base.Optional;
@@ -56,25 +57,16 @@ public final class Stats {
       return String.format("%d %s %s", thread.getId(), classIdentifier.toString(), parentContext.toString());
     }
 
-    /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.util.statistics.ContextKeyIf#getIdentifier()
-     */
     @Override
     public Object getIdentifier() {
       return classIdentifier;
     }
 
-    /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.util.statistics.ContextKeyIf#getParentContext()
-     */
     @Override
     public Optional<Context> getParentContext() {
       return parentContext;
     }
 
-    /* (non-Javadoc)
-     * @see org.sosy_lab.cpachecker.util.statistics.ContextKeyIf#getThread()
-     */
     @Override
     public Thread getThread() {
       return thread;
@@ -146,9 +138,9 @@ public final class Stats {
 
   private static class StatisticsContext implements Context {
 
-    private transient final Map<Object, Context> childContexts = Maps.newHashMap();
-    private final Map<Object, Aggregateable> statValues = Maps.newHashMap();
-    private AggregationMilliSec contextTime = AggregationMilliSec.neutral();
+    protected transient final Map<Object, Context> childContexts = Maps.newHashMap();
+    protected final Map<Object, Aggregateable> statValues = Maps.newHashMap();
+    protected AggregationMilliSec contextTime = AggregationMilliSec.neutral();
 
     private final ContextKey key;
 
@@ -205,7 +197,7 @@ public final class Stats {
       Stats.popContext(this);
     }
 
-    private void activated() {
+    void activated() {
       final StatisticsContext self = this;
       contextTimer = new StatCpuTimer(new TimeMeasurementListener() {
         @Override
@@ -214,6 +206,10 @@ public final class Stats {
           self.contextTime = self.contextTime.aggregateBy(ms);
         }
       });
+    }
+
+    synchronized void addToContextTime (final AggregationMilliSec pTime) {
+      this.contextTime = this.contextTime.aggregateBy(pTime);
     }
 
     @Override
@@ -265,6 +261,71 @@ public final class Stats {
       }
 
       return (T) value;
+    }
+
+  }
+
+  private static class RetroStatisticsContext extends StatisticsContext implements RetrospectiveContext {
+
+    private final Set<Object> retroRoots = Sets.newHashSet();
+    private boolean closed = false;
+
+    public RetroStatisticsContext(Key pKey) {
+      super(pKey);
+    }
+
+    @Override
+    public void putRootContext(final Object pContextIdent) {
+      retroRoots.add(pContextIdent);
+    }
+
+    private void aggregateStatsFromTo(Context pFrom, StatisticsContext pTo) throws NoStatisticsException {
+
+      pTo.addToContextTime(pFrom.getContextTime());
+
+      for (Object statKey: pFrom.getStatistics().keySet()) {
+
+        final Aggregateable agg = pFrom.getStatistic(statKey, Aggregateable.class);
+        pTo.aggregate(statKey, agg);
+      }
+
+      for (Context fromChild: pFrom.getChildContexts()) {
+        final ContextKey fromKey = fromChild.getKey();
+        final StatisticsContext toChild = getContext(
+            fromKey.getThread(),
+            fromKey.getIdentifier(),
+            Optional.<Context>of(pTo));
+
+        aggregateStatsFromTo(pFrom, pTo);
+      }
+    }
+
+    @Override
+    public void close() {
+      super.close();
+
+      Preconditions.checkState(!closed);
+
+      final Thread t = Thread.currentThread();
+
+      for (Object retroIdent: retroRoots) {
+        final StatisticsContext ctx = getContext(t, retroIdent, Optional.<Context>absent());
+
+        // TODO: This is not yet thread-safe!!
+        if (!rootContexts.containsEntry(t, ctx)) {
+          rootContexts.put(t, ctx);
+        }
+
+        // Copy statistics on the root level ...
+        try {
+          aggregateStatsFromTo(this, ctx);
+
+        } catch (NoStatisticsException e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      closed = true;
     }
 
   }
@@ -370,10 +431,30 @@ public final class Stats {
     return new Contexts(result);
   }
 
+  public synchronized static RetrospectiveContext retrospectiveRootContext() {
+    final Thread t = Thread.currentThread();
+    final Set<StatisticsContext> result = Sets.newHashSet();
+
+    final Key key = new Key(Optional.<Context>absent(), result, t);
+    RetroStatisticsContext ctx = new RetroStatisticsContext(key);
+
+    activeContexts.put(t, ctx);
+
+    // Signal the activation in each context
+    //  Triggers observers, and internal statistics!
+    ctx.activated();
+
+    return ctx;
+  }
+
   private synchronized static StatisticsContext getContext(
       final Thread pThread,
       final Object pIdent,
       Optional<Context> pParentContext) {
+
+    Preconditions.checkNotNull(pThread);
+    Preconditions.checkNotNull(pIdent);
+    Preconditions.checkNotNull(pParentContext);
 
     final Key key = new Key(pParentContext, pIdent, pThread);
 

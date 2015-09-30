@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationInt;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.NoStatisticsException;
+import org.sosy_lab.cpachecker.util.statistics.interfaces.RetrospectiveContext;
 
 import com.google.common.collect.Sets;
 
@@ -50,7 +51,7 @@ public class StatsTest {
           try (Contexts ctx4 = Stats.beginSubContext("Transfer Relation")) {
             try (Contexts ctxO = Stats.beginRootContext("Property 1", "Property 2")) {
               try (StatCpuTimer c = Stats.startTimer("Target SAT check")) {
-                Thread.sleep(500);
+                Thread.sleep(100);
               } catch (InterruptedException e) {
               }
               Stats.incCounter("Number of Predicates", 10);
@@ -59,6 +60,13 @@ public class StatsTest {
 
             try (Contexts ctxO = Stats.beginRootContext("Property 1")) {
               Stats.incCounter("Number of Predicates", 5);
+            }
+
+            try (RetrospectiveContext ctxR = Stats.retrospectiveRootContext()) {
+              Stats.incCounter("Number of Predicates", 5);
+              Thread.sleep(50);
+              ctxR.putRootContext("Property 3");
+            } catch (InterruptedException e) {
             }
           }
           try (Contexts ctx4 = Stats.beginSubContext("Precision Adjustment")) {
