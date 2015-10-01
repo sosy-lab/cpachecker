@@ -165,7 +165,7 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-    if (cexExporter == null || !exportARG) {
+    if (cexExporter == null && !exportARG) {
       return;
     }
 
