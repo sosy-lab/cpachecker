@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -49,7 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -108,8 +106,6 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
       final Deque<SMGState> pCallstack) throws CPAException, InterruptedException {
 
     try {
-      MutableARGPath currentPrefix = new MutableARGPath();
-
       //TODO ugly, copying SMGState
       // We don't want sideffects of smg transfer relation propagating.
       SMGState next = new SMGState(pStartingPoint);
@@ -135,8 +131,6 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
 
         Optional<SMGState> successors =
             strongestPostOp.getStrongestPost(next, precision, edge);
-
-        currentPrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
 
         // no successors => path is infeasible
         if (!successors.isPresent()) {
