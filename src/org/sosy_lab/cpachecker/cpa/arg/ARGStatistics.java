@@ -162,8 +162,9 @@ public class ARGStatistics implements IterationStatistics {
     int cexIndex = 0;
 
     for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
+      cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++,
           !cexExporter.shouldDumpErrorPathImmediately());
+      allTargetPathEdges.addAll(cex.getValue().getTargetPath().getStatePairs());
     }
 
     if (exportARG) {

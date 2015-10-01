@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -155,6 +156,24 @@ public class ARGPath implements Appender {
 
   public ImmutableSet<ARGState> getStateSet() {
     return ImmutableSet.copyOf(states);
+  }
+
+  /**
+   * Return (predecessor,successor) pairs of ARGStates for every edge in the path.
+   */
+  public List<Pair<ARGState, ARGState>> getStatePairs() {
+    return new AbstractList<Pair<ARGState, ARGState>>() {
+
+      @Override
+      public Pair<ARGState, ARGState> get(int pIndex) {
+        return Pair.of(states.get(pIndex), states.get(pIndex+1));
+      }
+
+      @Override
+      public int size() {
+        return states.size() - 1;
+      }
+    };
   }
 
   public MutableARGPath mutableCopy() {

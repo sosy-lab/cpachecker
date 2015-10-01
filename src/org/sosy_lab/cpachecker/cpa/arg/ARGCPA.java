@@ -284,7 +284,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
     if (cexExporter.shouldDumpErrorPathImmediately()) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex, null, true);
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex, true);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }

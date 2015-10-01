@@ -28,12 +28,10 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
@@ -66,7 +64,6 @@ import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -160,30 +157,23 @@ public class CEXExporter {
    */
   public void exportCounterexample(final ARGState pTargetState,
       final CounterexampleInfo pCounterexampleInfo,
-      int cexIndex, @Nullable final Set<Pair<ARGState, ARGState>> allTargetPathEdges,
+      int cexIndex,
       boolean reallyWriteToDisk) {
     checkNotNull(pTargetState);
     checkNotNull(pCounterexampleInfo);
 
-    final ARGPath targetPath = pCounterexampleInfo.getTargetPath();
-
-    final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
-    if (allTargetPathEdges != null) {
-      allTargetPathEdges.addAll(targetPathEdges);
-    }
-
     if (reallyWriteToDisk && exportErrorPath) {
-      exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo,
-          Predicates.in(targetPathEdges));
+      exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo);
     }
   }
 
   private void exportCounterexample(final ARGState lastState,
                                     final int cexIndex,
-                                    final CounterexampleInfo counterexample,
-                                    final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+                                    final CounterexampleInfo counterexample) {
 
     final ARGPath targetPath = counterexample.getTargetPath();
+    final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge = Predicates.in(
+        new HashSet<>(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
@@ -366,19 +356,6 @@ public class CEXExporter {
                 "Could not write information about the error path to file");
       }
     }
-  }
-
-  private static Set<Pair<ARGState, ARGState>> getEdgesOfPath(ARGPath pPath) {
-    Set<Pair<ARGState, ARGState>> result = Sets.newHashSetWithExpectedSize(pPath.size());
-    Iterator<ARGState> it = pPath.asStatesList().iterator();
-    assert it.hasNext();
-    ARGState lastElement = it.next();
-    while (it.hasNext()) {
-      ARGState currentElement = it.next();
-      result.add(Pair.of(lastElement, currentElement));
-      lastElement = currentElement;
-    }
-    return result;
   }
 
   public boolean shouldDumpErrorPathImmediately() {
