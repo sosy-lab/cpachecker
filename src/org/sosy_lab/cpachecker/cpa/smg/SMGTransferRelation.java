@@ -849,14 +849,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CType rValueType = expressionEvaluator.getRealExpressionType(exp.getExpressionType());
       // if function declaration is in form 'int foo(char b[32])' then omit array length
       if (rValueType instanceof CArrayType) {
-        rValueType = new CArrayType(rValueType.isConst(), rValueType.isVolatile(), ((CArrayType)rValueType).getType(), null);
+        rValueType = new CPointerType(rValueType.isConst(), rValueType.isVolatile(), ((CArrayType)rValueType).getType());
       }
 
+      if (cType instanceof CArrayType) {
+        cType = new CPointerType(cType.isConst(), cType.isVolatile(), ((CArrayType) cType).getType());
+      }
 
       SMGRegion newObject = values.get(i).getFirst();
       SMGSymbolicValue symbolicValue = values.get(i).getSecond();
 
-      newState.addLocalVariable(cType, varName,newObject);
+      int typeSize = expressionEvaluator.getSizeof(callEdge, cType, newState);
+
+      newState.addLocalVariable(typeSize, varName, newObject);
 
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters
@@ -1132,9 +1137,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject memoryOfField, int fieldOffset, CType pFieldType, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
-    if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType)) {
+    //FIXME Does not work with variable array length.
+    if (memoryOfField.getSize() < expressionEvaluator.getSizeof(cfaEdge, rValueType, newState)) {
       logger.log(Level.WARNING, cfaEdge.getFileLocation() + ":",
-          "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType) +
+          "Attempting to write " + expressionEvaluator.getSizeof(cfaEdge, rValueType, newState) +
           " bytes into a field with size " + memoryOfField.getSize() + "bytes:",
           cfaEdge.getRawStatement());
     }
@@ -1156,7 +1162,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       SMGObject source = structAddress.getObject();
       int structOffset = structAddress.getOffset().getAsInt();
-      int structSize = structOffset + expressionEvaluator.getSizeof(pCfaEdge, pRValueType);
+
+      //FIXME Does not work with variable array length.
+      int structSize = structOffset + expressionEvaluator.getSizeof(pCfaEdge, pRValueType, pNewState);
       return pNewState.copy(source, pMemoryOfField,
           structOffset, structSize, pFieldOffset);
     }
@@ -1172,8 +1180,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
+  //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType) > pMemoryOfField.getSize();
+        || pFieldOffset + expressionEvaluator.getSizeof(pEdge, pRValueType, pNewState) > pMemoryOfField.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -1221,15 +1230,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     newObject = pState.getObjectForVisibleVariable(varName);
       /*
-       *  The variable is not null if we seen the declaration already, for example in loops. Invalid
-       *  occurrences (variable really declared twice) should be caught for us by the parser. If we
-       *  already processed the declaration, we do nothing.
-       */
+     *  The variable is not null if we seen the declaration already, for example in loops. Invalid
+     *  occurrences (variable really declared twice) should be caught for us by the parser. If we
+     *  already processed the declaration, we do nothing.
+     */
     if (newObject == null) {
+      int typeSize = expressionEvaluator.getSizeof(pEdge, cType, pState);
+
       if (pVarDecl.isGlobal()) {
-        newObject = pState.addGlobalVariable(cType, varName);
+        newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
-        newObject = pState.addLocalVariable(cType, varName);
+        newObject = pState.addLocalVariable(typeSize, varName);
       }
     }
 
@@ -1344,13 +1355,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       pNewState = handleInitializer(pNewState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
-      offset = offset + expressionEvaluator.getSizeof(pEdge, memberType);
+      offset = offset + expressionEvaluator.getSizeof(pEdge, memberType, pNewState);
 
       listCounter++;
     }
 
     if (pVarDecl.isGlobal()) {
-      int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
+      int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
 
       if (offset - pOffset < sizeOfType ) {
         pNewState = writeValue(pNewState, pNewObject, offset, AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
@@ -1370,7 +1381,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType elementType = pLValueType.getType();
 
-    int sizeOfElementType = expressionEvaluator.getSizeof(pEdge, elementType);
+    int sizeOfElementType = expressionEvaluator.getSizeof(pEdge, elementType, pNewState);
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
@@ -1384,7 +1395,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     if (pVarDecl.isGlobal()) {
 
-      int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType);
+      int sizeOfType = expressionEvaluator.getSizeof(pEdge, pLValueType, pNewState);
 
       int offset = pOffset + listCounter * sizeOfElementType;
       if (offset - pOffset < sizeOfType) {
@@ -1449,8 +1460,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       int fieldOffset = pOffset.getAsInt();
 
+      //FIXME Does not work with variable array length.
       boolean doesNotFitIntoObject = fieldOffset < 0
-          || fieldOffset + getSizeof(pEdge, pType) > pObject.getSize();
+          || fieldOffset + getSizeof(pEdge, pType, pSmgState) > pObject.getSize();
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
