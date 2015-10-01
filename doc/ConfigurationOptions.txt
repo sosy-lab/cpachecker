@@ -713,6 +713,11 @@ cpa.bam.argFile = "BlockedARG.dot"
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
 
+# This flag determines which precisions should be updated during refinement.
+# We can choose between the minimum number of states and all states that are
+# necessary to re-explore the program along the error-path.
+cpa.bam.doPrecisionRefinementForAllStates = false
+
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
@@ -1197,6 +1202,10 @@ cpa.predicate.encodeBitvectorAs = INTEGER
 cpa.predicate.encodeFloatAs = RATIONAL
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
+# Replace possible overflows with an ITE-structure, which returns either the
+# normal value or an UF representing the overflow.
+cpa.predicate.encodeOverflowsWithUFs = false
+
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -1216,17 +1225,9 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
-# Use UFs to handle overflows when Bitvector theory was replaced with Integer
-# or Rational theory.
-cpa.predicate.handleOverflowsWithUFs = false
-
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
-
-# Use UFs to handle sign-conversion (from signed to unsigned or back) when
-# Bitvector theory was replaced with Integer or Rational theory.
-cpa.predicate.handleSignConversionWithUFs = false
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1313,6 +1314,9 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+
+# generate statistics about precisions (may be slow)
+cpa.predicate.precisionStatistics = true
 
 # Export the weakest precondition?
 cpa.predicate.precondition.export = false
@@ -1464,9 +1468,13 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
-# Replace possible overflows with an ITE-structure, which returns either the
-# normal value or an UF representing the overflow.
+# Use UFs to handle overflows when Bitvector theory was replaced with Integer
+# or Rational theory.
 cpa.predicate.replaceOverflowsWithUFs = false
+
+# Use UFs to handle sign-conversion (from signed to unsigned or back) when
+# Bitvector theory was replaced with Integer or Rational theory.
+cpa.predicate.replaceSignConversionWithUFs = false
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
@@ -1481,6 +1489,12 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
+
+# C99 only defines the overflow of unsigned integer type.
+cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
+
+# How often should we try to get a better evaluation?
+cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
@@ -1608,9 +1622,17 @@ cpa.slicing.sortSelectionVariablesSyntactic = true
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
 
+# Array allocation functions
+cpa.smg.arrayAllocationFunctions = {
+      "calloc"}
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
+
+# Deallocation functions
+cpa.smg.deallocationFunctions = {
+      "free"}
 
 # If this Option is enabled, failure of mallocis simulated
 cpa.smg.enableMallocFail = true
@@ -1632,6 +1654,19 @@ cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
 # Sets how unknown functions are handled. One of: {strict, assume_safe}
 cpa.smg.handleUnknownFunctions = "strict"
 
+# Memory allocation functions
+cpa.smg.memoryAllocationFunctions = {
+      "malloc"}
+
+# Size parameter of memory allocation functions
+cpa.smg.memoryAllocationFunctionsSizeParameter = 0
+
+# Position of element size parameter for array allocation functions
+cpa.smg.memoryArrayAllocationFunctionsElemSizeParameter = 1
+
+# Position of number of element parameter for array allocation functions
+cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
+
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
@@ -1645,6 +1680,10 @@ cpa.smg.stop = "SEP"
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Allocation functions which set memory to zero
+cpa.smg.zeroingMemoryAllocation = {
+      "calloc"}
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.

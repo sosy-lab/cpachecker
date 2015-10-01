@@ -96,7 +96,7 @@ public class FormulaEncodingOptions {
 
   @Option(secure=true, description = "Replace possible overflows with an ITE-structure, "
       + "which returns either the normal value or an UF representing the overflow.")
-  private boolean replaceOverflowsWithUFs = false;
+  private boolean encodeOverflowsWithUFs = false;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
@@ -147,7 +147,7 @@ public class FormulaEncodingOptions {
     return addRangeConstraintsForNondet;
   }
 
-  public boolean replaceOverflowsWithUFs() {
-    return replaceOverflowsWithUFs;
+  public boolean encodeOverflowsWithUFs() {
+    return encodeOverflowsWithUFs;
   }
 }

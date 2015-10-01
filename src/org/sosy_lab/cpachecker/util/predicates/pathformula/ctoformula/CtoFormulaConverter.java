@@ -430,10 +430,10 @@ public class CtoFormulaConverter {
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
     Formula result = makeCast0(pFromType, pToType, formula, constraints, edge);
 
-    if (options.replaceOverflowsWithUFs()) {
+    if (options.encodeOverflowsWithUFs()) {
       // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
       // and also type-based overflows like  "char c = (int)i;"  or  "unsigned int j = (int)i;"  .
-      result = replaceOverflowWithUF(result, pToType, constraints);
+      result = encodeOverflowsWithUF(result, pToType, constraints);
     }
 
     return result;
@@ -443,7 +443,7 @@ public class CtoFormulaConverter {
    *  that returns an UF (with additional constraints), if the formula causes an overflow,
    *  else the formula itself.
    *  Example:  ITE( MIN_INT <= X <= MAX_INT, X, UF(X) )  */
-  private Formula replaceOverflowWithUF(final Formula value, CType type, final Constraints constraints) {
+  private Formula encodeOverflowsWithUF(final Formula value, CType type, final Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
       final CSimpleType sType = (CSimpleType)type;
@@ -465,7 +465,8 @@ public class CtoFormulaConverter {
       }
 
       final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
-          String.format("__overflow_%s_%s_", signed ? "signed" : "unsigned", machineModel.getSizeofInBits(sType)),
+          // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
+          String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
           numberType,
           Lists.<Formula>newArrayList(value));
       addRangeConstraint(overflowUF, type, constraints);

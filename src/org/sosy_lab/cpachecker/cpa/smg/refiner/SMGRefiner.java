@@ -45,10 +45,13 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -64,7 +67,9 @@ import com.google.common.collect.Sets;
 
 public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
+  private final Set<ControlAutomatonCPA> automatonCpas;
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
+  private final SMGFeasibilityChecker checker;
 
   public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
 
@@ -75,9 +80,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
     final SMGCPA smgCpa = CPAs.retrieveCPA(pCpa, SMGCPA.class);
     if (smgCpa == null) {
-      throw new InvalidConfigurationException(SMGRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
+      throw new InvalidConfigurationException(SMGRefiner.class.getSimpleName() + " needs a SMGCPA");
     }
 
+    Set<ControlAutomatonCPA> automatonCpas = CPAs.asIterable(pCpa).filter(ControlAutomatonCPA.class).toSet();
+
+    if (automatonCpas == null) {
+      throw new InvalidConfigurationException(SMGRefiner.class.getSimpleName() + " needs a ControlAutomatonCPA");
+    }
 
     smgCpa.injectRefinablePrecision();
 
@@ -91,7 +101,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
 
     final SMGFeasibilityChecker checker =
-        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, initialState);
+        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, initialState, pCpa);
 
     SMGState emptyState = smgCpa.getInitialState(cfa.getMainFunction());
 
@@ -110,14 +120,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         smgCpa.getShutdownNotifier(),
         cfa,
         smgCpa,
-        smgInterpolantManager);
+        smgInterpolantManager, automatonCpas);
 
   }
 
   SMGRefiner(ARGCPA pArgCpa, SMGFeasibilityChecker pChecker, StrongestPostOperator<SMGState> pStrongestPostOp,
       PathExtractor pPathExtractor, GenericPrefixProvider<SMGState> pPrefixProvider, Configuration pConfig,
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa, SMGCPA pSMGCPA,
-      InterpolantManager<SMGState, SMGInterpolant> pSmgInterpolantManager) throws InvalidConfigurationException {
+      InterpolantManager<SMGState, SMGInterpolant> pSmgInterpolantManager, Set<ControlAutomatonCPA> pAutomatonCpas) throws InvalidConfigurationException {
     super(pArgCpa, pChecker,
         new SMGPathInterpolator(pChecker,
             pStrongestPostOp,
@@ -127,11 +137,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
             pShutdownNotifier,
             pCfa,
             pSMGCPA,
-            pSmgInterpolantManager),
+            pSmgInterpolantManager,
+            pAutomatonCpas),
         pSmgInterpolantManager,
         pPathExtractor,
         pConfig,
         pLogger);
+    automatonCpas = pAutomatonCpas;
+    checker = pChecker;
 
   }
 
@@ -170,6 +183,11 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
         .asIterable(pReached.asReachedSet().getPrecision(state))
         .filter(VariableTrackingPrecision.isMatchingCPAClass(SMGCPA.class))
         .get(0);
+  }
+
+  @Override
+  public boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {
+    return checker.isFeasible(pErrorPath, automatonCpas);
   }
 
   @Override

@@ -104,9 +104,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (memoryErrors) {
-      logger.log(Level.WARNING, pMessage);
+      logger.log(Level.FINE, pMessage);
     } else if (pUndefinedBehavior) {
-      logger.log(Level.WARNING, pMessage );
+      logger.log(Level.FINE, pMessage );
       logger.log(Level.WARNING, "Non-target undefined behavior detected. The verification result is unreliable.");
     }
   }
@@ -237,16 +237,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * Keeps consistency: yes
    *
-   * @param pType Type of the new object
+   * @param pTypeSize Size of the type of the new global variable
    * @param pVarName Name of the global variable
    * @return Newly created object
    *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object = new SMGRegion(size, pVarName);
+  public SMGObject addGlobalVariable(int pTypeSize, String pVarName) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
     heap.addGlobalObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -259,16 +258,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * Keeps consistency: yes
    *
-   * @param pType Type of the new object
+   * @param pTypeSize Size of the type the new local variable
    * @param pVarName Name of the local variable
    * @return Newly created object
    *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object = new SMGRegion(size, pVarName);
+  public SMGObject addLocalVariable(int pTypeSize, String pVarName) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
     heap.addStackObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -281,7 +279,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * Keeps consistency: yes
    *
-   * @param pType Type of the new object
+   * @param pTypeSize Size of the type of the new variable
    * @param pVarName Name of the local variable
    * @param new_object object of local variable
    * @return given object
@@ -289,14 +287,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(CType pType, String pVarName, SMGRegion smgObject) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object2 = new SMGRegion(size, pVarName);
+  public SMGObject addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject) throws SMGInconsistentException {
+    SMGRegion new_object2 = new SMGRegion(pTypeSize, pVarName);
 
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
     // arrays are converted to pointers
-    assert smgObject.getSize() == size || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
+    assert smgObject.getSize() == pTypeSize || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -562,7 +559,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return writeValue(pObject, pOffset, pType, value);
   }
 
-  private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
+  public void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
     if (!containsValue(pValue)) {
@@ -1122,7 +1119,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGInterpolant createInterpolant() {
-    return new SMGInterpolant(explicitValues, heap, logger);
+    // TODO Copy necessary?
+    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
   }
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {

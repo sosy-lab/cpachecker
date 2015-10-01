@@ -7,6 +7,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -75,9 +76,22 @@ import java.util.logging.Level;
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), val);
   }
   
-  private void error(String message) {
-    logger.log(Level.WARNING, message + " near " + getStartLocation() + " - " + getEndLocation());
-    throw new RuntimeException("Syntax error");
+  private void error() throws IOException {
+    Location start = getStartLocation();
+    StringBuilder msg = new StringBuilder();
+    msg.append(filesStack.getLast().getPath());
+    msg.append(" (Illegal character <");
+    msg.append(yytext());
+    msg.append("> at column ");
+    msg.append(start.getColumn());
+    msg.append(" in line ");
+    msg.append(start.getLine());
+    if (filesStack.size() != 1) {
+      msg.append(" of ");
+      msg.append(start.getUnit());
+    }
+    msg.append(")");
+    throw new IOException(msg.toString());
   }
 %}
 %eofval{
@@ -215,4 +229,4 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 }
 <<EOF>> {if (yymoreStreams()) { yypopStream(); filesStack.pop(); } else return symbol("EOF", AutomatonSym.EOF); }
 /* error fallback */
-[^]                              { error("Illegal character <"+yytext()+">"); }
+[^]                              { error(); }

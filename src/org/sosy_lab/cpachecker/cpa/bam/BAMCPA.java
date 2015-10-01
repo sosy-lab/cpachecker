@@ -102,6 +102,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
           + "The current support includes only ValueAnalysis and PredicateAnalysis (with tree interpolation enabled).")
   private boolean handleRecursiveProcedures = false;
 
+  @Option(secure = true,
+      description = "This flag determines which precisions should be updated during refinement. "
+      + "We can choose between the minimum number of states and all states that are necessary "
+      + "to re-explore the program along the error-path.")
+  private boolean doPrecisionRefinementForAllStates = false;
+
   public BAMCPA(ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger,
       ReachedSetFactory pReachedSetFactory, ShutdownNotifier pShutdownNotifier, CFA pCfa) throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -240,4 +246,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
   }
 
+  boolean doPrecisionRefinementForAllStates() {
+    return doPrecisionRefinementForAllStates;
+  }
 }

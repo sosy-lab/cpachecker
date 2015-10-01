@@ -669,9 +669,13 @@ public class CLangSMG extends SMG {
 
   private CLangStackFrame getStackFrameOfObject(SMGObject pObject) {
 
+    String regionLabel = pObject.getLabel();
+
     for (CLangStackFrame frame : stack_objects) {
-      if(frame.containsVariable(pObject.getLabel())
-          || pObject == frame.getReturnObject()){
+      if ((frame.containsVariable(regionLabel)
+            && frame.getVariable(regionLabel) == pObject)
+          || pObject == frame.getReturnObject()) {
+
         return frame;
       }
     }

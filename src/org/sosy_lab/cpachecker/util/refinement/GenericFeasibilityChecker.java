@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -137,5 +139,18 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }
+  }
+
+  @Override
+  public boolean isFeasible(ARGPath pPath, Set<ControlAutomatonCPA> pAutomatons) throws CPAException, InterruptedException {
+    //TODO Implementation
+    throw new UnsupportedOperationException("method not yet implemented");
+  }
+
+  @Override
+  public boolean isFeasible(ARGPath pPath, S pStartingPoint, Set<ControlAutomatonCPA> pAutomatons)
+      throws CPAException, InterruptedException {
+    //TODO Implementation
+    throw new UnsupportedOperationException("method not yet implemented");
   }
 }

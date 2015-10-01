@@ -68,7 +68,8 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     if(isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      return new SMGState(explicitValues, heap, logger);
+      // TODO Copy necessary?
+      return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
     }
   }
 
@@ -147,5 +148,15 @@ public class SMGInterpolant implements Interpolant<SMGState> {
 
   public static SMGInterpolant getFalseInterpolant() {
     return FALSE;
+  }
+
+  @Override
+  public String toString() {
+
+    if (isFalse()) {
+      return "FALSE";
+    } else {
+      return heap.toString() + "\n" + explicitValues.toString();
+    }
   }
 }

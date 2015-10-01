@@ -23,7 +23,7 @@
   <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
     <exclude>../programs/benchmarks/list-ext-properties/test-0504_1_true-valid-memsafety.i</exclude>
-    <option name="-sv-comp15"/>
+    <option name="-sv-comp16--memorysafety"/>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </tasks>
   <rundefinition/>

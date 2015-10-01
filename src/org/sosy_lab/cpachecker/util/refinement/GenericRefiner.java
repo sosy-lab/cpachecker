@@ -204,7 +204,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   protected abstract void refineUsingInterpolants(
       final ARGReachedSet pReached,
       final InterpolationTree<S, I> pInterpolationTree
-  );
+      ) throws InterruptedException;
 
   protected InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
       throws CPAException, InterruptedException {
