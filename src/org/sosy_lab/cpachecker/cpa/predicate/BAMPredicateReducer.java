@@ -149,7 +149,8 @@ public class BAMPredicateReducer implements Reducer {
       PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
       AbstractionFormula newAbstractionFormula =
-          pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
+          pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+              relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
 
       PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
