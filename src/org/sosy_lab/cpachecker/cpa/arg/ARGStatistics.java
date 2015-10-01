@@ -95,10 +95,6 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  @Option(secure=true, name="errorPath.export",
-      description="export error path to file, if one is found")
-  private boolean exportErrorPath = true;
-
   private final ARGCPA cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -162,13 +158,6 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-
-    if (!exportARG && !exportErrorPath) {
-      // shortcut, avoid unnecessary creation of path etc.
-      assert refinementGraphWriter == null;
-      return;
-    }
-
     final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
     int cexIndex = 0;
 

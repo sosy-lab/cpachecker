@@ -73,31 +73,31 @@ import com.google.common.collect.Sets;
 public class CEXExporter {
 
 
-  @Option(secure=true, name="enabled",
+  @Option(secure=true, name="export",
       description="export error path to file, if one is found")
   private boolean exportErrorPath = true;
 
   @Option(secure=true, name="file",
-      description="export error path to file, if one is found")
+      description="export error path as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("ErrorPath.%d.txt");
 
   @Option(secure=true, name="core",
-      description="export error path to file, if one is found")
+      description="export error path core as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathCoreFile = PathTemplate.ofFormatString("ErrorPath.%d.core.txt");
 
   @Option(secure=true, name="source",
-      description="export error path to file, if one is found")
+      description="export error path as source file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathSourceFile = PathTemplate.ofFormatString("ErrorPath.%d.c");
 
   @Option(secure=true, name="exportAsSource",
-      description="translate error path to C program")
+      description="export error path as source file")
   private boolean exportSource = true;
 
   @Option(secure=true, name="json",
-      description="export error path to file, if one is found")
+      description="export error path as JSON file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
 
@@ -107,17 +107,17 @@ public class CEXExporter {
   private PathTemplate errorPathAssignment = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
   @Option(secure=true, name="graph",
-      description="export error path to file, if one is found")
+      description="export error path as graph")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathGraphFile = PathTemplate.ofFormatString("ErrorPath.%d.dot");
 
   @Option(secure=true, name="automaton",
-      description="export error path to file as an automaton")
+      description="export error path as automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("ErrorPath.%d.spc");
 
   @Option(secure=true, name="graphml",
-      description="export error path to file as an automaton to a graphml file")
+      description="export error path to file as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = null;
 

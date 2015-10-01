@@ -590,24 +590,25 @@ cpa.arg.dumpAfterIteration = false
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
-# export error path to file as an automaton
+# export error path as automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
 # use either CMBC or real C
 cpa.arg.errorPath.codeStyle = "CMBC"
 
-# export error path to file, if one is found
+# export error path core as text file
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
-cpa.arg.errorPath.enabled = true
+
+# export error path to file, if one is found
 cpa.arg.errorPath.export = true
 
-# translate error path to C program
+# export error path as source file
 cpa.arg.errorPath.exportAsSource = true
 
 # export error paths to files immediately after they were found
 cpa.arg.errorPath.exportImmediately = false
 
-# export error path to file, if one is found
+# export error path as text file
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
 # Filter for irrelevant counterexamples to reduce the number of similar
@@ -617,14 +618,16 @@ cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
           PathEqualityCounterexampleFilter.class)
 
-# export error path to file, if one is found
+# export error path as graph
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 
-# export error path to file as an automaton to a graphml file
+# export error path to file as GraphML automaton
 cpa.arg.errorPath.graphml = no default value
 
-# export error path to file, if one is found
+# export error path as JSON file
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
+
+# export error path as source file
 cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
 # export final ARG as .dot file
