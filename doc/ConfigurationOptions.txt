@@ -1966,6 +1966,10 @@ cpa.value.refinement.prefixPreference = DOMAIN_GOOD_SHORT
 cpa.value.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
 
+# instead of reporting a repeated counter-example, search and refine another
+# error-path for the same target-state.
+cpa.value.refinement.searchForFurtherErrorPaths = true
+
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true

@@ -86,6 +86,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
 
+  @Option(secure = true, description="instead of reporting a repeated counter-example, "
+      + "search and refine another error-path for the same target-state.")
+  private boolean searchForFurtherErrorPaths = true;
+
   protected final LogManager logger;
 
   private final ARGCPA argCpa;
@@ -158,13 +162,15 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   ) throws CPAException, InterruptedException {
     Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
 
+    boolean repeatingCEX = !madeProgress(targetPathToUse);
+
     // if the target path is given from outside, do not fail hard on a repeated counterexample:
     // this can happen when the predicate-analysis refinement returns back-to-back target paths
     // that are feasible under predicate-analysis semantics and hands those into the value-analysis
     // refiner, where the in-between value-analysis refinement happens to only affect paths in a
     // (ABE) block, which may not be visible when constructing the target path in the next refinement.
-    if (!madeProgress(targetPathToUse)) {
-      boolean repeatingCEX = true;
+    // Possible problem: alternating error-paths
+    if (repeatingCEX && searchForFurtherErrorPaths) {
       for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
         if (!targetPathToUse.equals(targetPath)) {
           logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
@@ -174,9 +180,10 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
           break;
         }
       }
-      if (repeatingCEX) {
-        throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
-      }
+    }
+
+    if (repeatingCEX) {
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
     return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
