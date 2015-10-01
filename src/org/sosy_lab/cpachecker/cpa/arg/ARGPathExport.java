@@ -704,13 +704,11 @@ public class ARGPathExport {
         throws IOException {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
-      if (pCounterExample != null) {
-        RichModel model = pCounterExample.getTargetPathModel();
-        CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.getTargetPath();
-          valueMap = model.getExactVariableValues(targetPath);
-        }
+      RichModel model = pCounterExample.getTargetPathModel();
+      CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
+      if (cfaPath != null) {
+        ARGPath targetPath = pCounterExample.getTargetPath();
+        valueMap = model.getExactVariableValues(targetPath);
       }
 
       GraphType graphType = GraphType.PROGRAMPATH;

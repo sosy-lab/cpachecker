@@ -160,10 +160,11 @@ public class CEXExporter {
    * @param reallyWriteToDisk enable/disable output to files.
    */
   public void exportCounterexample(final ARGState pTargetState,
-      @Nullable final CounterexampleInfo pCounterexampleInfo,
+      final CounterexampleInfo pCounterexampleInfo,
       int cexIndex, @Nullable final Set<Pair<ARGState, ARGState>> allTargetPathEdges,
       boolean reallyWriteToDisk) {
     checkNotNull(pTargetState);
+    checkNotNull(pCounterexampleInfo);
 
     final ARGPath targetPath = checkNotNull(getTargetPath(pTargetState, pCounterexampleInfo));
 
@@ -172,7 +173,7 @@ public class CEXExporter {
       allTargetPathEdges.addAll(targetPathEdges);
     }
 
-    if (reallyWriteToDisk && exportErrorPath && pCounterexampleInfo != null) {
+    if (reallyWriteToDisk && exportErrorPath) {
       exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo,
           targetPath, Predicates.in(targetPathEdges));
     }
@@ -180,7 +181,7 @@ public class CEXExporter {
 
   private void exportCounterexample(final ARGState lastState,
                                     final int cexIndex,
-                                    @Nullable final CounterexampleInfo counterexample,
+                                    final CounterexampleInfo counterexample,
                                     @Nonnull final ARGPath targetPath,
                                     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
@@ -203,8 +204,7 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
 
-        if (counterexample != null
-            && counterexample.getTargetPathModel() != null
+        if (counterexample.getTargetPathModel() != null
             && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
           counterexample.getTargetPathModel().getCFAPathWithAssignments().toJSON(pAppendable, targetPath);
         } else {
@@ -215,7 +215,7 @@ public class CEXExporter {
 
     final Set<ARGState> pathElements;
     Appender pathProgram = null;
-    if (counterexample != null && counterexample.getTargetPath() != null) {
+    if (counterexample.getTargetPath() != null) {
       // precise error path
       pathElements = targetPath.getStateSet();
 
@@ -266,15 +266,13 @@ public class CEXExporter {
       }
     });
 
-    if (counterexample != null) {
-      if (counterexample.getTargetPathModel() != null) {
-        writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
-      }
+    if (counterexample.getTargetPathModel() != null) {
+      writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
+    }
 
-      for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
-        if (info.getSecond() != null) {
-          writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
-        }
+    for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
+      if (info.getSecond() != null) {
+        writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
       }
     }
 
@@ -356,12 +354,8 @@ public class CEXExporter {
     };
   }
 
-  private ARGPath getTargetPath(final ARGState targetState, @Nullable final CounterexampleInfo counterexample) {
-    ARGPath targetPath = null;
-
-    if (counterexample != null) {
-      targetPath = counterexample.getTargetPath();
-    }
+  private ARGPath getTargetPath(final ARGState targetState, final CounterexampleInfo counterexample) {
+    ARGPath targetPath = counterexample.getTargetPath();
 
     if (targetPath == null) {
       // try to find one
