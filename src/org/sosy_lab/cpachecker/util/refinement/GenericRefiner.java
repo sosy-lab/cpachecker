@@ -154,27 +154,29 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   public CounterexampleInfo performRefinement(
-      final ARGReachedSet pReached,
-      final ARGPath pTargetPath
+      final ARGReachedSet pReached, ARGPath targetPathToUse
   ) throws CPAException, InterruptedException {
-    Collection<ARGState> targets = Collections.singleton(pTargetPath.getLastState());
-    ARGPath targetPathToUse = pTargetPath;
+    Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
 
     // if the target path is given from outside, do not fail hard on a repeated counterexample:
     // this can happen when the predicate-analysis refinement returns back-to-back target paths
     // that are feasible under predicate-analysis semantics and hands those into the value-analysis
     // refiner, where the in-between value-analysis refinement happens to only affect paths in a
     // (ABE) block, which may not be visible when constructing the target path in the next refinement.
-    if (!madeProgress(pTargetPath)) {
+    if (!madeProgress(targetPathToUse)) {
+      boolean repeatingCEX = true;
       for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
-        if (!targetPathToUse.equals(pTargetPath)) {
+        if (!targetPathToUse.equals(targetPath)) {
           logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
               "so instead, refiner uses a new error path extracted from the reachset.");
           targetPathToUse = targetPath;
+          repeatingCEX = false;
           break;
         }
       }
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
+      if (repeatingCEX) {
+        throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
+      }
     }
 
     return performRefinement(pReached, targets, Lists.newArrayList(targetPathToUse));
