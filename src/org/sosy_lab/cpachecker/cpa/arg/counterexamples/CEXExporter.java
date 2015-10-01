@@ -47,7 +47,9 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
@@ -131,10 +133,10 @@ public class CEXExporter {
   private final ARGPathExport witnessExporter;
 
 
-  public CEXExporter(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public CEXExporter(Configuration config, LogManager logger, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.witnessExporter = new ARGPathExport(config);
+    this.witnessExporter = new ARGPathExport(config, logger, pMachineModel, pLanguage);
 
     if (!exportSource) {
       errorPathSourceFile = null;
