@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
@@ -166,7 +165,7 @@ public class CEXExporter {
     checkNotNull(pTargetState);
     checkNotNull(pCounterexampleInfo);
 
-    final ARGPath targetPath = checkNotNull(getTargetPath(pTargetState, pCounterexampleInfo));
+    final ARGPath targetPath = pCounterexampleInfo.getTargetPath();
 
     final Set<Pair<ARGState, ARGState>> targetPathEdges = getEdgesOfPath(targetPath);
     if (allTargetPathEdges != null) {
@@ -175,16 +174,16 @@ public class CEXExporter {
 
     if (reallyWriteToDisk && exportErrorPath) {
       exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo,
-          targetPath, Predicates.in(targetPathEdges));
+          Predicates.in(targetPathEdges));
     }
   }
 
   private void exportCounterexample(final ARGState lastState,
                                     final int cexIndex,
                                     final CounterexampleInfo counterexample,
-                                    @Nonnull final ARGPath targetPath,
                                     final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
 
+    final ARGPath targetPath = counterexample.getTargetPath();
     final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
@@ -216,6 +215,7 @@ public class CEXExporter {
     final Set<ARGState> pathElements;
     Appender pathProgram = null;
     if (counterexample.getTargetPath() != null) {
+      // TODO: This can no longer be distinguished by checking for null, the path is always non-null
       // precise error path
       pathElements = targetPath.getStateSet();
 
@@ -352,19 +352,6 @@ public class CEXExporter {
         }
       }
     };
-  }
-
-  private ARGPath getTargetPath(final ARGState targetState, final CounterexampleInfo counterexample) {
-    ARGPath targetPath = counterexample.getTargetPath();
-
-    if (targetPath == null) {
-      // try to find one
-      // This is imprecise if there are several paths in the ARG,
-      // because we randomly select one existing path,
-      // but this path may actually be infeasible.
-      targetPath = ARGUtils.getOnePathTo(targetState);
-    }
-    return targetPath;
   }
 
   private void writeErrorPathFile(PathTemplate template, int cexIndex, Object content) {

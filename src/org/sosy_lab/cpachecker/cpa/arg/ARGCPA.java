@@ -243,11 +243,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   public void addCounterexample(ARGState targetState, CounterexampleInfo pCounterexample) {
     checkArgument(targetState.isTarget());
     checkArgument(!pCounterexample.isSpurious());
-    if (pCounterexample.getTargetPath() != null) {
-      // With BAM, the targetState and the last state of the path
-      // may actually be not identical.
-      checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
-    }
+    // With BAM, the targetState and the last state of the path
+    // may actually be not identical.
+    checkArgument(pCounterexample.getTargetPath().getLastState().isTarget());
     counterexamples.put(targetState, pCounterexample);
   }
 
