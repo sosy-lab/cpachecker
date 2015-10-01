@@ -66,6 +66,7 @@ public class ARGSubtreeRemover {
   private final BAMCache bamCache;
   private final LogManager logger;
   private final Timer removeCachedSubtreeTimer;
+  private final boolean doPrecisionRefinementForAllStates;
 
   public ARGSubtreeRemover(BAMCPA bamCpa, Timer pRemoveCachedSubtreeTimer) {
     this.partitioning = bamCpa.getBlockPartitioning();
@@ -74,6 +75,7 @@ public class ARGSubtreeRemover {
     this.bamCache = bamCpa.getData().bamCache;
     this.logger = bamCpa.getData().logger;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
+    doPrecisionRefinementForAllStates = bamCpa.doPrecisionRefinementForAllStates();
   }
 
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
@@ -114,7 +116,9 @@ public class ARGSubtreeRemover {
       ReachedSet nextReachedSet = data.initialStateToReachedSet.get(removeCachedSubtreeArguments.getValue());
       final List<Precision> newPrecisions;
       final List<Predicate<? super Precision>> newPrecisionTypes;
-      if ((removeCachedSubtreeArguments.getValue() == lastRelevantNode)
+      if (doPrecisionRefinementForAllStates
+          // special option (mostly for testing)
+          || (removeCachedSubtreeArguments.getValue() == lastRelevantNode)
           // last iteration, most inner block for refinement
           || (nextReachedSet != null && target.getParents().contains(nextReachedSet.getFirstState()))) {
           // if second state of reached-set is removed, update parent-precision
