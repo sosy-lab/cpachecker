@@ -166,8 +166,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
     cexExporter = new CEXExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
-    stats = new ARGStatistics(config, this, cfa.getMachineModel(), cfa.getLanguage(),
-        !dumpErrorPathImmediately);
+    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(), cfa.getLanguage(),
+        dumpErrorPathImmediately ? null : cexExporter);
     machineModel = cfa.getMachineModel();
   }
 
