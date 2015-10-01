@@ -165,17 +165,25 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-    final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
-    int cexIndex = 0;
+    if (cexExporter == null || !exportARG) {
+      return;
+    }
 
-    for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      if (cexExporter != null) {
+    final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
+
+    if (cexExporter != null) {
+      int cexIndex = 0;
+      for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++);
       }
-      allTargetPathEdges.addAll(cex.getValue().getTargetPath().getStatePairs());
     }
 
     if (exportARG) {
+      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+      for (CounterexampleInfo cex : counterexamples.values()) {
+        allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
+      }
+
       // The state space might be partitioned ...
       // ... so we would export a separate ARG for each partition ...
       boolean partitionedArg = AbstractStates.extractStateByType(
