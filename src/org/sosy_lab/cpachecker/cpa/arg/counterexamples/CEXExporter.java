@@ -117,10 +117,6 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonGraphmlFile = null;
 
-  @Option(secure=true, name="exportImmediately",
-          description="export error paths to files immediately after they were found")
-  private boolean dumpErrorPathImmediately = false;
-
   @Option(secure=true, name="codeStyle",
           description="use either CMBC or real C")
   private String codeStyle = "CMBC";
@@ -157,12 +153,11 @@ public class CEXExporter {
    */
   public void exportCounterexample(final ARGState pTargetState,
       final CounterexampleInfo pCounterexampleInfo,
-      int cexIndex,
-      boolean reallyWriteToDisk) {
+      int cexIndex) {
     checkNotNull(pTargetState);
     checkNotNull(pCounterexampleInfo);
 
-    if (reallyWriteToDisk && exportErrorPath) {
+    if (exportErrorPath) {
       exportCounterexample(pTargetState, cexIndex, pCounterexampleInfo);
     }
   }
@@ -356,9 +351,5 @@ public class CEXExporter {
                 "Could not write information about the error path to file");
       }
     }
-  }
-
-  public boolean shouldDumpErrorPathImmediately() {
-    return dumpErrorPathImmediately;
   }
 }

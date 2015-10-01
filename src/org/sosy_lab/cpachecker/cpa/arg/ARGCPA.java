@@ -103,6 +103,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
           PathEqualityCounterexampleFilter.class);
   private final CounterexampleFilter cexFilter;
 
+  @Option(secure=true, name="errorPath.exportImmediately",
+          description="export error paths to files immediately after they were found")
+  private boolean dumpErrorPathImmediately = false;
+
   private final LogManager logger;
 
   private final AbstractDomain abstractDomain;
@@ -162,7 +166,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
     cexExporter = new CEXExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
-    stats = new ARGStatistics(config, this, cfa.getMachineModel(), cfa.getLanguage());
+    stats = new ARGStatistics(config, this, cfa.getMachineModel(), cfa.getLanguage(),
+        !dumpErrorPathImmediately);
     machineModel = cfa.getMachineModel();
   }
 
@@ -282,9 +287,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   void exportCounterexampleOnTheFly(ARGState pTargetState,
     CounterexampleInfo pCounterexampleInfo, int cexIndex) throws InterruptedException {
-    if (cexExporter.shouldDumpErrorPathImmediately()) {
+    if (dumpErrorPathImmediately) {
       if (cexFilter.isRelevant(pCounterexampleInfo)) {
-        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex, true);
+        cexExporter.exportCounterexample(pTargetState, pCounterexampleInfo, cexIndex);
       } else {
         logger.log(Level.FINEST, "Skipping counterexample printing because it is similar to one of already printed.");
       }

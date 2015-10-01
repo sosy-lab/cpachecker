@@ -102,13 +102,18 @@ public class ARGStatistics implements IterationStatistics {
   private final CEXExporter cexExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
+  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel,
+      Language pLanguage, boolean exportErrorPaths) throws InvalidConfigurationException {
     this.cpa = cpa;
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, cpa.getLogger(), pMachineModel);
 
     config.inject(this);
 
-    cexExporter = new CEXExporter(config, cpa.getLogger(), pMachineModel, pLanguage);
+    if (exportErrorPaths) {
+      cexExporter = new CEXExporter(config, cpa.getLogger(), pMachineModel, pLanguage);
+    } else {
+      cexExporter = null;
+    }
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;
@@ -162,8 +167,9 @@ public class ARGStatistics implements IterationStatistics {
     int cexIndex = 0;
 
     for (Map.Entry<ARGState, CounterexampleInfo> cex : getAllCounterexamples(pReached).entrySet()) {
-      cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++,
-          !cexExporter.shouldDumpErrorPathImmediately());
+      if (cexExporter != null) {
+        cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++);
+      }
       allTargetPathEdges.addAll(cex.getValue().getTargetPath().getStatePairs());
     }
 
