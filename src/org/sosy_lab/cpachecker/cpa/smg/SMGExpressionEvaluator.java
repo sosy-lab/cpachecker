@@ -2154,7 +2154,10 @@ public class SMGExpressionEvaluator {
        */
       int length;
 
-      if (arrayLength instanceof CIntegerLiteralExpression) {
+      if(arrayLength == null) {
+        // treat size of unknown array length type as ptr
+        return super.visit(pArrayType);
+      } else if (arrayLength instanceof CIntegerLiteralExpression) {
         length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
       } else if (edge instanceof CDeclarationEdge) {
 
@@ -2162,8 +2165,6 @@ public class SMGExpressionEvaluator {
          * we simply need to calculate the current length of the array
          * from the given expression in the type.
          */
-
-
         SMGExplicitValue lengthAsExplicitValue;
 
         try {
