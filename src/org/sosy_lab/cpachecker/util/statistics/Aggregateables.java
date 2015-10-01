@@ -176,12 +176,12 @@ public final class Aggregateables {
     }
   }
 
-  public static class AggregationMilliSec extends AbstractAggregateable {
+  public static class AggregationMilliSecPair extends AbstractAggregateable {
 
     private AggregationLong processCpuTimeMsec = null;
     private AggregationLong wallTimeMsec = null;
 
-    private AggregationMilliSec() {
+    private AggregationMilliSecPair() {
     }
 
     public AggregationLong getProcessCpuTimeMsec() {
@@ -192,15 +192,15 @@ public final class Aggregateables {
       return wallTimeMsec;
     }
 
-    public static AggregationMilliSec neutral() {
-      AggregationMilliSec result = new AggregationMilliSec();
+    public static AggregationMilliSecPair neutral() {
+      AggregationMilliSecPair result = new AggregationMilliSecPair();
       result.processCpuTimeMsec = AggregationLong.neutral();
       result.wallTimeMsec = AggregationLong.neutral();
       return result;
     }
 
-    public static AggregationMilliSec single(long pSpentCpuTimeMSecs, long pSpentWallTimeMSecs) {
-      AggregationMilliSec result = new AggregationMilliSec();
+    public static AggregationMilliSecPair single(long pSpentCpuTimeMSecs, long pSpentWallTimeMSecs) {
+      AggregationMilliSecPair result = new AggregationMilliSecPair();
       result.valuations = 1;
       result.processCpuTimeMsec = AggregationLong.single(pSpentCpuTimeMSecs);
       result.wallTimeMsec = AggregationLong.single(pSpentWallTimeMSecs);
@@ -210,10 +210,10 @@ public final class Aggregateables {
     @Override
     public <T extends Aggregateable> T aggregateBy(T pBy) {
 
-      assert pBy instanceof AggregationMilliSec;
+      assert pBy instanceof AggregationMilliSecPair;
 
-      AggregationMilliSec by = (AggregationMilliSec) pBy;
-      AggregationMilliSec result = new AggregationMilliSec();
+      AggregationMilliSecPair by = (AggregationMilliSecPair) pBy;
+      AggregationMilliSecPair result = new AggregationMilliSecPair();
 
       result.valuations = this.valuations + by.valuations;
       result.processCpuTimeMsec = this.processCpuTimeMsec.aggregateBy(by.processCpuTimeMsec);
@@ -224,11 +224,52 @@ public final class Aggregateables {
 
     @Override
     public String toString() {
-      return String.format("(wallsecs:%.3f, cpusecs:%.3f)",
+      return String.format("(wallsecs: %.3f, cpusecs: %.3f)",
           this.wallTimeMsec.sum / 1000.0, this.processCpuTimeMsec.sum / 1000.0);
     }
-
   }
+
+  public static class AggregationTime extends AbstractAggregateable {
+
+    private long timeNanos = 0;
+
+    private AggregationTime() {
+    }
+
+    public static AggregationTime neutral() {
+      AggregationTime result = new AggregationTime();
+      result.valuations = 0;
+      result.timeNanos = 0;
+      return result;
+    }
+
+    public static AggregationTime single(long pSpentTimeNanos) {
+      AggregationTime result = new AggregationTime();
+      result.valuations = 0;
+      result.timeNanos = pSpentTimeNanos;
+      return result;
+    }
+
+    @Override
+    public <T extends Aggregateable> T aggregateBy(T pBy) {
+
+      assert pBy instanceof AggregationTime;
+
+      AggregationTime by = (AggregationTime) pBy;
+      AggregationTime result = new AggregationTime();
+
+      result.valuations = this.valuations + by.valuations;
+      result.timeNanos = this.timeNanos + by.timeNanos;
+
+      return (T) result;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("(wallsecs: %.3f)", this.timeNanos / 1e9);
+    }
+  }
+
 
 
 }

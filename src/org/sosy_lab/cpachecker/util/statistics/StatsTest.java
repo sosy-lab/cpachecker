@@ -44,33 +44,32 @@ public class StatsTest {
   }
 
   @Test
-  public void test() {
-    try (Contexts ctx1 = Stats.beginSubContext("Multi Property Verification")) {
-      try (Contexts ctx2 = Stats.beginSubContext("CEGAR")) {
-        try (Contexts ctx3 = Stats.beginSubContext("CPA")) {
-          try (Contexts ctx4 = Stats.beginSubContext("Transfer Relation")) {
-            try (Contexts ctxO = Stats.beginRootContext("Property 1", "Property 2")) {
-              try (StatCpuTimer c = Stats.startTimer("Target SAT check")) {
-                Thread.sleep(100);
-              } catch (InterruptedException e) {
+  public void test() throws InterruptedException {
+    int i = 1;
+    while (i-- > 0) {
+      try (Contexts ctx1 = Stats.beginSubContext("Multi Property Verification")) {
+        try (Contexts ctx2 = Stats.beginSubContext("CEGAR")) {
+          try (Contexts ctx3 = Stats.beginSubContext("CPA")) {
+            try (Contexts ctx4 = Stats.beginSubContext("Transfer Relation")) {
+              try (Contexts ctxO = Stats.beginRootContext("Property 1", "Property 2")) {
+                try (StatCpuTimer c = Stats.startTimer("Target SAT check")) {
+                }
+                Stats.incCounter("Number of Predicates", 10);
+                Stats.putItems("Predicates", Sets.<Object>newHashSet("a==1", "b>5"));
               }
-              Stats.incCounter("Number of Predicates", 10);
-              Stats.putItems("Predicates", Sets.<Object>newHashSet("a==1", "b>5"));
-            }
 
-            try (Contexts ctxO = Stats.beginRootContext("Property 1")) {
-              Stats.incCounter("Number of Predicates", 5);
-            }
+              try (Contexts ctxO = Stats.beginRootContext("Property 1")) {
+                Stats.incCounter("Number of Predicates", 5);
+              }
 
-            try (RetrospectiveContext ctxR = Stats.retrospectiveRootContext()) {
-              Stats.incCounter("Number of Predicates", 5);
-              Thread.sleep(50);
-              ctxR.putRootContext("Property 3");
-            } catch (InterruptedException e) {
+              try (RetrospectiveContext ctxR = Stats.retrospectiveRootContext()) {
+                Stats.incCounter("Number of Predicates", 5);
+                ctxR.putRootContext("Property 3");
+              }
             }
-          }
-          try (Contexts ctx4 = Stats.beginSubContext("Precision Adjustment")) {
+            try (Contexts ctx4 = Stats.beginSubContext("Precision Adjustment")) {
 
+            }
           }
         }
       }

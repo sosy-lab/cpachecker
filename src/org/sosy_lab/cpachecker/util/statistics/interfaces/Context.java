@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.statistics.interfaces;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationMilliSec;
+import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationTime;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -50,6 +50,6 @@ public interface Context extends AutoCloseable {
   public <T extends Aggregateable> T getStatistic(Object pIdent, Class<T> pClass)
     throws NoStatisticsException;
 
-  public AggregationMilliSec getContextTime();
+  public AggregationTime getContextWallTimeNanos();
 
 }

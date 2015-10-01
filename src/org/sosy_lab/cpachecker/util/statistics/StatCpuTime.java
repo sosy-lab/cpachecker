@@ -78,10 +78,10 @@ public class StatCpuTime implements TimeMeasurementListener {
       }
 
       final long cpuTimeDiffNanos = stopCpuTimeNanos - startCpuTimeNanos;
-      final long spentCpuTimeMSecs = (long) (cpuTimeDiffNanos / (1000.0 * 1000.0));
+      final long spentCpuTimeMSecs = (long) (cpuTimeDiffNanos / (1000000.0));
 
       final long wallTimeDiffNanos = stopWallTimeNanos - startWallTimeNanos;
-      final long spentWallTimeMSecs = (long) (wallTimeDiffNanos / (1000.0 * 1000.0));
+      final long spentWallTimeMSecs = (long) (wallTimeDiffNanos / (1000000.0));
 
       addTo.onMeasurementResult(spentCpuTimeMSecs, spentWallTimeMSecs);
     }

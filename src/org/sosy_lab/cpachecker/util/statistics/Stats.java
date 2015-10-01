@@ -6,9 +6,12 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationInt;
-import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationMilliSec;
+import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationMilliSecPair;
 import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationSet;
+import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.Aggregateable;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.Context;
@@ -74,7 +77,7 @@ public final class Stats {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
+      final int prime = 17;
       int result = 1;
       result = prime * result + ((classIdentifier == null) ? 0 : classIdentifier.hashCode());
       result = prime * result + ((parentContext == null) ? 0 : parentContext.hashCode());
@@ -122,15 +125,15 @@ public final class Stats {
 
   public static class Contexts implements Closeable {
 
-    private ImmutableSet<Context> contexts;
+    private ImmutableSet<Context> wrappedContexts;
 
     public Contexts(Set<? extends Context> pContexts) {
-      contexts = ImmutableSet.copyOf(pContexts);
+      wrappedContexts = ImmutableSet.copyOf(pContexts);
     }
 
     @Override
     public void close() {
-      for (Context x: this.contexts) {
+      for (Context x: this.wrappedContexts) {
         x.close();
       }
     }
@@ -140,7 +143,8 @@ public final class Stats {
 
     protected transient final Map<Object, Context> childContexts = Maps.newHashMap();
     protected final Map<Object, Aggregateable> statValues = Maps.newHashMap();
-    protected AggregationMilliSec contextTime = AggregationMilliSec.neutral();
+    protected AggregationTime contextWallDuration = AggregationTime.neutral();
+    @Nullable protected Long contextActivationTime;
 
     private final ContextKey key;
 
@@ -174,10 +178,9 @@ public final class Stats {
       return true;
     }
 
-    private StatCpuTimer contextTimer;
-
     public StatisticsContext(Key pKey) {
       Preconditions.checkNotNull(pKey);
+      this.contextActivationTime = null;
       this.key = pKey;
     }
 
@@ -193,23 +196,23 @@ public final class Stats {
 
     @Override
     public void close() {
-      contextTimer.stop();
+      // Measure the time
+      final long contextCloseTime = System.nanoTime();
+      final long activationDuration = contextCloseTime - contextActivationTime;
+      contextWallDuration = contextWallDuration.aggregateBy(
+          AggregationTime.single(activationDuration));
+      contextActivationTime = null;
+
+      // Remove the context from the global stack
       Stats.popContext(this);
     }
 
     void activated() {
-      final StatisticsContext self = this;
-      contextTimer = new StatCpuTimer(new TimeMeasurementListener() {
-        @Override
-        public void onMeasurementResult(long pSpentCpuTimeMSecs, long pSpentWallTimeMSecs) {
-          AggregationMilliSec ms = AggregationMilliSec.single(pSpentCpuTimeMSecs, pSpentWallTimeMSecs);
-          self.contextTime = self.contextTime.aggregateBy(ms);
-        }
-      });
+      this.contextActivationTime = System.nanoTime();
     }
 
-    synchronized void addToContextTime (final AggregationMilliSec pTime) {
-      this.contextTime = this.contextTime.aggregateBy(pTime);
+    synchronized void addToContextWallTime (final AggregationTime pTime) {
+      this.contextWallDuration = this.contextWallDuration.aggregateBy(pTime);
     }
 
     @Override
@@ -236,8 +239,8 @@ public final class Stats {
     }
 
     @Override
-    public AggregationMilliSec getContextTime() {
-      return contextTime;
+    public AggregationTime getContextWallTimeNanos() {
+      return contextWallDuration;
     }
 
     @Override
@@ -281,7 +284,7 @@ public final class Stats {
 
     private void aggregateStatsFromTo(Context pFrom, StatisticsContext pTo) throws NoStatisticsException {
 
-      pTo.addToContextTime(pFrom.getContextTime());
+      pTo.addToContextWallTime(pFrom.getContextWallTimeNanos());
 
       for (Object statKey: pFrom.getStatistics().keySet()) {
 
@@ -475,7 +478,7 @@ public final class Stats {
     return new StatCpuTimer(new TimeMeasurementListener() {
       @Override
       public void onMeasurementResult(long pSpentCpuTimeMSecs, long pSpentWallTimeMSecs) {
-        AggregationMilliSec ms = AggregationMilliSec.single(pSpentCpuTimeMSecs, pSpentWallTimeMSecs);
+        AggregationMilliSecPair ms = AggregationMilliSecPair.single(pSpentCpuTimeMSecs, pSpentWallTimeMSecs);
         aggValue(pIdentifier, ms);
       }
     });
@@ -486,7 +489,7 @@ public final class Stats {
       final boolean pIncludeRootStats, final boolean pIncludeChildStats) {
 
 
-    StatisticsUtils.write(pOut, pLevel, 50, "+ " + pContext.getKey().getIdentifier().toString(), pContext.getContextTime().toString());
+    StatisticsUtils.write(pOut, pLevel, 50, "+ " + pContext.getKey().getIdentifier().toString(), pContext.getContextWallTimeNanos().toString());
     ImmutableMap<Object, Aggregateable> stats = pContext.getStatistics();
     for (Object k: stats.keySet()) {
       Aggregateable v = stats.get(k);
