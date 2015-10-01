@@ -78,7 +78,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
-      + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
+      + "\nALWAYS:  export the interpolation tree once after each interpolation, i.e. multiple times per refinement",
       values = { "NEVER", "FINAL", "ALWAYS" })
   private String exportInterpolationTree = "NEVER";
 
