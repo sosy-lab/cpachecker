@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import java.util.Set;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
@@ -41,7 +44,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
   public SMGPathInterpolator(SMGFeasibilityChecker pChecker, StrongestPostOperator<SMGState> pStrongestPostOp,
       GenericPrefixProvider<SMGState> pPrefixProvider, Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier, CFA pCfa, SMGCPA pSMGCPA,
-      InterpolantManager<SMGState, SMGInterpolant> pSMGInterpolantManager) throws InvalidConfigurationException {
+      InterpolantManager<SMGState, SMGInterpolant> pSMGInterpolantManager, Set<ControlAutomatonCPA> pAutomatons) throws InvalidConfigurationException {
 
     super(
         new SMGEdgeInterpolator(pStrongestPostOp,
@@ -50,7 +53,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pConfig,
             pShutdownNotifier,
             pCfa,
-            pSMGInterpolantManager),
+            pSMGInterpolantManager,
+            pAutomatons),
         pChecker,
         pPrefixProvider,
         pSMGInterpolantManager,
@@ -59,5 +63,4 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         pShutdownNotifier,
         pCfa);
   }
-
 }

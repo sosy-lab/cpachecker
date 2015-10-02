@@ -72,6 +72,9 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 class PredicateCPAStatistics extends AbstractStatistics {
 
+  @Option(secure=true, description="generate statistics about precisions (may be slow)")
+  private boolean precisionStatistics = true;
+
   @Option(secure=true, description="export final predicate map",
           name="predmap.export")
   private boolean exportPredmap = true;
@@ -204,34 +207,39 @@ class PredicateCPAStatistics extends AbstractStatistics {
   public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
     PredicateAbstractionManager amgr = cpa.getPredicateManager();
 
-    MutablePredicateSets predicates = new MutablePredicateSets();
-    {
-      Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
+    int maxPredsPerLocation = -1;
+    int allLocs = -1;
+    int avgPredsPerLocation = -1;
+    if (precisionStatistics) {
+      MutablePredicateSets predicates = new MutablePredicateSets();
+      {
+        Set<Precision> seenPrecisions = Collections.newSetFromMap(new IdentityHashMap<Precision, Boolean>());
 
-      for (Precision precision : reached.getPrecisions()) {
-        if (seenPrecisions.add(precision) && precision instanceof WrapperPrecision) {
-          PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
-          predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
-          predicates.location.putAll(preds.getLocalPredicates());
-          predicates.function.putAll(preds.getFunctionPredicates());
-          predicates.global.addAll(preds.getGlobalPredicates());
+        for (Precision precision : reached.getPrecisions()) {
+          if (seenPrecisions.add(precision) && precision instanceof WrapperPrecision) {
+            PredicatePrecision preds = ((WrapperPrecision)precision).retrieveWrappedPrecision(PredicatePrecision.class);
+            predicates.locationInstance.putAll(preds.getLocationInstancePredicates());
+            predicates.location.putAll(preds.getLocalPredicates());
+            predicates.function.putAll(preds.getFunctionPredicates());
+            predicates.global.addAll(preds.getGlobalPredicates());
+          }
         }
       }
-    }
 
-    // check if/where to dump the predicate map
-    if (exportPredmap && predmapFile != null) {
-      exportPredmapToFile(predmapFile, predicates);
-    }
+      // check if/where to dump the predicate map
+      if (exportPredmap && predmapFile != null) {
+        exportPredmapToFile(predmapFile, predicates);
+      }
 
-    int maxPredsPerLocation = 0;
-    for (Collection<AbstractionPredicate> p : predicates.location.asMap().values()) {
-      maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
-    }
+      maxPredsPerLocation = 0;
+      for (Collection<AbstractionPredicate> p : predicates.location.asMap().values()) {
+        maxPredsPerLocation = Math.max(maxPredsPerLocation, p.size());
+      }
 
-    int allLocs = predicates.location.keySet().size();
-    int totPredsUsed = predicates.location.size();
-    int avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
+      allLocs = predicates.location.keySet().size();
+      int totPredsUsed = predicates.location.size();
+      avgPredsPerLocation = allLocs > 0 ? totPredsUsed/allLocs : 0;
+    }
 
     int allDistinctPreds = absmgr.getNumberOfPredicates();
 
@@ -297,7 +305,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     out.println();
     out.println("Max ABE block size:                       " + prec.maxBlockSize);
     out.println("Number of predicates discovered:          " + allDistinctPreds);
-    if (allDistinctPreds > 0) {
+    if (precisionStatistics && allDistinctPreds > 0) {
       out.println("Number of abstraction locations:          " + allLocs);
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);

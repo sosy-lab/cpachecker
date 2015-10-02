@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ReplaceBitvectorW
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -667,6 +668,7 @@ public class FormulaManagerView implements StatisticsProvider {
     return (T) t;
   }
 
+  @SuppressWarnings("unchecked")
   public  <T extends Formula> BooleanFormula makeEqual(T pLhs, T pRhs) {
     BooleanFormula t;
     if (pLhs instanceof BooleanFormula && pRhs instanceof BooleanFormula) {
@@ -679,6 +681,10 @@ public class FormulaManagerView implements StatisticsProvider {
       t = bitvectorFormulaManager.equal((BitvectorFormula)pLhs, (BitvectorFormula)pRhs);
     } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.equalWithFPSemantics((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
+    } else if (pLhs instanceof ArrayFormula<?, ?> && pRhs instanceof ArrayFormula<?, ?>) {
+      @SuppressWarnings("rawtypes")
+      ArrayFormula rhs = (ArrayFormula) pRhs;
+      t = arrayFormulaManager.equivalence((ArrayFormula<?, ?>) pLhs, rhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

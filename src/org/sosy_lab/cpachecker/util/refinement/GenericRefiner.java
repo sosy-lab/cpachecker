@@ -78,13 +78,17 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   @Option(secure = true, description = "when to export the interpolation tree"
       + "\nNEVER:   never export the interpolation tree"
       + "\nFINAL:   export the interpolation tree once after each refinement"
-      + "\nALWAYD:  export the interpolation tree once after each interpolation, i.e. multiple times per refinmenet",
+      + "\nALWAYS:  export the interpolation tree once after each interpolation, i.e. multiple times per refinement",
       values = { "NEVER", "FINAL", "ALWAYS" })
   private String exportInterpolationTree = "NEVER";
 
   @Option(secure = true, description = "export interpolation trees to this file template")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate interpolationTreeExportFile = PathTemplate.ofFormatString("interpolationTree.%d-%d.dot");
+
+  @Option(secure = true, description="instead of reporting a repeated counter-example, "
+      + "search and refine another error-path for the same target-state.")
+  private boolean searchForFurtherErrorPaths = true;
 
   protected final LogManager logger;
 
@@ -154,26 +158,31 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   public CounterexampleInfo performRefinement(
-      final ARGReachedSet pReached,
-      final ARGPath pTargetPath
+      final ARGReachedSet pReached, ARGPath targetPathToUse
   ) throws CPAException, InterruptedException {
-    Collection<ARGState> targets = Collections.singleton(pTargetPath.getLastState());
-    ARGPath targetPathToUse = pTargetPath;
+    Collection<ARGState> targets = Collections.singleton(targetPathToUse.getLastState());
+
+    boolean repeatingCEX = !madeProgress(targetPathToUse);
 
     // if the target path is given from outside, do not fail hard on a repeated counterexample:
     // this can happen when the predicate-analysis refinement returns back-to-back target paths
     // that are feasible under predicate-analysis semantics and hands those into the value-analysis
     // refiner, where the in-between value-analysis refinement happens to only affect paths in a
     // (ABE) block, which may not be visible when constructing the target path in the next refinement.
-    if (!madeProgress(pTargetPath)) {
+    // Possible problem: alternating error-paths
+    if (repeatingCEX && searchForFurtherErrorPaths) {
       for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
-        if (!targetPathToUse.equals(pTargetPath)) {
+        if (!targetPathToUse.equals(targetPath)) {
           logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
               "so instead, refiner uses a new error path extracted from the reachset.");
           targetPathToUse = targetPath;
+          repeatingCEX = false;
           break;
         }
       }
+    }
+
+    if (repeatingCEX) {
       throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
@@ -204,7 +213,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   protected abstract void refineUsingInterpolants(
       final ARGReachedSet pReached,
       final InterpolationTree<S, I> pInterpolationTree
-  );
+      ) throws InterruptedException;
 
   protected InterpolationTree<S, I> obtainInterpolants(List<ARGPath> pTargetPaths)
       throws CPAException, InterruptedException {

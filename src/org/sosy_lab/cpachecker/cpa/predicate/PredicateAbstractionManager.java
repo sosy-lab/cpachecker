@@ -59,18 +59,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionCreator.RegionBuilder;
@@ -80,6 +75,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -1098,20 +1098,6 @@ public class PredicateAbstractionManager {
     }
 
     return makeAbstractionFormula(newRegion, ssaMap, oldAbstraction.getBlockFormula());
-  }
-
-  /**
-   * Extend an abstraction by a set of predicates.
-   * @param reducedAbstraction The abstraction to extend.
-   * @param sourceAbstraction The abstraction where to take the predicates from.
-   * @param relevantPredicates The predicates to add.
-   * @param newSSA The SSAMap to use for instantiating the new abstraction.
-   * @return A new abstraction similar to the old one with some more predicates.
-   */
-  public AbstractionFormula expand(AbstractionFormula reducedAbstraction, AbstractionFormula sourceAbstraction,
-      Collection<AbstractionPredicate> relevantPredicates, SSAMap newSSA) {
-    return expand(reducedAbstraction.asRegion(), sourceAbstraction.asRegion(), relevantPredicates, newSSA,
-        reducedAbstraction.getBlockFormula());
   }
 
   /**

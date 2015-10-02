@@ -39,15 +39,20 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -80,6 +85,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -96,6 +102,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.w3c.dom.Element;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -152,10 +159,46 @@ public class ARGPathExport {
   @Option(secure=true, description="Verification witness: Include the offset within the file?")
   boolean exportOffset = true;
 
+  private final LogManager logger;
 
-  public ARGPathExport(Configuration pConfig) throws InvalidConfigurationException {
+  private final MachineModel machineModel;
+
+  private final Language language;
+
+  /**
+   * This is a temporary hack to easily obtain specification and verification tasks.
+   * TODO: Move the witness export out of the ARG CPA after the new error report has been integrated
+   * and obtain the values without this hack.
+   */
+  @Options
+  private static class HackyOptions {
+
+    @Option(secure=true, name="analysis.programNames",
+        description="A String, denoting the programs to be analyzed")
+    private String programs;
+
+    @Option(secure=true, name="specification",
+        description="comma-separated list of files with specifications that should be checked"
+          + "\n(see config/specification/ for examples)")
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+    private List<Path> specificationFiles = null;
+
+    @Option(secure=true,
+        name="cpa.predicate.handlePointerAliasing",
+        description = "Handle aliasing of pointers. "
+        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
+    private boolean handlePointerAliasing = true;
+  }
+
+  private final HackyOptions hackyOptions = new HackyOptions();
+
+  public ARGPathExport(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
+    pConfig.inject(hackyOptions);
+    this.machineModel = pMachineModel;
+    this.language = pLanguage;
+    this.logger = pLogger;
   }
 
   private String getStateIdent(ARGState pState) {
@@ -661,13 +704,11 @@ public class ARGPathExport {
         throws IOException {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
-      if (pCounterExample != null) {
-        RichModel model = pCounterExample.getTargetPathModel();
-        CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.getTargetPath();
-          valueMap = model.getExactVariableValues(targetPath);
-        }
+      RichModel model = pCounterExample.getTargetPathModel();
+      CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
+      if (cfaPath != null) {
+        ARGPath targetPath = pCounterExample.getTargetPath();
+        valueMap = model.getExactVariableValues(targetPath);
       }
 
       GraphType graphType = GraphType.PROGRAMPATH;
@@ -688,7 +729,25 @@ public class ARGPathExport {
 
       doc.appendDocHeader();
       appendKeyDefinitions(doc, graphType);
-      doc.appendGraphHeader(graphType, "C");
+      doc.appendGraphHeader(
+          graphType,
+          language,
+          FluentIterable.from(hackyOptions.specificationFiles).transform(new Function<Path, String>() {
+
+            @Override
+            public String apply(Path pArg0) {
+              try {
+                return pArg0.asCharSource(Charsets.UTF_8).read();
+              } catch (IOException e) {
+                logger.logException(Level.WARNING, e, "Could not export specification to witness.");
+                return "Unknown specification";
+              }
+            }
+
+          }),
+          hackyOptions.programs,
+          hackyOptions.handlePointerAliasing ? "precise" : "simple",
+          machineModel);
 
       // Collect node flags in advance
       for (ARGState s : collectPathNodes(pRootState, pSuccessorFunction, pPathStates)) {

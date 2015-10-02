@@ -68,17 +68,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
    */
   private final int extraIterationsLimit;
 
-  private static PrecisionAdjustment instance;
-
-  public static PrecisionAdjustment getInstance(final int pFoundTargetLimit, final int pExtraIterationsLimit) {
-    if (instance == null) {
-      instance = new BreakOnTargetsPrecisionAdjustment(pFoundTargetLimit, pExtraIterationsLimit);
-    }
-
-    return instance;
-  }
-
-  private BreakOnTargetsPrecisionAdjustment(final int pFoundTargetLimit, final int pExtraIterationsLimit) {
+  public BreakOnTargetsPrecisionAdjustment(final int pFoundTargetLimit, final int pExtraIterationsLimit) {
     foundTargetLimit      = pFoundTargetLimit;
     extraIterationsLimit  = pExtraIterationsLimit;
   }
