@@ -43,24 +43,28 @@ public class StatCpuTime implements TimeMeasurementListener {
 
   public static class StatCpuTimer implements AutoCloseable {
 
-    private long startCpuTimeNanos;
-    private final long startWallTimeNanos;
+    private long startCpuTimeMillis;
+    private final long startWallTimeMillis;
 
     private final TimeMeasurementListener addTo;
     private final boolean active;
 
+    private long getCurrentCpuTimeMillis() throws JMException {
+      return (long) (ProcessCpuTime.read() / 1e6);
+    }
+
     StatCpuTimer(TimeMeasurementListener pAddTo) {
       this.addTo = pAddTo;
 
-      // Wall time
-      this.startWallTimeNanos = System.nanoTime();
-
       // CPU time
       try {
-        this.startCpuTimeNanos = ProcessCpuTime.read();
+        this.startCpuTimeMillis = getCurrentCpuTimeMillis();
       } catch (JMException e) {
-        this.startCpuTimeNanos = -1;
+        this.startCpuTimeMillis = -1;
       }
+
+      // Wall time
+      this.startWallTimeMillis = System.currentTimeMillis();
 
       this.active = true;
     }
@@ -68,20 +72,17 @@ public class StatCpuTime implements TimeMeasurementListener {
     public void stop() {
       Preconditions.checkState(active);
 
-      long stopWallTimeNanos = System.nanoTime();
+      long stopWallTimeMillis = System.currentTimeMillis();
 
-      long stopCpuTimeNanos;
+      long stopCpuTimeMillis;
       try {
-        stopCpuTimeNanos = ProcessCpuTime.read();
+        stopCpuTimeMillis = getCurrentCpuTimeMillis();
       } catch (JMException e) {
-        stopCpuTimeNanos = -1;
+        stopCpuTimeMillis = -1;
       }
 
-      final long cpuTimeDiffNanos = stopCpuTimeNanos - startCpuTimeNanos;
-      final long spentCpuTimeMSecs = (long) (cpuTimeDiffNanos / (1000000.0));
-
-      final long wallTimeDiffNanos = stopWallTimeNanos - startWallTimeNanos;
-      final long spentWallTimeMSecs = (long) (wallTimeDiffNanos / (1000000.0));
+      final long spentCpuTimeMSecs = stopCpuTimeMillis - startCpuTimeMillis;
+      final long spentWallTimeMSecs = stopWallTimeMillis - startWallTimeMillis;
 
       addTo.onMeasurementResult(spentCpuTimeMSecs, spentWallTimeMSecs);
     }

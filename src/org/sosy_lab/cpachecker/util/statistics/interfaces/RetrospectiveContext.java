@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.statistics.interfaces;
 
+import java.util.Set;
 
 public interface RetrospectiveContext extends Context {
 
-  public void putRootContext(final Object pContextIdent);
+  public void putRootContexts(Set<?> pContextIdents);
+
+  public <T extends Object> void putRootContexts(T ... pContextIdents);
 
 }

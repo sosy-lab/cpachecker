@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.util.statistics.interfaces.TimeMeasurementListene
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -48,11 +47,14 @@ public final class Stats {
     private final Optional<Context> parentContext;
     private final Object classIdentifier;
     private final Thread thread;
+    private final int cachedHashCode;
 
     public Key(Optional<Context> pParentContext, Object pClassIdentifier, Thread pThread) {
-      parentContext = pParentContext;
-      classIdentifier = pClassIdentifier;
-      thread = pThread;
+      this.parentContext = pParentContext;
+      this.classIdentifier = pClassIdentifier;
+      this.thread = pThread;
+
+      this.cachedHashCode = computeHashCode();
     }
 
     @Override
@@ -75,14 +77,18 @@ public final class Stats {
       return thread;
     }
 
+    private int computeHashCode() {
+      final int prime = 53;
+      int result = 1;
+      result = prime * result + classIdentifier.hashCode();
+      result = prime * result + parentContext.hashCode();
+      result = prime * result + thread.hashCode();
+      return result;
+    }
+
     @Override
     public int hashCode() {
-      final int prime = 17;
-      int result = 1;
-      result = prime * result + ((classIdentifier == null) ? 0 : classIdentifier.hashCode());
-      result = prime * result + ((parentContext == null) ? 0 : parentContext.hashCode());
-      result = prime * result + ((thread == null) ? 0 : thread.hashCode());
-      return result;
+      return cachedHashCode;
     }
 
     @Override
@@ -125,10 +131,10 @@ public final class Stats {
 
   public static class Contexts implements Closeable {
 
-    private ImmutableSet<Context> wrappedContexts;
+    private Set<? extends Context> wrappedContexts;
 
     public Contexts(Set<? extends Context> pContexts) {
-      wrappedContexts = ImmutableSet.copyOf(pContexts);
+      wrappedContexts = pContexts; // No copy (performance optimization)
     }
 
     @Override
@@ -147,13 +153,20 @@ public final class Stats {
     @Nullable protected Long contextActivationTime;
 
     private final ContextKey key;
+    private final int cachedHashCode;
+
+    public StatisticsContext(final Key pKey) {
+
+      Preconditions.checkNotNull(pKey);
+
+      this.contextActivationTime = null;
+      this.key = pKey;
+      this.cachedHashCode = key.hashCode();
+    }
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((key == null) ? 0 : key.hashCode());
-      return result;
+      return cachedHashCode;
     }
 
     @Override
@@ -178,12 +191,6 @@ public final class Stats {
       return true;
     }
 
-    public StatisticsContext(Key pKey) {
-      Preconditions.checkNotNull(pKey);
-      this.contextActivationTime = null;
-      this.key = pKey;
-    }
-
     @Override
     public void registerChild(Context pChildContext) {
       childContexts.put(pChildContext.getKey().getIdentifier(), pChildContext);
@@ -196,8 +203,10 @@ public final class Stats {
 
     @Override
     public void close() {
+      Preconditions.checkNotNull(contextActivationTime);
+
       // Measure the time
-      final long contextCloseTime = System.nanoTime();
+      final long contextCloseTime = System.currentTimeMillis();
       final long activationDuration = contextCloseTime - contextActivationTime;
       contextWallDuration = contextWallDuration.aggregateBy(
           AggregationTime.single(activationDuration));
@@ -208,7 +217,7 @@ public final class Stats {
     }
 
     void activated() {
-      this.contextActivationTime = System.nanoTime();
+      this.contextActivationTime = System.currentTimeMillis();
     }
 
     synchronized void addToContextWallTime (final AggregationTime pTime) {
@@ -234,12 +243,7 @@ public final class Stats {
     }
 
     @Override
-    public ImmutableMap<Object, Aggregateable> getStatistics() {
-      return ImmutableMap.copyOf(statValues);
-    }
-
-    @Override
-    public AggregationTime getContextWallTimeNanos() {
+    public AggregationTime getContextWallTimeMillis() {
       return contextWallDuration;
     }
 
@@ -266,6 +270,11 @@ public final class Stats {
       return (T) value;
     }
 
+    @Override
+    public Set<Object> getStatisticKeys() {
+      return statValues.keySet();
+    }
+
   }
 
   private static class RetroStatisticsContext extends StatisticsContext implements RetrospectiveContext {
@@ -278,15 +287,22 @@ public final class Stats {
     }
 
     @Override
-    public void putRootContext(final Object pContextIdent) {
-      retroRoots.add(pContextIdent);
+    public void putRootContexts(Set<?> pContextIdents) {
+      retroRoots.addAll(pContextIdents);
+    }
+
+    @Override
+    public <T extends Object>  void putRootContexts(T... pContextIdents) {
+      for (Object o: pContextIdents) {
+        retroRoots.add(o);
+      }
     }
 
     private void aggregateStatsFromTo(Context pFrom, StatisticsContext pTo) throws NoStatisticsException {
 
-      pTo.addToContextWallTime(pFrom.getContextWallTimeNanos());
+      pTo.addToContextWallTime(pFrom.getContextWallTimeMillis());
 
-      for (Object statKey: pFrom.getStatistics().keySet()) {
+      for (Object statKey: pFrom.getStatisticKeys()) {
 
         final Aggregateable agg = pFrom.getStatistic(statKey, Aggregateable.class);
         pTo.aggregate(statKey, agg);
@@ -344,14 +360,9 @@ public final class Stats {
   private synchronized static void aggValue(final Object pKey, final Aggregateable agg) {
     final Thread t = Thread.currentThread();
 
-    Set<Context> aggregatedTo = Sets.newHashSet();
-
-    // Aggregate to all active contexts
     for (Context ctx: activeContexts.get(t)) {
-      if (aggregatedTo.add(ctx)) {
-        ctx.aggregate(pKey, agg);
-        valuesInContexts.put(pKey, ctx);
-      }
+      ctx.aggregate(pKey, agg);
+      valuesInContexts.put(pKey, ctx);
     }
 
   }
@@ -364,8 +375,9 @@ public final class Stats {
     if (activeContexts.containsKey(t)) {
 
       // Create new child contexts (not yet activated!)
-      result =  Sets.newHashSet();
-      for (Context parentContext: activeContexts.get(t)) {
+      Collection<Context> threadContexs = activeContexts.get(t);
+      result =  Sets.newHashSetWithExpectedSize(threadContexs.size());
+      for (Context parentContext: threadContexs) {
         StatisticsContext ctx = getContext(t, pIdentifier, Optional.<Context>of(parentContext));
         result.add(ctx);
       }
@@ -412,7 +424,7 @@ public final class Stats {
 
   public synchronized static Contexts beginRootContext(final Object ... pIdentifier) {
     final Thread t = Thread.currentThread();
-    Set<StatisticsContext> result = Sets.newHashSet();
+    Set<StatisticsContext> result = Sets.newHashSetWithExpectedSize(pIdentifier.length);
 
     for (Object ident: pIdentifier) {
       StatisticsContext ctx = getContext(t, ident, Optional.<Context>absent());
@@ -436,9 +448,8 @@ public final class Stats {
 
   public synchronized static RetrospectiveContext retrospectiveRootContext() {
     final Thread t = Thread.currentThread();
-    final Set<StatisticsContext> result = Sets.newHashSet();
-
-    final Key key = new Key(Optional.<Context>absent(), result, t);
+    final Object id = new Object();
+    final Key key = new Key(Optional.<Context>absent(), id, t);
     RetroStatisticsContext ctx = new RetroStatisticsContext(key);
 
     activeContexts.put(t, ctx);
@@ -455,20 +466,18 @@ public final class Stats {
       final Object pIdent,
       Optional<Context> pParentContext) {
 
-    Preconditions.checkNotNull(pThread);
-    Preconditions.checkNotNull(pIdent);
-    Preconditions.checkNotNull(pParentContext);
-
     final Key key = new Key(pParentContext, pIdent, pThread);
 
     StatisticsContext result = contexts.get(key);
+
     if (result == null) {
+
       result = new StatisticsContext(key);
       contexts.put(key, result);
-    }
 
-    if (pParentContext.isPresent()) {
-      pParentContext.get().registerChild(result);
+      if (pParentContext.isPresent()) {
+        pParentContext.get().registerChild(result);
+      }
     }
 
     return result;
@@ -485,30 +494,31 @@ public final class Stats {
   }
 
   public static synchronized void printContext(
-      final PrintStream pOut, final Context pContext, final int pLevel,
-      final boolean pIncludeRootStats, final boolean pIncludeChildStats) {
+      final PrintStream pOut, final Context pContext, final int pLevel)
+          throws NoStatisticsException {
 
 
-    StatisticsUtils.write(pOut, pLevel, 50, "+ " + pContext.getKey().getIdentifier().toString(), pContext.getContextWallTimeNanos().toString());
-    ImmutableMap<Object, Aggregateable> stats = pContext.getStatistics();
-    for (Object k: stats.keySet()) {
-      Aggregateable v = stats.get(k);
+    StatisticsUtils.write(pOut, pLevel, 50, "+ " + pContext.getKey().getIdentifier().toString(), pContext.getContextWallTimeMillis().toString());
+    for (Object k: pContext.getStatisticKeys()) {
+      Aggregateable v = pContext.getStatistic(k, Aggregateable.class);
       StatisticsUtils.write(pOut, pLevel, 50, "  - " + k.toString(), v.toString());
     }
 
     for (Context child: pContext.getChildContexts()) {
-      printContext(pOut, child, pLevel+1, pIncludeRootStats, pIncludeRootStats);
+      printContext(pOut, child, pLevel+1);
     }
   }
 
-  public static synchronized void printStatitics(final PrintStream pOut,
-      final boolean pIncludeRootStats, final boolean pIncludeChildStats) {
+  public static synchronized void printStatitics(final PrintStream pOut) {
 
     for (Thread t: rootContexts.keySet()) {
-      for (Context ctx: rootContexts.get(t)) {
-
-        printContext(pOut, ctx, 0, pIncludeRootStats, pIncludeChildStats);
-        pOut.println();
+      try {
+        for (Context ctx: rootContexts.get(t)) {
+          printContext(pOut, ctx, 0);
+          pOut.println();
+        }
+      } catch (NoStatisticsException e) {
+        throw new RuntimeException(e);
       }
     }
   }

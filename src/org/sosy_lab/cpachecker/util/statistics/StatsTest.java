@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.NoStatisticsException;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.RetrospectiveContext;
 
-import com.google.common.collect.Sets;
-
 
 public class StatsTest {
 
@@ -43,9 +41,13 @@ public class StatsTest {
     Stats.reset();
   }
 
+  public static void main(String[] args) throws InterruptedException {
+    new StatsTest().test();
+  }
+
   @Test
   public void test() throws InterruptedException {
-    int i = 1;
+    int i = 100000;
     while (i-- > 0) {
       try (Contexts ctx1 = Stats.beginSubContext("Multi Property Verification")) {
         try (Contexts ctx2 = Stats.beginSubContext("CEGAR")) {
@@ -54,8 +56,7 @@ public class StatsTest {
               try (Contexts ctxO = Stats.beginRootContext("Property 1", "Property 2")) {
                 try (StatCpuTimer c = Stats.startTimer("Target SAT check")) {
                 }
-                Stats.incCounter("Number of Predicates", 10);
-                Stats.putItems("Predicates", Sets.<Object>newHashSet("a==1", "b>5"));
+//                Stats.putItems("Predicates", Sets.<Object>newHashSet("a==1", "b>5"));
               }
 
               try (Contexts ctxO = Stats.beginRootContext("Property 1")) {
@@ -64,7 +65,7 @@ public class StatsTest {
 
               try (RetrospectiveContext ctxR = Stats.retrospectiveRootContext()) {
                 Stats.incCounter("Number of Predicates", 5);
-                ctxR.putRootContext("Property 3");
+                ctxR.putRootContexts("Property 3");
               }
             }
             try (Contexts ctx4 = Stats.beginSubContext("Precision Adjustment")) {
@@ -75,9 +76,39 @@ public class StatsTest {
       }
     }
 
-    Stats.printStatitics(System.out, false, true);
+    Stats.printStatitics(System.out);
 
   }
+
+  @Test
+  public void test4() throws InterruptedException {
+    int i = 2000;
+    while (i-- > 0) {
+      try (Contexts ctx1 = Stats.beginSubContext("Multi Property Verification")) {
+        try (RetrospectiveContext ctxR = Stats.retrospectiveRootContext()) {
+          Stats.incCounter("Number of Predicates", 5);
+          ctxR.putRootContexts("Property 3");
+        }
+      }
+    }
+
+    Stats.printStatitics(System.out);
+
+  }
+
+  @Test
+  public void test3() throws InterruptedException {
+    int i = 2;
+    while (i-- > 0) {
+      try (Contexts ctx1 = Stats.beginSubContext("Multi Property Verification")) {
+        Thread.sleep(111);
+      }
+    }
+
+    Stats.printStatitics(System.out);
+
+  }
+
 
   @Test
   public void test2() throws NoStatisticsException {
@@ -91,7 +122,7 @@ public class StatsTest {
       }
     }
 
-    Stats.printStatitics(System.out, false, true);
+    Stats.printStatitics(System.out);
 
     AggregationInt p1stats = Stats.query(Thread.currentThread(),
         "Number of Predicates",

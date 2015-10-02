@@ -231,7 +231,7 @@ public final class Aggregateables {
 
   public static class AggregationTime extends AbstractAggregateable {
 
-    private long timeNanos = 0;
+    private long timeMillis = 0;
 
     private AggregationTime() {
     }
@@ -239,14 +239,14 @@ public final class Aggregateables {
     public static AggregationTime neutral() {
       AggregationTime result = new AggregationTime();
       result.valuations = 0;
-      result.timeNanos = 0;
+      result.timeMillis = 0;
       return result;
     }
 
-    public static AggregationTime single(long pSpentTimeNanos) {
+    public static AggregationTime single(long pSpentTimeMillis) {
       AggregationTime result = new AggregationTime();
-      result.valuations = 0;
-      result.timeNanos = pSpentTimeNanos;
+      result.valuations = 1;
+      result.timeMillis = pSpentTimeMillis;
       return result;
     }
 
@@ -259,14 +259,14 @@ public final class Aggregateables {
       AggregationTime result = new AggregationTime();
 
       result.valuations = this.valuations + by.valuations;
-      result.timeNanos = this.timeNanos + by.timeNanos;
+      result.timeMillis = this.timeMillis + by.timeMillis;
 
       return (T) result;
     }
 
     @Override
     public String toString() {
-      return String.format("(wallsecs: %.3f)", this.timeNanos / 1e9);
+      return String.format("(wallsecs: %.3f)", this.timeMillis / 1e3);
     }
   }
 

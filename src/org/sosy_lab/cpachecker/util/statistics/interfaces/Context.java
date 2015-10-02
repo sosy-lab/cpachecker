@@ -27,8 +27,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationTime;
 
-import com.google.common.collect.ImmutableMap;
-
 
 public interface Context extends AutoCloseable {
 
@@ -45,11 +43,11 @@ public interface Context extends AutoCloseable {
 
   public void aggregate(Object pKey, Aggregateable pAgg);
 
-  public ImmutableMap<Object, Aggregateable> getStatistics();
+  public Set<Object> getStatisticKeys();
 
   public <T extends Aggregateable> T getStatistic(Object pIdent, Class<T> pClass)
     throws NoStatisticsException;
 
-  public AggregationTime getContextWallTimeNanos();
+  public AggregationTime getContextWallTimeMillis();
 
 }
