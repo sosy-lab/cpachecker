@@ -136,6 +136,9 @@ public abstract class RefinementStrategy {
     ARGState lastElement = pAbstractionStatesTrace.get(pAbstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
 
+    // Hook
+    startRefinementOfPath(pReached, pAbstractionStatesTrace, lastElement);
+
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;
     try {
       rootOfInfeasibleArgAndChangedElements =
