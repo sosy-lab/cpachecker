@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -270,6 +271,12 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     out.println();
 
     printMemoryStatistics(out);
+
+    out.println();
+
+    Stats.printStatitics(out);
+
+    out.println();
   }
 
 
