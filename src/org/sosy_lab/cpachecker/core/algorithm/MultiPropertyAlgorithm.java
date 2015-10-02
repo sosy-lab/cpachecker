@@ -47,6 +47,8 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.Sets;
 
 @Options
@@ -67,16 +69,18 @@ public class MultiPropertyAlgorithm implements Algorithm {
     this.cpa = pCpa;
   }
 
-  private Set<AbstractState> filterNewTargetStates(ReachedSet pReachedSet) {
-    HashSet<AbstractState> result = Sets.newHashSet();
+  private ImmutableMultimap<AbstractState, Property> filterNewTargetStates(ReachedSet pReachedSet) {
+    Builder<AbstractState, Property> result = ImmutableMultimap.<AbstractState, Property>builder();
 
     // ASSUMPTION: no "global refinement" is used! (not yet implemented for this algorithm!)
 
-    if (isTargetState(pReachedSet.getLastState())) {
-      result.add(pReachedSet.getLastState());
+    final AbstractState e = pReachedSet.getLastState();
+    if (isTargetState(e)) {
+      Set<Property> violated = AbstractStates.extractViolatedProperties(e, Property.class);
+      result.putAll(e, violated);
     }
 
-    return result;
+    return result.build();
   }
 
   @Override
@@ -87,17 +91,16 @@ public class MultiPropertyAlgorithm implements Algorithm {
     Set<Property> violatedProperties = Sets.newHashSet();
 
     do {
+      // Run the wrapped algorithm (for example, CEGAR)
       status = status.update(wrapped.run(pReachedSet));
 
-      // ASSUMPTION: The wrapped algorithm returns for each FEASIBLE counterexample that has been found!
+      // ASSUMPTION:
+      //    The wrapped algorithm immediately returns
+      //    for each FEASIBLE counterexample that has been found!
+      //    (no global refinement)
 
-      Set<AbstractState> violating = filterNewTargetStates(pReachedSet);
-      if (!violating.isEmpty()) {
-        for (AbstractState e: violating) {
-          Set<Property> violated = AbstractStates.extractViolatedProperties(e, Property.class);
-          violatedProperties.addAll(violated);
-        }
-      }
+      final ImmutableMultimap<AbstractState, Property> violating = filterNewTargetStates(pReachedSet);
+      violatedProperties.addAll(violating.values());
 
       adjustAutomataPrecision(pReachedSet, violatedProperties);
 
