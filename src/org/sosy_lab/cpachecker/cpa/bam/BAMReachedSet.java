@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -45,6 +44,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
@@ -153,14 +153,11 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     };
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public void removeSubtree(ARGState element, Precision newPrecision,
       Predicate<? super Precision> pPrecisionType) {
-    ArrayList<Precision> listP = new ArrayList<>();
-    listP.add(newPrecision);
-    ArrayList<Predicate<? super Precision>> listPT = new ArrayList<>();
-    listPT.add(pPrecisionType);
-    removeSubtree(element, listP, listPT);
+    removeSubtree(element, Lists.newArrayList(newPrecision), Lists.<Predicate<? super Precision>>newArrayList(pPrecisionType));
   }
 
   @Override

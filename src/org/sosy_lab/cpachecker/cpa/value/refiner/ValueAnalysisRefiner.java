@@ -102,6 +102,8 @@ public class ValueAnalysisRefiner
 
   private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
 
+  private final ShutdownNotifier shutdownNotifier;
+
   // Statistics
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
@@ -169,19 +171,21 @@ public class ValueAnalysisRefiner
 
     checker = pFeasibilityChecker;
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
   protected void refineUsingInterpolants(
       final ARGReachedSet pReached,
       final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
-  ) {
+      ) throws InterruptedException {
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
     Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
     for (ARGState root : refinementRoots) {
+      shutdownNotifier.shutdownIfNecessary();
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
       if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
@@ -203,6 +207,7 @@ public class ValueAnalysisRefiner
     }
 
     for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+      shutdownNotifier.shutdownIfNecessary();
       List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
 
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));

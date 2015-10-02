@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -49,7 +50,7 @@ import com.google.errorprone.annotations.ForOverride;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
+public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
@@ -87,8 +88,13 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new BAMReachedSet(bamCpa, pReached, pPath,
-          subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer), pPath);
+      if (pReached instanceof BAMReachedSet) {
+        // this case exists to use a Refiner that already has a BAMReachedSet, for example DelegatingBAMRefiner.
+      } else {
+        // otherwise wrap the original reached-set to have a valid "view" on all reached states.
+        pReached = new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer);
+      }
+      return performRefinement0(pReached, pPath);
     }
   }
 

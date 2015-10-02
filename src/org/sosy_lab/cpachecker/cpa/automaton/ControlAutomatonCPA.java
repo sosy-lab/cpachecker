@@ -181,7 +181,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     final PrecisionAdjustment lPrecisionAdjustment;
 
     if (breakOnTargetState > 0) {
-      lPrecisionAdjustment = BreakOnTargetsPrecisionAdjustment.getInstance(breakOnTargetState, extraIterationsLimit);
+      final int pFoundTargetLimit = breakOnTargetState;
+      final int pExtraIterationsLimit = extraIterationsLimit;
+      lPrecisionAdjustment = new BreakOnTargetsPrecisionAdjustment(pFoundTargetLimit, pExtraIterationsLimit);
 
     } else {
       lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();

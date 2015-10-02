@@ -32,7 +32,6 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -55,10 +54,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 
 
 public class BAMPredicateReducer implements Reducer {
-
-  final Timer reduceTimer = new Timer();
-  final Timer expandTimer = new Timer();
-  final Timer extractTimer = new Timer();
 
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
@@ -83,13 +78,11 @@ public class BAMPredicateReducer implements Reducer {
 
     if (!predicateElement.isAbstractionState()) { return predicateElement; }
 
-    reduceTimer.start();
-    try {
       AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
 
       Region oldRegion = oldAbstraction.asRegion();
 
-      Collection<AbstractionPredicate> predicates = extractPredicates(oldRegion);
+      Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
       Collection<AbstractionPredicate> removePredicates =
           cpa.getRelevantPredicatesComputer().getIrrelevantPredicates(pContext, predicates);
 
@@ -104,9 +97,6 @@ public class BAMPredicateReducer implements Reducer {
 
       return PredicateAbstractState.mkAbstractionState(pathFormula,
           newAbstraction, abstractionLocations);
-    } finally {
-      reduceTimer.stop();
-    }
   }
 
   @Override
@@ -119,13 +109,11 @@ public class BAMPredicateReducer implements Reducer {
 
     if (!reducedState.isAbstractionState()) { return reducedState; }
     //Note: BAM might introduce some additional abstraction if root region is not a cube
-    expandTimer.start();
-    try {
 
       AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
       AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootAbstraction.asRegion());
+      Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
           cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
@@ -149,24 +137,13 @@ public class BAMPredicateReducer implements Reducer {
       PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
       AbstractionFormula newAbstractionFormula =
-          pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
+          pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+              relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
 
       PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
-    } finally {
-      expandTimer.stop();
-    }
-  }
-
-  private Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
-    extractTimer.start();
-    try {
-      return pamgr.extractPredicates(pRegion);
-    } finally {
-      extractTimer.stop();
-    }
   }
 
   @Override

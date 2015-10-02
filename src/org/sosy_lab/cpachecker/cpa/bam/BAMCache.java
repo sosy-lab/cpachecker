@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -67,7 +68,8 @@ public class BAMCache {
   int precisionCausedMisses = 0;
   int noSimilarCausedMisses = 0;
 
-  private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new HashMap<>();
+  // we use LinkedHashMaps to avoid non-determinism
+  private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new LinkedHashMap<>();
   private final Map<AbstractStateHash, ReachedSet> unpreciseReachedCache = new HashMap<>();
   private final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
   private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();

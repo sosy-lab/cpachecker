@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -42,6 +44,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -83,25 +87,27 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  @Option(secure=true, name="errorPath.export",
-      description="export error path to file, if one is found")
-  private boolean exportErrorPath = true;
-
   private final ARGCPA cpa;
+  private final LogManager logger;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
 
-  private final CEXExporter cexExporter;
+  private final @Nullable CEXExporter cexExporter;
   private final CounterexamplesSummary cexSummary;
 
-  public ARGStatistics(Configuration config, ARGCPA cpa, MachineModel pMachineModel, CounterexamplesSummary pCexSummary) throws InvalidConfigurationException {
-    this.cpa = cpa;
+  public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
+      MachineModel pMachineModel, Language pLanguage,
+      @Nullable CEXExporter pCexExporter, CounterexamplesSummary pCexSummary)
+          throws InvalidConfigurationException {
+
 
     config.inject(this);
 
+    cpa = pCpa;
+    logger = pLogger;
     cexSummary = pCexSummary;
-    cexExporter = new CEXExporter(config, cpa.getLogger());
+    cexExporter = pCexExporter;
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;
@@ -129,7 +135,7 @@ public class ARGStatistics implements IterationStatistics {
           }
         }
 
-        cpa.getLogger().logUserException(Level.WARNING, e,
+        logger.logUserException(Level.WARNING, e,
             "Could not write refinement graph to file");
 
         refinementGraphFile = null; // ensure we won't try again
@@ -151,22 +157,25 @@ public class ARGStatistics implements IterationStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult,
       ReachedSet pReached) {
-
-    if (!exportARG && !exportErrorPath) {
-      // shortcut, avoid unnecessary creation of path etc.
-      assert refinementGraphWriter == null;
+    if (cexExporter == null && !exportARG) {
       return;
     }
 
-    final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
-    int cexIndex = 0;
+    final Map<ARGState, CounterexampleInfo> counterexamples = cexSummary.getAllCounterexamples(pReached);
 
-    for (Map.Entry<ARGState, CounterexampleInfo> cex : cexSummary.getAllCounterexamples(pReached).entrySet()) {
-      cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++, allTargetPathEdges,
-          !cexExporter.shouldDumpErrorPathImmediately());
+    if (cexExporter != null) {
+      int cexIndex = 0;
+      for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
+        cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++);
+      }
     }
 
     if (exportARG) {
+      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+      for (CounterexampleInfo cex : counterexamples.values()) {
+        allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
+      }
+
       // The state space might be partitioned ...
       // ... so we would export a separate ARG for each partition ...
       boolean partitionedArg = AbstractStates.extractStateByType(
@@ -211,7 +220,7 @@ public class ARGStatistics implements IterationStatistics {
             Predicates.alwaysTrue(),
             isTargetPathEdge);
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
@@ -222,7 +231,7 @@ public class ARGStatistics implements IterationStatistics {
             Predicates.alwaysTrue(),
             Predicates.alwaysFalse());
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write ARG to file");
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
@@ -237,7 +246,7 @@ public class ARGStatistics implements IterationStatistics {
         refinementGraphWriter.finish();
 
       } catch (IOException e) {
-        cpa.getLogger().logUserException(Level.WARNING, e, "Could not write refinement graph to file");
+        logger.logUserException(Level.WARNING, e, "Could not write refinement graph to file");
       }
     }
   }

@@ -62,13 +62,17 @@ public class RefinementFailedException extends CPAException {
 
   private ARGPath path;
 
+  private final Reason reason;
+
   public RefinementFailedException(Reason r, @Nullable ARGPath p) {
     super(getMessage(r, null));
+    reason = r;
     path = p;
   }
 
   public RefinementFailedException(Reason r, @Nullable ARGPath p, Throwable t) {
     super(getMessage(r, t), checkNotNull(t));
+    reason = r;
     path = p;
   }
 
@@ -94,5 +98,9 @@ public class RefinementFailedException extends CPAException {
 
   public void setErrorPath(ARGPath pPath) {
     path = checkNotNull(pPath);
+  }
+
+  public Reason getReason() {
+    return reason;
   }
 }

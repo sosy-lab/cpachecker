@@ -54,9 +54,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -105,12 +103,12 @@ import com.google.common.collect.Sets;
  *
  * Here ^ means inheritance and -> means reference.
  */
-public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner implements StatisticsProvider {
+public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
 
   private final ExtendedPredicateRefiner refiner;
 
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static BAMPredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
     return new BAMPredicateRefiner(pCpa);
   }
 

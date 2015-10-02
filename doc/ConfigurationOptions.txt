@@ -92,9 +92,6 @@ analysis.checkCounterexamples = false
 # use counterexample check and the BDDCPA Restriction option
 analysis.checkCounterexamplesWithBDDCPARestriction = false
 
-# check multiple, different, properties in one verification run?
-analysis.checkMultipleProperties = false
-
 # do analysis and then check analysis result
 analysis.checkProof = false
 
@@ -593,24 +590,25 @@ cpa.arg.dumpAfterIteration = false
 # export one variable assignment for error path to file, if one is found
 cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 
-# export error path to file as an automaton
+# export error path as automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
 # use either CMBC or real C
 cpa.arg.errorPath.codeStyle = "CMBC"
 
-# export error path to file, if one is found
+# export error path core as text file
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
-cpa.arg.errorPath.enabled = true
+
+# export error path to file, if one is found
 cpa.arg.errorPath.export = true
 
-# translate error path to C program
+# export error path as source file
 cpa.arg.errorPath.exportAsSource = true
 
 # export error paths to files immediately after they were found
 cpa.arg.errorPath.exportImmediately = false
 
-# export error path to file, if one is found
+# export error path as text file
 cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 
 # Filter for irrelevant counterexamples to reduce the number of similar
@@ -620,14 +618,16 @@ cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
           PathEqualityCounterexampleFilter.class)
 
-# export error path to file, if one is found
+# export error path as graph
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 
-# export error path to file as an automaton to a graphml file
+# export error path to file as GraphML automaton
 cpa.arg.errorPath.graphml = no default value
 
-# export error path to file, if one is found
+# export error path as JSON file
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
+
+# export error path as source file
 cpa.arg.errorPath.source = "ErrorPath.%d.c"
 
 # export final ARG as .dot file
@@ -693,29 +693,12 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
-# Merge two automata states if one of them is INACTIVE.
-cpa.automaton.merge.onInactive = false
-
 # Merge two automata states if one of them is TOP.
-cpa.automaton.merge.onTop = false
+cpa.automaton.mergeOnTop = false
 
-# Change the precision locally.
-cpa.automaton.prec.localPrecisionUpdate = false
-
-# Behaviour on a property that has already been fully handled.
-cpa.automaton.prec.onHandledTarget = SIGNAL
-  enum:     [SIGNAL, BOTTOM, INACTIVE]
-
-# Disable a property after a specific number of refinements has been
-# performed for it.
-cpa.automaton.prec.targetDisabledAfterRefinements = 0
-
-# Handle at most k (> 0) violation of one property.
-cpa.automaton.prec.targetHandledAfterViolations = 1
-
-# Stop in the automata transfer relation if the analysis identified one
-# feasible path for each target state.
-cpa.automaton.stopAfterOneFeasiblePathPerProperty = false
+# An implicit precision: consider states with a self-loop and no other
+# outgoing edges as TOP.
+cpa.automaton.prec.topOnFinalSelfLoopingState = false
 
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
@@ -732,6 +715,11 @@ cpa.bam.argFile = "BlockedARG.dot"
 # DelayedFunctionAndLoopPartitioning)
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = FunctionAndLoopPartitioning.class
+
+# This flag determines which precisions should be updated during refinement.
+# We can choose between the minimum number of states and all states that are
+# necessary to re-explore the program along the error-path.
+cpa.bam.doPrecisionRefinementForAllStates = false
 
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
@@ -1217,6 +1205,10 @@ cpa.predicate.encodeBitvectorAs = INTEGER
 cpa.predicate.encodeFloatAs = RATIONAL
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
+# Replace possible overflows with an ITE-structure, which returns either the
+# normal value or an UF representing the overflow.
+cpa.predicate.encodeOverflowsWithUFs = false
+
 # Name of an external function that will be interpreted as if the function
 # call would be replaced by an externally defined expression over the program
 # variables. This will only work when all variables referenced by the dimacs
@@ -1236,17 +1228,9 @@ cpa.predicate.handleFieldAccess = false
 # non-dets
 cpa.predicate.handleImplicitInitialization = true
 
-# Use UFs to handle overflows when Bitvector theory was replaced with Integer
-# or Rational theory.
-cpa.predicate.handleOverflowsWithUFs = false
-
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
-
-# Use UFs to handle sign-conversion (from signed to unsigned or back) when
-# Bitvector theory was replaced with Integer or Rational theory.
-cpa.predicate.handleSignConversionWithUFs = false
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1333,6 +1317,9 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
   enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+
+# generate statistics about precisions (may be slow)
+cpa.predicate.precisionStatistics = true
 
 # Export the weakest precondition?
 cpa.predicate.precondition.export = false
@@ -1484,9 +1471,13 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
-# Replace possible overflows with an ITE-structure, which returns either the
-# normal value or an UF representing the overflow.
+# Use UFs to handle overflows when Bitvector theory was replaced with Integer
+# or Rational theory.
 cpa.predicate.replaceOverflowsWithUFs = false
+
+# Use UFs to handle sign-conversion (from signed to unsigned or back) when
+# Bitvector theory was replaced with Integer or Rational theory.
+cpa.predicate.replaceSignConversionWithUFs = false
 
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
@@ -1502,9 +1493,11 @@ cpa.predicate.satCheck = 0
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
 
-# Check satisfiability when a observer automaton state with this name is
-# reached.
-cpa.predicate.satCheckStatenameRegexp = "^SAT(_.*)?"
+# C99 only defines the overflow of unsigned integer type.
+cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
+
+# How often should we try to get a better evaluation?
+cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
@@ -1632,9 +1625,17 @@ cpa.slicing.sortSelectionVariablesSyntactic = true
 # Cache formulas produced by path formula manager
 cpa.slicing.useCachingPathFormulaManager = true
 
+# Array allocation functions
+cpa.smg.arrayAllocationFunctions = {
+      "calloc"}
+
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
+
+# Deallocation functions
+cpa.smg.deallocationFunctions = {
+      "free"}
 
 # If this Option is enabled, failure of mallocis simulated
 cpa.smg.enableMallocFail = true
@@ -1656,6 +1657,19 @@ cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
 # Sets how unknown functions are handled. One of: {strict, assume_safe}
 cpa.smg.handleUnknownFunctions = "strict"
 
+# Memory allocation functions
+cpa.smg.memoryAllocationFunctions = {
+      "malloc"}
+
+# Size parameter of memory allocation functions
+cpa.smg.memoryAllocationFunctionsSizeParameter = 0
+
+# Position of element size parameter for array allocation functions
+cpa.smg.memoryArrayAllocationFunctionsElemSizeParameter = 1
+
+# Position of number of element parameter for array allocation functions
+cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
+
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
@@ -1669,6 +1683,10 @@ cpa.smg.stop = "SEP"
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg.unknownOnUndefined = true
+
+# Allocation functions which set memory to zero
+cpa.smg.zeroingMemoryAllocation = {
+      "calloc"}
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.
@@ -1950,6 +1968,10 @@ cpa.value.refinement.prefixPreference = DOMAIN_GOOD_SHORT
 # whether or not to do lazy-abstraction
 cpa.value.refinement.restart = PIVOT
   enum:     [ROOT, PIVOT, COMMON]
+
+# instead of reporting a repeated counter-example, search and refine another
+# error-path for the same target-state.
+cpa.value.refinement.searchForFurtherErrorPaths = true
 
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
@@ -2353,10 +2375,6 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
-
-# (How) Should the specification (observer) automata be composed?
-specificationComposition = SEPARATE
-  enum:     [SEPARATE, UNION]
 
 # export abstract states as formula, e.g. for re-using them as
 # PredicatePrecision.

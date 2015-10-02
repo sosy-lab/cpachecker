@@ -119,10 +119,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       ARGPath targetPath = counterexample.getTargetPath();
 
       // new targetPath must contain root and error node
-      if (path != null) {
-        assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
-        assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
-      }
+      assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
+      assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
 
       argCpa.addFeasibleCounterexample(lastElement, counterexample);
 

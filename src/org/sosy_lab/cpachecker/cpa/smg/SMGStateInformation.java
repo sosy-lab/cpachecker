@@ -61,4 +61,9 @@ public class SMGStateInformation {
   public Set<SMGEdgeHasValue> getHvEdges() {
     return hvEdges;
   }
+
+  @Override
+  public String toString() {
+    return hvEdges.toString() + "\n" + ptEdges.toString();
+  }
 }
