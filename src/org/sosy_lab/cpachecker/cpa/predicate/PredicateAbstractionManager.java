@@ -74,7 +74,9 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -95,7 +97,7 @@ import com.google.common.collect.Sets;
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
 
-  static class Stats {
+  static class AbstractionStats {
 
     public int numCallsAbstraction = 0; // total calls
     public int numAbstractionReuses = 0; // total reuses
@@ -124,7 +126,7 @@ public class PredicateAbstractionManager {
     public int maxAllSatCount = 0;
   }
 
-  final Stats stats = new Stats();
+  final AbstractionStats stats = new AbstractionStats();
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -435,104 +437,106 @@ public class PredicateAbstractionManager {
       stats.trivialPredicatesTime.stop();
     }
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
-      thmProver.push(f);
+    try(StatCpuTimer t = Stats.startTimer("Abstraction Time")) {
+      try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
+        thmProver.push(f);
 
-      if (predicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
-        stats.numSatCheckAbstractions++;
+        if (predicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
+          stats.numSatCheckAbstractions++;
 
-        stats.abstractionSolveTime.start();
-        boolean feasibility;
-        try {
-          feasibility = !thmProver.isUnsat();
-        } finally {
-          stats.abstractionSolveTime.stop();
-        }
-
-        if (!feasibility) {
-          abs = rmgr.makeFalse();
-        }
-
-      } else if (abstractionType == AbstractionType.ELIMINATION) {
-        stats.quantifierEliminationTime.start();
-        try {
-          abs = rmgr.makeAnd(abs,
-              eliminateIrrelevantVariablePropositions(f, location, ssa, thmProver, predicates));
-        } finally {
-          stats.quantifierEliminationTime.stop();
-        }
-      } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
-          // First do cartesian abstraction if desired
-          stats.cartesianAbstractionTime.start();
+          stats.abstractionSolveTime.start();
+          boolean feasibility;
           try {
-            abs = rmgr.makeAnd(abs,
-                buildCartesianAbstraction(f, ssa, thmProver, predicates));
+            feasibility = !thmProver.isUnsat();
           } finally {
-            stats.cartesianAbstractionTime.stop();
-          }
-        }
-
-        if (abstractionType == AbstractionType.COMBINED) {
-          // Calculate the set of predicates that cartesian abstraction couldn't handle.
-          predicates = from(predicates)
-                         .filter(not(in(amgr.extractPredicates(abs))))
-                         .toSet();
-        }
-
-        if (abstractionType != AbstractionType.CARTESIAN
-            && !predicates.isEmpty()) {
-          // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates += predicates.size();
-          stats.booleanAbstractionTime.start();
-          try {
-            abs = rmgr.makeAnd(abs,
-                buildBooleanAbstraction(ssa, thmProver, predicates));
-          } finally {
-            stats.booleanAbstractionTime.stop();
+            stats.abstractionSolveTime.stop();
           }
 
-          // Warning:
-          // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+          if (!feasibility) {
+            abs = rmgr.makeFalse();
+          }
+
+        } else if (abstractionType == AbstractionType.ELIMINATION) {
+          stats.quantifierEliminationTime.start();
+          try {
+            abs = rmgr.makeAnd(abs,
+                eliminateIrrelevantVariablePropositions(f, location, ssa, thmProver, predicates));
+          } finally {
+            stats.quantifierEliminationTime.stop();
+          }
+        } else {
+          if (abstractionType != AbstractionType.BOOLEAN) {
+            // First do cartesian abstraction if desired
+            stats.cartesianAbstractionTime.start();
+            try {
+              abs = rmgr.makeAnd(abs,
+                  buildCartesianAbstraction(f, ssa, thmProver, predicates));
+            } finally {
+              stats.cartesianAbstractionTime.stop();
+            }
+          }
+
+          if (abstractionType == AbstractionType.COMBINED) {
+            // Calculate the set of predicates that cartesian abstraction couldn't handle.
+            predicates = from(predicates)
+                           .filter(not(in(amgr.extractPredicates(abs))))
+                           .toSet();
+          }
+
+          if (abstractionType != AbstractionType.CARTESIAN
+              && !predicates.isEmpty()) {
+            // Last do boolean abstraction if desired and necessary
+            stats.numBooleanAbsPredicates += predicates.size();
+            stats.booleanAbstractionTime.start();
+            try {
+              abs = rmgr.makeAnd(abs,
+                  buildBooleanAbstraction(ssa, thmProver, predicates));
+            } finally {
+              stats.booleanAbstractionTime.stop();
+            }
+
+            // Warning:
+            // buildBooleanAbstraction() does not clean up thmProver, so do not use it here.
+          }
         }
       }
-    }
 
-    AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
+      AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
-    if (useCache) {
-      abstractionCache.put(absKey, result);
+      if (useCache) {
+        abstractionCache.put(absKey, result);
 
-      if (result.isFalse()) {
-        unsatisfiabilityCache.add(f);
-      }
-    }
-
-    long abstractionTime = TimeSpan.sum(stats.abstractionSolveTime.getLengthOfLastInterval(),
-                                        stats.abstractionEnumTime.getLengthOfLastOuterInterval())
-                                   .asMillis();
-    logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
-    logger.log(Level.ALL, "Abstraction result is", result.asFormula());
-
-    if (dumpHardAbstractions && abstractionTime > 10000) {
-      // we want to dump "hard" problems...
-      Path dumpFile;
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
-      fmgr.dumpFormulaToFile(f, dumpFile);
-
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-      try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
-        Joiner.on('\n').appendTo(w, predicates);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
+        if (result.isFalse()) {
+          unsatisfiabilityCache.add(f);
+        }
       }
 
-      dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
-      fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
-    }
+      long abstractionTime = TimeSpan.sum(stats.abstractionSolveTime.getLengthOfLastInterval(),
+                                          stats.abstractionEnumTime.getLengthOfLastOuterInterval())
+                                     .asMillis();
+      logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
+      logger.log(Level.ALL, "Abstraction result is", result.asFormula());
 
-    return result;
+      if (dumpHardAbstractions && abstractionTime > 10000) {
+        // we want to dump "hard" problems...
+        Path dumpFile;
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+        fmgr.dumpFormulaToFile(f, dumpFile);
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
+        try (Writer w = dumpFile.asCharSink(StandardCharsets.UTF_8).openBufferedStream()) {
+          Joiner.on('\n').appendTo(w, predicates);
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
+        }
+
+        dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
+        fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
+      }
+
+      return result;
+    }
   }
 
   private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
@@ -669,20 +673,21 @@ public class PredicateAbstractionManager {
    * so that these predicates also do not need to be used in the abstraction computation.
    *
    * @param pPredicates The set of predicates.
-   * @param pOldAbs An abstraction formula that determines which variables and predicates are relevant.
+   * @param pBlockEntryAbstraction An abstraction formula that determines which variables and predicates are relevant.
    * @param pBlockFormula A path formula that determines which variables and predicates are relevant.
    * @return A region of predicates from pPredicates that is entailed by (pOldAbs & pBlockFormula)
    */
   private Region identifyTrivialPredicates(
       final Collection<AbstractionPredicate> pPredicates,
-      final AbstractionFormula pOldAbs, final PathFormula pBlockFormula) throws SolverException, InterruptedException {
+      final AbstractionFormula pBlockEntryAbstraction,
+      final PathFormula pBlockFormula) throws SolverException, InterruptedException {
 
     final SSAMap ssa = pBlockFormula.getSsa();
     final Set<String> blockVariables = fmgr.extractVariableNames(pBlockFormula.getFormula());
-    final Region oldAbs = pOldAbs.asRegion();
+    final Region entryAbst = pBlockEntryAbstraction.asRegion();
 
     final RegionCreator regionCreator = amgr.getRegionCreator();
-    Region region = regionCreator.makeTrue();
+    Region result = regionCreator.makeTrue();
 
     for (final AbstractionPredicate predicate : pPredicates) {
       final BooleanFormula predicateTerm = predicate.getSymbolicAtom();
@@ -692,35 +697,38 @@ public class PredicateAbstractionManager {
 
       if (Sets.intersection(predVariables, blockVariables).isEmpty()) {
         // predicate irrelevant with respect to block formula
+        //  --> the predicate can still be relevant to carry information
+        //      from the abstraction on the block entry!
 
         final Region predicateVar = predicate.getAbstractVariable();
-        if (amgr.entails(oldAbs, predicateVar)) {
-          // predicate is unconditionally implied by old abs,
+        if (amgr.entails(entryAbst, predicateVar)) {
+          // predicate is unconditionally implied by entry abs,
           // we can just copy it to the output
-          region = regionCreator.makeAnd(region, predicateVar);
+          //  --> the predicate overapproximates the entry abs
+          result = regionCreator.makeAnd(result, predicateVar);
           stats.numTrivialPredicates++;
           logger.log(Level.FINEST, "Predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
         } else {
+          // check the same as above also for the NEGATION of the predicate...
           final Region negatedPredicateVar = regionCreator.makeNot(predicateVar);
-          if (amgr.entails(oldAbs, negatedPredicateVar)) {
-            // negated predicate is unconditionally implied by old abs,
-            // we can just copy it to the output
-            region = regionCreator.makeAnd(region, negatedPredicateVar);
+          if (amgr.entails(entryAbst, negatedPredicateVar)) {
+            result = regionCreator.makeAnd(result, negatedPredicateVar);
             stats.numTrivialPredicates++;
             logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
           } else {
-            // predicate is used in old abs and there is no easy way to handle it
+            // predicate is used in entry abs and there is no easy way to handle it
+            // (this is in assumption; violating this assumption would mean that there is a bug somewhere)
             logger.log(Level.FINEST, "Predicate", predicate, "is relevant because it appears in the old abstraction.");
           }
         }
       }
     }
 
-    assert amgr.entails(oldAbs, region);
+    assert amgr.entails(entryAbst, result);
 
-    return region;
+    return result;
   }
 
   /**
