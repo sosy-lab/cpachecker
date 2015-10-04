@@ -819,16 +819,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CExpression exp = arguments.get(i);
 
       String varName = paramDecl.get(i).getName();
-      CType cType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
+      CType cParamType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
 
 
       SMGRegion paramObj;
       // If parameter is a array, convert to pointer
-      if (cType instanceof CArrayType) {
+      if (cParamType instanceof CArrayType) {
         int size = machineModel.getSizeofPtr();
         paramObj = new SMGRegion(size, varName);
       } else {
-        int size = machineModel.getSizeof(cType);
+        int size = machineModel.getSizeof(cParamType);
         paramObj = new SMGRegion(size, varName);
       }
 
@@ -850,27 +850,33 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CExpression exp = arguments.get(i);
 
       String varName = paramDecl.get(i).getName();
-      CType cType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
+      CType cParamType = expressionEvaluator.getRealExpressionType(paramDecl.get(i));
       CType rValueType = expressionEvaluator.getRealExpressionType(exp.getExpressionType());
       // if function declaration is in form 'int foo(char b[32])' then omit array length
       if (rValueType instanceof CArrayType) {
         rValueType = new CPointerType(rValueType.isConst(), rValueType.isVolatile(), ((CArrayType)rValueType).getType());
       }
 
-      if (cType instanceof CArrayType) {
-        cType = new CPointerType(cType.isConst(), cType.isVolatile(), ((CArrayType) cType).getType());
+      if (cParamType instanceof CArrayType) {
+        cParamType = new CPointerType(cParamType.isConst(), cParamType.isVolatile(), ((CArrayType) cParamType).getType());
       }
 
       SMGRegion newObject = values.get(i).getFirst();
       SMGSymbolicValue symbolicValue = values.get(i).getSecond();
 
-      int typeSize = expressionEvaluator.getSizeof(callEdge, cType, newState);
+      int typeSize = expressionEvaluator.getSizeof(callEdge, cParamType, newState);
 
       newState.addLocalVariable(typeSize, varName, newObject);
 
+      //TODO (  cast expression)
+
+      //6.5.16.1 right operand is converted to type of assignment expression
+      // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
+      rValueType = cParamType;
+
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters
-      newState = assignFieldToState(newState, callEdge, newObject, 0, cType, symbolicValue, rValueType);
+      newState = assignFieldToState(newState, callEdge, newObject, 0, cParamType, symbolicValue, rValueType);
     }
 
     return newState;
