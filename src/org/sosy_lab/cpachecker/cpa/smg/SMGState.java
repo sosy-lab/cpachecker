@@ -968,7 +968,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
    * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source
+   * @param pSourceRangeSize the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
    * @param pSourceRangeOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */

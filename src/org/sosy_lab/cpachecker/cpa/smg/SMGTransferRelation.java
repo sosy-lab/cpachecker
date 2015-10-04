@@ -216,11 +216,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private static final int MEMSET_BUFFER_PARAMETER = 0;
     private static final int MEMSET_CHAR_PARAMETER = 1;
     private static final int MEMSET_COUNT_PARAMETER = 2;
+    private static final int MEMCPY_TARGET_PARAMETER = 0;
+    private static final int MEMCPY_SOURCE_PARAMETER = 1;
+    private static final int MEMCPY_SIZE_PARAMETER = 2;
     private static final int MALLOC_PARAMETER = 0;
 
     private final Set<String> BUILTINS = new HashSet<>(Arrays.asList(
         new String[] {
             "__VERIFIER_BUILTIN_PLOT",
+            "memcpy",
             "memset",
             "__builtin_alloca",
             //TODO: Properly model printf (dereferences and stuff)
@@ -297,7 +301,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       SMGExplicitValueAndState countValueAndState = evaluateExplicitValue(currentState, cfaEdge, countExpr);
       SMGExplicitValue countValue = countValueAndState.getValue();
-      currentState = bufferAddressAndState.getSmgState();
+      currentState = countValueAndState.getSmgState();
 
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
         return SMGEdgePointsToAndState.of(currentState, null);
@@ -542,6 +546,74 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     public boolean isDeallocationFunction(String functionName) {
       return deallocationFunctions.contains(functionName);
     }
+
+    public SMGEdgePointsToAndState evaluateMemcpy(CFunctionCallExpression pFunctionCall,
+        SMGState pSmgState, CFAEdge pCfaEdge) throws CPATransferException {
+
+      //evaluate function: void *memcpy(void *str1, const void *str2, size_t n)
+
+      CExpression targetStr1Expr;
+      CExpression sourceStr2Expr;
+      CExpression sizeExpr;
+
+      try {
+        targetStr1Expr = pFunctionCall.getParameterExpressions().get(MEMCPY_TARGET_PARAMETER);
+      } catch (IndexOutOfBoundsException e) {
+        logger.logDebugException(e);
+        throw new UnrecognizedCCodeException("Memcpy target argument not found.", pCfaEdge, pFunctionCall);
+      }
+
+      try {
+        sourceStr2Expr = pFunctionCall.getParameterExpressions().get(MEMCPY_SOURCE_PARAMETER);
+      } catch (IndexOutOfBoundsException e) {
+        logger.logDebugException(e);
+        throw new UnrecognizedCCodeException("Memcpy source argument not found.", pCfaEdge, pFunctionCall);
+      }
+
+      try {
+        sizeExpr = pFunctionCall.getParameterExpressions().get(MEMCPY_SIZE_PARAMETER);
+      } catch (IndexOutOfBoundsException e) {
+        logger.logDebugException(e);
+        throw new UnrecognizedCCodeException("Memcpy count argument not found.", pCfaEdge, pFunctionCall);
+      }
+
+
+      SMGAddressValueAndState targetStr1AndState = evaluateAddress(pSmgState, pCfaEdge, targetStr1Expr);
+      SMGAddressValue targetStr1Address = targetStr1AndState.getValue();
+      SMGState currentState = targetStr1AndState.getSmgState();
+
+      SMGAddressValueAndState sourceStr2AndState = evaluateAddress(currentState, pCfaEdge, sourceStr2Expr);
+      SMGAddressValue sourceStr2Address = sourceStr2AndState.getValue();
+      currentState = sourceStr2AndState.getSmgState();
+
+      SMGExplicitValueAndState sizeValueAndState = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
+      SMGExplicitValue sizeValue = sizeValueAndState.getValue();
+      currentState = sizeValueAndState.getSmgState();
+
+      // TODO Unsound because source is not overridden
+      if (targetStr1Address.isUnknown() || sourceStr2Address.isUnknown() || sizeValue.isUnknown()) {
+        return SMGEdgePointsToAndState.of(currentState, null);
+      }
+
+      // avoid to call getPointerFromValue for memcpy(&param, val, size) while pointer is not registered as Edge
+      if (!currentState.isPointer(targetStr1Address.getAsInt())) {
+        currentState.addPointsToEdge(targetStr1Address.getObject(), targetStr1Address.getOffset().getAsInt(), targetStr1Address.getValue().intValue());
+      }
+
+      SMGEdgePointsTo pointer = currentState.getPointerFromValue(targetStr1Address.getAsInt());
+
+      SMGObject source = sourceStr2Address.getObject();
+      SMGObject target = targetStr1Address.getObject();
+
+      int sourceRangeOffset = sourceStr2Address.getOffset().getAsInt();
+      int sourceRangeSize = sizeValue.getAsInt() + sourceRangeOffset;
+      int targetRangeOffset =  targetStr1Address.getOffset().getAsInt();
+
+      currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
+
+
+      return SMGEdgePointsToAndState.of(currentState, pointer);
+    }
   }
 
   final private SMGBuiltins builtins = new SMGBuiltins();
@@ -652,6 +724,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successor = handleFunctionReturn(smgState, functionReturnEdge);
       if (checkForMemLeaksAtEveryFrameDrop) {
+        String  name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), id_counter.getAndIncrement());
+        plotWhenConfigured("interesting", "beforePrune" + name, successor, cfaEdge.getDescription());
         successor.pruneUnreachable();
       }
       plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
@@ -1003,7 +1077,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           newState = builtins.evaluateAlloc(cFCExpression, newState, pCfaEdge).getSmgState();
           break;
         case "memset":
-          SMGEdgePointsToAndState result = builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
+          SMGEdgePointsToAndState result = builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge);
+          newState = result.getSmgState();
+          break;
+        case "memcpy":
+          result = builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
           newState = result.getSmgState();
           break;
         case "printf":
@@ -1891,6 +1969,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           case "memset":
             SMGEdgePointsToAndState memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
             return createAddress(memsetTargetEdge);
+          case "memcpy":
+            SMGEdgePointsToAndState memcpyTargetEdge = builtins.evaluateMemcpy(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            return createAddress(memcpyTargetEdge);
           case "printf":
             return SMGAddressValueAndState.of(getInitialSmgState());
           default:
