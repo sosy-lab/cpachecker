@@ -255,7 +255,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
       loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
     }
 
-    PredicateAbstractionManager.Stats as = amgr.stats;
+    PredicateAbstractionManager.AbstractionStats as = amgr.stats;
     PredicateAbstractDomain domain = cpa.getAbstractDomain();
     PredicateTransferRelation trans = cpa.getTransferRelation();
     PredicatePrecisionAdjustment prec = cpa.getPrecisionAdjustment();

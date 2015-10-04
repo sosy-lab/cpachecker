@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
 
 
 class PredicateRefinementSummary {
@@ -67,6 +68,10 @@ class PredicateRefinementSummary {
 
       forProperties = pProps;
       refinementNumber = pRefinementNumber;
+    }
+
+    public int getDistinctPredicateCount() {
+      return Sets.newHashSet(newPredicates.values()).size();
     }
 
     public void put(CFANode pLocation, int pLocationInstance, AbstractionPredicate pPredicate) {

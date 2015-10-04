@@ -92,6 +92,9 @@ analysis.checkCounterexamples = false
 # use counterexample check and the BDDCPA Restriction option
 analysis.checkCounterexamplesWithBDDCPARestriction = false
 
+# check multiple, different, properties in one verification run?
+analysis.checkMultipleProperties = false
+
 # do analysis and then check analysis result
 analysis.checkProof = false
 
@@ -693,12 +696,29 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
-# Merge two automata states if one of them is TOP.
-cpa.automaton.mergeOnTop = false
+# Merge two automata states if one of them is INACTIVE.
+cpa.automaton.merge.onInactive = false
 
-# An implicit precision: consider states with a self-loop and no other
-# outgoing edges as TOP.
-cpa.automaton.prec.topOnFinalSelfLoopingState = false
+# Merge two automata states if one of them is TOP.
+cpa.automaton.merge.onTop = false
+
+# Change the precision locally.
+cpa.automaton.prec.localPrecisionUpdate = false
+
+# Behaviour on a property that has already been fully handled.
+cpa.automaton.prec.onHandledTarget = SIGNAL
+  enum:     [SIGNAL, BOTTOM, INACTIVE]
+
+# Disable a property after a specific number of refinements has been
+# performed for it.
+cpa.automaton.prec.targetDisabledAfterRefinements = 0
+
+# Handle at most k (> 0) violation of one property.
+cpa.automaton.prec.targetHandledAfterViolations = 1
+
+# Stop in the automata transfer relation if the analysis identified one
+# feasible path for each target state.
+cpa.automaton.stopAfterOneFeasiblePathPerProperty = false
 
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
@@ -1103,6 +1123,9 @@ cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 # space. Helpful when debugging (formulas get smaller).
 cpa.predicate.abstraction.simplify = false
 
+# Name of a file for detailed statistics on the abstraction computations.
+cpa.predicate.abstraction.statistics = no default value
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, SYLVAN, FORMULA]
@@ -1492,6 +1515,10 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
+
+# Check satisfiability when a observer automaton state with this name is
+# reached.
+cpa.predicate.satCheckStatenameRegexp = "^SAT(_.*)?"
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -1932,8 +1959,8 @@ cpa.value.refinement.doLazyAbstraction = true
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement
-# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
-# multiple times per refinmenet
+# ALWAYS:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinement
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
@@ -2375,6 +2402,10 @@ spec.transitionToStopForNegatedTokensetMatch = false
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
+
+# (How) Should the specification (observer) automata be composed?
+specificationComposition = SEPARATE
+  enum:     [SEPARATE, UNION]
 
 # export abstract states as formula, e.g. for re-using them as
 # PredicatePrecision.

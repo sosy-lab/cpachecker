@@ -39,6 +39,9 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
+import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -100,7 +103,14 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
     final CounterexampleInfo counterexample;
     try {
-      counterexample = performRefinement(reached, path);
+      try (Contexts stat = Stats.beginRootContext(lastElement.getViolatedProperties().toArray())) {
+        Stats.incCounter("Number of Refinements", 1);
+
+        try(StatCpuTimer t = Stats.startTimer("Precision Refinement Time")) {
+
+          counterexample = performRefinement(reached, path);
+        }
+      }
     } catch (RefinementFailedException e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);

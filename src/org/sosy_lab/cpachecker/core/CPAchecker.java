@@ -75,6 +75,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
+import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -222,105 +224,107 @@ public class CPAchecker {
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
-    MainCPAStatistics stats = null;
-    ReachedSet reached = null;
-    Triple<Result, Set<Property>, Set<Property>> result = Triple.of(
-        Result.NOT_YET_STARTED, Collections.<Property>emptySet(), Collections.<Property>emptySet());
+    try (Contexts c = Stats.beginRootContext(getClass().getSimpleName())) {
+      MainCPAStatistics stats = null;
+      ReachedSet reached = null;
+      Triple<Result, Set<Property>, Set<Property>> result = Triple.of(
+          Result.NOT_YET_STARTED, Collections.<Property>emptySet(), Collections.<Property>emptySet());
 
-    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
-    shutdownNotifier.register(interruptThreadOnShutdown);
+      final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+      shutdownNotifier.register(interruptThreadOnShutdown);
 
-    try {
-      stats = new MainCPAStatistics(config, logger);
+      try {
+        stats = new MainCPAStatistics(config, logger);
 
-      // create reached set, cpa, algorithm
-      stats.creationTime.start();
-      reached = factory.createReachedSet();
+        // create reached set, cpa, algorithm
+        stats.creationTime.start();
+        reached = factory.createReachedSet();
 
-      Algorithm algorithm;
+        Algorithm algorithm;
 
-      if (runCBMCasExternalTool) {
+        if (runCBMCasExternalTool) {
 
-        checkIfOneValidFile(programDenotation);
-        algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
+          checkIfOneValidFile(programDenotation);
+          algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
 
-      } else {
-        CFA cfa = parse(programDenotation, stats);
-        GlobalInfo.getInstance().storeCFA(cfa);
-        shutdownNotifier.shutdownIfNecessary();
-
-        final SpecAutomatonCompositionType speComposition =
-            initialStatesFor.contains(InitialStatesFor.TARGET)
-            ? SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC
-            : SpecAutomatonCompositionType.TARGET_SPEC;
-
-        ConfigurableProgramAnalysis cpa = factory.createCPA(
-            cfa, stats,
-            speComposition);
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-        algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
-
-        if (algorithm instanceof ImpactAlgorithm) {
-          ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
-          reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
         } else {
-          initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+          CFA cfa = parse(programDenotation, stats);
+          GlobalInfo.getInstance().storeCFA(cfa);
+          shutdownNotifier.shutdownIfNecessary();
+
+          final SpecAutomatonCompositionType speComposition =
+              initialStatesFor.contains(InitialStatesFor.TARGET)
+              ? SpecAutomatonCompositionType.BACKWARD_TO_ENTRY_SPEC
+              : SpecAutomatonCompositionType.TARGET_SPEC;
+
+          ConfigurableProgramAnalysis cpa = factory.createCPA(
+              cfa, stats,
+              speComposition);
+          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+          algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, stats);
+
+          if (algorithm instanceof ImpactAlgorithm) {
+            ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
+            reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
+          } else {
+            initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+          }
         }
+
+        printConfigurationWarnings();
+
+        stats.creationTime.stop();
+        shutdownNotifier.shutdownIfNecessary();
+        // now everything necessary has been instantiated
+
+        if (disableAnalysis) {
+          return new CPAcheckerResult(Result.NOT_YET_STARTED,
+              ImmutableSet.<Property>of(), ImmutableSet.<Property>of(), null, stats);
+        }
+
+        // run analysis
+        AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
+        result = extractResult(reached, status);
+
+      } catch (IOException e) {
+        logger.logUserException(Level.SEVERE, e, "Could not read file");
+
+      } catch (ParserException e) {
+        logger.logUserException(Level.SEVERE, e, "Parsing failed");
+        StringBuilder msg = new StringBuilder();
+        msg.append("Please make sure that the code can be compiled by a compiler.\n");
+        if (e.getLanguage() == Language.C) {
+          msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+        }
+        msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
+        logger.log(Level.INFO, msg);
+
+      } catch (InvalidConfigurationException e) {
+        logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+
+      } catch (InterruptedException e) {
+        // Get intermediate verification results
+        // in case the analysis terminates
+        // before it finished its work.
+        result = extractResult(reached, AlgorithmStatus.SOUND_BUT_INTERRUPTED);
+
+        // CPAchecker must exit because it was asked to
+        // we return normally instead of propagating the exception
+        // so we can return the partial result we have so far
+        if (!Strings.isNullOrEmpty(e.getMessage())) {
+          logger.logUserException(Level.WARNING, e, "Analysis stopped");
+        }
+
+      } catch (CPAException e) {
+        logger.logUserException(Level.SEVERE, e, null);
+
+      } finally {
+        shutdownNotifier.unregister(interruptThreadOnShutdown);
       }
 
-      printConfigurationWarnings();
-
-      stats.creationTime.stop();
-      shutdownNotifier.shutdownIfNecessary();
-      // now everything necessary has been instantiated
-
-      if (disableAnalysis) {
-        return new CPAcheckerResult(Result.NOT_YET_STARTED,
-            ImmutableSet.<Property>of(), ImmutableSet.<Property>of(), null, stats);
-      }
-
-      // run analysis
-      AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
-      result = extractResult(reached, status);
-
-    } catch (IOException e) {
-      logger.logUserException(Level.SEVERE, e, "Could not read file");
-
-    } catch (ParserException e) {
-      logger.logUserException(Level.SEVERE, e, "Parsing failed");
-      StringBuilder msg = new StringBuilder();
-      msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      if (e.getLanguage() == Language.C) {
-        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
-      }
-      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
-      logger.log(Level.INFO, msg);
-
-    } catch (InvalidConfigurationException e) {
-      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-
-    } catch (InterruptedException e) {
-      // Get intermediate verification results
-      // in case the analysis terminates
-      // before it finished its work.
-      result = extractResult(reached, AlgorithmStatus.SOUND_BUT_INTERRUPTED);
-
-      // CPAchecker must exit because it was asked to
-      // we return normally instead of propagating the exception
-      // so we can return the partial result we have so far
-      if (!Strings.isNullOrEmpty(e.getMessage())) {
-        logger.logUserException(Level.WARNING, e, "Analysis stopped");
-      }
-
-    } catch (CPAException e) {
-      logger.logUserException(Level.SEVERE, e, null);
-
-    } finally {
-      shutdownNotifier.unregister(interruptThreadOnShutdown);
+      return new CPAcheckerResult(result.getFirst(), result.getSecond(), result.getThird(), reached, stats);
     }
-
-    return new CPAcheckerResult(result.getFirst(), result.getSecond(), result.getThird(), reached, stats);
   }
 
   private Triple<Result, Set<Property>, Set<Property>> extractResult(

@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -180,7 +181,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
   private StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
 
-  private class Stats implements Statistics {
+  private class StrategyStats implements Statistics {
     @Override
     public String getName() {
       return "Predicate-Abstraction Refiner";
@@ -475,7 +476,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
-    assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
+    Stats.incCounter("Added Predicates", newPredicates.getDistinctPredicateCount());
+    Stats.putItems("Predicates", Sets.newHashSet(newPredicates.getPredicates()));
+
+    final int difference = basePrecision.calculateDifferenceTo(newPrecision);
+    assert difference == 0 : "We forgot predicates during refinement!";
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
     if (dumpPredicates && dumpPredicatesFile != null) {
@@ -590,7 +595,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   @Override
   public Statistics getStatistics() {
-    return new Stats();
+    return new StrategyStats();
   }
 
 
