@@ -1077,11 +1077,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           newState = builtins.evaluateAlloc(cFCExpression, newState, pCfaEdge).getSmgState();
           break;
         case "memset":
-          SMGEdgePointsToAndState result = builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge);
+          SMGEdgePointsToAndState result = builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
           newState = result.getSmgState();
           break;
         case "memcpy":
-          result = builtins.evaluateMemset(cFCExpression, newState, pCfaEdge);
+          result = builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge);
           newState = result.getSmgState();
           break;
         case "printf":
