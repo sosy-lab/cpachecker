@@ -277,6 +277,28 @@ public final class Stats {
 
   }
 
+
+  public static interface ContextCloseHandler {
+    public void onClose(Context pContext);
+  }
+
+  private static class AnonymousContext extends StatisticsContext {
+
+    private ContextCloseHandler closeHandler;
+
+    public AnonymousContext(Key pKey, ContextCloseHandler pOnClose) {
+      super(pKey);
+      this.closeHandler = Preconditions.checkNotNull(pOnClose);
+    }
+
+    @Override
+    public void close() {
+      super.close();
+      closeHandler.onClose(this);
+    }
+
+  }
+
   private static class RetroStatisticsContext extends StatisticsContext implements RetrospectiveContext {
 
     private final Set<Object> retroRoots = Sets.newHashSet();
@@ -353,7 +375,7 @@ public final class Stats {
     aggValue(pKey, AggregationInt.single(pBy));
   }
 
-  public static void putItems(Object pIdentifier, Set<Object> pItems) {
+  public static void putItems(Object pIdentifier, Set<? extends Object> pItems) {
     aggValue(pIdentifier, AggregationSet.of(pItems));
   }
 
@@ -460,6 +482,19 @@ public final class Stats {
 
     return ctx;
   }
+
+  public synchronized static Context anonymousRootContext(ContextCloseHandler pOnClose) {
+    final Thread t = Thread.currentThread();
+    final Object id = new Object();
+    final Key key = new Key(Optional.<Context>absent(), id, t);
+    AnonymousContext ctx = new AnonymousContext(key, pOnClose);
+
+    activeContexts.put(t, ctx);
+    ctx.activated();
+
+    return ctx;
+  }
+
 
   private synchronized static StatisticsContext getContext(
       final Thread pThread,

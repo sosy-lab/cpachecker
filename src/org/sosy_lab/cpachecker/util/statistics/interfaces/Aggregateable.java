@@ -18,17 +18,21 @@
  *  limitations under the License.
  *
  *
- *  CPAchecker web page:
+ *  CPAchecker web page:Object
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.statistics.interfaces;
 
-
+import com.google.common.collect.ImmutableMap;
 
 public interface Aggregateable {
 
   public long getValuations();
 
   public <T extends Aggregateable> T aggregateBy(T pBy);
+
+  public String[] getAttributeNames();
+
+  public ImmutableMap<String, ? extends Object> getAttributeValueMap();
 
 }

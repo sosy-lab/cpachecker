@@ -134,8 +134,8 @@ public class StatsTest {
         "Property 2",
         Aggregateables.AggregationInt.class);
 
-    assertEquals(787, p1stats.getSum());
-    assertEquals(10, p2stats.getSum());
+    assertEquals(787, (int) p1stats.getSum());
+    assertEquals(10, (int) p2stats.getSum());
     assertEquals(2, p1stats.getValuations());
     assertEquals(1, p2stats.getValuations());
   }
