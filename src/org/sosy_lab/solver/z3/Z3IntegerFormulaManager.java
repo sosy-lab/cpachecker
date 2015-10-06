@@ -32,10 +32,14 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, IntegerFormula> {
 
+  private final boolean limitDivAndModComputationToNumerals;
+
   Z3IntegerFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager pFunctionManager) {
+          Z3FunctionFormulaManager pFunctionManager,
+          boolean limitDivAndModComputationToNumerals) {
     super(pCreator, pFunctionManager);
+    this.limitDivAndModComputationToNumerals = limitDivAndModComputationToNumerals;
   }
 
   @Override
@@ -56,6 +60,24 @@ class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, In
   @Override
   protected Long makeNumberImpl(BigDecimal pNumber) {
     return decimalAsInteger(pNumber);
+  }
+
+  @Override
+  public Long divide(Long pNumber1, Long pNumber2) {
+    if (!limitDivAndModComputationToNumerals || is_numeral_ast(z3context, pNumber2)) {
+      return mk_div(z3context, pNumber1, pNumber2);
+    } else {
+      return super.multiply(pNumber1, pNumber2);
+    }
+  }
+
+  @Override
+  public Long modulo(Long pNumber1, Long pNumber2) {
+    if (!limitDivAndModComputationToNumerals || is_numeral_ast(z3context, pNumber2)) {
+      return mk_mod(z3context, pNumber1, pNumber2);
+    } else {
+      return super.multiply(pNumber1, pNumber2);
+    }
   }
 
   @Override
