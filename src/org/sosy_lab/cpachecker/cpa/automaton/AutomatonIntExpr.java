@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -75,13 +76,13 @@ interface AutomatonIntExpr extends AutomatonExpression {
       if (TRANSITION_VARS_PATTERN.matcher(varId).matches()) { // $1  AutomatonTransitionVariables
         // no exception here (would have come in the constructor)
         int key = Integer.parseInt(varId.substring(1));
-        String val = pArgs.getTransitionVariable(key);
+        AAstNode val = pArgs.getTransitionVariable(key);
         if (val == null) {
           pArgs.getLogger().log(Level.WARNING, "could not find the transition variable $" + key + ".");
           return new ResultValue<>("could not find the transition variable $" + key + ".", "AutomatonIntExpr.VarAccess");
         }
         try {
-          int value = Integer.parseInt(val);
+          int value = Integer.parseInt(val.toASTString());
           return new ResultValue<>(Integer.valueOf(value));
         } catch (NumberFormatException e) {
           pArgs.getLogger().log(Level.WARNING, "could not parse the contents of transition variable $" + key + "=\"" + val +"\".");

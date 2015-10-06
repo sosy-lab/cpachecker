@@ -32,15 +32,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are executed.
-  private Map<Integer, String> transitionVariables = new HashMap<>();
+  private Map<Integer, AAstNode> transitionVariables = new HashMap<>();
   private List<AbstractState> abstractStates;
   private AutomatonState state;
   private CFAEdge cfaEdge;
@@ -113,13 +123,14 @@ class AutomatonExpressionArguments {
   void clearTransitionVariables() {
     this.transitionVariables.clear();
   }
-  String getTransitionVariable(int key) {
+
+  AAstNode getTransitionVariable(final int pKey) {
     // this is the variable adressed with $<key> in the automaton definition
-    return this.transitionVariables.get(Integer.valueOf(key));
+    return this.transitionVariables.get(Integer.valueOf(pKey));
   }
 
-  void putTransitionVariable(int key, String value) {
-    this.transitionVariables.put(key, value);
+  void putTransitionVariable(int pKey, AAstNode pValue) {
+    this.transitionVariables.put(pKey, pValue);
   }
 
   /**
@@ -141,13 +152,13 @@ class AutomatonExpressionArguments {
       String key = matcher.group().substring(1); // matched string startswith $
       try {
         int varKey = Integer.parseInt(key);
-        String var = this.getTransitionVariable(varKey);
-        if (var == null) {
+        AAstNode node = this.getTransitionVariable(varKey);
+        if (node == null) {
           // this variable has not been set.
           this.getLogger().log(Level.WARNING, "could not replace the transition variable $" + varKey + " (not found).");
           return null;
         } else {
-          result.append(var);
+          result.append(node.toASTString());
         }
       } catch (NumberFormatException e) {
         this.getLogger().log(Level.WARNING, "could not parse the int in " + matcher.group() + " , leaving it untouched");
@@ -179,11 +190,46 @@ class AutomatonExpressionArguments {
     return state;
   }
 
-  public Map<Integer, String> getTransitionVariables() {
+  public Map<Integer, AAstNode> getTransitionVariables() {
     return this.transitionVariables;
   }
 
-  public void putTransitionVariables(Map<Integer, String> pTransitionVariables) {
+  public void putTransitionVariables(Map<Integer, AAstNode> pTransitionVariables) {
     this.transitionVariables.putAll(pTransitionVariables);
+  }
+
+  public ImmutableList<AStatement> instantiateAssumtions(ImmutableList<AStatement> pAssumptions) {
+
+    final Builder<AStatement> builder = ImmutableList.<AStatement>builder();
+    final SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(new SubstituteProvider() {
+      @Override
+      public CAstNode findSubstitute(CAstNode pNode) {
+
+        if (pNode instanceof CIdExpression) {
+          CIdExpression exp = (CIdExpression) pNode;
+          String name = exp.getName();
+
+          if (name.startsWith(AutomatonASTComparator.NUMBERED_JOKER_EXPR)) {
+            String varIdStr = name.substring(AutomatonASTComparator.NUMBERED_JOKER_EXPR.length());
+            int varId = Integer.parseInt(varIdStr);
+            return (CAstNode) getTransitionVariable(varId);
+          }
+        }
+
+        return null;
+      }
+    });
+
+    for (AStatement stmt: pAssumptions) {
+      if (stmt instanceof CStatement) {
+        CStatement inst = (CStatement)((CStatement) stmt).accept(visitor);
+        builder.add(inst);
+      } else {
+        this.getLogger().log(Level.WARNING, "Could not instantiate transition assumption! Support for non-C-languages is missing at the moment!");
+        builder.add(stmt);
+      }
+    }
+
+    return builder.build();
   }
 }

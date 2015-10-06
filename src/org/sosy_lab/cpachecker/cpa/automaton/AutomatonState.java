@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -245,6 +244,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return result;
   }
 
+  /**
+   * Translate the assumptions of this state into a list of assume
+   * edges that can be evaluated by, for example, the strengthening operator of a CPA.
+   */
   @Override
   public List<AssumeEdge> getAsAssumeEdges(String cFunctionName) {
     if (assumptions.isEmpty()) {
@@ -253,9 +256,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     List<AssumeEdge> result = new ArrayList<>(assumptions.size());
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
+
     for (AStatement statement : assumptions) {
 
       if (statement instanceof CAssignment) {
+        // Assignments
+        //  (but we would prefer boolean expressions as assumes!!)
+
         CAssignment assignment = (CAssignment) statement;
 
         if (assignment.getRightHandSide() instanceof CExpression) {
@@ -267,22 +274,39 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
                   expression,
                   CBinaryExpression.BinaryOperator.EQUALS);
 
-          result.add(new CAssumeEdge(assignment.toASTString(), assignment.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName), assumeExp, true));
-        } else if(assignment.getRightHandSide() instanceof CFunctionCall) {
-          //TODO FunctionCalls, ExpressionStatements etc
-        }
-      }
+          result.add(new CAssumeEdge(
+              assignment.toASTString(),
+              assignment.getFileLocation(),
+              new CFANode(cFunctionName),
+              new CFANode(cFunctionName),
+              assumeExp, true));
 
-      if (statement instanceof CExpressionStatement) {
-        if (((CExpressionStatement) statement).getExpression().getExpressionType() instanceof CSimpleType
-            && ((CSimpleType) (((CExpressionStatement) statement).getExpression().getExpressionType())).getType().isIntegerType()) {
-          result.add(new CAssumeEdge(statement.toASTString(), statement.getFileLocation(),
-              new CFANode(cFunctionName), new CFANode(cFunctionName),
-              ((CExpressionStatement) statement).getExpression(), true));
+        } else {
+
+          throw new RuntimeException(String.format("Support for %s as a right-hand side not yet implemented!",
+              assignment.getRightHandSide().getClass().getSimpleName()));
         }
+
+      } else if (statement instanceof CExpressionStatement) {
+        // Assumptions
+        //  (the prefered way of providing assumptions are boolean expressions)
+
+        final CExpressionStatement exprStmt = (CExpressionStatement) statement;
+
+//        if (exprStmt.getExpression().getExpressionType() instanceof CSimpleType
+//            && ((CSimpleType) (exprStmt.getExpression().getExpressionType())).getType().isIntegerType()) {
+// <-- why would this condition be necessary??
+
+          result.add(new CAssumeEdge(
+              statement.toASTString(),
+              statement.getFileLocation(),
+              new CFANode(cFunctionName),
+              new CFANode(cFunctionName),
+              ((CExpressionStatement) statement).getExpression(), true));
+
       }
     }
+
     return result;
   }
 

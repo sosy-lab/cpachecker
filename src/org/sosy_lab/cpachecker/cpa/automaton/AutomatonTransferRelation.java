@@ -48,6 +48,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -67,6 +69,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -236,7 +239,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
-    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<>(2);
+    List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken = new ArrayList<>(2);
 
     for (AutomatonTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
@@ -275,7 +278,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             }
 
             // delay execution as described above
-            Map<Integer, String> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables());
+            Map<Integer, AAstNode> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables());
             transitionsToBeTaken.add(Pair.of(t, transitionVariables));
 
           } else {
@@ -306,10 +309,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     if (edgeMatched) {
       // execute Transitions
-      for (Pair<AutomatonTransition, Map<Integer, String>> pair : transitionsToBeTaken) {
+      for (Pair<AutomatonTransition, Map<Integer, AAstNode>> pair : transitionsToBeTaken) {
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
-        Map<Integer, String> transitionVariables = pair.getSecond();
+        Map<Integer, AAstNode> transitionVariables = pair.getSecond();
         actionTime.start();
         Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
         exprArgs.setAutomatonVariables(newVars);
@@ -322,8 +325,19 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           violatedProperty = new AutomatonSafetyProperty(t.getViolatedPropertyDescription(exprArgs), t);
         }
 
+        // The assumptions might reference to the current automata variables!
+        //  --> We have to instantiate them!
+        ImmutableList<AStatement> instantiatedAssumes = exprArgs.instantiateAssumtions(t.getAssumptions());
+
+        // Create the new successor state of the automaton state
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(
-            newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedProperty);
+            newVars,
+            t.getFollowState(),
+            cpa,
+            instantiatedAssumes,
+            state.getMatches() + 1,
+            state.getFailedMatches(),
+            violatedProperty);
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
