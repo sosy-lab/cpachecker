@@ -116,6 +116,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       + " Value of '-1' runs value determination until convergence.")
   private int wideningThreshold = -1;
 
+  @Option(secure=true, description="Use extra invariant during abstraction")
+  private boolean useExtraPredicateDuringAbstraction = true;
+
   private final FormulaManagerView fmgr;
   private final boolean joinOnMerge;
   private final CFA cfa;
@@ -736,11 +739,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
 
-      // todo: make configurable.
-      // Invariant from other CPAs.
-      optEnvironment.addConstraint(
-          fmgr.instantiate(extraPredicate, state.getPathFormula().getSsa())
-      );
+      if (useExtraPredicateDuringAbstraction) {
+
+        // Invariant from other CPAs.
+        optEnvironment.addConstraint(
+            fmgr.instantiate(extraPredicate, state.getPathFormula().getSsa())
+        );
+      }
+
       // Invariant from the invariant generator.
       optEnvironment.addConstraint(
           fmgr.instantiate(
