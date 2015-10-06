@@ -850,7 +850,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
           case UNSAT:
             logger.log(Level.FINE, "Got UNSAT, previous value must be unbeatable");
-            assert prevBound != null;
+            assert prevBound != null : "Got UNSAT during abstraction, no previous value supplied";
 
             // Use the previous bound.
             abstraction.put(template, prevBound);
