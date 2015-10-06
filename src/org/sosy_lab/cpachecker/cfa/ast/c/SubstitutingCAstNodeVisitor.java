@@ -45,7 +45,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
   }
 
   private @Nullable CAstNode findSubstitute(CAstNode pNode) {
-    return sp.findSubstitute(null);
+    return sp.findSubstitute(pNode);
   }
 
   private <T> T firstNotNull(T pExpr1, T pExpr2) {
@@ -172,8 +172,8 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
           pNode.getFileLocation(),
           pNode.getExpressionType(),
           pNode.getCalculationType(),
-          firstNotNull(oldOp1, newOp1),
-          firstNotNull(oldOp2, newOp2),
+          firstNotNull(newOp1, oldOp1),
+          firstNotNull(newOp2, oldOp2),
           pNode.getOperator());
     } else {
       return pNode;
@@ -224,7 +224,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
       return new CUnaryExpression(
           pNode.getFileLocation(),
           pNode.getExpressionType(),
-          firstNotNull(oldOp1, newOp1),
+          firstNotNull(newOp1, oldOp1),
           pNode.getOperator());
     } else {
       return pNode;
@@ -248,8 +248,8 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
       return new CArraySubscriptExpression(
           pNode.getFileLocation(),
           pNode.getExpressionType(),
-          firstNotNull(oldOp1, newOp1),
-          firstNotNull(oldOp2, newOp2));
+          firstNotNull(newOp1, oldOp1),
+          firstNotNull(newOp2, oldOp2));
     } else {
       return pNode;
     }
@@ -294,7 +294,7 @@ public class SubstitutingCAstNodeVisitor implements CAstNodeVisitor<CAstNode, Ru
       return new CPointerExpression(
           pNode.getFileLocation(),
           pNode.getExpressionType(),
-          firstNotNull(oldOp1, newOp1));
+          firstNotNull(newOp1, oldOp1));
     } else {
       return pNode;
     }
