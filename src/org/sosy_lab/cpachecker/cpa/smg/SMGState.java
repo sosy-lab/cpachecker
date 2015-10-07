@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
@@ -1125,5 +1126,37 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
     return heap.getTypeForMemoryLocation(pMemoryLocation);
+  }
+
+  public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
+
+    /* Treat functions as global objects with unnkown memory size.
+     * Only write them into the smg when necessary*/
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+
+    return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
+  }
+
+  public SMGObject createObjectForFunction(CFunctionDeclaration pDeclaration) throws SMGInconsistentException {
+
+    /* Treat functions as global variable with unknown memory size.
+     * Only write them into the smg when necessary*/
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+
+    assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;
+
+    return addGlobalVariable(0, functionQualifiedSMGName);
+  }
+
+  private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
+
+    StringBuilder functionName = new StringBuilder(pDeclaration.getQualifiedName());
+
+    for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
+      functionName.append("_");
+      functionName.append(parameterDcl.toASTString().replace("*", "_").replace(" ", "_"));
+    }
+
+    return "__" + functionName;
   }
 }

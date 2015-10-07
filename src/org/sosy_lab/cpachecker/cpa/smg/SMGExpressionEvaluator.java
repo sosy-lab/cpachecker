@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -423,12 +424,11 @@ public class SMGExpressionEvaluator {
 
     CType expressionType = getRealExpressionType(rValue);
 
-    if (expressionType instanceof CFunctionType) {
-
-      // TODO Represantation of functions
-
-      return SMGAddressValueAndState.of(pState, SMGUnknownValue.getInstance());
-    } else if (expressionType instanceof CPointerType) {
+    if (expressionType instanceof CPointerType
+        || (expressionType instanceof CFunctionType
+            && rValue instanceof CUnaryExpression
+            && ((CUnaryExpression) rValue).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
+      // Cfa treats &foo as CFunctionType
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, pState);
 
@@ -623,7 +623,12 @@ public class SMGExpressionEvaluator {
     }
 
     private SMGAddressValueAndState handleAmper(CRightHandSide amperOperand) throws CPATransferException {
-      if (amperOperand instanceof CIdExpression) {
+
+      if (getRealExpressionType(amperOperand) instanceof CFunctionType
+          && amperOperand instanceof CIdExpression) {
+        // function type &foo
+        return createAddressOfFunction((CIdExpression) amperOperand);
+      } else if (amperOperand instanceof CIdExpression) {
         // &a
         return createAddressOfVariable((CIdExpression) amperOperand);
       } else if (amperOperand instanceof CPointerExpression) {
@@ -641,6 +646,21 @@ public class SMGExpressionEvaluator {
       } else {
         return SMGAddressValueAndState.of(getInitialSmgState());
       }
+    }
+
+    protected SMGAddressValueAndState createAddressOfFunction(CIdExpression idFunctionExpression)
+        throws SMGInconsistentException {
+
+      SMGState state = getInitialSmgState();
+
+      SMGObject functionObject =
+          state.getObjectForFunction((CFunctionDeclaration) idFunctionExpression.getDeclaration());
+
+      if (functionObject == null) {
+        return SMGAddressValueAndState.of(state);
+      }
+
+      return createAddress(state, functionObject, SMGKnownExpValue.ZERO);
     }
 
     private SMGAddressValueAndState createAddressOfArraySubscript(CArraySubscriptExpression lValue)

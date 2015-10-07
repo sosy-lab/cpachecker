@@ -1951,6 +1951,23 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       @Override
+      protected SMGAddressValueAndState createAddressOfFunction(CIdExpression pIdFunctionExpression)
+          throws SMGInconsistentException {
+        SMGState state = getInitialSmgState();
+
+        CFunctionDeclaration functionDcl = (CFunctionDeclaration) pIdFunctionExpression.getDeclaration();
+
+        SMGObject functionObject =
+            state.getObjectForFunction(functionDcl);
+
+        if (functionObject == null) {
+          functionObject = state.createObjectForFunction(functionDcl);
+        }
+
+        return createAddress(state, functionObject, SMGKnownExpValue.ZERO);
+      }
+
+      @Override
       public SMGAddressValueAndState visit(CFunctionCallExpression pIastFunctionCallExpression)
           throws CPATransferException {
         CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
