@@ -36,7 +36,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -190,15 +192,42 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
    */
   static final class MatchCFAEdgeASTComparison extends AbstractAutomatonBoolExpr {
 
-    private final ASTMatcherProvider patternAST;
+    public static enum CallableMatchMode { NONE, CALL, RETURN }
 
-    public MatchCFAEdgeASTComparison(ASTMatcherProvider pAstMatcherProvider) {
+    private final ASTMatcherProvider patternAST;
+    private final CallableMatchMode callableMatchMode;
+
+    public MatchCFAEdgeASTComparison(ASTMatcherProvider pAstMatcherProvider, CallableMatchMode pCallMatchMode) {
       this.patternAST = pAstMatcherProvider;
+      this.callableMatchMode = pCallMatchMode;
     }
 
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws UnrecognizedCFAEdgeException {
-      Optional<?> ast = pArgs.getCfaEdge().getRawAST();
+      final Optional<?> ast;
+
+      switch (callableMatchMode) {
+      case CALL:
+        if (pArgs.getCfaEdge().getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+          ast = pArgs.getCfaEdge().getRawAST();
+        } else {
+          return CONST_FALSE;
+        }
+        break;
+      case RETURN:
+        if (pArgs.getCfaEdge().getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          // Match the function summary edge of the call!!
+          FunctionReturnEdge ret = (FunctionReturnEdge) pArgs.getCfaEdge();
+          ast = Optional.of(ret.getSummaryEdge().getExpression());
+
+        } else {
+          return CONST_FALSE;
+        }
+        break;
+      default:
+        ast = pArgs.getCfaEdge().getRawAST();
+      }
+
       if (ast.isPresent()) {
         if (!(ast.get() instanceof CAstNode)) {
           throw new UnrecognizedCFAEdgeException(pArgs.getCfaEdge());
