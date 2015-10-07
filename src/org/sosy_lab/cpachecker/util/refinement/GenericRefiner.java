@@ -27,6 +27,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
@@ -102,7 +104,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
   private final PathExtractor pathExtractor;
 
-  private int previousErrorPathId = -1;
+  private Set<Integer> previousErrorPathId = Sets.newHashSet();
 
   // statistics
   private final StatCounter refinementCounter = new StatCounter("Number of refinements");
@@ -130,9 +132,9 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   }
 
   private boolean madeProgress(ARGPath path) {
-    boolean progress = (previousErrorPathId == -1 || previousErrorPathId != obtainErrorPathId(path));
+    boolean progress = (previousErrorPathId.isEmpty() || !previousErrorPathId.contains(obtainErrorPathId(path)));
 
-    previousErrorPathId = obtainErrorPathId(path);
+    previousErrorPathId.add(obtainErrorPathId(path));
 
     return progress;
   }
@@ -172,7 +174,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     // Possible problem: alternating error-paths
     if (repeatingCEX && searchForFurtherErrorPaths) {
       for (ARGPath targetPath : pathExtractor.getTargetPaths(targets)) {
-        if (!targetPathToUse.equals(targetPath)) {
+        if (madeProgress(targetPath)) {
           logger.log(Level.INFO, "The error path given to", getClass().getSimpleName(), "is a repeated counterexample,",
               "so instead, refiner uses a new error path extracted from the reachset.");
           targetPathToUse = targetPath;
@@ -288,7 +290,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
       if (isErrorPathFeasible(currentPath)) {
         if(feasiblePath == null) {
-          previousErrorPathId = obtainErrorPathId(currentPath);
+          previousErrorPathId.add(obtainErrorPathId(currentPath));
           feasiblePath = currentPath;
         }
 
