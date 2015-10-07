@@ -131,6 +131,27 @@ public class SMGIsLessOrEqual {
       }
     }
 
+    // Check, whether the heap of smg1 is less or equal to smg 2
+    Set<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
+    Set<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
+
+    for (SMGObject object_in_smg1 : heap_in_smg1) {
+
+      //technically, one should look if any SMGHVE exist in additional region in SMG1
+      if (!heap_in_smg2.contains(object_in_smg1)) {
+        return false;
+      }
+
+      //FIXME SMG Objects in heap have to be the same object to be comparable
+      if (!isLessOrEqualFields(pSMG1, pSMG2, object_in_smg1, object_in_smg1)) {
+        return false;
+      }
+
+      if (pSMG1.isObjectValid(object_in_smg1) != pSMG2.isObjectValid(object_in_smg1)) {
+        return false;
+      }
+    }
+
     return true;
   }
 

@@ -731,7 +731,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
-    return SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
+    boolean result = SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
+    return result;
   }
 
   @Override
