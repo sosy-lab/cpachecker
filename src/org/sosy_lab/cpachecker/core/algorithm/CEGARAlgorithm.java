@@ -322,4 +322,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
+  public Refiner getRefiner() {
+    return mRefiner;
+  }
+
 }

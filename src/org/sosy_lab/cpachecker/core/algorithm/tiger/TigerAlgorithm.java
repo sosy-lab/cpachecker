@@ -116,10 +116,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
@@ -225,11 +229,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions")
   public boolean useTigerAlgorithm_with_pc = false;
 
-  private LogManager logger;
-  private StartupConfig startupConfig;
+  private final Configuration config;
+  private final LogManager logger;
+  private final CFA cfa;
 
+  private StartupConfig startupConfig;
   private ConfigurableProgramAnalysis cpa;
-  private CFA cfa;
+
 
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   private FQLSpecification fqlSpecification;
@@ -262,6 +268,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     this.programDenotation = programDenotation;
     this.stats = stats;
+    this.config = pConfig;
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
     startupConfig.getConfig().inject(this);
@@ -806,16 +813,17 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition)
       throws CPAException, InterruptedException {
-    GuardedEdgeAutomatonCPA lAutomatonCPA = new GuardedEdgeAutomatonCPA(pGoal.getAutomaton());
+
+    Automaton goalAutomaton = pGoal.createControlAutomaton();
+
+    CPAFactory factory = ControlAutomatonCPA.factory();
+    factory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
+    factory.setLogger(logger.withComponentName(goalAutomaton.getName()));
+    factory.set(cfa, CFA.class);
+    factory.set(goalAutomaton, Automaton.class);
 
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
-
-    /*if (pPassingCPA != null) {
-      lAutomatonCPAs.add(pPassingCPA);
-    }*/
-
-    lAutomatonCPAs.add(lAutomatonCPA);
-
+    lAutomatonCPAs.add(factory.createInstance());
 
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
@@ -917,7 +925,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           PredicateCPARefiner predicateRefiner = (PredicateCPARefiner) refiner;
 
           if (reusePredicates) {
-            RefinementStrategy strategy = predicateRefiner.getRefinementStrategy();
+            RefinementStrategy strategy = predicateRefiner.getStrategy();
             assert (strategy instanceof PredicateAbstractionRefinementStrategy);
 
             PredicateAbstractionRefinementStrategy refinementStrategy =

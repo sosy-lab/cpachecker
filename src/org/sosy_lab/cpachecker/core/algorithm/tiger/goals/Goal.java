@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePa
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -317,6 +318,11 @@ public class Goal {
     };
 
     return getPattern().accept(visitor);
+  }
+
+  public Automaton createControlAutomaton() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

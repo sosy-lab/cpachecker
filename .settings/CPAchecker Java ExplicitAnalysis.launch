@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/CPAchecker/src/org/sosy_lab/cpachecker/cmdline/CPAMain.java"/>
+<listEntry value="/CPAchecker-incl-tiger/src/org/sosy_lab/cpachecker/cmdline/CPAMain.java"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
 <listEntry value="1"/>
@@ -11,6 +11,6 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="org.sosy_lab.cpachecker.cmdline.CPAMain"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-explicitAnalysis-java-with-RTT -timelimit 20s -cp ${folder_prompt:the classpath to use} -stats ${string_prompt:the FQN of the main class}"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="CPAchecker-incl-tiger"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea&#10;-Xmx1200m"/>
 </launchConfiguration>
