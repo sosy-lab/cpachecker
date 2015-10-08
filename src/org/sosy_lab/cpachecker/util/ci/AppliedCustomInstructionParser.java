@@ -102,11 +102,14 @@ public class AppliedCustomInstructionParser {
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
       String line = br.readLine();
-      ci = readCustomInstruction(line);
+
+      // TODO line auseinandernehmen => functionName raussuchen
+      String[] l = line.split(" ");
+      ci = readCustomInstruction(l[1].replace("()", ""));
 
       while ((line = br.readLine()) != null) {
         shutdownNotifier.shutdownIfNecessary();
-        startNode = getCFANode(line, cfaInfo);
+        startNode = getCFANode(line, cfaInfo); // TODO nodeID‚
 
         try {
           aci = ci.inspectAppliedCustomInstruction(startNode);
@@ -155,10 +158,12 @@ public class AppliedCustomInstructionParser {
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
     FunctionEntryNode function = cfa.getFunctionHead(functionName);
 
+    if (function == null) {
+      throw new AppliedCustomInstructionParsingFailedException("Function unknown in program");
+    }
+
     CFANode ciStartNode = null;
     Collection<CFANode> ciEndNodes = new HashSet<>();
-    Set<String> inputVariables = new HashSet<>();
-    Set<String> outputVariables = new HashSet<>();
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();
@@ -173,22 +178,28 @@ public class AppliedCustomInstructionParser {
       shutdownNotifier.shutdownIfNecessary();
       pred = queue.poll();
 
-      if (pred instanceof CLabelNode && ((CLabelNode) pred).getLabel().equals("start_ci")) {
+      if (pred instanceof CLabelNode && ((CLabelNode) pred).getLabel().equals("start_ci") && pred.getFunctionName().equals(functionName)) {
         ciStartNode = pred;
         break;
       }
 
       // breadth-first-search
       for (CFANode succ : CFAUtils.successorsOf(pred)) {
-        if (!visitedNodes.contains(succ)){
+        if (!visitedNodes.contains(succ) && succ.getFunctionName().equals(functionName)){
           queue.add(succ);
           visitedNodes.add(succ);
         }
       }
     }
 
+    if (ciStartNode == null) {
+      throw new AppliedCustomInstructionParsingFailedException("Missing label for start of custom instruction");
+    }
+
     Queue<Pair<CFANode, Set<String>>> pairQueue = new ArrayDeque<>();
     CFANode succ;
+    Set<String> inputVariables = new HashSet<>();
+    Set<String> outputVariables = new HashSet<>();
     Set<String> predOutputVars = new HashSet<>();
     Set<String> succOutputVars;
     Set<Pair<CFANode, Set<String>>> visitedPairs = new HashSet<>();
@@ -214,14 +225,12 @@ public class AppliedCustomInstructionParser {
           for (CFAEdge innerEdge : ((MultiEdge) leavingEdge).getEdges()) {
             // adapt output, inputvariables
             addNewInputVariables(innerEdge, succOutputVars, inputVariables);
-            succOutputVars =
-                getOutputVariablesForSuccessorAndAddNewOutputVariables(innerEdge, succOutputVars, outputVariables);
+            succOutputVars = getOutputVariablesForSuccessorAndAddNewOutputVariables(innerEdge, succOutputVars, outputVariables);
           }
         } else {
           // adapt output, inputvariables
           addNewInputVariables(leavingEdge, predOutputVars, inputVariables);
-          succOutputVars =
-              getOutputVariablesForSuccessorAndAddNewOutputVariables(leavingEdge, predOutputVars, outputVariables);
+          succOutputVars = getOutputVariablesForSuccessorAndAddNewOutputVariables(leavingEdge, predOutputVars, outputVariables);
         }
 
         // breadth-first-search
@@ -232,6 +241,10 @@ public class AppliedCustomInstructionParser {
           visitedPairs.add(nextPair);
         }
       }
+    }
+
+    if (ciEndNodes.isEmpty()) {
+      throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
     }
 
     List<String> outputVariablesAsList = new ArrayList<>();
@@ -320,7 +333,7 @@ public class AppliedCustomInstructionParser {
 
   private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(final CFAEdge pLeavingEdge,
       final Set<String> pPredOutputVars, final Set<String> pOutputVariables) {
-    Set<String> edgeOutputVariables = null;
+    Set<String> edgeOutputVariables = new HashSet<>();
     if (pLeavingEdge instanceof CStatementEdge) {
       CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
       if (edgeStmt instanceof CExpressionAssignmentStatement) {

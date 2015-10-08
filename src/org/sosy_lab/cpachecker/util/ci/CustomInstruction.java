@@ -199,7 +199,7 @@ public class CustomInstruction{
         "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
-    sb.append("(define-fun ci() Bool(");
+    sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
@@ -208,6 +208,9 @@ public class CustomInstruction{
         String variable = inputVariables.get(i);
         if (outputVariables.size()==0 && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
+//          sb.append("= ");
+//          sb.append(variable);
+//          sb.append(" 0)");
         } else {
           sb.append("(and ");
           sb.append(getAssignmentOfVariableToZero(variable, false));
@@ -223,6 +226,9 @@ public class CustomInstruction{
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
+//          sb.append("= ");
+//          sb.append(variable);
+//          sb.append("@1 0)");
         } else {
           sb.append("(and ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
@@ -236,6 +242,9 @@ public class CustomInstruction{
     }
 
     List<String> outputVariableList = new ArrayList<>();
+    for (String var : inputVariables) {
+      outputVariableList.add("(declare-fun " + var + " () Int)");
+    }
     for (String var : outputVariables) {
       outputVariableList.add("(declare-fun " + var + "@1 () Int)");
     }
@@ -631,6 +640,22 @@ public class CustomInstruction{
     for (int i=0; i<ciEdge.getEdges().size(); i++) {
       computeMappingOfCiAndAci(ciEdge.getEdges().get(i), aciEdge.getEdges().get(i), ciVarToAciVar, outVariables);
     }
+  }
+
+  CFANode getStartNode() {
+    return ciStartNode;
+  }
+
+  Collection<CFANode> getEndNodes() {
+    return ciEndNodes;
+  }
+
+  List<String> getInputVariables() {
+    return inputVariables;
+  }
+
+  List<String> getOutputVariables() {
+    return outputVariables;
   }
 
   private static class StructureComparisonVisitor implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException>{
