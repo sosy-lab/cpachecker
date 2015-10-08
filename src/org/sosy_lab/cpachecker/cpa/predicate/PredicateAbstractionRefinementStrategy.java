@@ -54,6 +54,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -189,6 +190,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatInt simplifyDeltaVariables = new StatInt(StatKind.SUM, "Variables Delta");
   private StatInt simplifyVariablesBefore = new StatInt(StatKind.SUM, "Variables Before");
   private StatInt simplifyVariablesAfter = new StatInt(StatKind.SUM, "Variables After");
+
+  // for TigerAlgorithm -- this should be replaced in near future!
+  @Deprecated
+  private PrecisionCallback<PredicatePrecision> precCallback = null;
 
   private class Stats implements Statistics {
     @Override
@@ -510,6 +515,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     assert basePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
     assert targetStatePrecision.calculateDifferenceTo(newPrecision) == 0 : "We forgot predicates during refinement!";
 
+    if (precCallback != null) {
+      PredicatePrecision tmp = precCallback.getPrecision();
+      assert(tmp != null);
+      PredicatePrecision newprec = tmp.addLocalPredicates(mergePredicatesPerLocation(newPredicates));
+      precCallback.setPrecision(newprec);
+    }
+
     if (dumpPredicates && dumpPredicatesFile != null) {
       Path precFile = dumpPredicatesFile.getPath(precisionUpdate.getUpdateCount());
       try (Writer w = Files.openOutputFile(precFile)) {
@@ -527,6 +539,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     precisionUpdate.stop();
 
     return Pair.of(newPrecision, refinementRoot);
+  }
+
+  @Deprecated
+  public void setPrecisionCallback(PrecisionCallback<PredicatePrecision> pPrecCallback) {
+    precCallback = pPrecCallback;
   }
 
   protected final PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
