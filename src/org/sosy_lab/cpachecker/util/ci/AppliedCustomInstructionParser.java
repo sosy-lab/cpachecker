@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -215,7 +216,10 @@ public class AppliedCustomInstructionParser {
 
       // pred is endNode of CI -> store pred in Collection of endNodes
       if (pred instanceof CLabelNode && ((CLabelNode)pred).getLabel().startsWith("end_ci_")) {
-        ciEndNodes.add(pred);
+        for (CFANode endNode : CFAUtils.predecessorsOf(pred)) {
+          ciEndNodes.add(endNode);
+        }
+        continue;
       }
 
       // search for endNodes in the subtree of pred, breadth-first search
@@ -354,7 +358,9 @@ public class AppliedCustomInstructionParser {
       edgeOutputVariables = new HashSet<>();
       edgeOutputVariables.add(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
-    } else {
+    } else if (pLeavingEdge instanceof CFunctionReturnEdge) {
+      // TODO set outputvariable if function summary indicates assignment to variable
+    } else{
       return pPredOutputVars;
     }
 

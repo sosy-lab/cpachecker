@@ -24,13 +24,19 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -42,6 +48,7 @@ public class AppliedCustomInstructionParserTest {
   private CFAInfo cfaInfo;
   private CFA cfa;
   private AppliedCustomInstructionParser aciParser;
+  private List<CLabelNode> labelNodes;
 
   @Before
   public void init() throws IOException, ParserException, InterruptedException {
@@ -87,6 +94,7 @@ public class AppliedCustomInstructionParserTest {
     aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+    labelNodes = getLabelNodes(cfa);
   }
 
   @Test
@@ -129,83 +137,100 @@ public class AppliedCustomInstructionParserTest {
       Truth.assertThat(e.getMessage()).matches("Missing label for end of custom instruction");
     }
 
-//    CustomInstruction ci = aciParser.readCustomInstruction("ci");
-//    // startNode is CFANode with nodeNumber 17
-//    Truth.assertThat(ci.getStartNode().getNodeNumber()).isEqualTo(17); // TODO NodeNr passt nicht
-//    // endNodes contains exactly CFANode with nodeNumber 24
-//    Collection<CFANode> ciEndNodes = ci.getEndNodes();
-//    Truth.assertThat(ciEndNodes).hasSize(1); // TODO more than 1 entry
-//    for (CFANode node : ciEndNodes) {
-//      Truth.assertThat(node.getNodeNumber()).isEqualTo(24);
-//    }
-//    // input variables: globalVar, ci::u, ci::var, ci::y, ci::z
-//    List<String> list = new ArrayList<>();
-//    list.add("globalVar");
-//    list.add("ci::u");
-//    list.add("ci::var");
-//    list.add("ci::y");
-//    list.add("ci::z");
-//    Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO enthaelt mehr Elemente (auch ci::x, main::n, test2::p, test::p
-//     //output variables: ci::var, ci::y, ci::z
-//    list = new ArrayList<>();
-//    list.add("ci::var");
-//    list.add("ci::y");
-//    list.add("ci::z");
-//    Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO es fehlt ci::z enthaelt mehr Elemente (auch ci::x, main::x)
+    CustomInstruction ci = aciParser.readCustomInstruction("ci");
+    CFANode expectedStart = null;
+    Collection<CFANode> expectedEnds = new ArrayList<>(2);
+    for(CLabelNode n: labelNodes){
+      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("ci")) {
+        expectedStart = n;
+      }
+      if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("ci")) {
+        for(CFANode e: CFAUtils.predecessorsOf(n)) {
+          expectedEnds.add(e);
+        }
+      }
+    }
+    Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
+    Truth.assertThat(ci.getEndNodes()).containsExactlyElementsIn(expectedEnds);
+    // input variables: globalVar, ci::u, ci::var, ci::y, ci::z
+    List<String> list = new ArrayList<>();
+    list.add("globalVar");
+    list.add("ci::u");
+    list.add("ci::var");
+    list.add("ci::y");
+    list.add("ci::z");
+   // Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO enthaelt mehr Elemente, sind Parameter, die durch Funktionsaufruf gesetzt werden
+     //output variables: ci::var, ci::y, ci::z
+    list = new ArrayList<>();
+    list.add("ci::var");
+    list.add("ci::y");
+    list.add("ci::z");
+    //Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO es fehlt ci::z das ist ein Fehler
 
-//    CustomInstruction ci = aciParser.readCustomInstruction("main");
-//    // startNode is CFANode with nodeNumber 33
-//    Truth.assertThat(ci.getStartNode().getNodeNumber()).isEqualTo(33); // TODO NodeNr nicht 33
-//    // endNodes contains exactly CFANode with nodeNumber 24, 38
-//    Collection<CFANode> ciEndNodes = ci.getEndNodes();
-//    List<Integer> ciEndNodesNodeNumbersAsList = new ArrayList<>();
-//    for (CFANode node : ciEndNodes) {
-//      ciEndNodesNodeNumbersAsList.add(node.getNodeNumber());
-//    }
-//    List<Integer> nodeNumbers = new ArrayList<>();
-//    nodeNumbers.add(26); // TODO nicht 24?
-//    nodeNumbers.add(40); // TODO nicht 38?
-//    Truth.assertThat(ciEndNodesNodeNumbersAsList).hasSize(2);
-//    Truth.assertThat(ciEndNodesNodeNumbersAsList).containsExactlyElementsIn(nodeNumbers); // TODO NodeNrs passen nicht
-//    // input variables: globalVar, main::m, main::n, main::o
-//    ArrayList<Object> list = new ArrayList<>();
-//    list.add("globalVar");
-//    list.add("main::m");
-//    list.add("main::n");
-//    list.add("main::o");
-//    // TODO output vars nicht korrekt, wieder zu viele
-//    Truth.assertThat(ci.getInputVariables()).containsExactly(list).inOrder();
-//    // output variables: ci::u, ci::var, ci::x, ci::y, ci::z, main::n
-//    List<String> list = new ArrayList<>();
-//    list.add("ci::u");
-//    list.add("ci::var");
-//    list.add("ci::x");
-//    list.add("ci::y");
-//    list.add("ci::z");
-//    list.add("main::n");
-//    Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO total verkehrt
+    ci = aciParser.readCustomInstruction("main");
+    expectedStart = null;
+    expectedEnds = new ArrayList<>(2);
+    for(CLabelNode n: labelNodes){
+      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
+        expectedStart = n;
+      }
+      if(n.getLabel().startsWith("end_ci")) {
+        for(CFANode e: CFAUtils.predecessorsOf(n)) {
+          expectedEnds.add(e);
+        }
+      }
+    }
+    Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
+    Truth.assertThat(ci.getEndNodes()).containsExactlyElementsIn(expectedEnds);
+    // input variables: globalVar, main::m, main::n, main::o
+    list = new ArrayList<>();
+    list.add("globalVar");
+    list.add("main::m");
+    list.add("main::n");
+    list.add("main::o");
+    // TODO output vars nicht korrekt, wieder zu viele
+    // Truth.assertThat(ci.getInputVariables()).containsExactly(list).inOrder();
+    // output variables: ci::u, ci::var, ci::x, ci::y, ci::z, main::n
+    list = new ArrayList<>();
+    list.add("ci::u");
+    list.add("ci::var");
+    list.add("ci::x");
+    list.add("ci::y");
+    list.add("ci::z");
+    list.add("main::n");
+    //Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO total verkehrt
+  }
+
+  private List<CLabelNode> getLabelNodes(CFA cfa){
+    List<CLabelNode> result = new ArrayList<>();
+    for(CFANode n: cfa.getAllNodes()) {
+      if(n instanceof CLabelNode){
+        result.add((CLabelNode) n);
+      }
+    }
+    return result;
   }
 
   @Test
   public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, NoSuchFieldException, SecurityException, ParserException {
-//    String testProgram = ""
-//        + "void main() {"
-//          + "int x;"
-//          + "int y;"
-//          + "start_ci: x = x + y;"
-//          + "end_ci_1:"
-//          + "x = x + x;"
-//          + "y = y + y;"
-//          + "y = y + x;"
-//        + "}";
-//
-//    CFA cfa = TestDataTools.makeCFA(testProgram);
-//    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), cfa);
-//
-//    CustomInstructionApplications cia = aciParser.parse(new FileSystemPath("src", "org", "sosy_lab", "cpachecker", "util" , "ci","testParse.c"));
-//    Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
+    String testProgram = ""
+        + "void main() {"
+          + "int x;"
+          + "int y;"
+          + "start_ci: x = x + y;"
+          + "end_ci_1:"
+          + "x = x + x;"
+          + "y = y + y;"
+          + "y = y + x;"
+        + "}";
 
-//    Truth.assertThat(cis).hasSize(5);
+    CFA cfa = TestDataTools.makeCFA(testProgram);
+    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), cfa);
+    // TODO path does not exist need to adapt content of file
+    // CustomInstructionApplications cia = aciParser.parse(new FileSystemPath("src", "org", "sosy_lab", "cpachecker", "util" , "ci","testParse.c"));
+    // Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
+
+    //Truth.assertThat(cis).hasSize(5);
   }
 
 }
