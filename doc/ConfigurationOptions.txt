@@ -783,6 +783,11 @@ cpa.bounds.maxLoopIterations = 0
 # adjuster.
 cpa.bounds.maxLoopIterationsUpperBound = 0
 
+# threshold for unwinding recursion (0 is infinite)
+# works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound
+cpa.bounds.maxRecursionDepth = 0
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 
