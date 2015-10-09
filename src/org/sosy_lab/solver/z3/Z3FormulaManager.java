@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.CommonNativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -43,8 +44,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
-import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -137,12 +136,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
 
-    if (NativeLibraries.OS.guessOperatingSystem() == OS.WINDOWS) {
+    if (CommonNativeLibraries.OS.guessOperatingSystem() ==
+        CommonNativeLibraries.OS.WINDOWS) {
       // Z3 itself
-      NativeLibraries.loadLibrary("libz3");
+      CommonNativeLibraries.loadLibrary("libz3");
     }
 
-    NativeLibraries.loadLibrary("z3j");
+    CommonNativeLibraries.loadLibrary("z3j");
 
     if (extraOptions.log != null) {
       Path absolutePath = extraOptions.log.toAbsolutePath();
