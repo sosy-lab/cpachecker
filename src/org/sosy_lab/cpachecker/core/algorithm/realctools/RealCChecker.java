@@ -34,6 +34,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.CommonNativeLibraries;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
 
 /**
@@ -157,7 +157,7 @@ public class RealCChecker implements CounterexampleChecker, Statistics {
       }
 
       realC =
-          new RealCExecutor(logger, realCArgs, NativeLibraries.getNativeLibraryPath().resolve(scriptPath).toString());
+          new RealCExecutor(logger, realCArgs, CommonNativeLibraries.getNativeLibraryPath().resolve(scriptPath).toString());
       exitCode = realC.join(timelimit.asMillis());
 
     } catch (IOException e) {
