@@ -30,7 +30,6 @@ import javax.annotation.Nullable;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.CommonNativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -44,7 +43,6 @@ public class Z3InterpolationTest {
 
   @Before
   public void loadZ3() throws Exception {
-    CommonNativeLibraries.loadLibrary("z3j");
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
     mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null, 42);

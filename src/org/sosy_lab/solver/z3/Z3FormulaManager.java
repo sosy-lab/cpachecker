@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.CommonNativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -136,13 +136,13 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
 
-    if (CommonNativeLibraries.OS.guessOperatingSystem() ==
-        CommonNativeLibraries.OS.WINDOWS) {
+    if (NativeLibraries.OS.guessOperatingSystem() ==
+        NativeLibraries.OS.WINDOWS) {
       // Z3 itself
-      CommonNativeLibraries.loadLibrary("libz3");
+      NativeLibraries.loadLibrary("libz3");
     }
 
-    CommonNativeLibraries.loadLibrary("z3j");
+    NativeLibraries.loadLibrary("z3j");
 
     if (extraOptions.log != null) {
       Path absolutePath = extraOptions.log.toAbsolutePath();

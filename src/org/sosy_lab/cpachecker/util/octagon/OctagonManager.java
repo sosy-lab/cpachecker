@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
-import org.sosy_lab.common.CommonNativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -39,7 +39,7 @@ public abstract class OctagonManager {
   protected OctagonManager(String libraryName) {
     if (!libraryLoaded) {
       libraryLoaded = true;
-      CommonNativeLibraries.loadLibrary(libraryName);
+      NativeLibraries.loadLibrary(libraryName);
       J_init();
     }
   }

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.CommonNativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
@@ -57,7 +57,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
 
   private static String[] getCommandLine(List<String> args) {
     String[] cmd = new String[args.size() + 1];
-    cmd[0] = CommonNativeLibraries.getNativeLibraryPath().resolve("cbmc").toString();
+    cmd[0] = NativeLibraries.getNativeLibraryPath().resolve("cbmc").toString();
     for (int i = 0; i < args.size(); i++) {
       cmd[i+1] = args.get(i);
     }

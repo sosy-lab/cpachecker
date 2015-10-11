@@ -34,7 +34,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.CommonNativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -157,7 +157,7 @@ public class RealCChecker implements CounterexampleChecker, Statistics {
       }
 
       realC =
-          new RealCExecutor(logger, realCArgs, CommonNativeLibraries.getNativeLibraryPath().resolve(scriptPath).toString());
+          new RealCExecutor(logger, realCArgs, NativeLibraries.getNativeLibraryPath().resolve(scriptPath).toString());
       exitCode = realC.join(timelimit.asMillis());
 
     } catch (IOException e) {

@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.CommonNativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -150,9 +150,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
     if (extraOptions.loadOptimathsat5) {
-      CommonNativeLibraries.loadLibrary("optimathsat5j");
+      NativeLibraries.loadLibrary("optimathsat5j");
     } else {
-      CommonNativeLibraries.loadLibrary("mathsat5j");
+      NativeLibraries.loadLibrary("mathsat5j");
     }
 
     // Init Msat

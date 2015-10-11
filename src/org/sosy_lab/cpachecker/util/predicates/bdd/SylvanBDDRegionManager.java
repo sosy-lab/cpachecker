@@ -42,7 +42,7 @@ import javax.annotation.concurrent.GuardedBy;
 
 import jsylvan.JSylvan;
 
-import org.sosy_lab.common.CommonNativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.concurrency.Threads;
@@ -76,7 +76,7 @@ class SylvanBDDRegionManager implements RegionManager {
 
 
   static {
-    CommonNativeLibraries.loadLibrary("sylvan");
+    NativeLibraries.loadLibrary("sylvan");
   }
 
   // Statistics
