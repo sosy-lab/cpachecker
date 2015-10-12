@@ -154,18 +154,19 @@ public class AppliedCustomInstructionParserTest {
     Truth.assertThat(ci.getEndNodes()).containsExactlyElementsIn(expectedEnds);
     // input variables: globalVar, ci::u, ci::var, ci::y, ci::z
     List<String> list = new ArrayList<>();
-    list.add("globalVar");
     list.add("ci::u");
     list.add("ci::var");
     list.add("ci::y");
     list.add("ci::z");
-   // Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO enthaelt mehr Elemente, sind Parameter, die durch Funktionsaufruf gesetzt werden
-     //output variables: ci::var, ci::y, ci::z
+    list.add("globalVar");
+    Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder();
+     //output variables: ci::var, ci::y, ci::z, test::p
     list = new ArrayList<>();
     list.add("ci::var");
     list.add("ci::y");
     list.add("ci::z");
-    //Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO es fehlt ci::z das ist ein Fehler
+    list.add("test::p");
+    Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
 
     ci = aciParser.readCustomInstruction("main");
     expectedStart = null;
@@ -188,9 +189,8 @@ public class AppliedCustomInstructionParserTest {
     list.add("main::m");
     list.add("main::n");
     list.add("main::o");
-    // TODO output vars nicht korrekt, wieder zu viele
-    // Truth.assertThat(ci.getInputVariables()).containsExactly(list).inOrder();
-    // output variables: ci::u, ci::var, ci::x, ci::y, ci::z, main::n
+     Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder();
+    // output variables: ci::u, ci::var, ci::x, ci::y, ci::z, main::n, test::p
     list = new ArrayList<>();
     list.add("ci::u");
     list.add("ci::var");
@@ -198,7 +198,8 @@ public class AppliedCustomInstructionParserTest {
     list.add("ci::y");
     list.add("ci::z");
     list.add("main::n");
-    //Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder(); // TODO total verkehrt
+    list.add("test::p");
+    Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
   }
 
   private List<CLabelNode> getLabelNodes(CFA cfa){
