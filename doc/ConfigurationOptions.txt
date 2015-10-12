@@ -1834,6 +1834,9 @@ cpa.stator.policy.unrollingRefinementThreshold = 2
 # Cache formulas produced by path formula manager
 cpa.stator.policy.useCachingPathFormulaManager = true
 
+# Use extra invariant during abstraction
+cpa.stator.policy.useExtraPredicateDuringAbstraction = true
+
 # Generate invariants and strengthen the formulas during abstraction with
 # them.
 cpa.stator.policy.useInvariantsForAbstraction = false
@@ -1937,8 +1940,8 @@ cpa.value.refinement.doLazyAbstraction = true
 # when to export the interpolation tree
 # NEVER:   never export the interpolation tree
 # FINAL:   export the interpolation tree once after each refinement
-# ALWAYD:  export the interpolation tree once after each interpolation, i.e.
-# multiple times per refinmenet
+# ALWAYS:  export the interpolation tree once after each interpolation, i.e.
+# multiple times per refinement
 cpa.value.refinement.exportInterpolationTree = "NEVER"
   allowed values: [NEVER, FINAL, ALWAYS]
 
