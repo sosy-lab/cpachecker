@@ -103,6 +103,9 @@ public class AppliedCustomInstructionParser {
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
       String line = br.readLine();
+      if(line == null) {
+        throw new AppliedCustomInstructionParsingFailedException("Empty specification. Missing at least function name for custom instruction.");
+      }
 
       // TODO line auseinandernehmen => functionName raussuchen
       String[] l = line.split(" ");
