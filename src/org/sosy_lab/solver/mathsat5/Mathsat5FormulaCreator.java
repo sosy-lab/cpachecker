@@ -93,8 +93,12 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
 
   @Override
   public FormulaType<?> getFormulaType(Long pFormula) {
-    long env = getEnv();
     long type = msat_term_get_type(pFormula);
+    return getFormulaTypeFromTermType(type);
+  }
+
+  private FormulaType<?> getFormulaTypeFromTermType(Long type) {
+    long env = getEnv();
     if (msat_is_bool_type(env, type)) {
       return FormulaType.BooleanType;
     } else if (msat_is_integer_type(env, type)) {
@@ -102,13 +106,21 @@ class Mathsat5FormulaCreator extends FormulaCreator<Long, Long, Long> {
     } else if (msat_is_rational_type(env, type)) {
       return FormulaType.RationalType;
     } else if (msat_is_bv_type(env, type)) {
-      return FormulaType.getBitvectorTypeWithSize(msat_get_bv_type_size(env, type));
+      return FormulaType.getBitvectorTypeWithSize(
+          msat_get_bv_type_size(env, type));
     } else if (msat_is_fp_type(env, type)) {
       return FormulaType.getFloatingPointType(
           msat_get_fp_type_exp_width(env, type),
           msat_get_fp_type_mant_width(env, type));
+    } else if (msat_is_array_type(env, type)) {
+      long indexType = msat_get_array_index_type(env, type);
+      long elementType = msat_get_array_element_type(env, type);
+      return FormulaType.getArrayType(
+          getFormulaTypeFromTermType(indexType),
+          getFormulaTypeFromTermType(elementType));
     }
-    throw new IllegalArgumentException("Unknown formula type " + msat_type_repr(type) + " for term " + msat_term_repr(pFormula));
+    throw new IllegalArgumentException("Unknown formula type "
+        + msat_type_repr(type) + " for term " + msat_term_repr(type));
   }
 
   @Override

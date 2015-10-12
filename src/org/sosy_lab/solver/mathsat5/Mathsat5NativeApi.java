@@ -179,6 +179,8 @@ class Mathsat5NativeApi {
   public static native long msat_get_integer_type(long e);
   public static native long msat_get_bv_type(long e, int size);
   public static native long msat_get_array_type(long e, long itp, long etp);
+  public static native long msat_get_array_index_type(long e, long t);
+  public static native long msat_get_array_element_type(long e, long t);
   public static native long msat_get_fp_type(long e, int exp_with, int mant_with);
   public static native long msat_get_fp_roundingmode_type(long e);
   public static native long msat_get_simple_type(long e, String name);
