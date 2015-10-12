@@ -117,7 +117,13 @@ public class CFASecondPassBuilder {
 
     // 2.Step: replace functionCalls with functioncall- and return-edges
     for (final AStatementEdge functionCall: visitor.getFunctionCalls()) {
-      insertCallEdges(functionCall);
+      // it could be that the current function call was already removed
+      // due to being unreachable (endless loop in front)
+      // therefore we have to check that a predecessor exists before
+      // inserting the new call edges
+      if (functionCall.getPredecessor().getNumEnteringEdges() != 0) {
+        insertCallEdges(functionCall);
+      }
     }
   }
 
