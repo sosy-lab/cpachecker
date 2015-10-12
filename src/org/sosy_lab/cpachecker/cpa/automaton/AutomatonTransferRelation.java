@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -327,7 +326,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
         // The assumptions might reference to the current automata variables!
         //  --> We have to instantiate them!
-        ImmutableList<AStatement> instantiatedAssumes = exprArgs.instantiateAssumtions(t.getAssumptions());
+        ImmutableMap<AStatement, Boolean> instantiatedAssumes = exprArgs.instantiateAssumtions(t.getAssumptionWithTruth());
 
         // Create the new successor state of the automaton state
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(

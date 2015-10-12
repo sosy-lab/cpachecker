@@ -344,11 +344,13 @@ public class AutomatonGraphmlParser {
               scope = ((CProgramScope) scope).createFunctionScope(functionName);
             }
             for (String assumeCode : transAssumes) {
-              assumptions.addAll(removeDuplicates(adjustCharAssignments(
+              for (AStatement assume: removeDuplicates(adjustCharAssignments(
                   AutomatonASTComparator.generateSourceASTOfBlock(
                       tryFixArrayInitializers(assumeCode),
                       cparser,
-                      scope))));
+                      scope)))) {
+                assumptions.add(assume);
+              }
             }
           }
         }
@@ -425,7 +427,8 @@ public class AutomatonGraphmlParser {
           nonMatchingTransitions.add(createAutomatonTransition(
               not(conjunctedTriggers),
               assertions,
-              Collections.<AStatement>emptyList(),
+              ImmutableList.<AStatement>of(),
+              true,
               Collections.<AutomatonAction>emptyList(),
               sourceStateId,
               leadsToViolationNode));
@@ -460,6 +463,7 @@ public class AutomatonGraphmlParser {
             conjunctedTriggers,
             assertions,
             assumptions,
+            true,
             actions,
             targetStateId,
             leadsToViolationNode));
@@ -474,7 +478,8 @@ public class AutomatonGraphmlParser {
               and(conjunctedTriggers,
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
               assertions,
-              Collections.<AStatement>emptyList(),
+              ImmutableList.<AStatement>of(),
+              true,
               Collections.<AutomatonAction>emptyList(),
               sourceStateId,
               sourceIsViolationNode));
@@ -501,7 +506,8 @@ public class AutomatonGraphmlParser {
               createAutomatonTransition(
                   AutomatonBoolExpr.TRUE,
                   assertions,
-                  Collections.<AStatement>emptyList(),
+                  ImmutableList.<AStatement>of(),
+                  true,
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true));
@@ -559,6 +565,7 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
       List<AStatement> pAssumptions,
+      boolean pAssumeTruth,
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode) {
@@ -566,11 +573,13 @@ public class AutomatonGraphmlParser {
       return createAutomatonSinkTransition(pTriggers, pAssertions, pActions, pLeadsToViolationNode);
     }
     if (pLeadsToViolationNode) {
-      List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
+      ImmutableList<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
+      ImmutableList<AStatement> assumes = ImmutableList.copyOf(pAssumptions);
       return new ViolationCopyingAutomatonTransition(
               pTriggers,
               assertions,
-              pAssumptions,
+              assumes,
+              pAssumeTruth,
               pActions,
               pTargetStateId);
     }
@@ -578,6 +587,7 @@ public class AutomatonGraphmlParser {
             pTriggers,
             pAssertions,
             pAssumptions,
+            pAssumeTruth,
             pActions,
             pTargetStateId);
   }
@@ -606,10 +616,11 @@ public class AutomatonGraphmlParser {
     private ViolationCopyingAutomatonTransition(
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
-        List<AStatement> pAssumptions,
+        ImmutableList<AStatement> pAssumptions,
+        boolean pAssumeTruth,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
-      super(pTriggers, pAssertions, pAssumptions, pActions, pTargetStateId);
+      super(pTriggers, pAssertions, pAssumptions, pAssumeTruth, pActions, pTargetStateId);
     }
 
     private ViolationCopyingAutomatonTransition(

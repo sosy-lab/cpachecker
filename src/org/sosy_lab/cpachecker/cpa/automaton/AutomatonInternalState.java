@@ -53,6 +53,7 @@ public class AutomatonInternalState {
                                     AutomatonBoolExpr.TRUE,
                                     Collections.<AutomatonBoolExpr>emptyList(),
                                     null,
+                                    true,
                                     Collections.<AutomatonAction>emptyList(),
                                     BOTTOM, new StringExpression(""))),
       true, false);
@@ -64,6 +65,7 @@ public class AutomatonInternalState {
                                     AutomatonBoolExpr.TRUE,
                                     Collections.<AutomatonBoolExpr>emptyList(),
                                     null,
+                                    true,
                                     Collections.<AutomatonAction>emptyList(),
                                     BOTTOM, null)),
       false, false);
@@ -95,6 +97,7 @@ public class AutomatonInternalState {
         pSelfTransitionExpr,
         Collections.<AutomatonBoolExpr>emptyList(),
         null,
+        true,
         Collections.<AutomatonAction>emptyList(),
         this, new StringExpression("")));
   }

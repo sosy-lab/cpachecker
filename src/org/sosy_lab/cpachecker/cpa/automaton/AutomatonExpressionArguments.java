@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,8 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteP
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 
 class AutomatonExpressionArguments {
 
@@ -198,9 +198,9 @@ class AutomatonExpressionArguments {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 
-  public ImmutableList<AStatement> instantiateAssumtions(ImmutableList<AStatement> pAssumptions) {
+  public ImmutableMap<AStatement, Boolean> instantiateAssumtions(ImmutableMap<AStatement, Boolean> pAssumptions) {
 
-    final Builder<AStatement> builder = ImmutableList.<AStatement>builder();
+    final ImmutableMap.Builder<AStatement, Boolean> builder = ImmutableMap.<AStatement, Boolean>builder();
     final SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(new SubstituteProvider() {
       @Override
       public CAstNode findSubstitute(CAstNode pNode) {
@@ -220,13 +220,16 @@ class AutomatonExpressionArguments {
       }
     });
 
-    for (AStatement stmt: pAssumptions) {
+    for (Entry<AStatement, Boolean> entry: pAssumptions.entrySet()) {
+      final AStatement stmt = entry.getKey();
+      final Boolean truth = entry.getValue();
+
       if (stmt instanceof CStatement) {
         CStatement inst = (CStatement)((CStatement) stmt).accept(visitor);
-        builder.add(inst);
+        builder.put(inst, truth);
       } else {
         this.getLogger().log(Level.WARNING, "Could not instantiate transition assumption! Support for non-C-languages is missing at the moment!");
-        builder.add(stmt);
+        builder.put(stmt, truth);
       }
     }
 

@@ -327,6 +327,7 @@ public final class ReducedAutomatonProduct {
               t.trigger,
               Collections.singletonList(t.assertion),
               t.assumption,
+              t.assumptionTruth,
               t.actions,
               succ.getStateName()));
         }
