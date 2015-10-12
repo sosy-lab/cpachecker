@@ -44,7 +44,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -289,18 +291,12 @@ public class AppliedCustomInstructionParser {
       }
 
       else if (edgeStmt instanceof CFunctionCallStatement) {
-        Set<String> edgeInputVariables = new HashSet<>();
-        for (CExpression exp : ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression()
-            .getParameterExpressions()) {
-          edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
-        }
-        return edgeInputVariables;
+        return getFunctionParameterInput(((CFunctionCallStatement) edgeStmt).getFunctionCallExpression());
       }
 
       else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-        return CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt)
-            .getRightHandSide().getFunctionNameExpression());
-      }
+        return getFunctionParameterInput(((CFunctionCallAssignmentStatement) edgeStmt)
+          .getFunctionCallExpression()); }
     }
 
 
@@ -336,7 +332,13 @@ public class AppliedCustomInstructionParser {
     return Collections.emptySet();
   }
 
-
+ private Set<String> getFunctionParameterInput(CFunctionCallExpression funCall) {
+   Set<String> edgeInputVariables = new HashSet<>();
+   for (CExpression exp : funCall.getParameterExpressions()) {
+     edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
+   }
+   return edgeInputVariables;
+ }
 
   private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(final CFAEdge pLeavingEdge,
       final Set<String> pPredOutputVars, final Set<String> pOutputVariables) {
@@ -349,9 +351,7 @@ public class AppliedCustomInstructionParser {
                 .getLeftHandSide());
       }
       else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-        edgeOutputVariables =
-            CIdExpressionCollectorVisitor.getVariablesOfExpression(((CFunctionCallAssignmentStatement) edgeStmt)
-                .getLeftHandSide());
+        edgeOutputVariables = getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) edgeStmt);
       } else {
         return pPredOutputVars;
       }
@@ -362,8 +362,16 @@ public class AppliedCustomInstructionParser {
       edgeOutputVariables.add(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
     } else if (pLeavingEdge instanceof CFunctionReturnEdge) {
-      // TODO set outputvariable if function summary indicates assignment to variable
-    } else{
+      CFunctionCall funCall = (((CFunctionReturnEdge) pLeavingEdge).getSummaryEdge().getExpression());
+      if (funCall instanceof CFunctionCallAssignmentStatement) {
+        edgeOutputVariables = getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);
+      }
+    } else if (pLeavingEdge instanceof CFunctionCallEdge) {
+      String functionName = ((CFunctionCallEdge) pLeavingEdge).getSuccessor().getFunctionName();
+      for (String name : ((CFunctionCallEdge) pLeavingEdge).getSuccessor().getFunctionParameterNames()) {
+        edgeOutputVariables.add(functionName + "::" + name);
+      }
+    } else {
       return pPredOutputVars;
     }
 
@@ -372,6 +380,10 @@ public class AppliedCustomInstructionParser {
     returnRes.addAll(edgeOutputVariables);
 
     return returnRes;
+  }
+
+  private Set<String> getFunctionalCallAssignmentOutputVars(CFunctionCallAssignmentStatement stmt) {
+    return CIdExpressionCollectorVisitor.getVariablesOfExpression(stmt.getLeftHandSide());
   }
 
 }
