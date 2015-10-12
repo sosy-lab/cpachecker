@@ -35,8 +35,9 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
 
   public Mathsat5RationalFormulaManager(
           Mathsat5FormulaCreator pCreator,
-          Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager);
+          Mathsat5FunctionFormulaManager functionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, functionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -60,13 +61,12 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
   }
 
   @Override
-  public Long divide(Long pNumber1, Long pNumber2) {
+  public Long linearDivide(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber2);
     long mathsatEnv = getFormulaCreator().getEnv();
     long t1 = pNumber1;
     long t2 = pNumber2;
 
-    long result;
-    if (msat_term_is_number(mathsatEnv, t2)) {
       // invert t2 and multiply with it
       String n = msat_term_repr(t2);
       if (n.startsWith("(")) {
@@ -80,12 +80,7 @@ class Mathsat5RationalFormulaManager extends Mathsat5NumeralFormulaManager<Numer
         n = frac[1] + "/" + frac[0];
       }
       t2 = msat_make_number(mathsatEnv, n);
-      result = msat_make_times(mathsatEnv, t2, t1);
-    } else {
-      return super.divide(pNumber1, pNumber2);
-    }
-
-    return result;
+      return msat_make_times(mathsatEnv, t2, t1);
   }
 
   @Override

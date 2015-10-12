@@ -49,12 +49,14 @@ public class SmtInterpolSolverFactory implements SolverFactory {
   @Override
   public FormulaManager create(Configuration pConfig, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogfile, long randomSeed) throws InvalidConfigurationException {
+      @Nullable PathCounterTemplate solverLogfile, long randomSeed,
+      boolean pUseNonLinearIntegerArithmetic, boolean pUseNonLinearRationalArithmetic) throws InvalidConfigurationException {
     final Thread currentThread = Thread.currentThread();
     final ClassLoader contextClassLoader = currentThread.getContextClassLoader();
     try {
       currentThread.setContextClassLoader(SmtInterpolSolverFactory.class.getClassLoader());
-      return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier, solverLogfile, randomSeed);
+      return SmtInterpolFormulaManager.create(pConfig, pLogger, pShutdownNotifier, solverLogfile,
+          randomSeed, pUseNonLinearIntegerArithmetic, pUseNonLinearRationalArithmetic);
     } finally {
       currentThread.setContextClassLoader(contextClassLoader);
     }

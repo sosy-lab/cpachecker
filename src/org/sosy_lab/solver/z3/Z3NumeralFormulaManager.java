@@ -41,13 +41,19 @@ abstract class Z3NumeralFormulaManager
 
   public Z3NumeralFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager);
+          Z3FunctionFormulaManager functionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, functionManager, useNonLinearArithmetic);
 
     this.z3context = pCreator.getEnv();
   }
 
   abstract protected long getNumeralType();
+
+  @Override
+  protected boolean isNumeral(Long val) {
+    return is_numeral_ast(z3context, val);
+  }
 
   @Override
   protected Long makeNumberImpl(long i) {
@@ -95,14 +101,25 @@ abstract class Z3NumeralFormulaManager
   }
 
   @Override
-  public Long multiply(Long pNumber1, Long pNumber2) {
-    long result;
-    if (is_numeral_ast(z3context, pNumber1) || is_numeral_ast(z3context, pNumber2)) {
-      result = mk_mul(z3context, pNumber1, pNumber2);
-    } else {
-      result = super.multiply(pNumber1, pNumber2);
-    }
-    return result;
+  public Long linearDivide(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber2);
+    return nonLinearDivide(pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long nonLinearDivide(Long pNumber1, Long pNumber2) {
+    return mk_div(z3context, pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long linearMultiply(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber1) || isNumeral(pNumber2);
+    return nonLinearMultiply(pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long nonLinearMultiply(Long pNumber1, Long pNumber2) {
+    return mk_mul(z3context, pNumber1, pNumber2);
   }
 
   @Override

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.solver.smtInterpol;
 
-import static org.sosy_lab.solver.smtInterpol.SmtInterpolUtil.isNumber;
-
 import java.math.BigInteger;
 
 import org.sosy_lab.solver.api.NumeralFormula;
@@ -42,9 +40,15 @@ abstract class SmtInterpolNumeralFormulaManager
 
   SmtInterpolNumeralFormulaManager(
           SmtInterpolFormulaCreator pCreator,
-          SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+          SmtInterpolFunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
     env = pCreator.getEnv();
+  }
+
+  @Override
+  protected boolean isNumeral(Term val) {
+    return SmtInterpolUtil.isNumber(val);
   }
 
   @Override
@@ -63,41 +67,9 @@ abstract class SmtInterpolNumeralFormulaManager
   }
 
   @Override
-  public Term divide(Term pNumber1, Term pNumber2) {
-    if (isNumber(pNumber2)) {
-      Sort intSort = pNumber1.getTheory().getNumericSort();
-      Sort realSort = pNumber1.getTheory().getRealSort();
-      if (intSort.equals(pNumber1.getSort()) && intSort.equals(pNumber2.getSort())) {
-        return env.term("div", pNumber1, pNumber2);
-      } else {
-        assert intSort.equals(pNumber1.getSort()) || realSort.equals(pNumber1.getSort());
-        assert intSort.equals(pNumber2.getSort()) || realSort.equals(pNumber2.getSort());
-        return env.term("/", pNumber1, pNumber2);
-      }
-    } else {
-      return super.divide(pNumber1, pNumber2);
-    }
-  }
-
-  @Override
-  public Term multiply(Term pNumber1, Term pNumber2) {
-    if (isNumber(pNumber1) || isNumber(pNumber2)) {
-      return env.term("*", pNumber1, pNumber2);
-    } else {
-      return super.multiply(pNumber1, pNumber2);
-    }
-  }
-
-  @Override
-  protected Term modulo(Term pNumber1, Term pNumber2) {
-    Sort intSort = pNumber1.getTheory().getNumericSort();
-    if (isNumber(pNumber2)
-        && intSort.equals(pNumber1.getSort())
-        && intSort.equals(pNumber2.getSort())) {
-      return env.term("mod", pNumber1, pNumber2);
-    } else {
-      return super.modulo(pNumber1, pNumber2);
-    }
+  public Term linearMultiply(Term pNumber1, Term pNumber2) {
+    assert isNumeral(pNumber1) || isNumeral(pNumber2);
+    return env.term("*", pNumber1, pNumber2);
   }
 
   @Override

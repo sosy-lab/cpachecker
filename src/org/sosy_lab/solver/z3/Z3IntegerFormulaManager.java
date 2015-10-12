@@ -32,14 +32,11 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, IntegerFormula> {
 
-  private final boolean limitDivAndModComputationToNumerals;
-
   Z3IntegerFormulaManager(
           Z3FormulaCreator pCreator,
           Z3FunctionFormulaManager pFunctionManager,
-          boolean limitDivAndModComputationToNumerals) {
-    super(pCreator, pFunctionManager);
-    this.limitDivAndModComputationToNumerals = limitDivAndModComputationToNumerals;
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -63,21 +60,14 @@ class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, In
   }
 
   @Override
-  public Long divide(Long pNumber1, Long pNumber2) {
-    if (!limitDivAndModComputationToNumerals || is_numeral_ast(z3context, pNumber2)) {
-      return mk_div(z3context, pNumber1, pNumber2);
-    } else {
-      return super.multiply(pNumber1, pNumber2);
-    }
+  public Long linearModulo(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber2);
+    return nonLinearModulo(pNumber1, pNumber2);
   }
 
   @Override
-  public Long modulo(Long pNumber1, Long pNumber2) {
-    if (!limitDivAndModComputationToNumerals || is_numeral_ast(z3context, pNumber2)) {
-      return mk_mod(z3context, pNumber1, pNumber2);
-    } else {
-      return super.multiply(pNumber1, pNumber2);
-    }
+  public Long nonLinearModulo(Long pNumber1, Long pNumber2) {
+    return mk_mod(z3context, pNumber1, pNumber2);
   }
 
   @Override

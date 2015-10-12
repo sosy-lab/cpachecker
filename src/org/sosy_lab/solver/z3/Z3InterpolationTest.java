@@ -45,7 +45,7 @@ public class Z3InterpolationTest {
   public void loadZ3() throws Exception {
     Configuration config = Configuration.defaultConfiguration();
     LogManager logger = TestLogManager.getInstance();
-    mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null, 42);
+    mgr = Z3FormulaManager.create(logger, config, ShutdownNotifier.create(), null, 42, true, true);
     ifmgr = (Z3IntegerFormulaManager) mgr.getIntegerFormulaManager();
   }
 

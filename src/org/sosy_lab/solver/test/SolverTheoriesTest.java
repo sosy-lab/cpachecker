@@ -114,7 +114,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void intTest3_DivMod() throws Exception {
+  public void intTest3_DivModLinear() throws Exception {
     assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
         .that(solver == Solvers.MATHSAT5 ).isFalse();
 
@@ -132,7 +132,6 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fb = imgr.equal(b, num2);
     BooleanFormula fADiv5 = imgr.equal(imgr.divide(a, num5), b);
     BooleanFormula fADiv3 = imgr.equal(imgr.divide(a, num3), num3);
-    BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
     BooleanFormula fAMod5 = imgr.equal(imgr.modulo(a, num5), num0);
     BooleanFormula fAMod3 = imgr.equal(imgr.modulo(a, num3), num1);
 
@@ -144,13 +143,6 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
 
-    // check division-by-variable, a=10 && b=2 && a/b=5
-    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
-    if (solver != Solvers.SMTINTERPOL) {
-      assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
-    }
-
     // check modulo-by-constant, a=10 && a%5=0
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
@@ -161,7 +153,31 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void intTest3_DivMod_NegativeNumbers() throws Exception {
+  public void intTest3_DivModNonLinear() throws Exception {
+    // not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
+        .that(solver != Solvers.MATHSAT5 && solver != Solvers.SMTINTERPOL).isTrue();
+
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula b = imgr.makeVariable("int_b");
+
+    IntegerFormula num10 = imgr.makeNumber(10);
+    IntegerFormula num5 = imgr.makeNumber(5);
+    IntegerFormula num2 = imgr.makeNumber(2);
+
+    BooleanFormula fa = imgr.equal(a, num10);
+    BooleanFormula fb = imgr.equal(b, num2);
+    BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
+
+    // check division-by-variable, a=10 && b=2 && a/b=5
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+
+    // TODO disabled, because we would need the option solver.solver.useNonLinearIntegerArithmetic=true.
+    // assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTest3_DivMod_NegativeNumbersLinear() throws Exception {
     assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
         .that(solver == Solvers.MATHSAT5 ).isFalse();
 
@@ -183,7 +199,6 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fADiv5 = imgr.equal(imgr.divide(a, num5), b);
     BooleanFormula fADiv3 = imgr.equal(imgr.divide(a, num3), numNeg4);
     BooleanFormula fADivNeg3 = imgr.equal(imgr.divide(a, numNeg3), num4);
-    BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
     BooleanFormula fAMod5 = imgr.equal(imgr.modulo(a, num5), num0);
     BooleanFormula fAMod3 = imgr.equal(imgr.modulo(a, num3), num2);
     BooleanFormula fAModNeg3 = imgr.equal(imgr.modulo(a, numNeg3), num2);
@@ -203,13 +218,6 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
 
-    // check division-by-variable, a=-10 && b=-2 && a/b=5
-    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
-    if (solver != Solvers.SMTINTERPOL) {
-      assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
-    }
-
     // check modulo-by-constant, a=-10 && a%5=0
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
@@ -221,6 +229,32 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // check modulo-by-constant, a=-10 && a%(-3)=2
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
     assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTest3_DivMod_NegativeNumbersNonLinear() throws Exception {
+    // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
+    assume().withFailureMessage("Solver " + solverToUse() + " does not support the operations MOD and DIV")
+        .that(solver != Solvers.MATHSAT5 && solver != Solvers.SMTINTERPOL).isTrue();
+
+    IntegerFormula a = imgr.makeVariable("int_a");
+    IntegerFormula b = imgr.makeVariable("int_b");
+
+    IntegerFormula numNeg10 = imgr.makeNumber(-10);
+    IntegerFormula num5 = imgr.makeNumber(5);
+    IntegerFormula numNeg2 = imgr.makeNumber(-2);
+
+    BooleanFormula fa = imgr.equal(a, numNeg10);
+    BooleanFormula fb = imgr.equal(b, numNeg2);
+    BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
+
+    // integer-division for negative numbers is __not__ C99-conform!
+    // SMTlib always rounds against +/- infinity.
+
+    // check division-by-variable, a=-10 && b=-2 && a/b=5
+    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    // TODO disabled, because we would need the option solver.solver.useNonLinearIntegerArithmetic=true.
+    // assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
   }
 
   @Test

@@ -91,14 +91,6 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
         + " The log can be given as an input to the solver and replayed.")
     @FileOption(Type.OUTPUT_FILE)
     @Nullable Path log = null;
-
-    @Option(secure=true, description="When using Integer-theory, "
-        + "Z3 allows to compute DIV and MOD for symbols and numerals, "
-        + "e.g. 'a%b', where the second operand is non-numeral. "
-        + "As non-linear arithmetics is a hard problem, "
-        + "this option allows to replace the computation of DIV and MOD with an UF."
-        + "The UF is the similar to the encoding of the operations in Rational-theory.")
-    boolean limitDivAndModComputationToNumerals = false;
   }
 
   private Z3FormulaManager(
@@ -131,7 +123,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogfile, long randomSeed)
+      @Nullable PathCounterTemplate solverLogfile, long randomSeed,
+      boolean pUseNonLinearIntegerArithmetic, boolean pUseNonLinearRationalArithmetic)
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
@@ -209,8 +202,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
     Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager, smtLogger);
     Z3BooleanFormulaManager booleanTheory = new Z3BooleanFormulaManager(creator);
-    Z3IntegerFormulaManager integerTheory = new Z3IntegerFormulaManager(creator, functionTheory, extraOptions.limitDivAndModComputationToNumerals);
-    Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory);
+    Z3IntegerFormulaManager integerTheory = new Z3IntegerFormulaManager(creator, functionTheory, pUseNonLinearIntegerArithmetic);
+    Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory, pUseNonLinearRationalArithmetic);
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
     Z3QuantifiedFormulaManager quantifierManager = new Z3QuantifiedFormulaManager(creator);
     Z3ArrayFormulaManager arrayManager = new Z3ArrayFormulaManager(creator);

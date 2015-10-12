@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.solver.princess;
 
+import static org.sosy_lab.solver.princess.PrincessUtil.*;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -42,8 +44,9 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.solver.princess.Princes
 
   PrincessIntegerFormulaManager(
           PrincessFormulaCreator pCreator,
-          PrincessFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+          PrincessFunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -91,5 +94,35 @@ class PrincessIntegerFormulaManager extends org.sosy_lab.solver.princess.Princes
       return x.$eq$eq$eq(n.$times(BitShiftMultiplication.eDiv(x, n)));
     }
     return new IBoolLit(true);
+  }
+
+  @Override
+  public IExpression linearDivide(IExpression pNumber1, IExpression pNumber2) {
+    return nonLinearDivide(pNumber1, pNumber2);
+  }
+
+  @Override
+  public IExpression nonLinearDivide(IExpression pNumber1, IExpression pNumber2) {
+    return BitShiftMultiplication.eDiv(castToTerm(pNumber1), castToTerm(pNumber2));
+  }
+
+  @Override
+  public IExpression linearModulo(IExpression pNumber1, IExpression pNumber2) {
+    return nonLinearModulo(pNumber1, pNumber2);
+  }
+
+  @Override
+  public IExpression nonLinearModulo(IExpression pNumber1, IExpression pNumber2) {
+    return BitShiftMultiplication.eMod(castToTerm(pNumber1), castToTerm(pNumber2));
+  }
+
+  @Override
+  public IExpression linearMultiply(IExpression pNumber1, IExpression pNumber2) {
+    return castToTerm(pNumber1).$times(castToTerm(pNumber2));
+  }
+
+  @Override
+  protected boolean isNumeral(IExpression val) {
+    return isNumber(val);
   }
 }

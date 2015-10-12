@@ -2325,12 +2325,13 @@ solver.solver = SMTINTERPOL
 # log some solver actions, this may be slow!
 solver.useLogger = false
 
-# When using Integer-theory, Z3 allows to compute DIV and MOD for symbols and
-# numerals, e.g. 'a%b', where the second operand is non-numeral. As
-# non-linear arithmetics is a hard problem, this option allows to replace the
-# computation of DIV and MOD with an UF.The UF is the similar to the encoding
-# of the operations in Rational-theory.
-solver.z3.limitDivAndModComputationToNumerals = false
+# Use non-linear arithmetic when encoding formulas in corresponding theory.
+# This effects the operations DIV, MOD, and MULT with two non-numeral
+# operands, which are encoded with uninterpreted functions otherwise. If a
+# solver does not support non-linear arithmetic, and this option is set, an
+# exception is thrown.
+solver.useNonLinearIntegerArithmetic = false
+solver.useNonLinearRationalArithmetic = false
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.

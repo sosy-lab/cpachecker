@@ -39,10 +39,16 @@ abstract class Mathsat5NumeralFormulaManager
 
   public Mathsat5NumeralFormulaManager(
           Mathsat5FormulaCreator pCreator,
-          Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager);
+          Mathsat5FunctionFormulaManager functionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, functionManager, useNonLinearArithmetic);
 
     this.mathsatEnv = pCreator.getEnv();
+  }
+
+  @Override
+  protected boolean isNumeral(Long val) {
+    return msat_term_is_number(mathsatEnv, val);
   }
 
   @Override
@@ -83,20 +89,9 @@ abstract class Mathsat5NumeralFormulaManager
   }
 
   @Override
-  public Long multiply(Long pNumber1, Long pNumber2) {
-    long t1 = pNumber1;
-    long t2 = pNumber2;
-
-    long result;
-    if (msat_term_is_number(mathsatEnv, t1)) {
-      result = msat_make_times(mathsatEnv, t1, t2);
-    } else if (msat_term_is_number(mathsatEnv, t2)) {
-      result = msat_make_times(mathsatEnv, t2, t1);
-    } else {
-      result = super.multiply(pNumber1, pNumber2);
-    }
-
-    return result;
+  public Long linearMultiply(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber1) || isNumeral(pNumber2) : "at least one of the operands must be a number";
+    return msat_make_times(mathsatEnv, pNumber1, pNumber2);
   }
 
   @Override

@@ -68,11 +68,16 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   private final UninterpretedFunctionDeclaration<ResultFormulaType> divUfDecl;
   private final UninterpretedFunctionDeclaration<ResultFormulaType> modUfDecl;
 
+  private final boolean useNonLinearArithmetic;
+  private static final String NON_LINEAR_MSG = "the used solver does not support non-linear arithmetic.";
+
   protected AbstractNumeralFormulaManager(
       FormulaCreator<TFormulaInfo, TType, TEnv> pCreator,
-      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> pFunctionManager) {
+      AbstractFunctionFormulaManager<TFormulaInfo, ?, TType, TEnv> pFunctionManager,
+      boolean pUseNonLinearArithmetic) {
     super(pCreator);
     functionManager = pFunctionManager;
+    useNonLinearArithmetic = pUseNonLinearArithmetic;
 
     FormulaType<ResultFormulaType> resultType = getFormulaType();
     multUfDecl = functionManager.declareUninterpretedFunction(resultType + "_" + UF_MULTIPLY_NAME, resultType, resultType, resultType);
@@ -87,6 +92,8 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
   protected ResultFormulaType wrap(TFormulaInfo pTerm) {
     return getFormulaCreator().encapsulate(getFormulaType(), pTerm);
   }
+
+  protected abstract boolean isNumeral(TFormulaInfo val);
 
   @Override
   public ResultFormulaType makeNumber(long i) {
@@ -147,7 +154,7 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
       BigInteger denominator = convertBigDecimalToBigInteger(d);
       assert denominator.signum() > 0;
 
-      return divide(makeNumberImpl(numerator), makeNumberImpl(denominator));
+      return linearDivide(makeNumberImpl(numerator), makeNumberImpl(denominator));
     }
   }
 
@@ -218,26 +225,68 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
-    return wrap(divide(param1, param2));
+    final TFormulaInfo result;
+    if (isNumeral(param2)) {
+      result = linearDivide(param1, param2);
+    } else if (useNonLinearArithmetic) {
+      result = nonLinearDivide(param1, param2);
+    } else {
+      result = ufDivide(param1, param2);
+    }
+    return wrap(result);
   }
 
-  protected TFormulaInfo divide(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+  /** returns DIV encoded as uninterpreted function. */
+  protected TFormulaInfo ufDivide(TFormulaInfo pParam1, TFormulaInfo pParam2) {
     return makeUf(divUfDecl, pParam1, pParam2);
   }
 
+  /** returns DIV when at least one operand is numeric.
+   * If the solver or theory does not support this,
+   * we fall back to the UF-encoding of {@link #ufDivide(TFormulaInfo, TFormulaInfo)} */
+  protected TFormulaInfo linearDivide(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    return ufDivide(pParam1, pParam2);
+  }
+
+  /** returns DIV for two non-numeric operands.
+   * If the solver or theory does not support this, an exception is thrown. */
+  protected TFormulaInfo nonLinearDivide(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    throw new UnsupportedOperationException(NON_LINEAR_MSG);
+  }
 
   @Override
   public ResultFormulaType modulo(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
-    return wrap(modulo(param1, param2));
+    final TFormulaInfo result;
+    if (isNumeral(param2)) {
+      result = linearModulo(param1, param2);
+    } else if (useNonLinearArithmetic) {
+      result = nonLinearModulo(param1, param2);
+    } else {
+      result = ufModulo(param1, param2);
+    }
+    return wrap(result);
   }
 
-  protected TFormulaInfo modulo(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+  /** returns MOD encoded as uninterpreted function. */
+  protected TFormulaInfo ufModulo(TFormulaInfo pParam1, TFormulaInfo pParam2) {
     return makeUf(modUfDecl, pParam1, pParam2);
   }
 
+  /** returns MOD when at least one operand is numeric.
+   * If the solver or theory does not support this,
+   * we fall back to the UF-encoding of {@link #ufModulo(TFormulaInfo, TFormulaInfo)} */
+  protected TFormulaInfo linearModulo(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    return ufModulo(pParam1, pParam2);
+  }
+
+  /** returns MOD for two non-numeric operands.
+   * If the solver or theory does not support this, an exception is thrown. */
+  protected TFormulaInfo nonLinearModulo(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    throw new UnsupportedOperationException(NON_LINEAR_MSG);
+  }
 
   @Override
   public BooleanFormula modularCongruence(ParamFormulaType pNumber1, ParamFormulaType pNumber2, long pModulo) {
@@ -254,13 +303,35 @@ public abstract class AbstractNumeralFormulaManager<TFormulaInfo, TType, TEnv,
     TFormulaInfo param1 = extractInfo(pNumber1);
     TFormulaInfo param2 = extractInfo(pNumber2);
 
-    return wrap(multiply(param1, param2));
+    final TFormulaInfo result;
+    if (isNumeral(param1) || isNumeral(param2)) {
+      result = linearMultiply(param1, param2);
+    } else if (useNonLinearArithmetic) {
+      result = nonLinearMultiply(param1, param2);
+    } else {
+      result = ufMultiply(param1, param2);
+    }
+
+    return wrap(result);
   }
 
-  protected TFormulaInfo multiply(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+  /** returns MULT encoded as uninterpreted function. */
+  protected TFormulaInfo ufMultiply(TFormulaInfo pParam1, TFormulaInfo pParam2) {
     return makeUf(multUfDecl, pParam1, pParam2);
   }
 
+  /** returns MULT when at least one operand is numeric.
+   * If the solver or theory does not support this,
+   * we fall back to the UF-encoding of {@link #ufMultiply(TFormulaInfo, TFormulaInfo)} */
+  protected TFormulaInfo linearMultiply(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    return ufMultiply(pParam1, pParam2);
+  }
+
+  /** returns MULT for two non-numeric operands.
+   * If the solver or theory does not support this, an exception is thrown. */
+  protected TFormulaInfo nonLinearMultiply(TFormulaInfo pParam1, TFormulaInfo pParam2) {
+    throw new UnsupportedOperationException(NON_LINEAR_MSG);
+  }
 
   @Override
   public BooleanFormula equal(ParamFormulaType pNumber1, ParamFormulaType pNumber2) {

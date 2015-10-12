@@ -145,7 +145,9 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
 
   public static Mathsat5FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogFile, long randomSeed) throws InvalidConfigurationException {
+      @Nullable PathCounterTemplate solverLogFile, long randomSeed,
+      boolean pUseNonLinearIntegerArithmetic, boolean pUseNonLinearRationalArithmetic)
+          throws InvalidConfigurationException {
 
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
@@ -179,8 +181,8 @@ public class Mathsat5FormulaManager extends AbstractFormulaManager<Long, Long, L
     Mathsat5UnsafeFormulaManager unsafeManager = new Mathsat5UnsafeFormulaManager(creator);
     Mathsat5FunctionFormulaManager functionTheory = new Mathsat5FunctionFormulaManager(creator, unsafeManager);
     Mathsat5BooleanFormulaManager booleanTheory = Mathsat5BooleanFormulaManager.create(creator);
-    Mathsat5IntegerFormulaManager integerTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory);
-    Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory);
+    Mathsat5IntegerFormulaManager integerTheory = new Mathsat5IntegerFormulaManager(creator, functionTheory, pUseNonLinearIntegerArithmetic);
+    Mathsat5RationalFormulaManager rationalTheory = new Mathsat5RationalFormulaManager(creator, functionTheory, pUseNonLinearRationalArithmetic);
     Mathsat5BitvectorFormulaManager bitvectorTheory  = Mathsat5BitvectorFormulaManager.create(creator);
     Mathsat5FloatingPointFormulaManager floatingPointTheory = new Mathsat5FloatingPointFormulaManager(creator, functionTheory);
     Mathsat5ArrayFormulaManager arrayTheory = new Mathsat5ArrayFormulaManager(creator);
