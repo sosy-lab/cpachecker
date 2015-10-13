@@ -132,9 +132,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Predicates;
 
@@ -629,20 +630,24 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
           if (useTigerAlgorithm_with_pc) {
             // update PC coverage todo
-            if (bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal), remainingPCforGoalCoverage)) {
-              // 1st condition: this goal is infeasible for some constraint
-              // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
-              logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-                  bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
-              remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
-            } else {
-              // now we need to cover all remaining configurations
-              // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
-              remainingPCforGoalCoverage =
-                  bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
-                      bddCpaNamedRegionManager.makeNot(testsuite.getGoalCoverage(goal)));
-              logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goal.getIndex(),
-                  bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+            try {
+              if (bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal), remainingPCforGoalCoverage)) {
+                // 1st condition: this goal is infeasible for some constraint
+                // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
+                logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
+                    bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+                remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
+              } else {
+                // now we need to cover all remaining configurations
+                // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
+                remainingPCforGoalCoverage =
+                    bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
+                        bddCpaNamedRegionManager.makeNot(testsuite.getGoalCoverage(goal)));
+                logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goal.getIndex(),
+                    bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+              }
+            } catch (SolverException e) {
+              throw new CPAException("BDD operation failed!", e);
             }
 
             stop = true;
@@ -675,20 +680,24 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         if (useTigerAlgorithm_with_pc) {
           // update PC coverage todo
-          if (testsuite.isKnownAsInfeasible(goal) &&
-              bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal), remainingPCforGoalCoverage)) {
-            // 1st condition: this goal is infeasible for some constraint
-            // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
-            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-                bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
-            remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
-            stop = true;
-            // remainingPCforGoalCoverage := FALSE ensures that the while loop exits and the next goal is processed.
-          } else {
-            // now we need to cover all remaining configurations
-            // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
-            //          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(lGoal.getPresenceCondition()));
-            //          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+          try {
+            if (testsuite.isKnownAsInfeasible(goal) &&
+                bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal), remainingPCforGoalCoverage)) {
+              // 1st condition: this goal is infeasible for some constraint
+              // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
+              logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
+                  bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+              remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeFalse();
+              stop = true;
+              // remainingPCforGoalCoverage := FALSE ensures that the while loop exits and the next goal is processed.
+            } else {
+              // now we need to cover all remaining configurations
+              // the remaining configs are represented by the negation of the already covered pcs (in conjunction with the previous testGoalPCtoCover)
+              //          remainingPCforGoalCoverage = bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage, bddCpaNamedRegionManager.makeNot(lGoal.getPresenceCondition()));
+              //          logger.logf(Level.WARNING, "Covered some PCs for Goal %d. Remaining PC %s !", goalIndex, bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+            }
+          } catch (SolverException e) {
+            throw new CPAException("BDD operation failed!", e);
           }
         }
       }
@@ -943,7 +952,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         ARGStatistics lARTStatistics;
         try {
-          lARTStatistics = new ARGStatistics(internalConfiguration, lARTCPA, cfa.getMachineModel());
+          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA, cfa.getMachineModel(), cfa.getLanguage(), null);
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }

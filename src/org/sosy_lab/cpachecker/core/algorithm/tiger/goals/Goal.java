@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
+import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -38,8 +40,17 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedE
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class Goal {
 
@@ -320,9 +331,40 @@ public class Goal {
     return getPattern().accept(visitor);
   }
 
-  public Automaton createControlAutomaton() {
-    // TODO Auto-generated method stub
-    return null;
+  /**
+   * Converts the NondeterministicFiniteAutomaton<GuardedEdgeLabel>
+   *    into a ControlAutomaton
+   *
+   * @return  A control automaton
+   */
+  public Automaton createControlAutomaton()  {
+    Preconditions.checkNotNull(mAutomaton);
+
+    final String automatonName = getName();
+    final String initialStateName = Integer.toString(mAutomaton.getInitialState().ID);
+    final List<AutomatonInternalState> automatonStates = Lists.newArrayList();
+
+    for (State q: mAutomaton.getStates()) {
+
+      final boolean isTarget = mAutomaton.getFinalStates().contains(q);
+      final String stateName = Integer.toString(q.ID);
+      final List<AutomatonTransition> transitions = Lists.newArrayList();
+
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t: mAutomaton.getOutgoingEdges(q)) {
+
+      }
+
+      automatonStates.add(new AutomatonInternalState(stateName, transitions, isTarget, true));
+    }
+
+    try {
+      return new Automaton(automatonName,
+          Maps.<String, AutomatonVariable>newHashMap(),
+          automatonStates, initialStateName);
+
+    } catch (InvalidAutomatonException e) {
+      throw new RuntimeException("Conversion failed!", e);
+    }
   }
 
 }

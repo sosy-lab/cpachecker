@@ -45,7 +45,7 @@ import com.google.common.collect.ImmutableList;
  * A transition in the automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
  * This determines if the transition matches on a certain {@link CFAEdge}.
  */
-class AutomatonTransition {
+public class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
   private final AutomatonBoolExpr trigger;
