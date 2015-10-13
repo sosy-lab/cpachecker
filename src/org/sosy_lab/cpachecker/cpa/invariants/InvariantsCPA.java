@@ -282,7 +282,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           new AcceptAllVariableSelection<CompoundInterval>(),
           compoundIntervalManagerFactory,
           machineModel,
-          abstractionState);
+          abstractionState,
+          false);
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -323,7 +324,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           new AcceptAllVariableSelection<CompoundInterval>(),
           compoundIntervalManagerFactory,
           machineModel,
-          abstractionState);
+          abstractionState,
+          false);
     }
 
     // Try to specify all relevant variables
@@ -374,7 +376,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           variableSelection,
           compoundIntervalManagerFactory,
           machineModel,
-          abstractionState);
+          abstractionState,
+          false);
       state = state.assume(invariant);
     }
 
@@ -383,7 +386,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         variableSelection,
         compoundIntervalManagerFactory,
         machineModel,
-        abstractionState);
+        abstractionState,
+        false);
   }
 
   @Override

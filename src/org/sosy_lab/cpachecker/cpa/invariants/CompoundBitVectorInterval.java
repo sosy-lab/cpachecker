@@ -604,7 +604,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     return Objects.hash(info, Arrays.hashCode(this.intervals));
   }
 
-  public CompoundBitVectorInterval cast(final BitVectorInfo pBitVectorInfo, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval cast(final BitVectorInfo pBitVectorInfo, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     // Cast to the same type has no effect
     if (info.equals(pBitVectorInfo)) {
       return this;
@@ -634,14 +634,15 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
               pBitVectorInfo,
               interval.getLowerBound(),
               interval.getUpperBound(),
-              pAllowSignedWrapAround));
+              pAllowSignedWrapAround,
+              pOverflowEventHandler));
     }
     return result;
   }
 
-  public static CompoundBitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound, boolean pAllowSignedWrapAround) {
+  public static CompoundBitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (pLowerBound.equals(pUpperBound)) {
-      return of(BitVectorInterval.cast(pInfo, pLowerBound, pAllowSignedWrapAround));
+      return of(BitVectorInterval.cast(pInfo, pLowerBound, pAllowSignedWrapAround, pOverflowEventHandler));
     }
     BigInteger lowerBound = pLowerBound;
     BigInteger upperBound = pUpperBound;
@@ -683,7 +684,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       if (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
         return union(
             singleton(pInfo, lowerBound).extendToMaxValue(),
-            cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), upperBound, pAllowSignedWrapAround));
+            cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), upperBound, pAllowSignedWrapAround, pOverflowEventHandler));
       }
     } else if (lbExceedsAbove) { // Full interval is above the maximum value
       upperBound = pUpperBound.remainder(rangeLength);
@@ -697,17 +698,17 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
       if (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
         return union(
             singleton(pInfo, upperBound).extendToMinValue(),
-            cast(pInfo, lowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround));
+            cast(pInfo, lowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround, pOverflowEventHandler));
       }
     } else if (lbExceedsBelow) { // Part of the interval is below the minimum value
       return union(
-          cast(pInfo, pLowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround),
-          cast(pInfo, pInfo.getMinValue(), pUpperBound, pAllowSignedWrapAround)
+          cast(pInfo, pLowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround, pOverflowEventHandler),
+          cast(pInfo, pInfo.getMinValue(), pUpperBound, pAllowSignedWrapAround, pOverflowEventHandler)
           );
     } else if (ubExceedsAbove) { // Part of the interval is above the minimum value
       return union(
-          cast(pInfo, pLowerBound, pInfo.getMaxValue(), pAllowSignedWrapAround),
-          cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), pUpperBound, pAllowSignedWrapAround)
+          cast(pInfo, pLowerBound, pInfo.getMaxValue(), pAllowSignedWrapAround, pOverflowEventHandler),
+          cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), pUpperBound, pAllowSignedWrapAround, pOverflowEventHandler)
           );
     }
 
@@ -788,16 +789,16 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * Negates the state. Do not confuse this with inverting ({@link #invert()}) the state.
    * @return the negated state.
    */
-  public CompoundBitVectorInterval negate(boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval negate(boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (containsAllPossibleValues() || isBottom()) { return this; }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval simpleInterval : this.intervals) {
-      result = result.unionWith(negate(info, simpleInterval, pAllowSignedWrapAround));
+      result = result.unionWith(negate(info, simpleInterval, pAllowSignedWrapAround, pOverflowEventHandler));
     }
     return result;
   }
 
-  private static CompoundBitVectorInterval negate(BitVectorInfo pInfo, BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
+  private static CompoundBitVectorInterval negate(BitVectorInfo pInfo, BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     BigInteger newLowerBound = pInterval.getUpperBound().negate();
     BigInteger newUpperBound = pInterval.getLowerBound().negate();
 
@@ -807,6 +808,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     boolean ubExceedsAbove = !ubExceedsBelow && newUpperBound.compareTo(pInfo.getMaxValue()) > 0;
     if (lbExceedsBelow || lbExceedsAbove || ubExceedsBelow || ubExceedsAbove) {
       if (!pAllowSignedWrapAround && pInfo.isSigned()) {
+        pOverflowEventHandler.signedOverflow();
         return of(pInfo.getRange());
       }
       final BigInteger fromLB;
@@ -920,8 +922,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from adding the given value to this
    * state.
    */
-  public CompoundBitVectorInterval add(final BigInteger pValue, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround), pValue);
+  public CompoundBitVectorInterval add(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
   /**
@@ -934,8 +936,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from adding the given value to this
    * state.
    */
-  public CompoundBitVectorInterval add(final long pValue, boolean pAllowSignedWrapAround) {
-    return add(BigInteger.valueOf(pValue), pAllowSignedWrapAround);
+  public CompoundBitVectorInterval add(final long pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return add(BigInteger.valueOf(pValue), pAllowSignedWrapAround, pOverflowEventHandler);
   }
 
   /**
@@ -944,12 +946,13 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    *
    * @param pInterval the interval to add to this state.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pOverflowEventHandler
    *
    * @return the state resulting from adding the given interval to this
    * state.
    */
-  public CompoundBitVectorInterval add(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround), pInterval);
+  public CompoundBitVectorInterval add(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
   }
 
   /**
@@ -962,8 +965,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from adding the given state to this
    * state.
    */
-  public CompoundBitVectorInterval add(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround), pState);
+  public CompoundBitVectorInterval add(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -976,14 +979,14 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from multiplying this state with the
    * given value.
    */
-  public CompoundBitVectorInterval multiply(final BigInteger pValue, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval multiply(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (pValue.equals(BigInteger.ZERO)) {
       return CompoundBitVectorInterval.singleton(info, pValue);
     }
     if (pValue.equals(BigInteger.ONE)) {
       return this;
     }
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getMuliply(pAllowSignedWrapAround), pValue);
+    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getMuliply(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
   /**
@@ -996,11 +999,11 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from multiplying this state with the
    * given interval.
    */
-  public CompoundBitVectorInterval multiply(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval multiply(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (pInterval.isSingleton()) {
-      return multiply(pInterval.getLowerBound(), pAllowSignedWrapAround);
+      return multiply(pInterval.getLowerBound(), pAllowSignedWrapAround, pOverflowEventHandler);
     }
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround), pInterval);
+    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
   }
 
   /**
@@ -1013,11 +1016,11 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from multiplying this state with the
    * given state.
    */
-  public CompoundBitVectorInterval multiply(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval multiply(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (pState.intervals.length == 1) {
-      return multiply(pState.intervals[0], pAllowSignedWrapAround);
+      return multiply(pState.intervals[0], pAllowSignedWrapAround, pOverflowEventHandler);
     }
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround), pState);
+    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -1030,8 +1033,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from dividing this state by the given
    * value.
    */
-  public CompoundBitVectorInterval divide(final BigInteger pValue, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround), pValue);
+  public CompoundBitVectorInterval divide(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
   /**
@@ -1044,8 +1047,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from dividing this state by the given
    * interval.
    */
-  public CompoundBitVectorInterval divide(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround), pInterval);
+  public CompoundBitVectorInterval divide(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
   }
 
   /**
@@ -1058,8 +1061,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from dividing this state by the given
    * state.
    */
-  public CompoundBitVectorInterval divide(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround), pState);
+  public CompoundBitVectorInterval divide(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -1072,8 +1075,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state representing the remainder of dividing this state
    * by the given value.
    */
-  public CompoundBitVectorInterval modulo(final BigInteger pValue, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround), pValue);
+  public CompoundBitVectorInterval modulo(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
 
@@ -1087,8 +1090,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state representing the remainder of dividing this state
    * by the given interval.
    */
-  public CompoundBitVectorInterval modulo(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround), pInterval);
+  public CompoundBitVectorInterval modulo(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
   }
 
   /**
@@ -1101,8 +1104,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state representing the remainder of dividing this state
    * by the given state.
    */
-  public CompoundBitVectorInterval modulo(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround), pState);
+  public CompoundBitVectorInterval modulo(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -1115,8 +1118,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from left shifting this state by the
    * given value.
    */
-  public CompoundBitVectorInterval shiftLeft(final BigInteger pValue, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround), pValue);
+  public CompoundBitVectorInterval shiftLeft(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
   /**
@@ -1129,8 +1132,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from left shifting this state by the
    * given interval.
    */
-  public CompoundBitVectorInterval shiftLeft(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getShitfLeft(pAllowSignedWrapAround), pInterval);
+  public CompoundBitVectorInterval shiftLeft(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
   }
 
   /**
@@ -1143,8 +1146,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from left shifting this state by the
    * given state.
    */
-  public CompoundBitVectorInterval shiftLeft(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround), pState);
+  public CompoundBitVectorInterval shiftLeft(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -1157,8 +1160,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from right shifting this state by the
    * given value.
    */
-  public CompoundBitVectorInterval shiftRight(final BigInteger pValue, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround), pValue);
+  public CompoundBitVectorInterval shiftRight(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
   /**
@@ -1171,8 +1174,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from right shifting this state by the
    * given interval.
    */
-  public CompoundBitVectorInterval shiftRight(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround), pInterval);
+  public CompoundBitVectorInterval shiftRight(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
   }
 
   /**
@@ -1185,8 +1188,8 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from right shifting this state by the
    * given state.
    */
-  public CompoundBitVectorInterval shiftRight(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround), pState);
+  public CompoundBitVectorInterval shiftRight(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
@@ -1430,7 +1433,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * bit-wise and-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryAnd(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval binaryAnd(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) {
       return bottom(info);
@@ -1454,13 +1457,13 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         result = result.unionWith(BitVectorInterval.singleton(info, interval.getLowerBound().and(pState.getValue())));
       }
     } else if (isSingleton()) {
-      return pState.binaryAnd(this, pAllowSignedWrapAround);
+      return pState.binaryAnd(this, pAllowSignedWrapAround, pOverflowEventHandler);
     } else {
       result = getInternal(info.getRange());
     }
     if (!result.isSingleton()) {
-      CompoundBitVectorInterval absThis = absolute(pAllowSignedWrapAround);
-      CompoundBitVectorInterval absOther = pState.absolute(pAllowSignedWrapAround);
+      CompoundBitVectorInterval absThis = absolute(pAllowSignedWrapAround, pOverflowEventHandler);
+      CompoundBitVectorInterval absOther = pState.absolute(pAllowSignedWrapAround, pOverflowEventHandler);
       BigInteger smallestUpperBound = null;
       if (absThis.hasUpperBound()) {
         smallestUpperBound = absThis.getUpperBound();
@@ -1478,7 +1481,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         range = CompoundBitVectorInterval.of(BitVectorInterval.of(info, BigInteger.ZERO, smallestUpperBound));
       }
       if (containsNegative() && pState.containsNegative()) {
-        range = range.unionWith(range.negate(pAllowSignedWrapAround));
+        range = range.unionWith(range.negate(pAllowSignedWrapAround, pOverflowEventHandler));
       }
       result = result.intersectWith(range);
     }
@@ -1494,11 +1497,11 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from computing the absolute values of this
    * state.
    */
-  public CompoundBitVectorInterval absolute(boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval absolute(boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (!containsNegative()) {
       return this;
     }
-    return intersectWith(one(info).negate(pAllowSignedWrapAround).extendToMinValue()).negate(pAllowSignedWrapAround).unionWith(intersectWith(zero(info).extendToMaxValue())).intersectWith(zero(info).extendToMaxValue());
+    return intersectWith(one(info).negate(pAllowSignedWrapAround, pOverflowEventHandler).extendToMinValue()).negate(pAllowSignedWrapAround, pOverflowEventHandler).unionWith(intersectWith(zero(info).extendToMaxValue())).intersectWith(zero(info).extendToMaxValue());
   }
 
   /**
@@ -1517,14 +1520,15 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * bit-wise xor-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryXor(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval binaryXor(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) { return bottom(info); }
     if (isSingleton() && pState.isSingleton()) {
       return of(BitVectorInterval.cast(
           info,
           getValue().xor(pState.getValue()),
-          pAllowSignedWrapAround));
+          pAllowSignedWrapAround,
+          pOverflowEventHandler));
     }
     if (pState.isSingleton() && pState.containsZero()) {
       return this;
@@ -1549,11 +1553,12 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         result = result.unionWith(BitVectorInterval.cast(
             info,
             interval.getLowerBound().xor(pState.getValue()),
-            pAllowSignedWrapAround));
+            pAllowSignedWrapAround,
+            pOverflowEventHandler));
       }
       return result;
     } else if (isSingleton()) {
-      return pState.binaryXor(this, pAllowSignedWrapAround);
+      return pState.binaryXor(this, pAllowSignedWrapAround, pOverflowEventHandler);
     }
     // TODO maybe a more exact implementation is possible?
     return getInternal(info.getRange());
@@ -1566,7 +1571,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * @return the state resulting from flipping the bits of the
    * values represented by this state.
    */
-  public CompoundBitVectorInterval binaryNot(boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval binaryNot(boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (isBottom()) { return bottom(info); }
     CompoundBitVectorInterval result = bottom(info);
     for (BitVectorInterval interval : this.intervals) {
@@ -1579,12 +1584,14 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         partialResult = BitVectorInterval.cast(
             info,
             interval.getLowerBound().not(),
-            pAllowSignedWrapAround);
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       } else {
         partialResult = BitVectorInterval.cast(
             info,
             new BigInteger(1, interval.getLowerBound().not().toByteArray()),
-            pAllowSignedWrapAround);
+            pAllowSignedWrapAround,
+            pOverflowEventHandler);
       }
       result = result.unionWith(partialResult);
     }
@@ -1608,7 +1615,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * bit-wise or-operation on the states' values is returned.
    * Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryOr(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround) {
+  public CompoundBitVectorInterval binaryOr(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) { return bottom(info); }
     if (isSingleton() && containsZero()) {
@@ -1626,11 +1633,12 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
         result = result.unionWith(BitVectorInterval.cast(
             info,
             interval.getLowerBound().or(pState.getValue()),
-            pAllowSignedWrapAround));
+            pAllowSignedWrapAround,
+            pOverflowEventHandler));
       }
       return result;
     } else if (isSingleton()) {
-      return pState.binaryOr(this, pAllowSignedWrapAround);
+      return pState.binaryOr(this, pAllowSignedWrapAround, pOverflowEventHandler);
     }
     // TODO maybe a more exact implementation is possible?
     return getInternal(info.getRange());

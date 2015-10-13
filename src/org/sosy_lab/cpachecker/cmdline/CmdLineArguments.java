@@ -96,6 +96,7 @@ class CmdLineArguments {
   private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp-errorlabel.spc";
   private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
   private static final String MEMORYSAFETY_SPECIFICATION_FILE = "config/specification/sv-comp-memorysafety.spc";
+  private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -381,6 +382,9 @@ class CmdLineArguments {
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
                 newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
+
+              } else if (properties.equals(EnumSet.of(PropertyType.OVERFLOW))) {
+                newValue = OVERFLOW_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
                 newValue = REACHABILITY_SPECIFICATION_FILE;

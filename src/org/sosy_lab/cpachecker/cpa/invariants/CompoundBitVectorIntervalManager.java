@@ -35,10 +35,13 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
 
   private final boolean allowSignedWrapAround;
 
-  public CompoundBitVectorIntervalManager(BitVectorInfo pInfo, boolean pAllowSignedWrapAround) {
+  private final OverflowEventHandler overflowEventHandler;
+
+  public CompoundBitVectorIntervalManager(BitVectorInfo pInfo, boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
     Preconditions.checkNotNull(pInfo);
     this.info = pInfo;
     this.allowSignedWrapAround = pAllowSignedWrapAround;
+    this.overflowEventHandler = pOverflowEventHandler;
   }
 
   @Override
@@ -139,7 +142,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
 
   @Override
   public CompoundInterval castedSingleton(BigInteger pValue) {
-    return CompoundBitVectorInterval.cast(info, pValue, pValue, allowSignedWrapAround);
+    return CompoundBitVectorInterval.cast(info, pValue, pValue, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -160,7 +163,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.modulo(operand2, allowSignedWrapAround);
+    return operand1.modulo(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -168,7 +171,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.add(operand2, allowSignedWrapAround);
+    return operand1.add(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -184,7 +187,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.binaryAnd(operand2, allowSignedWrapAround);
+    return operand1.binaryAnd(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -192,7 +195,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.binaryOr(operand2, allowSignedWrapAround);
+    return operand1.binaryOr(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -200,14 +203,14 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.binaryXor(operand2, allowSignedWrapAround);
+    return operand1.binaryXor(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
   public CompoundInterval binaryNot(CompoundInterval pOperand) {
     checkOperand(pOperand);
     CompoundBitVectorInterval operand = (CompoundBitVectorInterval) pOperand;
-    return operand.binaryNot(allowSignedWrapAround);
+    return operand.binaryNot(allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -215,7 +218,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pNumerator, pDenominator);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pNumerator;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pDenominator;
-    return operand1.divide(operand2, allowSignedWrapAround);
+    return operand1.divide(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -223,7 +226,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.multiply(operand2, allowSignedWrapAround);
+    return operand1.multiply(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -231,7 +234,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.shiftLeft(operand2, allowSignedWrapAround);
+    return operand1.shiftLeft(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -239,7 +242,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
     checkOperands(pOperand1, pOperand2);
     CompoundBitVectorInterval operand1 = (CompoundBitVectorInterval) pOperand1;
     CompoundBitVectorInterval operand2 = (CompoundBitVectorInterval) pOperand2;
-    return operand1.shiftRight(operand2, allowSignedWrapAround);
+    return operand1.shiftRight(operand2, allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
@@ -261,13 +264,13 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
   @Override
   public CompoundInterval negate(CompoundInterval pToNegate) {
     checkOperand(pToNegate);
-    return ((CompoundBitVectorInterval) pToNegate).negate(allowSignedWrapAround);
+    return ((CompoundBitVectorInterval) pToNegate).negate(allowSignedWrapAround, overflowEventHandler);
   }
 
   @Override
   public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
     checkOperand(pToCast);
-    return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround);
+    return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround, overflowEventHandler);
   }
 
   private static void checkOperand(CompoundInterval pOperand) {

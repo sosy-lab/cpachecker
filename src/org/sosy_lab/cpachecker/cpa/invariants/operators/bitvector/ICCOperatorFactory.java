@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
@@ -39,12 +40,12 @@ public enum ICCOperatorFactory {
   /**
    * The addition operator for adding compound states to simple intervals.
    */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
-        return pSecondOperand.add(pFirstOperand, pAllowSignedWrapAround);
+        return pSecondOperand.add(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
       }
 
     };
@@ -53,14 +54,14 @@ public enum ICCOperatorFactory {
   /**
    * The division operator for dividing simple intervals by compound states.
    */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
         CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround).apply(pFirstOperand,interval);
+          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand,interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -77,14 +78,14 @@ public enum ICCOperatorFactory {
   /**
    * The modulo operator for computing the remainders of dividing intervals by compound states.
    */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getModulo(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
         CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround).apply(pFirstOperand, interval);
+          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand, interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -101,12 +102,12 @@ public enum ICCOperatorFactory {
   /**
    * The multiplication operator for multiplying simple intervals with compound states.
    */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
-        return pSecondOperand.multiply(pFirstOperand, pAllowSignedWrapAround);
+        return pSecondOperand.multiply(pFirstOperand, pAllowSignedWrapAround, pOverflowEventHandler);
       }
 
     };
@@ -115,14 +116,14 @@ public enum ICCOperatorFactory {
   /**
    * The left shift operator for left shifting simple intervals by compound states.
    */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
         CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShitfLeft(pAllowSignedWrapAround).apply(pFirstOperand,interval);
+          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand,interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {
@@ -139,14 +140,14 @@ public enum ICCOperatorFactory {
   /**
    * The right shift operator for right shifting simple intervals by compound states.
    */
-  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, CompoundBitVectorInterval, CompoundBitVectorInterval>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, CompoundBitVectorInterval pSecondOperand) {
         CompoundBitVectorInterval result = CompoundBitVectorInterval.bottom(pFirstOperand.getBitVectorInfo());
         for (BitVectorInterval interval : pSecondOperand.getBitVectorIntervals()) {
-          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround).apply(pFirstOperand,interval);
+          CompoundBitVectorInterval current = IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler).apply(pFirstOperand,interval);
           if (current != null) {
             result = result.unionWith(current);
             if (result.containsAllPossibleValues()) {

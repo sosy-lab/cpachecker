@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanConstant;
@@ -73,9 +74,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBitvectorFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -89,7 +91,9 @@ import com.google.common.collect.Sets;
  * Instances of this class represent states in the light-weight invariants analysis.
  */
 public class InvariantsState implements AbstractState, FormulaReportingState,
-    LatticeAbstractState<InvariantsState> {
+    LatticeAbstractState<InvariantsState>, AbstractQueryableState {
+
+  private static final String PROPERTY_OVERFLOW = "overflow";
 
   private static final FormulaDepthCountVisitor<CompoundInterval> FORMULA_DEPTH_COUNT_VISITOR = new FormulaDepthCountVisitor<>();
 
@@ -149,6 +153,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
   private final AbstractionState abstractionState;
 
+  private final boolean overflowDetected;
+
   private Iterable<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
@@ -169,6 +175,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
+    this.overflowDetected = false;
   }
 
   /**
@@ -181,7 +188,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
-      AbstractionState pAbstractionState) {
+      AbstractionState pAbstractionState,
+      boolean pOverflowDetected) {
     this.environment = NonRecursiveEnvironment.of(pCompoundIntervalManagerFactory);
     this.partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, this.environment);
     this.variableSelection = pVariableSelection;
@@ -192,6 +200,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
+    this.overflowDetected = pOverflowDetected;
   }
 
   /**
@@ -209,7 +218,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       MachineModel pMachineModel,
       AbstractionState pAbstractionState,
       NonRecursiveEnvironment pEnvironment,
-      PersistentSortedMap<String, CType> pVariableTypes) {
+      PersistentSortedMap<String, CType> pVariableTypes,
+      boolean pOverflowDetected) {
     this.environment = pEnvironment;
     this.partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, this.environment);
     this.variableSelection = pVariableSelection;
@@ -220,6 +230,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
+    this.overflowDetected = pOverflowDetected;
   }
 
   /**
@@ -247,6 +258,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
+    this.overflowDetected = false;
   }
 
   private AbstractionState determineAbstractionState(AbstractionState pMasterState) {
@@ -282,7 +294,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (pType.equals(variableTypes.get(pVarName))) {
       return this;
     }
-    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes.putAndCopy(pVarName, pType));
+    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes.putAndCopy(pVarName, pType), overflowDetected);
   }
 
   public InvariantsState setTypes(Map<String, CType> pVarTypes) {
@@ -303,7 +315,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         variableTypes = variableTypes.putAndCopy(variableName, entry.getValue());
       }
     }
-    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes);
+    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes, overflowDetected);
   }
 
   public InvariantsState assignArray(String pArray, NumeralFormula<CompoundInterval> pSubscript, NumeralFormula<CompoundInterval> pValue) {
@@ -507,7 +519,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
     }
     resultEnvironment = resultEnvironment.putAndCopy(pVarName, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
-    return new InvariantsState(newVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes);
+    return new InvariantsState(newVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected);
   }
 
   /**
@@ -521,7 +533,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     if (environment.isEmpty()) {
       return this;
     }
-    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState);
+    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, overflowDetected);
   }
 
   /**
@@ -554,7 +566,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         result.machineModel,
         result.abstractionState,
         resultEnvironment,
-        result.variableTypes);
+        result.variableTypes,
+        overflowDetected);
     if (equals(result)) {
       return this;
     }
@@ -631,7 +644,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
         machineModel,
         abstractionState,
         resultEnvironment,
-        variableTypes);
+        variableTypes,
+        overflowDetected);
     if (equals(result)) {
       return this;
     }
@@ -1159,7 +1173,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       AbstractionState abstractionState2 = pState2.determineAbstractionState(pPrecision);
       AbstractionState abstractionState = abstractionState1.join(abstractionState2);
 
-      result = new InvariantsState(resultVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes);
+      result = new InvariantsState(resultVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected);
 
       if (result.equalsState(state1)) {
         result = state1;
@@ -1215,6 +1229,43 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
     }
     return result;
+  }
+
+  public InvariantsState overflowDetected() {
+    if (overflowDetected) {
+      return this;
+    }
+    return new InvariantsState(
+        variableSelection,
+        compoundIntervalManagerFactory,
+        machineModel,
+        abstractionState,
+        environment,
+        variableTypes,
+        true);
+  }
+
+  @Override
+  public String getCPAName() {
+    return InvariantsCPA.class.getSimpleName();
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.equals(PROPERTY_OVERFLOW)) {
+      return overflowDetected;
+    }
+    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    return checkProperty(pProperty);
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("Cannot modify properties.");
   }
 
 }

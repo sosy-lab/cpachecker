@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -125,13 +126,36 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     InvariantsState state = (InvariantsState) pState;
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
 
+    final AtomicBoolean overflowDetected = new AtomicBoolean(false);
+    OverflowEventHandler overflowEventHandler = new OverflowEventHandler() {
+
+      @Override
+      public void signedOverflow() {
+        overflowDetected.set(true);
+      }
+    };
+
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      compoundBitVectorIntervalManagerFactory.addOverflowEventHandler(overflowEventHandler);
+    }
+
     state = getSuccessor(pEdge, precision, state);
+
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      compoundBitVectorIntervalManagerFactory.removeOverflowEventHandler(overflowEventHandler);
+    }
 
     if (state == null) {
       return Collections.emptySet();
     }
 
     state = state.updateAbstractionState(precision, pEdge);
+
+    if (overflowDetected.get()) {
+      state = state.overflowDetected();
+    }
 
     return Collections.singleton(state);
   }

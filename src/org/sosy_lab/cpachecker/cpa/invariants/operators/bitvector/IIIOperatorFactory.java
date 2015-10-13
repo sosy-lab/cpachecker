@@ -28,6 +28,7 @@ import java.math.BigInteger;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 import com.google.common.base.Preconditions;
@@ -41,7 +42,7 @@ public enum IIIOperatorFactory {
 
   INSTANCE;
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
 
       /**
@@ -66,11 +67,11 @@ public enum IIIOperatorFactory {
           return pOperand2;
         }
         if (pOperand2.isSingleton()) {
-          return ISIOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround)
+          return ISIOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pOperand1, pOperand2.getLowerBound());
         }
         if (pOperand1.isSingleton()) {
-          return ISIOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround)
+          return ISIOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pOperand2, pOperand1.getLowerBound());
         }
         /*
@@ -86,13 +87,13 @@ public enum IIIOperatorFactory {
         lowerBound = lowerBound.add(pLowerBound);
         upperBound = upperBound.add(pUpperBound);
 
-        return BitVectorInterval.cast(pOperand1.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround);
+        return BitVectorInterval.cast(pOperand1.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
       }
 
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getDivide(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
 
       /**
@@ -118,7 +119,7 @@ public enum IIIOperatorFactory {
         checkBitVectorCompatibility(pFirstOperand, pSecondOperand);
 
         if (pSecondOperand.isSingleton()) {
-          return ISIOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround)
+          return ISIOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pFirstOperand, pSecondOperand.getLowerBound());
         }
         if (pFirstOperand.isSingleton() && pFirstOperand.containsZero()) {
@@ -163,13 +164,13 @@ public enum IIIOperatorFactory {
             lowerBound = pFirstOperand.getUpperBound().divide(pSecondOperand.closestNegativeToZero());
           }
         }
-        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround);
+        return BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
       }
 
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getModulo(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
 
       /**
@@ -195,14 +196,14 @@ public enum IIIOperatorFactory {
         if (!pSecondOperand.hasLowerBound() || !pSecondOperand.hasUpperBound()) {
           return pFirstOperand;
         }
-        return ISIOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround)
+        return ISIOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler)
             .apply(pFirstOperand, pSecondOperand.getLowerBound().abs().max(pSecondOperand.getUpperBound().abs()));
       }
 
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
 
       /**
@@ -225,11 +226,11 @@ public enum IIIOperatorFactory {
          * like multiplication with zero ore one.
          */
         if (pSecondOperand.isSingleton()) {
-          return ISIOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround)
+          return ISIOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pFirstOperand, pSecondOperand.getLowerBound());
         }
         if (pFirstOperand.isSingleton()) {
-          return ISIOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround)
+          return ISIOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pSecondOperand, pFirstOperand.getLowerBound());
         }
 
@@ -260,7 +261,7 @@ public enum IIIOperatorFactory {
         // Find the lowest and highest extremes
         BigInteger lowerBound = lbLb.min(lbUb).min(ubLb).min(ubUb);
         BigInteger upperBound = lbLb.max(lbUb).max(ubLb).max(ubUb);
-        BitVectorInterval result = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround);
+        BitVectorInterval result = BitVectorInterval.cast(pFirstOperand.getBitVectorInfo(), lowerBound, upperBound, pAllowSignedWrapAround, pOverflowEventHandler);
 
         return result;
       }
@@ -268,7 +269,7 @@ public enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
 
       /**
@@ -319,12 +320,12 @@ public enum IIIOperatorFactory {
          */
         if (pSecondOperand.containsPositive()) {
           BitVectorInterval posPart = pSecondOperand.intersectWith(BitVectorInterval.singleton(pFirstOperand.getBitVectorInfo(), BigInteger.ONE).extendToMaxValue());
-          BitVectorInterval posPartResult = ISIOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround)
+          BitVectorInterval posPartResult = ISIOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pFirstOperand, posPart.getLowerBound());
 
           posPartResult = BitVectorInterval.span(
               posPartResult,
-              ISIOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround)
+              ISIOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler)
                 .apply(pFirstOperand, posPart.getUpperBound()));
 
           result = result == null ? posPartResult : BitVectorInterval.span(result, posPartResult);
@@ -335,7 +336,7 @@ public enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval>() {
 
       /**
@@ -390,12 +391,12 @@ public enum IIIOperatorFactory {
            * Shift this interval by the lower bound, then by the upper bound of
            * the positive part and combine the results.
            */
-          BitVectorInterval posPartResult = ISIOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround)
+          BitVectorInterval posPartResult = ISIOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler)
               .apply(pFirstOperand, posPart.getLowerBound());
 
           posPartResult = BitVectorInterval.span(
               posPartResult,
-              ISIOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround)
+              ISIOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler)
                 .apply(pFirstOperand, posPart.getUpperBound()));
 
           result = result == null ? posPartResult : BitVectorInterval.span(result, posPartResult);
