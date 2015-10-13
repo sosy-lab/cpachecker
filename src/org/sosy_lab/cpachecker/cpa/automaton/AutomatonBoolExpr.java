@@ -59,8 +59,8 @@ import com.google.common.collect.Sets;
  * The Expression can be evaluated multiple times.
  */
 public interface AutomatonBoolExpr extends AutomatonExpression {
-  static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
-  static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
+  public static final ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
+  public static final ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
 
   @Override
   abstract ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;

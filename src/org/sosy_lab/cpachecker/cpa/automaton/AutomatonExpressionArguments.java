@@ -35,7 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-class AutomatonExpressionArguments {
+public class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
@@ -90,7 +90,7 @@ class AutomatonExpressionArguments {
     return abstractStates;
   }
 
-  CFAEdge getCfaEdge() {
+  public CFAEdge getCfaEdge() {
     return cfaEdge;
   }
 
