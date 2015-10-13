@@ -358,8 +358,8 @@ public class Goal {
         //
         final String targetStateName = Integer.toString(t.getTarget().ID);
 
-        AutomatonBoolExpr trigger = null; // instantiate a matcher that matches a set of CFAEdges
-        List<CStatement> assumptions = null;
+        AutomatonBoolExpr trigger = createMatcherFromLabel(t.getLabel()); // instantiate a matcher that matches a set of CFAEdges
+        List<CStatement> assumptions = Collections.<CStatement>emptyList();
 
         AutomatonTransition ct = new AutomatonTransition(
             trigger,
@@ -382,6 +382,10 @@ public class Goal {
     } catch (InvalidAutomatonException e) {
       throw new RuntimeException("Conversion failed!", e);
     }
+  }
+
+  private AutomatonBoolExpr createMatcherFromLabel(GuardedEdgeLabel pLabel) {
+    throw new RuntimeException("Implement me!");
   }
 
 }
