@@ -52,7 +52,10 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import Future
 
-from benchexec.model import MEMLIMIT, TIMELIMIT, SOFTTIMELIMIT,CORELIMIT
+MEMLIMIT = 'memlimit'
+TIMELIMIT = 'timelimit'
+SOFTTIMELIMIT = 'softtimelimit'
+CORELIMIT = 'corelimit'
 
 RESULT_KEYS = ["cputime", "walltime"]
 
