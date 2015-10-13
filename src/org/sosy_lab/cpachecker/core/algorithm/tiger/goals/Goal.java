@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
+import java.util.Collections;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -40,6 +42,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedE
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
@@ -351,7 +355,20 @@ public class Goal {
       final List<AutomatonTransition> transitions = Lists.newArrayList();
 
       for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t: mAutomaton.getOutgoingEdges(q)) {
+        //
+        final String targetStateName = Integer.toString(t.getTarget().ID);
 
+        AutomatonBoolExpr trigger = null; // instantiate a matcher that matches a set of CFAEdges
+        List<CStatement> assumptions = null;
+
+        AutomatonTransition ct = new AutomatonTransition(
+            trigger,
+            Collections.<AutomatonBoolExpr>emptyList(),
+            assumptions,
+            Collections.<AutomatonAction>emptyList(),
+            targetStateName);
+
+        transitions.add(ct);
       }
 
       automatonStates.add(new AutomatonInternalState(stateName, transitions, isTarget, true));
