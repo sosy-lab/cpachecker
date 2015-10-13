@@ -744,6 +744,13 @@ public class ARGPathExport {
               }
             }
 
+          }).filter(new Predicate<String>() {
+
+            @Override
+            public boolean apply(String pArg0) {
+              return !pArg0.trim().startsWith("<");
+            }
+
           }),
           hackyOptions.programs,
           hackyOptions.handlePointerAliasing ? "precise" : "simple",
