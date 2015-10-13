@@ -160,6 +160,47 @@ class WebInterface:
                 self.__hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
     
+    def submit_witness_validation(self, witness_path, program_path, configuration=None, user_pwd=None):
+        """
+        Submits a single witness validation run to the VerifierCloud.
+        @note: flush() should be called after the submission of the last run.
+        @param witness_path: path to the file containing the witness
+        @param program_path: path to the file containing the program
+        @param configuration: name of configuration (optional)
+        @param user_pwd: overrides the user name and password given in the constructor (optional)
+        """
+        
+        # collect parameters
+        params = {}
+        
+        with open(witness_path, 'rb') as witness_file:
+            params['errorWitnessText'] = witness_file.read()
+        
+        with open(program_path, 'rb') as program_file:
+            params['programText'] = program_file.read()
+        
+        if configuration:
+            params['configuration'] = configuration
+        
+        # prepare request
+        headers = {"Content-Type": "application/x-www-form-urlencoded",
+                   "Content-Encoding": "deflate",
+                   "Accept": "text/plain"}
+    
+        paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
+        path = self.__webclient.path + "runs/"
+    
+        (run_id, _) = self.__request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
+        
+        run_id = run_id.decode("UTF-8")
+        logging.debug('Submitted witness validation run with id {0}'.format(run_id))
+        
+        result = Future()
+        with self.__unfinished_runs_lock:
+            self.__unfinished_runs[run_id] =  result
+            
+        return result      
+    
     def submit(self, run, limits, cpu_model, result_files_pattern = None, priority = 'IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
         """
         Submits a single run to the VerifierCloud.
