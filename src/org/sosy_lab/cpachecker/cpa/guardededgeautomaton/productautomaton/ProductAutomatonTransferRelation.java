@@ -51,7 +51,7 @@ public class ProductAutomatonTransferRelation extends CompositeTransferRelation 
       Configuration pConfig)
           throws InvalidConfigurationException {
 
-    super(pTransferRelations, true, pConfig); // TODO is true correct here?
+    super(pTransferRelations, pConfig); // TODO is true correct here?
   }
 
   @Override
