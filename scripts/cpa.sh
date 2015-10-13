@@ -110,6 +110,18 @@ case "$platform" in
     ;;
 esac
 
-# run CPAchecker
-# stack size is set because on some systems it is too small for recursive algorithms and very large programs
-exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE} -Xss1024k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+# Run CPAchecker.
+# Order of arguments for JVM:
+# - options hard-coded in this script (to allow overriding them)
+# - options specified in environment variable
+# - options specified on command-line to this script
+# - CPAchecker class and options
+# Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
+exec "$JAVA" \
+	-Xss1024k \
+	$JAVA_VM_ARGUMENTS \
+	-Xmx${JAVA_HEAP_SIZE} \
+	$JAVA_ASSERTIONS \
+	org.sosy_lab.cpachecker.cmdline.CPAMain \
+	"${OPTIONS[@]}" \
+	$CPACHECKER_ARGUMENTS
