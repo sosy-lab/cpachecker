@@ -99,6 +99,8 @@ class WebInterface:
 
         if user_pwd:
             self.__base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
+        else:
+            self.__base64_user_pwd = None
 
 
         self.__shutdown = threading.Event()
