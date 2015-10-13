@@ -122,7 +122,6 @@ import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -421,9 +420,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
-    if (!testGeneration(pGoalsToCover, lInfeasibilityPropagation)) {
-      logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
-      wasSound = false;
+    try {
+      if (!testGeneration(pGoalsToCover, lInfeasibilityPropagation)) {
+        logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
+        wasSound = false;
+      }
+    } catch (InvalidConfigurationException e1) {
+      throw new CPAException("Invalid configuration!", e1);
     }
 
     assert (pGoalsToCover.isEmpty());
@@ -549,7 +552,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   }
 
   private boolean testGeneration(LinkedList<Goal> pGoalsToCover,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) throws CPAException, InterruptedException {
+      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
+          throws CPAException, InterruptedException, InvalidConfigurationException {
 
     boolean wasSound = true;
 
@@ -812,25 +816,28 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private ReachabilityAnalysisResult runReachabilityAnalysis(int goalIndex, Goal pGoal,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
 
     Automaton goalAutomaton = pGoal.createControlAutomaton();
 
-    CPAFactory factory = ControlAutomatonCPA.factory();
-    factory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
-    factory.setLogger(logger.withComponentName(goalAutomaton.getName()));
-    factory.set(cfa, CFA.class);
-    factory.set(goalAutomaton, Automaton.class);
+    CPAFactory automataFactory = ControlAutomatonCPA.factory();
+    automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
+    automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
+    automataFactory.set(cfa, CFA.class);
+    automataFactory.set(goalAutomaton, Automaton.class);
 
     List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
-    lAutomatonCPAs.add(factory.createInstance());
-
+    try {
+      lAutomatonCPAs.add(automataFactory.createInstance());
+    } catch (InvalidConfigurationException e1) {
+      throw new CPAException("Invalid automata!", e1);
+    }
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
     //int lProductAutomatonIndex = lComponentAnalyses.size();
     int lProductAutomatonIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false));
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
 
     // TODO experiment
     if (cpa instanceof CompositeCPA) {
@@ -913,9 +920,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     try {
       Configuration internalConfiguration = Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
 
-      CoreComponentsFactory factory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
+      CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
 
-      algorithm = factory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
+      algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
 
       if (algorithm instanceof CEGARAlgorithm) {
         CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;

@@ -23,11 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
 
 public class ProductAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -42,19 +47,19 @@ public class ProductAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   }
 
   @Override
-  public PrecisionAdjustmentResult prec(
-      AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) {
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
+      UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)
+          throws CPAException, InterruptedException {
 
-    ProductAutomatonElement lElement = (ProductAutomatonElement)pElement;
+    ProductAutomatonElement lElement = (ProductAutomatonElement)pState;
 
     if (lElement.isFinalState()) {
       //return Triple.of(pElement, pPrecision, Action.BREAK);
-      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK);
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
     }
     else {
       //return Triple.of(pElement, pPrecision, Action.CONTINUE);
-      return PrecisionAdjustmentResult.create(pElement, pPrecision, Action.CONTINUE);
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
     }
   }
 

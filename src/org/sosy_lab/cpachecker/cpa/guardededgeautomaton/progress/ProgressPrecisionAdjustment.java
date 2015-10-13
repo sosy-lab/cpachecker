@@ -23,28 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
 
-  /*
-   * (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment#prec(org.sosy_lab.cpachecker.core.interfaces.AbstractElement, org.sosy_lab.cpachecker.core.interfaces.Precision, org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet)
-   *
-   * This method does not depend on pElements.
-   */
   @Override
-  public PrecisionAdjustmentResult prec(
-      AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException {
-    ProgressElement lElement = (ProgressElement)pElement;
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
+      UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)
+          throws CPAException, InterruptedException {
+
+    ProgressElement lElement = (ProgressElement)pState;
     ProgressPrecision lPrecision = (ProgressPrecision)pPrecision;
 
     if (lPrecision.isProgress(lElement.getTransition())) {
@@ -59,12 +58,13 @@ public class ProgressPrecisionAdjustment implements PrecisionAdjustment {
       Precision lAdjustedPrecision = lPrecision.remove(lElement.getTransition());
 
       //return Triple.<AbstractState, Precision, Action>of(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
-      return PrecisionAdjustmentResult.create(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK);
+      return Optional.of(PrecisionAdjustmentResult.create(new AlternationElement(lStateElement), lAdjustedPrecision, Action.BREAK));
     }
     else {
       //return Triple.<AbstractState, Precision, Action>of(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
-      return PrecisionAdjustmentResult.create(lElement.getWrappedElement(), pPrecision, Action.CONTINUE);
+      return Optional.of(PrecisionAdjustmentResult.create(lElement.getWrappedElement(), pPrecision, Action.CONTINUE));
     }
   }
+
 
 }

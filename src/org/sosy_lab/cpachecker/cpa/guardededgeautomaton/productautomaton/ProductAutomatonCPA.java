@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton;
 
 import java.util.Collection;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -44,8 +47,11 @@ import com.google.common.collect.ImmutableList;
 
 public class ProductAutomatonCPA extends CompositeCPA {
 
-  //public static ProductAutomatonCPA create(Collection<GuardedEdgeAutomatonCPA> pAutomatonCPAs) {
-  public static ProductAutomatonCPA create(Collection<ConfigurableProgramAnalysis> pAutomatonCPAs, boolean pUseProgressPrecisionAdjustment) {
+  public static ProductAutomatonCPA create(
+      Collection<ConfigurableProgramAnalysis> pAutomatonCPAs,
+      boolean pUseProgressPrecisionAdjustment,
+      Configuration pConfig) throws InvalidConfigurationException {
+
     Preconditions.checkNotNull(pAutomatonCPAs);
     Preconditions.checkArgument(pAutomatonCPAs.size() > 0);
 
@@ -62,23 +68,25 @@ public class ProductAutomatonCPA extends CompositeCPA {
     }
 
     CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-    ProductAutomatonTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build());
-    ProductAutomatonStopOperator compositeStop = new ProductAutomatonStopOperator(stopOperators.build());
+    CompositeTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build(), pConfig);
+    CompositeStopOperator compositeStop = new ProductAutomatonStopOperator(stopOperators.build());
 
-    return new ProductAutomatonCPA(compositeDomain, compositeTransfer, compositeStop, lCPAs.build(), pUseProgressPrecisionAdjustment);
+    return new ProductAutomatonCPA(compositeDomain, compositeTransfer, compositeStop,
+        lCPAs.build(), pUseProgressPrecisionAdjustment);
   }
 
   public ProductAutomatonCPA(AbstractDomain abstractDomain,
       CompositeTransferRelation transferRelation,
       CompositeStopOperator stopOperator,
       ImmutableList<ConfigurableProgramAnalysis> cpas, boolean pUseProgressPrecisionAdjustment) {
+
     super(abstractDomain, transferRelation, new MergeSepOperator(), stopOperator,
         pUseProgressPrecisionAdjustment?ProgressProductAutomatonPrecisionAdjustment.INSTANCE:ProductAutomatonPrecisionAdjustment.getInstance(), cpas);
   }
 
   @Override
-  public AbstractState getInitialState (CFANode node) {
-    CompositeState lInitialElement = (CompositeState)super.getInitialState(node);
+  public AbstractState getInitialState (CFANode node, StateSpacePartition pPartition) {
+    CompositeState lInitialElement = (CompositeState)super.getInitialState(node, pPartition);
 
     return ProductAutomatonElement.createElement(lInitialElement.getWrappedStates());
   }

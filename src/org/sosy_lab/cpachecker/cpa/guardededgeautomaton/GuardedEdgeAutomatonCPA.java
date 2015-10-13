@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
@@ -64,16 +65,6 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode) {
-    return mInitialElement;
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
   public MergeOperator getMergeOperator() {
     return MergeSepOperator.getInstance();
   }
@@ -96,6 +87,16 @@ public class GuardedEdgeAutomatonCPA implements ConfigurableProgramAnalysis {
   @Override
   public String toString() {
     return mTransferRelation.getAutomaton().toString();
+  }
+
+  @Override
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    return mInitialElement;
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return SingletonPrecision.getInstance();
   }
 
 }

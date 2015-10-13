@@ -26,29 +26,35 @@ package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.product;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress.ProgressPrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+
 public class ProgressProductAutomatonPrecisionAdjustment implements
     PrecisionAdjustment {
 
   public static final ProgressProductAutomatonPrecisionAdjustment INSTANCE = new ProgressProductAutomatonPrecisionAdjustment();
+  private static final PrecisionAdjustment mSubPrecisionAdjustment = new ProgressPrecisionAdjustment();
 
-  private static final ProgressPrecisionAdjustment mSubPrecisionAdjustment = new ProgressPrecisionAdjustment();
 
   @Override
-  public PrecisionAdjustmentResult prec(
-      AbstractState pElement, Precision pPrecision,
-      UnmodifiableReachedSet pElements, AbstractState fullState) throws CPAException {
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState pState, Precision pPrecision,
+      UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection,
+      AbstractState pFullState)
+          throws CPAException, InterruptedException {
 
-    ProductAutomatonElement lElement = (ProductAutomatonElement)pElement;
+    ProductAutomatonElement lElement = (ProductAutomatonElement)pState;
 
     CompositePrecision lPrecision = (CompositePrecision)pPrecision;
 
@@ -72,21 +78,25 @@ public class ProgressProductAutomatonPrecisionAdjustment implements
 
       // TODO make use of reached set? or reimplement such that we adjust precision at this level?
       //Triple<AbstractState, Precision, Action> lAdjustment = mSubPrecisionAdjustment.prec(lSubelement, lSubprecision, null);
-      PrecisionAdjustmentResult lAdjustment = mSubPrecisionAdjustment.prec(lSubelement, lSubprecision, null, fullState);
+      Optional<PrecisionAdjustmentResult> lAdjustment = mSubPrecisionAdjustment.prec(lSubelement, lSubprecision, pStates, pStateProjection, pFullState);
 
-      if (lAdjustment.action().equals(Action.BREAK)) {
+      if (!lAdjustment.isPresent()) {
+        return Optional.absent();
+      }
+
+      if (lAdjustment.get().action().equals(Action.BREAK)) {
         lAction = Action.BREAK;
       }
 
-      lAdjustedElements.add(lAdjustment.abstractState());
-      lAdjustedPrecisions.add(lAdjustment.precision());
+      lAdjustedElements.add(lAdjustment.get().abstractState());
+      lAdjustedPrecisions.add(lAdjustment.get().precision());
     }
 
     // TODO do we always throw away the wrapper ... can we optimize something?
     ProductAutomatonElement lAdjustedElement = ProductAutomatonElement.createElement(lAdjustedElements);
     CompositePrecision lAdjustedPrecision = new CompositePrecision(lAdjustedPrecisions);
 
-    return PrecisionAdjustmentResult.create(lAdjustedElement, lAdjustedPrecision, lAction);
+    return Optional.of(PrecisionAdjustmentResult.create(lAdjustedElement, lAdjustedPrecision, lAction));
   }
 
 }

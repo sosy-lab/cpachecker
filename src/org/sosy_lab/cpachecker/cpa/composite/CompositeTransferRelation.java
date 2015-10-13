@@ -58,7 +58,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="cpa.composite")
-public final class CompositeTransferRelation implements TransferRelation {
+public class CompositeTransferRelation implements TransferRelation {
 
   @Option(secure=true,
       description="Split MultiEdges and pass each inner edge to the component CPAs"
@@ -66,8 +66,9 @@ public final class CompositeTransferRelation implements TransferRelation {
           + " Does not work with backwards analysis!")
   private boolean splitMultiEdges = false;
 
-  private final ImmutableList<TransferRelation> transferRelations;
-  private final int size;
+  protected final ImmutableList<TransferRelation> transferRelations;
+  protected final int size;
+
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
   private final boolean isErrorStateDetectableInStrengthening;

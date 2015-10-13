@@ -193,7 +193,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   private final AbstractDomain abstractDomain;
-  private final CompositeTransferRelation transferRelation;
+  protected final CompositeTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;

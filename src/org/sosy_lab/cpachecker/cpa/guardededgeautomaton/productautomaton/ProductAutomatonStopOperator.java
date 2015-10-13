@@ -43,10 +43,12 @@ public class ProductAutomatonStopOperator extends CompositeStopOperator {
   }
 
   @Override
-  public boolean stop(CompositeState element, CompositeState reachedElement, CompositePrecision precision)
-  throws CPAException, InterruptedException {
-    ProductAutomatonElement compositeElement1 = (ProductAutomatonElement)element;
-    ProductAutomatonElement compositeElement2 = (ProductAutomatonElement)reachedElement;
+  protected boolean stop(CompositeState pCompositeState, CompositeState pCompositeReachedState,
+      CompositePrecision pCompositePrecision)
+          throws CPAException, InterruptedException {
+
+    ProductAutomatonElement compositeElement1 = (ProductAutomatonElement)pCompositeState;
+    ProductAutomatonElement compositeElement2 = (ProductAutomatonElement)pCompositeReachedState;
 
     List<AbstractState> compositeElements1 = compositeElement1.getWrappedStates();
     List<AbstractState> compositeElements2 = compositeElement2.getWrappedStates();
@@ -56,7 +58,7 @@ public class ProductAutomatonStopOperator extends CompositeStopOperator {
 
       AbstractState absElem1 = compositeElements1.get(idx);
       AbstractState absElem2 = compositeElements2.get(idx);
-      Precision absPrecision = precision.get(idx);
+      Precision absPrecision = pCompositePrecision.get(idx);
 
       if (!stopOp.stop(absElem1, Collections.singleton(absElem2), absPrecision)){
         return false;
