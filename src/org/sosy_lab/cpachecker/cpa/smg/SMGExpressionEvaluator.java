@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -54,7 +55,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -99,10 +102,62 @@ public class SMGExpressionEvaluator {
     machineModel = pMachineModel;
   }
 
-  public int getSizeof(CFAEdge edge, CType pType) throws UnrecognizedCCodeException {
+  /**
+   * Get the size of the given type in Bytes.
+   *
+   * When handling variable array type length,
+   * additionally to the type itself, we also need the
+   * cfa edge to determine the location of the program
+   * we currently handle, the smg state to determine
+   * the values of the variables at the current location,
+   * and the expression with the given type to determine
+   * the smg object that represents the array of the given type.
+   *
+   * @param edge The cfa edge which determines the location
+   *             of the program.
+   * @param pType We want to calculate the size of this type.
+   * @param pState The state that contains the current variable values.
+   * @param expression The expression, which evaluates to the value with the given type.
+   * @return The size of the given type in bytes.
+   * @throws UnrecognizedCCodeException
+   */
+  public int getSizeof(CFAEdge edge, CType pType, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
+
+    CSizeOfVisitor v = new CSizeOfVisitor(machineModel, edge, pState, logger, expression);
 
     try {
-      return machineModel.getSizeof(pType);
+      return pType.accept(v);
+    } catch (IllegalArgumentException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Could not resolve type.", edge);
+    }
+  }
+
+  /**
+   * Get the size of the given type in Bytes.
+   *
+   * When handling variable array type length,
+   * additionally to the type itself, we also need the
+   * cfa edge to determine the location of the program
+   * we currently handle, and the smg state to determine
+   * the values of the variables at the current location..
+   *
+   * This method can't calculate variable array type length for
+   * arrays that are not declared in the cfa edge.
+   *
+   * @param edge The cfa edge which determines the location
+   *             of the program.
+   * @param pType We want to calculate the size of this type.
+   * @param pState The state that contains the current variable values.
+   * @return The size of the given type in bytes.
+   * @throws UnrecognizedCCodeException
+   */
+  public int getSizeof(CFAEdge edge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
+
+    CSizeOfVisitor v = new CSizeOfVisitor(machineModel, edge, pState, logger);
+
+    try {
+      return pType.accept(v);
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCCodeException("Could not resolve type.", edge);
@@ -158,7 +213,7 @@ public class SMGExpressionEvaluator {
 
     String fieldName = fieldReference.getFieldName();
 
-    SMGField field = getField(cfaEdge, ownerType, fieldName);
+    SMGField field = getField(cfaEdge, ownerType, fieldName, newState, fieldReference);
 
     if (field.isUnknown()) {
       return SMGAddressAndState.of(newState);
@@ -184,8 +239,9 @@ public class SMGExpressionEvaluator {
 
     int fieldOffset = pOffset.getAsInt();
 
+    //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getSizeof(pEdge, pType) > pObject.getSize();
+        || fieldOffset + getSizeof(pEdge, pType, pSmgState) > pObject.getSize();
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -202,7 +258,7 @@ public class SMGExpressionEvaluator {
     return SMGValueAndState.of(pSmgState, value);
   }
 
-  private SMGField getField(CFAEdge edge, CType ownerType, String fieldName) throws UnrecognizedCCodeException {
+  private SMGField getField(CFAEdge edge, CType ownerType, String fieldName, SMGState pState, CExpression exp) throws UnrecognizedCCodeException {
 
     if (ownerType instanceof CElaboratedType) {
 
@@ -212,9 +268,9 @@ public class SMGExpressionEvaluator {
         return SMGField.getUnknownInstance();
       }
 
-      return getField(edge, realType, fieldName);
+      return getField(edge, realType, fieldName, pState, exp);
     } else if (ownerType instanceof CCompositeType) {
-      return getField(edge, (CCompositeType)ownerType, fieldName);
+      return getField(edge, (CCompositeType) ownerType, fieldName, pState, exp);
     } else if (ownerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,
@@ -225,13 +281,13 @@ public class SMGExpressionEvaluator {
 
       type = getRealExpressionType(type);
 
-      return getField(edge, type, fieldName);
+      return getField(edge, type, fieldName, pState, exp);
     }
 
     throw new AssertionError();
   }
 
-  private SMGField getField(CFAEdge pEdge, CCompositeType ownerType, String fieldName) throws UnrecognizedCCodeException {
+  private SMGField getField(CFAEdge pEdge, CCompositeType ownerType, String fieldName, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
@@ -245,7 +301,7 @@ public class SMGExpressionEvaluator {
           getRealExpressionType(typeMember.getType())); }
 
       if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-        offset = offset + getSizeof(pEdge, getRealExpressionType(typeMember.getType()));
+        offset = offset + getSizeof(pEdge, getRealExpressionType(typeMember.getType()), pState, expression);
       }
     }
 
@@ -368,12 +424,11 @@ public class SMGExpressionEvaluator {
 
     CType expressionType = getRealExpressionType(rValue);
 
-    if (expressionType instanceof CFunctionType) {
-
-      // TODO Represantation of functions
-
-      return SMGAddressValueAndState.of(pState, SMGUnknownValue.getInstance());
-    } else if (expressionType instanceof CPointerType) {
+    if (expressionType instanceof CPointerType
+        || (expressionType instanceof CFunctionType
+            && rValue instanceof CUnaryExpression
+            && ((CUnaryExpression) rValue).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
+      // Cfa treats &foo as CFunctionType
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, pState);
 
@@ -568,7 +623,12 @@ public class SMGExpressionEvaluator {
     }
 
     private SMGAddressValueAndState handleAmper(CRightHandSide amperOperand) throws CPATransferException {
-      if (amperOperand instanceof CIdExpression) {
+
+      if (getRealExpressionType(amperOperand) instanceof CFunctionType
+          && amperOperand instanceof CIdExpression) {
+        // function type &foo
+        return createAddressOfFunction((CIdExpression) amperOperand);
+      } else if (amperOperand instanceof CIdExpression) {
         // &a
         return createAddressOfVariable((CIdExpression) amperOperand);
       } else if (amperOperand instanceof CPointerExpression) {
@@ -586,6 +646,21 @@ public class SMGExpressionEvaluator {
       } else {
         return SMGAddressValueAndState.of(getInitialSmgState());
       }
+    }
+
+    protected SMGAddressValueAndState createAddressOfFunction(CIdExpression idFunctionExpression)
+        throws SMGInconsistentException {
+
+      SMGState state = getInitialSmgState();
+
+      SMGObject functionObject =
+          state.getObjectForFunction((CFunctionDeclaration) idFunctionExpression.getDeclaration());
+
+      if (functionObject == null) {
+        return SMGAddressValueAndState.of(state);
+      }
+
+      return createAddress(state, functionObject, SMGKnownExpValue.ZERO);
     }
 
     private SMGAddressValueAndState createAddressOfArraySubscript(CArraySubscriptExpression lValue)
@@ -615,7 +690,7 @@ public class SMGExpressionEvaluator {
 
       SMGExplicitValue arrayOffset = arrayAddress.getOffset();
 
-      int typeSize = getSizeof(getCfaEdge(), getRealExpressionType(lValue));
+      int typeSize = getSizeof(getCfaEdge(), getRealExpressionType(lValue), newState, lValue);
 
       SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
 
@@ -742,7 +817,7 @@ public class SMGExpressionEvaluator {
         return SMGAddressValueAndState.of(newState);
       }
 
-      SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer));
+      SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge, typeOfPointer, newState, address));
 
       SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -819,7 +894,7 @@ public class SMGExpressionEvaluator {
     }
 
     SMGExplicitValue typeSize = SMGKnownExpValue.valueOf(getSizeof(cfaEdge,
-        exp.getExpressionType()));
+        exp.getExpressionType(), newState, exp));
 
     SMGExplicitValue subscriptOffset = subscriptValue.multiply(typeSize);
 
@@ -1009,9 +1084,17 @@ public class SMGExpressionEvaluator {
         SMGAddress address = addressAndState.getAddress();
         SMGState newState = addressAndState.getSmgState();
 
+        CType type = getRealExpressionType(pVariableName);
+        if (type instanceof CArrayType) {
+          // if function declaration is in form 'int foo(char b[32])' then omit array length
+          //TODO support C11 6.7.6.3 7:
+          // actual argument shall provide access to the first element of
+          // an array with at least as many elements as specified by the size expression
+          type = new CPointerType(type.isConst(), type.isVolatile(), ((CArrayType) type).getType());
+        }
         SMGValueAndState pointerAndState =
             readValue(newState, address.getObject(),
-                address.getOffset(), getRealExpressionType(pVariableName), getCfaEdge());
+                address.getOffset(), type, getCfaEdge());
 
         SMGAddressValueAndState trueAddressAndState = getAddressFromSymbolicValue(pointerAndState);
 
@@ -1507,7 +1590,7 @@ public class SMGExpressionEvaluator {
         return SMGValueAndState.of(valueAndState.getSmgState(), val);
 
       case SIZEOF:
-        int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand));
+        int size = getSizeof(cfaEdge, getRealExpressionType(unaryOperand), getInitialSmgState(), unaryOperand);
         val = (size == 0) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
         return SMGValueAndState.of(getInitialSmgState(), val);
       case TILDE:
@@ -1541,11 +1624,12 @@ public class SMGExpressionEvaluator {
 
       switch (typeOperator) {
       case SIZEOF:
-        SMGSymbolicValue val = getSizeof(cfaEdge, type) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+        SMGSymbolicValue val =
+            getSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0 ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
         return SMGValueAndState.of(getInitialSmgState(), val);
       default:
         return SMGValueAndState.of(getInitialSmgState());
-        //TODO Investigate the other Operators.
+      //TODO Investigate the other Operators.
       }
     }
 
@@ -2046,6 +2130,113 @@ public class SMGExpressionEvaluator {
     @Override
     public String toString() {
       return value.toString() + " StateId: " + smgState.getId();
+    }
+  }
+
+  public static class CSizeOfVisitor extends BaseSizeofVisitor {
+
+    private final CFAEdge edge;
+    private final SMGState state;
+    private final CExpression expression;
+    private final SMGExpressionEvaluator eval;
+
+    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState, LogManagerWithoutDuplicates logger,
+        CExpression pExpression) {
+      super(pModel);
+
+      edge = pEdge;
+      state = pState;
+      expression = pExpression;
+      eval = new SMGExpressionEvaluator(logger, pModel);
+    }
+
+    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
+        LogManagerWithoutDuplicates pLogger) {
+      super(pModel);
+
+      edge = pEdge;
+      state = pState;
+      expression = null;
+      eval = new SMGExpressionEvaluator(pLogger, pModel);
+    }
+
+    @Override
+    public Integer visit(CArrayType pArrayType) throws IllegalArgumentException {
+
+      CExpression arrayLength = pArrayType.getLength();
+
+      int sizeOfType = pArrayType.getType().accept(this);
+
+      /* If the array type has a constant size, we can simply
+       * get the length of the array, but if the size
+       * of the array type is variable, we have to try and calculate
+       * the current size.
+       */
+      int length;
+
+      if(arrayLength == null) {
+        // treat size of unknown array length type as ptr
+        return super.visit(pArrayType);
+      } else if (arrayLength instanceof CIntegerLiteralExpression) {
+        length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
+      } else if (edge instanceof CDeclarationEdge) {
+
+        /* If we currently declare the array of this type,
+         * we simply need to calculate the current length of the array
+         * from the given expression in the type.
+         */
+        SMGExplicitValue lengthAsExplicitValue;
+
+        try {
+          lengthAsExplicitValue = eval.evaluateExplicitValueV2(state, edge, arrayLength);
+        } catch (CPATransferException e) {
+          throw new IllegalArgumentException(
+              "Exception when calculating array length of " + pArrayType.toASTString("") + ".", e);
+        }
+
+        if (lengthAsExplicitValue.isUnknown()) {
+          throw new IllegalArgumentException(
+            "Can't calculate array length of type " + pArrayType.toASTString("") + ".");
+        }
+
+        length = lengthAsExplicitValue.getAsInt();
+      } else {
+
+        /*
+         * If we are not at the declaration of the variable array type, we try to get the
+         * smg object that represents the array, and calculate the current array size that way.
+         */
+
+        if(expression instanceof CLeftHandSide) {
+
+          LValueAssignmentVisitor visitor = eval.getLValueAssignmentVisitor(edge, state);
+
+          SMGAddressAndState addressOfFieldAndState;
+          try {
+            addressOfFieldAndState = expression.accept(visitor);
+          } catch (CPATransferException e) {
+
+            throw new IllegalArgumentException(
+                "Unable to calculate the size of the array type " + pArrayType.toASTString("") + ".", e);
+          }
+
+          SMGAddress addressOfField = addressOfFieldAndState.getAddress();
+
+          if (addressOfField.isUnknown()) {
+            throw new IllegalArgumentException(
+              "Unable to calculate the size of the array type " + pArrayType.toASTString("") + ".");
+          }
+
+          SMGObject arrayObject = addressOfField.getObject();
+          int offset = addressOfField.getOffset().getAsInt();
+          return arrayObject.getSize() - offset;
+        } else {
+          throw new IllegalArgumentException(
+              "Unable to calculate the size of the array type " + pArrayType.toASTString("") + ".");
+        }
+      }
+
+      return length * sizeOfType;
     }
   }
 }

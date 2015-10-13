@@ -30,6 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -80,7 +82,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
 
-  protected boolean checkCertificate(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> incompleteStates)
+  protected boolean checkCertificate(ReachedSet pReachedSet, ARGState pRoot, @Nullable List<ARGState> incompleteStates)
       throws CPAException, InterruptedException {
   //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
     initChecking(pRoot);
@@ -152,7 +154,7 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   }
 
   private boolean checkAndAddSuccessors(final ARGState pPredecessor, final ReachedSet pReachedSet,
-      final Precision pPrecision, List<ARGState> pIncompleteStates)
+      final Precision pPrecision, @Nullable List<ARGState> pIncompleteStates)
       throws InterruptedException, CPAException {
    stats.getTransferTimer().start();
     Collection<ARGState> successors = pPredecessor.getChildren();

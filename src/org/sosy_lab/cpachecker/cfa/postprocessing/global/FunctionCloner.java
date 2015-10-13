@@ -651,7 +651,9 @@ class FunctionCloner implements CFAVisitor {
         }
         funcType = new CFunctionType(type.isConst(), type.isVolatile(), type.getReturnType(), l, type.takesVarArgs());
       }
-      funcType.setName(changeName(type.getName()));
+      if (type.getName() != null) {
+        funcType.setName(changeName(type.getName()));
+      }
       return funcType;
     }
 

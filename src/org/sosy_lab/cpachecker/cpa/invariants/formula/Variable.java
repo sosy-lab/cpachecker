@@ -23,12 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.util.Objects;
 
-public class Variable<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+
+
+public class Variable<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   private final String name;
 
-  private Variable(String name) {
+  private Variable(BitVectorInfo pInfo, String name) {
+    super(pInfo);
     this.name = name;
   }
 
@@ -42,40 +47,43 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (o instanceof Variable) {
-      return getName().equals(((Variable<?>) o).getName());
+    if (pOther instanceof Variable) {
+      Variable<?> other = (Variable<?>) pOther;
+      return getBitVectorInfo().equals(other.getBitVectorInfo())
+          && getName().equals(other.getName());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return getName().hashCode();
+    return Objects.hash(getBitVectorInfo(), getName());
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
    * Gets an invariants formula representing the variable with the given name.
    *
+   * @param pInfo the bit vector information.
    * @param pName the name of the variable.
    *
    * @return an invariants formula representing the variable with the given name.
    */
-  static <ConstantType> Variable<ConstantType> of(String pName) {
-    return new Variable<>(pName);
+  static <ConstantType> Variable<ConstantType> of(BitVectorInfo pInfo, String pName) {
+    return new Variable<>(pInfo, pName);
   }
 }

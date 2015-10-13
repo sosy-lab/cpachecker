@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
@@ -38,11 +40,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 import com.google.common.collect.ImmutableList;
 
-public class CDefaults {
+public final class CDefaults {
 
   private CDefaults() { }
 
   public static CInitializer forType(CType type, FileLocation fileLoc) {
+    checkNotNull(fileLoc);
     // Get default value of a type for initializations
     // according to C standard §6.7.9 (10)
     type = type.getCanonicalType();

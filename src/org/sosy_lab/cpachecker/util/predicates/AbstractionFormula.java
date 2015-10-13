@@ -33,10 +33,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -157,14 +157,14 @@ public class AbstractionFormula implements Serializable {
     private final PathFormula blockFormula;
 
     public SerializationProxy(AbstractionFormula pAbstractionFormula) {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       instantiatedFormulaDump = mgr.dumpFormula(
           pAbstractionFormula.asInstantiatedFormula()).toString();
       blockFormula = pAbstractionFormula.getBlockFormula();
     }
 
     private Object readResolve() {
-      FormulaManagerView mgr = GlobalInfo.getInstance().getFormulaManagerView();
+      FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       BooleanFormula instantiatedFormula = mgr.parse(instantiatedFormulaDump);
       BooleanFormula notInstantiated = mgr.uninstantiate(instantiatedFormula);
       return new AbstractionFormula(

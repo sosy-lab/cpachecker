@@ -84,8 +84,9 @@ class CoverageReportGcov implements CoverageWriter {
 
     try (Writer w = Files.openOutputFile(outputCoverageFile)) {
 
-      for (String sourcefile: pCoverage.keySet()) {
-        FileCoverageInformation fileInfos = pCoverage.get(sourcefile);
+      for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
+        String sourcefile = entry.getKey();
+        FileCoverageInformation fileInfos = entry.getValue();
 
         //Convert ./test.c -> /full/path/test.c
         w.append(TEXTNAME + "\n");

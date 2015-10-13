@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
@@ -166,7 +167,12 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathChecker.checkPath(newPath);
+      CounterexampleTraceInfo traceInfo = null;
+      try {
+        traceInfo = pathChecker.checkPath(newPath);
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
+      }
       stats.afterPathCheck();
 
       if (!traceInfo.isSpurious()) {
@@ -186,7 +192,11 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException, InterruptedException {
-    return pathChecker.checkPath(pExecutedPath.getInnerEdges());
+    try {
+      return pathChecker.checkPath(pExecutedPath.getInnerEdges());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
   }
 
 }

@@ -28,19 +28,20 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * The operand of the bit flip operation.
    */
-  final InvariantsFormula<ConstantType> flipped;
+  final NumeralFormula<ConstantType> flipped;
 
   /**
    * Creates a new binary negation formula over the given operand.
    *
    * @param pToFlip the operand of the bit flip operation.
    */
-  private BinaryNot(InvariantsFormula<ConstantType> pToFlip) {
+  private BinaryNot(NumeralFormula<ConstantType> pToFlip) {
+    super(pToFlip.getBitVectorInfo());
     this.flipped = pToFlip;
   }
 
@@ -49,7 +50,7 @@ public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> imple
    *
    * @return the operand of the bit flip operation.
    */
-  public InvariantsFormula<ConstantType> getFlipped() {
+  public NumeralFormula<ConstantType> getFlipped() {
     return this.flipped;
   }
 
@@ -75,13 +76,13 @@ public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> imple
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -92,7 +93,7 @@ public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType> imple
    *
    * @return the binary negation of the given formula.
    */
-  static <ConstantType> BinaryNot<ConstantType> of(InvariantsFormula<ConstantType> pToFlip) {
+  static <ConstantType> BinaryNot<ConstantType> of(NumeralFormula<ConstantType> pToFlip) {
     return new BinaryNot<>(pToFlip);
   }
 

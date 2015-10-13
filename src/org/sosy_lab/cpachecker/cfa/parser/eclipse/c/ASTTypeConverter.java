@@ -302,7 +302,7 @@ class ASTTypeConverter {
 
     final String name = t.getName();
 
-    CType oldType = scope.lookupTypedef(name);
+    CType oldType = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
 
     // We have seen this type already.
     if (oldType != null) {
@@ -437,18 +437,14 @@ class ASTTypeConverter {
     }
     CType type = null;
     if (binding instanceof IProblemBinding) {
-      type = scope.lookupTypedef(name);
-      if (type == null) {
-        type = scope.lookupType(name);
-      } else {
-        return type;
-      }
+      type = scope.lookupTypedef(scope.getFileSpecificTypeName(name));
     }
+
     if (type == null) {
       return convert((IType) binding);
     }
 
-    return new CTypedefType(d.isConst(), d.isVolatile(), scope.getFileSpecificTypeName(name), type);
+    return type;
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {

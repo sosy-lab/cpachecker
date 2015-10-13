@@ -28,14 +28,14 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.InEqualityRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;

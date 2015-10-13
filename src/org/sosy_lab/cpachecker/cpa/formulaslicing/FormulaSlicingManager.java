@@ -21,12 +21,12 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -249,8 +249,8 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingIntermediateState iState1 = pState1.asIntermediate();
       SlicingIntermediateState iState2 = pState2.asIntermediate();
       return (iState1.isMergedInto(iState2) ||
-          iState1.getPathFormula().equals(iState2.getPathFormula())) &&
-          iState1.getAbstractParent() == iState2.getAbstractParent();
+          iState1.getPathFormula().getFormula().equals(iState2.getPathFormula().getFormula()))
+          && isLessOrEqual(iState1.getAbstractParent(), iState2.getAbstractParent());
 
     } else {
       SlicingAbstractedState aState1 = pState1.asAbstracted();
@@ -325,6 +325,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         oldState.getGeneratingState().isPresent());
 
     if (newState.getAbstraction().equals(bfmgr.makeBoolean(false))
+        || newState.getAbstraction().equals(oldState.getAbstraction())
         || oldState == newState) {
       return oldState;
     }

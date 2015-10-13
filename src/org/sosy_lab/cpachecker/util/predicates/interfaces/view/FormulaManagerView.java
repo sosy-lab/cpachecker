@@ -42,6 +42,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,23 +55,25 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.RationalFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BitvectorFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.FloatingPointFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.UnsafeFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -88,7 +91,7 @@ import com.google.common.collect.Sets;
  * It delegates to the actual solver package
  * and provides additional utilities.
  * The preferred way of instantiating this class is via
- * {@link Solver#create(Configuration, LogManager, org.sosy_lab.cpachecker.core.ShutdownNotifier)}.
+ * {@link Solver#create(Configuration, LogManager, ShutdownNotifier)}.
  *
  *
  * This class and some of its related classes have supporting operations
@@ -125,11 +128,11 @@ public class FormulaManagerView implements StatisticsProvider {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
+  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
   private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
-  private final QuantifiedFormulaManagerView quantifiedFormulaManager;
-  private final ArrayFormulaManagerView arrayFormulaManager;
+  private QuantifiedFormulaManagerView quantifiedFormulaManager;
+  private ArrayFormulaManagerView arrayFormulaManager;
 
   @Option(secure=true, name = "formulaDumpFilePattern", description = "where to dump interpolation and abstraction problems (format string)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -151,36 +154,25 @@ public class FormulaManagerView implements StatisticsProvider {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.RATIONAL;
 
-  @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
-  private boolean ignoreExtractConcat = true;
-
-  @Option(secure=true, description="Use UFs to handle overflows when Bitvector theory was replaced with Integer or Rational theory.")
-  private boolean handleOverflowsWithUFs = false;
-
-  @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
-      + "when Bitvector theory was replaced with Integer or Rational theory.")
-  private boolean handleSignConversionWithUFs = false;
-
   public FormulaManagerView(FormulaManagerFactory solverFactory, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;
     manager = checkNotNull(solverFactory.getFormulaManager());
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
-    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager();
+    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
-    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
-    integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
-    quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
-    arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+
+    bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
   }
 
-  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
-  private BitvectorFormulaManager getRawBitvectorFormulaManager() throws InvalidConfigurationException, AssertionError {
+  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
+   * @param config */
+  private BitvectorFormulaManager getRawBitvectorFormulaManager(Configuration config) throws InvalidConfigurationException, AssertionError {
     final BitvectorFormulaManager rawBitvectorFormulaManager;
     switch (encodeBitvectorAs) {
     case BITVECTOR:
@@ -199,7 +191,7 @@ public class FormulaManagerView implements StatisticsProvider {
           manager.getBooleanFormulaManager(),
           manager.getIntegerFormulaManager(),
           manager.getFunctionFormulaManager(),
-          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+          new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
@@ -216,7 +208,7 @@ public class FormulaManagerView implements StatisticsProvider {
           manager.getBooleanFormulaManager(),
           rmgr,
           manager.getFunctionFormulaManager(),
-          ignoreExtractConcat, handleOverflowsWithUFs, handleSignConversionWithUFs);
+          new ReplaceBitvectorEncodingOptions(config));
       break;
     case FLOAT:
       throw new InvalidConfigurationException("Value FLOAT is not valid for option cpa.predicate.encodeBitvectorAs");
@@ -676,6 +668,7 @@ public class FormulaManagerView implements StatisticsProvider {
     return (T) t;
   }
 
+  @SuppressWarnings("unchecked")
   public  <T extends Formula> BooleanFormula makeEqual(T pLhs, T pRhs) {
     BooleanFormula t;
     if (pLhs instanceof BooleanFormula && pRhs instanceof BooleanFormula) {
@@ -688,6 +681,10 @@ public class FormulaManagerView implements StatisticsProvider {
       t = bitvectorFormulaManager.equal((BitvectorFormula)pLhs, (BitvectorFormula)pRhs);
     } else if (pLhs instanceof FloatingPointFormula && pRhs instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.equalWithFPSemantics((FloatingPointFormula)pLhs, (FloatingPointFormula)pRhs);
+    } else if (pLhs instanceof ArrayFormula<?, ?> && pRhs instanceof ArrayFormula<?, ?>) {
+      @SuppressWarnings("rawtypes")
+      ArrayFormula rhs = (ArrayFormula) pRhs;
+      t = arrayFormulaManager.equivalence((ArrayFormula<?, ?>) pLhs, rhs);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
@@ -767,11 +764,13 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+    if (integerFormulaManager == null) {
+      integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
+    }
     return integerFormulaManager;
   }
 
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
-    // lazy initialisation, because not all SMT-solvers support Rationals and maybe we only want to use Integers.
     if (rationalFormulaManager == null) {
       rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getRationalFormulaManager());
     }
@@ -795,10 +794,16 @@ public class FormulaManagerView implements StatisticsProvider {
   }
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
+    if (quantifiedFormulaManager == null) {
+      quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
+    }
     return quantifiedFormulaManager;
   }
 
   public ArrayFormulaManagerView getArrayFormulaManager() {
+    if (arrayFormulaManager == null) {
+      arrayFormulaManager = new ArrayFormulaManagerView(wrappingHandler, manager.getArrayFormulaManager());
+    }
     return arrayFormulaManager;
   }
 
@@ -1454,20 +1459,27 @@ public class FormulaManagerView implements StatisticsProvider {
    *
    * A variable is considered 'dead' if its SSA index
    * is different from the index in the SSA map.
-   *
-   * @param pFormula
-   * @param pSsa
-   * @return
    */
   public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
-    // todo: this is a really bad name, "intermediate" would be much better.
-    // todo: talk to Andreas about renaming.
+    return getDeadFunctionNames(pFormula, pSsa, FILTER_VARIABLES);
+  }
+
+  /**
+   * Same as {@link #getDeadVariableNames}, but returns UF's as well.
+   */
+  public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
+    return getDeadFunctionNames(pFormula, pSsa,
+        Predicates.or(FILTER_VARIABLES, FILTER_UF));
+  }
+
+  private Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa,
+      Predicate<Formula> filter) {
     Set<String> result = Sets.newHashSet();
-    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa);
+    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa,
+        filter);
     for (Formula f : varFormulas) {
       result.add(unsafeManager.getName(f));
     }
-
     return result;
   }
 
@@ -1476,11 +1488,12 @@ public class FormulaManagerView implements StatisticsProvider {
    * Do not make this method public, because the returned formulas have incorrect
    * types (they are not appropriately wrapped).
    */
-  private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa) {
+  private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa,
+      Predicate<Formula> searchPredicate) {
     List<Formula> result = Lists.newArrayList();
 
     for (Formula varFormula: myExtractSubformulas(unwrap(pFormula),
-        FILTER_VARIABLES, true)) {
+        searchPredicate, true)) {
       Pair<String, Integer> fullName = parseName(unsafeManager.getName(varFormula));
       String varName = fullName.getFirst();
       Integer varSsaIndex = fullName.getSecond();
@@ -1525,7 +1538,8 @@ public class FormulaManagerView implements StatisticsProvider {
     Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
 
-    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa);
+    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa,
+        FILTER_VARIABLES);
 
     BooleanFormula eliminationResult = pF;
 

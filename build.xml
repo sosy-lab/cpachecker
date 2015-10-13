@@ -50,7 +50,7 @@
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
-            <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
+            <fileset dir="src/org/sosy_lab/solver/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
         </delete>
 
         <!-- Clean subprojects -->
@@ -179,11 +179,11 @@
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2">
             <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/*"
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
+                includes="*.* benchmark/**"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"

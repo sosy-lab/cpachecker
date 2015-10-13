@@ -1079,7 +1079,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       // but it prevents the need for a temporary variable in the common case of
       // "if (a && b)"
       CFANode innerNode = newCFANode();
-      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, false, flippedThenElse);
+      buildConditionTree(((IASTBinaryExpression) condition).getOperand1(), fileLocation, rootNode, innerNode, elseNode, thenNodeForLastThen, elseNode, true, false, flippedThenElse);
       buildConditionTree(((IASTBinaryExpression) condition).getOperand2(), fileLocation, innerNode, thenNode, elseNode, thenNodeForLastThen, elseNodeForLastElse, true, true, flippedThenElse);
       return Optional.absent();
 

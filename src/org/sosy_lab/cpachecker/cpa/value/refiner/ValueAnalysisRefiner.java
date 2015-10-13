@@ -102,6 +102,8 @@ public class ValueAnalysisRefiner
 
   private ValueAnalysisConcreteErrorPathAllocator concreteErrorPathAllocator;
 
+  private final ShutdownNotifier shutdownNotifier;
+
   // Statistics
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
@@ -169,19 +171,21 @@ public class ValueAnalysisRefiner
 
     checker = pFeasibilityChecker;
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
   protected void refineUsingInterpolants(
       final ARGReachedSet pReached,
       final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
-  ) {
+      ) throws InterruptedException {
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
     Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
     for (ARGState root : refinementRoots) {
+      shutdownNotifier.shutdownIfNecessary();
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
       if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
@@ -203,6 +207,7 @@ public class ValueAnalysisRefiner
     }
 
     for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
+      shutdownNotifier.shutdownIfNecessary();
       List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
 
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
@@ -294,9 +299,19 @@ public class ValueAnalysisRefiner
    * A simple heuristic to detect similar repeated refinements.
    */
   private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
-    // a refinement is a similar, repeated refinement
-    // if the (sorted) precision increment was already added in a previous refinement
-    return avoidSimilarRepeatedRefinement && !previousRefinementIds.add(new TreeSet<>(currentIncrement).hashCode());
+
+    boolean isSimilar = false;
+    int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
+
+    // a refinement is considered a similar, repeated refinement
+    // if the current increment was added in a previous refinement, already
+    if (avoidSimilarRepeatedRefinement) {
+      isSimilar = previousRefinementIds.contains(currentRefinementId);
+    }
+
+    previousRefinementIds.add(currentRefinementId);
+
+    return isSimilar;
   }
 
   /**
@@ -412,7 +427,7 @@ public class ValueAnalysisRefiner
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
     writer.put(rootRelocations)
-        .put(repeatedRefinements);
+        .put(repeatedRefinements)
+        .put("Number of unique precision increments", previousRefinementIds.size());
   }
 }
-

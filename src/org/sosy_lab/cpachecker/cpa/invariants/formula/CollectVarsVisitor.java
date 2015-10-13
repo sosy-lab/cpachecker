@@ -36,7 +36,7 @@ import java.util.Set;
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<String>> {
+public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<String>>, BooleanFormulaVisitor<T, Set<String>> {
 
   /**
    * The empty set of strings.
@@ -131,6 +131,31 @@ public class CollectVarsVisitor<T> implements InvariantsFormulaVisitor<T, Set<St
   @Override
   public Set<String> visit(Variable<T> pVariable) {
     return Collections.singleton(pVariable.getName());
+  }
+
+  @Override
+  public Set<String> visitFalse() {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Set<String> visitTrue() {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Set<String> visit(IfThenElse<T> pIfThenElse) {
+    return concat(
+        pIfThenElse.getCondition().accept(this),
+        concat(
+            pIfThenElse.getPositiveCase().accept(this),
+            pIfThenElse.getNegativeCase().accept(this))
+        );
+  }
+
+  @Override
+  public Set<String> visit(Cast<T> pCast) {
+    return pCast.getCasted().accept(this);
   }
 
   /**

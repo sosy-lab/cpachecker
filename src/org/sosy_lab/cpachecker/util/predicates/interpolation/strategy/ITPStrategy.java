@@ -35,11 +35,11 @@ import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 

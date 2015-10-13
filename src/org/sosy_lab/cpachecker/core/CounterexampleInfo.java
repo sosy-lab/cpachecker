@@ -73,6 +73,7 @@ public class CounterexampleInfo {
 
   public ARGPath getTargetPath() {
     checkState(!spurious);
+    assert targetPath != null;
 
     return targetPath;
   }

@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Collection;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -36,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
@@ -58,8 +55,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   private final BAMPredicateReducer reducer;
   private final BAMBlockOperator blk;
-  private final BAMPredicateCPAStatistics stats;
-  private final RelevantPredicatesComputer relevantPredicatesComputer;
+  private RelevantPredicatesComputer relevantPredicatesComputer;
 
   @Option(secure=true, description="whether to use auxiliary predidates for reduction")
   private boolean auxiliaryPredicateComputer = true;
@@ -80,16 +76,18 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
     } else {
       relevantPredicatesComputer = new RefineableOccurrenceComputer(fmgr);
     }
-    relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
-    this.relevantPredicatesComputer = relevantPredicatesComputer;
+    this.relevantPredicatesComputer = new CachingRelevantPredicatesComputer(relevantPredicatesComputer);
 
-    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this, relevantPredicatesComputer);
+    reducer = new BAMPredicateReducer(fmgr.getBooleanFormulaManager(), this);
     blk = pBlk;
-    stats = new BAMPredicateCPAStatistics(reducer);
   }
 
   RelevantPredicatesComputer getRelevantPredicatesComputer() {
     return relevantPredicatesComputer;
+  }
+
+  void setRelevantPredicatesComputer(RelevantPredicatesComputer pRelevantPredicatesComputer) {
+    relevantPredicatesComputer = pRelevantPredicatesComputer;
   }
 
   BlockPartitioning getPartitioning() {
@@ -103,15 +101,5 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    super.collectStatistics(pStatsCollection);
-    pStatsCollection.add(stats);
-  }
-
-  BAMPredicateCPAStatistics getBAMStats() {
-    return stats;
   }
 }

@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
@@ -49,14 +50,18 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
+public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState>, ForgetfulState<SMGStateInformation> {
 
   // Properties:
   public static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -100,9 +105,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (memoryErrors) {
-      logger.log(Level.WARNING, pMessage);
+      logger.log(Level.FINE, pMessage);
     } else if (pUndefinedBehavior) {
-      logger.log(Level.WARNING, pMessage );
+      logger.log(Level.FINE, pMessage );
       logger.log(Level.WARNING, "Non-target undefined behavior detected. The verification result is unreliable.");
     }
   }
@@ -208,21 +213,40 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pInvalidWrite;
   }
 
+  public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+      CLangSMG pHeap,
+      LogManager pLogger) {
+
+    heap = pHeap;
+    logger = pLogger;
+    explicitValues.putAll(pExplicitValues);
+
+    unknownOnUndefined = false;
+    runtimeCheckLevel = SMGRuntimeCheck.NONE;
+    predecessorId = -1;
+    memoryErrors = false;
+    invalidWrite = false;
+    invalidRead = false;
+    invalidFree = false;
+    id_counter = new AtomicInteger(1);
+    id = 0;
+
+  }
+
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *
    * Keeps consistency: yes
    *
-   * @param pType Type of the new object
+   * @param pTypeSize Size of the type of the new global variable
    * @param pVarName Name of the global variable
    * @return Newly created object
    *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addGlobalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object = new SMGRegion(size, pVarName);
+  public SMGObject addGlobalVariable(int pTypeSize, String pVarName) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
     heap.addGlobalObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -235,16 +259,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * Keeps consistency: yes
    *
-   * @param pType Type of the new object
+   * @param pTypeSize Size of the type the new local variable
    * @param pVarName Name of the local variable
    * @return Newly created object
    *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(CType pType, String pVarName) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object = new SMGRegion(size, pVarName);
+  public SMGObject addLocalVariable(int pTypeSize, String pVarName) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pTypeSize, pVarName);
 
     heap.addStackObject(new_object);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -257,7 +280,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * Keeps consistency: yes
    *
-   * @param pType Type of the new object
+   * @param pTypeSize Size of the type of the new variable
    * @param pVarName Name of the local variable
    * @param new_object object of local variable
    * @return given object
@@ -265,14 +288,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
    * and the checks are enabled
    */
-  public SMGObject addLocalVariable(CType pType, String pVarName, SMGRegion smgObject) throws SMGInconsistentException {
-    int size = heap.getMachineModel().getSizeof(pType);
-    SMGRegion new_object2 = new SMGRegion(size, pVarName);
+  public SMGObject addLocalVariable(int pTypeSize, String pVarName, SMGRegion smgObject) throws SMGInconsistentException {
+    SMGRegion new_object2 = new SMGRegion(pTypeSize, pVarName);
 
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
     // arrays are converted to pointers
-    assert smgObject.getSize() == size || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
+    assert smgObject.getSize() == pTypeSize || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -538,7 +560,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return writeValue(pObject, pOffset, pType, value);
   }
 
-  private void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
+  public void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
     if (!containsValue(pValue)) {
@@ -709,7 +731,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
-    return SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
+    boolean result = SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
+    return result;
   }
 
   @Override
@@ -931,14 +954,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   @Nullable
   public MemoryLocation resolveMemLoc(SMGAddress pValue, String pFunctionName) {
-    SMGObject object = pValue.getObject();
-    long offset = pValue.getOffset().getAsLong();
-
-    if (isGlobal(object) || isHeapObject(object)) {
-      return MemoryLocation.valueOf(object.getLabel(), offset);
-    } else {
-      return MemoryLocation.valueOf(pFunctionName, object.getLabel(), offset);
-    }
+    return heap.resolveMemLoc(pValue, pFunctionName);
   }
 
   /**
@@ -954,7 +970,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
    * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source
+   * @param pSourceRangeSize the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
    * @param pSourceRangeOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
@@ -1082,5 +1098,66 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   IDExpression createIDExpression(SMGObject pObject) {
     return heap.createIDExpression(pObject);
+  }
+
+  @Override
+  public SMGStateInformation forget(MemoryLocation pLocation) {
+    return heap.forget(pLocation);
+  }
+
+  @Override
+  public void remember(MemoryLocation pLocation, SMGStateInformation pForgottenInformation) {
+    heap.remember(pLocation, pForgottenInformation);
+  }
+
+  @Override
+  public Set<MemoryLocation> getTrackedMemoryLocations() {
+    return heap.getTrackedMemoryLocations();
+  }
+
+  @Override
+  public int getSize() {
+    return heap.getHVEdges().size();
+  }
+
+  public SMGInterpolant createInterpolant() {
+    // TODO Copy necessary?
+    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
+  }
+
+  public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
+    return heap.getTypeForMemoryLocation(pMemoryLocation);
+  }
+
+  public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
+
+    /* Treat functions as global objects with unnkown memory size.
+     * Only write them into the smg when necessary*/
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+
+    return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
+  }
+
+  public SMGObject createObjectForFunction(CFunctionDeclaration pDeclaration) throws SMGInconsistentException {
+
+    /* Treat functions as global variable with unknown memory size.
+     * Only write them into the smg when necessary*/
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+
+    assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;
+
+    return addGlobalVariable(0, functionQualifiedSMGName);
+  }
+
+  private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
+
+    StringBuilder functionName = new StringBuilder(pDeclaration.getQualifiedName());
+
+    for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
+      functionName.append("_");
+      functionName.append(parameterDcl.toASTString().replace("*", "_").replace(" ", "_"));
+    }
+
+    return "__" + functionName;
   }
 }

@@ -56,7 +56,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -131,9 +131,6 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // solver-statistics dump symbol-encoding
-    solver.collectStatistics(pStatsCollection);
-
     pStatsCollection.add(new Statistics() {
 
       @Override

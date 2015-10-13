@@ -31,6 +31,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 import com.google.common.base.Function;
@@ -76,7 +78,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
   public void setName(String pName) {
     checkState(name == null);
-    name = pName;
+    name = checkNotNull(pName);
   }
 
   @SuppressWarnings("unchecked")
@@ -102,6 +104,7 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   public String toASTString(final String pDeclarator, final Function<? super CType, String> pTypeToString) {
+    checkNotNull(pDeclarator);
     final StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -167,7 +170,7 @@ public class CFunctionType extends AFunctionType implements CType {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

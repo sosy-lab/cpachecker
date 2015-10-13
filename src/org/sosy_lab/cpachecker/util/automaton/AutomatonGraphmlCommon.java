@@ -38,6 +38,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -94,6 +97,11 @@ public class AutomatonGraphmlCommon {
     VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
 
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
+    PROGRAMFILE("programfile", "graph", "programFile", "string"),
+    SPECIFICATION("specification", "graph", "specification", "string"),
+    MEMORYMODEL("memorymodel", "graph", "memoryModel", "string"),
+    ARCHITECTURE("architecture", "graph", "architecture", "string"),
+    PRODUCER("producer", "graph", "producer", "string"),
 
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
     ORIGINLINE("startline", "edge", "startline", "int"),
@@ -304,9 +312,31 @@ public class AutomatonGraphmlCommon {
       target.append("<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
     }
 
-    public void appendGraphHeader(GraphType pGraphType, String pSourceLanguage) throws IOException {
+    public void appendGraphHeader(GraphType pGraphType,
+        Language pLanguage,
+        Iterable<String> pSpecifications,
+        String pProgramNames,
+        String pMemoryModel,
+        MachineModel pMachineModel) throws IOException {
       target.append("<graph edgedefault=\"directed\">");
-      appendDataElement(KeyDef.SOURCECODELANGUAGE, pSourceLanguage);
+      appendDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString());
+      appendDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion());
+      for (String specification : pSpecifications) {
+        appendDataElement(KeyDef.SPECIFICATION, specification);
+      }
+      appendDataElement(KeyDef.PROGRAMFILE, pProgramNames);
+      appendDataElement(KeyDef.MEMORYMODEL, pMemoryModel);
+      switch (pMachineModel) {
+        case LINUX32:
+          appendDataElement(KeyDef.ARCHITECTURE, "32bit");
+          break;
+        case LINUX64:
+          appendDataElement(KeyDef.ARCHITECTURE, "64bit");
+          break;
+        default:
+          appendDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString());
+          break;
+      }
     }
 
     public void appendNewKeyDef(KeyDef keyDef, @Nullable String defaultValue) {

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 
-public class ContainsOnlyEnvInfoVisitor<T> extends DefaultFormulaVisitor<T, Boolean> {
+public class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Boolean> implements BooleanFormulaVisitor<T, Boolean> {
 
   private final CollectVarsVisitor<T> collectVarsVisitor = new CollectVarsVisitor<>();
 
@@ -49,12 +49,23 @@ public class ContainsOnlyEnvInfoVisitor<T> extends DefaultFormulaVisitor<T, Bool
   }
 
   @Override
-  public Boolean visit(Union<T> pUnion) {
-    return pUnion.getOperand1().accept(this) && pUnion.getOperand2().accept(this);
+  public Boolean visitFalse() {
+    return true;
   }
 
   @Override
-  protected Boolean visitDefault(InvariantsFormula<T> pFormula) {
+  public Boolean visitTrue() {
+    return true;
+  }
+
+  @Override
+  public Boolean visit(Union<T> pUnion) {
+    return pUnion.getOperand1().accept(this)
+        && pUnion.getOperand2().accept(this);
+  }
+
+  @Override
+  protected Boolean visitDefault(NumeralFormula<T> pFormula) {
     return false;
   }
 

@@ -17,9 +17,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory;
+import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -42,7 +42,7 @@ public class InductiveWeakeningManagerTest {
             "cpa.predicate.solver", "Z3",
             "log.consoleLevel", "FINE",
 
-            // todo: just for easier debugging now.
+            // For easier debugging.
             "cpa.predicate.handlePointerAliasing", "false",
 
             "analysis.interprocedural", "false"

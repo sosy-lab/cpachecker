@@ -32,9 +32,9 @@ import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;

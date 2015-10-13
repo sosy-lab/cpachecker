@@ -94,13 +94,13 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaMa
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -429,10 +430,10 @@ public class CtoFormulaConverter {
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
     Formula result = makeCast0(pFromType, pToType, formula, constraints, edge);
 
-    if (options.replaceOverflowsWithUFs()) {
+    if (options.encodeOverflowsWithUFs()) {
       // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
       // and also type-based overflows like  "char c = (int)i;"  or  "unsigned int j = (int)i;"  .
-      result = replaceOverflowWithUF(result, pToType, constraints);
+      result = encodeOverflowsWithUF(result, pToType, constraints);
     }
 
     return result;
@@ -442,7 +443,7 @@ public class CtoFormulaConverter {
    *  that returns an UF (with additional constraints), if the formula causes an overflow,
    *  else the formula itself.
    *  Example:  ITE( MIN_INT <= X <= MAX_INT, X, UF(X) )  */
-  private Formula replaceOverflowWithUF(final Formula value, CType type, final Constraints constraints) {
+  private Formula encodeOverflowsWithUF(final Formula value, CType type, final Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
       final CSimpleType sType = (CSimpleType)type;
@@ -464,7 +465,8 @@ public class CtoFormulaConverter {
       }
 
       final Formula overflowUF = ffmgr.declareAndCallUninterpretedFunction(
-          String.format("__overflow_%s_%s_", signed ? "signed" : "unsigned", machineModel.getSizeofInBits(sType)),
+          // UF-string-format copied from ReplaceBitvectorWithNumeralAndFunctionTheory.getUFDecl
+          String.format("_%s%s(%d)_", "overflow", (signed ? "Signed" : "Unsigned"), machineModel.getSizeofInBits(sType)),
           numberType,
           Lists.<Formula>newArrayList(value));
       addRangeConstraint(overflowUF, type, constraints);
@@ -1290,6 +1292,11 @@ public class CtoFormulaConverter {
 
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
+  }
+
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
+      final PointerTargetSet pts2, final SSAMapBuilder resultSSA) throws InterruptedException {
+    return MergeResult.trivial(pts1, bfmgr);
   }
 
   protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(

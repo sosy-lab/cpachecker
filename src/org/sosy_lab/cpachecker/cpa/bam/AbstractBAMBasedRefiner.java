@@ -30,6 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -50,25 +50,22 @@ import com.google.errorprone.annotations.ForOverride;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
+public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner implements StatisticsProvider {
 
   final Timer computePathTimer = new Timer();
   final Timer computeSubtreeTimer = new Timer();
   final Timer computeCounterexampleTimer = new Timer();
+  final Timer removeCachedSubtreeTimer = new Timer();
 
-  private final BAMTransferRelation transfer;
   private final BAMCPA bamCpa;
   private final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   private ARGState rootOfSubgraph = null;
-
-  final static BackwardARGState DUMMY_STATE_FOR_MISSING_BLOCK = new BackwardARGState(new ARGState(null, null));
 
   protected AbstractBAMBasedRefiner(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     super(pCpa);
 
     bamCpa = (BAMCPA)pCpa;
-    transfer = bamCpa.getTransferRelation();
     bamCpa.getStatistics().addRefiner(this);
   }
 
@@ -91,7 +88,13 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
       return CounterexampleInfo.spurious();
     } else {
-      return performRefinement0(new BAMReachedSet(transfer, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph), pPath);
+      if (pReached instanceof BAMReachedSet) {
+        // this case exists to use a Refiner that already has a BAMReachedSet, for example DelegatingBAMRefiner.
+      } else {
+        // otherwise wrap the original reached-set to have a valid "view" on all reached states.
+        pReached = new BAMReachedSet(bamCpa, pReached, pPath, subgraphStatesToReachedState, rootOfSubgraph, removeCachedSubtreeTimer);
+      }
+      return performRefinement0(pReached, pPath);
     }
   }
 
@@ -100,14 +103,12 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     assert pLastElement.isTarget();
     assert pReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 
-    subgraphStatesToReachedState.clear();
-
     computePathTimer.start();
     try {
       computeSubtreeTimer.start();
       try {
-        rootOfSubgraph = transfer.computeCounterexampleSubgraph(pLastElement, pReachedSet, subgraphStatesToReachedState);
-        if (rootOfSubgraph == DUMMY_STATE_FOR_MISSING_BLOCK) {
+        rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pReachedSet);
+        if (rootOfSubgraph == BAMCEXSubgraphComputer.DUMMY_STATE_FOR_MISSING_BLOCK) {
           return null;
         }
       } finally {
@@ -124,5 +125,18 @@ public abstract class AbstractBAMBasedRefiner extends AbstractARGBasedRefiner {
     } finally {
       computePathTimer.stop();
     }
+  }
+
+  //returns root of a subtree leading from the root element of the given reachedSet to the target state
+  //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
+  //in the constructed subtree that represents target
+  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet reachedSet) {
+    assert reachedSet.asReachedSet().contains(target);
+
+    // cleanup old states from last refinement
+    subgraphStatesToReachedState.clear();
+
+    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa, subgraphStatesToReachedState);
+    return cexSubgraphComputer.computeCounterexampleSubgraph(target, reachedSet);
   }
 }

@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 import com.google.common.base.Function;
@@ -123,7 +125,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.ArrayFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -165,15 +165,16 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
     } else if (pLhs instanceof CArraySubscriptExpression) {
 
-      // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
-      if (pLhs.getExpressionType() instanceof CArrayType
-          && ((CArrayType) pLhs.getExpressionType()).getType() instanceof CArrayType) {
+      // a[e]
+      final CArraySubscriptExpression lhsExpr = (CArraySubscriptExpression) pLhs;
 
-        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported multi-dimensional arrays found!", pEdge.getRawStatement());
+      // ATTENTION: WE DO NOT SUPPORT MULTI-DIMENSIONAL-ARRAYS AT THE MOMENT!
+      if (lhsExpr.getArrayExpression() instanceof CArraySubscriptExpression) {
+        logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported "
+            + "multi-dimensional arrays found!", pEdge.getRawStatement());
         return bfmgr.makeBoolean(true);
       }
 
-      final CArraySubscriptExpression lhsExpr = (CArraySubscriptExpression) pLhs; // a[e]
       // .getArrayExpression() provides a CIdExpression
       //    with type CArrayType; this would be different for multi-dimensional arrays!!
       Verify.verify(lhsExpr.getArrayExpression() instanceof CIdExpression);

@@ -38,11 +38,13 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
@@ -154,6 +156,8 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
     }
   }
 
+  @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED",
+      justification="these objects never end up in the reached set and are never serialized")
   public static class ComputeAbstractionState extends PredicateAbstractState {
 
     private static final long serialVersionUID = -3961784113582993743L;

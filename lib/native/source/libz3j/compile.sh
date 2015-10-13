@@ -44,12 +44,12 @@ echo "Building the C wrapper code"
 echo "Compiling the C wrapper code and creating the \"z3j\" library"
 
 # This will compile the JNI wrapper part, given the JNI and the Z3 header files
-$COMPILER_CMD -g $JNI_HEADERS -I$Z3_SRC_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c -fPIC -c
+$COMPILER_CMD -g $JNI_HEADERS -I$Z3_SRC_DIR org_sosy_lab_solver_z3_Z3NativeApi.c -fPIC -c
 
 if [ $? -eq 0 ]; then
 	echo "JNI wrapper compiled"
 else
-	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o\""
+	echo "There was a problem during compilation of \"org_sosy_lab_solver_z3_Z3NativeApi.o\""
 	exit 1
 fi
 
@@ -57,7 +57,7 @@ if [[ `uname` == CYGWIN* ]] ; then
     echo "A failure in the following steps might be due to a wrong compiler environment. Has libz3.dll been compiled for 64bit?"
 fi
 
-$COMPILER_CMD -Wall -g -o $OUTFILENAME $LIB_SHARING -Wl,-soname,$OUTFILENAME -Wl,-rpath,'$ORIGIN' -L. -L$Z3_LIB_DIR -L$Z3_DIR org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.o $Z3_LIBNAME
+$COMPILER_CMD -Wall -g -o $OUTFILENAME $LIB_SHARING -Wl,-soname,$OUTFILENAME -Wl,-rpath,'$ORIGIN' -L. -L$Z3_LIB_DIR -L$Z3_DIR org_sosy_lab_solver_z3_Z3NativeApi.o $Z3_LIBNAME
 
 
 if [[ ! `uname` == CYGWIN* ]] ; then
@@ -65,7 +65,7 @@ if [[ ! `uname` == CYGWIN* ]] ; then
     if [ $? -eq 0 ]; then
     	strip $OUTFILENAME
     else
-    	echo "There was a problem during compilation of \"org_sosy_lab_cpachecker_util_predicates_z3_Z3NativeApi.c\""
+    	echo "There was a problem during compilation of \"org_sosy_lab_solver_z3_Z3NativeApi.c\""
     	exit 1
     fi
 

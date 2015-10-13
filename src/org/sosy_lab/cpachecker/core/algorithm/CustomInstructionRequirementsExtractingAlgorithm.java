@@ -79,6 +79,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
   private CFA cfa;
   private final Configuration config;
+  private final ConfigurableProgramAnalysis cpa;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -100,6 +101,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     this.logger = logger;
     this.shutdownNotifier = sdNotifier;
     this.config = config;
+    this.cpa = cpa;
 
     if (!(cpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
@@ -170,11 +172,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    */
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
-    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix, requirementsStateClass, config, shutdownNotifier, logger);
+    CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix,
+        requirementsStateClass, config, shutdownNotifier, logger, cpa);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     for (ARGState node : ciStartNodes) {
-      shutdownNotifier.shutdownIfNecessary();
+   shutdownNotifier.shutdownIfNecessary();
       try {
         writer.writeCIRequirement(node, findEndStatesFor(node, cia), cia.getAppliedCustomInstructionFor(node));
       } catch (IOException e) {

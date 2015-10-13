@@ -28,7 +28,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new addition formula for the given summands.
@@ -36,7 +36,7 @@ public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> imple
    * @param pSummand1 the first summand.
    * @param pSummand2 the second summand.
    */
-  private Add(InvariantsFormula<ConstantType> pSummand1, InvariantsFormula<ConstantType> pSummand2) {
+  private Add(NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
     super("+", true, pSummand1, pSummand2);
   }
 
@@ -45,7 +45,7 @@ public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> imple
    *
    * @return the first summand.
    */
-  public InvariantsFormula<ConstantType> getSummand1() {
+  public NumeralFormula<ConstantType> getSummand1() {
     return super.getOperand1();
   }
 
@@ -54,18 +54,18 @@ public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> imple
    *
    * @return the second summand.
    */
-  public InvariantsFormula<ConstantType> getSummand2() {
+  public NumeralFormula<ConstantType> getSummand2() {
     return super.getOperand2();
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -77,7 +77,7 @@ public class Add<ConstantType> extends AbstractBinaryFormula<ConstantType> imple
    *
    * @return the sum of the given formulae.
    */
-  static <ConstantType> Add<ConstantType> of(InvariantsFormula<ConstantType> pSummand1, InvariantsFormula<ConstantType> pSummand2) {
+  static <ConstantType> Add<ConstantType> of(NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
     return new Add<>(pSummand1, pSummand2);
   }
 

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -34,28 +33,29 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcherImpl;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
+import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.solver.logging.LoggingOptEnvironment;
+import org.sosy_lab.solver.logging.LoggingProverEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
@@ -73,7 +73,7 @@ import com.google.common.collect.Maps;
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
 @Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
-public final class Solver implements AutoCloseable, StatisticsProvider {
+public final class Solver implements AutoCloseable {
 
   @Option(secure=true, name="useLogger",
       description="log some solver actions, this may be slow!")
@@ -82,6 +82,7 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
+  private final UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -92,6 +93,7 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
   private final LogManager logger;
+  private final Configuration config;
 
   // stats
   public final Timer solverTime = new Timer();
@@ -110,11 +112,18 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
   public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    this.config = config;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     logger = pLogger;
     solvingFormulaManager = pFactory.getFormulaManager();
     interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
+
+    if (checkUFs) {
+      ufCheckingProverOptions = new UFCheckingProverOptions(config);
+    } else {
+      ufCheckingProverOptions = null;
+    }
   }
 
   /**
@@ -179,7 +188,7 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
     }
 
     if (checkUFs) {
-      pe = new UFCheckingProverEnvironment(logger, pe, fmgr);
+      pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
     }
 
     return pe;
@@ -216,7 +225,7 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
     }
 
     if (checkUFs) {
-      ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr);
+      ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr, ufCheckingProverOptions);
     }
 
     return ipeA;
@@ -396,12 +405,11 @@ public final class Solver implements AutoCloseable, StatisticsProvider {
   }
 
   public SmtAstMatcher getSmtAstMatcher() {
-    return solvingFormulaManager.getSmtAstMatcher();
+    return new SmtAstMatcherImpl(
+        solvingFormulaManager.getUnsafeFormulaManager(),
+        solvingFormulaManager.getBooleanFormulaManager(),
+        solvingFormulaManager.getQuantifiedFormulaManager(),
+        solvingFormulaManager
+    );
   }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    fmgr.collectStatistics(pStatsCollection);
-  }
-
 }

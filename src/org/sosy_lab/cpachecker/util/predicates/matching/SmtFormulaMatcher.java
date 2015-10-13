@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.matching;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
 
 public interface SmtFormulaMatcher {
   public boolean formulaMatches(final FormulaManager pMgr, final Formula pF);

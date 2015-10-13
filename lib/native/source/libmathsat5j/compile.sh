@@ -54,8 +54,8 @@ if [ ! -f "$GMP_LIB_DIR/libgmp.a" ]; then
 	exit 1
 fi
 
-SRC_FILES="org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c versions.c"
-OBJ_FILES="org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.o"
+SRC_FILES="org_sosy_1lab_solver_mathsat5_Mathsat5NativeApi.c versions.c"
+OBJ_FILES="org_sosy_1lab_solver_mathsat5_Mathsat5NativeApi.o"
 
 if [ "$3" = "-opt" ]; then
     echo "Compiling bindings to OptiMathSAT"
@@ -82,13 +82,13 @@ fi
 
 
 if [ $? -eq 0 ]; then
-	strip libmathsat5j.so
+	strip $OUT_FILE
 else
-	echo "There was a problem during compilation of \"org_sosy_1lab_cpachecker_util_predicates_mathsat5_Mathsat5NativeApi.c\""
+	echo "There was a problem during compilation of \"org_sosy_1lab_solver_mathsat5_Mathsat5NativeApi.c\""
 	exit 1
 fi
 
-MISSING_SYMBOLS="$(readelf -Ws libmathsat5j.so | grep NOTYPE | grep GLOBAL | grep UND)"
+MISSING_SYMBOLS="$(readelf -Ws $OUT_FILE | grep NOTYPE | grep GLOBAL | grep UND)"
 if [ ! -z "$MISSING_SYMBOLS" ]; then
 	echo "Warning: There are the following unresolved dependencies in libmathsat5j.so:"
 	readelf -Ws $OBJ_FILES | grep NOTYPE | grep GLOBAL | grep UND

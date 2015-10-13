@@ -55,7 +55,8 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Function;
+import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.AssignableTerm.Function;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -213,6 +214,11 @@ public abstract class VariableTrackingPrecision implements Precision {
   @ForOverride
   protected abstract Class<? extends ConfigurableProgramAnalysis> getCPAClass();
 
+  @Override
+  abstract public boolean equals(Object other);
+
+  @Override
+  abstract public int hashCode();
 
   @Options(prefix="precision")
   private static class RefinablePrecisionOptions {
@@ -420,6 +426,25 @@ public abstract class VariableTrackingPrecision implements Precision {
       return false;
     }
 
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof ConfigurablePrecision
+          && tracksTheSameVariablesAs((ConfigurablePrecision)other);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          variableBlacklist,
+          variableWhitelist,
+          trackBooleanVariables,
+          trackIntEqualVariables,
+          trackIntAddVariables,
+          trackFloatVariables,
+          trackAddressedVariables
+          );
+    }
+
   }
 
 
@@ -452,6 +477,18 @@ public abstract class VariableTrackingPrecision implements Precision {
     @Override
     protected final Class<? extends ConfigurableProgramAnalysis> getCPAClass() {
       return baseline.getCPAClass();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other != null
+          && other instanceof RefinablePrecision
+          && baseline.equals(((RefinablePrecision)other).baseline);
+    }
+
+    @Override
+    public int hashCode() {
+      return baseline.hashCode();
     }
   }
 
@@ -536,6 +573,18 @@ public abstract class VariableTrackingPrecision implements Precision {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return super.equals(other)
+          && other instanceof LocalizedRefinablePrecision
+          && rawPrecision.equals(((LocalizedRefinablePrecision)other).rawPrecision);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 31 + rawPrecision.hashCode();
     }
   }
 
@@ -634,6 +683,18 @@ public abstract class VariableTrackingPrecision implements Precision {
         return true;
       }
       return false;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return super.equals(other)
+          && other instanceof ScopedRefinablePrecision
+          && rawPrecision.equals(((ScopedRefinablePrecision)other).rawPrecision);
+    }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() * 31 + rawPrecision.hashCode();
     }
   }
 

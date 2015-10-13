@@ -64,13 +64,11 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -87,6 +85,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -126,7 +127,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   Configuration config;
 
   // the previously analyzed counterexample to detect repeated counterexamples
-  private List<BooleanFormula> lastErrorPath = null;
+  private List<CFANode> lastErrorPath = null;
 
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
@@ -248,9 +249,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
     // create list of formulas on path
-    final List<BooleanFormula> formulas = (isRefinementSelectionEnabled(allStatesTrace))
-      ? recomputePathFormulae(allStatesTrace)
-      : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    final List<BooleanFormula> formulas;
+    try {
+      formulas = (isRefinementSelectionEnabled(allStatesTrace))
+        ? recomputePathFormulae(allStatesTrace)
+        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Exception", e);
+    }
 
     assert abstractionStatesTrace.size() == formulas.size();
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
@@ -269,8 +275,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      boolean repeatedCounterexample = formulas.equals(lastErrorPath);
-      lastErrorPath = formulas;
+      final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+      boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
+      lastErrorPath = errorPath;
 
       strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
 

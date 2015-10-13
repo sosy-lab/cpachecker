@@ -27,21 +27,25 @@ import java.math.BigInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm.Function;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
+import org.sosy_lab.solver.AssignableTerm.Function;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 
 /** This class contains code for a better evaluation of UFs. */
 public class FunctionApplicationManager {
 
   private final FormulaManagerView fmgr;
   private final LogManager logger;
+  private final UFCheckingProverOptions options;
 
-  public FunctionApplicationManager(FormulaManagerView pFmgr, LogManager pLogger) {
+  public FunctionApplicationManager(FormulaManagerView pFmgr, LogManager pLogger,
+      UFCheckingProverOptions pOptions) {
     this.fmgr = pFmgr;
     this.logger = pLogger;
+    this.options = pOptions;
   }
 
   /**
@@ -80,7 +84,7 @@ public class FunctionApplicationManager {
     }
     }
 
-    if (func.getName().startsWith("__overflow_")) {
+    if (func.getName().startsWith("_overflow")) {
       return OVERFLOW.apply(func, value);
     }
 
@@ -154,6 +158,11 @@ public class FunctionApplicationManager {
 
       BigInteger p1 = (BigInteger) func.getArgument(0);
       BigInteger validResult = compute(func, p1);
+
+      if (validResult == null) {
+        // evaluation not possible, ignore UF
+        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+      }
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
@@ -267,14 +276,22 @@ public class FunctionApplicationManager {
 
     @Override
     BigInteger compute(Function func, BigInteger p1) {
-      String[] parts = func.getName().split("_");
-      assert parts.length == 5 : "we expect a function-name like '__overflow_signed_32_'.";
-      assert "signed".equals(parts[3]) || "unsigned".equals(parts[3]);
-
-      return overflow("signed".equals(parts[3]), Integer.parseInt(parts[4]), p1);
+      final String name = func.getName();
+      assert name.startsWith("_overflowSigned") || name.startsWith("_overflowUnsigned");
+      final boolean signed = name.startsWith("_overflowSigned");
+      String length = name.substring(name.indexOf("(") + 1, name.indexOf(")"));
+      return overflow(signed, Integer.parseInt(length), p1);
     }
 
     private BigInteger overflow(boolean signed, int bitsize, BigInteger value) {
+
+      if (signed && !options.isSignedOverflowSafe()) {
+        // According to C99-standard, signed integer overflow is not specified.
+        // Thus no evaluation is possible, every value is allowed.
+        // As the SMT-solver has a satisfiable term with this value, just return NULL to ignore the value.
+        return null;
+      }
+
       final BigInteger range = BigInteger.ONE.shiftLeft(bitsize);
 
       // (value % range) is guaranteed to be in range, and always >=0.
@@ -285,7 +302,6 @@ public class FunctionApplicationManager {
       if (signed && value.compareTo(max) >= 0) {
         value = value.subtract(range);
       }
-
       return value;
     }
   };
