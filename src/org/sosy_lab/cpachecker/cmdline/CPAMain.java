@@ -166,6 +166,17 @@ public class CPAMain {
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private Path memsafetyConfig = null;
+
+    @Option(secure=true, name="overflow.check",
+        description="Whether to check for the overflow property "
+            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
+    private boolean checkOverflow = false;
+
+    @Option(secure=true, name="overflow.config",
+        description="When checking for the overflow property, "
+            + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private Path overflowConfig = null;
   }
 
   @Options
@@ -249,6 +260,20 @@ public class CPAMain {
                             .setOptions(cmdLineOptions)
                             .clearOption("memorysafety.check")
                             .clearOption("memorysafety.config")
+                            .clearOption("output.disable")
+                            .clearOption("output.path")
+                            .clearOption("rootDirectory")
+                            .build();
+    }
+    if (options.checkOverflow) {
+      if (options.overflowConfig == null) {
+        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
+      }
+      config = Configuration.builder()
+                            .loadFromFile(options.overflowConfig)
+                            .setOptions(cmdLineOptions)
+                            .clearOption("overflow.check")
+                            .clearOption("overflow.config")
                             .clearOption("output.disable")
                             .clearOption("output.path")
                             .clearOption("rootDirectory")

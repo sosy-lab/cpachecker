@@ -2121,6 +2121,14 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# Whether to check for the overflow property (this can be specified by
+# passing an appropriate .prp file to the -spec parameter).
+overflow.check = false
+
+# When checking for the overflow property, use this configuration file
+# instead of the current one.
+overflow.config = no default value
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]

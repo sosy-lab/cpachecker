@@ -384,6 +384,7 @@ class CmdLineArguments {
                 newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.OVERFLOW))) {
+                putIfNotExistent(options, "overflow.check", "true");
                 newValue = OVERFLOW_SPECIFICATION_FILE;
 
               } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
