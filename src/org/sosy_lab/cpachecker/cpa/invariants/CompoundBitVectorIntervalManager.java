@@ -142,7 +142,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
 
   @Override
   public CompoundInterval castedSingleton(BigInteger pValue) {
-    return CompoundBitVectorInterval.cast(info, pValue, pValue, allowSignedWrapAround, overflowEventHandler);
+    return CompoundBitVectorInterval.cast(info, pValue, pValue, allowSignedWrapAround, OverflowEventHandler.EMPTY);
   }
 
   @Override
@@ -270,7 +270,7 @@ public class CompoundBitVectorIntervalManager implements CompoundIntervalManager
   @Override
   public CompoundInterval cast(BitVectorInfo pInfo, CompoundInterval pToCast) {
     checkOperand(pToCast);
-    return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround, overflowEventHandler);
+    return ((CompoundBitVectorInterval) pToCast).cast(pInfo, allowSignedWrapAround, OverflowEventHandler.EMPTY);
   }
 
   private static void checkOperand(CompoundInterval pOperand) {

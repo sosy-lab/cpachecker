@@ -661,6 +661,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
 
     // If the type is signed, overflow is undefined
     if (!pAllowSignedWrapAround && pInfo.isSigned()) {
+      pOverflowEventHandler.signedOverflow();
       return of(pInfo.getRange());
     }
 
