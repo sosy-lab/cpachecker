@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.automaton;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Map;
-import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
@@ -39,8 +38,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -57,7 +54,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.io.CharStreams;
@@ -103,8 +99,6 @@ public class AutomatonGraphmlCommon {
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", "graph", "programFile", "string"),
     SPECIFICATION("specification", "graph", "specification", "string"),
-    SPECIFICATIONNAME("specificationname", "data", "specificationname", "string"),
-    SPECIFICATIONCONTENT("specificationcontent", "data", "specificationcontent", "string"),
     MEMORYMODEL("memorymodel", "graph", "memoryModel", "string"),
     ARCHITECTURE("architecture", "graph", "architecture", "string"),
     PRODUCER("producer", "graph", "producer", "string"),
@@ -318,32 +312,17 @@ public class AutomatonGraphmlCommon {
       target.append("<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
     }
 
-    public void appendGraphHeader(LogManager pLogger, GraphType pGraphType,
+    public void appendGraphHeader(GraphType pGraphType,
         Language pLanguage,
-        Iterable<Path> pSpecifications,
+        Iterable<String> pSpecifications,
         String pProgramNames,
         String pMemoryModel,
         MachineModel pMachineModel) throws IOException {
       target.append("<graph edgedefault=\"directed\">");
       appendDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString());
       appendDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion());
-      for (Path specificationPath : pSpecifications) {
-        String content;
-        try {
-          content = specificationPath.asCharSource(Charsets.UTF_8).read().trim();
-        } catch (IOException e) {
-          pLogger.logException(Level.WARNING, e, "Could not export specification to witness.");
-          content = "Unknown specification";
-        }
-        if (!content.startsWith("<")) {
-          Element nameElement = createDataElement(KeyDef.SPECIFICATIONNAME, specificationPath.getName());
-          Element contentElement = createDataElement(KeyDef.SPECIFICATIONCONTENT, content);
-          Element specificationElement = createElement(GraphMlTag.DATA);
-          specificationElement.setAttribute("key", KeyDef.SPECIFICATION.id);
-          specificationElement.appendChild(nameElement);
-          specificationElement.appendChild(contentElement);
-          appendToAppendable(specificationElement);
-        }
+      for (String specification : pSpecifications) {
+        appendDataElement(KeyDef.SPECIFICATION, specification);
       }
       appendDataElement(KeyDef.PROGRAMFILE, pProgramNames);
       appendDataElement(KeyDef.MEMORYMODEL, pMemoryModel);

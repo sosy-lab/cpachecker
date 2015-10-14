@@ -39,6 +39,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.w3c.dom.Element;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -727,10 +729,21 @@ public class ARGPathExport {
       doc.appendDocHeader();
       appendKeyDefinitions(doc, graphType);
       doc.appendGraphHeader(
-          logger,
           graphType,
           language,
-          hackyOptions.propertyFiles,
+          FluentIterable.from(hackyOptions.propertyFiles).transform(new Function<Path, String>() {
+
+            @Override
+            public String apply(Path pArg0) {
+              try {
+                return pArg0.asCharSource(Charsets.UTF_8).read().trim();
+              } catch (IOException e) {
+                logger.logUserException(Level.WARNING, e, "Could not export specification to witness.");
+                return "Unknown specification";
+              }
+            }
+
+          }),
           hackyOptions.programs,
           hackyOptions.handlePointerAliasing ? "precise" : "simple",
           machineModel);
