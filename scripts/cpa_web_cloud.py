@@ -48,10 +48,10 @@ RESULT_KEYS = ["cputime", "walltime", "returnvalue"]
 SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
                         RESULT_FILE_HOST_INFO, 'runDescription.txt'}
 
-__webclient = None
+_webclient = None
 
 
-def __create_argument_parser():
+def _create_argument_parser():
     """
     Create a parser for the command-line options.
     @return: an argparse.ArgumentParser instance
@@ -120,7 +120,7 @@ def __create_argument_parser():
 
     return parser
 
-def __setup_logging(config):
+def _setup_logging(config):
     """
     Configure the logging framework.
     """
@@ -131,11 +131,11 @@ def __setup_logging(config):
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.INFO)
 
-def __init(config):
+def _init(config):
     """
-    Sets __webclient if it is defined in the given config.
+    Sets _webclient if it is defined in the given config.
     """
-    global __webclient
+    global _webclient
     
     if not config.cpu_model:
         logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
@@ -145,13 +145,13 @@ def __init(config):
         logging.warning("No URL of a VerifierCloud instance is given.")
         return
         
-    (svn_branch, svn_revision) = __get_revision(config)
+    (svn_branch, svn_revision) = _get_revision(config)
         
-    __webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision)
+    _webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision)
 
-    logging.info('Using tool version {0}.'.format(__webclient.tool_revision()))
+    logging.info('Using tool version {0}.'.format(_webclient.tool_revision()))
 
-def __get_revision(config):
+def _get_revision(config):
     """
     Extracts branch and revision number from the given config parameter.
     @return: (branch, revision number)
@@ -168,7 +168,7 @@ def __get_revision(config):
         return ('trunk', 'HEAD')      
    
     
-def __submit_run(config, cpachecker_args, counter=0):
+def _submit_run(config, cpachecker_args, counter=0):
     """
     Submits a single run using the web interface of the VerifierCloud.
     @return: the run's result
@@ -181,17 +181,17 @@ def __submit_run(config, cpachecker_args, counter=0):
     if config.corelimit:
         limits['corelimit'] = config.corelimit
     
-    run = __parse_cpachecker_args(cpachecker_args)
+    run = _parse_cpachecker_args(cpachecker_args)
     
     print(run.options)
     print(run.sourcefiles)
     
-    run_result_future = __webclient.submit(run, limits, config.cpu_model, \
+    run_result_future = _webclient.submit(run, limits, config.cpu_model, \
                               config.result_file_pattern, config.cloud_priority )
-    __webclient.flush_runs()
+    _webclient.flush_runs()
     return run_result_future.result()
 
-def __parse_cpachecker_args(cpachecker_args):
+def _parse_cpachecker_args(cpachecker_args):
     """
     Parses the given CPAchecker arguments.
     @return:  Run object with options, identifier and list of source files
@@ -224,7 +224,7 @@ def __parse_cpachecker_args(cpachecker_args):
 
     return run
     
-def __parse_result(zip_content, config, cpachecker_args):
+def _parse_result(zip_content, config, cpachecker_args):
     """
     Parses the given result: Extract meta information 
     and write all files to the 'output_path' defined in the config parameter.
@@ -236,7 +236,7 @@ def __parse_result(zip_content, config, cpachecker_args):
     try:
         try:
             with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
-                return_value = __handle_result(result_zip_file, config, cpachecker_args)
+                return_value = _handle_result(result_zip_file, config, cpachecker_args)
         
         except zipfile.BadZipfile:
             logging.warning('Server returned illegal zip file with results of run {}.'.format(cpachecker_args))
@@ -250,7 +250,7 @@ def __parse_result(zip_content, config, cpachecker_args):
     return return_value
 
 
-def __handle_result(resultZipFile, config, cpachecker_args):
+def _handle_result(resultZipFile, config, cpachecker_args):
     """
     Extraxts all files from the given zip file, parses the meta information 
     and writes all files to the 'output_path' defined in the config parameter.
@@ -262,7 +262,7 @@ def __handle_result(resultZipFile, config, cpachecker_args):
     # extract run info
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            (_, _, return_value, values) = __parse_cloud_result_file(runInformation)
+            (_, _, return_value, values) = _parse_cloud_result_file(runInformation)
             print("run information:")
             for key, value in values.items():
                 print ('\t' + str(key) + ": " + str(value))
@@ -273,7 +273,7 @@ def __handle_result(resultZipFile, config, cpachecker_args):
     # extract host info
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = __parse_worker_host_information(hostInformation)
+            values = _parse_worker_host_information(hostInformation)
             print("host information:")
             for key, value in values.items():
                 print ('\t' + str(key) + ": " + str(value))
@@ -302,12 +302,12 @@ def __handle_result(resultZipFile, config, cpachecker_args):
 
     return return_value
 
-def __parse_worker_host_information(file):
+def _parse_worker_host_information(file):
     """
     Parses the mete file containing information about the host executed the run.
     Returns a dict of all values.
     """
-    values = __parse_file(file)
+    values = _parse_file(file)
 
     values["host"] = values.pop("@vcloud-name", "-")
     values.pop("@vcloud-os", "-")
@@ -317,12 +317,12 @@ def __parse_worker_host_information(file):
     values.pop("@vcloud-cores", "-")
     return values
 
-def __parse_cloud_result_file(file):
+def _parse_cloud_result_file(file):
     """
     Parses the mete file containing information about the run.
     Returns a dict of all values.
     """
-    values = __parse_file(file)
+    values = _parse_file(file)
 
     return_value = int(values["@vcloud-exitcode"])
     walltime = float(values["walltime"].strip('s'))
@@ -337,7 +337,7 @@ def __parse_cloud_result_file(file):
 
     return (walltime, cputime, return_value, values)
 
-def __parse_file(file):
+def _parse_file(file):
     """
     Parses a file containing key value pairs in each line. 
     @return:  a dict of the parsed key value pairs.
@@ -355,20 +355,20 @@ def __parse_file(file):
 
     return values
 
-def __execute():
+def _execute():
     """
     Executes a single CPAchecker run in the VerifierCloud vis the web front end.
     All informations are given by the command line arguments.
     @return: the return value of CPAchecker
     """
-    arg_parser = __create_argument_parser()
+    arg_parser = _create_argument_parser()
     (config, cpachecker_args) = arg_parser.parse_known_args()
-    __setup_logging(config)
-    __init(config)
+    _setup_logging(config)
+    _init(config)
     
     try:
-        run_result = __submit_run(config, cpachecker_args)
-        return __parse_result(run_result, config, cpachecker_args)
+        run_result = _submit_run(config, cpachecker_args)
+        return _parse_result(run_result, config, cpachecker_args)
     
     except request.HTTPError as e:
         logging.warn(e.reason)
@@ -376,8 +376,8 @@ def __execute():
         logging.warn(str(e))
     
     finally:
-        __webclient.shutdown()
+        _webclient.shutdown()
         
 
-if __name__ == "__main__":
-    sys.exit(__execute())
+if _name_ == "_main_":
+    sys.exit(_execute())

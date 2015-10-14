@@ -48,10 +48,10 @@ RESULT_KEYS = ["cputime", "walltime", "returnvalue"]
 SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
                         RESULT_FILE_HOST_INFO, 'runDescription.txt'}
 
-__webclient = None
+_webclient = None
 
 
-def __create_argument_parser():
+def _create_argument_parser():
     """
     Create a parser for the command-line options.
     @return: an argparse.ArgumentParser instance
@@ -59,8 +59,7 @@ def __create_argument_parser():
     
     parser = argparse.ArgumentParser("Executes a witness validation task in the VerifierCloud and uses the web interface." \
                                       + "Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
-                                    fromfile_prefix_chars='@',
-                                    add_help=False) # conflict with -heap
+                                    fromfile_prefix_chars='@')
 
     parser.add_argument("--cloudMaster",
                       dest="cloud_master",
@@ -103,7 +102,7 @@ def __create_argument_parser():
 
     return parser
 
-def __setup_logging(config):
+def _setup_logging(config):
     """
     Configure the logging framework.
     """
@@ -114,29 +113,29 @@ def __setup_logging(config):
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.INFO)
 
-def __init(config):
+def _init(config):
     """
-    Sets __webclient if it is defined in the given config.
+    Sets _webclient if it is defined in the given config.
     """
-    global __webclient
+    global _webclient
     
     if not config.cloud_master:
         logging.warning("No URL of a VerifierCloud instance is given.")
         return
         
-    __webclient = WebInterface(config.cloud_master, config.cloud_user)   
+    _webclient = WebInterface(config.cloud_master, config.cloud_user)   
     
-def __submit_run(config):
+def _submit_run(config):
     """
     Submits a single run using the web interface of the VerifierCloud.
     @return: the run's result
     """            
-    run_result_future = __webclient.submit_witness_validation(\
+    run_result_future = _webclient.submit_witness_validation(\
           config.witness_file, config.program_file, config.configuration, config.cloud_user)
-    __webclient.flush_runs()
+    _webclient.flush_runs()
     return run_result_future.result()
     
-def __parse_result(zip_content, config):
+def _parse_result(zip_content, config):
     """
     Parses the given result: Extract meta information 
     and write all files to the 'output_path' defined in the config parameter.
@@ -148,7 +147,7 @@ def __parse_result(zip_content, config):
     try:
         try:
             with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
-                return_value = __handle_result(result_zip_file, config)
+                return_value = _handle_result(result_zip_file, config)
         
         except zipfile.BadZipfile:
             logging.warning('Server returned illegal zip file with results of run.')
@@ -162,7 +161,7 @@ def __parse_result(zip_content, config):
     return return_value
 
 
-def __handle_result(resultZipFile, config):
+def _handle_result(resultZipFile, config):
     """
     Extraxts all files from the given zip file, parses the meta information 
     and writes all files to the 'output_path' defined in the config parameter.
@@ -174,7 +173,7 @@ def __handle_result(resultZipFile, config):
     # extract run info
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            (_, _, return_value, values) = __parse_cloud_result_file(runInformation)
+            (_, _, return_value, values) = _parse_cloud_result_file(runInformation)
             print("run information:")
             for key, value in values.items():
                 print ('\t' + str(key) + ": " + str(value))
@@ -185,7 +184,7 @@ def __handle_result(resultZipFile, config):
     # extract host info
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = __parse_worker_host_information(hostInformation)
+            values = _parse_worker_host_information(hostInformation)
             print("host information:")
             for key, value in values.items():
                 print ('\t' + str(key) + ": " + str(value))
@@ -214,12 +213,12 @@ def __handle_result(resultZipFile, config):
 
     return return_value
 
-def __parse_worker_host_information(file):
+def _parse_worker_host_information(file):
     """
     Parses the mete file containing information about the host executed the run.
     Returns a dict of all values.
     """
-    values = __parse_file(file)
+    values = _parse_file(file)
 
     values["host"] = values.pop("@vcloud-name", "-")
     values.pop("@vcloud-os", "-")
@@ -229,12 +228,12 @@ def __parse_worker_host_information(file):
     values.pop("@vcloud-cores", "-")
     return values
 
-def __parse_cloud_result_file(file):
+def _parse_cloud_result_file(file):
     """
     Parses the mete file containing information about the run.
     Returns a dict of all values.
     """
-    values = __parse_file(file)
+    values = _parse_file(file)
 
     return_value = int(values["@vcloud-exitcode"])
     walltime = float(values["walltime"].strip('s'))
@@ -249,7 +248,7 @@ def __parse_cloud_result_file(file):
 
     return (walltime, cputime, return_value, values)
 
-def __parse_file(file):
+def _parse_file(file):
     """
     Parses a file containing key value pairs in each line. 
     @return:  a dict of the parsed key value pairs.
@@ -267,20 +266,20 @@ def __parse_file(file):
 
     return values
 
-def __execute():
+def _execute():
     """
     Executes a single CPAchecker run in the VerifierCloud via the web front end.
     All informations are given by the command line arguments.
     @return: the return value of CPAchecker
     """
-    arg_parser = __create_argument_parser()
+    arg_parser = _create_argument_parser()
     config = arg_parser.parse_args()
-    __setup_logging(config)
-    __init(config)
+    _setup_logging(config)
+    _init(config)
     
     try:
-        run_result = __submit_run(config)
-        return __parse_result(run_result, config)
+        run_result = _submit_run(config)
+        return _parse_result(run_result, config)
     
     except request.HTTPError as e:
         logging.warn(e.reason)
@@ -288,8 +287,8 @@ def __execute():
         logging.warn(str(e))
     
     finally:
-        __webclient.shutdown()
+        _webclient.shutdown()
         
 
 if __name__ == "__main__":
-    sys.exit(__execute())
+    sys.exit(_execute())
