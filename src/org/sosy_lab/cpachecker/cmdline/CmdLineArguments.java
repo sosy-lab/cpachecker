@@ -29,7 +29,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -95,7 +94,9 @@ class CmdLineArguments {
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
   private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp-errorlabel.spc";
   private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE = "config/specification/sv-comp-memorysafety.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "config/specification/memorysafety-deref.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "config/specification/memorysafety-free.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "config/specification/memorysafety-memtrack.spc";
   private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
@@ -304,6 +305,17 @@ class CmdLineArguments {
     properties.put(key, value);
   }
 
+  private static void putIfNotDifferent(final Map<String, String> properties, final String key, final String value)
+      throws InvalidCmdlineArgumentException {
+
+    if (properties.containsKey(key) && !properties.get(key).equals(value)) {
+      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line, "
+          + "with different values " + properties.get(key) + " and " + value + ".");
+    }
+
+    properties.put(key, value);
+  }
+
   /**
    * Handle a command line argument with no value.
    */
@@ -374,26 +386,7 @@ class CmdLineArguments {
               Set<PropertyType> properties = parser.getProperties();
               assert !properties.isEmpty();
 
-              if (properties.equals(EnumSet.of(PropertyType.VALID_DEREF,
-                                               PropertyType.VALID_FREE,
-                                               PropertyType.VALID_MEMTRACK))) {
-                putIfNotExistent(options, "memorysafety.check", "true");
-                newValue = MEMORYSAFETY_SPECIFICATION_FILE;
-
-              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY_LABEL))) {
-                newValue = REACHABILITY_LABEL_SPECIFICATION_FILE;
-
-              } else if (properties.equals(EnumSet.of(PropertyType.OVERFLOW))) {
-                putIfNotExistent(options, "overflow.check", "true");
-                newValue = OVERFLOW_SPECIFICATION_FILE;
-
-              } else if (properties.equals(EnumSet.of(PropertyType.REACHABILITY))) {
-                newValue = REACHABILITY_SPECIFICATION_FILE;
-
-              } else {
-                ERROR_OUTPUT.println("Checking for the properties " + properties + " is currently not supported by CPAchecker.");
-                System.exit(ERROR_EXIT_CODE);
-              }
+              newValue = getSpecifications(options, properties);
 
             } else {
               ERROR_OUTPUT.println("The property file " + newValue + " does not exist.");
@@ -419,6 +412,46 @@ class CmdLineArguments {
     } else {
       return false;
     }
+  }
+
+  /** This method returns all specifications for the given properties.
+   * If needed for the analysis, some options can be set. */
+  private static String getSpecifications(final Map<String, String> options,
+      Set<PropertyType> properties) throws InvalidCmdlineArgumentException {
+    final List<String> specifications = new ArrayList<>();
+    for (PropertyType property : properties) {
+      String newSpec = null;
+      switch (property) {
+      case VALID_DEREF:
+        putIfNotDifferent(options, "memorysafety.check", "true");
+        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_DEREF;
+        break;
+      case VALID_FREE:
+        putIfNotDifferent(options, "memorysafety.check", "true");
+        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_FREE;
+        break;
+      case VALID_MEMTRACK:
+        putIfNotDifferent(options, "memorysafety.check", "true");
+        newSpec = MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK;
+        break;
+      case REACHABILITY_LABEL:
+        newSpec = REACHABILITY_LABEL_SPECIFICATION_FILE;
+        break;
+      case OVERFLOW:
+        putIfNotExistent(options, "overflow.check", "true");
+        newSpec = OVERFLOW_SPECIFICATION_FILE;
+        break;
+      case REACHABILITY:
+        newSpec = REACHABILITY_SPECIFICATION_FILE;
+        break;
+      default:
+        ERROR_OUTPUT.println("Checking for the property " + property + " is currently not supported by CPAchecker.");
+        System.exit(ERROR_EXIT_CODE);
+      }
+      assert newSpec != null;
+      specifications.add(newSpec);
+    }
+    return Joiner.on(",").join(specifications);
   }
 
   /**
