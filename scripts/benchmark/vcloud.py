@@ -51,6 +51,7 @@ _ROOT_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.
 _justReprocessResults = False
 
 def init(config, benchmark):
+    global _justReprocessResults
     _justReprocessResults = config.reprocessResults
     benchmark.executable = benchmark.tool.executable()
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -108,6 +109,7 @@ def execute_benchmark(benchmark, output_handler):
                 output_handler.set_error(errorMsg)
     else:
         returnCode = 0
+        usedWallTime = None
 
     handleCloudResults(benchmark, output_handler, usedWallTime)
 
