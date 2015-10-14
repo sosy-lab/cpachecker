@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
@@ -32,6 +32,8 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -84,33 +86,31 @@ public class MultiPropertyAlgorithm implements Algorithm {
     return result.build();
   }
 
-  public AlgorithmStatus checkPropertiesExcept(
-      final ReachedSet pReachedSet,
-      final ImmutableSet<Property> pPropertyBlacklist)
-      throws CPAException, CPAEnabledAnalysisPropertyViolationException, InterruptedException {
-
-    Preconditions.checkNotNull(pPropertyBlacklist);
-
-    // adjustAutomataPrecision(pReachedSet, overallViolated);
-
-    // Run the wrapped algorithm (for example, CEGAR)
-    return wrapped.run(pReachedSet);
+  private ImmutableSet<Property> getActiveProperties(final ReachedSet pReached) {
+    return null;
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException,
+  public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException,
       CPAEnabledAnalysisPropertyViolationException {
 
-    AlgorithmStatus overallStatus = AlgorithmStatus.SOUND_AND_PRECISE;
-    final Set<Property> overallViolated = Sets.newHashSet();
-    final Set<Property> overallSatisfied = Sets.newHashSet();
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+
+    final ImmutableSet<Property> all = getActiveProperties(pReachedSet);
+    final Set<Property> violated = Sets.newHashSet();
+    final Set<Property> satisfied = Sets.newHashSet();
+
+    final ImmutableSet<ImmutableSet<Property>> lastCheckedPartitioning = ImmutableSet.of();
 
     do {
-      boolean runLimitsExceeded = false;
+      final ImmutableSet<ImmutableSet<Property>> checkPartitions =
+          partitionProperties(lastCheckedPartitioning, all, violated, satisfied);
+
+      init(pReachedSet, checkPartitions);
 
       try {
-        ImmutableSet<Property> blacklisted = null;
-        overallStatus = overallStatus.update(checkPropertiesExcept(pReachedSet, blacklisted));
+        // Run the wrapped algorithm (for example, CEGAR)
+        status = status.update(wrapped.run(pReachedSet));
 
       } catch (InterruptedException ie) {
         // The shutdown notifier might trigger the interrupted exception
@@ -118,7 +118,7 @@ public class MultiPropertyAlgorithm implements Algorithm {
         //    A) the resource limit for the analysis run has exceeded
         // or
         //    B) the user (or the operating system) requested a stop of the verifier.
-        runLimitsExceeded = true;
+        Preconditions.checkState(!pReachedSet.isEmpty());
       }
 
       // ASSUMPTION:
@@ -129,23 +129,20 @@ public class MultiPropertyAlgorithm implements Algorithm {
       // Identify the properties that were violated during the last verification run
       final ImmutableMultimap<AbstractState, Property> runViolated;
       runViolated = identifyViolationsInRun(pReachedSet);
-      overallViolated.addAll(runViolated.values());
+      violated.addAll(runViolated.values());
 
       // Identify the properties that were deactivated
-      final ImmutableSet<Property> overallInactive;
-      overallInactive = identifyInactiveProperties(pReachedSet);
-
-      // (Some) cases where the wrapped algorithm returns:
-      //  + Target state reached (the last state that was added to the reached set is a target state)
-      //  + Resource limit exhausted (status SOUND_BUT_INTERRUPTED)
-      //  + Fix point (the waitlist is empty)
+      final ImmutableSet<Property> inactive;
+      inactive = identifyInactiveProperties(pReachedSet);
 
       if (runViolated.size() > 0) {
         // We have to perform another iteration of the algorithm
         //  to check the remaining properties
         //    (or identify more feasible counterexamples)
 
-      } else if (runLimitsExceeded) {
+      } else if (!pReachedSet.getWaitlist().isEmpty()) {
+        // The analysis terminated because it ran out of resources
+
       } else if (pReachedSet.getWaitlist().isEmpty()) {
         // We have reached a fixpoint for the non-blacklisted properties.
 
@@ -153,8 +150,11 @@ public class MultiPropertyAlgorithm implements Algorithm {
         Preconditions.checkState(false, "This state should never be entered!");
       }
 
-      // run only until the waitlist is empty
-    } while (pReachedSet.hasWaitingState());
+      // Run as long as...
+      //  ... (1) the fixpoint has not been reached
+      //  ... (2) or not all properties have been checked so far.
+    } while (pReachedSet.hasWaitingState()
+        || Sets.difference(Sets.difference(all, satisfied), violated).size() > 0);
 
     // Compute the overall result:
     //    Violated properties (might have multiple counterexamples)
@@ -162,7 +162,22 @@ public class MultiPropertyAlgorithm implements Algorithm {
     //    Not fully checked properties (that were disabled)
     //        (could be derived from the precision of the leaf states)
 
-    return overallStatus;
+    return status;
+  }
+
+  private void init(ReachedSet pReachedSet, ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
+
+    // Build the list of properties that should not be checked in this run
+    ImmutableSet.Builder<Property> blacklistBuilder = ImmutableSet.builder();
+    ImmutableSet<Property> blacklisted = null;
+
+  }
+
+  private ImmutableSet<ImmutableSet<Property>> partitionProperties(
+      ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning, ImmutableSet<Property> pAll,
+      Set<Property> pViolated, Set<Property> pSatisfied) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   private ImmutableSet<Property> identifyInactiveProperties(ReachedSet pReachedSet) {
