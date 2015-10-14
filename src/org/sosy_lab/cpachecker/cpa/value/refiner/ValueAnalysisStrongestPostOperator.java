@@ -22,11 +22,14 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,9 +38,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
@@ -47,6 +52,7 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -132,14 +138,30 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   }
 
   protected Set<MemoryLocation> obtainExceedingMemoryLocations(final ARGPath pPath) {
-    UniqueAssignmentsInPathConditionState assignments =
-        AbstractStates.extractStateByType(pPath.getLastState(),
-            UniqueAssignmentsInPathConditionState.class);
+    Set<MemoryLocation> result = new HashSet<>();
 
-    if (assignments == null) {
-      return Collections.emptySet();
+    /* Due to current implementation of reducer of UniqueAssignmentsInPathConditionState
+     * we may loose information about unique assignments at entry state.
+     * May be, reducer should be refactored.
+     */
+    Set<ARGState> functionCalls = from(pPath.asStatesList()).filter(new Predicate<ARGState>() {
+      @Override
+      public boolean apply(@Nullable ARGState pArg0) {
+        return AbstractStates.extractLocation(pArg0) instanceof CFunctionEntryNode;
+      }
+
+    }).toSet();
+
+    for (ARGState state : functionCalls) {
+      UniqueAssignmentsInPathConditionState assignments =
+          AbstractStates.extractStateByType(state,
+              UniqueAssignmentsInPathConditionState.class);
+
+      if (assignments != null) {
+        result.addAll(assignments.getMemoryLocationsExceedingThreshold());
+      }
+
     }
-
-    return assignments.getMemoryLocationsExceedingThreshold();
+    return result;
   }
 }
