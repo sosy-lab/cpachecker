@@ -465,6 +465,7 @@ class EclipseCParser implements CParser {
 
       // Eclipse CDT 8.1.1 has problems with more complex attributes
       macrosBuilder.put("__attribute__(a)", "");
+      macrosBuilder.put("__typeof__(t)", "(t)"); // just ignore the type
 
       MACROS = macrosBuilder.build();
     }
