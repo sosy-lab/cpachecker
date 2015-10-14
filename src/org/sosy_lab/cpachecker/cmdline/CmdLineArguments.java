@@ -101,6 +101,8 @@ class CmdLineArguments {
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
+  private static final String PROPERTY_OPTION = "properties";
+
   static final String SECURE_MODE_OPTION = "secureMode";
 
   /**
@@ -316,6 +318,18 @@ class CmdLineArguments {
     properties.put(key, value);
   }
 
+  private static void appendOptionValue(final Map<String, String> options, final String option, String newValue) {
+    if (newValue != null) {
+      String value = options.get(option);
+      if (value != null) {
+        value = value + "," + newValue;
+      } else {
+        value = newValue;
+      }
+      options.put(option, value);
+    }
+  }
+
   /**
    * Handle a command line argument with no value.
    */
@@ -394,16 +408,7 @@ class CmdLineArguments {
             }
           }
         }
-
-        if (newValue != null) {
-          String value = options.get(option);
-          if (value != null) {
-            value = value + "," + newValue;
-          } else {
-            value = newValue;
-          }
-          options.put(option, value);
-        }
+        appendOptionValue(options, option, newValue);
 
       } else {
         throw new InvalidCmdlineArgumentException(currentArg + " argument missing.");
