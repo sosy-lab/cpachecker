@@ -23,6 +23,6 @@
  */
 
 /**
- * The core algorithm for multi-property analysis.
+ * Interfaces for multi-property analysis.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpa;
+package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;

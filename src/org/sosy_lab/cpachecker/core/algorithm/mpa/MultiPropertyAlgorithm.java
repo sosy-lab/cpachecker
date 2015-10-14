@@ -28,12 +28,18 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import java.util.HashSet;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,12 +60,22 @@ import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-@Options
-public class MultiPropertyAlgorithm implements Algorithm {
+@Options(prefix="analysis.mpa")
+public final class MultiPropertyAlgorithm implements Algorithm {
 
   private final Algorithm wrapped;
   private final LogManager logger;
   private final ConfigurableProgramAnalysis cpa;
+
+  @Option(secure=true, description = "Operator for determining the partitions of properties that have to be checked.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
+  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = DefaultPartitioningOperator.class;
+  private final PartitioningOperator partitionOperator;
+
+  @Option(secure=true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
+  @Nonnull private Class<? extends InitOperator> initOperatorClass = DefaultInitOperator.class;
+  private final InitOperator initOperator;
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger)
@@ -70,6 +86,17 @@ public class MultiPropertyAlgorithm implements Algorithm {
     this.wrapped = pAlgorithm;
     this.logger = pLogger;
     this.cpa = pCpa;
+
+    this.initOperator = createInitOperator();
+    this.partitionOperator = createPartitioningOperator();
+  }
+
+  private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
+    return Classes.createInstance(InitOperator.class, initOperatorClass, new Class[] { }, new Object[] { }, CPAException.class);
+  }
+
+  private PartitioningOperator createPartitioningOperator() throws CPAException, InvalidConfigurationException {
+    return Classes.createInstance(PartitioningOperator.class, partitionOperatorClass, new Class[] { }, new Object[] { }, CPAException.class);
   }
 
   private ImmutableMultimap<AbstractState, Property> identifyViolationsInRun(ReachedSet pReachedSet) {
@@ -104,9 +131,9 @@ public class MultiPropertyAlgorithm implements Algorithm {
 
     do {
       final ImmutableSet<ImmutableSet<Property>> checkPartitions =
-          partitionProperties(lastCheckedPartitioning, all, violated, satisfied);
+          partitionOperator.partition(lastCheckedPartitioning, all, violated, satisfied);
 
-      init(pReachedSet, checkPartitions);
+      initOperator.init(pReachedSet, checkPartitions);
 
       try {
         // Run the wrapped algorithm (for example, CEGAR)

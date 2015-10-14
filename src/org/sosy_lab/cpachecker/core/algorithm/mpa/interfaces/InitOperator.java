@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,8 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
 
-/**
- * The core algorithm for multi-property analysis.
- */
-package org.sosy_lab.cpachecker.core.algorithm.mpa;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+
+import com.google.common.collect.ImmutableSet;
+
+public interface InitOperator {
+
+  public void init(ReachedSet pReached, ImmutableSet<ImmutableSet<Property>> pLastPartitioning);
+
+}
