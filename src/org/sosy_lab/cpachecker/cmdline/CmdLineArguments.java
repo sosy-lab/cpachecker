@@ -101,6 +101,10 @@ class CmdLineArguments {
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
+  /**
+   * Option name for hack to allow witness export to access specified property files.
+   * DO NOT USE otherwise.
+   */
   private static final String PROPERTY_OPTION = "properties";
 
   static final String SECURE_MODE_OPTION = "secureMode";
@@ -395,6 +399,7 @@ class CmdLineArguments {
                 throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
               }
               putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
+              appendOptionValue(options, PROPERTY_OPTION, newValue);
 
               // set the file from where to read the specification automaton
               Set<PropertyType> properties = parser.getProperties();

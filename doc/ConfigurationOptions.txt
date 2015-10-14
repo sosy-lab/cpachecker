@@ -2272,6 +2272,9 @@ precondition.export.type = NONE
 # Use the refiner that uses a solver-based interpolation mechanism.
 precondition.solverbasedInterpolation = false
 
+# List of property files (INTERNAL USAGE ONLY - DO NOT USE)
+properties = []
+
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
 

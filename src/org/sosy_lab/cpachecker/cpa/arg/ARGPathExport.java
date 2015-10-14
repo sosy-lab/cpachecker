@@ -175,11 +175,10 @@ public class ARGPathExport {
         description="A String, denoting the programs to be analyzed")
     private String programs;
 
-    @Option(secure=true, name="specification",
-        description="comma-separated list of files with specifications that should be checked"
-          + "\n(see config/specification/ for examples)")
+    @Option(secure=true, name="properties",
+        description="List of property files (INTERNAL USAGE ONLY - DO NOT USE)")
     @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private List<Path> specificationFiles = null;
+    private List<Path> propertyFiles = ImmutableList.of();
 
     @Option(secure=true,
         name="cpa.predicate.handlePointerAliasing",
@@ -731,7 +730,7 @@ public class ARGPathExport {
           logger,
           graphType,
           language,
-          hackyOptions.specificationFiles,
+          hackyOptions.propertyFiles,
           hackyOptions.programs,
           hackyOptions.handlePointerAliasing ? "precise" : "simple",
           machineModel);
