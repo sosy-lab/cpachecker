@@ -60,6 +60,7 @@ export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachec
 # loop over all input parameters and parse them
 declare -a OPTIONS
 JAVA_ASSERTIONS=-ea
+EXEC=exec
 while [ $# -gt 0 ]; do
 
   case $1 in
@@ -72,6 +73,10 @@ while [ $# -gt 0 ]; do
        ;;
    "-disable-java-assertions")
        JAVA_ASSERTIONS=-da
+       ;;
+   "-generateReport")
+       EXEC=
+       POST_PROCESSING=scripts/report-generator.py
        ;;
    *) # other params are only for CPAchecker
        OPTIONS+=("$1")
@@ -117,7 +122,7 @@ esac
 # - options specified on command-line to this script
 # - CPAchecker class and options
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
-exec "$JAVA" \
+$EXEC "$JAVA" \
 	-Xss1024k \
 	$JAVA_VM_ARGUMENTS \
 	-Xmx${JAVA_HEAP_SIZE} \
@@ -125,3 +130,5 @@ exec "$JAVA" \
 	org.sosy_lab.cpachecker.cmdline.CPAMain \
 	"${OPTIONS[@]}" \
 	$CPACHECKER_ARGUMENTS
+
+$POST_PROCESSING
