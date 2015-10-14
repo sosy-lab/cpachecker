@@ -320,7 +320,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         return false;
       }
 
-      FunctionCallEdge callEdge = findOutgoingCallEdge(element.getCallNode());
+      if (e.getPreviousState() == null) {
+        // reached beginning of program or current BAM-block, abort
+        return false;
+      }
+
+      FunctionCallEdge callEdge = findOutgoingCallEdge(e.getCallNode());
       if (callEdge.getRawStatement().startsWith("pointer call(")) {
         return true;
       }
@@ -345,7 +350,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         return false;
       }
 
-      FunctionSummaryEdge summaryEdge = element.getCallNode().getLeavingSummaryEdge();
+      if (e.getPreviousState() == null) {
+        // reached beginning of program or current BAM-block, abort
+        return false;
+      }
+
+      FunctionSummaryEdge summaryEdge = e.getCallNode().getLeavingSummaryEdge();
       if (summaryEdge.getExpression() instanceof AFunctionCallStatement) {
         return true;
       }
@@ -368,7 +378,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         return (FunctionCallEdge)edge;
       }
     }
-    throw new AssertionError("Missing function call edge for function call summary edge");
+    throw new AssertionError("Missing function call edge for function call summary edge after node " + predNode);
   }
 
   public void enableRecursiveContext() {
