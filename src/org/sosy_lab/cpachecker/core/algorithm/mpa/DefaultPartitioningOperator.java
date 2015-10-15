@@ -28,16 +28,63 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 
 public class DefaultPartitioningOperator implements PartitioningOperator {
 
+  /**
+   *
+   * @return  Either the bisect partitioning,
+   *          or the same partitioning as before
+   *            (if all partitions consist already of one element)
+   */
+  @VisibleForTesting
+  ImmutableSet<ImmutableSet<Property>> bisectPartitons(ImmutableSet<ImmutableSet<Property>> pInput) {
+    ImmutableSet.Builder<ImmutableSet<Property>> result = ImmutableSet.<ImmutableSet<Property>>builder();
+
+    for (final ImmutableSet<Property> p: pInput) {
+      final ImmutableList<Property> l = p.asList();
+
+      if (l.size() > 1) {
+
+        int firstElementsToAdd = (int) Math.ceil(l.size() / 2.0);
+
+        result.add(ImmutableSet.<Property>copyOf(l.subList(0, firstElementsToAdd)));
+        result.add(ImmutableSet.<Property>copyOf(l.subList(firstElementsToAdd, l.size())));
+
+      } else {
+        result.add(p);
+      }
+    }
+
+    return result.build();
+  }
+
   @Override
-  public ImmutableSet<ImmutableSet<Property>> partition(ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      ImmutableSet<Property> pAll, Set<Property> pViolated, Set<Property> pSatisfied) {
-    // TODO Auto-generated method stub
-    return null;
+  public ImmutableSet<ImmutableSet<Property>> partition(
+      final ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
+      final ImmutableSet<Property> pAll,
+      final Set<Property> pViolated,
+      final Set<Property> pSatisfied) {
+
+    Set<Property> toCheck = Sets.difference(Sets.difference(pAll, pViolated), pSatisfied);
+    ImmutableSet<ImmutableSet<Property>> result = ImmutableSet.of(ImmutableSet.copyOf(toCheck));
+
+    // At least as much partitions as in pLastCheckedPartitioning
+    if (result.size() < pLastCheckedPartitioning.size()) {
+      result = bisectPartitons(result);
+    }
+
+    // If possible not equal to the last partitioning
+    if (pLastCheckedPartitioning.equals(result)) {
+      return bisectPartitons(result);
+    }
+
+    return result;
   }
 
 }
