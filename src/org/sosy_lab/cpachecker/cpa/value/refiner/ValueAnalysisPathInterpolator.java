@@ -151,14 +151,12 @@ public class ValueAnalysisPathInterpolator
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    assert(prefixPreference != PrefixPreference.NONE)
-    : "static path-based interpolation requires a sliced infeasible prefix"
-    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_GOOD_LONG;
-
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
           : Collections.<String>emptySet());
+
+    useDefRelation.addAllAssumes(prefixPreference == PrefixPreference.NONE);
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,
