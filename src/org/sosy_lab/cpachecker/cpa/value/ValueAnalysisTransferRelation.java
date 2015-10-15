@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -107,12 +109,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
@@ -136,6 +140,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -211,6 +218,27 @@ public class ValueAnalysisTransferRelation
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
+
+  private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
+  private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
+
+  private Statistics transferStatistics = new Statistics() {
+
+    @Override
+    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      StatisticsWriter writer = writingStatisticsTo(out);
+
+      writer.put(totalAssumptions)
+            .put(deterministicAssumptions)
+            .put("Level of Determinism", StatisticsUtils.toPercent(deterministicAssumptions.getValue(),
+                                                                        totalAssumptions.getValue()));
+    }
+
+    @Override
+    public String getName() {
+      return ValueAnalysisTransferRelation.class.getSimpleName();
+    }
+  };
 
   public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     config.inject(this);
@@ -522,6 +550,8 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
 
+    totalAssumptions.inc();
+
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     expression = simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
@@ -531,6 +561,10 @@ public class ValueAnalysisTransferRelation
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
+
+    if(value.isExplicitlyKnown()) {
+      deterministicAssumptions.inc();
+    }
 
     if (!value.isExplicitlyKnown()) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
@@ -1124,6 +1158,7 @@ public class ValueAnalysisTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(transferStatistics);
     statsCollection.add(constraintsStrengthenOperator);
   }
 
