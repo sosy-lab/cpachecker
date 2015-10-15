@@ -27,6 +27,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -89,6 +91,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   final StatTimer totalLiveness     = new StatTimer("Total time for liveness abstraction");
   final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
   final StatTimer totalEnforcePath  = new StatTimer("Total time for path thresholds");
+  private Set<MemoryLocation> trackedMemoryLocation = new HashSet<>();
 
   private final Statistics statistics;
 
@@ -119,6 +122,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
         writer.put(totalLiveness);
         writer.put(totalAbstraction);
         writer.put(totalEnforcePath);
+        writer.put("Number of tracked memory locations", trackedMemoryLocation.size());
       }
 
       @Override
@@ -165,6 +169,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
       enforcePathThreshold(resultState, pPrecision, assignments);
       totalEnforcePath.stop();
     }
+
+    // all memory locations contained in the state here are both tracked and have a known valuation
+    trackedMemoryLocation.addAll(resultState.getTrackedMemoryLocations());
 
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
   }
