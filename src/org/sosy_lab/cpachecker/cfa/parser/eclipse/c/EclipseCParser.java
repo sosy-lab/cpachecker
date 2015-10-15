@@ -468,7 +468,7 @@ class EclipseCParser implements CParser {
       // There are some interesting macros available at
       // http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
       macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))"); // at least size of smallest addressable unit
-      macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
+      //macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
       macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
       // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
 
