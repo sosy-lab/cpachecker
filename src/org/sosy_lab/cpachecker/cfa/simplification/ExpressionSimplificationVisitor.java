@@ -228,6 +228,13 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
                 expr.getExpressionType(), BigDecimal.valueOf(negatedValue.doubleValue()));
       }
 
+    } else if (unaryOperator == UnaryOperator.TILDE && value != null
+        && op.getExpressionType() instanceof CSimpleType
+        && ((CSimpleType)op.getExpressionType()).getType().isIntegerType()) {
+      final NumericValue complementValue = (NumericValue) AbstractExpressionValueVisitor.castCValue(
+          new NumericValue(~value.longValue()), expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+      return new CIntegerLiteralExpression(expr.getFileLocation(),
+                expr.getExpressionType(), BigInteger.valueOf(complementValue.longValue()));
     }
 
     final CUnaryExpression newExpr;
