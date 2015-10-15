@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -42,19 +41,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Precisions;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
@@ -139,8 +132,9 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     ImmutableSet<ImmutableSet<Property>> checkPartitions =
         partitionOperator.partition(noPartitioning, all, violated, satisfied);
 
+    initOperator.init(pReachedSet, checkPartitions);
+
     do {
-      initOperator.init(pReachedSet, checkPartitions);
 
       try {
         // Run the wrapped algorithm (for example, CEGAR)
@@ -180,6 +174,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         //  if we have found sufficient counterexamples
         checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
 
+        // TODO: Just adjust the precision of the states in the waitlist
+
       } else {
 
         if (pReachedSet.getWaitlist().isEmpty()) {
@@ -200,6 +196,9 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
         // A new partitioning must be computed.
         checkPartitions = partitionOperator.partition(noPartitioning, all, violated, satisfied);
+
+        // Re-initialize the sets 'waitlist' and 'reached'
+        initOperator.init(pReachedSet, checkPartitions);
       }
 
       // Run as long as...
@@ -230,62 +229,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return result.build();
   }
 
-  private void init(ReachedSet pReachedSet, ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
-
-    // Build the list of properties that should not be checked in this run
-    ImmutableSet.Builder<Property> blacklistBuilder = ImmutableSet.builder();
-    ImmutableSet<Property> blacklisted = null;
-
-  }
-
-  private ImmutableSet<ImmutableSet<Property>> partitionProperties(
-      ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning, ImmutableSet<Property> pAll,
-      Set<Property> pViolated, Set<Property> pSatisfied) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
   private ImmutableSet<Property> identifyInactiveProperties(ReachedSet pReachedSet) {
     // TODO Auto-generated method stub
     return null;
   }
 
-  private void adjustAutomataPrecision(final ReachedSet pReachedSet, final Set<Property> pViolatedProperties) {
 
-    final HashSet<AutomatonSafetyProperty> violated = Sets.newHashSet(
-      Collections2.transform(pViolatedProperties, new Function<Property, AutomatonSafetyProperty>() {
-        @Override
-        public AutomatonSafetyProperty apply(Property pArg0) {
-          Preconditions.checkArgument(pArg0 instanceof AutomatonSafetyProperty);
-          return (AutomatonSafetyProperty) pArg0;
-        }
-
-      }).iterator());
-
-    // update the precision:
-    //  (optional) disable some automata transitions (global precision)
-    for (AbstractState e: pReachedSet.getWaitlist()) {
-
-      final Precision pi = pReachedSet.getPrecision(e);
-
-      final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
-        @Override
-        public Precision apply(Precision pArg0) {
-          if (pArg0 instanceof AutomatonPrecision) {
-            AutomatonPrecision pi = (AutomatonPrecision) pArg0;
-            return pi.cloneAndAddBlacklisted(violated);
-          }
-          return null;
-        }
-      });
-
-      if (piPrime != null) {
-        pReachedSet.updatePrecision(e, piPrime);
-        throw new RuntimeException("Merge of precisions from subgraphs to pivot states not yet implemented!!!");
-      }
-    }
-
-
-  }
 
 }
