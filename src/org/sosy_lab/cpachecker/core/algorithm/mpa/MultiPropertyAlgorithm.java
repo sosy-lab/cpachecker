@@ -55,9 +55,8 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 
 @Options(prefix="analysis.mpa")
@@ -99,8 +98,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return Classes.createInstance(PartitioningOperator.class, partitionOperatorClass, new Class[] { }, new Object[] { }, CPAException.class);
   }
 
-  private ImmutableMultimap<AbstractState, Property> identifyViolationsInRun(ReachedSet pReachedSet) {
-    Builder<AbstractState, Property> result = ImmutableMultimap.<AbstractState, Property>builder();
+  private ImmutableSetMultimap<AbstractState, Property> identifyViolationsInRun(ReachedSet pReachedSet) {
+    ImmutableSetMultimap.Builder<AbstractState, Property> result = ImmutableSetMultimap.<AbstractState, Property>builder();
 
     // ASSUMPTION: no "global refinement" is used! (not yet implemented for this algorithm!)
 
@@ -113,6 +112,14 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return result.build();
   }
 
+  /**
+   * Get the properties that are active in all instances of a precision!
+   *    A property is not included if it is INACTIVE in one of
+   *    the precisions in the given set reached.
+   *
+   * @param pReached  A set of reached states
+   * @return          Set of properties
+   */
   private ImmutableSet<Property> getActiveProperties(final ReachedSet pReached) {
     return null;
   }
@@ -127,12 +134,12 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
 
-    final ImmutableSet<ImmutableSet<Property>> lastCheckedPartitioning = ImmutableSet.of();
+    final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
+
+    ImmutableSet<ImmutableSet<Property>> checkPartitions =
+        partitionOperator.partition(noPartitioning, all, violated, satisfied);
 
     do {
-      final ImmutableSet<ImmutableSet<Property>> checkPartitions =
-          partitionOperator.partition(lastCheckedPartitioning, all, violated, satisfied);
-
       initOperator.init(pReachedSet, checkPartitions);
 
       try {
@@ -154,9 +161,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       //    (no global refinement)
 
       // Identify the properties that were violated during the last verification run
-      final ImmutableMultimap<AbstractState, Property> runViolated;
+      final ImmutableSetMultimap<AbstractState, Property> runViolated;
       runViolated = identifyViolationsInRun(pReachedSet);
-      violated.addAll(runViolated.values());
 
       // Identify the properties that were deactivated
       final ImmutableSet<Property> inactive;
@@ -167,14 +173,33 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         //  to check the remaining properties
         //    (or identify more feasible counterexamples)
 
-      } else if (!pReachedSet.getWaitlist().isEmpty()) {
-        // The analysis terminated because it ran out of resources
+        // Add the properties that were violated in this run.
+        violated.addAll(runViolated.values());
 
-      } else if (pReachedSet.getWaitlist().isEmpty()) {
-        // We have reached a fixpoint for the non-blacklisted properties.
+        // The partitioning operator might remove the violated properties
+        //  if we have found sufficient counterexamples
+        checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
 
       } else {
-        Preconditions.checkState(false, "This state should never be entered!");
+
+        if (pReachedSet.getWaitlist().isEmpty()) {
+          // We have reached a fixpoint for the non-blacklisted properties.
+
+          // Properties that are still active are considered to be save!
+          satisfied.addAll(getActiveProperties(pReachedSet));
+
+        } else {
+          // The analysis terminated because it ran out of resources
+
+          // It is not possible to make any statements about
+          //   the satisfaction of more properties here!
+
+          // The partitioning must take care that we verify
+          //  smaller (or other) partitions in the next run!
+        }
+
+        // A new partitioning must be computed.
+        checkPartitions = partitionOperator.partition(noPartitioning, all, violated, satisfied);
       }
 
       // Run as long as...
@@ -190,6 +215,19 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     //        (could be derived from the precision of the leaf states)
 
     return status;
+  }
+
+  private ImmutableSet<ImmutableSet<Property>> removePropertiesFrom(
+      ImmutableSet<ImmutableSet<Property>> pOldPartitions,
+      Set<Property> pRunViolated) {
+
+    ImmutableSet.Builder<ImmutableSet<Property>> result = ImmutableSet.<ImmutableSet<Property>>builder();
+
+    for (ImmutableSet<Property> p: pOldPartitions) {
+      result.add(ImmutableSet.<Property>copyOf(Sets.difference(p, pRunViolated)));
+    }
+
+    return result.build();
   }
 
   private void init(ReachedSet pReachedSet, ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
