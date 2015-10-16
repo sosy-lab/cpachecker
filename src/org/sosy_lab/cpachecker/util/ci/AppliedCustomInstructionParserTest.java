@@ -24,14 +24,21 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -226,9 +233,29 @@ public class AppliedCustomInstructionParserTest {
         + "}";
 
     CFA cfa = TestDataTools.makeCFA(testProgram);
+    GlobalInfo.getInstance().storeCFA(cfa);
     aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), cfa);
+    Path p = Paths.createTempPath("test_acis", null);
+    Writer file = Files.openOutputFile(p);
+    file.append("main\n");
+    CFANode node;
+    Deque<CFANode> toVisit = new ArrayDeque<>();
+    toVisit.add(cfa.getMainFunction());
+    while(!toVisit.isEmpty()) {
+      node = toVisit.pop();
+
+      for(CFANode succ: CFAUtils.allSuccessorsOf(node)) {
+        toVisit.add(succ);
+        if(node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+          file.append(node.getNodeNumber()+"\n");
+        }
+      }
+    }
+    file.flush();
+    file.close();
+
     // TODO path does not exist need to adapt content of file
-    // CustomInstructionApplications cia = aciParser.parse(new FileSystemPath("src", "org", "sosy_lab", "cpachecker", "util" , "ci","testParse.c"));
+    CustomInstructionApplications cia = aciParser.parse(p);
     // Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
 
     //Truth.assertThat(cis).hasSize(5);

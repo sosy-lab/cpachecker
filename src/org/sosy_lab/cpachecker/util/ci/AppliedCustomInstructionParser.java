@@ -109,13 +109,13 @@ public class AppliedCustomInstructionParser {
         throw new AppliedCustomInstructionParsingFailedException("Empty specification. Missing at least function name for custom instruction.");
       }
 
-      // TODO line auseinandernehmen => functionName raussuchen
-      String[] l = line.split(" ");
-      ci = readCustomInstruction(l[1].replace("()", ""));
-
+      ci = readCustomInstruction(line);
       while ((line = br.readLine()) != null) {
         shutdownNotifier.shutdownIfNecessary();
-        startNode = getCFANode(line, cfaInfo); // TODO nodeID‚
+        startNode = getCFANode(line, cfaInfo);
+        if(startNode == null) {
+          continue;
+        }
 
         try {
           aci = ci.inspectAppliedCustomInstruction(startNode);
