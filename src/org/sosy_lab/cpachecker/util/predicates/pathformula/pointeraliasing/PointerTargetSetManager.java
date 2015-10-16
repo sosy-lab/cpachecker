@@ -142,6 +142,15 @@ class PointerTargetSetManager {
               public void rightValueOnly(String pKey, CType pRightValue) {
                 basesOnlyPts2.put(pKey, pRightValue);
               }
+
+              @Override
+              public void differingValues(String pKey, CType pLeftValue, CType pRightValue) {
+                if (isFakeBaseType(pLeftValue)) {
+                  basesOnlyPts2.put(pKey, pRightValue);
+                } else if (isFakeBaseType(pRightValue)) {
+                  basesOnlyPts1.put(pKey, pLeftValue);
+                }
+              }
             });
     shutdownNotifier.shutdownIfNecessary();
 
