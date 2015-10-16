@@ -145,9 +145,9 @@ class PointerTargetSetManager {
 
               @Override
               public void differingValues(String pKey, CType pLeftValue, CType pRightValue) {
-                if (isFakeBaseType(pLeftValue)) {
+                if (isFakeBaseType(pLeftValue) && !(pRightValue instanceof CElaboratedType)) {
                   basesOnlyPts2.put(pKey, pRightValue);
-                } else if (isFakeBaseType(pRightValue)) {
+                } else if (isFakeBaseType(pRightValue) && !(pLeftValue instanceof CElaboratedType)) {
                   basesOnlyPts1.put(pKey, pLeftValue);
                 }
               }
