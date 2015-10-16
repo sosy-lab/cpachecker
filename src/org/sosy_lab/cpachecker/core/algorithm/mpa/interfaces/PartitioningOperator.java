@@ -33,8 +33,6 @@ public interface PartitioningOperator {
 
   public ImmutableSet<ImmutableSet<Property>> partition(
       ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      ImmutableSet<Property> pAll,
-      Set<Property> pViolated,
-      Set<Property> pSatisfied);
+      Set<Property> pToCheck);
 
 }

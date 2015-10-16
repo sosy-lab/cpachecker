@@ -285,7 +285,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             AutomatonSafetyProperty prop = null;
             String violatedPropertyDescription = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
             if (violatedPropertyDescription.length() > 0) {
-              prop = new AutomatonSafetyProperty(violatedPropertyDescription, t);
+              prop = new AutomatonSafetyProperty(state.getOwningAutomaton(), t);
             }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
@@ -321,12 +321,13 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
         AutomatonSafetyProperty violatedProperty = null;
         if (t.getFollowState().isTarget()) {
-          violatedProperty = new AutomatonSafetyProperty(t.getViolatedPropertyDescription(exprArgs), t);
+          violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t);
         }
 
         // The assumptions might reference to the current automata variables!
         //  --> We have to instantiate them!
-        ImmutableMap<AStatement, Boolean> instantiatedAssumes = exprArgs.instantiateAssumtions(t.getAssumptionWithTruth());
+        ImmutableMap<AStatement, Boolean> symbolicAssumes = t.getAssumptionWithTruth();
+        ImmutableMap<AStatement, Boolean> instantiatedAssumes = exprArgs.instantiateAssumtions(symbolicAssumes);
 
         // Create the new successor state of the automaton state
         AutomatonState lSuccessor = AutomatonState.automatonStateFactory(

@@ -52,6 +52,7 @@ public class Automaton {
   private final Set<AutomatonInternalState> states = Sets.newHashSet();
   private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
+  private final Set<AutomatonSafetyProperty> encodedProperties = Sets.newHashSet();
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
 
@@ -72,6 +73,13 @@ public class Automaton {
       this.states.add(q);
       if (q.isTarget()) {
         this.targetStates.add(q);
+      }
+
+      for (AutomatonTransition t: q.getTransitions()) {
+        if (t.getFollowState().isTarget()) {
+          AutomatonSafetyProperty p = new AutomatonSafetyProperty(this, t);
+          encodedProperties.add(p);
+        }
       }
     }
 
@@ -215,6 +223,10 @@ public class Automaton {
 
   public Set<AutomatonInternalState> getReachableTargetStatesOverapprox() {
     return ImmutableSet.copyOf(states);
+  }
+
+  public ImmutableSet<AutomatonSafetyProperty> getEncodedProperties() {
+    return ImmutableSet.copyOf(encodedProperties);
   }
 
 }

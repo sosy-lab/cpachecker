@@ -389,6 +389,16 @@ public class CounterexamplesSummary implements IterationStatistics {
     return ImmutableSet.copyOf(disabledProperties);
   }
 
-
+  /**
+   * Call this method whenever the analysis starts
+   * with a new set of properties.
+   */
+  public void resetForNewSetOfProperties() {
+    feasibleReachedAcceptingStates.clear();
+    feasibleViolations.clear();
+    disabledProperties.clear();
+    infeasibleCexFor.clear();
+    feasibleCexFor.clear();
+  }
 
 }

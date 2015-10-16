@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 
 public class DefaultPartitioningOperator implements PartitioningOperator {
@@ -66,13 +65,10 @@ public class DefaultPartitioningOperator implements PartitioningOperator {
 
   @Override
   public ImmutableSet<ImmutableSet<Property>> partition(
-      final ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      final ImmutableSet<Property> pAll,
-      final Set<Property> pViolated,
-      final Set<Property> pSatisfied) {
+      ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
+      Set<Property> pToCheck) {
 
-    Set<Property> toCheck = Sets.difference(Sets.difference(pAll, pViolated), pSatisfied);
-    ImmutableSet<ImmutableSet<Property>> result = ImmutableSet.of(ImmutableSet.copyOf(toCheck));
+    ImmutableSet<ImmutableSet<Property>> result = ImmutableSet.of(ImmutableSet.copyOf(pToCheck));
 
     // At least as much partitions as in pLastCheckedPartitioning
     if (result.size() < pLastCheckedPartitioning.size()) {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import java.util.Collection;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -41,16 +42,23 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Sets.SetView;
 
 @Options(prefix="analysis.mpa")
 public final class MultiPropertyAlgorithm implements Algorithm {
@@ -110,11 +118,60 @@ public final class MultiPropertyAlgorithm implements Algorithm {
    *    A property is not included if it is INACTIVE in one of
    *    the precisions in the given set reached.
    *
-   * @param pReached  A set of reached states
-   * @return          Set of properties
+   * It MUST be EXACT or an UnderAPPROXIMATION (of the set of checked properties)
+   *    to ensure SOUNDNESS of the analysis result!
+   *
+   * @return            Set of properties
    */
-  private ImmutableSet<Property> getActiveProperties(final ReachedSet pReached) {
-    return null;
+  private ImmutableSet<Property> getActiveProperties(
+      final AbstractState pAbstractState,
+      final ReachedSet pReachedSet) {
+
+    Preconditions.checkNotNull(pAbstractState);
+    Preconditions.checkNotNull(pReachedSet);
+    Preconditions.checkState(!pReachedSet.isEmpty());
+
+    Set<Property> properties = Sets.newHashSet();
+
+    // Retrieve the checked properties from the abstract state
+    Collection<AutomatonState> automataStates = AbstractStates.extractStatesByType(
+        pAbstractState, AutomatonState.class);
+    for (AutomatonState e: automataStates) {
+      properties.addAll(e.getOwningAutomaton().getEncodedProperties());
+    }
+
+    // Blacklisted properties from the precision
+    Precision prec = pReachedSet.getPrecision(pAbstractState);
+    for (Precision p: Precisions.asIterable(prec)) {
+      if (p instanceof AutomatonPrecision) {
+        AutomatonPrecision ap = (AutomatonPrecision) p;
+        properties.removeAll(ap.getBlacklist());
+      }
+    }
+
+    return ImmutableSet.copyOf(properties);
+  }
+
+  /**
+   * Get the INACTIVE properties from the set reached.
+   *    (properties that are inactive in any precision)
+   *
+   * It MUST be EXACT or an OverAPPROXIMATION (of the set of checked properties)
+   *    to ensure SOUNDNESS of the analysis result!
+   *
+   * @param pReachedSet
+   * @return  Set of properties
+   */
+  private ImmutableSet<Property> getInactiveProperties(
+      final ReachedSet pReachedSet) {
+
+    ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
+    Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
+
+    // IMPORTANT: Ensure that an reset is performed for this information
+    //  as soon the analysis (re-)starts with a new set of properties!!!
+
+    return argCpa.getCexSummary().getDisabledProperties();
   }
 
   @Override
@@ -123,16 +180,16 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-    final ImmutableSet<Property> all = getActiveProperties(pReachedSet);
+    final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
 
     final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
 
     ImmutableSet<ImmutableSet<Property>> checkPartitions =
-        partitionOperator.partition(noPartitioning, all, violated, satisfied);
+        partitionOperator.partition(noPartitioning, all);
 
-    initOperator.init(pReachedSet, checkPartitions);
+    initReached(pReachedSet, checkPartitions);
 
     do {
 
@@ -158,10 +215,6 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       final ImmutableSetMultimap<AbstractState, Property> runViolated;
       runViolated = identifyViolationsInRun(pReachedSet);
 
-      // Identify the properties that were deactivated
-      final ImmutableSet<Property> inactive;
-      inactive = identifyInactiveProperties(pReachedSet);
-
       if (runViolated.size() > 0) {
         // We have to perform another iteration of the algorithm
         //  to check the remaining properties
@@ -182,7 +235,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
           // We have reached a fixpoint for the non-blacklisted properties.
 
           // Properties that are still active are considered to be save!
-          satisfied.addAll(getActiveProperties(pReachedSet));
+          SetView<Property> active = Sets.difference(all, getInactiveProperties(pReachedSet));
+          satisfied.addAll(active);
 
         } else {
           // The analysis terminated because it ran out of resources
@@ -195,17 +249,18 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         }
 
         // A new partitioning must be computed.
-        checkPartitions = partitionOperator.partition(noPartitioning, all, violated, satisfied);
+        Set<Property> remaining = Sets.difference(all, Sets.union(violated, satisfied));
+        checkPartitions = partitionOperator.partition(noPartitioning, remaining);
 
         // Re-initialize the sets 'waitlist' and 'reached'
-        initOperator.init(pReachedSet, checkPartitions);
+        initReached(pReachedSet, checkPartitions);
       }
 
       // Run as long as...
       //  ... (1) the fixpoint has not been reached
       //  ... (2) or not all properties have been checked so far.
     } while (pReachedSet.hasWaitingState()
-        || Sets.difference(Sets.difference(all, satisfied), violated).size() > 0);
+        || Sets.difference(all, Sets.union(violated, satisfied)).size() > 0);
 
     // Compute the overall result:
     //    Violated properties (might have multiple counterexamples)
@@ -214,6 +269,16 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     //        (could be derived from the precision of the leaf states)
 
     return status;
+  }
+
+  private void initReached(ReachedSet pReachedSet, ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
+    // Delegate the initialization of the set reached (and the waitlist) to the init operator
+    initOperator.init(pReachedSet, pCheckPartitions);
+
+    // Reset the information in counterexamples, inactive properties, ...
+    ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
+    Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
+    argCpa.getCexSummary().resetForNewSetOfProperties();
   }
 
   private ImmutableSet<ImmutableSet<Property>> removePropertiesFrom(
@@ -228,12 +293,6 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
     return result.build();
   }
-
-  private ImmutableSet<Property> identifyInactiveProperties(ReachedSet pReachedSet) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
 
 
 }

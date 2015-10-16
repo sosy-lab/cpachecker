@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
-import java.util.Set;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,15 +76,11 @@ public class DefaultPartitioningOperatorTest {
         ImmutableSet.of(p4,p5));
 
     final ImmutableSet<Property> all = ImmutableSet.of(p1,p2,p3,p4,p5);
-    final Set<Property> violated = ImmutableSet.of(p3);
-    final Set<Property> satisfied = ImmutableSet.of(p1);
 
-    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all, violated, satisfied);
+    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all);
 
     Assert.assertNotEquals(lastChecked, result);
-    Assert.assertEquals(2, result.size());
-    Assert.assertTrue(result.contains(ImmutableSet.of(p2,p4)));
-    Assert.assertTrue(result.contains(ImmutableSet.of(p5)));
+    Assert.assertEquals(4, result.size());
   }
 
   @Test
@@ -96,10 +90,8 @@ public class DefaultPartitioningOperatorTest {
         ImmutableSet.of(p1,p2,p3,p4,p5));
 
     final ImmutableSet<Property> all = ImmutableSet.of(p1,p2,p3,p4,p5);
-    final Set<Property> violated = ImmutableSet.of();
-    final Set<Property> satisfied = ImmutableSet.of();
 
-    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all, violated, satisfied);
+    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all);
 
     Assert.assertNotEquals(lastChecked, result);
     Assert.assertEquals(2, result.size());
