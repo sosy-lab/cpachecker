@@ -261,6 +261,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
         // A new partitioning must be computed.
         Set<Property> remaining = Sets.difference(all, Sets.union(violated, satisfied));
+
+        if (remaining.isEmpty()) {
+          break;
+        }
+
         checkPartitions = partitionOperator.partition(noPartitioning, remaining);
 
         // Re-initialize the sets 'waitlist' and 'reached'
