@@ -66,7 +66,9 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   // The following options will be forced in the counterexample check
   // to have the same value as in the actual analysis.
   private static final ImmutableSet<String> OVERWRITE_OPTIONS = ImmutableSet.of(
-      "analysis.machineModel", "cpa.predicate.handlePointerAliasing"
+      "analysis.machineModel",
+      "cpa.predicate.handlePointerAliasing",
+      "cpa.predicate.memoryAllocationsAlwaysSucceed"
       );
 
   private final LogManager logger;
