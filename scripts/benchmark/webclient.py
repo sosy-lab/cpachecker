@@ -398,34 +398,31 @@ class WebInterface:
         while not self._shutdown.is_set() :
             start = time()
             states = {}
-            failed_runs = []
             
             with self._unfinished_runs_lock:
                 for run_id in self._unfinished_runs.keys():
-                    state_future = state_request_executor.submit(self._is_finished, run_id)
-                    states[state_future] = run_id
+                    if self._unfinished_runs[run_id].cancelled():
+                        self.state_request_executor.submit(self._stop_run, run_id)
+                    else:
+                        state_future = state_request_executor.submit(self._is_finished, run_id)
+                        states[state_future] = run_id
                               
             # Collect states of runs
             for state_future in as_completed(states.keys()):
                                
                 run_id = states[state_future]
                 state = state_future.result()
-                if state == "FINISHED" or state == "UNKOWN":
+                
+                if state == "FINISHED" or state == "UNKNOWN":
                     if run_id not in downloading_result_futures.values(): # result is not downloaded
                         future  = self._executor.submit(self._download_result, run_id)
                         downloading_result_futures[future] = run_id
                         future.add_done_callback(callback)
                         
                 elif state == "ERROR":
-                    failed_runs.append(run_id)
+                    self._unfinished_runs[run_id].set_exception(WebClientError("Execution failed."))
+                    del self._unfinished_runs[run_id]
                     
-                elif self._unfinished_runs[run_id].cancelled():
-                    self._stop_run(run_id)               
-            
-            # set exception for failed runs
-            for run_id in failed_runs:
-                self._unfinished_runs[run_id].set_exception(WebClientError("Execution failed."))
-                del self._unfinished_runs[run_id]
                         
             end = time();
             duration = end - start
@@ -488,6 +485,8 @@ class WebInterface:
         path = self._webclient.path + "runs/" + run_id
         try:
             self._request("DELETE", path, expectedStatusCodes = [200,204])
+            with self._unfinished_runs_lock:
+                del self._unfinished_runs[run_id]
         except urllib2.HTTPError as e:
             logging.warn("Stopping of run {0} failed: {1}".format(run_id, e.reason))
 
