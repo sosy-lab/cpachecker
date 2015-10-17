@@ -76,9 +76,12 @@ public class Automaton {
       }
 
       for (AutomatonTransition t: q.getTransitions()) {
-        if (t.getFollowState().isTarget()) {
-          AutomatonSafetyProperty p = new AutomatonSafetyProperty(this, t);
-          encodedProperties.add(p);
+        AutomatonInternalState succ = t.getFollowState();
+        if (succ != null) {
+          if (t.getFollowState().isTarget()) {
+            AutomatonSafetyProperty p = new AutomatonSafetyProperty(this, t);
+            encodedProperties.add(p);
+          }
         }
       }
     }

@@ -226,6 +226,16 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       runViolated = identifyViolationsInRun(pReachedSet);
 
       if (runViolated.size() > 0) {
+
+        // The waitlist should never be empty in this case!
+        //  There might be violations of other properties after the
+        //  last abstract state that was added to 'reached'
+        //    (which is the target state, in general)
+        //  Ensure that a SPLIT of states is performed before
+        //    transiting to the ERROR state!
+        Preconditions.checkState(!pReachedSet.getWaitlist().isEmpty(),
+            "Potential of hidden violations must be considered!");
+
         // We have to perform another iteration of the algorithm
         //  to check the remaining properties
         //    (or identify more feasible counterexamples)
@@ -334,7 +344,6 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
       if (piPrime != null) {
         pReachedSet.updatePrecision(e, piPrime);
-        throw new RuntimeException("Merge of precisions from subgraphs to pivot states not yet implemented!!!");
       }
     }
   }

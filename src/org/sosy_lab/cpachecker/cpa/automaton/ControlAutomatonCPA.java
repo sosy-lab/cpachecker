@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotat
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -178,18 +177,16 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
       throws InvalidConfigurationException {
 
-    final PrecisionAdjustment lPrecisionAdjustment;
+    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(pConfig, topState, bottomState, inactiveState);
 
     if (breakOnTargetState > 0) {
       final int pFoundTargetLimit = breakOnTargetState;
       final int pExtraIterationsLimit = extraIterationsLimit;
-      lPrecisionAdjustment = new BreakOnTargetsPrecisionAdjustment(pFoundTargetLimit, pExtraIterationsLimit);
 
-    } else {
-      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+      result = new BreakOnTargetsPrecisionAdjustment(result, pFoundTargetLimit, pExtraIterationsLimit);
     }
 
-    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, bottomState, inactiveState, lPrecisionAdjustment);
+    return result;
   }
 
   Automaton getAutomaton() {

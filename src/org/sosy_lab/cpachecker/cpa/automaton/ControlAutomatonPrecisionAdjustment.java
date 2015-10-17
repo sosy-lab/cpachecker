@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -52,7 +50,6 @@ import com.google.common.collect.Multiset;
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
-  private final @Nullable PrecisionAdjustment wrappedPrec;
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
 
@@ -77,15 +74,13 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       Configuration pConfig,
       AutomatonState pTopState,
       AutomatonState pBottomState,
-      AutomatonState pInactiveState,
-      PrecisionAdjustment pWrappedPrecisionAdjustment)
+      AutomatonState pInactiveState)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.bottomState = pBottomState;
     this.inactiveState = pInactiveState;
-    this.wrappedPrec = pWrappedPrecisionAdjustment;
   }
 
   private int maxInfeasibleCexFor(Set<? extends Property> pProperties) {
@@ -131,14 +126,6 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
     final AutomatonState state = (AutomatonState) pState;
-
-    // This operator might wrap another precision adjustment operator!
-    Optional<PrecisionAdjustmentResult> wrappedPrecResult = wrappedPrec.prec(pState,
-        pPrecision, pStates, pStateProjection, pFullState);
-
-    if (!wrappedPrecResult.isPresent()) {
-      return wrappedPrecResult;
-    }
 
     // Specific handling of potential target states!!!
     if (state.isTarget()) {
@@ -186,10 +173,11 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     // Handle the BREAK state
     if (internalState.getName().equals(AutomatonInternalState.BREAK.getName())) {
-      return Optional.of(wrappedPrecResult.get().withAction(Action.BREAK));
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
     }
 
-    return wrappedPrecResult;
+    // No precision adjustment
+    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
   }
 
 }

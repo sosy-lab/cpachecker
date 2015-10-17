@@ -73,5 +73,4 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
     }
   }
 
-  public abstract Action prec(AbstractState pState, Precision pPrecision) throws CPAException;
 }
