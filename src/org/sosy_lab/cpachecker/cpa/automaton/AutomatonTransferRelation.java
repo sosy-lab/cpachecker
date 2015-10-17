@@ -145,6 +145,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         automatonSuccessors.setNextValue(1);
         currentState = Iterables.getOnlyElement(currentSuccessors);
       } else { // currentSuccessors.size() > 1
+        Preconditions.checkState(false, "Automata states with multiple successors are only supported with cfa.useMultiEdges=false! Implement the feature?");
         break;
       }
     }
