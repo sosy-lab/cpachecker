@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 
-public class DefaultPartitioningOperator implements PartitioningOperator {
+public class PartitioningDefaultOperator implements PartitioningOperator {
 
   /**
    *

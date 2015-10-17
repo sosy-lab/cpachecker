@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -54,7 +56,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
@@ -69,12 +73,12 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
   @Option(secure=true, description = "Operator for determining the partitions of properties that have to be checked.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
-  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = DefaultPartitioningOperator.class;
+  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = PartitioningDefaultOperator.class;
   private final PartitioningOperator partitionOperator;
 
   @Option(secure=true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
-  @Nonnull private Class<? extends InitOperator> initOperatorClass = DefaultInitOperator.class;
+  @Nonnull private Class<? extends InitOperator> initOperatorClass = InitDefaultOperator.class;
   private final InitOperator initOperator;
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
@@ -123,7 +127,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
    *
    * @return            Set of properties
    */
-  private ImmutableSet<Property> getActiveProperties(
+  static ImmutableSet<Property> getActiveProperties(
       final AbstractState pAbstractState,
       final ReachedSet pReachedSet) {
 
@@ -184,12 +188,18 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
 
+    Preconditions.checkArgument(pReachedSet.size() == 1);
+    Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
+
+    final AbstractState e0 = pReachedSet.getFirstState();
+    final Precision pi0 = pReachedSet.getPrecision(e0);
+
     final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
 
     ImmutableSet<ImmutableSet<Property>> checkPartitions =
         partitionOperator.partition(noPartitioning, all);
 
-    initReached(pReachedSet, checkPartitions);
+    initReached(pReachedSet, e0, pi0, checkPartitions);
 
     do {
 
@@ -227,7 +237,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         //  if we have found sufficient counterexamples
         checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
 
-        // TODO: Just adjust the precision of the states in the waitlist
+        // Just adjust the precision of the states in the waitlist
+        disablePropertiesForWaitlist(pReachedSet, violated);
 
       } else {
 
@@ -253,7 +264,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         checkPartitions = partitionOperator.partition(noPartitioning, remaining);
 
         // Re-initialize the sets 'waitlist' and 'reached'
-        initReached(pReachedSet, checkPartitions);
+        initReached(pReachedSet, e0, pi0, checkPartitions);
       }
 
       // Run as long as...
@@ -271,9 +282,12 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return status;
   }
 
-  private void initReached(ReachedSet pReachedSet, ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
+  private void initReached(final ReachedSet pReachedSet,
+      final AbstractState pE0, final Precision pPi0,
+      final ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
+
     // Delegate the initialization of the set reached (and the waitlist) to the init operator
-    initOperator.init(pReachedSet, pCheckPartitions);
+    initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
 
     // Reset the information in counterexamples, inactive properties, ...
     ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
@@ -281,7 +295,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     argCpa.getCexSummary().resetForNewSetOfProperties();
   }
 
-  private ImmutableSet<ImmutableSet<Property>> removePropertiesFrom(
+  static ImmutableSet<ImmutableSet<Property>> removePropertiesFrom(
       ImmutableSet<ImmutableSet<Property>> pOldPartitions,
       Set<Property> pRunViolated) {
 
@@ -292,6 +306,46 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     }
 
     return result.build();
+  }
+
+  static void disablePropertiesForWaitlist(final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
+
+    final HashSet<AutomatonSafetyProperty> toBlacklist = Sets.newHashSet(
+      Collections2.transform(pToBlacklist, new Function<Property, AutomatonSafetyProperty>() {
+        @Override
+        public AutomatonSafetyProperty apply(Property pProp) {
+          Preconditions.checkArgument(pProp instanceof AutomatonSafetyProperty);
+          return (AutomatonSafetyProperty) pProp;
+        }
+
+      }).iterator());
+
+    // update the precision:
+    //  (optional) disable some automata transitions (global precision)
+    for (AbstractState e: pReachedSet.getWaitlist()) {
+
+      final Precision pi = pReachedSet.getPrecision(e);
+      final Precision piPrime = blacklistProperties(pi, toBlacklist);
+
+      if (piPrime != null) {
+        pReachedSet.updatePrecision(e, piPrime);
+        throw new RuntimeException("Merge of precisions from subgraphs to pivot states not yet implemented!!!");
+      }
+    }
+  }
+
+  public static Precision blacklistProperties(final Precision pi, final HashSet<AutomatonSafetyProperty> toBlacklist) {
+    final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
+      @Override
+      public Precision apply(Precision pPrecision) {
+        if (pPrecision instanceof AutomatonPrecision) {
+          AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
+          return pi.cloneAndAddBlacklisted(toBlacklist);
+        }
+        return null;
+      }
+    });
+    return piPrime;
   }
 
 

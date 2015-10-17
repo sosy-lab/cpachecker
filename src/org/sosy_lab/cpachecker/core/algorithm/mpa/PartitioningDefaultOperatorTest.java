@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import com.google.common.collect.ImmutableSet;
 
 
-public class DefaultPartitioningOperatorTest {
+public class PartitioningDefaultOperatorTest {
 
-  private DefaultPartitioningOperator op;
+  private PartitioningDefaultOperator op;
 
   private Property p1;
   private Property p2;
@@ -44,7 +44,7 @@ public class DefaultPartitioningOperatorTest {
 
   @Before
   public void setUp() throws Exception {
-    op = new DefaultPartitioningOperator();
+    op = new PartitioningDefaultOperator();
 
     p1 = NamedProperty.create("p1");
     p2 = NamedProperty.create("p2");
