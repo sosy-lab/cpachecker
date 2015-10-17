@@ -15,6 +15,8 @@
   <tasks name="svcomp">
     <include>../programs/benchmarks/recursive/*.c</include>
     <option name="-predicateAnalysis-bam-rec-plain"/>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <rundefinition/>
