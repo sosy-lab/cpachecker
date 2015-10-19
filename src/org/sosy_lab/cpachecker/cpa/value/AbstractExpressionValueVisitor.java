@@ -737,16 +737,14 @@ public abstract class AbstractExpressionValueVisitor
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
-              if (paramType instanceof CSimpleType) {
-                switch (((CSimpleType) paramType).getType()) {
-                case FLOAT:
-                  return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
-                case DOUBLE:
-                  return Double.isNaN(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
-                default:
-                  break;
-                }
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+              case FLOAT:
+                return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
+              case DOUBLE:
+                return Double.isNaN(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
+              default:
+                break;
               }
             }
           }
