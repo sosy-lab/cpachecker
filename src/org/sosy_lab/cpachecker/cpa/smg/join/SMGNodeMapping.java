@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
@@ -34,40 +35,17 @@ class SMGNodeMapping {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((object_map == null) ? 0 : object_map.hashCode());
-    result = prime * result + ((value_map == null) ? 0 : value_map.hashCode());
-    return result;
+    return Objects.hash(object_map, value_map);
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || !(obj instanceof SMGNodeMapping)) {
       return false;
     }
     SMGNodeMapping other = (SMGNodeMapping) obj;
-    if (object_map == null) {
-      if (other.object_map != null) {
-        return false;
-      }
-    } else if (!object_map.equals(other.object_map)) {
-      return false;
-    }
-    if (value_map == null) {
-      if (other.value_map != null) {
-        return false;
-      }
-    } else if (!value_map.equals(other.value_map)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(object_map, other.object_map)
+        && Objects.equals(value_map, other.value_map);
   }
 
   public SMGNodeMapping() {}
