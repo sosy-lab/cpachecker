@@ -298,11 +298,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       SMGAddressValueAndState bufferAddressAndState = evaluateAddress(pSMGState, cfaEdge, bufferExpr);
-      SMGAddressValue bufferAddress = bufferAddressAndState.getValue();
+      SMGAddressValue bufferAddress = bufferAddressAndState.getObject();
       SMGState currentState = bufferAddressAndState.getSmgState();
 
       SMGExplicitValueAndState countValueAndState = evaluateExplicitValue(currentState, cfaEdge, countExpr);
-      SMGExplicitValue countValue = countValueAndState.getValue();
+      SMGExplicitValue countValue = countValueAndState.getObject();
       currentState = countValueAndState.getSmgState();
 
       if (bufferAddress.isUnknown() || countValue.isUnknown()) {
@@ -326,7 +326,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         // TODO write explicit Value into smg
         SMGValueAndState chAndState = evaluateExpressionValue(currentState,
             cfaEdge, chExpr);
-        ch = chAndState.getValue();
+        ch = chAndState.getObject();
         currentState = chAndState.getSmgState();
 
       if (ch.isUnknown()) {
@@ -337,7 +337,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
 
       SMGExplicitValueAndState expValueAndState = expEvaluator.evaluateExplicitValue(currentState, cfaEdge, chExpr);
-      SMGExplicitValue expValue = expValueAndState.getValue();
+      SMGExplicitValue expValue = expValueAndState.getObject();
       currentState = expValueAndState.getSmgState();
 
       if (ch.equals(SMGKnownSymValue.ZERO)) {
@@ -387,7 +387,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       SMGExplicitValueAndState valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
-      SMGExplicitValue value = valueAndState.getValue();
+      SMGExplicitValue value = valueAndState.getObject();
       currentState = valueAndState.getSmgState();
 
       if (value.isUnknown()) {
@@ -399,7 +399,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           //Sanity check
 
           valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
-          value = valueAndState.getValue();
+          value = valueAndState.getObject();
           currentState = valueAndState.getSmgState();
 
           if(value.isUnknown()) {
@@ -434,7 +434,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       SMGExplicitValueAndState valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
-      SMGExplicitValue value = valueAndState.getValue();
+      SMGExplicitValue value = valueAndState.getObject();
       currentState = valueAndState.getSmgState();
 
       if (value.isUnknown()) {
@@ -446,7 +446,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           //Sanity check
 
           valueAndState = evaluateExplicitValue(currentState, cfaEdge, sizeExpr);
-          value = valueAndState.getValue();
+          value = valueAndState.getObject();
           currentState = valueAndState.getSmgState();
 
           if(value.isUnknown()) {
@@ -505,7 +505,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
 
       SMGAddressValueAndState addressAndState = expressionEvaluator.evaluateAddress(pState, cfaEdge, pointerExp);
-      SMGAddressValue address = addressAndState.getValue();
+      SMGAddressValue address = addressAndState.getObject();
       SMGState currentState = addressAndState.getSmgState();
 
       if (address.isUnknown()) {
@@ -581,15 +581,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
 
       SMGAddressValueAndState targetStr1AndState = evaluateAddress(pSmgState, pCfaEdge, targetStr1Expr);
-      SMGAddressValue targetStr1Address = targetStr1AndState.getValue();
+      SMGAddressValue targetStr1Address = targetStr1AndState.getObject();
       SMGState currentState = targetStr1AndState.getSmgState();
 
       SMGAddressValueAndState sourceStr2AndState = evaluateAddress(currentState, pCfaEdge, sourceStr2Expr);
-      SMGAddressValue sourceStr2Address = sourceStr2AndState.getValue();
+      SMGAddressValue sourceStr2Address = sourceStr2AndState.getObject();
       currentState = sourceStr2AndState.getSmgState();
 
       SMGExplicitValueAndState sizeValueAndState = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
-      SMGExplicitValue sizeValue = sizeValueAndState.getValue();
+      SMGExplicitValue sizeValue = sizeValueAndState.getObject();
       currentState = sizeValueAndState.getSmgState();
 
       // TODO Unsound because source is not overridden
@@ -835,7 +835,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(functionReturnEdge, newState);
 
       SMGAddressAndState addressAndValue = lValue.accept(visitor);
-      address = addressAndValue.getAddress();
+      address = addressAndValue.getObject();
       newState = addressAndValue.getSmgState();
 
       if (!address.isUnknown()) {
@@ -863,7 +863,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGObject tmpMemory = smgState.getFunctionReturnObject();
 
-    return expressionEvaluator.readValue(smgState, tmpMemory, SMGKnownExpValue.ZERO, type, pCFAEdge).getValue();
+    return expressionEvaluator.readValue(smgState, tmpMemory, SMGKnownExpValue.ZERO, type, pCFAEdge).getObject();
   }
 
   private SMGState handleFunctionCall(SMGState smgState, CFunctionCallEdge callEdge)
@@ -912,7 +912,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       // explore the old state for the parameters
       SMGValueAndState stateValue = readValueToBeAssiged(newState, callEdge, paramObj, 0, exp);
       newState = stateValue.getSmgState();
-      SMGSymbolicValue value = stateValue.getValue();
+      SMGSymbolicValue value = stateValue.getObject();
       newState = assignExplicitValueToSymbolicValue(newState, callEdge, value, exp);
 
       values.add(i, Pair.of(paramObj, value));
@@ -966,7 +966,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     // get the value of the expression (either true[-1], false[0], or unknown[null])
     AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, smgState);
     SMGValueAndState valueAndState = expression.accept(visitor);
-    SMGSymbolicValue value = valueAndState.getValue();
+    SMGSymbolicValue value = valueAndState.getObject();
     smgState = valueAndState.getSmgState();
 
     if (! value.isUnknown()) {
@@ -995,7 +995,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     SMGExplicitValueAndState explicitValueAndState = expressionEvaluator.evaluateExplicitValue(smgState, cfaEdge, expression);
-    SMGExplicitValue explicitValue = explicitValueAndState.getValue();
+    SMGExplicitValue explicitValue = explicitValueAndState.getObject();
     smgState = explicitValueAndState.getSmgState();
 
     if (expressionEvaluator.isMissingExplicitInformation()) {
@@ -1121,7 +1121,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     LValueAssignmentVisitor visitor = expressionEvaluator.getLValueAssignmentVisitor(cfaEdge, state);
 
     SMGAddressAndState addressOfFieldAndState = lValue.accept(visitor);
-    SMGAddress addressOfField = addressOfFieldAndState.getAddress();
+    SMGAddress addressOfField = addressOfFieldAndState.getObject();
     state = addressOfFieldAndState.getSmgState();
 
     CType fieldType = expressionEvaluator.getRealExpressionType(lValue);
@@ -1155,7 +1155,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject memoryOfField, int fieldOffset, CRightHandSide rValue) throws CPATransferException {
 
     SMGValueAndState valueAndState = expressionEvaluator.evaluateExpressionValue(pNewState, cfaEdge, rValue);
-    SMGSymbolicValue value = valueAndState.getValue();
+    SMGSymbolicValue value = valueAndState.getObject();
 
     if (value.isUnknown()) {
 
@@ -1179,7 +1179,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
 
     SMGValueAndState valueAndState = readValueToBeAssiged(pNewState, cfaEdge, memoryOfField, fieldOffset, rValue);
-    SMGSymbolicValue value = valueAndState.getValue();
+    SMGSymbolicValue value = valueAndState.getObject();
     SMGState newState = valueAndState.getSmgState();
 
 
@@ -1205,7 +1205,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         machineModel);
 
     SMGExplicitValueAndState expValueAndState = expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue);
-    SMGExplicitValue expValue = expValueAndState.getValue();
+    SMGExplicitValue expValue = expValueAndState.getObject();
     SMGState newState = expValueAndState.getSmgState();
 
     if (!expValue.isUnknown()) {
@@ -1664,14 +1664,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       private void deriveFurtherInformation(CLeftHandSide lValue, CExpression exp, BinaryOperator op) throws CPATransferException {
 
-        SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp).getValue();
+        SMGExplicitValue rValue = evaluateExplicitValue(assignableState, edge, exp).getObject();
 
         if (rValue.isUnknown()) {
           // no further information can be inferred
           return;
         }
 
-        SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, lValue).getValue();
+        SMGSymbolicValue rSymValue = evaluateExpressionValue(assignableState, edge, lValue).getObject();
 
         if(rSymValue.isUnknown()) {
 
@@ -1679,7 +1679,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
           SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
 
-          SMGAddress addressOfField = lValue.accept(visitor).getAddress();
+          SMGAddress addressOfField = lValue.accept(visitor).getObject();
 
           if(addressOfField.isUnknown()) {
             return;
@@ -1731,16 +1731,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
 
-        SMGAddress addressOfField = lValue.accept(visitor).getAddress();
+        SMGAddress addressOfField = lValue.accept(visitor).getObject();
 
         if (addressOfField.isUnknown()) {
           return;
         }
 
         // If this value is known, the assumption can be evaluated, therefore it should be unknown
-        assert evaluateExplicitValue(assignableState, edge, lValue).getValue().isUnknown();
+        assert evaluateExplicitValue(assignableState, edge, lValue).getObject().isUnknown();
 
-        SMGSymbolicValue value = evaluateExpressionValue(assignableState, edge, lValue).getValue();
+        SMGSymbolicValue value = evaluateExpressionValue(assignableState, edge, lValue).getObject();
 
         // This symbolic value should have been added when evaluating the assume
         assert !value.isUnknown();
@@ -1783,8 +1783,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         SMGAddressAndState address = super.visit(pLValue);
 
-        if (address.getAddress().isUnknown()) {
-          return SMGAddressAndState.of(address.getSmgState().setUnknownDereference(), address.getAddress());
+        if (address.getObject().isUnknown()) {
+          return SMGAddressAndState.of(address.getSmgState().setUnknownDereference(), address.getObject());
         }
 
         return address;
@@ -1910,7 +1910,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           throw e2;
         }
 
-        SMGSymbolicValue value = symbolicValueAndState.getValue();
+        SMGSymbolicValue value = symbolicValueAndState.getObject();
         setSmgState(symbolicValueAndState.getSmgState());
 
         if (value.isUnknown()) {
@@ -2036,7 +2036,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         throws CPATransferException {
 
       SMGExplicitValueAndState explicitValue = super.evaluateExplicitValue(pSmgState, pCfaEdge, pRValue);
-      if (explicitValue.getValue().isUnknown()) {
+      if (explicitValue.getObject().isUnknown()) {
         missingExplicitInformation = true;
       }
       return explicitValue;
@@ -2234,7 +2234,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     //TODO Refactor ...
     if (rValue instanceof CFunctionCallExpression) {
       return resolveFunctionCall(newSmgState, pExplicitState,
-          (CFunctionCallExpression) rValue, pEdge).getValue();
+          (CFunctionCallExpression) rValue, pEdge).getObject();
     } else {
 
       String functionName = pEdge.getPredecessor().getFunctionName();
@@ -3240,7 +3240,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     public static SMGValueAndState of(SMGState pState) {
-      return new SMGValueAndState(pState);
+      return SMGValueAndState.of(pState);
     }
 
     public SMGState getSmgState() {

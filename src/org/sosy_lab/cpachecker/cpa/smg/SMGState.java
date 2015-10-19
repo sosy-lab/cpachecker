@@ -464,7 +464,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
 
     // Do not create a value if the read is invalid.
-    if(valueAndState.getValue().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
+    if(valueAndState.getObject().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
       Integer newValue = SMGValueFactory.getNewValue();
       SMGStateEdgePair stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
       return SMGValueAndState.of(stateAndNewEdge.getState(), SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));

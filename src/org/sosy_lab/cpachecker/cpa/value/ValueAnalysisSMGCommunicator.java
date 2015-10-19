@@ -132,7 +132,7 @@ public class ValueAnalysisSMGCommunicator {
       LValueAssignmentVisitor visitor = smgEvaluator.getLValueAssignmentVisitor(cfaEdge, smgState);
 
       try {
-        value = pOperand.accept(visitor).getAddress();
+        value = pOperand.accept(visitor).getObject();
       } catch (CPATransferException e) {
         if (e instanceof UnrecognizedCCodeException) {
           throw (UnrecognizedCCodeException) e;
