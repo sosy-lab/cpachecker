@@ -255,8 +255,10 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         if (pReachedSet.getWaitlist().isEmpty()) {
           // We have reached a fixpoint for the non-blacklisted properties.
 
-          // Properties that are still active are considered to be save!
-          SetView<Property> active = Sets.difference(all, getInactiveProperties(pReachedSet));
+          // Properties that are (1) still active
+          //  and (2) for that no counterexample was found are considered to be save!
+          SetView<Property> active = Sets.difference(all,
+              Sets.union(violated, getInactiveProperties(pReachedSet)));
           satisfied.addAll(active);
 
         } else {
