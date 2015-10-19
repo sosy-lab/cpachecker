@@ -89,8 +89,14 @@ class AutomatonASTComparator {
    * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.
    */
   static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression";
-  static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
+  static final String NUMBERED_JOKER_EXPR = JOKER_EXPR + "_Num";
+  static final String NAMED_JOKER_EXPR = JOKER_EXPR + "_Named-";
+
+  static final Pattern NUMBERED_PATTERN = Pattern.compile("\\d+");
   static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");
+  static final Pattern NAMED_PATTERN = Pattern.compile("[a-zA-Z_]\\w*");
+  static final Pattern NAMED_JOKER_PATTERN = Pattern.compile("\\$[a-zA-Z_]\\w*");
+  static final Pattern GENERIC_JOKER_PATTERN = Pattern.compile("\\$\\w*");
 
   public static class ASTMatcherProvider {
     private final String patter;
@@ -165,20 +171,29 @@ class AutomatonASTComparator {
 
   @VisibleForTesting
   static String replaceJokersInPattern(String pPattern) {
-    String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
-    Matcher matcher = NUMBERED_JOKER_PATTERN.matcher(tmp);
-    StringBuffer result = new StringBuffer();
+    final String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
+
+    final Matcher matcher = GENERIC_JOKER_PATTERN.matcher(tmp);
+    final StringBuffer result = new StringBuffer();
+
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
-      String key = tmp.substring(matcher.start()+1, matcher.end());
-      try {
-        int varKey = Integer.parseInt(key);
-        result.append(" " + NUMBERED_JOKER_EXPR + varKey + " ");
-      } catch (NumberFormatException e) {
-        // did not work, but i cant log it down here. Should not be able to happen anyway (regex captures only ints)
-        result.append(matcher.group());
+      final String key = tmp.substring(matcher.start()+1, matcher.end());
+
+      if (NAMED_PATTERN.matcher(key).matches()) {
+        result.append(" " + NAMED_JOKER_EXPR + key + " ");
+
+      } else {
+        try {
+          result.append(" " + NUMBERED_JOKER_EXPR + key + " ");
+
+        } catch (NumberFormatException e) {
+        //  did not work, but i cant log it down here. Should not be able to happen anyway (regex captures only ints)
+          result.append(matcher.group());
+        }
       }
     }
+
     matcher.appendTail(result);
     return result.toString();
   }
