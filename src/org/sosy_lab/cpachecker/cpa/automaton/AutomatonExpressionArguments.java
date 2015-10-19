@@ -209,6 +209,8 @@ class AutomatonExpressionArguments {
           CIdExpression exp = (CIdExpression) pNode;
           String name = exp.getName();
 
+          // TODO: Ensure type safety of the substitution!
+
           if (name.startsWith(AutomatonASTComparator.NUMBERED_JOKER_EXPR)) {
             String varIdStr = name.substring(AutomatonASTComparator.NUMBERED_JOKER_EXPR.length());
             int varId = Integer.parseInt(varIdStr);
