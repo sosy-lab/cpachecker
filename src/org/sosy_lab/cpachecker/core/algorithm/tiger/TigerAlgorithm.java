@@ -137,6 +137,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 
 @Options(prefix = "tiger")
@@ -827,64 +828,12 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition)
       throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    Automaton goalAutomaton = pGoal.createControlAutomaton();
-
-    CPAFactory automataFactory = ControlAutomatonCPA.factory();
-    automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
-    automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
-    automataFactory.set(cfa, CFA.class);
-    automataFactory.set(goalAutomaton, Automaton.class);
-
-    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
-    try {
-      lAutomatonCPAs.add(automataFactory.createInstance());
-    } catch (InvalidConfigurationException e1) {
-      throw new CPAException("Invalid automata!", e1);
-    }
-
-    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-    // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
-    //int lProductAutomatonIndex = lComponentAnalyses.size();
-    int lProductAutomatonIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
-
-    // TODO experiment
-    if (cpa instanceof CompositeCPA) {
-      CompositeCPA compositeCPA = (CompositeCPA) cpa;
-      lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
-    } else if (cpa instanceof ARGCPA) {
-      lComponentAnalyses.addAll(((ARGCPA) cpa).getWrappedCPAs());
-    } else {
-      lComponentAnalyses.add(cpa);
-    }
-
-
-    ARGCPA lARTCPA;
-    try {
-      // create composite CPA
-      CPAFactory lCPAFactory = CompositeCPA.factory();
-      lCPAFactory.setChildren(lComponentAnalyses);
-      lCPAFactory.setConfiguration(startupConfig.getConfig());
-      lCPAFactory.setLogger(logger);
-      lCPAFactory.set(cfa, CFA.class);
-
-      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
-
-      // create ART CPA
-      CPAFactory lARTCPAFactory = ARGCPA.factory();
-      lARTCPAFactory.set(cfa, CFA.class);
-      lARTCPAFactory.setChild(lCPA);
-      lARTCPAFactory.setConfiguration(startupConfig.getConfig());
-      lARTCPAFactory.setLogger(logger);
-
-      lARTCPA = (ARGCPA) lARTCPAFactory.createInstance();
-    } catch (InvalidConfigurationException | CPAException e) {
-      throw new RuntimeException(e);
-    }
+    ARGCPA lARTCPA = composeCPA(pGoal);
 
     if (reuseARG && (reachedSet != null)) {
-      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, lProductAutomatonIndex,
-          pPreviousGoalAutomaton, pGoal.getAutomaton());
+      Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof ControlAutomatonCPA);
+
+      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, 0, pPreviousGoalAutomaton, pGoal.getAutomaton());
 
       // reusedPrecision == null indicates that there is no PredicateCPA
       if (reusePredicates && reusedPrecision != null) {
@@ -1304,6 +1253,54 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     } else {
       return ReachabilityAnalysisResult.UNSOUND;
     }
+  }
+
+  private ARGCPA composeCPA(Goal pGoal) throws CPAException, InvalidConfigurationException {
+    Automaton goalAutomaton = pGoal.createControlAutomaton();
+
+    CPAFactory automataFactory = ControlAutomatonCPA.factory();
+    automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
+    automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
+    automataFactory.set(cfa, CFA.class);
+    automataFactory.set(goalAutomaton, Automaton.class);
+
+    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
+    try {
+      lAutomatonCPAs.add(automataFactory.createInstance());
+    } catch (InvalidConfigurationException e1) {
+      throw new CPAException("Invalid automata!", e1);
+    }
+
+    Preconditions.checkArgument(cpa instanceof ARGCPA,
+        "Tiger: Only support for ARGCPA implemented for CPA composition!");
+
+    LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
+    lComponentAnalyses.addAll(((ARGCPA) cpa).getWrappedCPAs());
+
+    ARGCPA lARTCPA;
+    try {
+      // create composite CPA
+      CPAFactory lCPAFactory = CompositeCPA.factory();
+      lCPAFactory.setChildren(lComponentAnalyses);
+      lCPAFactory.setConfiguration(startupConfig.getConfig());
+      lCPAFactory.setLogger(logger);
+      lCPAFactory.set(cfa, CFA.class);
+
+      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+
+      // create ART CPA
+      CPAFactory lARTCPAFactory = ARGCPA.factory();
+      lARTCPAFactory.set(cfa, CFA.class);
+      lARTCPAFactory.setChild(lCPA);
+      lARTCPAFactory.setConfiguration(startupConfig.getConfig());
+      lARTCPAFactory.setLogger(logger);
+
+      lARTCPA = (ARGCPA) lARTCPAFactory.createInstance();
+    } catch (InvalidConfigurationException | CPAException e) {
+      throw new RuntimeException(e);
+    }
+    return lARTCPA;
   }
 
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
