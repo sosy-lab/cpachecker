@@ -140,8 +140,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
   private boolean handleNonFreedMemoryInMainAsMemLeak = false;
 
-  @Option(secure=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped. One of: {never, leaf, interesting, every}")
-  private String exportSMG = "never";
+  @Option(secure=true, toUppercase=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped.")
+  private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
+
+  private static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
 
   @Option(secure=true, name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
@@ -618,10 +620,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   final private SMGBuiltins builtins = new SMGBuiltins();
 
-  private void plotWhenConfigured(String pConfig, String pName, SMGState pState, String pLocation) {
+  private void plotWhenConfigured(SMGExportLevel level, String pName, SMGState pState, String pLocation) {
     //TODO: A variation for more pConfigs
 
-    if (pConfig.equals(exportSMG)) {
+    if (level == exportSMG) {
       builtins.dumpSMGPlot(pName, pState, pLocation);
     }
   }
@@ -677,7 +679,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
     SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel);
-    result.exportSMG = "never";
+    result.exportSMG = SMGExportLevel.NEVER;
     return result;
   }
 
@@ -701,7 +703,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     case StatementEdge:
       successor = handleStatement(smgState, (CStatementEdge) cfaEdge);
-      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
+      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successor, cfaEdge.getDescription());
       break;
 
       // this is an assumption, e.g. if (a == b)
@@ -709,13 +711,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
       successor = handleAssumption(smgState, assumeEdge.getExpression(),
           cfaEdge, assumeEdge.getTruthAssumption(), true);
-      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
+      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successor, cfaEdge.getDescription());
       break;
 
     case FunctionCallEdge:
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
       successor = handleFunctionCall(smgState, functionCallEdge);
-      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
+      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successor, cfaEdge.getDescription());
       break;
 
     // this is a return edge from function, this is different from return statement
@@ -725,10 +727,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       successor = handleFunctionReturn(smgState, functionReturnEdge);
       if (checkForMemLeaksAtEveryFrameDrop) {
         String  name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), id_counter.getAndIncrement());
-        plotWhenConfigured("interesting", "beforePrune" + name, successor, cfaEdge.getDescription());
+        plotWhenConfigured(SMGExportLevel.INTERESTING, "beforePrune" + name, successor, cfaEdge.getDescription());
         successor.pruneUnreachable();
       }
-      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
+      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successor, cfaEdge.getDescription());
       break;
 
     case ReturnStatementEdge:
@@ -751,7 +753,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
         successor.pruneUnreachable();
       }
-      plotWhenConfigured("interesting", null, successor, cfaEdge.getDescription());
+      plotWhenConfigured(SMGExportLevel.INTERESTING, null, successor, cfaEdge.getDescription());
       break;
 
     default:
@@ -771,7 +773,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     for (SMGState smg : result) {
-      plotWhenConfigured("every", null, smg, cfaEdge.getDescription());
+      plotWhenConfigured(SMGExportLevel.EVERY, null, smg, cfaEdge.getDescription());
     }
 
     return result;
@@ -2126,7 +2128,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (newElement == null) {
       return Collections.emptyList();
     } else {
-      plotWhenConfigured("every", null, newElement, assumeDesc.toString());
+      plotWhenConfigured(SMGExportLevel.EVERY, null, newElement, assumeDesc.toString());
       return Collections.singleton(newElement);
     }
   }

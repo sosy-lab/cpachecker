@@ -1648,9 +1648,9 @@ cpa.smg.enableMallocFail = true
 # Filename format for SMG graph dumps
 cpa.smg.exportSMG.file = "smg-%s.dot"
 
-# Describes when SMG graphs should be dumped. One of: {never, leaf,
-# interesting, every}
-cpa.smg.exportSMGwhen = "never"
+# Describes when SMG graphs should be dumped.
+cpa.smg.exportSMGwhen = NEVER
+  enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
