@@ -122,7 +122,6 @@ import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
@@ -830,8 +829,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     ARGCPA lARTCPA = composeCPA(pGoal);
 
+    Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof CompositeCPA,
+        "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
+    Preconditions.checkState(((CompositeCPA)lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA,
+        "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
+
+
     if (reuseARG && (reachedSet != null)) {
-      Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof ControlAutomatonCPA);
 
       ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, 0, pPreviousGoalAutomaton, pGoal.getAutomaton());
 
@@ -1258,27 +1262,24 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private ARGCPA composeCPA(Goal pGoal) throws CPAException, InvalidConfigurationException {
     Automaton goalAutomaton = pGoal.createControlAutomaton();
 
+    Preconditions.checkArgument(cpa instanceof ARGCPA,
+        "Tiger: Only support for ARGCPA implemented for CPA composition!");
+    ARGCPA oldArgCPA = (ARGCPA) cpa;
+
     CPAFactory automataFactory = ControlAutomatonCPA.factory();
     automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
     automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
     automataFactory.set(cfa, CFA.class);
     automataFactory.set(goalAutomaton, Automaton.class);
 
-    List<ConfigurableProgramAnalysis> lAutomatonCPAs = new ArrayList<>(1);//(2);
-    try {
-      lAutomatonCPAs.add(automataFactory.createInstance());
-    } catch (InvalidConfigurationException e1) {
-      throw new CPAException("Invalid automata!", e1);
-    }
-
-    Preconditions.checkArgument(cpa instanceof ARGCPA,
-        "Tiger: Only support for ARGCPA implemented for CPA composition!");
-
+    // Add one automata for each goal
+    //  TODO: Implement support for more than one (parallel) goal!
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
-    lComponentAnalyses.addAll(((ARGCPA) cpa).getWrappedCPAs());
+    lComponentAnalyses.add(automataFactory.createInstance());
+    lComponentAnalyses.addAll(oldArgCPA.getWrappedCPAs());
 
-    ARGCPA lARTCPA;
+    final ARGCPA result;
+
     try {
       // create composite CPA
       CPAFactory lCPAFactory = CompositeCPA.factory();
@@ -1289,18 +1290,20 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
       ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
 
-      // create ART CPA
+      // create ARG CPA
       CPAFactory lARTCPAFactory = ARGCPA.factory();
       lARTCPAFactory.set(cfa, CFA.class);
       lARTCPAFactory.setChild(lCPA);
       lARTCPAFactory.setConfiguration(startupConfig.getConfig());
       lARTCPAFactory.setLogger(logger);
 
-      lARTCPA = (ARGCPA) lARTCPAFactory.createInstance();
+      result = (ARGCPA) lARTCPAFactory.createInstance();
+
     } catch (InvalidConfigurationException | CPAException e) {
       throw new RuntimeException(e);
     }
-    return lARTCPA;
+
+    return result;
   }
 
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
