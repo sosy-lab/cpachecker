@@ -674,7 +674,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     id_counter = new AtomicInteger(0);
   }
 
-  public static SMGTransferRelation createTransferRelationForRefinment(Configuration config, LogManager pLogger,
+  public static SMGTransferRelation createTransferRelationForRefinement(Configuration config, LogManager pLogger,
       MachineModel pMachineModel) throws InvalidConfigurationException {
     SMGTransferRelation result = new SMGTransferRelation(config, pLogger, pMachineModel);
     result.exportSMG = "never";
