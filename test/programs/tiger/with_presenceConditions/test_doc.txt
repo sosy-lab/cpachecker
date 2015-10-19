@@ -1,0 +1,20 @@
+Test with this CPAchecker call:
+
+time ./scripts/cpa.sh -preprocess -config test/programs/tiger/with_presenceConditions/configuration_with_pc.properties test/programs/tiger/with_presenceConditions/FASE2015_draft_example.c
+
+17.12.2014 Runs in 5 seconds.
+	real	0m4.930s
+	user	0m11.306s
+	sys	0m0.581s
+	Saved the testsuite to ./output/testsuite.txt
+	Produced testsuite looks ok, however tiger finds 19 testgoals instead of 12 in expected-result.png
+	I would rather believe tiger as the expected-result.png is probably simplified for a paper.
+Comment: in the output CPAchecker complains about "The following configuration options were specified but are not used:"
+	Probably the config has not been updated.
+	
+	
+19.12.2014 Reusing ARG for testgoals, resetting it when starting on next testgoal. (tiger.reuseARG = true)
+time ./scripts/cpa.sh -preprocess -config test/programs/tiger/with_presenceConditions/configuration_with_pc_withARGreuse.properties test/programs/tiger/with_presenceConditions/FASE2015_draft_example.c
+	Test result: So far, this does not work. tiger finds one testcase, then reuses the ARG and finds the same testcase (same pc) again, and again, and again ...
+		The first pc should be excluded from future searches but that does not seem to happen?
+	
