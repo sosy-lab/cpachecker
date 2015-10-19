@@ -667,16 +667,13 @@ public abstract class AbstractExpressionValueVisitor
       String functionName = ((CIdExpression) functionNameExp).getName();
 
       if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-        CType functionReturnType = BuiltinFunctions.getFunctionType(functionName);
+        CType functionType = BuiltinFunctions.getFunctionType(functionName);
 
-        if (isUnspecifiedType(functionReturnType)) {
+        if (isUnspecifiedType(functionType)) {
           // unsupported formula
           return Value.UnknownValue.getInstance();
         }
 
-        assert functionReturnType.equals(pIastFunctionCallExpression.getExpressionType())
-            : "Builtin function's return type is false. " + functionName
-            + " has return type " + pIastFunctionCallExpression.getExpressionType();
         List<CExpression> parameterExpressions = pIastFunctionCallExpression.getParameterExpressions();
         List<Value> parameterValues = new ArrayList<>(parameterExpressions.size());
 
@@ -734,6 +731,24 @@ public abstract class AbstractExpressionValueVisitor
                 : "Unhandled builtin function for NaN: " + functionName;
 
             return new NumericValue(Double.NaN);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              if (paramType instanceof CSimpleType) {
+                switch (((CSimpleType) paramType).getType()) {
+                case FLOAT:
+                  return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
+                case DOUBLE:
+                  return Double.isNaN(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
+                default:
+                  break;
+                }
+              }
+            }
           }
         }
       }
