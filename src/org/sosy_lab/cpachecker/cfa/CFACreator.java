@@ -86,6 +86,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -357,7 +360,23 @@ private boolean classifyNodes = false;
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
 
-      final ParseResult c = parseToCFAs(sourceFiles);
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      boolean useTiger = tigerConfig.useTigerAlgorithm;
+
+      if (useTiger && (language != Language.C)) {
+        throw new InvalidConfigurationException("Tiger algorithm is only supported for C!");
+      }
+
+      if (useTiger) {
+        TigerAlgorithm.originalMainFunction = mainFunctionName;
+        mainFunctionName = WrapperUtil.CPAtiger_MAIN;
+      }
+
+      ParseResult parseResult = parseToCFAs(sourceFiles);
+
+      if (useTiger) {
+        parseResult = WrapperUtil.addWrapper((CParser) parser, parseResult, new CSourceOriginMapping());
+      }
 
       logger.log(Level.FINE, "Parser Finished");
 
@@ -365,16 +384,16 @@ private boolean classifyNodes = false;
 
       switch (language) {
       case JAVA:
-        mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
+        mainFunction = getJavaMainMethod(sourceFiles, parseResult.getFunctions());
         break;
       case C:
-        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+        mainFunction = getCMainFunction(sourceFiles, parseResult.getFunctions());
         break;
       default:
         throw new AssertionError();
       }
 
-      return createCFA(c, mainFunction);
+      return createCFA(parseResult, mainFunction);
 
     } finally {
       stats.totalTime.stop();
