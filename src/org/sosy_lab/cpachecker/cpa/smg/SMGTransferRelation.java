@@ -3230,11 +3230,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       value = pValue;
     }
 
-    public SMGEdgePointsToAndState(SMGState pState) {
-      smgState = pState;
-      value = null;
-    }
-
     public SMGEdgePointsTo getValue() {
       return value;
     }
