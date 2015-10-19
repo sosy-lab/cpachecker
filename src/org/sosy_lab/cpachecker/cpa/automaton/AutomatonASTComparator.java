@@ -90,7 +90,7 @@ class AutomatonASTComparator {
    */
   static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression";
   static final String NUMBERED_JOKER_EXPR = JOKER_EXPR + "_Num";
-  static final String NAMED_JOKER_EXPR = JOKER_EXPR + "_Named-";
+  static final String NAMED_JOKER_EXPR = JOKER_EXPR + "_Named";
 
   static final Pattern NUMBERED_PATTERN = Pattern.compile("\\d+");
   static final Pattern NUMBERED_JOKER_PATTERN = Pattern.compile("\\$\\d+");

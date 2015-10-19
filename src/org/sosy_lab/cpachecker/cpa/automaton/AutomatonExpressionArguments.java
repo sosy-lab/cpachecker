@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -37,12 +38,15 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor.SubstituteProvider;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 class AutomatonExpressionArguments {
@@ -200,6 +204,7 @@ class AutomatonExpressionArguments {
 
   public ImmutableMap<AStatement, Boolean> instantiateAssumtions(ImmutableMap<AStatement, Boolean> pAssumptions) {
 
+
     final ImmutableMap.Builder<AStatement, Boolean> builder = ImmutableMap.<AStatement, Boolean>builder();
     final SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(new SubstituteProvider() {
       @Override
@@ -212,9 +217,20 @@ class AutomatonExpressionArguments {
           // TODO: Ensure type safety of the substitution!
 
           if (name.startsWith(AutomatonASTComparator.NUMBERED_JOKER_EXPR)) {
+
             String varIdStr = name.substring(AutomatonASTComparator.NUMBERED_JOKER_EXPR.length());
             int varId = Integer.parseInt(varIdStr);
             return (CAstNode) getTransitionVariable(varId);
+
+          } else if (name.startsWith(AutomatonASTComparator.NAMED_JOKER_EXPR)) {
+
+            String varIdStr = name.substring(AutomatonASTComparator.NAMED_JOKER_EXPR.length());
+            AutomatonVariable var = automatonVariables.get(varIdStr);
+
+            Preconditions.checkState(var != null, "The referenced automata variable must be defined for the state!");
+
+            return new CIntegerLiteralExpression(pNode.getFileLocation(),
+                CNumericTypes.INT, BigInteger.valueOf(var.getValue()));
           }
         }
 
