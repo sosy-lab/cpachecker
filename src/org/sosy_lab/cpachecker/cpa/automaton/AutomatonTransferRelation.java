@@ -206,13 +206,20 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Returns the <code>AutomatonStates</code> that follow this State in the ControlAutomatonCPA.
-   * If the passed <code>AutomatonExpressionArguments</code> are not sufficient to determine the following state
-   * this method returns a <code>AutomatonUnknownState</code> that contains this as previous State.
-   * The strengthen method of the <code>AutomatonUnknownState</code> should be used once enough Information is available to determine the correct following State.
+   * Returns the <code>AutomatonStates</code> that follow this
+   *  state in the ControlAutomatonCPA.
+   *
+   * If the passed <code>AutomatonExpressionArguments</code>
+   *  are not sufficient to determine the following state
+   *  this method returns a <code>AutomatonUnknownState</code>
+   *  that contains this as previous state.
+   * The strengthen method of the <code>AutomatonUnknownState</code> should
+   *  be used once enough Information is available to determine the
+   *  correct following state.
    *
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
+   *
    * @throws CPATransferException
    */
   private Collection<AutomatonState> getFollowStates(AutomatonState state, List<AbstractState> otherElements, CFAEdge edge, boolean failOnUnknownMatch) throws CPATransferException {
