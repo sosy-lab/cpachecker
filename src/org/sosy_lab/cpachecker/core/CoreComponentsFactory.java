@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -220,6 +222,11 @@ public class CoreComponentsFactory {
 
       if (useTestGenAlgorithm) {
         algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
+      }
+
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      if (tigerConfig.useTigerAlgorithm) {
+        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger, programDenotation, stats);
       }
 
       if (usePropertyCheckingAlgorithm) {
