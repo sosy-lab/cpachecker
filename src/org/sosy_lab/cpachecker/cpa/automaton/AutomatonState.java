@@ -147,23 +147,25 @@ public class AutomatonState
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       ImmutableMap<AStatement, Boolean> pAssumptions, int successfulMatches, int failedMatches,
-      AutomatonSafetyProperty violatedPropertyDescription) {
+      AutomatonSafetyProperty pSafetyProperty) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
       return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
           pAssumptions, successfulMatches, failedMatches,
-          violatedPropertyDescription);
+          pSafetyProperty);
     }
   }
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      int successfulMatches, int failedMatches, AutomatonSafetyProperty violatedPropertyDescription) {
+      int successfulMatches, int failedMatches,
+      AutomatonSafetyProperty pSafetyProperty) {
+
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
         ImmutableMap.<AStatement, Boolean> of(), successfulMatches, failedMatches,
-        violatedPropertyDescription);
+        pSafetyProperty);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
@@ -172,7 +174,7 @@ public class AutomatonState
       ImmutableMap<AStatement, Boolean> pAssumptions,
       int successfulMatches,
       int failedMatches,
-      AutomatonSafetyProperty pViolatedPropertyDescription) {
+      AutomatonSafetyProperty pSafetyProperty) {
 
     this.vars = checkNotNull(pVars);
     this.internalState = checkNotNull(pInternalState);
@@ -182,8 +184,8 @@ public class AutomatonState
     this.assumptions = pAssumptions;
 
     if (isTarget()) {
-      checkNotNull(pViolatedPropertyDescription);
-      violatedPropertyInstance = pViolatedPropertyDescription;
+      checkNotNull(pSafetyProperty);
+      violatedPropertyInstance = pSafetyProperty;
     } else {
       violatedPropertyInstance = null;
     }
