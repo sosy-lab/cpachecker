@@ -12,14 +12,14 @@
 
 # http://linuxtesting.org/results/report?num=L0201
 2015-08-12: Bug found and fixed in Linux kernel 4.3-rc1 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=3ff448b5b7dc7ad4d664588c343da1e5e2ce18dd">commit</a>)
+# http://linuxtesting.org/results/report?num=L0194
+2015-05-12: Bug found and fixed in Linux kernel 4.1-rc4 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=f0828ba96d02d4d4b197c531b34c662ee3c928df">commit</a>)
 # http://linuxtesting.org/results/report?num=L0199 
 2015-05-01: Bug found and fixed in Linux kernel 4.2-rc8 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=90ca75fd1945d9e51e21cbde0aae1aad68730dc5">commit</a>)
 # http://linuxtesting.org/results/report?num=L0200
 2015-04-03: Bug found and fixed in Linux kernel 4.2-rc8 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=afd270d1a45043cef14341bcceff62ed50e8dc9a">commit</a>)
 # http://linuxtesting.org/results/report?num=L0198
 2015-03-02: Bug found and fixed in Linux kernel 4.2-rc8 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=2160abb2945831aaf50d176ef6d070bdbd19130d">commit</a>)
-# http://linuxtesting.org/results/report?num=L0194
-2015-05-12: Bug found and fixed in Linux kernel 4.1-rc4 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=f0828ba96d02d4d4b197c531b34c662ee3c928df">commit</a>)
 # http://linuxtesting.org/results/report?num=L0183
 2015-01-12: Bug found and fixed in Linux kernel 3.19-rc3 (<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=c4277e9ea70431aea0fecebb8bb9a3fbc27d074e">commit</a>)
 # http://linuxtesting.org/results/report?num=L0176
