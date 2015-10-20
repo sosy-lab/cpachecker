@@ -51,7 +51,7 @@ _print_lock = threading.Lock()
 
 def init(config, benchmark):
     global _webclient
-    
+
     if not benchmark.config.cpu_model:
         logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
                         "Otherwise the used machines and CPU models are undefined.")
@@ -59,7 +59,7 @@ def init(config, benchmark):
     if not config.cloudMaster:
         logging.warning("No URL of a VerifierCloud instance is given.")
         return
-        
+
     if config.revision:
         tokens = config.revision.split(':')
         svn_branch = tokens[0]
@@ -70,7 +70,7 @@ def init(config, benchmark):
     else:
         svn_branch = 'trunk'
         svn_revision = 'HEAD'
-        
+
     _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision)
 
     benchmark.tool_version = _webclient.tool_revision()
@@ -86,7 +86,7 @@ def execute_benchmark(benchmark, output_handler):
     if (benchmark.tool_name != 'CPAchecker'):
         logging.warning("The web client does only support the CPAchecker.")
         return
-    
+
     if not _webclient:
         logging.warning("No valid URL of a VerifierCloud instance is given.")
         return
@@ -112,17 +112,17 @@ def execute_benchmark(benchmark, output_handler):
         raise
     finally:
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
-        
+
     stop()
 
 def stop():
     global _webclient
     _webclient.shutdown()
     _webclient = None
-    
+
 def _submitRunsParallel(runSet, benchmark):
     global _webclient
-    
+
     logging.info('Submitting runs...')
 
     executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
@@ -132,11 +132,11 @@ def _submitRunsParallel(runSet, benchmark):
     cpu_model = benchmark.config.cpu_model
     result_files_pattern = benchmark.result_files_pattern
     priority = benchmark.config.cloudPriority
-    
+
     for run in runSet.runs:
         submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, result_files_pattern, priority)
         submission_futures[submisson_future] = run
-        
+
     executor.shutdown(wait=False)
 
     #collect results futures
@@ -178,7 +178,7 @@ def _handle_results(result_futures, output_handler, benchmark):
         executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
 
 def _unzip_and_handle_result(result, run, output_handler, benchmark):
-    
+
     # unzip result
     return_value = None
     try:
@@ -195,7 +195,7 @@ def _unzip_and_handle_result(result, run, output_handler, benchmark):
 
     if return_value is not None:
         run.after_execution(return_value)
-        
+
         with _print_lock:
             output_handler.output_before_run(run)
             output_handler.output_after_run(run)

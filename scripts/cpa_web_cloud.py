@@ -45,7 +45,7 @@ def _create_argument_parser():
     Create a parser for the command-line options.
     @return: an argparse.ArgumentParser instance
     """
-    
+
     parser = argparse.ArgumentParser(
         description="Execute a CPAchecker run in the VerifierCloud using the web interface." \
          + " Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
@@ -81,7 +81,7 @@ def _create_argument_parser():
                       dest="revision",
                       metavar="BRANCH:REVISION",
                       help="The svn revision of CPAchecker to use.")
-     
+
     parser.add_argument("-d", "--debug",
                       action="store_true",
                       help="Enable debug output")
@@ -135,9 +135,9 @@ def _init(config):
 
     if not config.cloud_master:
         sys.exit("No URL of a VerifierCloud instance is given.")
-        
+
     (svn_branch, svn_revision) = _get_revision(config)
-        
+
     webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision)
 
     logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
@@ -157,14 +157,14 @@ def _get_revision(config):
             revision = 'HEAD'
         return (svn_branch, revision)
     else:
-        return ('trunk', 'HEAD')      
-   
-    
+        return ('trunk', 'HEAD')
+
+
 def _submit_run(webclient, config, cpachecker_args, counter=0):
     """
     Submits a single run using the web interface of the VerifierCloud.
     @return: the run's result
-    """    
+    """
     limits = {}
     if config.memorylimit:
         limits['memlimit'] = config.memorylimit + "MB"
@@ -172,7 +172,7 @@ def _submit_run(webclient, config, cpachecker_args, counter=0):
         limits['timelimit'] = config.timelimit
     if config.corelimit:
         limits['corelimit'] = config.corelimit
-    
+
     run = _parse_cpachecker_args(cpachecker_args)
 
     run_result_future = webclient.submit(run, limits, config.cpu_model, \
@@ -189,8 +189,8 @@ def _parse_cpachecker_args(cpachecker_args):
         options = []
         identifier = None
         sourcefiles = []
-        propertyfile = None 
-   
+        propertyfile = None
+
     run = Run()
     run.identifier = cpachecker_args
 
@@ -204,7 +204,7 @@ def _parse_cpachecker_args(cpachecker_args):
 
             elif option[0] == '-':
                 run.options.append(option)
-            
+
             else:
                 run.sourcefiles.append(option)
 
@@ -223,19 +223,19 @@ def _execute():
     (config, cpachecker_args) = arg_parser.parse_known_args()
     _setup_logging(config)
     webclient = _init(config)
-    
+
     try:
         run_result = _submit_run(webclient, config, cpachecker_args)
         return handle_result(run_result, config.output_path, cpachecker_args)
-    
+
     except request.HTTPError as e:
         logging.warn(e.reason)
     except WebClientError as e:
         logging.warn(str(e))
-    
+
     finally:
         webclient.shutdown()
-        
+
 
 if __name__ == "__main__":
     sys.exit(_execute())
