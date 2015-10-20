@@ -224,10 +224,10 @@ def _parse_cpachecker_args(cpachecker_args):
 
     return run
     
-def _parse_result(zip_content, config, cpachecker_args):
+def _parse_result(zip_content, output_path, run_identifier):
     """
     Parses the given result: Extract meta information 
-    and write all files to the 'output_path' defined in the config parameter.
+    and write all files to the 'output_path'.
     @return: the return value of CPAchecker
     """
 
@@ -236,36 +236,37 @@ def _parse_result(zip_content, config, cpachecker_args):
     try:
         try:
             with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
-                return_value = _handle_result(result_zip_file, config, cpachecker_args)
+                return_value = _handle_result(result_zip_file, output_path)
         
         except zipfile.BadZipfile:
-            logging.warning('Server returned illegal zip file with results of run {}.'.format(cpachecker_args))
+            logging.warning('Server returned illegal zip file with results of run {}.'.format(run_identifier))
             # Dump ZIP to disk for debugging
-            with open(config.output_path + '.zip', 'wb') as zip_file:
+            with open(output_path + '.zip', 'wb') as zip_file:
                 zip_file.write(zip_content)
                 
     except IOError as e:
-        logging.warning('Error while writing results of run {}: {}'.format(cpachecker_args, e))
+        logging.warning('Error while writing results of run {}: {}'.format(run_identifier, e))
 
     return return_value
 
 
-def _handle_result(resultZipFile, config, cpachecker_args):
+def _handle_result(resultZipFile, output_path):
     """
     Extraxts all files from the given zip file, parses the meta information 
-    and writes all files to the 'output_path' defined in the config parameter.
+    and writes all files to the 'output_path'.
     @return: the return value of CPAchecker.
     """
-    result_dir = config.output_path
     files = set(resultZipFile.namelist())
 
     # extract run info
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
             (_, _, return_value, values) = _parse_cloud_result_file(runInformation)
-            print("run information:")
-            for key, value in values.items():
-                print ('\t' + str(key) + ": " + str(value))
+            print("Run Information:")
+            for key in sorted(values.keys()):
+                if not key.startswith("@"):
+                    print ('\t' + str(key) + ": " + str(values[key]))
+
     else:
         return_value = None
         logging.warning('Missing log file.')
@@ -274,7 +275,7 @@ def _handle_result(resultZipFile, config, cpachecker_args):
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
             values = _parse_worker_host_information(hostInformation)
-            print("host information:")
+            print("Host Information:")
             for key, value in values.items():
                 print ('\t' + str(key) + ": " + str(value))
     else:
@@ -282,7 +283,7 @@ def _handle_result(resultZipFile, config, cpachecker_args):
 
     # extract log file
     if RESULT_FILE_LOG in files:
-        log_file_path = config.output_path + "output.log"
+        log_file_path = output_path + "output.log"
         with open(log_file_path, 'wb') as log_file:
             with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
                 for line in result_log_file:
@@ -294,11 +295,11 @@ def _handle_result(resultZipFile, config, cpachecker_args):
         logging.warning('Missing log file .')
 
     if RESULT_FILE_STDERR in files:
-        resultZipFile.extract(RESULT_FILE_STDERR, result_dir)
+        resultZipFile.extract(RESULT_FILE_STDERR, output_path)
 
-    resultZipFile.extractall(result_dir, files)
+    resultZipFile.extractall(output_path, files)
     
-    logging.info("Results are written to {0}".format(result_dir))
+    logging.info("Results are written to {0}".format(output_path))
 
     return return_value
 
@@ -368,7 +369,7 @@ def _execute():
     
     try:
         run_result = _submit_run(config, cpachecker_args)
-        return _parse_result(run_result, config, cpachecker_args)
+        return _parse_result(run_result, config.output_path, cpachecker_args)
     
     except request.HTTPError as e:
         logging.warn(e.reason)
