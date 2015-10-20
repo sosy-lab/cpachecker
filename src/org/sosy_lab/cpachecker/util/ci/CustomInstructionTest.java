@@ -311,15 +311,15 @@ public class CustomInstructionTest {
     }
 
     List<String> input = new ArrayList<>();
-    input.add("y");
+    input.add("main::y");
     List<String> output = new ArrayList<>();
-    output.add("a");
-    output.add("b");
-    output.add("x");
-    output.add("z");
+    output.add("main::a");
+    output.add("main::b");
+    output.add("main::x");
+    output.add("main::z");
     ci = new CustomInstruction(aciStartNode, endNodes, input, output, ShutdownNotifier.create());
 
-//    aci = ci.inspectAppliedCustomInstruction(aciStartNode);
+    aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
 //    Pair<List<String>, String> pair = aci.getFakeSMTDescription();
 //    Truth.assertThat(pair.getFirst()).hasSize(3);

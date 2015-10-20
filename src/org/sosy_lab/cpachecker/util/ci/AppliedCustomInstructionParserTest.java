@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.truth.Truth;
@@ -254,11 +256,54 @@ public class AppliedCustomInstructionParserTest {
     file.flush();
     file.close();
 
-    // TODO path does not exist need to adapt content of file
     CustomInstructionApplications cia = aciParser.parse(p);
-    // Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
+    Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
+    Truth.assertThat(cis.size()).isEqualTo(4);
+    for (CFANode key : cis.keySet()) {
+      List<String> variables = new ArrayList<>();
+      SSAMap ssaMap;
 
-    //Truth.assertThat(cis).hasSize(5);
+      // TODO ssamap outputvars der ci sind in denen der aci
+
+      switch (key.getNodeNumber()) {
+        case 54:
+          // TODO fake smt description
+          ssaMap = cis.get(key).getIndicesForReturnVars();
+          variables.add("main::x");
+//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+          break;
+
+        case 56:
+          ssaMap = cis.get(key).getIndicesForReturnVars();
+          variables.add("main::x");
+//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+          break;
+
+        case 57:
+          ssaMap = cis.get(key).getIndicesForReturnVars();
+          variables.add("main::x");
+          variables.add("main::y");
+//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+//          Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
+          break;
+
+        case 58:
+          ssaMap = cis.get(key).getIndicesForReturnVars();
+          variables.add("main::x");
+          variables.add("main::y");
+//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+//          Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
+          break;
+
+        default:
+          Truth.assertThat(false).isTrue();
+          break;
+      }
+    }
   }
 
 }

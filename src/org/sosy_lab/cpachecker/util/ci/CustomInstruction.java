@@ -486,7 +486,7 @@ public class CustomInstruction{
       // left side => output variables
       Map<String,String> currentCiVarToAciVar = new HashMap<>();
       ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-      outVariables.addAll(currentCiVarToAciVar.keySet());
+      outVariables.addAll(currentCiVarToAciVar.values()); //keySet()); TODO values or keySet?
 
       // right side: just proof it
       ciStmt.getRightHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
@@ -505,7 +505,7 @@ public class CustomInstruction{
       // left side => output variables
       Map<String,String> currentCiVarToAciVar = new HashMap<>();
       ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-      outVariables.addAll(ciVarToAciVar.keySet());
+      outVariables.addAll(ciVarToAciVar.values()); //keySet()); TODO values or keySet?
 
       compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
     }
@@ -589,7 +589,15 @@ public class CustomInstruction{
       final Map<String,String> ciVarToAciVar, final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
+    if (ciI == null && aciI == null) {
+      // nothing to do here
+    } else if (ciI == null && aciI != null) {
+      throw new AppliedCustomInstructionParsingFailedException("The aci has an initializer but not the ci.");
+    } else if (ciI != null && aciI == null) {
+      throw new AppliedCustomInstructionParsingFailedException("The ci has an initializer but not the aci.");
+    }
+
+    else if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
       ((CInitializerExpression) ciI).getExpression().accept(new StructureComparisonVisitor(((CInitializerExpression) aciI).getExpression(), ciVarToAciVar));
     }
 
