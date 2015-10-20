@@ -137,7 +137,8 @@ def _execute():
 
     try:
         run_result = _submit_run(webclient, config)
-        return handle_result(run_result, config.output_path, config.witness_file)
+        return handle_result(run_result, config.output_path, config.witness_file,
+                             handle_host_info=lambda x : None)
 
     except request.HTTPError as e:
         logging.warn(e.reason)

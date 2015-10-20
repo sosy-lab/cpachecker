@@ -585,8 +585,8 @@ def _handle_run_info(values):
 
 def _handle_host_info(values):
     print("Host Information:")
-    for key, value in values.items():
-        print ('\t' + str(key) + ": " + str(value))
+    for key in sorted(values.keys()):
+        print ('\t' + str(key) + ": " + str(values[key]))
 
 def _handle_special_files(result_zip_file, files, output_path):
     logging.info("Results are written to {0}".format(output_path))
