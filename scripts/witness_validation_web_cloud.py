@@ -28,13 +28,11 @@ CPAchecker web page:
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
-import io
 import logging
 import sys
 import urllib.request as request
-import zipfile
 
-from benchmark.webclient import WebInterface, WebClientError
+from benchmark.webclient import WebInterface, WebClientError, handle_result
 
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
@@ -134,137 +132,6 @@ def _submit_run(config):
           config.witness_file, config.program_file, config.configuration, config.cloud_user)
     _webclient.flush_runs()
     return run_result_future.result()
-    
-def _parse_result(zip_content, config):
-    """
-    Parses the given result: Extract meta information 
-    and write all files to the 'output_path' defined in the config parameter.
-    @return: the return value of CPAchecker
-    """
-
-    # unzip and read result
-    return_value = None
-    try:
-        try:
-            with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
-                return_value = _handle_result(result_zip_file, config)
-        
-        except zipfile.BadZipfile:
-            logging.warning('Server returned illegal zip file with results of run.')
-            # Dump ZIP to disk for debugging
-            with open(config.output_path + '.zip', 'wb') as zip_file:
-                zip_file.write(zip_content)
-                
-    except IOError as e:
-        logging.warning('Error while writing results of run: {}'.format(e))
-
-    return return_value
-
-
-def _handle_result(resultZipFile, config):
-    """
-    Extraxts all files from the given zip file, parses the meta information 
-    and writes all files to the 'output_path' defined in the config parameter.
-    @return: the return value of CPAchecker.
-    """
-    result_dir = config.output_path
-    files = set(resultZipFile.namelist())
-
-    # extract run info
-    if RESULT_FILE_RUN_INFO in files:
-        with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            (_, _, return_value, values) = _parse_cloud_result_file(runInformation)
-            print("run information:")
-            for key, value in values.items():
-                print ('\t' + str(key) + ": " + str(value))
-    else:
-        return_value = None
-        logging.warning('Missing log file.')
-        
-    # extract host info
-    if RESULT_FILE_HOST_INFO in files:
-        with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = _parse_worker_host_information(hostInformation)
-            print("host information:")
-            for key, value in values.items():
-                print ('\t' + str(key) + ": " + str(value))
-    else:
-        logging.warning('Missing host information.')
-
-    # extract log file
-    if RESULT_FILE_LOG in files:
-        log_file_path = config.output_path + "output.log"
-        with open(log_file_path, 'wb') as log_file:
-            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
-                for line in result_log_file:
-                    log_file.write(line)
-        
-        logging.info('Log file is written to ' + log_file_path + '.')
-        
-    else:
-        logging.warning('Missing log file .')
-
-    if RESULT_FILE_STDERR in files:
-        resultZipFile.extract(RESULT_FILE_STDERR, result_dir)
-
-    resultZipFile.extractall(result_dir, files)
-    
-    logging.info("Results are written to {0}".format(result_dir))
-
-    return return_value
-
-def _parse_worker_host_information(file):
-    """
-    Parses the mete file containing information about the host executed the run.
-    Returns a dict of all values.
-    """
-    values = _parse_file(file)
-
-    values["host"] = values.pop("@vcloud-name", "-")
-    values.pop("@vcloud-os", "-")
-    values.pop("@vcloud-memory", "-")
-    values.pop("@vcloud-cpuModel", "-")
-    values.pop("@vcloud-frequency", "-")
-    values.pop("@vcloud-cores", "-")
-    return values
-
-def _parse_cloud_result_file(file):
-    """
-    Parses the mete file containing information about the run.
-    Returns a dict of all values.
-    """
-    values = _parse_file(file)
-
-    return_value = int(values["@vcloud-exitcode"])
-    walltime = float(values["walltime"].strip('s'))
-    cputime = float(values["cputime"].strip('s'))
-    if "@vcloud-memory" in values:
-        values["memUsage"] = int(values.pop("@vcloud-memory").strip('B'))
-
-    # remove irrelevant columns
-    values.pop("@vcloud-command", None)
-    values.pop("@vcloud-timeLimit", None)
-    values.pop("@vcloud-coreLimit", None)
-
-    return (walltime, cputime, return_value, values)
-
-def _parse_file(file):
-    """
-    Parses a file containing key value pairs in each line. 
-    @return:  a dict of the parsed key value pairs.
-    """
-    values = {}
-
-    for line in file:
-        (key, value) = line.decode('utf-8').split("=", 1)
-        value = value.strip()
-        if key in RESULT_KEYS or key.startswith("energy"):
-            values[key] = value
-        else:
-            # "@" means value is hidden normally
-            values["@vcloud-" + key] = value
-
-    return values
 
 def _execute():
     """
@@ -279,7 +146,7 @@ def _execute():
     
     try:
         run_result = _submit_run(config)
-        return _parse_result(run_result, config)
+        return handle_result(run_result, config.output_path, config.witness_file)
     
     except request.HTTPError as e:
         logging.warn(e.reason)
