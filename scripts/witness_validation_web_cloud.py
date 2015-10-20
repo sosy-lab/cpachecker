@@ -57,28 +57,28 @@ def _create_argument_parser():
     @return: an argparse.ArgumentParser instance
     """
     
-    parser = argparse.ArgumentParser("Executes a witness validation task in the VerifierCloud and uses the web interface." \
-                                      + "Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
-                                    fromfile_prefix_chars='@')
+    parser = argparse.ArgumentParser(
+        description="Validate witness using CPAchecker in the cloud (without local installation).",
+        fromfile_prefix_chars='@')
 
     parser.add_argument("--cloudMaster",
                       dest="cloud_master",
                       default="http://vcloud.sosy-lab.org/webclient/",
                       metavar="HOST",
-                      help="Sets the webclient host of the VerifierCloud instance to be used.")
+                      help=argparse.SUPPRESS)
 
     parser.add_argument("--cloudUser",
                       dest="cloud_user",
                       metavar="USER:PWD",
-                      help="The user and password for the VerifierCloud.")
+                      help=argparse.SUPPRESS)
     
-    parser.add_argument("--programFile",
+    parser.add_argument("--program",
                       dest="program_file",
                       metavar="FILE",
                       help="The path to the program file.",
                       required=True)
      
-    parser.add_argument("--witnessFile",
+    parser.add_argument("--witness",
                       dest="witness_file",
                       metavar="FILE",
                       help="The path to the witness file.",
@@ -91,7 +91,7 @@ def _create_argument_parser():
 
     parser.add_argument("-d", "--debug",
                       action="store_true",
-                      help="Enable debug output")
+                      help=argparse.SUPPRESS)
 
     parser.add_argument("-o", "--outputpath",
                       dest="output_path", type=str,
