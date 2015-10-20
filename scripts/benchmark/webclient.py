@@ -533,10 +533,11 @@ class WebInterface:
             else:
                 message = ""
                 if response.status == 401:
-                    message = 'Please check the URL given to --cloudMaster.\n'
-                if response.status == 404:
-                    message = 'Please check the URL given to --cloudMaster.'
-                message += response.read().decode('UTF-8')
+                    message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
+                elif response.status == 404:
+                    message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
+                else:
+                    message += response.read().decode('UTF-8')
                 logging.warn(message)
                 raise urllib2.HTTPError(path, response.getcode(), message , response.getheaders(), None)
 
