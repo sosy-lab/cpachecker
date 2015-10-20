@@ -29,6 +29,7 @@ import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import base64
+import fnmatch
 import hashlib
 import io
 import logging
@@ -57,9 +58,8 @@ This module provides helpers for accessing the web interface of the VerifierClou
 __all__ = [
     'WebClientError', 'WebInterface', 'handle_result',
     'MEMLIMIT', 'TIMELIMIT', 'SOFTTIMELIMIT', 'CORELIMIT',
-    'RESULT_KEYS',
     'MAX_SUBMISSION_THREADS',
-    'RESULT_FILE_LOG', 'RESULT_FILE_STDERR', 'RESULT_FILE_RUN_INFO', 'RESULT_FILE_HOST_INFO', 'SPECIAL_RESULT_FILES',
+    'RESULT_FILE_LOG', 'RESULT_FILE_STDERR', 'RESULT_FILE_RUN_INFO', 'RESULT_FILE_HOST_INFO', 'RESULT_FILE_RUN_DESCRIPTION', 'SPECIAL_RESULT_FILES',
     ]
 
 MEMLIMIT = 'memlimit'
@@ -67,16 +67,15 @@ TIMELIMIT = 'timelimit'
 SOFTTIMELIMIT = 'softtimelimit'
 CORELIMIT = 'corelimit'
 
-RESULT_KEYS = ["cputime", "walltime"]
-
 MAX_SUBMISSION_THREADS = 5
 
 RESULT_FILE_LOG = 'output.log'
 RESULT_FILE_STDERR = 'stderr'
 RESULT_FILE_RUN_INFO = 'runInformation.txt'
 RESULT_FILE_HOST_INFO = 'hostInformation.txt'
+RESULT_FILE_RUN_DESCRIPTION = 'runDescription.txt'
 SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
-                        RESULT_FILE_HOST_INFO, 'runDescription.txt'}
+                        RESULT_FILE_HOST_INFO, RESULT_FILE_RUN_DESCRIPTION}
 
 CONNECTION_TIMEOUT = 600 #seconds
 HASH_CODE_CACHE_PATH = os.path.join(os.path.expanduser("~"), ".verifiercloud/cache/hashCodeCache")
@@ -557,10 +556,55 @@ class WebInterface:
         return connection
 
 
-def handle_result(zip_content, output_path, run_identifier):
+def _open_output_log(output_path):
+    log_file_path = output_path + "output.log"
+    logging.info('Log file is written to ' + log_file_path + '.')
+    return open(log_file_path, 'wb')
+
+def _handle_run_info(values):
+    values["memUsage"] = int(values.pop("memory").strip('B'))
+
+    # remove irrelevant columns
+    values.pop("command", None)
+    values.pop("returnvalue", None)
+    values.pop("timeLimit", None)
+    values.pop("coreLimit", None)
+    values.pop("memoryLimit", None)
+    values.pop("outerwalltime", None)
+    values.pop("cpuCores", None)
+    values.pop("cpuCoresDetails", None)
+    values.pop("memoryNodes", None)
+    values.pop("memoryNodesAllocation", None)
+
+    print("Run Information:")
+    for key in sorted(values.keys()):
+        if not key.startswith("@"):
+            print ('\t' + str(key) + ": " + str(values[key]))
+
+    return int(values["exitcode"])
+
+def _handle_host_info(values):
+    print("Host Information:")
+    for key, value in values.items():
+        print ('\t' + str(key) + ": " + str(value))
+
+def _handle_special_files(result_zip_file, files, output_path):
+    logging.info("Results are written to {0}".format(output_path))
+    for file in SPECIAL_RESULT_FILES:
+        if file in files and file != RESULT_FILE_LOG:
+            result_zip_file.extract(file, output_path)
+
+
+def handle_result(zip_content, output_path, run_identifier, result_files_pattern='*',
+                  open_output_log=_open_output_log,
+                  handle_run_info=_handle_run_info,
+                  handle_host_info=_handle_host_info,
+                  handle_special_files=_handle_special_files,
+                  ):
     """
-    Parses the given result ZIP archive: Extract meta information,
-    print information, and write all files to the 'output_path'.
+    Parses the given result ZIP archive: Extract meta information
+    and pass it on to the given handler functions.
+    The default handler functions print some relevant info and write it all to 'output_path'.
     @return: the return value of CPAchecker
     """
 
@@ -569,7 +613,9 @@ def handle_result(zip_content, output_path, run_identifier):
     try:
         try:
             with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
-                return_value = _handle_result(result_zip_file, output_path)
+                return_value = _handle_result(result_zip_file, output_path,
+                    open_output_log, handle_run_info, handle_host_info, handle_special_files,
+                    result_files_pattern, run_identifier)
 
         except zipfile.BadZipfile:
             logging.warning('Server returned illegal zip file with results of run {}.'.format(run_identifier))
@@ -583,95 +629,48 @@ def handle_result(zip_content, output_path, run_identifier):
     return return_value
 
 
-def _handle_result(resultZipFile, output_path):
-    """
-    Extraxts all files from the given zip file, parses the meta information
-    and writes all files to the 'output_path'.
-    @return: the return value of CPAchecker.
-    """
+def _handle_result(resultZipFile, output_path,
+                   open_output_log, handle_run_info, handle_host_info, handle_special_files,
+                   result_files_pattern, run_identifier):
+
     files = set(resultZipFile.namelist())
 
     # extract run info
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            (_, _, return_value, values) = _parse_cloud_result_file(runInformation)
-            print("Run Information:")
-            for key in sorted(values.keys()):
-                if not key.startswith("@"):
-                    print ('\t' + str(key) + ": " + str(values[key]))
-
+            return_value = handle_run_info(_parse_cloud_file(runInformation))
     else:
         return_value = None
-        logging.warning('Missing log file.')
+        logging.warning('Missing result for run {}.'.format(run_identifier))
 
     # extract host info
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = _parse_worker_host_information(hostInformation)
-            print("Host Information:")
-            for key, value in values.items():
-                print ('\t' + str(key) + ": " + str(value))
+            handle_host_info(_parse_cloud_file(hostInformation))
     else:
-        logging.warning('Missing host information.')
+        logging.warning('Missing host information for run {}.'.format(run_identifier))
 
     # extract log file
     if RESULT_FILE_LOG in files:
-        log_file_path = output_path + "output.log"
-        with open(log_file_path, 'wb') as log_file:
+        with open_output_log(output_path) as log_file:
             with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
                 for line in result_log_file:
                     log_file.write(line)
-
-        logging.info('Log file is written to ' + log_file_path + '.')
-
     else:
-        logging.warning('Missing log file .')
+        logging.warning('Missing log file for run {}.'.format(run_identifier))
 
-    if RESULT_FILE_STDERR in files:
-        resultZipFile.extract(RESULT_FILE_STDERR, output_path)
+    handle_special_files(resultZipFile, files, output_path)
 
-    resultZipFile.extractall(output_path, files)
-
-    logging.info("Results are written to {0}".format(output_path))
+    # extract result files:
+    if result_files_pattern:
+        files = files - SPECIAL_RESULT_FILES
+        files = fnmatch.filter(files, result_files_pattern)
+        if files:
+            resultZipFile.extractall(output_path, files)
 
     return return_value
 
-def _parse_worker_host_information(file):
-    """
-    Parses the mete file containing information about the host executed the run.
-    Returns a dict of all values.
-    """
-    values = _parse_file(file)
-
-    values["host"] = values.pop("@vcloud-name", "-")
-    values.pop("@vcloud-os", "-")
-    values.pop("@vcloud-memory", "-")
-    values.pop("@vcloud-cpuModel", "-")
-    values.pop("@vcloud-frequency", "-")
-    values.pop("@vcloud-cores", "-")
-    return values
-
-def _parse_cloud_result_file(file):
-    """
-    Parses the mete file containing information about the run.
-    Returns a dict of all values.
-    """
-    values = _parse_file(file)
-
-    return_value = int(values["@vcloud-exitcode"])
-    walltime = float(values["walltime"].strip('s'))
-    cputime = float(values["cputime"].strip('s'))
-    if "@vcloud-memory" in values:
-        values["memUsage"] = int(values.pop("@vcloud-memory").strip('B'))
-
-    # remove irrelevant columns
-    values.pop("@vcloud-command", None)
-    values.pop("@vcloud-timeLimit", None)
-    values.pop("@vcloud-coreLimit", None)
-
-    return (walltime, cputime, return_value, values)
-
-def _parse_file(file):
+def _parse_cloud_file(file):
     """
     Parses a file containing key value pairs in each line.
     @return:  a dict of the parsed key value pairs.
@@ -681,10 +680,6 @@ def _parse_file(file):
     for line in file:
         (key, value) = line.decode('utf-8').split("=", 1)
         value = value.strip()
-        if key in RESULT_KEYS:
-            values[key] = value
-        else:
-            # "@" means value is hidden normally
-            values["@vcloud-" + key] = value
+        values[key] = value
 
     return values

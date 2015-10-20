@@ -28,19 +28,16 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-import fnmatch
-import io
 import logging
 import os
 import shutil
 import threading
-import zipfile
 
 import urllib.request as urllib2
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
-from .webclient import *
+from .webclient import *  # @UnusedWildImport
 
 """
 This module provides a BenchExec integration for the web interface of the VerifierCloud.
@@ -74,7 +71,7 @@ def init(config, benchmark):
     _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision)
 
     benchmark.tool_version = _webclient.tool_revision()
-    logging.info('Using tool version {0}.'.format(benchmark.tool_version))
+    logging.info('Using CPAchecker version {0}.'.format(benchmark.tool_version))
     benchmark.executable = 'scripts/cpa.sh'
 
 def get_system_info():
@@ -177,21 +174,62 @@ def _handle_results(result_futures, output_handler, benchmark):
         result = result_future.result()
         executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
 
-def _unzip_and_handle_result(result, run, output_handler, benchmark):
+def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
+    """
+    Call handle_result with appropriate parameters to fit into the BenchExec expectations.
+    """
 
-    # unzip result
-    return_value = None
-    try:
-        try:
-            with zipfile.ZipFile(io.BytesIO(result)) as resultZipFile:
-                return_value = _parse_result(resultZipFile, run, output_handler, benchmark.result_files_pattern)
-        except zipfile.BadZipfile:
-            logging.warning('Server returned illegal zip file with results of run {}.'.format(run.identifier))
-            # Dump ZIP to disk for debugging
-            with open(run.log_file + '.zip', 'wb') as zipFile:
-                zipFile.write(result)
-    except IOError as e:
-        logging.warning('Error while writing results of run {}: {}'.format(run.identifier, e))
+    def _open_output_log(output_path):
+        log_file = open(run.log_file, 'wb')
+        log_header = " ".join(run.cmdline()) + "\n\n\n--------------------------------------------------------------------------------\n"
+        log_file.write(log_header.encode('utf-8'))
+        return log_file
+
+    def _handle_run_info(values):
+        if "memory" in values:
+            values["memUsage"] = int(values.pop("memory").strip('B'))
+
+        run.walltime = float(values["walltime"].strip('s'))
+        run.cputime = float(values["cputime"].strip('s'))
+        return_value = int(values["exitcode"])
+
+        # remove irrelevant columns
+        values.pop("command", None)
+        values.pop("timeLimit", None)
+        values.pop("coreLimit", None)
+
+        # prefix other values with @vcloud- to make them hidden by default
+        for key in list(values.keys()):
+            if not key in {'cputime', 'walltime', 'memUsage'} \
+                    and not key.startswith('energy'):
+                values['@vcloud-'+key] = values.pop(key)
+
+        run.values.update(values)
+        return return_value
+
+    def _handle_host_info(values):
+        host = values.pop("name", "-")
+        output_handler.store_system_info(
+            values.pop("os", "-"), values.pop("cpuModel", "-"), values.pop("cores", "-"),
+            values.pop("frequency", "-"), values.pop("memory", "-"),
+            host, runSet=run.runSet)
+
+        # prefix other values with @vcloud- to make them hidden by default
+        for key in list(values.keys()):
+            values['@vcloud-'+key] = values.pop(key)
+
+        values["host"] = host
+        run.values.update(values)
+
+    def _handle_stderr_file(result_zip_file, files, output_path):
+        if RESULT_FILE_STDERR in files:
+            result_zip_file.extract(RESULT_FILE_STDERR, output_path)
+            shutil.move(os.path.join(output_path, RESULT_FILE_STDERR), run.log_file + ".stdError")
+            os.rmdir(output_path)
+
+    return_value = handle_result(
+        zip_content, run.log_file + ".output", run.identifier, benchmark.result_files_pattern,
+        _open_output_log, _handle_run_info, _handle_host_info, _handle_stderr_file)
 
     if return_value is not None:
         run.after_execution(return_value)
@@ -199,94 +237,3 @@ def _unzip_and_handle_result(result, run, output_handler, benchmark):
         with _print_lock:
             output_handler.output_before_run(run)
             output_handler.output_after_run(run)
-
-def _parse_result(resultZipFile, run, output_handler, result_files_pattern):
-    resultDir = run.log_file + ".output"
-    files = set(resultZipFile.namelist())
-
-    # extract values
-    if RESULT_FILE_RUN_INFO in files:
-        with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            (run.walltime, run.cputime, return_value, values) = _parse_cloud_result_file(runInformation)
-            run.values.update(values)
-    else:
-        return_value = None
-        logging.warning('Missing result for {}.'.format(run.identifier))
-
-    if RESULT_FILE_HOST_INFO in files:
-        with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = _parse_and_set_cloud_worker_host_information(hostInformation, output_handler, run.runSet)
-            run.values.update(values)
-    else:
-        logging.warning('Missing host information for run {}.'.format(run.identifier))
-
-    # extract log file
-    if RESULT_FILE_LOG in files:
-        with open(run.log_file, 'wb') as log_file:
-            log_header = " ".join(run.cmdline()) + "\n\n\n--------------------------------------------------------------------------------\n"
-            log_file.write(log_header.encode('utf-8'))
-            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
-                for line in result_log_file:
-                    log_file.write(line)
-    else:
-        logging.warning('Missing log file for run {}.'.format(run.identifier))
-
-    if RESULT_FILE_STDERR in files:
-        resultZipFile.extract(RESULT_FILE_STDERR, resultDir)
-        shutil.move(os.path.join(resultDir, RESULT_FILE_STDERR), run.log_file + ".stdError")
-        os.rmdir(resultDir)
-
-    # extract result files:
-    if result_files_pattern:
-        files = files - SPECIAL_RESULT_FILES
-        files = fnmatch.filter(files, result_files_pattern)
-        if files:
-            resultZipFile.extractall(resultDir, files)
-
-    return return_value
-
-def _parse_and_set_cloud_worker_host_information(file, output_handler, runSet):
-    values = _parseFile(file)
-
-    values["host"] = values.pop("@vcloud-name", "-")
-    name = values["host"]
-    osName = values.pop("@vcloud-os", "-")
-    memory = values.pop("@vcloud-memory", "-")
-    cpuName = values.pop("@vcloud-cpuModel", "-")
-    frequency = values.pop("@vcloud-frequency", "-")
-    cores = values.pop("@vcloud-cores", "-")
-    output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name,
-                                     runSet=runSet)
-
-    return values
-
-
-def _parse_cloud_result_file(file):
-    values = _parseFile(file)
-
-    return_value = int(values["@vcloud-exitcode"])
-    walltime = float(values["walltime"].strip('s'))
-    cputime = float(values["cputime"].strip('s'))
-    if "@vcloud-memory" in values:
-        values["memUsage"] = int(values.pop("@vcloud-memory").strip('B'))
-
-    # remove irrelevant columns
-    values.pop("@vcloud-command", None)
-    values.pop("@vcloud-timeLimit", None)
-    values.pop("@vcloud-coreLimit", None)
-
-    return (walltime, cputime, return_value, values)
-
-def _parseFile(file):
-    values = {}
-
-    for line in file:
-        (key, value) = line.decode('utf-8').split("=", 1)
-        value = value.strip()
-        if key in RESULT_KEYS or key.startswith("energy"):
-            values[key] = value
-        else:
-            # "@" means value is hidden normally
-            values["@vcloud-" + key] = value
-
-    return values
