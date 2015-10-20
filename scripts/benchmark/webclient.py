@@ -105,7 +105,7 @@ class WebInterface:
             web_interface_url += '/'
 
         self._webclient = urllib.urlparse(web_interface_url)
-        logging.info('Using webclient at {0}'.format(web_interface_url))
+        logging.info('Using VerifierCloud at {0}'.format(web_interface_url))
 
         if user_pwd:
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
@@ -559,7 +559,7 @@ class WebInterface:
 
 def handle_result(zip_content, output_path, run_identifier):
     """
-    Parses the given result: Extract meta information,
+    Parses the given result ZIP archive: Extract meta information,
     print information, and write all files to the 'output_path'.
     @return: the return value of CPAchecker
     """
@@ -681,7 +681,7 @@ def _parse_file(file):
     for line in file:
         (key, value) = line.decode('utf-8').split("=", 1)
         value = value.strip()
-        if key in RESULT_KEYS or key.startswith("energy"):
+        if key in RESULT_KEYS:
             values[key] = value
         else:
             # "@" means value is hidden normally

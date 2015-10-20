@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2014  Dirk Beyer
+Copyright (C) 2007-2015  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,26 +27,17 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import argparse
-import logging
 import sys
-import urllib.request as request
-
-from benchmark.webclient import WebInterface, WebClientError, handle_result
-
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-CONNECTION_TIMEOUT = 600 #seconds
-DEFAULT_OUTPUT_PATH = "./"
-RESULT_FILE_LOG = 'output.log'
-RESULT_FILE_STDERR = 'stderr'
-RESULT_FILE_RUN_INFO = 'runInformation.txt'
-RESULT_FILE_HOST_INFO = 'hostInformation.txt'
-RESULT_KEYS = ["cputime", "walltime", "returnvalue"]
-SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
-                        RESULT_FILE_HOST_INFO, 'runDescription.txt'}
+import argparse
+import logging
+import urllib.request as request
 
-_webclient = None
+from benchmark.webclient import *  # @UnusedWildImport
+
+
+DEFAULT_OUTPUT_PATH = "./"
 
 
 def _create_argument_parser():
@@ -55,10 +46,15 @@ def _create_argument_parser():
     @return: an argparse.ArgumentParser instance
     """
     
-    parser = argparse.ArgumentParser("Executes CPAchecker in the VerifierCloud and uses the web interface." \
-                                      + "Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
-                                    fromfile_prefix_chars='@',
-                                    add_help=False) # conflict with -heap
+    parser = argparse.ArgumentParser(
+        description="Execute a CPAchecker run in the VerifierCloud using the web interface." \
+         + " Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
+        fromfile_prefix_chars='@',
+        add_help=False) # conflicts with -heap
+
+    parser.add_argument("--help",
+                      action='help',
+                      help="Prints this help.")
 
     parser.add_argument("--cloudMaster",
                       dest="cloud_master",
@@ -133,21 +129,19 @@ def _init(config):
     """
     Sets _webclient if it is defined in the given config.
     """
-    global _webclient
-    
     if not config.cpu_model:
         logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
                         "Otherwise the used machines and CPU models are undefined.")
 
     if not config.cloud_master:
-        logging.warning("No URL of a VerifierCloud instance is given.")
-        return
+        sys.exit("No URL of a VerifierCloud instance is given.")
         
     (svn_branch, svn_revision) = _get_revision(config)
         
-    _webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision)
+    webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision)
 
-    logging.info('Using tool version {0}.'.format(_webclient.tool_revision()))
+    logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
+    return webclient
 
 def _get_revision(config):
     """
@@ -166,7 +160,7 @@ def _get_revision(config):
         return ('trunk', 'HEAD')      
    
     
-def _submit_run(config, cpachecker_args, counter=0):
+def _submit_run(webclient, config, cpachecker_args, counter=0):
     """
     Submits a single run using the web interface of the VerifierCloud.
     @return: the run's result
@@ -180,13 +174,10 @@ def _submit_run(config, cpachecker_args, counter=0):
         limits['corelimit'] = config.corelimit
     
     run = _parse_cpachecker_args(cpachecker_args)
-    
-    print(run.options)
-    print(run.sourcefiles)
-    
-    run_result_future = _webclient.submit(run, limits, config.cpu_model, \
+
+    run_result_future = webclient.submit(run, limits, config.cpu_model, \
                               config.result_file_pattern, config.cloud_priority )
-    _webclient.flush_runs()
+    webclient.flush_runs()
     return run_result_future.result()
 
 def _parse_cpachecker_args(cpachecker_args):
@@ -224,17 +215,17 @@ def _parse_cpachecker_args(cpachecker_args):
 
 def _execute():
     """
-    Executes a single CPAchecker run in the VerifierCloud vis the web front end.
+    Executes a single CPAchecker run in the VerifierCloud via the web front end.
     All informations are given by the command line arguments.
     @return: the return value of CPAchecker
     """
     arg_parser = _create_argument_parser()
     (config, cpachecker_args) = arg_parser.parse_known_args()
     _setup_logging(config)
-    _init(config)
+    webclient = _init(config)
     
     try:
-        run_result = _submit_run(config, cpachecker_args)
+        run_result = _submit_run(webclient, config, cpachecker_args)
         return handle_result(run_result, config.output_path, cpachecker_args)
     
     except request.HTTPError as e:
@@ -243,7 +234,7 @@ def _execute():
         logging.warn(str(e))
     
     finally:
-        _webclient.shutdown()
+        webclient.shutdown()
         
 
 if __name__ == "__main__":

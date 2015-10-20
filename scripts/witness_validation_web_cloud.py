@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2014  Dirk Beyer
+Copyright (C) 2007-2015  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,26 +27,17 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import argparse
-import logging
 import sys
-import urllib.request as request
-
-from benchmark.webclient import WebInterface, WebClientError, handle_result
-
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-CONNECTION_TIMEOUT = 600 #seconds
-DEFAULT_OUTPUT_PATH = "./"
-RESULT_FILE_LOG = 'output.log'
-RESULT_FILE_STDERR = 'stderr'
-RESULT_FILE_RUN_INFO = 'runInformation.txt'
-RESULT_FILE_HOST_INFO = 'hostInformation.txt'
-RESULT_KEYS = ["cputime", "walltime", "returnvalue"]
-SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
-                        RESULT_FILE_HOST_INFO, 'runDescription.txt'}
+import argparse
+import logging
+import urllib.request as request
 
-_webclient = None
+from benchmark.webclient import *  # @UnusedWildImport
+
+
+DEFAULT_OUTPUT_PATH = "./"
 
 
 def _create_argument_parser():
@@ -54,7 +45,7 @@ def _create_argument_parser():
     Create a parser for the command-line options.
     @return: an argparse.ArgumentParser instance
     """
-    
+
     parser = argparse.ArgumentParser(
         description="Validate witness using CPAchecker in the cloud (without local installation).",
         fromfile_prefix_chars='@')
@@ -69,19 +60,19 @@ def _create_argument_parser():
                       dest="cloud_user",
                       metavar="USER:PWD",
                       help=argparse.SUPPRESS)
-    
+
     parser.add_argument("--program",
                       dest="program_file",
                       metavar="FILE",
                       help="The path to the program file.",
                       required=True)
-     
+
     parser.add_argument("--witness",
                       dest="witness_file",
                       metavar="FILE",
                       help="The path to the witness file.",
                       required=True)
-    
+
     parser.add_argument("--configuration",
                       dest="configuration",
                       metavar="CONFIG",
@@ -115,22 +106,22 @@ def _init(config):
     """
     Sets _webclient if it is defined in the given config.
     """
-    global _webclient
-    
     if not config.cloud_master:
-        logging.warning("No URL of a VerifierCloud instance is given.")
-        return
-        
-    _webclient = WebInterface(config.cloud_master, config.cloud_user)   
-    
-def _submit_run(config):
+        sys.exit("No URL of a VerifierCloud instance is given.")
+
+    webclient = WebInterface(config.cloud_master, config.cloud_user)
+
+    logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
+    return webclient
+
+def _submit_run(webclient, config):
     """
     Submits a single run using the web interface of the VerifierCloud.
     @return: the run's result
-    """            
-    run_result_future = _webclient.submit_witness_validation(\
+    """
+    run_result_future = webclient.submit_witness_validation(\
           config.witness_file, config.program_file, config.configuration, config.cloud_user)
-    _webclient.flush_runs()
+    webclient.flush_runs()
     return run_result_future.result()
 
 def _execute():
@@ -142,20 +133,20 @@ def _execute():
     arg_parser = _create_argument_parser()
     config = arg_parser.parse_args()
     _setup_logging(config)
-    _init(config)
-    
+    webclient = _init(config)
+
     try:
-        run_result = _submit_run(config)
+        run_result = _submit_run(webclient, config)
         return handle_result(run_result, config.output_path, config.witness_file)
-    
+
     except request.HTTPError as e:
         logging.warn(e.reason)
     except WebClientError as e:
         logging.warn(str(e))
-    
+
     finally:
-        _webclient.shutdown()
-        
+        webclient.shutdown()
+
 
 if __name__ == "__main__":
     sys.exit(_execute())
