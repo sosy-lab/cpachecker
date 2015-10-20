@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Iterables;
@@ -407,7 +406,7 @@ public class CProgramScope implements Scope {
       return type;
     }
     String fileSpecificTypeName = type + "__" + currentFile;
-    if (Strings.isNullOrEmpty(currentFile)
+    if (currentFile.isEmpty()
         && lookupTypedef(fileSpecificTypeName) == null
         && lookupTypedef(type) != null) {
       return type;
