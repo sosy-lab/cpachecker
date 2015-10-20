@@ -117,6 +117,7 @@ public class AppliedCustomInstructionParser {
           continue;
         }
 
+
         try {
           aci = ci.inspectAppliedCustomInstruction(startNode);
         } catch (InterruptedException ex) {

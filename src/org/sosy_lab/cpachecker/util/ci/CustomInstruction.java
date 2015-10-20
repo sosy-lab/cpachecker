@@ -170,17 +170,26 @@ public class CustomInstruction{
   /**
    * Returns the signature of the input and output variables,
    * this is a String containing all input and output variables.
-   * @return String like (iV1, iV2, ... iVn -> oV1, oV2, ..., oVm)
+   * @return String like (|iV1|, |iV2|, ... |iVn| -> |oV1|, |oV2|, ..., |oVm|)
    */
   public String getSignature() {
     StringBuilder sb = new StringBuilder();
 
     sb.append("(");
-    Joiner.on(", ").appendTo(sb, inputVariables);
+    if (inputVariables.size() > 0) {
+      sb.append("|");
+      Joiner.on("|, |").appendTo(sb, inputVariables);
+      sb.append("|");
+    }
+
     sb.append(" -> ");
-    Joiner.on("@1, ").appendTo(sb, outputVariables);
+
     if (outputVariables.size() > 0) {
-      sb.append("@1");
+      sb.append("|");
+      Joiner.on("@1|, |").appendTo(sb, outputVariables);
+      if (outputVariables.size() > 0) {
+        sb.append("@1|");
+      }
     }
     sb.append(")");
 
@@ -243,10 +252,10 @@ public class CustomInstruction{
 
     List<String> outputVariableList = new ArrayList<>();
     for (String var : inputVariables) {
-      outputVariableList.add("(declare-fun " + var + " () Int)");
+      outputVariableList.add("(declare-fun |" + var + "| () Int)");
     }
     for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun " + var + "@1 () Int)");
+      outputVariableList.add("(declare-fun |" + var + "@1| () Int)");
     }
     return Pair.of(outputVariableList, sb.toString());
   }
@@ -259,12 +268,12 @@ public class CustomInstruction{
    */
   private String getAssignmentOfVariableToZero(final String var, final boolean isOutputVariable) {
     StringBuilder sb = new StringBuilder();
-    sb.append("(= ");
+    sb.append("(= |");
     sb.append(var);
     if (isOutputVariable) {
       sb.append("@1");
     }
-    sb.append(" 0)");
+    sb.append("| 0)");
     return sb.toString();
   }
 
@@ -599,6 +608,7 @@ public class CustomInstruction{
           compareInitializer(ciList.get(i), aciList.get(i), ciVarToAciVar, outVariables);
         }
       }
+
     } else {
       throw new AppliedCustomInstructionParsingFailedException("The CInitializer of ci " + ciI + " and aci " + aciI + " are different.");
     }
