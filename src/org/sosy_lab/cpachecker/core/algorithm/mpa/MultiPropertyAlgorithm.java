@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
+import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -182,121 +184,127 @@ public final class MultiPropertyAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException,
       CPAEnabledAnalysisPropertyViolationException {
 
-    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
-    final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
-    final Set<Property> violated = Sets.newHashSet();
-    final Set<Property> satisfied = Sets.newHashSet();
+      AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-    Preconditions.checkArgument(pReachedSet.size() == 1);
-    Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
+      final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
+      final Set<Property> violated = Sets.newHashSet();
+      final Set<Property> satisfied = Sets.newHashSet();
 
-    final AbstractState e0 = pReachedSet.getFirstState();
-    final Precision pi0 = pReachedSet.getPrecision(e0);
+      Preconditions.checkArgument(pReachedSet.size() == 1);
+      Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
 
-    final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
+      final AbstractState e0 = pReachedSet.getFirstState();
+      final Precision pi0 = pReachedSet.getPrecision(e0);
 
-    ImmutableSet<ImmutableSet<Property>> checkPartitions =
-        partitionOperator.partition(noPartitioning, all);
+      final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
 
-    initReached(pReachedSet, e0, pi0, checkPartitions);
+      ImmutableSet<ImmutableSet<Property>> checkPartitions =
+          partitionOperator.partition(noPartitioning, all);
 
-    do {
+      initReached(pReachedSet, e0, pi0, checkPartitions);
 
-      try {
-        // Run the wrapped algorithm (for example, CEGAR)
-        status = status.update(wrapped.run(pReachedSet));
+      do {
+        Stats.incCounter("Multi-Property Verification Iterations", 1);
 
-      } catch (InterruptedException ie) {
-        // The shutdown notifier might trigger the interrupted exception
-        // either because
-        //    A) the resource limit for the analysis run has exceeded
-        // or
-        //    B) the user (or the operating system) requested a stop of the verifier.
-        Preconditions.checkState(!pReachedSet.isEmpty());
-      }
+        try {
+          // Run the wrapped algorithm (for example, CEGAR)
+          status = status.update(wrapped.run(pReachedSet));
 
-      // ASSUMPTION:
-      //    The wrapped algorithm immediately returns
-      //    for each FEASIBLE counterexample that has been found!
-      //    (no global refinement)
+        } catch (InterruptedException ie) {
+          // The shutdown notifier might trigger the interrupted exception
+          // either because
+          //    A) the resource limit for the analysis run has exceeded
+          // or
+          //    B) the user (or the operating system) requested a stop of the verifier.
+          Preconditions.checkState(!pReachedSet.isEmpty());
+          Stats.incCounter("Times reachability interrupted", 1);
+        }
 
-      // Identify the properties that were violated during the last verification run
-      final ImmutableSetMultimap<AbstractState, Property> runViolated;
-      runViolated = identifyViolationsInRun(pReachedSet);
+        // ASSUMPTION:
+        //    The wrapped algorithm immediately returns
+        //    for each FEASIBLE counterexample that has been found!
+        //    (no global refinement)
 
-      if (runViolated.size() > 0) {
+        // Identify the properties that were violated during the last verification run
+        final ImmutableSetMultimap<AbstractState, Property> runViolated;
+        runViolated = identifyViolationsInRun(pReachedSet);
 
-        // The waitlist should never be empty in this case!
-        //  There might be violations of other properties after the
-        //  last abstract state that was added to 'reached'
-        //    (which is the target state, in general)
-        //  Ensure that a SPLIT of states is performed before
-        //    transiting to the ERROR state!
-        Preconditions.checkState(!pReachedSet.getWaitlist().isEmpty(),
-            "Potential of hidden violations must be considered!");
+        if (runViolated.size() > 0) {
 
-        // We have to perform another iteration of the algorithm
-        //  to check the remaining properties
-        //    (or identify more feasible counterexamples)
+          // The waitlist should never be empty in this case!
+          //  There might be violations of other properties after the
+          //  last abstract state that was added to 'reached'
+          //    (which is the target state, in general)
+          //  Ensure that a SPLIT of states is performed before
+          //    transiting to the ERROR state!
+          Preconditions.checkState(!pReachedSet.getWaitlist().isEmpty(),
+              "Potential of hidden violations must be considered!");
 
-        // Add the properties that were violated in this run.
-        violated.addAll(runViolated.values());
+          // We have to perform another iteration of the algorithm
+          //  to check the remaining properties
+          //    (or identify more feasible counterexamples)
 
-        // The partitioning operator might remove the violated properties
-        //  if we have found sufficient counterexamples
-        checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
+          // Add the properties that were violated in this run.
+          violated.addAll(runViolated.values());
 
-        // Just adjust the precision of the states in the waitlist
-        disablePropertiesForWaitlist(pReachedSet, violated);
+          // The partitioning operator might remove the violated properties
+          //  if we have found sufficient counterexamples
+          checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
 
-      } else {
-
-        if (pReachedSet.getWaitlist().isEmpty()) {
-          // We have reached a fixpoint for the non-blacklisted properties.
-
-          // Properties that are (1) still active
-          //  and (2) for that no counterexample was found are considered to be save!
-          SetView<Property> active = Sets.difference(all,
-              Sets.union(violated, getInactiveProperties(pReachedSet)));
-          satisfied.addAll(active);
+          // Just adjust the precision of the states in the waitlist
+          disablePropertiesForWaitlist(pReachedSet, violated);
 
         } else {
-          // The analysis terminated because it ran out of resources
 
-          // It is not possible to make any statements about
-          //   the satisfaction of more properties here!
+          if (pReachedSet.getWaitlist().isEmpty()) {
+            // We have reached a fixpoint for the non-blacklisted properties.
 
-          // The partitioning must take care that we verify
-          //  smaller (or other) partitions in the next run!
+            // Properties that are (1) still active
+            //  and (2) for that no counterexample was found are considered to be save!
+            SetView<Property> active = Sets.difference(all,
+                Sets.union(violated, getInactiveProperties(pReachedSet)));
+            satisfied.addAll(active);
+
+          } else {
+            // The analysis terminated because it ran out of resources
+
+            // It is not possible to make any statements about
+            //   the satisfaction of more properties here!
+
+            // The partitioning must take care that we verify
+            //  smaller (or other) partitions in the next run!
+          }
+
+          // A new partitioning must be computed.
+          Set<Property> remaining = Sets.difference(all, Sets.union(violated, satisfied));
+
+          if (remaining.isEmpty()) {
+            break;
+          }
+
+          Stats.incCounter("Adjustments of property partitions", 1);
+          checkPartitions = partitionOperator.partition(noPartitioning, remaining);
+
+          // Re-initialize the sets 'waitlist' and 'reached'
+          initReached(pReachedSet, e0, pi0, checkPartitions);
         }
 
-        // A new partitioning must be computed.
-        Set<Property> remaining = Sets.difference(all, Sets.union(violated, satisfied));
+        // Run as long as...
+        //  ... (1) the fixpoint has not been reached
+        //  ... (2) or not all properties have been checked so far.
+      } while (pReachedSet.hasWaitingState()
+          || Sets.difference(all, Sets.union(violated, satisfied)).size() > 0);
 
-        if (remaining.isEmpty()) {
-          break;
-        }
+      // Compute the overall result:
+      //    Violated properties (might have multiple counterexamples)
+      //    Safe properties: Properties that were neither violated nor disabled
+      //    Not fully checked properties (that were disabled)
+      //        (could be derived from the precision of the leaf states)
 
-        checkPartitions = partitionOperator.partition(noPartitioning, remaining);
-
-        // Re-initialize the sets 'waitlist' and 'reached'
-        initReached(pReachedSet, e0, pi0, checkPartitions);
-      }
-
-      // Run as long as...
-      //  ... (1) the fixpoint has not been reached
-      //  ... (2) or not all properties have been checked so far.
-    } while (pReachedSet.hasWaitingState()
-        || Sets.difference(all, Sets.union(violated, satisfied)).size() > 0);
-
-    // Compute the overall result:
-    //    Violated properties (might have multiple counterexamples)
-    //    Safe properties: Properties that were neither violated nor disabled
-    //    Not fully checked properties (that were disabled)
-    //        (could be derived from the precision of the leaf states)
-
-    return status;
+      return status;
+    }
   }
 
   private void initReached(final ReachedSet pReachedSet,
