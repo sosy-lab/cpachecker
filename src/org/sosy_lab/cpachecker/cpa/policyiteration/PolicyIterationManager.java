@@ -92,8 +92,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean usePreviousBounds = true;
 
   @Option(secure=true, description="Any intermediate state with formula length "
-      + "bigger than specified will be checked for reachability. "
-      + "Set to 0 to disable.")
+      + "bigger than specified will be checked for reachability. ")
   private int lengthLimitForSATCheck = 300;
 
   @Option(secure=true, description="Run simple congruence analysis")
@@ -272,8 +271,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
     if ((hasTargetState && checkTargetStates
-        || (lengthLimitForSATCheck > 0 && iState.getPathFormula().getLength() >
-            lengthLimitForSATCheck)
+        || (iState.getPathFormula().getLength() > lengthLimitForSATCheck)
         || shouldPerformAbstraction
       ) && isUnreachable(iState)) {
 
