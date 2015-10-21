@@ -156,7 +156,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
         int timesHandled = timesEqualTargetInReached(pStates, pFullState, properties);
         int maxInfeasibleCexs = maxInfeasibleCexFor(properties);
 
-        final boolean disable = (timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
+        final boolean disable =
+                   (targetHandledAfterViolations > 0
+                    && timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
                  || (targetDisabledAfterRefinements > 0
                      && maxInfeasibleCexs > targetDisabledAfterRefinements);
 
