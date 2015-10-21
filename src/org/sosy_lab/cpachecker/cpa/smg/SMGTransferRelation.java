@@ -29,10 +29,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -122,6 +120,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -132,7 +131,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
 
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg-%s.dot");
+  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg/smg-%s.dot");
 
   @Option(secure=true, description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
@@ -148,8 +147,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
   private boolean enableMallocFailure = true;
 
-  @Option(secure=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled. One of: {strict, assume_safe}")
-  private String handleUnknownFunctions = "strict";
+  @Option(secure=true, toUppercase=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled.")
+  private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
+
+  private static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
 
   @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
   private boolean guessSizeOfUnknownMemorySize = false;
@@ -223,16 +224,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private static final int MEMCPY_SIZE_PARAMETER = 2;
     private static final int MALLOC_PARAMETER = 0;
 
-    private final Set<String> BUILTINS = new HashSet<>(Arrays.asList(
-        new String[] {
+    private final Set<String> BUILTINS = Sets.newHashSet(
             "__VERIFIER_BUILTIN_PLOT",
             "memcpy",
             "memset",
             "__builtin_alloca",
             //TODO: Properly model printf (dereferences and stuff)
             //TODO: General modelling system for functions which do not modify state?
-            "printf",
-        }));
+            "printf"
+        );
 
     private void dumpSMGPlot(String name, SMGState currentState, String location) {
       if (exportSMGFilePattern != null && currentState != null) {
@@ -1097,9 +1097,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       } else {
         switch (handleUnknownFunctions) {
-        case "strict":
+        case STRICT:
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-        case "assume_safe":
+        case ASSUME_SAFE:
           return pState;
         }
         throw new AssertionError();
@@ -1848,9 +1848,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
         } else {
           switch (handleUnknownFunctions) {
-          case "strict":
+          case STRICT:
             throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-          case "assume_safe":
+          case ASSUME_SAFE:
             return SMGValueAndState.of(getInitialSmgState());
           }
           throw new AssertionError();
@@ -2002,10 +2002,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
         } else {
           switch (handleUnknownFunctions) {
-          case "strict":
+          case STRICT:
             throw new CPATransferException(
                 "Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-          case "assume_safe":
+          case ASSUME_SAFE:
             return SMGAddressValueAndState.of(getInitialSmgState());
           }
           throw new AssertionError();
