@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
@@ -266,7 +267,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final boolean hasTargetState = Iterables.filter(
         AbstractStates.asIterable(pArgState),
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
-    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState);
+    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState,
+        pArgState);
 
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
@@ -279,8 +281,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       logger.flush();
       return Optional.absent();
     }
-
-    CFANode toNode = state.getNode();
+    PolicyPrecision toNodePrecision = templateManager.precisionForNode(
+        state.getNode());
 
     statistics.startAbstractionTimer();
     try {
@@ -290,7 +292,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Only update precision on abstracted states.
       Precision newPrecision = shouldPerformAbstraction ?
-          templateManager.precisionForNode(toNode) : precision;
+          toNodePrecision : precision;
 
       // Perform the abstraction, if necessary.
       if (shouldPerformAbstraction) {
@@ -306,7 +308,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         PolicyAbstractedState abstraction = performAbstraction(
             iState,
             siblings,
-            templateManager.precisionForNode(toNode),
+            toNodePrecision,
             extraInvariant
         );
         logger.log(Level.FINE, ">>> Abstraction produced a state: ",
@@ -931,16 +933,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
+   * @param totalState Encloses all other parallel states.
    * @return Whether to compute the abstraction when creating a new
    * state associated with <code>node</code>.
    */
-  private boolean shouldPerformAbstraction(PolicyIntermediateState iState) {
+  private boolean shouldPerformAbstraction(PolicyIntermediateState iState,
+      AbstractState totalState) {
+
     if (!pathFocusing) {
       return true;
     }
+    LoopstackState loopState = AbstractStates.extractStateByType(totalState,
+        LoopstackState.class);
+
     CFANode node = iState.getNode();
-    if (node.isLoopStart() ||
-        cfa.getAllLoopHeads().get().contains(node)) {
+    if ((node.isLoopStart() ||
+        cfa.getAllLoopHeads().get().contains(node))
+
+        // If loopstackState is available,
+        // do not compute abstractions at partial unrollings.
+        && (loopState == null || loopState.isLoopCounterAbstracted())
+        ) {
       return true;
     }
     return false;
