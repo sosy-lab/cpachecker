@@ -189,9 +189,10 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s)%s%nExtra Invariant: %s %n",
+        "(node=%s)%s%n%s%nExtra Invariant: %s %n",
         getNode(),
         (new PolicyDotWriter()).toDOTLabel(abstraction),
+        congruence.toDOTLabel(),
         extraInvariant
     );
   }
