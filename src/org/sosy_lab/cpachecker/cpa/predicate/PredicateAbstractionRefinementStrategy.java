@@ -477,7 +477,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 
     Stats.incCounter("Added Predicates", newPredicates.getDistinctPredicateCount());
-    Stats.putItems("Predicates", Sets.newHashSet(newPredicates.getPredicates()));
 
     final int difference = basePrecision.calculateDifferenceTo(newPrecision);
     assert difference == 0 : "We forgot predicates during refinement!";
