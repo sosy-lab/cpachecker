@@ -414,7 +414,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       return this;
     }
     if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(IS_UNSUPPORTED_VARIABLE_NAME)) {
-      return this;
+      return assignInternal(pVarName, allPossibleValuesFormula(pValue.getBitVectorInfo()));
     }
 
     // Check if the assigned variable is selected (newVariableSelection != null)
