@@ -349,6 +349,8 @@ public class Goal {
   public Automaton createControlAutomaton()  {
     Preconditions.checkNotNull(mAutomaton);
 
+    // TODO: add/handle alpha, and omega edges!!
+
     final String automatonName = getName();
     final String initialStateName = Integer.toString(mAutomaton.getInitialState().ID);
     final List<AutomatonInternalState> automatonStates = Lists.newArrayList();
@@ -411,6 +413,11 @@ public class Goal {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       return label.contains(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return label.toString();
     }
 
   }
