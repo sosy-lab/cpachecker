@@ -510,16 +510,17 @@ public class AppliedCustomInstructionParser {
     return false;
   }
 
-  private class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> implements
+  private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> implements
       CInitializerVisitor<Boolean, RuntimeException>, CDesignatorVisitor<Boolean, RuntimeException> {
 
-    private Boolean falseResult = new Boolean(false);
-    private Boolean trueResult = new Boolean(true);
+    private Boolean falseResult = Boolean.valueOf(false);
+    private Boolean trueResult = Boolean.valueOf(true);
 
     @Override
     public Boolean visit(final CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
-      if (pIastArraySubscriptExpression.getArrayExpression().accept(this) == falseResult) { return pIastArraySubscriptExpression
-          .getSubscriptExpression().accept(this); }
+      if (!pIastArraySubscriptExpression.getArrayExpression().accept(this)) {
+        return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+      }
       return trueResult;
     }
 
@@ -547,8 +548,9 @@ public class AppliedCustomInstructionParser {
 
     @Override
     public Boolean visit(final CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-      if (pIastBinaryExpression.getOperand1().accept(this) == falseResult) { return pIastBinaryExpression.getOperand2()
-          .accept(this); }
+      if (!pIastBinaryExpression.getOperand1().accept(this)) {
+        return pIastBinaryExpression.getOperand2().accept(this);
+      }
       return trueResult;
     }
 
