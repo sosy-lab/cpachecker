@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class SMG {
   final private Set<SMGObject> objects = new HashSet<>();
   final private Set<Integer> values = new HashSet<>();
@@ -161,6 +163,7 @@ public class SMG {
    *
    * @param pObj Object to remove
    */
+  @VisibleForTesting
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
     object_validity.remove(pObj);
@@ -425,7 +428,7 @@ public class SMG {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    return object_validity.get(pObject).booleanValue();
+    return object_validity.get(pObject);
   }
 
   /**
