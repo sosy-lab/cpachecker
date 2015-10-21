@@ -32,12 +32,6 @@ public interface IPolicyIterationManager {
       CFAEdge edge
   ) throws CPATransferException, InterruptedException;
 
-  Collection<? extends PolicyState> strengthen(
-      PolicyState state,
-      List<AbstractState> otherStates,
-      @Nullable CFAEdge pCFAEdge
-  ) throws CPATransferException, InterruptedException;
-
   PolicyState getInitialState(CFANode node);
 
   Optional<PrecisionAdjustmentResult> prec(

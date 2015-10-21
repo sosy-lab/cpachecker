@@ -58,6 +58,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -253,46 +254,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   /**
-   * Perform reachability check for "bad" states in strengthen.
-   */
-  @Override
-  public Collection<? extends PolicyState> strengthen(
-      PolicyState state,
-      List<AbstractState> otherStates,
-      CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
-
-    if (state.isAbstract()) {
-      return Collections.singleton(state);
-    }
-
-    if (!shouldPerformAbstraction(state.asIntermediate())) {
-      // Perform the reachability check for the target states if we are dealing
-      // with non-abstracted state.
-      boolean hasTargetState = false;
-      for (AbstractState oState : otherStates) {
-        if (AbstractStates.isTargetState(oState)) {
-          hasTargetState = true;
-          break;
-        }
-      }
-
-      if (checkTargetStates && (hasTargetState  || (lengthLimitForSATCheck > 0 &&
-          state.asIntermediate().getPathFormula().getLength() > lengthLimitForSATCheck
-          ))) {
-        try {
-          if (isUnreachable(state.asIntermediate())) {
-            return Collections.emptyList();
-          }
-        } catch (CPAException e) {
-          throw new CPATransferException("Failed generating invariants", e);
-        }
-      }
-    }
-    return Collections.singleton(state);
-  }
-
-  /**
-   * Perform abstraction with precision adjustment operator.
+   * Perform abstraction and reachability checking with precision adjustment
+   * operator.
    */
   @Override
   public Optional<PrecisionAdjustmentResult> prec(PolicyState state,
@@ -300,21 +263,39 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       AbstractState pArgState)
         throws CPAException, InterruptedException {
 
+    final PolicyIntermediateState iState = state.asIntermediate();
+    final boolean hasTargetState = Iterables.filter(
+        AbstractStates.asIterable(pArgState),
+        AbstractStates.IS_TARGET_STATE).iterator().hasNext();
+    final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState);
+
+    // Perform reachability checking, either for property states, or when the
+    // formula gets too long, or before abstractions.
+    if ((hasTargetState && checkTargetStates
+        || (lengthLimitForSATCheck > 0 && iState.getPathFormula().getLength() >
+            lengthLimitForSATCheck)
+        || shouldPerformAbstraction
+      ) && isUnreachable(iState)) {
+
+      logger.log(Level.INFO, "Returning BOTTOM state");
+      logger.flush();
+      return Optional.absent();
+    }
+
     CFANode toNode = state.getNode();
 
     statistics.startAbstractionTimer();
     try {
       assert !state.isAbstract();
-      PolicyIntermediateState iState = state.asIntermediate();
 
       PolicyState outState = state;
 
       // Only update precision on abstracted states.
-      Precision newPrecision = shouldPerformAbstraction(iState) ?
+      Precision newPrecision = shouldPerformAbstraction ?
           templateManager.precisionForNode(toNode) : precision;
 
       // Perform the abstraction, if necessary.
-      if (shouldPerformAbstraction(iState)) {
+      if (shouldPerformAbstraction) {
 
         // Formulas reported by other CPAs.
         BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
@@ -324,29 +305,26 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         List<PolicyAbstractedState> siblings =
             getSiblings(extraInvariant, states.getReached(pArgState));
 
-        Optional<PolicyAbstractedState> abstraction = performAbstraction(
+        PolicyAbstractedState abstraction = performAbstraction(
             iState,
             siblings,
             templateManager.precisionForNode(toNode),
             extraInvariant
         );
-        if (!abstraction.isPresent()) {
-          logger.log(Level.FINE, "Returning the bottom state.");
-          return Optional.absent();
-        }
-        outState = abstraction.get();
         logger.log(Level.FINE, ">>> Abstraction produced a state: ",
-            outState);
+            abstraction);
 
         if (!joinOnMerge && !siblings.isEmpty()) {
           // Run value determination inside precision adjustment if the abstract
           // states are not joined.
           logger.log(Level.FINE,  "Emulating value determination");
-          outState = joinAbstractedStates(outState.asAbstracted(),
+          outState = joinAbstractedStates(abstraction,
               siblings.iterator().next().getLatestVersion(), precision);
           for (PolicyAbstractedState sibling : siblings) {
             sibling.setNewVersion(outState.asAbstracted());
           }
+        } else {
+          outState = abstraction;
         }
       }
 
@@ -654,8 +632,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       CFANode node,
       Map<Template, PolicyBound> updated) {
 
-    // todo: inconsistent loop detection code.
-    if (!node.isLoopStart() || updated.isEmpty()) {
+    if (updated.isEmpty()) {
       return false;
     }
 
@@ -703,7 +680,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * @return Abstracted state if the state is reachable, empty optional
    * otherwise.
    */
-  private Optional<PolicyAbstractedState> performAbstraction(
+  private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState state,
       final List<PolicyAbstractedState> otherStates,
       PolicyPrecision precision,
@@ -754,14 +731,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               state.getPathFormula().getSsa()
           )
       );
-
-      if (optEnvironment.check() == OptEnvironment.OptStatus.UNSAT) {
-
-        logger.log(Level.INFO, "Returning BOTTOM state from abstraction");
-        logger.flush();
-        // Bottom => bail early.
-        return Optional.absent();
-      }
 
       Set<String> formulaVars = fmgr.extractFunctionNames(
           state.getPathFormula().getFormula(), true);
@@ -882,8 +851,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       congruence = CongruenceState.empty();
     }
 
-    return Optional.of(
-        PolicyAbstractedState.of(
+    return PolicyAbstractedState.of(
             abstraction,
             state.getNode(),
             congruence,
@@ -892,7 +860,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             state.getPathFormula().getSsa(),
             state.getPathFormula().getPointerTargetSet(),
             extraPredicate
-        ));
+        );
   }
 
 

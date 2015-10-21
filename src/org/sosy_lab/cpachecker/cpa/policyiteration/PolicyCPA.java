@@ -209,8 +209,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState state,
       List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    return policyIterationManager.strengthen(
-        (PolicyState)state, otherStates, cfaEdge);
+
+    // We perform strengthening in precision adjustment.
+    return null;
   }
 
   @Override
