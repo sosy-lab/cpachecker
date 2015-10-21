@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -63,21 +64,24 @@ public class PolyhedraWideningManager {
   };
 
   public Set<Template> generateWideningTemplates(
-      PolicyAbstractedState old, PolicyAbstractedState merged) {
-    Set<Template> allTemplates = Sets.union(old.getAbstraction().keySet(),
-        merged.getAbstraction().keySet());
-    Map<Template, Rational> oldData = Maps.transformValues(old.getAbstraction(),
+      PolicyAbstractedState oldState,
+      PolicyAbstractedState newState) {
+
+    Set<Template> allTemplates = Sets.union(oldState.getAbstraction().keySet(),
+        newState.getAbstraction().keySet());
+    Map<Template, Rational> oldData = Maps.transformValues(oldState.getAbstraction(),
         DATA_GETTER);
-    Map<Template, Rational> mergedData = Maps.transformValues(merged.getAbstraction(),
+    Map<Template, Rational> newData = Maps.transformValues(
+        newState.getAbstraction(),
         DATA_GETTER);
 
     Abstract1 widened;
     try {
       statistics.startPolyhedraWideningTimer();
-      Environment env = generateEnvironment(ImmutableList.of(oldData, mergedData));
       Abstract1 abs1, abs2;
+      Environment env = generateEnvironment(ImmutableList.of(oldData, newData));
       abs1 = fromTemplates(env, oldData);
-      abs2 = fromTemplates(env, mergedData);
+      abs2 = fromTemplates(env, newData);
       abs2.join(manager, abs1);
       widened = abs1.widening(manager, abs2);
     } finally {
@@ -85,8 +89,15 @@ public class PolyhedraWideningManager {
     }
 
     Map<Template, Rational> generated = toTemplates(widened);
-    logger.log(Level.FINE, "Generated templates", generated);
-    return Sets.difference(generated.keySet(), allTemplates);
+    logger.log(Level.INFO, "Generated templates", generated);
+    Set<Template> diff = Sets.difference(generated.keySet(), allTemplates);
+    Set<Template> out = new HashSet<>();
+
+    for (Template t : diff) {
+      out.add(t);
+      out.add(Template.of(t.getLinearExpression().negate()));
+    }
+    return out;
   }
 
   Environment generateEnvironment(List<Map<Template, Rational>> t) {

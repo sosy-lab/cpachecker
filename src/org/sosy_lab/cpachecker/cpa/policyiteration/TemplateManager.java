@@ -264,12 +264,13 @@ public class TemplateManager {
             out.addAll(genCubicConstraints(expr1, expr2, expr3));
 
             if (generateMoreTemplates) {
+              Rational two = Rational.ofLong(2);
               out.addAll(
                   genCubicConstraints(
-                      expr1.multByConst(Rational.ofLong(2)), expr2, expr3));
+                      expr1.multByConst(two), expr2, expr3));
               out.addAll(
                   genCubicConstraints(
-                      expr1, expr2.multByConst(Rational.ofLong(2)), expr3));
+                      expr1, expr2.multByConst(two), expr3));
               out.addAll(
                   genCubicConstraints(
                       expr1, expr2, expr3.multByConst(Rational.ofLong(2))));
@@ -690,12 +691,6 @@ public class TemplateManager {
     // Do not add intervals.
     if (t.size() == 1) return false;
 
-    for (Template o : extraTemplates) {
-      // Do not add templates which are multiples of already existing templates.
-      if (o.getLinearExpression().isMultipleOf(t.getLinearExpression())) {
-        return false;
-      }
-    }
     boolean out = extraTemplates.add(t);
     if (out) {
       statistics.incWideningTemplatesGenerated();
