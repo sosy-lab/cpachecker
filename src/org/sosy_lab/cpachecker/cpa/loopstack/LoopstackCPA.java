@@ -146,7 +146,7 @@ public class LoopstackCPA extends AbstractCPA implements ReachedSetAdjustingCPA,
 
     if (loop != null) {
       // if loop is present, push one element on the stack for it
-      e = new LoopstackState(e, loop, 1, false);
+      e = new LoopstackState(e, loop, 1, false, false);
     }
     return e;
   }

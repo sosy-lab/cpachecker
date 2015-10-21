@@ -126,7 +126,8 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
 
     Loop newLoop = loopEntryEdges.get(pCfaEdge);
     if (newLoop != null) {
-      e = new LoopstackState(e, newLoop, 0, false);
+      e = new LoopstackState(e, newLoop, 0, false,
+          loopIterationsBeforeAbstraction == 0);
     }
 
     Collection<Loop> loops = loopHeads.get(loc);
@@ -151,7 +152,8 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
           e.getPreviousState(),
           e.getLoop(),
           newIteration,
-          stop);
+          stop,
+          newIteration == loopIterationsBeforeAbstraction);
     }
 
     return Collections.singleton(e);
