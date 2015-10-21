@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
 import com.google.common.base.Preconditions;
 
@@ -131,6 +132,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     if (handleRecursiveProcedures) {
+
+      if (cfa.getVarClassification().isPresent() && !cfa.getVarClassification().get().getRelevantFields().isEmpty()) {
+        // TODO remove this ugly hack as soon as possible :-)
+        throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.", cfa.getMainFunction().getLeavingEdge(0));
+      }
+
       transfer = new BAMTransferRelationWithFixPointForRecursion(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
     } else {
       transfer = new BAMTransferRelation(config, logger, this, wrappedProofChecker, data, pShutdownNotifier);
