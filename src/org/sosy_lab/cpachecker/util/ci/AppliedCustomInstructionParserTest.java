@@ -63,7 +63,6 @@ public class AppliedCustomInstructionParserTest {
   public void init() throws IOException, ParserException, InterruptedException {
     String testProgram = ""
           + "extern int test3(int);"
-          + "int globalVar;"
           + "int test(int p) {"
             + "return p+1;"
           + "}"
@@ -72,6 +71,7 @@ public class AppliedCustomInstructionParserTest {
           + "}"
           + "void ci(int var) {"
             + "var = var + 39;"
+            + "int globalVar;"
             + "int u;"
             + "int x = globalVar + 5;"
             + "int y;"
@@ -161,30 +161,29 @@ public class AppliedCustomInstructionParserTest {
     }
     Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
     Truth.assertThat(ci.getEndNodes()).containsExactlyElementsIn(expectedEnds);
-    // input variables: globalVar, ci::u, ci::var, ci::y, ci::z
+    // input variables: ci::globalVar, ci::u, ci::var, ci::y, ci::z
     List<String> list = new ArrayList<>();
+    list.add("ci::globalVar");
     list.add("ci::u");
     list.add("ci::var");
     list.add("ci::y");
     list.add("ci::z");
-    list.add("globalVar");
     Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder();
-     //output variables: ci::var, ci::y, ci::z, test::p
+     //output variables: ci::var, ci::y, ci::z
     list = new ArrayList<>();
     list.add("ci::var");
     list.add("ci::y");
     list.add("ci::z");
-    list.add("test::p");
     Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
 
     ci = aciParser.readCustomInstruction("main");
     expectedStart = null;
-    expectedEnds = new ArrayList<>(2);
+    expectedEnds = new ArrayList<>(1);
     for(CLabelNode n: labelNodes){
       if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
         expectedStart = n;
       }
-      if(n.getLabel().startsWith("end_ci")) {
+      if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("main")) {
         for(CFANode e: CFAUtils.predecessorsOf(n)) {
           expectedEnds.add(e);
         }
@@ -192,22 +191,15 @@ public class AppliedCustomInstructionParserTest {
     }
     Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
     Truth.assertThat(ci.getEndNodes()).containsExactlyElementsIn(expectedEnds);
-    // input variables: globalVar, main::m, main::n, main::o
+    // input variables: main::m, main::n, main::o
     list = new ArrayList<>();
-    list.add("globalVar");
     list.add("main::m");
     list.add("main::n");
     list.add("main::o");
      Truth.assertThat(ci.getInputVariables()).containsExactlyElementsIn(list).inOrder();
-    // output variables: ci::u, ci::var, ci::x, ci::y, ci::z, main::n, test::p
+    // output variables:  main::n
     list = new ArrayList<>();
-    list.add("ci::u");
-    list.add("ci::var");
-    list.add("ci::x");
-    list.add("ci::y");
-    list.add("ci::z");
     list.add("main::n");
-    list.add("test::p");
     Truth.assertThat(ci.getOutputVariables()).containsExactlyElementsIn(list).inOrder();
   }
 

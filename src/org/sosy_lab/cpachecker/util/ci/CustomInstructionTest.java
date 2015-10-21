@@ -44,6 +44,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -289,9 +290,21 @@ public class CustomInstructionTest {
     Queue<CFANode> queue = new ArrayDeque<>();
     queue.add(cfa.getFunctionHead("main"));
     CFANode node;
+    endNodes = new HashSet<>();
+    startNode = null;
 
     while (!queue.isEmpty()) {
       node = queue.poll();
+      if (node instanceof CLabelNode) {
+        if (((CLabelNode) node).getLabel().startsWith("start_ci")) {
+          startNode = node;
+        }
+        if (((CLabelNode) node).getLabel().startsWith("end_ci")) {
+          for(CFANode predecessor: CFAUtils.allPredecessorsOf(node)) {
+            endNodes.add(predecessor);
+          }
+        }
+      }
       for (CFAEdge e : CFAUtils.allLeavingEdges(node)) {
         if (!visitedNodes.contains(e.getSuccessor())) {
           queue.add(e.getSuccessor());
@@ -303,21 +316,16 @@ public class CustomInstructionTest {
       }
     }
     Truth.assertThat(aciStartNode).isNotNull();
-
-//    startNode = cfa.getMainFunction();
-    endNodes = new HashSet<>();
-    for (CFAEdge edge : CFAUtils.allEnteringEdges(cfa.getMainFunction().getExitNode())) {
-      endNodes.add(edge.getPredecessor());
-    }
+    Truth.assertThat(startNode).isNotNull();
+    Truth.assertThat(endNodes).hasSize(1);
 
     List<String> input = new ArrayList<>();
     input.add("main::y");
+    input.add("main::z");
     List<String> output = new ArrayList<>();
-    output.add("main::a");
-    output.add("main::b");
     output.add("main::x");
     output.add("main::z");
-    ci = new CustomInstruction(aciStartNode, endNodes, input, output, ShutdownNotifier.create());
+    ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.create());
 
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
