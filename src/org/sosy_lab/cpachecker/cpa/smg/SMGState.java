@@ -805,6 +805,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getHeapObjects().contains(object);
   }
 
+  /** memory allocated in the heap has to be freed by the user,
+   * otherwise this is a memory-leak. */
   public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
@@ -817,9 +819,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return points_to;
   }
 
-  // TODO fully replace by addNewHeapAllocation?
-  public SMGEdgePointsTo addNewAllocAllocation(int pSize, String pLabel) throws SMGInconsistentException {
-    return addNewHeapAllocation(pSize, pLabel);
+  /** memory allocated on the stack is automatically freed when leaving the current function scope */
+  public SMGEdgePointsTo addNewStackAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+    SMGRegion new_object = new SMGRegion(pSize, pLabel);
+    int new_value = SMGValueFactory.getNewValue();
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
+    heap.addStackObject(new_object);
+    heap.addValue(new_value);
+    heap.addPointsToEdge(points_to);
+    performConsistencyCheck(SMGRuntimeCheck.HALF);
+    return points_to;
   }
 
   public void setMemLeak() {

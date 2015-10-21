@@ -374,6 +374,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return expressionEvaluator.evaluateAddress(pState, pCfaEdge, pRvalue);
     }
 
+    /** The method "alloca" (or "__builtin_alloca") allocates memory from the stack.
+     * The memory is automatically freed at function-exit.
+     */
+     // TODO possible property violation "stack-overflow through big allocation" is not handled
     public final SMGEdgePointsToAndState evaluateAlloca(CFunctionCallExpression functionCall,
         SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
       CRightHandSide sizeExpr;
@@ -414,7 +418,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       // TODO line numbers are not unique when we have multiple input files!
       String allocation_label = "alloc_ID" + SMGValueFactory.getNewValue();
-      SMGEdgePointsTo new_pointer = currentState.addNewAllocAllocation(value.getAsInt(), allocation_label);
+      SMGEdgePointsTo new_pointer = currentState.addNewStackAllocation(value.getAsInt(), allocation_label);
 
       possibleMallocFail = true;
       return SMGEdgePointsToAndState.of(currentState, new_pointer);
