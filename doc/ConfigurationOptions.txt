@@ -1646,7 +1646,7 @@ cpa.smg.deallocationFunctions = {
 cpa.smg.enableMallocFail = true
 
 # Filename format for SMG graph dumps
-cpa.smg.exportSMG.file = "smg-%s.dot"
+cpa.smg.exportSMG.file = "smg/smg-%s.dot"
 
 # Describes when SMG graphs should be dumped.
 cpa.smg.exportSMGwhen = NEVER
@@ -1659,8 +1659,9 @@ cpa.smg.guessSizeOfUnknownMemorySize = false
 # is reported as memleak even if it is reachable from local variables in main
 cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
 
-# Sets how unknown functions are handled. One of: {strict, assume_safe}
-cpa.smg.handleUnknownFunctions = "strict"
+# Sets how unknown functions are handled.
+cpa.smg.handleUnknownFunctions = STRICT
+  enum:     [STRICT, ASSUME_SAFE]
 
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {
@@ -2156,10 +2157,6 @@ parser.usePreprocessor = false
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
 pcc.arg.checkPropertyPerElement = false
-
-# Enable if partial ARGs can be read based using different CPA object than
-# checker
-pcc.arg.cmc.interleavedMode = true
 
 # List of files with configurations to use. 
 pcc.cmc.configFiles = no default value
