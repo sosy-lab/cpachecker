@@ -680,17 +680,17 @@ public class TemplateManager {
         return true;
       }
 
+      if (!generateOctagons) {
+        logger.log(Level.INFO, "LPI Refinement: Generating octagons");
+        generateOctagons = true;
+        return true;
+      }
+      if (!generateMoreTemplates) {
+        logger.log(Level.INFO, "LPI Refinement: Generating more templates");
+        generateMoreTemplates = true;
+        return true;
+      }
       if (unguidedTemplateRefinement) {
-        if (!generateOctagons) {
-          logger.log(Level.INFO, "LPI Refinement: Generating octagons");
-          generateOctagons = true;
-          return true;
-        }
-        if (!generateMoreTemplates) {
-          logger.log(Level.INFO, "LPI Refinement: Generating more templates");
-          generateMoreTemplates = true;
-          return true;
-        }
         if (!generateCube) {
           logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
           generateCube = true;
