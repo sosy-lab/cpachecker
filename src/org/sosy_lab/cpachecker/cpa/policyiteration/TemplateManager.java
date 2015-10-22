@@ -86,8 +86,19 @@ public class TemplateManager {
   private boolean generateCube = false;
 
   @Option(secure=true,
+    description="Use unguided template refinement, progressively brute-forcing the"
+      + " possible template space.")
+  private boolean unguidedTemplateRefinement = true;
+
+  @Option(secure=true,
     description="Strategy for filtering variables out of templates")
   private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
+
+  private enum VarFilteringStrategy {
+    ALL_LIVE,
+    ONE_LIVE,
+    ALL
+  }
 
   private final CFA cfa;
   private final LogManager logger;
@@ -113,6 +124,7 @@ public class TemplateManager {
   private static final String ASSERT_H_FUNC_NAME = "__assert_fail";
 
   private final HashMultimap<CFANode, Template> cache = HashMultimap.create();
+  private final ImmutableList<ASimpleDeclaration> allVariables;
 
   public TemplateManager(
       LogManager pLogger,
@@ -661,26 +673,31 @@ public class TemplateManager {
     }
     try {
       if (changed) {
-        logger.log(Level.INFO, "LPI Refinement: Using new templates",
+        logger.log(Level.INFO,
+            "LPI Refinement: using templates generated with convex hull",
             generatedTemplates);
         generatedTemplates.clear();
         return true;
       }
-      if (!generateOctagons) {
-        logger.log(Level.INFO, "LPI Refinement: Generating octagons");
-        generateOctagons = true;
-        return true;
+
+      if (unguidedTemplateRefinement) {
+        if (!generateOctagons) {
+          logger.log(Level.INFO, "LPI Refinement: Generating octagons");
+          generateOctagons = true;
+          return true;
+        }
+        if (!generateMoreTemplates) {
+          logger.log(Level.INFO, "LPI Refinement: Generating more templates");
+          generateMoreTemplates = true;
+          return true;
+        }
+        if (!generateCube) {
+          logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
+          generateCube = true;
+          return true;
+        }
       }
-      if (!generateMoreTemplates) {
-        logger.log(Level.INFO, "LPI Refinement: Generating more templates");
-        generateMoreTemplates = true;
-        return true;
-      }
-      if (!generateCube) {
-        logger.log(Level.INFO, "LPI Refinement: Rich template generation strategy");
-        generateCube = true;
-        return true;
-      }
+
       return false;
     } finally {
       cache.clear();
@@ -704,14 +721,6 @@ public class TemplateManager {
     } else {
       return allVariables;
     }
-  }
-
-  private final ImmutableList<ASimpleDeclaration> allVariables;
-
-  private enum VarFilteringStrategy {
-    ALL_LIVE,
-    ONE_LIVE,
-    ALL
   }
 
   private Formula normalizeLength(Formula f, int maxBitvectorSize,
