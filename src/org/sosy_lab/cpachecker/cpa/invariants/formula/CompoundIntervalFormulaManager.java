@@ -260,10 +260,6 @@ public class CompoundIntervalFormulaManager {
           if (!cim.doIntersect(leftEval, rightEval)) {
             return false;
           }
-          if (op1 instanceof Constant && rightEval.isSingleton() && cim.contains(leftEval, rightEval)
-              || op2 instanceof Constant && leftEval.isSingleton() && cim.contains(rightEval, leftEval)) {
-            continue;
-          }
         } else if (resolved instanceof LogicalNot) {
           LogicalNot<CompoundInterval> negation = (LogicalNot<CompoundInterval>) resolved;
           BooleanFormula<CompoundInterval> negated = negation.getNegated();
