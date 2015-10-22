@@ -150,4 +150,7 @@ def _execute():
 
 
 if __name__ == "__main__":
-    sys.exit(_execute())
+    try:
+        sys.exit(_execute())
+    except KeyboardInterrupt:
+        sys.exit(1)
