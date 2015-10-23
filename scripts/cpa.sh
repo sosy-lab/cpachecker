@@ -10,7 +10,7 @@ DEFAULT_HEAP_SIZE="1200M"
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
-java_version="`$JAVA -Xmx5m -version 2>&1`"
+java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
   echo "Java not found, please install Java 1.7 or newer." 1>&2
@@ -122,8 +122,10 @@ esac
 # - options specified on command-line to this script
 # - CPAchecker class and options
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
+# PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
 $EXEC "$JAVA" \
 	-Xss1024k \
+	-XX:+PerfDisableSharedMem \
 	$JAVA_VM_ARGUMENTS \
 	-Xmx${JAVA_HEAP_SIZE} \
 	$JAVA_ASSERTIONS \
