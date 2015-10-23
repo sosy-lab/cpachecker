@@ -33,9 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import scala.Enumeration;
-import scala.collection.Iterator;
-import scala.collection.JavaConversions;
+import com.google.common.base.Optional;
+
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
 import ap.parser.IBinFormula;
@@ -51,6 +50,9 @@ import ap.parser.IIntLit;
 import ap.parser.INot;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
+import scala.Enumeration;
+import scala.collection.Iterator;
+import scala.collection.JavaConversions;
 
 /** This is a Class similiar to Mathsat-NativeApi,
  *  it contains some useful static functions. */
@@ -359,4 +361,35 @@ class PrincessUtil {
     return duplicates;
   }
 
+  /**
+   * This method replaces letted statements (abbreviations in Princess) with
+   * their original statements
+   * @param term
+   * @return
+   */
+  public static IExpression unlet(IExpression expr, PrincessEnvironment env) {
+    IExpression unlettedExp = unlet0(expr, env);
+    assert areEqualTerms(expr, unlettedExp, env);
+    return unlettedExp;
+  }
+
+  private static IExpression unlet0(IExpression expr, PrincessEnvironment env) {
+    Optional<IExpression> full = env.fullVersionOfAbbrev(expr);
+
+    if (full.isPresent()) {
+      return unlet0(full.get(), env);
+    } else if (isAtom(expr) || isVariable(expr)) {
+      return expr;
+    } else {
+
+      Iterator<IExpression> it = expr.iterator();
+      List<IExpression> newChilds = new ArrayList<>();
+
+      while (it.hasNext()) {
+        newChilds.add(unlet0(it.next(), env));
+      }
+
+      return expr.update(JavaConversions.asScalaBuffer(newChilds));
+    }
+  }
 }
