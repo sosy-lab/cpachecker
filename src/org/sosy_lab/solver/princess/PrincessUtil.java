@@ -311,7 +311,7 @@ class PrincessUtil {
       IExpression child = it.next();
 
       // we do only replace terms that are no variables
-      if (isVariable(child)) {
+      if (isVariable(child) || isNumber(child) || isTrue(child) || isFalse(child)) {
         newChilds.add(child);
 
         // terms where we already have abbreviations for do not need
