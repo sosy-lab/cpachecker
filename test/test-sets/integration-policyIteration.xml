@@ -7,11 +7,11 @@
 
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
-    <tasks name="Loops">
+    <tasks>
         <includesfile>../programs/benchmarks/Loops.set</includesfile>
     </tasks>
 
-    <rundefinition name="lpi-loops">
+    <rundefinition>
     </rundefinition>
 
 </benchmark>
