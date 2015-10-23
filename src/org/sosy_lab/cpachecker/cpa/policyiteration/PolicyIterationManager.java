@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,8 +21,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -89,11 +95,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true,
   description="Use the optimized abstraction, which takes into the account the "
-      + "previously obtained bound at the location.")
+      + "previously obtained bound at the location. Interferes with:"
+      + "obtaining templates using convex hull and split-sep merge configuration.")
   private boolean usePreviousBounds = true;
 
   @Option(secure=true, description="Any intermediate state with formula length "
-      + "bigger than specified will be checked for reachability. ")
+      + "bigger than specified will be checked for reachability.")
   private int lengthLimitForSATCheck = 300;
 
   @Option(secure=true, description="Run simple congruence analysis")
@@ -136,6 +143,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final PolyhedraWideningManager pwm;
   private final InvariantGenerator invariantGenerator;
   private final StateFormulaConversionManager stateFormulaConversionManager;
+  private final CBinaryExpressionBuilder expressionBuilder;
 
   public PolicyIterationManager(
       Configuration config,
@@ -171,6 +179,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     congruenceManager = pCongruenceManager;
     joinOnMerge = pJoinOnMerge;
     invariantGenerator = pInvariantGenerator;
+    expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(),
+        logger);
 
     /** Compute the cache for loops */
     ImmutableMap.Builder<CFANode, LoopStructure.Loop> loopStructureBuilder =
@@ -410,9 +420,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   private PolicyAbstractedState joinAbstractedStates(
-      PolicyAbstractedState newState,
-      PolicyAbstractedState oldState,
-      PolicyPrecision precision
+      final PolicyAbstractedState newState,
+      final PolicyAbstractedState oldState,
+      final PolicyPrecision precision
   ) throws CPATransferException, InterruptedException {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
@@ -816,6 +826,23 @@ public class PolicyIterationManager implements IPolicyIterationManager {
                     annotatedFormula, optEnvironment);
               }
 
+              CSimpleType templateType = getTemplateType(template);
+              if (templateType.getType().isIntegerType()) {
+                BigInteger maxValue = cfa.getMachineModel()
+                    .getMaximalIntegerValue(templateType);
+                BigInteger minValue = cfa.getMachineModel()
+                    .getMinimalIntegerValue(templateType);
+
+                // The bound obtained is larger than the highest representable
+                // value, ignore it.
+                if (boundValue.compareTo(Rational.ofBigInteger(maxValue)) == 1
+                    || boundValue.compareTo(Rational.ofBigInteger(minValue)) == -1) {
+                  logger.log(Level.FINE, "Bound too high, replacing with 'unbounded'",
+                      bound);
+                  break;
+                }
+              }
+
               PolicyBound policyBound = modelToPolicyBound(
                   objective, state, p, annotatedFormula, model, boundValue);
               abstraction.put(template, policyBound);
@@ -863,7 +890,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         );
   }
 
+  private CSimpleType getTemplateType(Template t) {
+    CExpression sum = null;
 
+    // also note: there is an overall _expression_ type.
+    // Wonder how that one is computed --- it actually depends on the order of
+    // the operands.
+    for (Entry<CIdExpression, Rational> e: t.getLinearExpression()) {
+      CIdExpression expr = e.getKey();
+      if (sum == null) {
+        sum = expr;
+      } else {
+        sum = expressionBuilder.buildBinaryExpressionUnchecked(
+            sum, expr, BinaryOperator.PLUS);
+      }
+    }
+    assert sum != null;
+    return (CSimpleType) sum.getExpressionType();
+  }
 
 
   /**
