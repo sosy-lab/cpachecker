@@ -25,8 +25,10 @@ package org.sosy_lab.solver.princess;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,6 +66,8 @@ import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
+import ap.parser.SMTLineariser;
+import scala.Console;
 import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
 
@@ -216,16 +220,17 @@ class PrincessEnvironment {
 
       @Override
       public void appendTo(Appendable out) throws IOException {
+        out.append("(reset)\n(set-logic AUFLIA)\n");
         Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(lettedFormula));
 
         for (IExpression var : declaredFunctions) {
-          out.append("(declare-fun ");
           String name = getName(var);
 
           // we do only want to add declare-funs for things we really declared
           // the rest is done afterwards
           if (!name.startsWith("abbrev_")) {
-            out.append(name);
+            out.append("(declare-fun ")
+               .append(name);
 
             // function parameters
             out.append(" (");
@@ -250,24 +255,45 @@ class PrincessEnvironment {
           }
         }
 
+        // save old console out for later reset
+        PrintStream oldOut = Console.out();
+
         // now as everything we know from the formula is declared we have to add
         // the abbreviations, too
         for (Entry<IExpression, IExpression> entry : abbrevCache.entrySet()) {
+          // create new console out printstream to redirect the output of princess
+          ByteArrayOutputStream stream = new ByteArrayOutputStream();
+          Console.setOut(new PrintStream(stream));
+
           IExpression abbrev = entry.getKey();
           IExpression fullFormula = entry.getValue();
           String name = getName(Iterables.getOnlyElement(PrincessUtil.getVarsAndUIFs(Collections.singleton(abbrev))));
-          out.append("(define-fun ");
-          out.append(name);
+
+          out.append("(define-fun ")
+             .append(name);
 
           // the type of each abbreviation + the renamed formula
-          out.append(" ((abbrev_arg Int)) Int (");
-          out.append(fullFormula.toString());
-          out.append(")\n");
+          out.append(" ((abbrev_arg Int)) Int (ite ");
+          if (fullFormula instanceof IFormula) {
+            SMTLineariser.apply((IFormula)fullFormula);
+            out.append(stream.toString());
+          } else if (fullFormula instanceof ITerm) {
+            SMTLineariser.apply((ITerm)fullFormula);
+            out.append(stream.toString());
+          }
+          out.append(" 0 1))\n");
         }
 
+        // now add the final assert
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        Console.setOut(new PrintStream(stream));
+        SMTLineariser.apply((IFormula)lettedFormula);
         out.append("(assert ");
-        out.append(lettedFormula.toString());
+        out.append(stream.toString());
         out.append(")");
+
+        // reset console to usual value
+        Console.setOut(oldOut);
       }
     };
   }
