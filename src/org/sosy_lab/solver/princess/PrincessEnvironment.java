@@ -32,15 +32,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.Path;
@@ -48,8 +49,9 @@ import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.solver.TermType;
 
-import scala.collection.JavaConversions;
-import scala.collection.mutable.ArrayBuffer;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
@@ -62,8 +64,8 @@ import ap.parser.IFunction;
 import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
-
-import com.google.common.collect.Iterables;
+import scala.collection.JavaConversions;
+import scala.collection.mutable.ArrayBuffer;
 
 /** This is a Wrapper around Princess.
  * This Wrapper allows to set a logfile for all Smt-Queries (default "princess.###.smt2").
@@ -77,7 +79,7 @@ class PrincessEnvironment {
   private final Map<String, ITerm> intVariablesCache = new HashMap<>();
 
   /** The key of this map is the abbreviation, the value is the full expression.*/
-  private final List<Pair<IExpression, IExpression>> abbrevCache = new ArrayList<>();
+  private final Map<IExpression, IExpression> abbrevCache = new LinkedHashMap<>();
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
@@ -132,8 +134,8 @@ class PrincessEnvironment {
     for (IFunction s : functionsCache.values()) {
       stack.addSymbol(s);
     }
-    for(Pair<IExpression, IExpression> e : abbrevCache) {
-      stack.addAbbrev(e.getFirst(), e.getSecond());
+    for(Entry<IExpression, IExpression> e : abbrevCache.entrySet()) {
+      stack.addAbbrev(e.getKey(), e.getValue());
     }
     registeredStacks.add(stack);
     allStacks.add(stack);
@@ -250,9 +252,9 @@ class PrincessEnvironment {
 
         // now as everything we know from the formula is declared we have to add
         // the abbreviations, too
-        for (Pair<IExpression, IExpression> entry : abbrevCache) {
-          IExpression abbrev = entry.getFirst();
-          IExpression fullFormula = entry.getSecond();
+        for (Entry<IExpression, IExpression> entry : abbrevCache.entrySet()) {
+          IExpression abbrev = entry.getKey();
+          IExpression fullFormula = entry.getValue();
           String name = getName(Iterables.getOnlyElement(PrincessUtil.getVarsAndUIFs(Collections.singleton(abbrev))));
           out.append("(define-fun ");
           out.append(name);
@@ -395,8 +397,12 @@ class PrincessEnvironment {
       stack.addAbbrev(abbrev, expr);
     }
 
-    abbrevCache.add(Pair.of(abbrev, expr));
+    abbrevCache.put(abbrev, expr);
     return abbrev;
+  }
+
+  public Optional<IExpression> fullVersionOfAbbrev(final IExpression expr) {
+    return Optional.fromNullable(abbrevCache.get(expr));
   }
 
   public String getVersion() {
