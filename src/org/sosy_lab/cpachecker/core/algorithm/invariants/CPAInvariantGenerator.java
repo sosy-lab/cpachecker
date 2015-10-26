@@ -355,17 +355,19 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
 
     private boolean adjustConditions() {
-      if (!adjustConditions || conditionCPAs.isEmpty()) {
+      if (!adjustConditions) {
         return false;
       }
 
+      // Adjust precision if at least one CPA can do it.
       for (AdjustableConditionCPA cpa : conditionCPAs) {
-        if (!cpa.adjustPrecision()) {
-          logger.log(Level.INFO, "Further invariant generation adjustments denied by", cpa.getClass().getSimpleName());
-          return false;
+        if (cpa.adjustPrecision()) {
+          return true;
         }
       }
-      return true;
+      logger.log(Level.INFO, "None of the CPAs could adjust precision, "
+          + "stopping invariant generation");
+      return false;
     }
   }
 }
