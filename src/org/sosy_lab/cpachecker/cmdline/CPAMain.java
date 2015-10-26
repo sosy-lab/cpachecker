@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -154,6 +155,11 @@ public class CPAMain {
     logManager.flush();
   }
 
+  // Default values for options from external libraries
+  // that we want to override in CPAchecker.
+  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS = ImmutableMap.of(
+      "log.level", Level.INFO.toString());
+
   @Options
   private static class BootstrapOptions {
     @Option(secure=true, name="memorysafety.check",
@@ -235,8 +241,10 @@ public class CPAMain {
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
 
-    // create initial configuration from config file and command-line arguments
+    // create initial configuration
+    // from default values, config file, and command-line arguments
     ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
     if (configFile != null) {
       configBuilder.loadFromFile(configFile);
     }

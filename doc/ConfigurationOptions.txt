@@ -1807,7 +1807,7 @@ cpa.stator.policy.generateUpperBound = true
 cpa.stator.policy.joinOnMerge = true
 
 # Any intermediate state with formula length bigger than specified will be
-# checked for reachability. Set to 0 to disable.
+# checked for reachability.
 cpa.stator.policy.lengthLimitForSATCheck = 300
 
 # Remove UFs and ITEs from policies. NOTE: Currently seems to decrease
@@ -1829,6 +1829,10 @@ cpa.stator.policy.shortCircuitSyntactic = true
 # Call [simplify] on the formulas resulting from the C code
 cpa.stator.policy.simplifyFormulas = true
 
+# Use unguided template refinement, progressively brute-forcing the possible
+# template space.
+cpa.stator.policy.unguidedTemplateRefinement = true
+
 # Number of refinements after which the unrolling depth is increased
 cpa.stator.policy.unrollingRefinementThreshold = 2
 
@@ -1846,7 +1850,8 @@ cpa.stator.policy.useInvariantsForAbstraction = false
 cpa.stator.policy.useLatestVersion = true
 
 # Use the optimized abstraction, which takes into the account the previously
-# obtained bound at the location.
+# obtained bound at the location. Interferes with:obtaining templates using
+# convex hull and split-sep merge configuration.
 cpa.stator.policy.usePreviousBounds = true
 
 # Strategy for filtering variables out of templates
