@@ -160,7 +160,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
                    (targetHandledAfterViolations > 0
                     && timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
                  || (targetDisabledAfterRefinements > 0
-                     && maxInfeasibleCexs > targetDisabledAfterRefinements);
+                     && maxInfeasibleCexs >= targetDisabledAfterRefinements);
 
         if (disable) {
           final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(properties);
