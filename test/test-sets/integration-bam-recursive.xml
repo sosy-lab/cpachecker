@@ -7,16 +7,25 @@
   <option name="-noout"/>
   <option name="-heap">1000M</option>
 
-  <tasks name="simple">
-    <include>../programs/benchmarks/recursive-simple/*.c</include>
+  <tasks name="value">
+    <include>../programs/benchmarks/recursive-simple/a*.c</include>
+    <include>../programs/benchmarks/recursive-simple/f*.c</include>
     <option name="-valueAnalysis-bam-rec"/>
   </tasks>
 
-  <tasks name="svcomp">
+  <tasks name="interval">
+    <include>../programs/benchmarks/recursive-simple/i*.c</include>
+    <option name="-intervalAnalysis-bam-rec"/>
+  </tasks>
+  
+  <tasks name="valuePredicate">
+    <include>../programs/benchmarks/recursive-simple/s*.c</include>
+    <option name="-valuePredicateAnalysis-bam-rec"/>
+  </tasks>
+  
+  <tasks name="predicate">
     <include>../programs/benchmarks/recursive/*.c</include>
     <option name="-predicateAnalysis-bam-rec-plain"/>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
 
   <rundefinition/>
