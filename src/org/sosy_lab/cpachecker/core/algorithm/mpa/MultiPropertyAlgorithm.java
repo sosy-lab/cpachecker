@@ -230,7 +230,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
       AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
-      Preconditions.checkArgument(pReachedSet.size() == 1);
+      Preconditions.checkArgument(pReachedSet.size() == 1, "Please ensure that analysis.stopAfterError=true!");
       Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
 
       final AbstractState e0 = pReachedSet.getFirstState();
