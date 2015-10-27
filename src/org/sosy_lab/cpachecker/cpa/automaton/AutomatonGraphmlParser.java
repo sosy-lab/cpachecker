@@ -522,7 +522,16 @@ public class AutomatonGraphmlParser {
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
       AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      distanceVariable.setValue(-distances.get(initialStateName));
+      Integer initialStateDistance = distances.get(initialStateName);
+      if (initialStateDistance != null) {
+        distanceVariable.setValue(-distances.get(initialStateName));
+      } else {
+        logger.log(Level.WARNING,
+            String.format("There is no path from the entry state %s"
+                + " to a state explicitly marked as violation state."
+                + " Distance-to-violation waitlist order will not work"
+                + " and witness validation may fail to confirm this witness.", initialStateName));
+      }
       Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
