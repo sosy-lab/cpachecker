@@ -1,5 +1,3 @@
-#include "stdio.h"
-
 extern int __VERIFIER_nondet_int();
 
 int __SELECTED_FEATURE_FOOBAR_SPL = 1;
@@ -24,26 +22,25 @@ int foobar(int x, int y, int z) {
 	
 	if (__SELECTED_FEATURE_LE) {
 		if (x < y)
-			a = x;
+			G7: a = x;
 		else
-			a = y;
+			G6: a = y;
 	} else if (__SELECTED_FEATURE_GR) {
 		if (x > y)
-			a = x;
+			G5: a = x;
 		else
-			a = y;
+			G4: a = y;
 	}
 	if (__SELECTED_FEATURE_PLUS) {
-		ERROR: printf("ERROR");
-		z += a;
+		G1: z += a;
 	} else if (__SELECTED_FEATURE_MINUS) {
 		if (__SELECTED_FEATURE_NOTNEGATIVE) {
 			if ((z - a) < 0)
-				a *= -1;
+				G3: a *= -1;
 		}
-		z -= a;
+		G2: z -= a;
 	}
-	return z;		
+	return z;
 }
 
 
@@ -58,21 +55,9 @@ int main() {
 	__SELECTED_FEATURE_NOTNEGATIVE = __VERIFIER_nondet_int();
 	__SELECTED_FEATURE_PLUS = __VERIFIER_nondet_int();
 
-	/*int x = 1;
-	int y = 1;
-	int z = 1;
-
-	feature_GR = 0;
-	feature_LE = 1;
-	feature_MINUS = 1;
-	feature_NOTNEGATIVE = 1;
-	feature_PLUS = 0;*/
-
 	if (validProduct()) {
 		foobar(x, y, z);
 	}
-
-	// getchar();
 
 	return 0;
 }
