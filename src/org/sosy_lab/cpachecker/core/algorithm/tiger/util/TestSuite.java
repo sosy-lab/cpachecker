@@ -46,12 +46,14 @@ public class TestSuite {
   private Map<Integer, Pair<Goal, Region>> timedOutGoals;
   private int numberOfFeasibleGoals = 0;
   private NamedRegionManager bddCpaNamedRegionManager;
+  private boolean printLabels;
 
-  public TestSuite(NamedRegionManager pBddCpaNamedRegionManager) {
+  public TestSuite(NamedRegionManager pBddCpaNamedRegionManager, boolean pPrintLabels) {
     mapping = new HashMap<>();
     infeasibleGoals = new HashMap<>();
     timedOutGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    printLabels = pPrintLabels;
   }
 
   public Set<Goal> getTestGoals() {
@@ -115,41 +117,17 @@ public class TestSuite {
   }
 
   private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {
-    // TODO make a real comparison and not just a string compare
-    String testcaseString = "Testcase " + pTestcase.toString() + " covers";
-    String testgoalString = "Goal ";
-    CFANode predecessor = pGoal.getCriticalEdge().getPredecessor();
-    if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
-      testgoalString += ((CLabelNode) predecessor).getLabel();
-    } else {
-      testgoalString += pGoal.getIndex();
-    }
-    testgoalString +=
-        " " + pGoal.toSkeleton()
-            + (pGoal.getPresenceCondition() != null ? " with targetPC "
-                + bddCpaNamedRegionManager.dumpRegion(pGoal.getPresenceCondition()) : "");
-
     for (Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-      String testcaseStringCmp = "Testcase " + entry.getKey().toString() + " covers";
-      if (testcaseString.equals(testcaseStringCmp)) {
+      TestCase testCase = entry.getKey();
+      if (testCase.equals(pTestcase)) {
         for (Goal goal : entry.getValue()) {
-          String testgoalStringCmp = "Goal ";
-          CFANode predecessorCmp = goal.getCriticalEdge().getPredecessor();
-          if (predecessorCmp instanceof CLabelNode && !((CLabelNode) predecessorCmp).getLabel().isEmpty()) {
-            testgoalStringCmp += ((CLabelNode) predecessorCmp).getLabel();
-          } else {
-            testgoalStringCmp += goal.getIndex();
+          if (goal.equals(pGoal)) {
+            return true;
           }
-          testgoalStringCmp +=
-              " " + goal.toSkeleton()
-              + (goal.getPresenceCondition() != null ? " with targetPC "
-                  + bddCpaNamedRegionManager.dumpRegion(goal.getPresenceCondition()) : "");
-          if (testgoalString.equals(testgoalStringCmp)) { return true; }
         }
-      } else {
-        continue;
       }
     }
+
     return false;
   }
 
@@ -176,9 +154,9 @@ public class TestSuite {
 
     for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
       str.append(entry.getKey().toString() + "\n");
-      List<CFAEdge> errorPath = entry.getKey().getErrorPath();
+      List<CFAEdge> errorPath = entry.getKey().getPath();
       if (errorPath != null) {
-        str.append("Errorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
+        str.append("Errorpath Length: " + entry.getKey().getPath().size() + "\n");
       }
 
       for (Goal goal : entry.getValue()) {
@@ -190,6 +168,17 @@ public class TestSuite {
           str.append(": " + bddCpaNamedRegionManager.dumpRegion(presenceCondition));
         }
         str.append("\n");
+      }
+
+      if (printLabels) {
+        str.append("Labels:\n");
+        for (CFAEdge edge : entry.getKey().getPath()) {
+          CFANode predecessor = edge.getPredecessor();
+          if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
+            str.append(((CLabelNode) predecessor).getLabel());
+            str.append("\n");
+          }
+        }
       }
 
       str.append("\n");
@@ -231,7 +220,7 @@ public class TestSuite {
       str.append("\n");
     }
 
-    return str.toString();
+    return str.toString().replace("__SELECTED_FEATURE_", "");
   }
 
   /**
@@ -240,7 +229,7 @@ public class TestSuite {
    * @param goal
    * @return
    */
-  private String getTestGoalLabel(Goal goal) {
+  public String getTestGoalLabel(Goal goal) {
     String label = "";
 
     CFANode predecessor = goal.getCriticalEdge().getPredecessor();
