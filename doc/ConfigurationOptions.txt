@@ -736,6 +736,13 @@ cpa.bam.handleRecursiveProcedures = false
 # export single blocked ARG as .dot files, should contain '%d'
 cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 
+# if we connot determine a repeating/covering call-state, we will run into
+# CallStackOverflowException. Thus we bound the stack size (unsound!). This
+# option only limits non-covered recursion, but not a recursion where we find
+# a coverage and re-use the cached block several times. The value '-1'
+# disables this option.
+cpa.bam.maximalDepthForExplicitRecursion = -1
+
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
 
