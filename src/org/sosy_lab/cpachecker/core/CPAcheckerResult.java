@@ -116,7 +116,12 @@ public class CPAcheckerResult {
       out.println(String.format("\tNumber of unknown properties: %d", propertySummary.getUnknownProperties().get().size()));
     }
 
+    if (propertySummary.getSatisfiedProperties().isPresent()) {
+      out.println(String.format("\tNumber of satisfied properties: %d", propertySummary.getSatisfiedProperties().get().size()));
+    }
+
     out.println("\tStatus by property:");
+
     for (Property prop: propertySummary.getViolatedProperties()) {
       out.println(String.format("\t\tProperty %s: %s", prop.toString(), "FALSE"));
     }
@@ -125,8 +130,14 @@ public class CPAcheckerResult {
       for (Property prop: propertySummary.getUnknownProperties().get()) {
         out.println(String.format("\t\tProperty %s: %s", prop.toString(), "UNKNOWN"));
       }
-
     }
+
+    if (propertySummary.getSatisfiedProperties().isPresent()) {
+      for (Property prop: propertySummary.getSatisfiedProperties().get()) {
+        out.println(String.format("\t\tProperty %s: %s", prop.toString(), "TRUE"));
+      }
+    }
+
   }
 
   private String getResultString() {
