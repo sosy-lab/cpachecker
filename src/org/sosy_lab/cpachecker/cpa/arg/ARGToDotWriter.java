@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
@@ -233,12 +234,12 @@ public class ARGToDotWriter {
     final String hintNodeId = stateNodeId + "hint";
 
     String hintLabel = "";
-//    PredicateAbstractState abstraction = AbstractStates.extractStateByType(currentElement, PredicateAbstractState.class);
-//    if (abstraction != null && abstraction.isAbstractionState()) {
-//      final StringBuilder labelBuilder = new StringBuilder();
-//      labelBuilder.append(abstraction.getAbstractionFormula().asFormula().toString());
-//      hintLabel = labelBuilder.toString();
-//    }
+    AutomatonState abstraction = AbstractStates.extractStateByType(currentElement, AutomatonState.class);
+    if (abstraction != null) {
+      final StringBuilder labelBuilder = new StringBuilder();
+      labelBuilder.append(abstraction.toString());
+      hintLabel = labelBuilder.toString();
+    }
 
     final StringBuilder builder = new StringBuilder();
 

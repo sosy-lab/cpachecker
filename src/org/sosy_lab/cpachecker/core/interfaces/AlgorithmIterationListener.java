@@ -29,6 +29,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public interface AlgorithmIterationListener {
 
-  public void afterAlgorithmIteration(Algorithm alg, ReachedSet reached);
+  public void afterAlgorithmIteration(Algorithm alg, ReachedSet reached) throws InterruptedException;
 
 }

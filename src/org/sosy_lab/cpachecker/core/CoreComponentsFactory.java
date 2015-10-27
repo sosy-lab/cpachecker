@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.InterruptProvider;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -153,6 +155,7 @@ public class CoreComponentsFactory {
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final InterruptProvider interruptProvider;
 
   private final ReachedSetFactory reachedSetFactory;
   private final CPABuilder cpaFactory;
@@ -160,9 +163,11 @@ public class CoreComponentsFactory {
   public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
 
     config.inject(this);
+
+    shutdownNotifier = pShutdownNotifier;
+    interruptProvider = new InterruptProvider(shutdownNotifier);
 
     reachedSetFactory = new ReachedSetFactory(config, logger);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
@@ -192,7 +197,14 @@ public class CoreComponentsFactory {
       algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
 
     } else {
-      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
+
+      algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, new AlgorithmIterationListener() {
+        @Override
+        public void afterAlgorithmIteration(Algorithm pAlg, ReachedSet pReached) throws InterruptedException {
+          stats.afterAlgorithmIteration(pAlg, pReached);
+          interruptProvider.canInterrupt();
+        }
+      });
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
@@ -215,7 +227,7 @@ public class CoreComponentsFactory {
       }
 
       if (checkMultipleProperties) {
-        algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger);
+        algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger, interruptProvider);
       }
 
       if (collectAssumptions) {

@@ -28,8 +28,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -41,6 +45,8 @@ public class InitDefaultOperator implements InitOperator {
   public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
       ImmutableSet<ImmutableSet<Property>> pPartitioning) {
 
+    ARGReachedSet reached = new ARGReachedSet(pReached);
+
     ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getActiveProperties(pE0, pReached);
 
     Preconditions.checkArgument(pPartitioning.size() == 1, "This init operator requires exactly one partition of properties!");
@@ -48,8 +54,11 @@ public class InitDefaultOperator implements InitOperator {
 
     // Reset the sets 'reached' and 'waitlist' to contain only
     //  the initial state and its initial precision
-    pReached.clear();
-    pReached.add(pE0, pPi0);
+    ARGState e0 = AbstractStates.extractStateByType(pE0, ARGState.class);
+    ImmutableList<ARGState> childs = ImmutableList.copyOf(e0.getChildren());
+    for (ARGState e: childs) {
+      reached.removeSubtree(e);
+    }
 
     // Modify the 'waitlist': Blacklist those properties that are not in the partition!
     ImmutableSet<Property> toCheck = pPartitioning.iterator().next();

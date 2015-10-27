@@ -27,9 +27,13 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
+import javax.management.JMException;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -37,15 +41,19 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
@@ -54,7 +62,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.InterruptProvider;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
@@ -63,6 +76,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
@@ -71,7 +85,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
   private final Algorithm wrapped;
   private final LogManager logger;
-  private final ConfigurableProgramAnalysis cpa;
+  private final InterruptProvider interruptNotifier;
+  private final ARGCPA cpa;
 
   @Option(secure=true, description = "Operator for determining the partitions of properties that have to be checked.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
@@ -83,18 +98,38 @@ public final class MultiPropertyAlgorithm implements Algorithm {
   @Nonnull private Class<? extends InitOperator> initOperatorClass = InitDefaultOperator.class;
   private final InitOperator initOperator;
 
+  @Option(secure=true, name="partition.time.wall",
+      description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+      defaultUserUnit=TimeUnit.SECONDS,
+      min=-1)
+  private TimeSpan walltime = TimeSpan.ofNanos(-1);
+
+  @Option(secure=true, name="partition.time.cpu",
+      description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+      defaultUserUnit=TimeUnit.SECONDS,
+      min=-1)
+  private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
+
+
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
-    Configuration pConfig, LogManager pLogger)
+    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier)
       throws InvalidConfigurationException, CPAException {
 
     pConfig.inject(this);
 
     this.wrapped = pAlgorithm;
     this.logger = pLogger;
-    this.cpa = pCpa;
+
+    if (!(pCpa instanceof ARGCPA)) {
+      throw new InvalidConfigurationException("ARGCPA needed for MultiPropertyAlgorithm");
+    }
+    this.cpa = (ARGCPA) pCpa;
 
     this.initOperator = createInitOperator();
     this.partitionOperator = createPartitioningOperator();
+    this.interruptNotifier = pShutdownNotifier;
   }
 
   private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
@@ -131,11 +166,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
    */
   static ImmutableSet<Property> getActiveProperties(
       final AbstractState pAbstractState,
-      final ReachedSet pReachedSet) {
+      final UnmodifiableReachedSet pReached) {
 
     Preconditions.checkNotNull(pAbstractState);
-    Preconditions.checkNotNull(pReachedSet);
-    Preconditions.checkState(!pReachedSet.isEmpty());
+    Preconditions.checkNotNull(pReached);
+    Preconditions.checkState(!pReached.isEmpty());
 
     Set<Property> properties = Sets.newHashSet();
 
@@ -147,7 +182,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     }
 
     // Blacklisted properties from the precision
-    Precision prec = pReachedSet.getPrecision(pAbstractState);
+    Precision prec = pReached.getPrecision(pAbstractState);
     for (Precision p: Precisions.asIterable(prec)) {
       if (p instanceof AutomatonPrecision) {
         AutomatonPrecision ap = (AutomatonPrecision) p;
@@ -182,7 +217,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException,
-      CPAEnabledAnalysisPropertyViolationException {
+      CPAEnabledAnalysisPropertyViolationException, InterruptedException {
 
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
@@ -200,26 +235,45 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
       final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
 
-      ImmutableSet<ImmutableSet<Property>> checkPartitions =
-          partitionOperator.partition(noPartitioning, all);
+      ImmutableSet<ImmutableSet<Property>> checkPartitions;
+      try {
+        checkPartitions = partitionOperator.partition(noPartitioning, all);
+      } catch (PartitioningException e1) {
+        throw new CPAException("Partitioning failed!", e1);
+      }
 
+      // Initialize the check for resource limits
+      initAndStartLimitChecker();
+
+      // Initialize the waitlist
       initReached(pReachedSet, e0, pi0, checkPartitions);
 
       do {
         Stats.incCounter("Multi-Property Verification Iterations", 1);
 
         try {
+
           // Run the wrapped algorithm (for example, CEGAR)
           status = status.update(wrapped.run(pReachedSet));
 
         } catch (InterruptedException ie) {
           // The shutdown notifier might trigger the interrupted exception
-          // either because
-          //    A) the resource limit for the analysis run has exceeded
-          // or
-          //    B) the user (or the operating system) requested a stop of the verifier.
-          Preconditions.checkState(!pReachedSet.isEmpty());
-          Stats.incCounter("Times reachability interrupted", 1);
+          // either because ...
+
+          if (interruptNotifier.getNotifier().shouldShutdown()) {
+
+            // A) the resource limit for the analysis run has exceeded
+            logger.log(Level.WARNING, "Resource limit for properties exceeded!");
+
+            Preconditions.checkState(!pReachedSet.isEmpty());
+            Stats.incCounter("Times reachability interrupted", 1);
+
+          } else {
+            // B) the user (or the operating system) requested a stop of the verifier.
+
+            throw ie;
+          }
+
         }
 
         // ASSUMPTION:
@@ -285,10 +339,17 @@ public final class MultiPropertyAlgorithm implements Algorithm {
           }
 
           Stats.incCounter("Adjustments of property partitions", 1);
-          checkPartitions = partitionOperator.partition(noPartitioning, remaining);
+          try {
+            checkPartitions = partitionOperator.partition(checkPartitions, remaining);
+          } catch (PartitioningException e) {
+            logger.log(Level.INFO, e.getMessage());
+            break;
+          }
 
           // Re-initialize the sets 'waitlist' and 'reached'
           initReached(pReachedSet, e0, pi0, checkPartitions);
+          // -- Reset the resource limit checker
+          initAndStartLimitChecker();
         }
 
         // Run as long as...
@@ -303,7 +364,38 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       //    Not fully checked properties (that were disabled)
       //        (could be derived from the precision of the leaf states)
 
+      logger.log(Level.WARNING, String.format("Multi-property analysis terminated: %d violated, %d satisfied, %d unknown",
+          violated.size(), satisfied.size(), Sets.difference(all, Sets.union(violated, satisfied)).size()));
+
       return status;
+    }
+  }
+
+  private void initAndStartLimitChecker() {
+
+    try {
+      interruptNotifier.reset();
+
+      // Configure limits
+      List<ResourceLimit> limits = Lists.newArrayList();
+
+      if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
+        limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTime));
+      }
+
+      if (walltime.compareTo(TimeSpan.empty()) >= 0) {
+        limits.add(WalltimeLimit.fromNowOn(walltime));
+      }
+
+      // Start the check
+      ResourceLimitChecker checker = new ResourceLimitChecker(
+          interruptNotifier.getNotifier(), // The order of notifiers is important!
+          limits);
+
+      checker.start();
+
+    } catch (JMException e) {
+      throw new RuntimeException("Initialization of ResourceLimitChecker failed!", e);
     }
   }
 
@@ -313,6 +405,10 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
     // Delegate the initialization of the set reached (and the waitlist) to the init operator
     initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
+
+    logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
+    logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
+    logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.size()));
 
     // Reset the information in counterexamples, inactive properties, ...
     ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);

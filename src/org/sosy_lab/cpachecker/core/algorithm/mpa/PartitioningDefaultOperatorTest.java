@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
@@ -69,7 +70,7 @@ public class PartitioningDefaultOperatorTest {
   }
 
   @Test
-  public void testPartitoning_Case1() {
+  public void testPartitoning_Case1() throws PartitioningException {
 
     final ImmutableSet<ImmutableSet<Property>> lastChecked = ImmutableSet.of(
         ImmutableSet.of(p1,p2,p3),
@@ -84,7 +85,7 @@ public class PartitioningDefaultOperatorTest {
   }
 
   @Test
-  public void testPartitoning_Case2() {
+  public void testPartitoning_Case2() throws PartitioningException {
 
     final ImmutableSet<ImmutableSet<Property>> lastChecked = ImmutableSet.of(
         ImmutableSet.of(p1,p2,p3,p4,p5));

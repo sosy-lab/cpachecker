@@ -66,8 +66,9 @@ public class PartitioningDefaultOperator implements PartitioningOperator {
   @Override
   public ImmutableSet<ImmutableSet<Property>> partition(
       ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      Set<Property> pToCheck) {
+      Set<Property> pToCheck) throws PartitioningException {
 
+    // One partition with all properties to check
     ImmutableSet<ImmutableSet<Property>> result = ImmutableSet.of(ImmutableSet.copyOf(pToCheck));
 
     // At least as much partitions as in pLastCheckedPartitioning
@@ -77,7 +78,8 @@ public class PartitioningDefaultOperator implements PartitioningOperator {
 
     // If possible not equal to the last partitioning
     if (pLastCheckedPartitioning.equals(result)) {
-      return bisectPartitons(result);
+      throw new PartitioningException("No new partitioning of properties found!");
+      // return bisectPartitons(result);
     }
 
     return result;

@@ -31,8 +31,16 @@ import com.google.common.collect.ImmutableSet;
 
 public interface PartitioningOperator {
 
+  public static class PartitioningException extends Exception {
+    private static final long serialVersionUID = -2327879006682138193L;
+
+    public PartitioningException(String pMessage) {
+      super(pMessage);
+    }
+  }
+
   public ImmutableSet<ImmutableSet<Property>> partition(
       ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      Set<Property> pToCheck);
+      Set<Property> pToCheck) throws PartitioningException;
 
 }
