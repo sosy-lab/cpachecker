@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
@@ -112,6 +114,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       min=-1)
   private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
+  private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier)
@@ -219,13 +222,13 @@ public final class MultiPropertyAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException,
       CPAEnabledAnalysisPropertyViolationException, InterruptedException {
 
+    final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
+    final Set<Property> violated = Sets.newHashSet();
+    final Set<Property> satisfied = Sets.newHashSet();
+
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
       AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
-
-      final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
-      final Set<Property> violated = Sets.newHashSet();
-      final Set<Property> satisfied = Sets.newHashSet();
 
       Preconditions.checkArgument(pReachedSet.size() == 1);
       Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
@@ -368,7 +371,30 @@ public final class MultiPropertyAlgorithm implements Algorithm {
           violated.size(), satisfied.size(), Sets.difference(all, Sets.union(violated, satisfied)).size()));
 
       return status;
+
+    } finally {
+      lastRunPropertySummary = Optional.<PropertySummary>of(new PropertySummary() {
+
+        @Override
+        public ImmutableSet<Property> getViolatedProperties() {
+          return ImmutableSet.copyOf(violated);
+        }
+
+        @Override
+        public Optional<ImmutableSet<Property>> getUnknownProperties() {
+          return Optional.of(ImmutableSet.copyOf(Sets.difference(all, Sets.union(violated, satisfied))));
+        }
+
+        @Override
+        public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
+          return Optional.of(ImmutableSet.copyOf(satisfied));
+        }
+      });
     }
+  }
+
+  public Optional<PropertySummary> getLastRunPropertySummary() {
+    return lastRunPropertySummary;
   }
 
   private void initAndStartLimitChecker() {

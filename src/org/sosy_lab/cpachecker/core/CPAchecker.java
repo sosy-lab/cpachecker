@@ -31,15 +31,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -60,17 +61,18 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
+import org.sosy_lab.cpachecker.core.interfaces.PropertySummaryExtractor;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -79,6 +81,8 @@ import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Strings;
@@ -227,11 +231,12 @@ public class CPAchecker {
     try (Contexts c = Stats.beginRootContext(getClass().getSimpleName())) {
       MainCPAStatistics stats = null;
       ReachedSet reached = null;
-      Triple<Result, Set<Property>, Set<Property>> result = Triple.of(
-          Result.NOT_YET_STARTED, Collections.<Property>emptySet(), Collections.<Property>emptySet());
+      Pair<Result, PropertySummary> result = Pair.of(Result.NOT_YET_STARTED, PropertySummary.UNKNOWN);
 
       final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
       shutdownNotifier.register(interruptThreadOnShutdown);
+
+      Algorithm algorithm = null;
 
       try {
         stats = new MainCPAStatistics(config, logger);
@@ -239,8 +244,6 @@ public class CPAchecker {
         // create reached set, cpa, algorithm
         stats.creationTime.start();
         reached = factory.createReachedSet();
-
-        Algorithm algorithm;
 
         if (runCBMCasExternalTool) {
 
@@ -279,13 +282,12 @@ public class CPAchecker {
         // now everything necessary has been instantiated
 
         if (disableAnalysis) {
-          return new CPAcheckerResult(Result.NOT_YET_STARTED,
-              ImmutableSet.<Property>of(), ImmutableSet.<Property>of(), null, stats);
+          return new CPAcheckerResult(Result.NOT_YET_STARTED, PropertySummary.UNKNOWN, null, stats);
         }
 
         // run analysis
         AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
-        result = extractResult(reached, status);
+        result = extractResult(algorithm, reached, status);
 
       } catch (IOException e) {
         logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -307,7 +309,7 @@ public class CPAchecker {
         // Get intermediate verification results
         // in case the analysis terminates
         // before it finished its work.
-        result = extractResult(reached, AlgorithmStatus.SOUND_BUT_INTERRUPTED);
+        result = extractResult(algorithm, reached, AlgorithmStatus.SOUND_BUT_INTERRUPTED);
 
         // CPAchecker must exit because it was asked to
         // we return normally instead of propagating the exception
@@ -323,50 +325,10 @@ public class CPAchecker {
         shutdownNotifier.unregister(interruptThreadOnShutdown);
       }
 
-      return new CPAcheckerResult(result.getFirst(), result.getSecond(), result.getThird(), reached, stats);
+      return new CPAcheckerResult(result.getFirst(), result.getSecond(), reached, stats);
     }
   }
 
-  private Triple<Result, Set<Property>, Set<Property>> extractResult(
-      ReachedSet reached, AlgorithmStatus status) {
-
-    if (!GlobalInfo.getInstance().getCPA().isPresent()) {
-      return Triple.of(Result.UNKNOWN, Collections.<Property>emptySet(), Collections.<Property>emptySet());
-    }
-
-    ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
-
-    Set<Property> violatedProperties = findViolatedProperties(cpa, reached);
-    Set<Property> deactivatedProperties = Collections.<Property>emptySet();
-    Result verdict;
-
-    ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
-    if (argCpa != null) {
-      deactivatedProperties = argCpa.getCexSummary().getDisabledProperties();
-    }
-
-    if (violatedProperties.isEmpty()) {
-
-      if (status.isInterrupted()) {
-        verdict = Result.UNKNOWN;
-      } else {
-        verdict = analyzeResult(reached, status.isSound());
-        if (unknownAsTrue && verdict == Result.UNKNOWN) {
-          verdict = Result.TRUE;
-        }
-      }
-
-    } else {
-
-      if (!status.isPrecise() || status.isInterrupted()) {
-        verdict = Result.UNKNOWN;
-      } else {
-        verdict = Result.FALSE;
-      }
-    }
-
-    return Triple.of(verdict, violatedProperties, deactivatedProperties);
-  }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
     if (!denotesOneFile(fileDenotation)) {
@@ -442,25 +404,6 @@ public class CPAchecker {
       // unregister management interface for CPAchecker
       mxbean.unregister();
     }
-  }
-
-  private Set<Property> findViolatedProperties(final ConfigurableProgramAnalysis pCpa,
-      final ReachedSet reached) {
-
-    final Set<Property> result = Sets.newHashSet();
-    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-
-    if (argCpa != null) {
-      result.addAll(argCpa.getCexSummary().getFeasiblePropertyViolations());
-
-    } else {
-      for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
-        Targetable t = (Targetable) e;
-        result.addAll(t.getViolatedProperties());
-      }
-    }
-
-    return result;
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {
@@ -569,5 +512,106 @@ public class CPAchecker {
       }
     }
     return loopHeads;
+  }
+
+  private Pair<Result, PropertySummary> extractResult(
+      @Nullable Algorithm pAlgorithm, ReachedSet reached, AlgorithmStatus status) {
+
+    if (!GlobalInfo.getInstance().getCPA().isPresent()) {
+      return Pair.of(Result.UNKNOWN, PropertySummary.UNKNOWN);
+    }
+
+    final PropertySummaryExtractor extractor;
+    if (pAlgorithm instanceof MultiPropertyAlgorithm) {
+      extractor = new MpaSummaryExtractor();
+    } else {
+      extractor = new DefaultSummaryExtractor();
+    }
+
+    PropertySummary summary = extractor.extractSummary(pAlgorithm, reached, status);
+
+    Result verdict;
+
+    if (summary.getViolatedProperties().isEmpty()) {
+
+      if (status.isInterrupted()) {
+        verdict = Result.UNKNOWN;
+      } else {
+        verdict = analyzeResult(reached, status.isSound());
+        if (unknownAsTrue && verdict == Result.UNKNOWN) {
+          verdict = Result.TRUE;
+        }
+      }
+
+    } else {
+
+      if (!status.isPrecise() || status.isInterrupted()) {
+        verdict = Result.UNKNOWN;
+      } else {
+        verdict = Result.FALSE;
+      }
+    }
+
+    return Pair.of(verdict, summary);
+  }
+
+  private class MpaSummaryExtractor implements PropertySummaryExtractor {
+
+    @Override
+    public PropertySummary extractSummary(Algorithm pAlgorithm, ReachedSet pReached, AlgorithmStatus pStatus) {
+
+      Preconditions.checkArgument(pAlgorithm instanceof MultiPropertyAlgorithm);
+
+      Optional<PropertySummary> result = ((MultiPropertyAlgorithm) pAlgorithm).getLastRunPropertySummary();
+      if (result.isPresent()) {
+        return result.get();
+      } else {
+        return PropertySummary.UNKNOWN;
+      }
+    }
+
+  }
+
+  private class DefaultSummaryExtractor implements PropertySummaryExtractor {
+
+    private Set<Property> findViolatedProperties(final Algorithm pAlgorithm,
+        final ReachedSet reached) {
+
+      final Set<Property> result = Sets.newHashSet();
+
+      for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
+        Targetable t = (Targetable) e;
+        result.addAll(t.getViolatedProperties());
+      }
+
+      return result;
+    }
+
+
+    @Override
+    public PropertySummary extractSummary(Algorithm pAlgorithm, ReachedSet pReached, AlgorithmStatus pStatus) {
+
+      final ImmutableSet<Property> violatedProperties = ImmutableSet.<Property>copyOf(findViolatedProperties(pAlgorithm, pReached));
+      final ImmutableSet<Property> deactivatedProperties = ImmutableSet.<Property>of();
+
+      return new PropertySummary() {
+
+        @Override
+        public ImmutableSet<Property> getViolatedProperties() {
+          return violatedProperties;
+        }
+
+        @Override
+        public Optional<ImmutableSet<Property>> getUnknownProperties() {
+          return Optional.of(deactivatedProperties);
+        }
+
+        @Override
+        public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
+          return Optional.of(ImmutableSet.<Property>of());
+        }
+      };
+    }
+
   }
 }

@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintStream;
-import java.util.Set;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -51,9 +51,7 @@ public class CPAcheckerResult {
   public static enum Result { NOT_YET_STARTED, UNKNOWN, FALSE, TRUE }
 
   private final Result result;
-
-  private final Set<Property> violatedProperties;
-  private final Set<Property> deactivatedProperties;
+  private final PropertySummary propertySummary;
 
   private final @Nullable ReachedSet reached;
 
@@ -62,13 +60,13 @@ public class CPAcheckerResult {
   private @Nullable Statistics proofGeneratorStats = null;
 
   CPAcheckerResult(Result pResult,
-        Set<Property> pViolatedProperties,
-        Set<Property> pDeactivatedProperties,
-        @Nullable ReachedSet reached, @Nullable Statistics stats) {
+        PropertySummary pSummary,
+        @Nullable ReachedSet reached,
+        @Nullable Statistics stats) {
 
-    this.violatedProperties = checkNotNull(pViolatedProperties);
-    this.deactivatedProperties = checkNotNull(pDeactivatedProperties);
+    this.propertySummary = checkNotNull(pSummary);
     this.result = checkNotNull(pResult);
+
     this.reached = reached;
     this.stats = stats;
   }
@@ -112,17 +110,22 @@ public class CPAcheckerResult {
     out.print("Verification result: ");
     out.println(getResultString());
 
-    out.println(String.format("\tNumber of violated properties: %d", violatedProperties.size()));
-    out.println(String.format("\tNumber of deactivated properties: %d", deactivatedProperties.size()));
+    out.println(String.format("\tNumber of violated properties: %d", propertySummary.getViolatedProperties().size()));
+
+    if (propertySummary.getUnknownProperties().isPresent()) {
+      out.println(String.format("\tNumber of unknown properties: %d", propertySummary.getUnknownProperties().get().size()));
+    }
 
     out.println("\tStatus by property:");
-    for (Property violated: violatedProperties) {
-      out.println(String.format("\t\tProperty %s: %s", violated.toString(), "FALSE"));
+    for (Property prop: propertySummary.getViolatedProperties()) {
+      out.println(String.format("\t\tProperty %s: %s", prop.toString(), "FALSE"));
     }
-    for (Property deactivated: deactivatedProperties) {
-      if (!(violatedProperties.contains(deactivated))) {
-        out.println(String.format("\t\tProperty \"%s\": %s", deactivated.toString(), "INACTIVE"));
+
+    if (propertySummary.getUnknownProperties().isPresent()) {
+      for (Property prop: propertySummary.getUnknownProperties().get()) {
+        out.println(String.format("\t\tProperty %s: %s", prop.toString(), "UNKNOWN"));
       }
+
     }
   }
 
@@ -143,8 +146,8 @@ public class CPAcheckerResult {
         ret.append("UNKNOWN result: " + result);
     }
 
-    if (!violatedProperties.isEmpty()) {
-      ret.append(" (").append(Joiner.on(", ").join(violatedProperties)).append(")");
+    if (!propertySummary.getViolatedProperties().isEmpty()) {
+      ret.append(" (").append(Joiner.on(", ").join(propertySummary.getViolatedProperties())).append(")");
     }
     ret.append(" found by chosen configuration.");
 
