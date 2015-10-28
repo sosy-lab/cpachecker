@@ -78,7 +78,7 @@ public class PartitioningDefaultOperatorTest {
 
     final ImmutableSet<Property> all = ImmutableSet.of(p1,p2,p3,p4,p5);
 
-    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all);
+    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all, ImmutableSet.<Property>of());
 
     Assert.assertNotEquals(lastChecked, result);
     Assert.assertEquals(4, result.size());
@@ -92,7 +92,7 @@ public class PartitioningDefaultOperatorTest {
 
     final ImmutableSet<Property> all = ImmutableSet.of(p1,p2,p3,p4,p5);
 
-    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all);
+    ImmutableSet<ImmutableSet<Property>> result = op.partition(lastChecked, all, ImmutableSet.<Property>of());
 
     Assert.assertNotEquals(lastChecked, result);
     Assert.assertEquals(2, result.size());

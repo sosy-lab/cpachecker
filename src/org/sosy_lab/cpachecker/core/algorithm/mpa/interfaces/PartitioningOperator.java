@@ -41,6 +41,6 @@ public interface PartitioningOperator {
 
   public ImmutableSet<ImmutableSet<Property>> partition(
       ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      Set<Property> pToCheck) throws PartitioningException;
+      Set<Property> pToCheck, Set<Property> pDisabledProperties) throws PartitioningException;
 
 }

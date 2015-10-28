@@ -177,7 +177,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
       throws InvalidConfigurationException {
 
-    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(pConfig, topState, bottomState, inactiveState);
+    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(logger, pConfig, topState, bottomState, inactiveState);
 
     if (breakOnTargetState > 0) {
       final int pFoundTargetLimit = breakOnTargetState;

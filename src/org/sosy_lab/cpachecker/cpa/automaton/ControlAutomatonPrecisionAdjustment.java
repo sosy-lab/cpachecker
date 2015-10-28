@@ -24,40 +24,49 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
+import org.sosy_lab.cpachecker.util.statistics.Aggregateables;
+import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationMilliSecPair;
+import org.sosy_lab.cpachecker.util.statistics.Stats;
+import org.sosy_lab.cpachecker.util.statistics.interfaces.NoStatisticsException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
+  private final LogManager logger;
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
 
   @Option(secure=true, description="Handle at most k (> 0) violation of one property.")
   private int targetHandledAfterViolations = 1;
 
-  @Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
-  private int targetDisabledAfterRefinements = 0;
+//  @Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
+//  private int targetDisabledAfterRefinements = 0;
 
   @Option(secure=true, description="Change the precision locally.")
   private boolean localPrecisionUpdate = false;
@@ -71,6 +80,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
 
   public ControlAutomatonPrecisionAdjustment(
+      LogManager pLogger,
       Configuration pConfig,
       AutomatonState pTopState,
       AutomatonState pBottomState,
@@ -79,6 +89,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     pConfig.inject(this);
 
+    this.logger = pLogger;
     this.bottomState = pBottomState;
     this.inactiveState = pInactiveState;
   }
@@ -95,12 +106,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     }
   }
 
-  private int timesEqualTargetInReached(UnmodifiableReachedSet pStates, AbstractState pFullState,
-      Set<? extends Property> pProperties) {
-
-    assert !(pFullState instanceof AutomatonState);
-    assert pFullState instanceof Targetable;
-    assert ((Targetable) pFullState).isTarget();
+  private int feasibleViolationsOf(Set<? extends Property> pProperties) {
 
     ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
     Multiset<Property> reachedViolations = argCpa.getCexSummary().getFeasiblePropertyViolations();
@@ -108,6 +114,36 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     int result = Integer.MAX_VALUE;
     for (Property p: pProperties) {
       result = Math.min(result, reachedViolations.count(p));
+    }
+
+    return result;
+  }
+
+  private boolean isBudgedExhausted(Property pProperty) {
+    final int targetDisabledAfterRefinements = MultiPropertyAlgorithm.hackyRefinementBound;
+
+    int timesHandled = feasibleViolationsOf(ImmutableSet.of(pProperty));
+    int maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
+
+    final boolean result =
+               (targetHandledAfterViolations > 0
+                && timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
+             || (targetDisabledAfterRefinements > 0
+                 && maxInfeasibleCexs >= targetDisabledAfterRefinements);
+
+    try {
+      AggregationMilliSecPair p2stats = Stats.query(Thread.currentThread(),
+          "Precision Refinement Time",
+          pProperty,
+          Aggregateables.AggregationMilliSecPair.class);
+
+      logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), p2stats.getProcessCpuTimeMsec().getAvg());
+
+      if (p2stats.getProcessCpuTimeMsec().getAvg() > 500) {
+        logger.log(Level.INFO, "Exhausted resources of property " + pProperty.toString());
+        return true;
+      }
+    } catch (NoStatisticsException e) {
     }
 
     return result;
@@ -121,6 +157,8 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       Function<AbstractState, AbstractState> pStateProjection,
       AbstractState pFullState)
     throws CPAException, InterruptedException {
+
+
 
     // Casts to the AutomataCPA-specific types
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
@@ -148,23 +186,20 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       // Handle a target state
       //    We might disable certain target states
       //      (they should not be considered as target states)
-      if (localPrecisionUpdate
-          && onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
-        assert targetHandledAfterViolations > 0 || targetDisabledAfterRefinements > 0;
+      if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
 
-        Set<AutomatonSafetyProperty> properties = AbstractStates.extractViolatedProperties(state, AutomatonSafetyProperty.class);
-        int timesHandled = timesEqualTargetInReached(pStates, pFullState, properties);
-        int maxInfeasibleCexs = maxInfeasibleCexFor(properties);
+        Set<AutomatonSafetyProperty> violated = AbstractStates.extractViolatedProperties(state, AutomatonSafetyProperty.class);
+        Set<AutomatonSafetyProperty> exhausted = Sets.newHashSet();
 
-        final boolean disable =
-                   (targetHandledAfterViolations > 0
-                    && timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
-                 || (targetDisabledAfterRefinements > 0
-                     && maxInfeasibleCexs >= targetDisabledAfterRefinements);
+        for (AutomatonSafetyProperty p: violated) {
+          if (isBudgedExhausted(p)) {
+            exhausted.add(p);
+          }
+        }
 
-        if (disable) {
-          final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(properties);
-          signalDisablingProperties(properties);
+        if (exhausted.size() > 0) {
+          final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhausted);
+          signalDisablingProperties(exhausted);
 
           return Optional.of(PrecisionAdjustmentResult.create(
               stateOnHandledTarget,

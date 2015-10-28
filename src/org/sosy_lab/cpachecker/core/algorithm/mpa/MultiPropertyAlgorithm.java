@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
@@ -115,6 +116,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
   private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
+
+  public static int hackyRefinementBound = 0;
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier)
@@ -240,7 +243,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
       ImmutableSet<ImmutableSet<Property>> checkPartitions;
       try {
-        checkPartitions = partitionOperator.partition(noPartitioning, all);
+        checkPartitions = partitionOperator.partition(noPartitioning, all, ImmutableSet.<Property>of());
       } catch (PartitioningException e1) {
         throw new CPAException("Partitioning failed!", e1);
       }
@@ -326,6 +329,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
           } else {
             // The analysis terminated because it ran out of resources
+            // hackyRefinementBound = hackyRefinementBound * 2;
 
             // It is not possible to make any statements about
             //   the satisfaction of more properties here!
@@ -343,7 +347,10 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
           Stats.incCounter("Adjustments of property partitions", 1);
           try {
-            checkPartitions = partitionOperator.partition(checkPartitions, remaining);
+            ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
+            logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
+
+            checkPartitions = partitionOperator.partition(checkPartitions, remaining, disabledProperties);
           } catch (PartitioningException e) {
             logger.log(Level.INFO, e.getMessage());
             break;
@@ -429,17 +436,19 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       final AbstractState pE0, final Precision pPi0,
       final ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
 
-    // Delegate the initialization of the set reached (and the waitlist) to the init operator
-    initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
+    try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
+      // Delegate the initialization of the set reached (and the waitlist) to the init operator
+      initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
 
-    logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
-    logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
-    logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.size()));
+      logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
+      logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
+      logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.size()));
 
-    // Reset the information in counterexamples, inactive properties, ...
-    ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
-    Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
-    argCpa.getCexSummary().resetForNewSetOfProperties();
+      // Reset the information in counterexamples, inactive properties, ...
+      ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
+      Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
+      argCpa.getCexSummary().resetForNewSetOfProperties();
+    }
   }
 
   static ImmutableSet<ImmutableSet<Property>> removePropertiesFrom(
