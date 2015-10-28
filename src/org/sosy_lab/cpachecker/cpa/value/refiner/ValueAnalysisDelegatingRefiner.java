@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateBasedPrefixProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
@@ -72,7 +71,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private boolean useFeasiblePathForAuxRefiner = false;
 
   @Option(secure=true, description="if this score is exceeded by the first analysis, the auxilliary analysis will be refined")
-  private int domainScoreThreshold = 1024;
+  private int maxScoreOfValueDomainRefinement = 1024;
 
   /**
    * classifier used to score sliced prefixes
@@ -93,11 +92,6 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
    * predicate-analysis refiner used for predicate refinement
    */
   private final PredicateCPARefiner predicateCpaRefiner;
-
-  /**
-   * prefix provider used for predicate-analysis refinement
-   */
-  private final PrefixProvider predicateCpaPrefixProvider;
 
   StatCounter totalPrimaryRefinementsSelected = new StatCounter("Times selected refinement");
   StatCounter totalPrimaryRefinementsFinished = new StatCounter("Times finished refinement");
@@ -140,8 +134,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
         cpa,
         ValueAnalysisRefiner.create(cpa),
         new ValueAnalysisPrefixProvider(logger, controlFlowAutomaton, config),
-        PredicateRefiner.create(cpa),
-        new PredicateBasedPrefixProvider(config, logger, predicateCpa.getSolver(), predicateCpa.getPathFormulaManager()));
+        PredicateRefiner.create(cpa));
   }
 
   protected ValueAnalysisDelegatingRefiner(
@@ -150,8 +143,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       final ConfigurableProgramAnalysis pCpa,
       final ValueAnalysisRefiner pValueRefiner,
       final PrefixProvider pValueCpaPrefixProvider,
-      final PredicateCPARefiner pPredicateRefiner,
-      final PrefixProvider pPredicateCpaPrefixProvider) throws InvalidConfigurationException {
+      final PredicateCPARefiner pPredicateRefiner) throws InvalidConfigurationException {
 
     super(pCpa);
     pConfig.inject(this);
@@ -161,49 +153,15 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     valueCpaRefiner         = pValueRefiner;
     valueCpaPrefixProvider  = pValueCpaPrefixProvider;
 
-    predicateCpaRefiner         = pPredicateRefiner;
-    predicateCpaPrefixProvider  = pPredicateCpaPrefixProvider;
+    predicateCpaRefiner     = pPredicateRefiner;
   }
 
   @Override
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
-
-    int vaScore = 0;
-    int paScore = Integer.MAX_VALUE;
-
-    if (useRefinementSelection) {
-      vaScore = obtainScoreForValueDomain(pErrorPath);
-
-      // if score of primary analysis exceeds threshold, always refine secondary analysis
-      if(vaScore > domainScoreThreshold) {
-        paScore = -1;
-
-        if(useFeasiblePathForAuxRefiner) {
-          pErrorPath = ((ValueAnalysisPrefixProvider)valueCpaPrefixProvider).extractFeasilbePath(pErrorPath);
-        }
-
-        paScore = obtainScoreForPredicateDomain(pErrorPath);
-
-        /** EXPERIMENTAL
-         * instead of fixed scores, compute scores for both domains
-         * and select based on these scores
-         * Problem: hard to compare which scores favor the one or the other analysis,
-         * also "impossible" to use two different scoring schema for the two analysis
-        // hand the auxiliary analysis a path that is feasible
-        // for the primary analysis, so that only new prefixes are found
-        if(useFeasiblePathForAuxRefiner) {
-          pErrorPath = ((ValueAnalysisPrefixProvider)valueCpaPrefixProvider).extractFeasilbePath(pErrorPath);
-        }
-
-        paScore = obtainScoreForPredicateDomain(pErrorPath);
-        **/
-      }
-    }
-
     CounterexampleInfo cex;
 
-    if (vaScore < paScore) {
+    if (favourValueAnalysisRefinement(pErrorPath)) {
       totalPrimaryRefinementsSelected.inc();
 
       cex = valueCpaRefiner.performRefinement(reached);
@@ -242,6 +200,10 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     return cex;
   }
 
+  private boolean favourValueAnalysisRefinement(ARGPath pErrorPath) throws CPAException, InterruptedException {
+    return !useRefinementSelection || (obtainScoreForValueDomain(pErrorPath) <= maxScoreOfValueDomainRefinement);
+  }
+
   private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> vaPrefixes = getPrefixesOfValueDomain(pErrorPath);
 
@@ -253,24 +215,10 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     return classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
   }
 
-  /** Experimental **/
-  @SuppressWarnings("unused")
-  private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
-
-    return classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
-  }
-
   private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
     return valueCpaPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
-  }
-
-  private List<InfeasiblePrefix> getPrefixesOfPredicateDomain(final ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
-
-    return predicateCpaPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
   }
 
   @Override
