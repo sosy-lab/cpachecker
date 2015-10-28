@@ -92,6 +92,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
@@ -112,6 +113,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(secure=true, description="slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
+  @Option(secure=true, description="pick random prefix in every n-th refinement")
+  private int pickRandom = 0;
+
   @Option(secure=true, description="Conjunct the formulas that were computed as preconditions to get (infeasible) interpolation problems!")
   private boolean conjunctPreconditionFormulas = false;
 
@@ -122,6 +126,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private PrefixPreference prefixPreference = PrefixPreference.NONE;
+  PrefixPreference originalPreference = PrefixPreference.NONE;
 
   Configuration config;
 
@@ -136,9 +141,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
 
-  private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
-  private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
-  private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
+  public static final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  public static final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
+  public static StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   class Stats extends AbstractStatistics {
 
@@ -213,6 +218,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     cfa = pCfa;
 
     prefixProvider = pPrefixProvider;
+    originalPreference = prefixPreference;
 
     config = pConfig;
 
@@ -223,52 +229,104 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    if (isRefinementSelectionEnabled(allStatesTrace)) {
-      allStatesTrace = performRefinementSelection(allStatesTrace);
-    }
-
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
-    assert elementsOnPath.containsAll(allStatesTrace.getStateSet());
-    assert elementsOnPath.size() >= allStatesTrace.size();
-
+    List<ARGState> abstractionStatesTrace = null;
+    Set<ARGState> elementsOnPath;
+    CounterexampleTraceInfo counterexample = null;
     boolean branchingOccurred = true;
-    if (elementsOnPath.size() == allStatesTrace.size()) {
-      // No branches/merges in path, it is precise.
-      // We don't need to care about creating extra predicates for branching etc.
-      elementsOnPath = Collections.emptySet();
-      branchingOccurred = false;
+
+    // totalRefinement.getUpdateCount() > 2 => perform static refinement on original path
+    if (totalRefinement.getUpdateCount() > 2 && originalPreference != PrefixPreference.NONE) {
+      /* on average 10 refs. per task, max. 250
+       * maybe try every 5th and every 10th for a first eval
+       */
+      // if(pickRandom != 0 && totalRefinement.getUpdateCount() > pickRandom) { -> no real improvement
+      //   prefixPreference = PrefixPreference.RANDOM;
+      // }
+      // if(pickRandom != 0 && (totalRefinement.getUpdateCount() % pickRandom) == 0) { -> no real improvement either
+      //   prefixPreference = PrefixPreference.RANDOM;
+      // }
+
+      if(pickRandom != 0 && (totalRefinement.getUpdateCount() % pickRandom) == 0) {
+        prefixPreference = PrefixPreference.RANDOM;
+      }
+      else {
+        prefixPreference = originalPreference;
+      }
+
+      PredicateBasedAbePrefixProvider test = new PredicateBasedAbePrefixProvider(config,
+          logger,
+          solver,
+          pfmgr,
+          new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
+          prefixPreference);
+      Pair<List<BooleanFormula>, List<BooleanFormula>> prefix = test.extractInfeasiblePrefixes(allStatesTrace);
+
+      if(prefix != null) {
+
+        List<BooleanFormula> formulas = prefix.getFirst();
+        abstractionStatesTrace = Lists.newArrayList(transformPath(allStatesTrace).subList(0, formulas.size()));
+        elementsOnPath = ARGUtils.getAllStatesOnPathsTo(Iterables.getLast(abstractionStatesTrace));
+
+        assert abstractionStatesTrace.size() == formulas.size();
+
+        if (elementsOnPath.size() == allStatesTrace.size()) {
+          // No branches/merges in path, it is precise.
+          // We don't need to care about creating extra predicates for branching etc.
+          elementsOnPath = Collections.emptySet();
+          branchingOccurred = false;
+        }
+
+        counterexample = formulaManager.buildCounterexampleTrace(
+            formulas,
+            Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+            elementsOnPath,
+            strategy.needsInterpolants());
+      }
     }
 
-    logger.log(Level.FINEST, "Starting interpolation-based refinement");
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
-    totalPathLength.setNextValue(abstractionStatesTrace.size());
+    if (counterexample == null) {
+      elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
+      assert elementsOnPath.containsAll(allStatesTrace.getStateSet());
+      assert elementsOnPath.size() >= allStatesTrace.size();
 
-    logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
+      if (elementsOnPath.size() == allStatesTrace.size()) {
+        // No branches/merges in path, it is precise.
+        // We don't need to care about creating extra predicates for branching etc.
+        elementsOnPath = Collections.emptySet();
+        branchingOccurred = false;
+      }
 
-    // create list of formulas on path
-    final List<BooleanFormula> formulas;
-    try {
-      formulas = (isRefinementSelectionEnabled(allStatesTrace))
-        ? recomputePathFormulae(allStatesTrace)
-        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
-    } catch (SolverException e) {
-      throw new CPAException("Solver Exception", e);
+      logger.log(Level.FINEST, "Starting interpolation-based refinement");
+      // create path with all abstraction location elements (excluding the initial element)
+      // the last element is the element corresponding to the error location
+      abstractionStatesTrace = transformPath(allStatesTrace);
+      totalPathLength.setNextValue(abstractionStatesTrace.size());
+
+      logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
+
+      // create list of formulas on path
+      final List<BooleanFormula> formulas;
+      try {
+        formulas = (isRefinementSelectionEnabled(allStatesTrace))
+          ? recomputePathFormulae(allStatesTrace)
+          : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+      } catch (SolverException e) {
+        throw new CPAException("Solver Exception", e);
+      }
+
+      assert abstractionStatesTrace.size() == formulas.size();
+      // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
+      // however we do not have the very first state in the trace,
+      // because the rootState has always abstraction "True".
+
+      logger.log(Level.ALL, "Error path formulas: ", formulas);
+
+      // build the counterexample
+      buildCounterexampeTraceTime.start();
+      counterexample = formulaManager.buildCounterexampleTrace(
+              formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
+      buildCounterexampeTraceTime.stop();
     }
-
-    assert abstractionStatesTrace.size() == formulas.size();
-    // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
-    // however we do not have the very first state in the trace,
-    // because the rootState has always abstraction "True".
-
-    logger.log(Level.ALL, "Error path formulas: ", formulas);
-
-    // build the counterexample
-    buildCounterexampeTraceTime.start();
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
-            formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
-    buildCounterexampeTraceTime.stop();
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -381,7 +439,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     return result;
   }
 
-  private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA
+  static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA
                 = new Function<PredicateAbstractState, BooleanFormula>() {
                     @Override
                     public BooleanFormula apply(PredicateAbstractState e) {
