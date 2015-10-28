@@ -495,7 +495,7 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes = [200,204])
             with self._unfinished_runs_lock:
-                del self._unfinished_runs[run_id]
+                self._unfinished_runs.pop(run_id, None)
         except urllib2.HTTPError as e:
             logging.warn("Stopping of run {0} failed: {1}".format(run_id, e.reason))
 
