@@ -132,6 +132,7 @@ public class PredicatePrecision implements Precision {
    * @param locInstance How often this location has appeared in the current path.
    */
   public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
+/*
     Set<AbstractionPredicate> result = getLocationInstancePredicates().get(Pair.of(loc, locInstance));
     if (result.isEmpty()) {
       result = getLocalPredicates().get(loc);
@@ -143,6 +144,11 @@ public class PredicatePrecision implements Precision {
       result = getGlobalPredicates();
     }
     return result;
+*/
+    Set<AbstractionPredicate> result = getLocationInstancePredicates().get(Pair.of(loc, locInstance));
+    result = Sets.union(result, getLocalPredicates().get(loc));
+    result = Sets.union(result, getFunctionPredicates().get(loc.getFunctionName()));
+    return Sets.union(result, getGlobalPredicates());
   }
 
   /**

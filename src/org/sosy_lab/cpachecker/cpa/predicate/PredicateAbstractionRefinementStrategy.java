@@ -34,7 +34,9 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -65,14 +67,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.FormulaMeasures;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -81,9 +81,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -110,6 +113,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
     GLOBAL,            // at all locations
+    SCOPE,             // at all locations in the scope of the variable
     FUNCTION,          // at all locations in the respective function
     LOCATION,          // at all occurrences of the respective location
     LOCATION_INSTANCE, // at the n-th occurrence of the respective location in each path
@@ -480,6 +484,23 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     PredicatePrecision newPrecision;
     switch (predicateSharing) {
+    case SCOPE:
+      Set<AbstractionPredicate> globalPredicates = new HashSet<>();
+      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> otherPreds = ArrayListMultimap.create();
+      for (Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> predicate : newPredicates.entries()) {
+        if (predicate.getValue().getSymbolicAtom().toString().contains("::")) {
+          otherPreds.put(predicate.getKey(), predicate.getValue());
+        }
+
+        else {
+          globalPredicates.add(predicate.getValue());
+        }
+      }
+
+      newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
+      newPrecision = newPrecision.addLocalPredicates(mergePredicatesPerLocation(otherPreds));
+
+      break;
     case GLOBAL:
       newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
       break;
