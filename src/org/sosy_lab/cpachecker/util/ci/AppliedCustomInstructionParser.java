@@ -117,12 +117,7 @@ public class AppliedCustomInstructionParser {
   public CustomInstructionApplications parse (final Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
-    Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
-
-    CFANode startNode;
     CustomInstruction ci = null;
-    AppliedCustomInstruction aci;
 
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
@@ -132,22 +127,42 @@ public class AppliedCustomInstructionParser {
       }
 
       ci = readCustomInstruction(line);
-      while ((line = br.readLine()) != null) {
-        shutdownNotifier.shutdownIfNecessary();
-        startNode = getCFANode(line, cfaInfo);
-        if(startNode == null) {
-          continue;
-        }
+      return parseACIs(br, ci);
+    }
+  }
 
+  public CustomInstructionApplications parse(final CustomInstruction pCi, final Path file)
+      throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
+      return parseACIs(br, pCi);
+    }
+  }
 
-        try {
-          aci = ci.inspectAppliedCustomInstruction(startNode);
-        } catch (InterruptedException ex) {
-          throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: " + ex.getMessage());
-        }
+  private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
+      throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+    Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
 
-        map.put(startNode, aci);
+    CFANode startNode;
+    AppliedCustomInstruction aci;
+    String line;
+
+    while ((line = br.readLine()) != null) {
+      shutdownNotifier.shutdownIfNecessary();
+      startNode = getCFANode(line, cfaInfo);
+      if (startNode == null) {
+        continue;
       }
+
+
+      try {
+        aci = ci.inspectAppliedCustomInstruction(startNode);
+      } catch (InterruptedException ex) {
+        throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: "
+            + ex.getMessage());
+      }
+
+      map.put(startNode, aci);
     }
 
     return new CustomInstructionApplications(map.build(), ci);

@@ -967,6 +967,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGState smgState = pSmgState;
 
+    // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
+    expression = eliminateOuterEquals(expression);
+
     // get the value of the expression (either true[-1], false[0], or unknown[null])
     AssumeVisitor visitor = expressionEvaluator.getAssumeVisitor(cfaEdge, smgState);
     SMGValueAndState valueAndState = expression.accept(visitor);
@@ -1037,6 +1040,43 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       // Assumption does not hold.
       return null;
     }
+  }
+
+  private CExpression eliminateOuterEquals(CExpression pExpression) {
+
+    if (!(pExpression instanceof CBinaryExpression)) {
+      return pExpression;
+    }
+
+    CBinaryExpression binExp = (CBinaryExpression) pExpression;
+
+    CExpression op1 = binExp.getOperand1();
+    CExpression op2 = binExp.getOperand2();
+    BinaryOperator op = binExp.getOperator();
+
+    if (!(op1 instanceof CBinaryExpression && op2 instanceof CIntegerLiteralExpression && op != BinaryOperator.EQUALS)) {
+      return pExpression;
+    }
+
+    CBinaryExpression binExpOp1 = (CBinaryExpression) op1;
+    CIntegerLiteralExpression IntOp2 = (CIntegerLiteralExpression) op2;
+
+    if(IntOp2.getValue().longValue() != 0) {
+      return pExpression;
+    }
+
+    switch (binExpOp1.getOperator()) {
+    case EQUALS:
+      return new CBinaryExpression(binExpOp1.getFileLocation(), binExpOp1.getExpressionType(),
+          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(), BinaryOperator.NOT_EQUALS);
+    case NOT_EQUALS:
+      return new CBinaryExpression(binExpOp1.getFileLocation(), binExpOp1.getExpressionType(),
+          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(), BinaryOperator.EQUALS);
+    default:
+      return pExpression;
+    }
+
+
   }
 
   private SMGState handleStatement(SMGState pState, CStatementEdge pCfaEdge) throws CPATransferException {
