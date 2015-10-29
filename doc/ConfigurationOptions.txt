@@ -138,6 +138,22 @@ analysis.machineModel = LINUX32
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Operator for initializing the waitlist after the partitioning of properties
+# was performed.
+analysis.mpa.initOperatorClass = InitDefaultOperator.class
+
+# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+analysis.mpa.partition.time.cpu = -1ns
+
+# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+analysis.mpa.partition.time.wall = -1ns
+
+# Operator for determining the partitions of properties that have to be
+# checked.
+analysis.mpa.partitionOperatorClass = PartitioningDefaultOperator.class
+
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
 analysis.partitionInitialStates = false
@@ -708,10 +724,6 @@ cpa.automaton.prec.localPrecisionUpdate = false
 # Behaviour on a property that has already been fully handled.
 cpa.automaton.prec.onHandledTarget = SIGNAL
   enum:     [SIGNAL, BOTTOM, INACTIVE]
-
-# Disable a property after a specific number of refinements has been
-# performed for it.
-cpa.automaton.prec.targetDisabledAfterRefinements = 0
 
 # Handle at most k (> 0) violation of one property.
 cpa.automaton.prec.targetHandledAfterViolations = 1
