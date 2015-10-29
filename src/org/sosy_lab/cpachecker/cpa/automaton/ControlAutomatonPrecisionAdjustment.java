@@ -24,13 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -61,14 +64,19 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
 
-  @Option(secure=true, description="Handle at most k (> 0) violation of one property.")
-  private int targetHandledAfterViolations = 1;
+  @Option(secure=true, name="limit.violations",
+      description="Handle at most k (> 0) violation of one property.")
+  private int violationsLimit = 1;
 
-//  @Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
-//  private int targetDisabledAfterRefinements = 0;
+  @Option(secure=true, name="limit.avgRefineTime",
+      description="Disable a property after the avg. time (msec) for refinements was exhausted.")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+    defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
+  private TimeSpan avgRefineTimeLimit = TimeSpan.ofNanos(-1);
 
-  @Option(secure=true, description="Change the precision locally.")
-  private boolean localPrecisionUpdate = false;
+//@Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
+//private int targetDisabledAfterRefinements = 0;
+
 
   enum TargetStateVisitBehaviour {
     SIGNAL, // Signal the target state (default)
@@ -125,26 +133,28 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     int maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
 
     final boolean result =
-               (targetHandledAfterViolations > 0
-                && timesHandled >= targetHandledAfterViolations) // the new state is the ith+1
+               (violationsLimit > 0
+                   && timesHandled >= violationsLimit) // the new state is the ith+1
              || (targetDisabledAfterRefinements > 0
                  && maxInfeasibleCexs >= targetDisabledAfterRefinements);
 
-    try {
-      Optional<StatCpuTime> t = PropertyStats.INSTANCE.getRefinementTime(pProperty);
-      if (t.isPresent()) {
-        StatCpuTime s = t.get();
-        if (s.getIntervals() > 0) {
-          final double avg = s.getCpuTimeSumMilliSecs() / s.getIntervals();
-          logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), avg);
+    if (avgRefineTimeLimit.asMillis() > 0) {
+      try {
+        Optional<StatCpuTime> t = PropertyStats.INSTANCE.getRefinementTime(pProperty);
+        if (t.isPresent()) {
+          StatCpuTime s = t.get();
+          if (s.getIntervals() > 0) {
+            final double avg = s.getCpuTimeSumMilliSecs() / s.getIntervals();
+            logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), avg);
 
-          if (avg > 500) {
-            logger.log(Level.INFO, "Exhausted resources of property " + pProperty.toString());
-            return true;
+            if (avg > avgRefineTimeLimit.asMillis()) {
+              logger.log(Level.INFO, "Exhausted resources of property " + pProperty.toString());
+              return true;
+            }
           }
         }
+      } catch (NoTimeMeasurement e) {
       }
-    } catch (NoTimeMeasurement e) {
     }
 
     return result;
