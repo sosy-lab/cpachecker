@@ -1054,7 +1054,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     CExpression op2 = binExp.getOperand2();
     BinaryOperator op = binExp.getOperator();
 
-    if (!(op1 instanceof CBinaryExpression && op2 instanceof CIntegerLiteralExpression && op != BinaryOperator.EQUALS)) {
+    if (!(op1 instanceof CBinaryExpression && op2 instanceof CIntegerLiteralExpression && op == BinaryOperator.EQUALS)) {
       return pExpression;
     }
 
