@@ -718,15 +718,16 @@ cpa.automaton.merge.onInactive = false
 # Merge two automata states if one of them is TOP.
 cpa.automaton.merge.onTop = false
 
-# Change the precision locally.
-cpa.automaton.prec.localPrecisionUpdate = false
+# Disable a property after the avg. time (msec) for refinements was
+# exhausted.
+cpa.automaton.prec.limit.avgRefineTime = -1ns
+
+# Handle at most k (> 0) violation of one property.
+cpa.automaton.prec.limit.violations = 1
 
 # Behaviour on a property that has already been fully handled.
 cpa.automaton.prec.onHandledTarget = SIGNAL
   enum:     [SIGNAL, BOTTOM, INACTIVE]
-
-# Handle at most k (> 0) violation of one property.
-cpa.automaton.prec.targetHandledAfterViolations = 1
 
 # Stop in the automata transfer relation if the analysis identified one
 # feasible path for each target state.
