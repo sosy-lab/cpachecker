@@ -46,12 +46,12 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstr
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -213,6 +213,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   void setInitialLocation(CFANode initialLocation) {
+    // Hack to avoid a NPE.
+    //  This scenario appears whenever a CPA gets queried for
+    //  the initial state after the analysis has already been started.
+    if (invariantGenerator == null) {
+      return;
+    }
+
     invariantGenerator.start(initialLocation);
   }
 }
