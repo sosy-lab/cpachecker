@@ -240,8 +240,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       //   prefixPreference = PrefixPreference.RANDOM;
       // }
 
-      if(pickRandom != 0 && (totalRefinement.getUpdateCount() % pickRandom) == 0) {
-        prefixPreference = PrefixPreference.RANDOM;
+      if(pickRandom != 0) {
+        List<PrefixPreference> prefs = Lists.newArrayList(PrefixPreference.LENGTH_LONG,
+            PrefixPreference.WIDTH_WIDE_LONG,
+            PrefixPreference.DOMAIN_GOOD_LONG,
+            PrefixPreference.PIVOT_DEEP_LONG);
+
+        prefixPreference = prefs.get(totalRefinement.getUpdateCount() % prefs.size());
       }
       else {
         prefixPreference = originalPreference;
