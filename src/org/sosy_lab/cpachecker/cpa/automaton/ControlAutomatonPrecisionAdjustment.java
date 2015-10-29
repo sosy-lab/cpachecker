@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -44,10 +45,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.statistics.Aggregateables;
-import org.sosy_lab.cpachecker.util.statistics.Aggregateables.AggregationMilliSecPair;
-import org.sosy_lab.cpachecker.util.statistics.Stats;
-import org.sosy_lab.cpachecker.util.statistics.interfaces.NoStatisticsException;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -132,18 +131,20 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
                  && maxInfeasibleCexs >= targetDisabledAfterRefinements);
 
     try {
-      AggregationMilliSecPair p2stats = Stats.query(Thread.currentThread(),
-          "Precision Refinement Time",
-          pProperty,
-          Aggregateables.AggregationMilliSecPair.class);
+      Optional<StatCpuTime> t = PropertyStats.INSTANCE.getRefinementTime(pProperty);
+      if (t.isPresent()) {
+        StatCpuTime s = t.get();
+        if (s.getIntervals() > 0) {
+          final double avg = s.getCpuTimeSumMilliSecs() / s.getIntervals();
+          logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), avg);
 
-      logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), p2stats.getProcessCpuTimeMsec().getAvg());
-
-      if (p2stats.getProcessCpuTimeMsec().getAvg() > 500) {
-        logger.log(Level.INFO, "Exhausted resources of property " + pProperty.toString());
-        return true;
+          if (avg > 500) {
+            logger.log(Level.INFO, "Exhausted resources of property " + pProperty.toString());
+            return true;
+          }
+        }
       }
-    } catch (NoStatisticsException e) {
+    } catch (NoTimeMeasurement e) {
     }
 
     return result;

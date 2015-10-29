@@ -95,12 +95,20 @@ public class StatCpuTime implements TimeMeasurementListener {
 
   private long cpuTimeSumMsec = 0;
   private long wallTimeSumMsec = 0;
+  private long intervals = 0;
 
   public StatCpuTimer start() {
     return new StatCpuTimer(this);
   }
 
+  public long getIntervals() {
+    return intervals;
+  }
+
   private synchronized void incrementByMSecs(long pSpentCpuTimeMSecs, long pSpentWallTimeMSecs) {
+
+    this.intervals += 1;
+
     if (pSpentCpuTimeMSecs < 0) {
       this.cpuTimeSumMsec = Long.MIN_VALUE;
     } else {

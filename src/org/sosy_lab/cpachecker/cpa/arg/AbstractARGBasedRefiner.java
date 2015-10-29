@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.Set;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
@@ -32,8 +33,11 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats.StatHandle;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -102,8 +106,12 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     }
 
     final CounterexampleInfo counterexample;
-    try {
-      try (Contexts stat = Stats.beginRootContext(lastElement.getViolatedProperties().toArray())) {
+
+    final Set<Property> violatedProperties = lastElement.getViolatedProperties();
+
+    try (StatHandle f = PropertyStats.INSTANCE.startRefinement(violatedProperties)) {
+      try (Contexts stat = Stats.beginRootContext(violatedProperties.toArray())) {
+
         Stats.incCounter("Number of Refinements", 1);
 
         try(StatCpuTimer t = Stats.startTimer("Precision Refinement Time")) {
@@ -111,7 +119,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
           counterexample = performRefinement(reached, path);
         }
       }
-    } catch (RefinementFailedException e) {
+    } catch (RefinementFailedException  e) {
       if (e.getErrorPath() == null) {
         e.setErrorPath(path);
       }

@@ -347,6 +347,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
           Stats.incCounter("Adjustments of property partitions", 1);
           try {
+            PropertyStats.INSTANCE.clear();
+
             ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
             logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
 
@@ -444,6 +446,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
       logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.size()));
 
+      logger.logf(Level.WARNING, "Property partitions: %s", toReadable(pCheckPartitions));
+
       // Reset the information in counterexamples, inactive properties, ...
       ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
       Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
@@ -501,6 +505,25 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       }
     });
     return piPrime;
+  }
+
+  public static String toReadable(ImmutableSet<ImmutableSet<Property>> pSetsOfProps) {
+    final StringBuilder result = new StringBuilder();
+    result.append("[");
+    for (Set<Property> s: pSetsOfProps) {
+      result.append("[");
+      boolean first = true;
+      for (Property p: s) {
+        if (!first) {
+          result.append(",");
+        }
+        result.append(p.toString());
+        first = false;
+      }
+      result.append("]");
+    }
+    result.append("]");
+    return result.toString();
   }
 
 
