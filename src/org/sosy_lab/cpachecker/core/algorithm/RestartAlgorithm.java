@@ -198,6 +198,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       boolean lastAnalysisFailed = false;
       boolean lastAnalysisTerminated = false;
       boolean recursionFound = false;
+      boolean concurrencyFound = false;
 
       try {
         Path singleConfigFileName = configFilesIterator.next();
@@ -262,6 +263,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
             if (e.getMessage().contains("recursion")) {
               recursionFound = true;
             }
+            if (e.getMessage().contains("pthread_create")) {
+              concurrencyFound = true;
+            }
           } else {
             throw e;
           }
@@ -299,6 +303,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               break;
             case "if-recursive":
               foundConfig = recursionFound;
+              break;
+            case "if-concurrent":
+              foundConfig = concurrencyFound;
               break;
             default:
               logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);
