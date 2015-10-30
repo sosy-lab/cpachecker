@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -60,7 +59,6 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -68,26 +66,22 @@ import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.SingletonECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.ClusteringCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.ClusteredElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.BDDUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.PrecisionCallback;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestGoalUtils;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
@@ -97,7 +91,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -119,7 +112,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
-import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy;
@@ -140,7 +132,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
+public class TigerAlgorithm
+    implements Algorithm, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
 
   public static String originalMainFunction = null;
 
@@ -165,15 +158,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   @Option(secure = true, name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
   private boolean reusePredicates = true;
 
-  @Option(secure = true, name = "allCoveredGoalsPerTestCase", description = "Returns all test goals covered by a test case.")
-  private boolean allCoveredGoalsPerTestCase = false;
-
   @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
-
-  @Option(secure = true, name = "printLabels", description = "Prints labels reached with the error path of a test case.")
-  private boolean printLabels = false;
 
   @Option(
       secure = true,
@@ -235,6 +222,18 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions")
   public boolean useTigerAlgorithm_with_pc = false;
 
+  @Option(
+      secure = true,
+      name = "allCoveredGoalsPerTestCase",
+      description = "Returns all test goals covered by a test case.")
+  private boolean allCoveredGoalsPerTestCase = false;
+
+  @Option(
+      secure = true,
+      name = "printLabels",
+      description = "Prints labels reached with the error path of a test case.")
+  private boolean printLabels = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final CFA cfa;
@@ -268,6 +267,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   List<Pair<Goal, Region>> remainingPCs = null;
   NamedRegionManager bddCpaNamedRegionManager = null;
 
+  private TestGoalUtils testGoalUtils = null;
+
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, Configuration pConfig, LogManager pLogger, String programDenotation,
       @Nullable final MainCPAStatistics stats) throws InvalidConfigurationException {
@@ -285,19 +286,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     cfa = pCfa;
 
     // Check if BDD is enabled for variability-aware test-suite generation
-    if (useTigerAlgorithm_with_pc) {
-      if (cpa instanceof WrapperCPA) {
-        //TODO: This returns the *first* BDDCPA. Currently I cannot get/match which name the cpa has in the config. Might lead to problems when more than one BDDCPA is configured.
-        BDDCPA bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
-        if (bddcpa != null) {
-          bddCpaNamedRegionManager = bddcpa.getManager();
-        } else {
-          throw new InvalidConfigurationException("CPAtiger-variability-aware started without BDDCPA. We need BDDCPA!");
-        }
-      } else if (cpa instanceof BDDCPA) {
-        bddCpaNamedRegionManager = ((BDDCPA) cpa).getManager();
-      }
-    }
+    bddCpaNamedRegionManager = BDDUtils.getBddCpaNamedRegionManagerFromCpa(cpa, useTigerAlgorithm_with_pc);
 
     testsuite = new TestSuite(bddCpaNamedRegionManager, printLabels);
 
@@ -305,64 +294,21 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     mCoverageSpecificationTranslator =
         new CoverageSpecificationTranslator(pCfa.getFunctionHead(TigerAlgorithm.originalMainFunction));
 
-
     wrapper = new Wrapper(pCfa, TigerAlgorithm.originalMainFunction);
 
     mAlphaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getAlphaEdge()));
     mInverseAlphaLabel = new InverseGuardedEdgeLabel(mAlphaLabel);
     mOmegaLabel = new GuardedEdgeLabel(new SingletonECPEdgeSet(wrapper.getOmegaEdge()));
 
+    testGoalUtils = new TestGoalUtils(logger, useTigerAlgorithm_with_pc, bddCpaNamedRegionManager, mAlphaLabel,
+        mInverseAlphaLabel, mOmegaLabel);
 
     // get internal representation of FQL query
-    logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
-
-    fqlSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
-
-    logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
-
-    // TODO fix this restriction
-    if (fqlSpecification.hasPassingClause()) {
-      logger.logf(Level.SEVERE, "No PASSING clauses supported at the moment!");
-
-      throw new InvalidConfigurationException("No PASSING clauses supported at the moment!");
-    }
-
-    // TODO fix this restriction
-    if (fqlSpecification.hasPredicate()) {
-      logger.logf(Level.SEVERE, "No predicates in FQL queries supported at the moment!");
-
-      throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
-    }
-  }
-
-  private Region getRegionFromWrappedBDDstate(AbstractState pAbstractState) {
-    //TODO: This returns the *first* BDDCPAState. Currently I cannot get/match which name the cpa has in the config. Might lead to problems when more than one BDDCPA is configured.
-    BDDState wrappedBDDState = getWrappedBDDState(pAbstractState);
-    if (wrappedBDDState == null) { throw new RuntimeException("Did not find a BDD state component in a state!"); }
-    Region bddStateRegion = wrappedBDDState.getRegion();
-    // assert wrappedBDDState.getNamedRegionManager() == bddCpaNamedRegionManager;
-    return bddStateRegion;
-  }
-
-  BDDState getWrappedBDDState(AbstractState inState) {
-    if (inState instanceof BDDState) {
-      return (BDDState) inState;
-    } else if (inState instanceof AbstractWrapperState) {
-      for (AbstractState subState : ((AbstractWrapperState) inState).getWrappedStates()) {
-        if (subState instanceof BDDState) {
-          return (BDDState) subState;
-        } else if (subState instanceof AbstractWrapperState) {
-          BDDState res = getWrappedBDDState(subState);
-          if (res != null) { return res; }
-        }
-      }
-    }
-    return null;
+    fqlSpecification = testGoalUtils.parseFQLQuery(fqlQuery);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-
     // we empty pReachedSet to stop complaints of an incomplete analysis
     // Problem: pReachedSet does not match the internal CPA structure!
     logger.logf(Level.INFO,
@@ -371,59 +317,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     outsideReachedSet = pReachedSet;
     outsideReachedSet.clear();
 
-
     // Optimization: Infeasibility propagation
-    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = enableInfisabilityPropagation();
 
-    if (useInfeasibilityPropagation) {
-      lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
-    }
-    else {
-      lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
-    }
-
-    LinkedList<ElementaryCoveragePattern> goalPatterns;
-
-    if (lInfeasibilityPropagation.getFirst()) {
-      goalPatterns =
-          extractTestGoalPatterns_InfeasibilityPropagation(fqlSpecification, lInfeasibilityPropagation.getSecond());
-
-      lGoalPrediction = new Prediction[statistics_numberOfTestGoals];
-
-      for (int i = 0; i < statistics_numberOfTestGoals; i++) {
-        lGoalPrediction[i] = Prediction.UNKNOWN;
-      }
-    }
-    else {
-      // (ii) translate query into set of test goals
-      // I didn't move this operation to the constructor since it is a potentially expensive operation.
-      goalPatterns = extractTestGoalPatterns(fqlSpecification);
-      // each test goal needs to be covered in all (if possible) products.
-      // Therefore we add a "todo" presence-condition TRUE to each test goal
-      // it is the "maximum" set of products for which we try to cover this goal (could be useful to limit this set if we have feature models?)
-      lGoalPrediction = null;
-    }
-
-    LinkedList<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
-    if (useTigerAlgorithm_with_pc) {
-      for (int i = 0; i < goalPatterns.size(); i++) {
-        pTestGoalPatterns.add(Pair.of(goalPatterns.get(i), bddCpaNamedRegionManager.makeTrue()));
-      }
-    } else {
-      for (int i = 0; i < goalPatterns.size(); i++) {
-        pTestGoalPatterns.add(Pair.of(goalPatterns.get(i), (Region) null));
-      }
-    }
-
-    int goalIndex = 1;
-    LinkedList<Goal> pGoalsToCover = new LinkedList<>();
-    for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
-      Goal lGoal =
-          constructGoal(goalIndex, pair.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata,
-              pair.getSecond());
-      pGoalsToCover.add(lGoal);
-      goalIndex++;
-    }
+    LinkedList<Goal> pGoalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification,
+        statistics_numberOfTestGoals, lGoalPrediction, lInfeasibilityPropagation, mCoverageSpecificationTranslator,
+        optimizeGoalAutomata);
+    statistics_numberOfTestGoals = pGoalsToCover.size();
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
@@ -452,53 +352,19 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     }
   }
 
-  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(
-      FQLSpecification pFQLQuery, LinkedList<Edges> pEdges) {
-    logger.logf(Level.INFO, "Extracting test goals.");
+  private Pair<Boolean, LinkedList<Edges>> enableInfisabilityPropagation() {
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
 
-    CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
-    ClusteringCoverageSpecificationTranslator lTranslator =
-        new ClusteringCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator, pEdges,
-            lInitialNode);
-
-    ElementaryCoveragePattern[] lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
-    statistics_numberOfTestGoals = lGoalPatterns.length;
-
-    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
-
-    LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
-
-    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
-      goalPatterns.add(lGoalPatterns[lGoalIndex]);
+    if (useInfeasibilityPropagation) {
+      lInfeasibilityPropagation = InfeasibilityPropagation.canApplyInfeasibilityPropagation(fqlSpecification);
+    } else {
+      lInfeasibilityPropagation = Pair.of(Boolean.FALSE, null);
     }
 
-    return goalPatterns;
+    return lInfeasibilityPropagation;
   }
 
-  private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery) {
-    logger.logf(Level.INFO, "Extracting test goals.");
 
-
-    // TODO check for (temporarily) unsupported features
-
-    // TODO enable use of infeasibility propagation
-
-
-    IncrementalCoverageSpecificationTranslator lTranslator =
-        new IncrementalCoverageSpecificationTranslator(mCoverageSpecificationTranslator.mPathPatternTranslator);
-
-    statistics_numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
-    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
-
-    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
-    LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
-
-    for (int lGoalIndex = 0; lGoalIndex < statistics_numberOfTestGoals; lGoalIndex++) {
-      lGoalPatterns.add(lGoalIterator.next());
-    }
-
-    return lGoalPatterns;
-  }
 
   private boolean isCovered(int goalIndex, Goal lGoal) {
     Region remainingPCforGoalCoverage = lGoal.getPresenceCondition();
@@ -526,7 +392,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
           if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
             Goal newGoal =
-                constructGoal(lGoal.getIndex(), lGoal.getPattern(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+                testGoalUtils.constructGoal(lGoal.getIndex(), lGoal.getPattern(), mAlphaLabel, mInverseAlphaLabel,
+                    mOmegaLabel,
                     optimizeGoalAutomata, coveringRegion);
             remainingPCforGoalCoverage =
                 bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
@@ -576,7 +443,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
       remainingPCs = new ArrayList<>();
       for (Goal goal : pGoalsToCover) {
         Goal newGoal =
-            constructGoal(goal.getIndex(), goal.getPattern(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+            testGoalUtils.constructGoal(goal.getIndex(), goal.getPattern(), mAlphaLabel, mInverseAlphaLabel,
+                mOmegaLabel,
                 optimizeGoalAutomata, goal.getPresenceCondition());
         remainingPCs.add(Pair.of(newGoal, goal.getPresenceCondition()));
       }
@@ -615,7 +483,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           logger.logf(Level.INFO, "Processing test goal %d of %d (%s) for PC %s.", goal.getIndex(), numberOfTestGoals,
               testsuite.getTestGoalLabel(goal), bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
         } else {
-          logger.logf(Level.INFO, "Processing test goal %d of %d (%s).", goal.getIndex(), numberOfTestGoals, testsuite.getTestGoalLabel(goal));
+          logger.logf(Level.INFO, "Processing test goal %d of %d (%s).", goal.getIndex(), numberOfTestGoals,
+              testsuite.getTestGoalLabel(goal));
         }
 
         if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
@@ -642,7 +511,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           if (useTigerAlgorithm_with_pc) {
             // update PC coverage todo
             try {
-              if (bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal), remainingPCforGoalCoverage)) {
+              if (bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal),
+                  remainingPCforGoalCoverage)) {
                 // 1st condition: this goal is infeasible for some constraint
                 // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
                 logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
@@ -697,7 +567,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           // update PC coverage todo
           try {
             if (testsuite.isKnownAsInfeasible(goal) &&
-                bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal), remainingPCforGoalCoverage)) {
+                bddCpaNamedRegionManager.entails(testsuite.getInfeasibleGoals().get(goal),
+                    remainingPCforGoalCoverage)) {
               // 1st condition: this goal is infeasible for some constraint
               // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
               logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
@@ -752,14 +623,12 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             // keep original order of goals (or inverse of it)
             if (order) {
               set = new TreeSet<>(WorklistEntryComparator.ORDER_RESPECTING_COMPARATOR);
-            }
-            else {
+            } else {
               set = new TreeSet<>(WorklistEntryComparator.ORDER_INVERTING_COMPARATOR);
             }
 
             set.addAll(testsuite.getTimedOutGoals().entrySet());
-          }
-          else {
+          } else {
             set = new LinkedList<>();
             set.addAll(testsuite.getTimedOutGoals().entrySet());
           }
@@ -786,8 +655,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 if (coverageCheckOpt.get(lGoal) < testsuite.getNumberOfTestCases()) {
                   if (isCovered(goalIndex, lGoal)) {
                     continue;
-                  }
-                  else {
+                  } else {
                     // TODO optimization: only add if goal times out!
                     coverageCheckOpt.put(lGoal, testsuite.getNumberOfTestCases());
                   }
@@ -840,19 +708,21 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
   private ReachabilityAnalysisResult runReachabilityAnalysis(int goalIndex, Goal pGoal,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition, List<Goal> pGoals)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+          throws CPAException, InterruptedException, InvalidConfigurationException {
 
     ARGCPA lARTCPA = composeCPA(pGoal);
 
     Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
-    Preconditions.checkState(((CompositeCPA)lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA,
+    Preconditions.checkState(
+        ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
 
 
     if (reuseARG && (reachedSet != null)) {
 
-      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, 0, pPreviousGoalAutomaton, pGoal.getAutomaton());
+      ARTReuse.modifyReachedSet(reachedSet, cfa.getMainFunction(), lARTCPA, 0, pPreviousGoalAutomaton,
+          pGoal.getAutomaton());
 
       // reusedPrecision == null indicates that there is no PredicateCPA
       if (reusePredicates && reusedPrecision != null) {
@@ -864,12 +734,13 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
           reachedSet.updatePrecision(lWaitlistElement, lNewPrecision);
         }
       }
-    }
-    else {
+    } else {
       reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
 
-      AbstractState lInitialElement = lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-      Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      AbstractState lInitialElement =
+          lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      Precision lInitialPrecision =
+          lARTCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
       reachedSet.add(lInitialElement, lInitialPrecision);
 
@@ -880,9 +751,9 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         PredicateCPA predicateCPA = lARTCPA.retrieveWrappedCpa(PredicateCPA.class);
 
         if (predicateCPA != null) {
-          reusedPrecision = (PredicatePrecision) predicateCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-        }
-        else {
+          reusedPrecision = (PredicatePrecision) predicateCPA.getInitialPrecision(cfa.getMainFunction(),
+              StateSpacePartition.getDefaultPartition());
+        } else {
           logger.logf(Level.INFO, "No predicate CPA available to reuse predicates!");
         }
       }
@@ -920,7 +791,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
         ARGStatistics lARTStatistics;
         try {
-          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA, cfa.getMachineModel(), cfa.getLanguage(), null);
+          lARTStatistics =
+              new ARGStatistics(internalConfiguration, logger, lARTCPA, cfa.getMachineModel(), cfa.getLanguage(), null);
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }
@@ -940,7 +812,8 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         }
         if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
           ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
-          logger.logf(Level.INFO, "Restrict BDD to %s.", bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
+          logger.logf(Level.INFO, "Restrict BDD to %s.",
+              bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
         }
       }
     } catch (IOException | InvalidConfigurationException e) {
@@ -953,8 +826,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     if (cpuTimelimitPerGoal < 0) {
       // run algorithm without time limit
       analysisWasSound = algorithm.run(reachedSet).isSound();
-    }
-    else {
+    } else {
       // run algorithm with time limit
       WorkerRunnable workerRunnable = new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
 
@@ -967,8 +839,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
         // TODO: handle exception
         analysisWasSound = false;
         //        throw new RuntimeException(workerRunnable.getCaughtThrowable());
-      }
-      else {
+      } else {
         analysisWasSound = workerRunnable.analysisWasSound();
 
         if (workerRunnable.hasTimeout()) {
@@ -993,8 +864,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
     if (hasTimedOut) {
       return ReachabilityAnalysisResult.TIMEDOUT;
-    }
-    else {
+    } else {
       // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
       AbstractState lastState = reachedSet.getLastState();
 
@@ -1055,7 +925,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
               // TODO Alex?
               if (edge.equals(criticalEdge)) {
                 if (useTigerAlgorithm_with_pc) {
-                  testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(argState);
+                  testCaseCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(argState);
                 }
                 logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
               }
@@ -1069,7 +939,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
             Region testCaseFinalRegion = null;
             if (useTigerAlgorithm_with_pc) {
-              testCaseFinalRegion = getRegionFromWrappedBDDstate(lastState);
+              testCaseFinalRegion = BDDUtils.getRegionFromWrappedBDDstate(lastState);
               logger.logf(
                   Level.INFO,
                   " generated test case with "
@@ -1083,8 +953,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                 new TestCase(inputValues, trace, shrinkedErrorPath, (testCaseCriticalStateRegion == null
                     ? testCaseFinalRegion : testCaseCriticalStateRegion), bddCpaNamedRegionManager);
             testsuite.addTestCase(testcase, pGoal);
-          }
-          else {
+          } else {
             // test goal is feasible
             logger.logf(Level.INFO, "Counterexample is available.");
 
@@ -1095,8 +964,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
               if (cex.isSpurious()) {
                 logger.logf(Level.WARNING, "Counterexample is spurious!");
-              }
-              else {
+              } else {
                 RichModel model = cex.getTargetPathModel();
 
                 Comparator<Map.Entry<AssignableTerm, Object>> comp =
@@ -1152,10 +1020,11 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                     if (pathIterator.getIndex() != 0) { // get incoming edge is not allowed if index==0
                       for (Pair<Goal, Region> remaining : remainingPCs) {
                         if (pathIterator.getIncomingEdge().equals(remaining.getFirst().getCriticalEdge())) {
-                          testCaseCriticalStateRegion = getRegionFromWrappedBDDstate(state);
+                          testCaseCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(state);
                           if (testCaseCriticalStateRegion != null) {
                             Goal newGoal =
-                                constructGoal(remaining.getFirst().getIndex(), remaining.getFirst().getPattern(),
+                                testGoalUtils.constructGoal(remaining.getFirst().getIndex(),
+                                    remaining.getFirst().getPattern(),
                                     mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata,
                                     testCaseCriticalStateRegion);
                             newGoal.setPresenceCondition(testCaseCriticalStateRegion);
@@ -1165,8 +1034,10 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                                 bddCpaNamedRegionManager.makeAnd(remaining.getSecond(),
                                     bddCpaNamedRegionManager.makeNot(newGoal.getPresenceCondition()));
                             logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s!",
-                                newGoal.getIndex(), testsuite.getTestGoalLabel(newGoal), bddCpaNamedRegionManager.dumpRegion(testCaseCriticalStateRegion));
-                            logger.logf(Level.WARNING, "Remaining PC %s!", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoal));
+                                newGoal.getIndex(), testsuite.getTestGoalLabel(newGoal),
+                                bddCpaNamedRegionManager.dumpRegion(testCaseCriticalStateRegion));
+                            logger.logf(Level.WARNING, "Remaining PC %s!",
+                                bddCpaNamedRegionManager.dumpRegion(remainingPCforGoal));
                             toBeAdded.add(Pair.of(remaining.getFirst(), remainingPCforGoal));
 
                             if (pathIterator.getIncomingEdge().equals(criticalEdge)) {
@@ -1185,7 +1056,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
                   remainingPCs.removeAll(toBeDeleted);
                   remainingPCs.addAll(toBeAdded);
 
-                  Region testCaseFinalRegion = getRegionFromWrappedBDDstate(reachedSet.getLastState());
+                  Region testCaseFinalRegion = BDDUtils.getRegionFromWrappedBDDstate(reachedSet.getLastState());
                   logger.logf(
                       Level.INFO,
                       " generated test case with "
@@ -1241,7 +1112,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             for (Pair<Goal, Region> remaining : remainingPCs) {
               if (remaining.getFirst().getIndex() == pGoal.getIndex()) {
                 newGoal =
-                    constructGoal(remaining.getFirst().getIndex(), remaining.getFirst().getPattern(),
+                    testGoalUtils.constructGoal(remaining.getFirst().getIndex(), remaining.getFirst().getPattern(),
                         mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata,
                         bddCpaNamedRegionManager.makeFalse());
 
@@ -1290,8 +1161,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
             }
           }
         }
-      }
-      else {
+      } else {
         throw new RuntimeException("We need a last state to determine the feasibility of the test goal!");
       }
     }
@@ -1369,8 +1239,7 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
 
           if (lLabel.hasGuards()) {
             lHasPredicates = true;
-          }
-          else {
+          } else {
             if (lLabel.contains(lCFAEdge)) {
               lNextStates.add(lOutgoingEdge.getTarget());
             }
@@ -1395,28 +1264,6 @@ public class TigerAlgorithm implements Algorithm, PrecisionCallback<PredicatePre
     } else {
       return ThreeValuedAnswer.REJECT;
     }
-  }
-
-  /**
-   * Constructs a test goal from the given pattern.
-   * @param pGoalPattern
-   * @param pAlphaLabel
-   * @param pInverseAlphaLabel
-   * @param pOmegaLabel
-   * @param pUseAutomatonOptimization
-   * @return
-   */
-  private Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization,
-      Region pPresenceCondition) {
-
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
-        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
-    automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
-
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition);
-
-    return lGoal;
   }
 
   @Override
