@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,7 +43,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -67,11 +67,15 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstruction;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParsingFailedException;
 import org.sosy_lab.cpachecker.util.ci.CustomInstruction;
@@ -89,7 +93,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private final ShutdownNotifier shutdownNotifier;
 
   @Option(secure=true, name="definitionFile", description = "File to be parsed")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path appliedCustomInstructionsDefinition;
 
   @Option(secure=true, description="Prefix for files containing the custom instruction requirements.")
@@ -98,8 +102,11 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
   private String requirementsStateClassName;
 
-  @Option(secure=true, description="Specify simple custom instruction by specifying the binary operator op. All simple cis are of the form r = x op y. Leave empty (default) if you specify a more complex custom instruction within code.",
-      values={"*","/","%","+","-","<<","<",">>",">","<=",">=","&","^","|","==","!="})
+  @Option(secure = true,
+      description = "Specify simple custom instruction by specifying the binary operator op. All simple cis are of the form r = x op y. Leave empty (default) if you specify a more complex custom instruction within code.",
+      values = { "MULTIPLY", "DIVIDE", "MODULO", "PLUS", "MINUS", "SHIFT_LEFT", "SHIFT_RIGHT", "LESS_THAN",
+          "GREATER_THAN", "LESS_EQUAL", "GREATER_EQUAL", "BINARY_AND", "BINARY_XOR", "BINARY_OR", "EQUALS",
+          "NOT_EQUALS", ""})
   private String binaryOperatorForSimpleCustomInstruction = "";
 
   private Class<? extends AbstractState> requirementsStateClass;
@@ -134,7 +141,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
     }
 
-    if (!appliedCustomInstructionsDefinition.toFile().exists()) {
+    if (appliedCustomInstructionsDefinition == null) {
+      throw new InvalidConfigurationException(
+        "Need to specify at least a path where to save the applied custom instruction definition.");
+    }
+
+    if (!appliedCustomInstructionsDefinition.toFile().exists() && binaryOperatorForSimpleCustomInstruction.isEmpty()) {
       throw new InvalidConfigurationException("The given path '" + appliedCustomInstructionsDefinition + "' is not a valid path to a file.");
     }
 
@@ -159,7 +171,40 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
       CPAEnabledAnalysisPropertyViolationException {
 
-    logger.log(Level.INFO, " Start analysing to compute requirements.");
+    logger.log(Level.INFO, "Get custom instruction applications in program.");
+
+    CustomInstructionApplications cia = null;
+    try {
+      if (binaryOperatorForSimpleCustomInstruction.isEmpty()) {
+        cia = new AppliedCustomInstructionParser(shutdownNotifier, cfa).parse(appliedCustomInstructionsDefinition);
+      } else {
+        logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
+        cia = findSimpleCustomInstructionApplications(BinaryOperator.valueOf(binaryOperatorForSimpleCustomInstruction));
+      }
+    } catch (IllegalArgumentException ie) {
+      logger.log(Level.SEVERE, "Unknown binary operator ", binaryOperatorForSimpleCustomInstruction,
+          ". Abort requirement extraction.", ie);
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    } catch (FileNotFoundException ex) {
+      logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    } catch (IOException e) {
+      logger.log(Level.SEVERE, "Parsing the file '" + appliedCustomInstructionsDefinition + "' failed.", e);
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
+
+    if (requirementsStateClass.equals(PredicateAbstractState.class)) {
+      PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+      if (predCPA == null) {
+        logger.log(Level.SEVERE,
+            "Cannot find PredicateCPA in CPA configuration but it is required to set abstraction nodes");
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
+      predCPA.getTransferRelation().changeExplicitAbstractionNodes(extractAdditionalAbstractionLocations(cia));
+    }
+
+    shutdownNotifier.shutdownIfNecessary();
+    logger.log(Level.INFO, "Start analysing to compute requirements.");
 
     AlgorithmStatus status = analysis.run(pReachedSet);
 
@@ -170,40 +215,29 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     shutdownNotifier.shutdownIfNecessary();
-    logger.log(Level.INFO, "Get custom instruction applications in program.");
-
-    CustomInstructionApplications cia = null;
-    try {
-      if(binaryOperatorForSimpleCustomInstruction.isEmpty()) {
-      cia = new AppliedCustomInstructionParser(shutdownNotifier, cfa).parse(appliedCustomInstructionsDefinition);
-      } else {
-        logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
-        cia = findSimpleCustomInstructionApplications(BinaryOperator.valueOf(binaryOperatorForSimpleCustomInstruction));
-      }
-    } catch (IllegalArgumentException ie) {
-      logger.log(Level.SEVERE, "Unknown binary operator ", binaryOperatorForSimpleCustomInstruction,
-          ". Abort requirement extraction.");
-      return status.withSound(false);
-    } catch (FileNotFoundException ex) {
-      logger.log(Level.SEVERE, "The file '" + appliedCustomInstructionsDefinition + "' was not found", ex);
-      return status.withSound(false);
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Parsing the file '" + appliedCustomInstructionsDefinition + "' failed.", e);
-      return status.withSound(false);
-    }
-
-    shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
     extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
     return status;
   }
 
+  private ImmutableSet<CFANode> extractAdditionalAbstractionLocations(final CustomInstructionApplications pCia) {
+    Builder<CFANode> result = ImmutableSet.builder();
+
+    for (AppliedCustomInstruction aci : pCia.getMapping().values()) {
+      for(CFANode node: aci.getStartAndEndNodes()) {
+        // add the predecessors of node on which we want to abstract, predecessor is used to determine if we abstract
+        result.addAll(CFAUtils.predecessorsOf(node));
+      }
+    }
+    return result.build();
+  }
+
   private CustomInstructionApplications findSimpleCustomInstructionApplications(final BinaryOperator pOp)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, UnrecognizedCCodeException {
     // build simple custom instruction, is of the form r= x pOp y;
    // create variable expressions
-    CType type = new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
+    CType type = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
     CIdExpression r, x, y;
     r = new CIdExpression(FileLocation.DUMMY, new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO,
             type, "r", "r", "r", null));
@@ -219,7 +253,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     CFANode start, end;
     start = new CFANode("ci");
     end = new CFANode("ci");
-    new CStatementEdge("r=x" + pOp + "y;", stmt, FileLocation.DUMMY, start, end);
+    CFAEdge ciEdge = new CStatementEdge("r=x" + pOp + "y;", stmt, FileLocation.DUMMY, start, end);
+    start.addLeavingEdge(ciEdge);
+    end.addEnteringEdge(ciEdge);
     // build custom instruction
     List<String> input = new ArrayList<>(2);
     input.add("x");
@@ -228,7 +264,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         input, Collections.singletonList("r"), shutdownNotifier);
 
     // find applied custom instructions in program
-    try (Writer aciDef = Files.openOutputFile(appliedCustomInstructionsDefinition)) {
+    try (Writer aciDef = appliedCustomInstructionsDefinition.asCharSink(Charset.forName("UTF-8")).openStream()) {
 
       // inspect all CFA edges potential candidates
       for (CFANode node : cfa.getAllNodes()) {
@@ -239,8 +275,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
             if (stmt.getRightHandSide() instanceof CBinaryExpression
                 && ((CBinaryExpression) stmt.getRightHandSide()).getOperator().equals(pOp)) {
               // application of custom instruction found, add to definition file
-              aciDef.write(node.getNodeNumber());
-              aciDef.write('\n');
+              aciDef.write(node.getNodeNumber()+"\n");
             }
           }
         }
