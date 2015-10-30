@@ -242,7 +242,7 @@ public class BlockOperator {
         && !alwaysAtLoops
         && !alwaysAtJoin
         && !alwaysAtBranch
-        && (!alwaysAtExplicitNodes || explicitAbstractionNodes.isEmpty())
+        && (!alwaysAtExplicitNodes || explicitAbstractionNodes == null || explicitAbstractionNodes.isEmpty())
         && (threshold == 0)
         && !absOnFunction
         && !absOnLoop
