@@ -816,6 +816,9 @@ cpa.callstack.skipRecursion = false
 # unsound).
 cpa.callstack.skipVoidRecursion = false
 
+# unsupported functions cause an exception
+cpa.callstack.unsupportedFunctions = {"pthread_create"}
+
 # firing relation to be used in the precision adjustment operator
 cpa.chc.firingRelation = "Always"
   allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]

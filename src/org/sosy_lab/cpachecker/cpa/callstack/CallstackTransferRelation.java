@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,15 +58,15 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("pthread_create", "threads");
+  @Option(secure=true, description = "unsupported functions cause an exception")
+  protected ImmutableSet<String> unsupportedFunctions = ImmutableSet.of("pthread_create");
 
   @Option(secure=true, name="depth",
       description = "depth of recursion bound")
@@ -119,8 +118,8 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           String functionName = ((AIdExpression)functionNameExp).getName();
-          if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-            throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(functionName),
+          if (unsupportedFunctions.contains(functionName)) {
+            throw new UnsupportedCodeException(functionName,
                 edge, edge.getStatement());
           }
         }
