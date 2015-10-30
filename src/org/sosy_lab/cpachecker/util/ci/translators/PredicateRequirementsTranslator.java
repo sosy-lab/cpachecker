@@ -52,7 +52,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
       final SSAMap pIndices) throws CPAException {
 
     if (!pRequirement.isAbstractionState()) {
-      throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState.");
+      throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState. Ensure that property cpa.predicate.blk.alwaysAtExplicitNodes is set to true");
     }
 
     BooleanFormula formulaBool = fmgr.instantiate(pRequirement.getAbstractionFormula().asFormula(), pIndices);
