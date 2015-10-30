@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
@@ -34,21 +35,21 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 public class TestCase {
 
   private List<BigInteger> inputs;
-  private List<CFAEdge> path;
+  private ARGPath argPath;
   private List<CFAEdge> errorPath;
   private NamedRegionManager bddCpaNamedRegionManager;
   private Region presenceCondition;
 
-  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath, Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager) {
+  public TestCase(List<BigInteger> pInputs, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager) {
     inputs = pInputs;
-    path = pPath;
-    errorPath = pShrinkedErrorPath;
+    argPath = pArgPath;
+    errorPath = pList;
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     presenceCondition = pPresenceCondition;
   }
 
-  public List<CFAEdge> getPath() {
-    return path;
+  public ARGPath getArgPath() {
+    return argPath;
   }
 
   public List<CFAEdge> getErrorPath() {
@@ -92,7 +93,7 @@ public class TestCase {
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
       TestCase other = (TestCase)o;
-      return (inputs.equals(other.inputs) && path.equals(other.path) && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
+      return (inputs.equals(other.inputs) && errorPath.equals(other.errorPath) && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
     }
 
     return false;
@@ -100,6 +101,7 @@ public class TestCase {
 
   @Override
   public int hashCode() {
-    return 38495 + 33 * inputs.hashCode() + 13 * path.hashCode() + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
+    return 38495 + 33 * inputs.hashCode() + 13 * errorPath.hashCode() + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
   }
+
 }

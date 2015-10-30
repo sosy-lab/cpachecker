@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -40,8 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
@@ -63,29 +64,58 @@ import com.google.common.collect.Maps;
 
 public class Goal {
 
+  private int mIndex;
   private ElementaryCoveragePattern mPattern;
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
-  private int mIndex;
-  private Region mPresenceCondition;
   private Region mRemainingPresenceCondition;
+  private Map<TestCase, Region> mCoveringTestCases;
+  private Region mInfeasiblePresenceCondition;
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
-    mIndex = pIndex;
-    mPattern = pPattern;
-    mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
-    mPresenceCondition = pPresenceCondition;
-  }
-
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition, Region pRemainingPresenceCondition) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pRemainingPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
-    mPresenceCondition = pPresenceCondition;
-    mRemainingPresenceCondition = pRemainingPresenceCondition;
+    setRemainingPresenceCondition(pRemainingPresenceCondition);
+    mCoveringTestCases = new HashMap<>();
   }
 
   public int getIndex() {
     return mIndex;
+  }
+
+  public ElementaryCoveragePattern getPattern() {
+    return mPattern;
+  }
+
+  public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
+    return mAutomaton;
+  }
+
+  public Region getRemainingPresenceCondition() {
+    return mRemainingPresenceCondition;
+  }
+
+  public void setRemainingPresenceCondition(Region pRemainingPresenceCondition) {
+    mRemainingPresenceCondition = pRemainingPresenceCondition;
+  }
+
+  public Map<TestCase, Region> getCoveringTestCases() {
+    return mCoveringTestCases;
+  }
+
+  public void addCoveringTestCase(TestCase pTestCase, Region pPresenceCondition) {
+    if (!mCoveringTestCases.containsKey(pTestCase)) {
+      mCoveringTestCases.put(pTestCase, pPresenceCondition);
+    }
+  }
+
+  public Region getInfeasiblePresenceCondition() {
+    return mInfeasiblePresenceCondition;
+  }
+
+  public void setInfeasiblePresenceCondition(Region pInfeasiblePresenceCondition) {
+    mInfeasiblePresenceCondition = pInfeasiblePresenceCondition;
   }
 
   public String getName() {
@@ -98,14 +128,6 @@ public class Goal {
     }
   }
 
-  public ElementaryCoveragePattern getPattern() {
-    return mPattern;
-  }
-
-  public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
-    return mAutomaton;
-  }
-
   public CFAEdge getCriticalEdge() {
     final ECPVisitor<CFAEdge> visitor = new ECPVisitor<CFAEdge>() {
 
@@ -113,8 +135,7 @@ public class Goal {
       public CFAEdge visit(ECPEdgeSet pEdgeSet) {
         if (pEdgeSet.size() == 1) {
           return pEdgeSet.iterator().next();
-        }
-        else {
+        } else {
           return null;
         }
       }
@@ -161,22 +182,12 @@ public class Goal {
     return getPattern().accept(visitor);
   }
 
-  public Region getPresenceCondition() {
-    return mPresenceCondition;
-  }
-
-  public void setPresenceCondition(Region pPresenceCondition) {
-    mPresenceCondition = pPresenceCondition;
-  }
-
   public String toSkeleton() {
     final ECPVisitor<Boolean> booleanVisitor = new ECPVisitor<Boolean>() {
 
       @Override
       public Boolean visit(ECPEdgeSet pEdgeSet) {
-        if (pEdgeSet.size() <= 1) {
-          return true;
-        }
+        if (pEdgeSet.size() <= 1) { return true; }
 
         return false;
       }
@@ -196,9 +207,7 @@ public class Goal {
         for (int i = 0; i < pConcatenation.size(); i++) {
           ElementaryCoveragePattern ecp = pConcatenation.get(i);
 
-          if (ecp.accept(this)) {
-            return true;
-          }
+          if (ecp.accept(this)) { return true; }
         }
 
         return false;
@@ -209,9 +218,7 @@ public class Goal {
         for (int i = 0; i < pUnion.size(); i++) {
           ElementaryCoveragePattern ecp = pUnion.get(i);
 
-          if (ecp.accept(this)) {
-            return true;
-          }
+          if (ecp.accept(this)) { return true; }
         }
 
         return false;
@@ -219,9 +226,7 @@ public class Goal {
 
       @Override
       public Boolean visit(ECPRepetition pRepetition) {
-        if (pRepetition.getSubpattern().accept(this)) {
-          return true;
-        }
+        if (pRepetition.getSubpattern().accept(this)) { return true; }
 
         return false;
       }
@@ -234,11 +239,9 @@ public class Goal {
       public String visit(ECPEdgeSet pEdgeSet) {
         if (pEdgeSet.size() == 1) {
           return "[" + pEdgeSet.toString() + "]";
-        }
-        else if (pEdgeSet.size() == 0) {
+        } else if (pEdgeSet.size() == 0) {
           return "{}";
-        }
-        else {
+        } else {
           return "E";
         }
       }
@@ -267,15 +270,13 @@ public class Goal {
 
             if (a) {
               str.append(".");
-            }
-            else if (i > 0) {
+            } else if (i > 0) {
               str.append("E.");
             }
             str.append(ecp.accept(this));
 
             a = true;
-          }
-          else if (b) {
+          } else if (b) {
             b = false;
 
             if (a) {
@@ -304,15 +305,13 @@ public class Goal {
 
             if (a) {
               str.append("+");
-            }
-            else if (i > 0) {
+            } else if (i > 0) {
               str.append("E+");
             }
             str.append(ecp.accept(this));
 
             a = true;
-          }
-          else if (b) {
+          } else if (b) {
             b = false;
 
             if (a) {
@@ -331,8 +330,7 @@ public class Goal {
       public String visit(ECPRepetition pRepetition) {
         if (pRepetition.getSubpattern().accept(booleanVisitor)) {
           return "(" + pRepetition.getSubpattern().accept(this) + "*)";
-        }
-        else {
+        } else {
           return "E";
         }
       }
@@ -348,7 +346,7 @@ public class Goal {
    *
    * @return  A control automaton
    */
-  public Automaton createControlAutomaton()  {
+  public Automaton createControlAutomaton() {
     Preconditions.checkNotNull(mAutomaton);
 
     // TODO: add/handle alpha, and omega edges!!
@@ -357,13 +355,13 @@ public class Goal {
     final String initialStateName = Integer.toString(mAutomaton.getInitialState().ID);
     final List<AutomatonInternalState> automatonStates = Lists.newArrayList();
 
-    for (State q: mAutomaton.getStates()) {
+    for (State q : mAutomaton.getStates()) {
 
       final boolean isTarget = mAutomaton.getFinalStates().contains(q);
       final String stateName = Integer.toString(q.ID);
       final List<AutomatonTransition> transitions = Lists.newArrayList();
 
-      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t: mAutomaton.getOutgoingEdges(q)) {
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t : mAutomaton.getOutgoingEdges(q)) {
 
         final String sucessorStateName = Integer.toString(t.getTarget().ID);
         final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
@@ -371,9 +369,9 @@ public class Goal {
 
         AutomatonTransition ct = new AutomatonTransition(
             trigger,
-            Collections.<AutomatonBoolExpr>emptyList(),
+            Collections.<AutomatonBoolExpr> emptyList(),
             assumptions,
-            Collections.<AutomatonAction>emptyList(),
+            Collections.<AutomatonAction> emptyList(),
             sucessorStateName);
 
         transitions.add(ct);
@@ -384,7 +382,7 @@ public class Goal {
 
     try {
       return new Automaton(automatonName,
-          Maps.<String, AutomatonVariable>newHashMap(),
+          Maps.<String, AutomatonVariable> newHashMap(),
           automatonStates, initialStateName);
 
     } catch (InvalidAutomatonException e) {
@@ -395,10 +393,8 @@ public class Goal {
   private ImmutableList<CStatement> createAssumesForLabel(GuardedEdgeLabel pLabel) {
     Builder<CStatement> result = ImmutableList.builder();
 
-    for (ECPGuard g: pLabel) {
-      if (g instanceof ECPPredicate) {
-        throw new RuntimeException("ECPPredicate not yet supported as an assumption!");
-      }
+    for (ECPGuard g : pLabel) {
+      if (g instanceof ECPPredicate) { throw new RuntimeException("ECPPredicate not yet supported as an assumption!"); }
     }
 
     return result.build();

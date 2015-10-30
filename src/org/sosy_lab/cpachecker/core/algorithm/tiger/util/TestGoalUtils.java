@@ -132,8 +132,8 @@ public class TestGoalUtils {
         patternWithPC = Pair.of(goalPatterns.get(i), (Region) null);
       }
 
-      Goal lGoal = constructGoal(i, patternWithPC.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-          pOptimizeGoalAutomata, patternWithPC.getSecond(), patternWithPC.getSecond());
+      Goal lGoal = constructGoal(i + 1, patternWithPC.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+          pOptimizeGoalAutomata, patternWithPC.getSecond());
       goalsToCover.add(lGoal);
     }
 
@@ -199,13 +199,13 @@ public class TestGoalUtils {
    */
   public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization,
-      Region pPresenceCondition, Region pRemainingPresenceCondition) {
+      Region pRemainingPresenceCondition) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition, pRemainingPresenceCondition);
+    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pRemainingPresenceCondition);
 
     return lGoal;
   }
