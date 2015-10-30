@@ -122,8 +122,7 @@ public class TestGoalUtils {
       pGoalPrediction = null;
     }
 
-    LinkedList<Goal> pGoalsToCover = new LinkedList<>();
-    LinkedList<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
+    LinkedList<Goal> goalsToCover = new LinkedList<>();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
       Pair<ElementaryCoveragePattern, Region> patternWithPC;
@@ -134,11 +133,11 @@ public class TestGoalUtils {
       }
 
       Goal lGoal = constructGoal(i, patternWithPC.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-          pOptimizeGoalAutomata, patternWithPC.getSecond());
-      pGoalsToCover.add(lGoal);
+          pOptimizeGoalAutomata, patternWithPC.getSecond(), patternWithPC.getSecond());
+      goalsToCover.add(lGoal);
     }
 
-    return pGoalsToCover;
+    return goalsToCover;
   }
 
   private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(
@@ -200,13 +199,13 @@ public class TestGoalUtils {
    */
   public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
       GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization,
-      Region pPresenceCondition) {
+      Region pPresenceCondition, Region pRemainingPresenceCondition) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition);
+    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pPresenceCondition, pRemainingPresenceCondition);
 
     return lGoal;
   }

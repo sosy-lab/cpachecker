@@ -308,6 +308,21 @@ public class TigerAlgorithm
   }
 
   @Override
+  public String getName() {
+    return "TigerAlgorithm";
+  }
+
+  @Override
+  public void setPrecision(PredicatePrecision pNewPrec) {
+    reusedPrecision = pNewPrec;
+  }
+
+  @Override
+  public PredicatePrecision getPrecision() {
+    return reusedPrecision;
+  }
+
+  @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // we empty pReachedSet to stop complaints of an incomplete analysis
     // Problem: pReachedSet does not match the internal CPA structure!
@@ -318,7 +333,7 @@ public class TigerAlgorithm
     outsideReachedSet.clear();
 
     // Optimization: Infeasibility propagation
-    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = enableInfisabilityPropagation();
+    Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
 
     LinkedList<Goal> pGoalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification,
         statistics_numberOfTestGoals, lGoalPrediction, lInfeasibilityPropagation, mCoverageSpecificationTranslator,
@@ -352,7 +367,7 @@ public class TigerAlgorithm
     }
   }
 
-  private Pair<Boolean, LinkedList<Edges>> enableInfisabilityPropagation() {
+  private Pair<Boolean, LinkedList<Edges>> initializeInfisabilityPropagation() {
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation;
 
     if (useInfeasibilityPropagation) {
@@ -364,70 +379,6 @@ public class TigerAlgorithm
     return lInfeasibilityPropagation;
   }
 
-
-
-  private boolean isCovered(int goalIndex, Goal lGoal) {
-    Region remainingPCforGoalCoverage = lGoal.getPresenceCondition();
-    boolean isFullyCovered = false;
-    for (TestCase testcase : testsuite.getTestCases()) {
-      ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
-      if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
-        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
-        continue;
-      } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
-        continue;
-      }
-
-      // test goal is already covered by an existing test case
-      if (useTigerAlgorithm_with_pc) {
-        boolean goalCoveredByTestCase = false;
-        for (Goal goal : testsuite.getTestGoalsCoveredByTestCase(testcase)) {
-          if (lGoal.getIndex() == goal.getIndex()) {
-            goalCoveredByTestCase = true;
-            break;
-          }
-        }
-        if (!goalCoveredByTestCase) {
-          Region coveringRegion = testcase.getPresenceCondition();
-
-          if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
-            Goal newGoal =
-                testGoalUtils.constructGoal(lGoal.getIndex(), lGoal.getPattern(), mAlphaLabel, mInverseAlphaLabel,
-                    mOmegaLabel,
-                    optimizeGoalAutomata, coveringRegion);
-            remainingPCforGoalCoverage =
-                bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
-                    bddCpaNamedRegionManager.makeNot(coveringRegion));
-
-            testsuite.addTestCase(testcase, newGoal);
-
-            if (remainingPCforGoalCoverage.isFalse()) {
-              logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
-              isFullyCovered = true;
-              break;
-            } else {
-              logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex,
-                  " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
-            }
-
-          } else {
-            // test goal is already covered by an existing test case
-            logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
-
-            testsuite.addTestCase(testcase, lGoal);
-
-            return true;
-          }
-        }
-      } else {
-        testsuite.addTestCase(testcase, lGoal);
-        return true;
-      }
-    }
-
-    return isFullyCovered;
-  }
-
   private boolean testGeneration(LinkedList<Goal> pGoalsToCover,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
           throws CPAException, InterruptedException, InvalidConfigurationException {
@@ -435,18 +386,13 @@ public class TigerAlgorithm
     goals.addAll(pGoalsToCover);
 
     boolean wasSound = true;
-
     int numberOfTestGoals = pGoalsToCover.size();
 
     if (useTigerAlgorithm_with_pc) {
       // get all test goals and initialize their remaining presence conditions
       remainingPCs = new ArrayList<>();
       for (Goal goal : pGoalsToCover) {
-        Goal newGoal =
-            testGoalUtils.constructGoal(goal.getIndex(), goal.getPattern(), mAlphaLabel, mInverseAlphaLabel,
-                mOmegaLabel,
-                optimizeGoalAutomata, goal.getPresenceCondition());
-        remainingPCs.add(Pair.of(newGoal, goal.getPresenceCondition()));
+        remainingPCs.add(Pair.of(goal, goal.getPresenceCondition()));
       }
     }
 
@@ -688,6 +634,68 @@ public class TigerAlgorithm
     //  }
 
     return wasSound;
+  }
+
+  private boolean isCovered(int goalIndex, Goal lGoal) {
+    Region remainingPCforGoalCoverage = lGoal.getPresenceCondition();
+    boolean isFullyCovered = false;
+    for (TestCase testcase : testsuite.getTestCases()) {
+      ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
+      if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
+        continue;
+      } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
+        continue;
+      }
+
+      // test goal is already covered by an existing test case
+      if (useTigerAlgorithm_with_pc) {
+        boolean goalCoveredByTestCase = false;
+        for (Goal goal : testsuite.getTestGoalsCoveredByTestCase(testcase)) {
+          if (lGoal.getIndex() == goal.getIndex()) {
+            goalCoveredByTestCase = true;
+            break;
+          }
+        }
+        if (!goalCoveredByTestCase) {
+          Region coveringRegion = testcase.getPresenceCondition();
+
+          if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+            Goal newGoal =
+                testGoalUtils.constructGoal(lGoal.getIndex(), lGoal.getPattern(), mAlphaLabel, mInverseAlphaLabel,
+                    mOmegaLabel,
+                    optimizeGoalAutomata, coveringRegion, coveringRegion);
+            remainingPCforGoalCoverage =
+                bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
+                    bddCpaNamedRegionManager.makeNot(coveringRegion));
+
+            testsuite.addTestCase(testcase, newGoal);
+
+            if (remainingPCforGoalCoverage.isFalse()) {
+              logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
+              isFullyCovered = true;
+              break;
+            } else {
+              logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex,
+                  " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+            }
+
+          } else {
+            // test goal is already covered by an existing test case
+            logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
+
+            testsuite.addTestCase(testcase, lGoal);
+
+            return true;
+          }
+        }
+      } else {
+        testsuite.addTestCase(testcase, lGoal);
+        return true;
+      }
+    }
+
+    return isFullyCovered;
   }
 
   private Region getRemainingPCByTestGoalId(int id) {
@@ -1026,7 +1034,7 @@ public class TigerAlgorithm
                                 testGoalUtils.constructGoal(remaining.getFirst().getIndex(),
                                     remaining.getFirst().getPattern(),
                                     mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata,
-                                    testCaseCriticalStateRegion);
+                                    testCaseCriticalStateRegion, testCaseCriticalStateRegion);
                             newGoal.setPresenceCondition(testCaseCriticalStateRegion);
                             newTestGoals.add(newGoal);
                             toBeDeleted.add(remaining);
@@ -1114,7 +1122,7 @@ public class TigerAlgorithm
                 newGoal =
                     testGoalUtils.constructGoal(remaining.getFirst().getIndex(), remaining.getFirst().getPattern(),
                         mAlphaLabel, mInverseAlphaLabel, mOmegaLabel, optimizeGoalAutomata,
-                        bddCpaNamedRegionManager.makeFalse());
+                        bddCpaNamedRegionManager.makeFalse(), bddCpaNamedRegionManager.makeFalse());
 
                 break;
               }
@@ -1267,16 +1275,6 @@ public class TigerAlgorithm
   }
 
   @Override
-  public PredicatePrecision getPrecision() {
-    return reusedPrecision;
-  }
-
-  @Override
-  public void setPrecision(PredicatePrecision pNewPrec) {
-    reusedPrecision = pNewPrec;
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(this);
   }
@@ -1311,11 +1309,6 @@ public class TigerAlgorithm
         + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
       pOut.println("Timeout occured during processing of a test goal!");
     }
-  }
-
-  @Override
-  public String getName() {
-    return "TigerAlgorithm";
   }
 
 }

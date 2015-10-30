@@ -67,6 +67,7 @@ public class Goal {
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   private int mIndex;
   private Region mPresenceCondition;
+  private Region mRemainingPresenceCondition;
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
     mIndex = pIndex;
@@ -75,11 +76,12 @@ public class Goal {
     mPresenceCondition = pPresenceCondition;
   }
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition, Region pRemainingPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
     mPresenceCondition = pPresenceCondition;
+    mRemainingPresenceCondition = pRemainingPresenceCondition;
   }
 
   public int getIndex() {
