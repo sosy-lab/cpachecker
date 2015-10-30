@@ -1148,6 +1148,9 @@ cpa.predicate.blk.alwaysAtBranch = false
 # in the body), regardless of threshold
 cpa.predicate.blk.alwaysAtEntryFunctionHead = false
 
+# abstraction always at explicitly computed abstraction nodes.
+cpa.predicate.blk.alwaysAtExplicitNodes = false
+
 # force abstractions at each function call (node before entering the body),
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionCallNodes = false
@@ -2040,6 +2043,12 @@ cpa.value.symbolic.useSymbolicValues = false
 # the verified program uses big or lots of arrays. Arrays in C programs will
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
+
+# Specify simple custom instruction by specifying the binary operator op. All
+# simple cis are of the form r = x op y. Leave empty (default) if you specify
+# a more complex custom instruction within code.
+custominstructions.binaryOperatorForSimpleCustomInstruction = ""
+  allowed values: [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR, EQUALS, NOT_EQUALS, ]
 
 # Prefix for files containing the custom instruction requirements.
 custominstructions.ciFilePrefix = "ci"
