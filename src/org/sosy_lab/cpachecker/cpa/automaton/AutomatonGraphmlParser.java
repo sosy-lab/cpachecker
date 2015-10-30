@@ -201,10 +201,10 @@ public class AutomatonGraphmlParser {
         EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
         if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          violationStates.add(sourceStateId);
+          violationStates.add(targetStateId);
         }
         if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          violationStates.add(targetStateId);
+          violationStates.add(sourceStateId);
         }
       }
 

@@ -215,7 +215,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
         || abstractAtLoop(location)) {
 
       for (MemoryLocation memoryLocation : state.getTrackedMemoryLocations()) {
-        if (!precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location.getLocationNode())) {
+        if (location!=null && !precision.isTracking(memoryLocation, state.getTypeForMemoryLocation(memoryLocation), location.getLocationNode())) {
           state.forget(memoryLocation);
         }
       }
