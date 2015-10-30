@@ -366,7 +366,7 @@ public class CustomInstruction{
         "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
-    sb.append("(define-fun aci() Bool(");
+    sb.append("(define-fun ci() Bool(");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
