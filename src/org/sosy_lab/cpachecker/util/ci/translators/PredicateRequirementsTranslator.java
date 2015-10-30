@@ -71,7 +71,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
     String element = pair.getFirst();
     // element =(assert ...)
     element = element.substring(element.indexOf('t') + 1, element.length() - 1);
-    secReturn = "(define-fun .defci" + (counter++) + " Bool() " + element + ")";
+    secReturn = "(define-fun .defci" + (counter++) + " () Bool " + element + ")";
 
 
     return Pair.of(list, secReturn);
