@@ -78,7 +78,7 @@ public class CFACloner {
     }
 
     for (String functionName : cfa.getAllFunctionNames()) {
-      if (cfa.getMainFunction().equals(functionName)) {
+      if (cfa.getMainFunction().getFunctionName().equals(functionName)) {
         continue; // ignore main function
       }
 
