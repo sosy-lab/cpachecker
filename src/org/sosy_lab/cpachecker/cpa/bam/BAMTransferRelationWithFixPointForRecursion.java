@@ -77,6 +77,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
                              ProofChecker wrappedChecker, BAMDataManager data, ShutdownNotifier pShutdownNotifier)
                                  throws InvalidConfigurationException {
     super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier);
+    pConfig.inject(this);
   }
 
   @Override
