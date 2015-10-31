@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResol
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.MultiEdgeCreator;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -207,6 +208,11 @@ public class CFACreator {
   @Option(secure=true, name="cfa.useFunctionCallUnwinding",
       description="unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
+
+  @Option(secure=true, name="cfa.useCFACloning",
+      description="clone functions of the CFA, such that there are several "
+          + "identical CFAs for each function, only with different names.")
+  private boolean useCFACloning = false;
 
   @Option(secure=true, name="cfa.findLiveVariables",
           description="By enabling this option the variables that are live are"
@@ -644,6 +650,12 @@ private boolean classifyNodes = false;
       // must be done before adding global vars
       final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config, logger);
       cfa = fca.unwindRecursion();
+    }
+
+    if (useCFACloning) {
+      // must be done before adding global vars
+      final CFACloner cloner = new CFACloner(cfa, config, logger);
+      cfa = cloner.execute();
     }
 
     if (useGlobalVars) {
