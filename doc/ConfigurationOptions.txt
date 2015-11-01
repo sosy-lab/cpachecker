@@ -377,6 +377,9 @@ cfa.callgraph.export = true
 # file name for call graph as .dot file
 cfa.callgraph.file = "functionCalls.dot"
 
+# how often do we clone a function?
+cfa.cfaCloner.numberOfCopies = 5
+
 # while this option is activated, before each use of a PointerExpression, or
 # a dereferenced field access the expression is checked if it is 0
 cfa.checkNullPointers = false
@@ -458,6 +461,10 @@ cfa.transformIntoSingleLoop.omitExplicitLastProgramCounterAssumption = false
 # resulting graph will look like the original CFA.
 cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
   enum:     [MULTIPLE_PATHS, SINGLE_PATH, SINGLE_EDGE]
+
+# clone functions of the CFA, such that there are several identical CFAs for
+# each function, only with different names.
+cfa.useCFACloning = false
 
 # unwind recursive functioncalls (bounded to max call stack size)
 cfa.useFunctionCallUnwinding = false
