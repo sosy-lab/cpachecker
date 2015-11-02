@@ -72,7 +72,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       + "The option 'cfa.cfaCloner.numberOfCopies' should be set to N.")
   private int maxNumberOfThreads = 5;
 
-  private static final String THREAD_START = "pthread_create";
+  public static final String THREAD_START = "pthread_create";
   private static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
