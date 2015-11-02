@@ -189,6 +189,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
       break;
     }
+    default:
+      // nothing to do
     }
     return results;
   }

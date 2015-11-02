@@ -161,7 +161,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     ThreadingState ts = (ThreadingState)other;
     return states.equals(ts.states)
         && locks.equals(ts.locks)
-        && threadNums.equals(threadNums);
+        && threadNums.equals(ts.threadNums);
   }
 
   @Override
