@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -287,8 +288,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
     Pair<AbstractState, AbstractState> p = Pair.of(
-        callstackCPA.getInitialState(functioncallNode, null),
-        locationCPA.getInitialState(functioncallNode, null));
+        callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition()),
+        locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition()));
 
     if (threadingState.getThreadIds().contains(id.getName())) {
       throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported", id);
