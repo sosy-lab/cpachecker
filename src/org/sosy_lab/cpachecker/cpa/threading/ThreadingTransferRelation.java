@@ -31,6 +31,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -42,7 +46,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -54,7 +60,17 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
+
+  @Option(description="do not use the original functions from the CFA, but cloned ones. "
+      + "See cfa.postprocessing.CFACloner for detail.")
+  private boolean useClonedFunctions = true;
+
+  @Option(description="the maximal number of parallel threads, -1 for infinite. "
+      + "When combined with 'useClonedFunctions=true', we need at least N cloned functions. "
+      + "The option 'cfa.cfaCloner.numberOfCopies' should be set to N.")
+  private int maxNumberOfThreads = 5;
 
   private static final String THREAD_START = "pthread_create";
   private static final String THREAD_JOIN = "pthread_join";
@@ -62,14 +78,21 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
 
+  private static final String THREAD_ATOMIC_BEGIN = "pthread_atomic_begin";
+  private static final String THREAD_ATOMIC_END = "pthread_atomic_end";
+  private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
+  private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
+  private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
+
   private final CFA cfa;
   private final ConfigurableProgramAnalysis callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
   public ThreadingTransferRelation(
-      ConfigurableProgramAnalysis pCallstackCPA,
-      ConfigurableProgramAnalysis pLocationCPA,
-      CFA pCfa) {
+      Configuration pConfig, ConfigurableProgramAnalysis pCallstackCPA,
+      ConfigurableProgramAnalysis pLocationCPA, CFA pCfa)
+          throws InvalidConfigurationException {
+    pConfig.inject(this);
     cfa = pCfa;
     callstackCPA = pCallstackCPA;
     locationCPA = pLocationCPA;
@@ -102,9 +125,19 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // get all possible successors
     Collection<ThreadingState> results = getAbstractSuccessorsForSimpleEdge(activeThread, threadingState, precision, cfaEdge);
 
-    boolean isThreadExiting = false;
+    // check if atomic lock exists and is set for current thread
+    if (threadingState.hasLock(ATOMIC_LOCK) && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
+      return Collections.emptySet();
+    }
+
+    // TODO we should exit after analyzing the edge, not before.
+    if (isEndOfMainFunction(cfaEdge) ||
+        isTerminatingEdge(cfaEdge)) {
+      // VERIFIER_assume not only terminates the current thread, but the whole program
+      return Collections.emptySet();
+    }
     if (isLastEdgeOfThread(cfaEdge)) {
-      isThreadExiting = true;
+      // if thread does not exit with "pthread_exit"
       results = exitThread(threadingState, activeThread, results);
     }
 
@@ -124,13 +157,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
             results = addLock(threadingState, activeThread, statement, results);
             break;
           case THREAD_MUTEX_UNLOCK:
-            results = removeLock(threadingState, activeThread, statement, results);
+            results = removeLock(activeThread, statement, results);
             break;
           case THREAD_JOIN:
             results = joinThread(threadingState, activeThread, statement, results);
             break;
           case THREAD_EXIT:
-            assert isThreadExiting : "thread should not have more edges, and thus the exit should be handled before";
+            results = exitThread(threadingState, activeThread, results);
             break;
           default:
           }
@@ -175,6 +208,16 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return 0 == edge.getSuccessor().getNumLeavingEdges();
   }
 
+  /** the whole program will terminate after this edge */
+  private boolean isTerminatingEdge(CFAEdge edge) {
+    return edge.getSuccessor() instanceof CFATerminationNode;
+  }
+
+  /** the whole program will terminate after this edge */
+  private boolean isEndOfMainFunction(CFAEdge edge) {
+    return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
+  }
+
   private Collection<ThreadingState> exitThread(
       final ThreadingState threadingState, final String activeThread,
       final Collection<ThreadingState> results) {
@@ -216,6 +259,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
     String functionName = ((CIdExpression) expr2).getName();
+    int newThreadNum = threadingState.getSmallestMissingThreadNum();
+
+    if (useClonedFunctions) {
+      functionName = CFACloner.getFunctionName(functionName, newThreadNum);
+    }
+
     CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
     Pair<AbstractState, AbstractState> p = Pair.of(
         callstackCPA.getInitialState(functioncallNode, null),
@@ -228,8 +277,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // update all successors
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
-      ts = ts.addThreadAndCopy(id.getName(), p);
-      newResults.add(ts);
+      if (maxNumberOfThreads == -1 || ts.getThreadIds().size() <= maxNumberOfThreads) {
+        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, p);
+        newResults.add(ts);
+      }
     }
     return newResults;
   }
@@ -251,6 +302,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     String lockId = ((CIdExpression) expr0).getName();
 
+    return addLock(threadingState, activeThread, lockId, results);
+  }
+
+  private Collection<ThreadingState> addLock(final ThreadingState threadingState, final String activeThread,
+      String lockId, final Collection<ThreadingState> results) {
     if (threadingState.hasLock(lockId)) {
       // some thread (including activeThread) has the lock, using it twice is not possible
       return Collections.emptySet();
@@ -266,8 +322,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private Collection<ThreadingState> removeLock(
-      final ThreadingState threadingState, final String activeThread,
-      final AStatement statement, final Collection<ThreadingState> results)
+      final String activeThread,
+      final AStatement statement,
+      final Collection<ThreadingState> results)
           throws UnrecognizedCodeException {
 
     // first check for some possible errors and unsupported parts
@@ -282,6 +339,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     String lockId = ((CIdExpression) expr0).getName();
 
+    return removeLock(activeThread, lockId, results);
+  }
+
+  private Collection<ThreadingState> removeLock(
+      final String activeThread,
+      final String lockId,
+      final Collection<ThreadingState> results) {
     // update all successors
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {

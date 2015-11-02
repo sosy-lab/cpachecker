@@ -1882,6 +1882,15 @@ cpa.stator.policy.varFiltering = ALL_LIVE
 # of '-1' runs value determination until convergence.
 cpa.stator.policy.wideningThreshold = -1
 
+# the maximal number of parallel threads, -1 for infinite. When combined with
+# 'useClonedFunctions=true', we need at least N cloned functions. The option
+# 'cfa.cfaCloner.numberOfCopies' should be set to N.
+cpa.threading.maxNumberOfThreads = 5
+
+# do not use the original functions from the CFA, but cloned ones. See
+# cfa.postprocessing.CFACloner for detail.
+cpa.threading.useClonedFunctions = true
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]
