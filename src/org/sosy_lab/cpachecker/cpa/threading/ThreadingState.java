@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -42,7 +44,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 
 /** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocation {
+public class ThreadingState implements AbstractState, AbstractStateWithLocation, Graphable, Partitionable {
 
   // String :: identifier for the thread TODO change to object or memory-location
   // List<Pair<CallstackState, LocationState>> :: thread-position
@@ -148,5 +150,26 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation 
         return leavingEdges(((AbstractStateWithLocation)p.getSecond()).getLocationNode());
       }
     }));
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("[");
+    Joiner.on(",\n ").withKeyValueSeparator("=").appendTo(sb, states);
+    sb.append("]");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
+  @Override
+  public Object getPartitionKey() {
+    return states;
   }
 }
