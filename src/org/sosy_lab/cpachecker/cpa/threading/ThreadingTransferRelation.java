@@ -72,6 +72,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       + "The option 'cfa.cfaCloner.numberOfCopies' should be set to N.")
   private int maxNumberOfThreads = 5;
 
+  @Option(description="atomic locks are used to simulate atomic statements, as described in the rules of SV-Comp.")
+  private boolean useAtomicLocks = true;
+
   public static final String THREAD_START = "pthread_create";
   private static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
@@ -126,7 +129,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     Collection<ThreadingState> results = getAbstractSuccessorsForSimpleEdge(activeThread, threadingState, precision, cfaEdge);
 
     // check if atomic lock exists and is set for current thread
-    if (threadingState.hasLock(ATOMIC_LOCK) && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
+    if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK) && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
       return Collections.emptySet();
     }
 
@@ -136,6 +139,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       // VERIFIER_assume not only terminates the current thread, but the whole program
       return Collections.emptySet();
     }
+
     if (isLastEdgeOfThread(cfaEdge)) {
       // if thread does not exit with "pthread_exit"
       results = exitThread(threadingState, activeThread, results);
@@ -171,8 +175,21 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
       break;
     }
+    case FunctionCallEdge: {
+      // cloning changes the function-name -> we use 'startsWith'
+      if (useAtomicLocks && cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN)) {
+        results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+      }
+      break;
     }
-
+    case FunctionReturnEdge: {
+      // cloning changes the function-name -> we use 'startsWith'
+      if (useAtomicLocks && cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END)) {
+        results = removeLock(activeThread, ATOMIC_LOCK, results);
+      }
+      break;
+    }
+    }
     return results;
   }
 
@@ -204,6 +221,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return results;
   }
 
+  /** the current thread will terminate after this edge */
   private boolean isLastEdgeOfThread(CFAEdge edge) {
     return 0 == edge.getSuccessor().getNumLeavingEdges();
   }

@@ -1887,6 +1887,10 @@ cpa.stator.policy.wideningThreshold = -1
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
 cpa.threading.maxNumberOfThreads = 5
 
+# atomic locks are used to simulate atomic statements, as described in the
+# rules of SV-Comp.
+cpa.threading.useAtomicLocks = true
+
 # do not use the original functions from the CFA, but cloned ones. See
 # cfa.postprocessing.CFACloner for detail.
 cpa.threading.useClonedFunctions = true
