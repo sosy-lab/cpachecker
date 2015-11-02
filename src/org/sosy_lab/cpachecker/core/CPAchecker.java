@@ -592,7 +592,6 @@ public class CPAchecker {
     public PropertySummary extractSummary(Algorithm pAlgorithm, ReachedSet pReached, AlgorithmStatus pStatus) {
 
       final ImmutableSet<Property> violatedProperties = ImmutableSet.<Property>copyOf(findViolatedProperties(pAlgorithm, pReached));
-      final ImmutableSet<Property> deactivatedProperties = ImmutableSet.<Property>of();
 
       return new PropertySummary() {
 
@@ -603,12 +602,12 @@ public class CPAchecker {
 
         @Override
         public Optional<ImmutableSet<Property>> getUnknownProperties() {
-          return Optional.of(deactivatedProperties);
+          return Optional.absent();
         }
 
         @Override
         public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
-          return Optional.of(ImmutableSet.<Property>of());
+          return Optional.absent();
         }
       };
     }
