@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import java.util.Set;
+
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -82,6 +85,15 @@ public class BDDUtils {
     }
 
     return null;
+  }
+
+  public static Region composeRemainingPresenceConditions(Set<Goal> pTestGoalsToBeProcessed, NamedRegionManager pBddCpaNamedRegionManager) {
+    Region presenceCondition = pBddCpaNamedRegionManager.makeFalse();
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      presenceCondition = pBddCpaNamedRegionManager.makeOr(presenceCondition, goal.getRemainingPresenceCondition());
+    }
+
+    return presenceCondition;
   }
 
 }

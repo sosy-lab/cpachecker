@@ -287,4 +287,29 @@ public class TestSuite {
     }
   }
 
+  public boolean areGoalsCovered(Set<Goal> pTestGoalsToBeProcessed) {
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      if (!isGoalCovered(goal)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  public boolean areTestGoalsInfeasible(Set<Goal> pTestGoalsToBeProcessed) {
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      if (!isTestGoalInfeasible(goal)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition) {
+    for (Goal goal : pTestGoalsToBeProcessed) {
+      addTimedOutGoal(goal, pRemainingPresenceCondition);
+    }
+  }
+
 }

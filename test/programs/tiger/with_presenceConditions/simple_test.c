@@ -11,8 +11,13 @@ int main() {
 		G2: c = a - b;
 		G3: c *= a;
 	}
-	
+
 	G4: c += b;
+
+	a = 1;
+	if (a == 10) {
+		G5: c = c;
+	}
 
 	return 0;
 }

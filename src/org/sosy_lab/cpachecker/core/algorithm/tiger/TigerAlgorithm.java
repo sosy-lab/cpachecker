@@ -224,6 +224,12 @@ public class TigerAlgorithm
 
   @Option(
       secure = true,
+      name = "numberOfTestGoalsPerRun",
+      description = "The number of test goals processed per CPAchecker run (0: all test cases in one run).")
+  private int numberOfTestGoalsPerRun = 1;
+
+  @Option(
+      secure = true,
       name = "allCoveredGoalsPerTestCase",
       description = "Returns all test goals covered by a test case.")
   private boolean allCoveredGoalsPerTestCase = false;
@@ -387,11 +393,21 @@ public class TigerAlgorithm
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
 
     while (!pGoalsToCover.isEmpty()) {
-      statistics_numberOfProcessedTestGoals++;
+      Set<Goal> goalsToBeProcessed = new HashSet<>();
+      int testGoalSetSize = (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
+      for (int i = 0; i < testGoalSetSize; i++) {
+        statistics_numberOfProcessedTestGoals++;
+        goalsToBeProcessed.add(pGoalsToCover.poll());
+      }
 
+      // TODO DELETE-
       Goal goal = pGoalsToCover.poll();
 
-      while (!testsuite.isGoalCovered(goal) && !testsuite.isTestGoalInfeasible(goal)) {
+      // TODO DELETE-
+      // while (!testsuite.isGoalCovered(goal) && !testsuite.isTestGoalInfeasible(goal)) {
+
+      // TODO: remove covered and infeasible test goals from set?
+      while (!testsuite.areGoalsCovered(goalsToBeProcessed) && !testsuite.areTestGoalsInfeasible(goalsToBeProcessed)) {
         if (useTigerAlgorithm_with_pc) {
           /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
            * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
@@ -401,56 +417,61 @@ public class TigerAlgorithm
           reachedSet = null;
         }
 
+        String logString = "Processing test goals ";
+        for (Goal g : goalsToBeProcessed) {
+          logString += g.getIndex() + " (" + testsuite.getTestGoalLabel(g) + "), ";
+        }
+        logString = logString.substring(0, logString.length() - 2);
         if (useTigerAlgorithm_with_pc) {
-          logger.logf(Level.INFO, "Processing test goal %d of %d (%s) for PC %s.", goal.getIndex(),
-              numberOfTestGoals, testsuite.getTestGoalLabel(goal),
-              bddCpaNamedRegionManager.dumpRegion(goal.getRemainingPresenceCondition()));
+          Region remainingPresenceCondition = BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, bddCpaNamedRegionManager);
+          logger.logf(Level.INFO, "%s of %d for PC %s.", logString, numberOfTestGoals, bddCpaNamedRegionManager.dumpRegion(remainingPresenceCondition));
         } else {
-          logger.logf(Level.INFO, "Processing test goal %d of %d (%s).", goal.getIndex(), numberOfTestGoals,
-              testsuite.getTestGoalLabel(goal));
+          logger.logf(Level.INFO, "%s of %d.", logString, numberOfTestGoals);
         }
 
-        if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
-          // GoalPrediction does not use the target presence condition (remainingPCforGoalCoverage)
-          // I think this is OK (any infeasible goal will be even more infeasible when restricted with a certain pc)
-          // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
-          logger.logf(Level.INFO, "This goal is predicted as infeasible!");
-          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
-          continue;
-        }
+        // TODO: enable tiger techniques for multi-goal generation in one run
+//        if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
+//          // GoalPrediction does not use the target presence condition (remainingPCforGoalCoverage)
+//          // I think this is OK (any infeasible goal will be even more infeasible when restricted with a certain pc)
+//          // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
+//          logger.logf(Level.INFO, "This goal is predicted as infeasible!");
+//          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
+//          continue;
+//        }
+//
+//        NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = goal.getAutomaton();
+//        if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
+//          // current goal is for sure infeasible
+//          logger.logf(Level.INFO, "Test goal infeasible.");
+//          if (useTigerAlgorithm_with_pc) {
+//            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
+//                bddCpaNamedRegionManager.dumpRegion(goal.getInfeasiblePresenceCondition()));
+//          }
+//          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
+//          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
+//        }
+//
+//        if (checkCoverage && isCovered(goal)) {
+//          if (lGoalPrediction != null) {
+//            lGoalPrediction[goal.getIndex() - 1] = Prediction.FEASIBLE;
+//          }
+//          continue;
+//        }
 
-        NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = goal.getAutomaton();
-        if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
-          // current goal is for sure infeasible
-          logger.logf(Level.INFO, "Test goal infeasible.");
-          if (useTigerAlgorithm_with_pc) {
-            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-                bddCpaNamedRegionManager.dumpRegion(goal.getInfeasiblePresenceCondition()));
-          }
-          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
-          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
-        }
-
-        if (checkCoverage && isCovered(goal)) {
-          if (lGoalPrediction != null) {
-            lGoalPrediction[goal.getIndex() - 1] = Prediction.FEASIBLE;
-          }
-          continue;
-        }
-
-        if (testsuite.isTestGoalInfeasible(goal)) {
+        if (testsuite.areTestGoalsInfeasible(goalsToBeProcessed)) {
           continue;
         }
 
         // goal is uncovered so far; run CPAchecker to cover it
         ReachabilityAnalysisResult result =
-            runReachabilityAnalysis(goal, previousAutomaton, pInfeasibilityPropagation,
-                goal.getRemainingPresenceCondition(), pGoalsToCover);
+            runReachabilityAnalysis(goalsToBeProcessed, previousAutomaton, pInfeasibilityPropagation,
+                BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, bddCpaNamedRegionManager),
+                pGoalsToCover);
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
         }
-        previousAutomaton = currentAutomaton;
+//        previousAutomaton = currentAutomaton;
 
         if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
           continue;
@@ -553,8 +574,11 @@ public class TigerAlgorithm
               continue;
             }*/
 
+            Set<Goal> goals = new HashSet<>();
+            goals.add(lGoal);
+
             ReachabilityAnalysisResult result =
-                runReachabilityAnalysis(lGoal, previousAutomaton, pInfeasibilityPropagation,
+                runReachabilityAnalysis(goals, previousAutomaton, pInfeasibilityPropagation,
                     lGoal.getRemainingPresenceCondition(), pGoalsToCover);
             if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
               logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -678,12 +702,12 @@ public class TigerAlgorithm
     TIMEDOUT
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal,
+  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition, List<Goal> pGoals)
           throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    ARGCPA lARTCPA = composeCPA(pGoal);
+    ARGCPA lARTCPA = composeCPA(pTestGoalsToBeProcessed);
 
     Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
@@ -691,11 +715,12 @@ public class TigerAlgorithm
         ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
 
-    if (reuseARG && (reachedSet != null)) {
-      reuseARG(pGoal, pPreviousGoalAutomaton, lARTCPA);
-    } else {
+    // TODO: enable tiger techniques for multi-goal generation in one run
+//    if (reuseARG && (reachedSet != null)) {
+//      reuseARG(pTestGoalsToBeProcessed, pPreviousGoalAutomaton, lARTCPA);
+//    } else {
       initializeReachedSet(lARTCPA);
-    }
+//    }
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
     startupConfig.getConfig();
@@ -703,26 +728,31 @@ public class TigerAlgorithm
     Algorithm algorithm = initializeAlgorithm(pRemainingPresenceCondition, lARTCPA, algNotifier);
 
     ReachabilityAnalysisResult algorithmStatus =
-        runReachabilityAnalysis(pGoal, pRemainingPresenceCondition, algNotifier, algorithm);
+        runReachabilityAnalysis(pTestGoalsToBeProcessed, pRemainingPresenceCondition, algNotifier, algorithm);
 
     if (printARGperGoal) {
-      Path argFile = Paths.get("output", "ARG_goal_" + pGoal.getIndex() + ".dot");
+      for (Goal goal : pTestGoalsToBeProcessed) {
+        Path argFile = Paths.get("output", "ARG_goal_" + goal.getIndex() + ".dot");
 
-      try (Writer w = Files.openOutputFile(argFile)) {
-        ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+        try (Writer w = Files.openOutputFile(argFile)) {
+          ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+        }
       }
     }
 
     if (algorithmStatus != ReachabilityAnalysisResult.TIMEDOUT) {
-      handleCounterexample(pGoal, pRemainingPresenceCondition, pGoals, lARTCPA, pInfeasibilityPropagation);
+   // TODO: enable tiger techniques for multi-goal generation in one run
+      for (Goal goal : pTestGoalsToBeProcessed) {
+        handleCounterexample(goal, pRemainingPresenceCondition, pGoals, lARTCPA, pInfeasibilityPropagation);
+      }
     }
 
     return algorithmStatus;
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, Region pRemainingPresenceCondition,
+  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition,
       ShutdownNotifier algNotifier, Algorithm algorithm)
           throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     ReachabilityAnalysisResult algorithmStatus;
@@ -756,7 +786,7 @@ public class TigerAlgorithm
         if (workerRunnable.hasTimeout()) {
           logger.logf(Level.INFO, "Test goal timed out!");
 
-          testsuite.addTimedOutGoal(pGoal, pRemainingPresenceCondition);
+          testsuite.addTimedOutGoals(pTestGoalsToBeProcessed, pRemainingPresenceCondition);
 
           algorithmStatus = ReachabilityAnalysisResult.TIMEDOUT;
         }
@@ -1115,8 +1145,15 @@ public class TigerAlgorithm
     return inputValues;
   }
 
-  private ARGCPA composeCPA(Goal pGoal) throws CPAException, InvalidConfigurationException {
-    Automaton goalAutomaton = pGoal.createControlAutomaton();
+  private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed) throws CPAException, InvalidConfigurationException {
+    Automaton goalAutomaton = null;
+
+    // TODO: Andreas remove goalAutomaton and use goalAutomatons.
+    Set<Automaton> goalAutomatons = new HashSet<>();
+    for (Goal goal : pGoalsToBeProcessed) {
+      goalAutomatons.add(goal.createControlAutomaton());
+      goalAutomaton = goal.createControlAutomaton();
+    }
 
     Preconditions.checkArgument(cpa instanceof ARGCPA,
         "Tiger: Only support for ARGCPA implemented for CPA composition!");
