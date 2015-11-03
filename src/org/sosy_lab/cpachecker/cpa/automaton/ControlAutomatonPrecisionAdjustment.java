@@ -80,6 +80,8 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
   private TimeSpan totalRefineTimeLimit = TimeSpan.ofNanos(-1);
 
+  public static int hackyLimitFactor = 1;
+
 //@Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
 //private int targetDisabledAfterRefinements = 0;
 
@@ -151,17 +153,18 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
         if (t.isPresent()) {
           StatCpuTime s = t.get();
           if (s.getIntervals() > 0) {
-            final double avg = s.getCpuTimeSumMilliSecs() / s.getIntervals();
-            logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), avg);
+            final long avgMsec = s.getCpuTimeSumMilliSecs()  / s.getIntervals();
+            logger.logf(Level.INFO, "Precision refinement time (msec) for %s: %d avg, %d total",
+                pProperty.toString(), avgMsec, s.getCpuTimeSumMilliSecs());
 
             if (avgRefineTimeLimit.asMillis() > 0
-                && avg > avgRefineTimeLimit.asMillis()) {
+                && avgMsec > avgRefineTimeLimit.asMillis() * hackyLimitFactor) {
               logger.log(Level.INFO, "Exhausted avg. refine. time of property " + pProperty.toString());
               return true;
             }
 
             if (totalRefineTimeLimit.asMillis() > 0
-                && s.getCpuTimeSumMilliSecs() > totalRefineTimeLimit.asMillis()) {
+                && s.getCpuTimeSumMilliSecs() > totalRefineTimeLimit.asMillis() * hackyLimitFactor) {
               logger.log(Level.INFO, "Exhausted total refine. time of property " + pProperty.toString());
               return true;
             }

@@ -31,6 +31,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
@@ -41,8 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableList.Builder;
 
 /**
  * A transition in the automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
@@ -424,10 +424,10 @@ class AutomatonTransition {
     return assumption;
   }
 
-  public ImmutableMap<AStatement, Boolean> getAssumptionWithTruth() {
-    Builder<AStatement, Boolean> result = ImmutableMap.<AStatement, Boolean>builder();
+  public ImmutableList<Pair<AStatement, Boolean>> getAssumptionWithTruth() {
+    Builder<Pair<AStatement, Boolean>> result = ImmutableList.<Pair<AStatement, Boolean>>builder();
     for (AStatement stmt: this.assumption) {
-      result.put(stmt, assumptionTruth);
+      result.add(Pair.of(stmt, assumptionTruth));
     }
     return result.build();
   }

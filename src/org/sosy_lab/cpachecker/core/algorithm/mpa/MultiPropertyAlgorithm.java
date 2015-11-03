@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonPrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -350,7 +351,12 @@ public final class MultiPropertyAlgorithm implements Algorithm {
             PropertyStats.INSTANCE.clear();
 
             ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
+            logger.log(Level.INFO, "All properties: " + all.toString());
             logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
+            logger.log(Level.INFO, "Satisfied properties: " + satisfied.toString());
+            logger.log(Level.INFO, "Violated properties: " + violated.toString());
+
+            ControlAutomatonPrecisionAdjustment.hackyLimitFactor = ControlAutomatonPrecisionAdjustment.hackyLimitFactor * 2;
 
             checkPartitions = partitionOperator.partition(checkPartitions, remaining, disabledProperties);
           } catch (PartitioningException e) {

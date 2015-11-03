@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.List;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Sub-interface for {@link AbstractState}s that marks states
@@ -45,7 +46,7 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    *  or if its negation should be considered.
    * @return A (possibly empty list) of statements.
    */
-  ImmutableMap<AStatement, Boolean> getAssumptions();
+  ImmutableList<Pair<AStatement, Boolean>> getAssumptions();
 
   /**
    * Get the list of assumptions transformed into AssumeEdges.

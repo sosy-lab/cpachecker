@@ -28,11 +28,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -47,7 +47,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 class AutomatonExpressionArguments {
 
@@ -202,10 +203,9 @@ class AutomatonExpressionArguments {
     this.transitionVariables.putAll(pTransitionVariables);
   }
 
-  public ImmutableMap<AStatement, Boolean> instantiateAssumtions(ImmutableMap<AStatement, Boolean> pAssumptions) {
+  public ImmutableList<Pair<AStatement, Boolean>> instantiateAssumtions (ImmutableList<Pair<AStatement, Boolean>> pSymbolicAssumes) {
 
-
-    final ImmutableMap.Builder<AStatement, Boolean> builder = ImmutableMap.<AStatement, Boolean>builder();
+    Builder<Pair<AStatement, Boolean>> builder = ImmutableList.<Pair<AStatement, Boolean>>builder();
     final SubstitutingCAstNodeVisitor visitor = new SubstitutingCAstNodeVisitor(new SubstituteProvider() {
       @Override
       public CAstNode findSubstitute(CAstNode pNode) {
@@ -238,16 +238,16 @@ class AutomatonExpressionArguments {
       }
     });
 
-    for (Entry<AStatement, Boolean> entry: pAssumptions.entrySet()) {
-      final AStatement stmt = entry.getKey();
-      final Boolean truth = entry.getValue();
+    for (Pair<AStatement, Boolean> entry: pSymbolicAssumes) {
+      final AStatement stmt = entry.getFirst();
+      final Boolean truth = entry.getSecond();
 
       if (stmt instanceof CStatement) {
         CStatement inst = (CStatement)((CStatement) stmt).accept(visitor);
-        builder.put(inst, truth);
+        builder.add(Pair.<AStatement, Boolean>of(inst, truth));
       } else {
         this.getLogger().log(Level.WARNING, "Could not instantiate transition assumption! Support for non-C-languages is missing at the moment!");
-        builder.put(stmt, truth);
+        builder.add(Pair.of(stmt, truth));
       }
     }
 

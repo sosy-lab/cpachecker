@@ -31,9 +31,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -79,7 +78,9 @@ public class AutomatonState
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.TOP,
-          pAutomatonCPA, ImmutableMap.<AStatement, Boolean> of(), 0, 0, null);
+          pAutomatonCPA,
+          ImmutableList.<Pair<AStatement, Boolean>> of(),
+          0, 0, null);
     }
 
     @Override
@@ -100,7 +101,9 @@ public class AutomatonState
     public INACTIVE(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.INACTIVE,
-          pAutomatonCPA, ImmutableMap.<AStatement, Boolean> of(), 0, 0, null);
+          pAutomatonCPA,
+          ImmutableList.<Pair<AStatement, Boolean>> of(),
+          0, 0, null);
     }
 
     @Override
@@ -121,7 +124,8 @@ public class AutomatonState
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.BOTTOM,
-          pAutomatonCPA, ImmutableMap.<AStatement, Boolean> of(), 0, 0, null);
+          pAutomatonCPA, ImmutableList.<Pair<AStatement, Boolean>> of(),
+          0, 0, null);
     }
 
     @Override
@@ -138,7 +142,7 @@ public class AutomatonState
   private transient ControlAutomatonCPA automatonCPA;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
-  private final ImmutableMap<AStatement, Boolean> assumptions;
+  private final ImmutableList<Pair<AStatement, Boolean>> assumptions;
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
@@ -146,14 +150,15 @@ public class AutomatonState
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      ImmutableMap<AStatement, Boolean> pAssumptions, int successfulMatches, int failedMatches,
+      ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
+      int successfulMatches, int failedMatches,
       AutomatonSafetyProperty pSafetyProperty) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
       return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
-          pAssumptions, successfulMatches, failedMatches,
+          pInstantiatedAssumes, successfulMatches, failedMatches,
           pSafetyProperty);
     }
   }
@@ -164,14 +169,14 @@ public class AutomatonState
       AutomatonSafetyProperty pSafetyProperty) {
 
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
-        ImmutableMap.<AStatement, Boolean> of(), successfulMatches, failedMatches,
-        pSafetyProperty);
+        ImmutableList.<Pair<AStatement, Boolean>> of(),
+        successfulMatches, failedMatches, pSafetyProperty);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
-      ImmutableMap<AStatement, Boolean> pAssumptions,
+      ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       int successfulMatches,
       int failedMatches,
       AutomatonSafetyProperty pSafetyProperty) {
@@ -181,7 +186,7 @@ public class AutomatonState
     this.automatonCPA = checkNotNull(pAutomatonCPA);
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
-    this.assumptions = pAssumptions;
+    this.assumptions = pInstantiatedAssumes;
 
     if (isTarget()) {
       checkNotNull(pSafetyProperty);
@@ -230,8 +235,8 @@ public class AutomatonState
     if (assumptions.isEmpty()) { return ImmutableList.of(); }
 
     List<CStatementEdge> result = new ArrayList<>(assumptions.size());
-    for (Entry<AStatement, Boolean> entry : assumptions.entrySet()) {
-      final AStatement statement = entry.getKey();
+    for (Pair<AStatement, Boolean> entry : assumptions) {
+      final AStatement statement = entry.getFirst();
 
       if (statement instanceof CAssignment) {
         CAssignment assignment = (CAssignment) statement;
@@ -261,9 +266,9 @@ public class AutomatonState
     CBinaryExpressionBuilder expressionBuilder =
         new CBinaryExpressionBuilder(automatonCPA.getMachineModel(), automatonCPA.getLogManager());
 
-    for (Entry<AStatement, Boolean> entry : assumptions.entrySet()) {
-      final AStatement statement = entry.getKey();
-      final boolean truthStatement = entry.getValue();
+    for (Pair<AStatement, Boolean> entry : assumptions) {
+      final AStatement statement = entry.getFirst();
+      final boolean truthStatement = entry.getSecond();
 
       if (statement instanceof CAssignment) {
         // Assignments
@@ -466,7 +471,7 @@ public class AutomatonState
   }
 
   @Override
-  public ImmutableMap<AStatement, Boolean> getAssumptions() {
+  public ImmutableList<Pair<AStatement, Boolean>> getAssumptions() {
     return assumptions;
   }
 
