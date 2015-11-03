@@ -69,10 +69,16 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private int violationsLimit = 1;
 
   @Option(secure=true, name="limit.avgRefineTime",
-      description="Disable a property after the avg. time (msec) for refinements was exhausted.")
+      description="Disable a property after the avg. time for refinements was exhausted.")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
     defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
   private TimeSpan avgRefineTimeLimit = TimeSpan.ofNanos(-1);
+
+  @Option(secure=true, name="limit.totalRefineTime",
+      description="Disable a property after a specific time (total) for refinements was exhausted.")
+  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
+    defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
+  private TimeSpan totalRefineTimeLimit = TimeSpan.ofNanos(-1);
 
 //@Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
 //private int targetDisabledAfterRefinements = 0;
@@ -138,7 +144,8 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
              || (targetDisabledAfterRefinements > 0
                  && maxInfeasibleCexs >= targetDisabledAfterRefinements);
 
-    if (avgRefineTimeLimit.asMillis() > 0) {
+    if (avgRefineTimeLimit.asMillis() > 0
+     || totalRefineTimeLimit.asMillis() > 0) {
       try {
         Optional<StatCpuTime> t = PropertyStats.INSTANCE.getRefinementTime(pProperty);
         if (t.isPresent()) {
@@ -147,8 +154,15 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
             final double avg = s.getCpuTimeSumMilliSecs() / s.getIntervals();
             logger.logf(Level.INFO, "Average precision refinement time for %s: %f", pProperty.toString(), avg);
 
-            if (avg > avgRefineTimeLimit.asMillis()) {
-              logger.log(Level.INFO, "Exhausted resources of property " + pProperty.toString());
+            if (avgRefineTimeLimit.asMillis() > 0
+                && avg > avgRefineTimeLimit.asMillis()) {
+              logger.log(Level.INFO, "Exhausted avg. refine. time of property " + pProperty.toString());
+              return true;
+            }
+
+            if (totalRefineTimeLimit.asMillis() > 0
+                && s.getCpuTimeSumMilliSecs() > totalRefineTimeLimit.asMillis()) {
+              logger.log(Level.INFO, "Exhausted total refine. time of property " + pProperty.toString());
               return true;
             }
           }
