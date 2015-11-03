@@ -88,8 +88,12 @@ public class PartitioningDefaultOperator implements PartitioningOperator {
 
     // If possible not equal to the last partitioning
     if (pLastCheckedPartitioning.equals(result)) {
-      throw new PartitioningException("No new partitioning of properties found!");
-      // return bisectPartitons(result);
+      // Divide the partitioning into two halfs...
+      ImmutableSet<ImmutableSet<Property>> bisect = bisectPartitons(result);
+
+      // Return the first of the partitions...
+      return ImmutableSet.of(bisect.iterator().next());
+
     }
 
     return result;
