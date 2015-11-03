@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
 
+import java.util.Comparator;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public interface PartitioningOperator {
@@ -39,8 +41,10 @@ public interface PartitioningOperator {
     }
   }
 
-  public ImmutableSet<ImmutableSet<Property>> partition(
-      ImmutableSet<ImmutableSet<Property>> pLastCheckedPartitioning,
-      Set<Property> pToCheck, Set<Property> pDisabledProperties) throws PartitioningException;
+  public ImmutableList<ImmutableSet<Property>> partition(
+      ImmutableList<ImmutableSet<Property>> pLastCheckedPartitioning,
+      Set<Property> pToCheck,
+      Set<Property> pDisabledProperties,
+      Comparator<Property> pPropertyExpenseComparator) throws PartitioningException;
 
 }

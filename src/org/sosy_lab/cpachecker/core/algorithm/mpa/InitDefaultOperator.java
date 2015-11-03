@@ -28,9 +28,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -43,14 +46,17 @@ public class InitDefaultOperator implements InitOperator {
 
   @Override
   public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
-      ImmutableSet<ImmutableSet<Property>> pPartitioning) {
+      ImmutableList<ImmutableSet<Property>> pPartitioning) {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
     ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getActiveProperties(pE0, pReached);
 
-    Preconditions.checkArgument(pPartitioning.size() == 1, "This init operator requires exactly one partition of properties!");
+    Preconditions.checkArgument(pPartitioning.size() > 0, "This init operator requires at least one partition of properties!");
     Preconditions.checkState(allProperties.size() > 0, "There must be a set of properties that get checked!");
+
+    // At the moment we check the first partition in the list
+    ImmutableSet<Property> partitionToChcek = pPartitioning.get(0);
 
     // Reset the sets 'reached' and 'waitlist' to contain only
     //  the initial state and its initial precision
@@ -61,9 +67,14 @@ public class InitDefaultOperator implements InitOperator {
     }
 
     // Modify the 'waitlist': Blacklist those properties that are not in the partition!
-    ImmutableSet<Property> toCheck = pPartitioning.iterator().next();
-    SetView<Property> toBlacklist = Sets.difference(allProperties, toCheck);
-    MultiPropertyAlgorithm.disablePropertiesForWaitlist(pReached, toBlacklist);
+    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
+
+    SetView<Property> toBlacklist = Sets.difference(allProperties, partitionToChcek);
+    MultiPropertyAlgorithm.disablePropertiesForWaitlist(argCpa, pReached, toBlacklist);
+
+    // Check
+    ImmutableSet<Property> active = MultiPropertyAlgorithm.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);
+    Preconditions.checkState(Sets.intersection(toBlacklist, active).size() == 0, "Blacklisted properties must not be active!");
   }
 
 

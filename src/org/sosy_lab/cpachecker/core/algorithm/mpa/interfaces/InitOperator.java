@@ -28,10 +28,11 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public interface InitOperator {
 
-  public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0, ImmutableSet<ImmutableSet<Property>> pPartitioning);
+  public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0, ImmutableList<ImmutableSet<Property>> pPartitioning);
 
 }

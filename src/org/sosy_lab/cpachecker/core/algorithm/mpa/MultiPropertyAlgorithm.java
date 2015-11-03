@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -70,6 +71,9 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
@@ -78,6 +82,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
@@ -117,8 +122,53 @@ public final class MultiPropertyAlgorithm implements Algorithm {
   private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
+  private ResourceLimitChecker reschecker = null;
 
   public static int hackyRefinementBound = 0;
+
+  private final Comparator<Property> propertyExpenseComparator = new Comparator<Property>() {
+
+    @Override
+    public int compare(Property p1, Property p2) {
+      Optional<StatCounter> p1refCount = PropertyStats.INSTANCE.getRefinementCount(p1);
+      Optional<StatCounter> p2refCount = PropertyStats.INSTANCE.getRefinementCount(p2);
+      Optional<StatCpuTime> p1refTime = PropertyStats.INSTANCE.getRefinementTime(p1);
+      Optional<StatCpuTime> p2refTime = PropertyStats.INSTANCE.getRefinementTime(p2);
+
+      // -1 : P1 is cheaper
+      // +1 : P1 is more expensive
+
+      if (p1refTime.isPresent()) {
+        if (!p2refTime.isPresent()) {
+          return 1;
+        }
+
+        try {
+          if (p1refTime.get().getCpuTimeSumMilliSecs() < p2refTime.get().getCpuTimeSumMilliSecs()) {
+            return -1;
+          } else if (p1refTime.get().getCpuTimeSumMilliSecs() > p2refTime.get().getCpuTimeSumMilliSecs()) {
+            return 1;
+          }
+        } catch (NoTimeMeasurement e) {
+          return 0;
+        }
+      }
+
+      if (p1refCount.isPresent()) {
+        if (!p2refCount.isPresent()) {
+          return 1;
+        }
+
+        if (p1refCount.get().getValue() < p2refCount.get().getValue()) {
+          return -1;
+        } else if (p1refCount.get().getValue() > p2refCount.get().getValue()) {
+          return 1;
+        }
+      }
+
+      return 0;
+    }
+  };
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier)
@@ -240,11 +290,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       final AbstractState e0 = pReachedSet.getFirstState();
       final Precision pi0 = pReachedSet.getPrecision(e0);
 
-      final ImmutableSet<ImmutableSet<Property>> noPartitioning = ImmutableSet.of();
+      final ImmutableList<ImmutableSet<Property>> noPartitioning = ImmutableList.of();
+      ImmutableList<ImmutableSet<Property>> checkPartitions;
 
-      ImmutableSet<ImmutableSet<Property>> checkPartitions;
       try {
-        checkPartitions = partitionOperator.partition(noPartitioning, all, ImmutableSet.<Property>of());
+        checkPartitions = partitionOperator.partition(noPartitioning, all, ImmutableSet.<Property>of(), propertyExpenseComparator);
       } catch (PartitioningException e1) {
         throw new CPAException("Partitioning failed!", e1);
       }
@@ -271,6 +321,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
             // A) the resource limit for the analysis run has exceeded
             logger.log(Level.WARNING, "Resource limit for properties exceeded!");
+
+            // Stop the checker
+            if (reschecker != null) {
+              reschecker.cancel();
+            }
 
             Preconditions.checkState(!pReachedSet.isEmpty());
             Stats.incCounter("Times reachability interrupted", 1);
@@ -315,7 +370,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
           checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
 
           // Just adjust the precision of the states in the waitlist
-          disablePropertiesForWaitlist(pReachedSet, violated);
+          disablePropertiesForWaitlist(cpa, pReachedSet, violated);
 
         } else {
 
@@ -327,6 +382,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
             SetView<Property> active = Sets.difference(all,
                 Sets.union(violated, getInactiveProperties(pReachedSet)));
             satisfied.addAll(active);
+
+            logger.log(Level.INFO, "Fixpoint reached for: " + active.toString());
 
           } else {
             // The analysis terminated because it ran out of resources
@@ -348,9 +405,8 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
           Stats.incCounter("Adjustments of property partitions", 1);
           try {
-            PropertyStats.INSTANCE.clear();
-
             ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
+
             logger.log(Level.INFO, "All properties: " + all.toString());
             logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
             logger.log(Level.INFO, "Satisfied properties: " + satisfied.toString());
@@ -358,7 +414,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
             ControlAutomatonPrecisionAdjustment.hackyLimitFactor = ControlAutomatonPrecisionAdjustment.hackyLimitFactor * 2;
 
-            checkPartitions = partitionOperator.partition(checkPartitions, remaining, disabledProperties);
+            checkPartitions = partitionOperator.partition(checkPartitions, remaining, disabledProperties, propertyExpenseComparator);
+
+            // Reset the statistics of the properties
+            PropertyStats.INSTANCE.clear();
+
           } catch (PartitioningException e) {
             logger.log(Level.INFO, e.getMessage());
             break;
@@ -412,7 +472,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return lastRunPropertySummary;
   }
 
-  private void initAndStartLimitChecker() {
+  private synchronized void initAndStartLimitChecker() {
 
     try {
       interruptNotifier.reset();
@@ -428,12 +488,17 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         limits.add(WalltimeLimit.fromNowOn(walltime));
       }
 
+      // Stop the old check
+      if (reschecker != null) {
+        reschecker.cancel();
+      }
+
       // Start the check
-      ResourceLimitChecker checker = new ResourceLimitChecker(
+      reschecker = new ResourceLimitChecker(
           interruptNotifier.getNotifier(), // The order of notifiers is important!
           limits);
 
-      checker.start();
+      reschecker.start();
 
     } catch (JMException e) {
       throw new RuntimeException("Initialization of ResourceLimitChecker failed!", e);
@@ -442,7 +507,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
 
   private void initReached(final ReachedSet pReachedSet,
       final AbstractState pE0, final Precision pPi0,
-      final ImmutableSet<ImmutableSet<Property>> pCheckPartitions) {
+      final ImmutableList<ImmutableSet<Property>> pCheckPartitions) {
 
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
@@ -452,7 +517,13 @@ public final class MultiPropertyAlgorithm implements Algorithm {
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
       logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.size()));
 
-      logger.logf(Level.WARNING, "Property partitions: %s", toReadable(pCheckPartitions));
+      {
+        int nth = 0;
+        for (ImmutableSet<Property> p: pCheckPartitions) {
+          nth++;
+          logger.logf(Level.WARNING, "Partition %d with %d elements: %s", nth, p.size(), p.toString());
+        }
+      }
 
       // Reset the information in counterexamples, inactive properties, ...
       ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
@@ -461,11 +532,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     }
   }
 
-  static ImmutableSet<ImmutableSet<Property>> removePropertiesFrom(
-      ImmutableSet<ImmutableSet<Property>> pOldPartitions,
+  static ImmutableList<ImmutableSet<Property>> removePropertiesFrom(
+      ImmutableList<ImmutableSet<Property>> pOldPartitions,
       Set<Property> pRunViolated) {
 
-    ImmutableSet.Builder<ImmutableSet<Property>> result = ImmutableSet.<ImmutableSet<Property>>builder();
+    ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
 
     for (ImmutableSet<Property> p: pOldPartitions) {
       result.add(ImmutableSet.<Property>copyOf(Sets.difference(p, pRunViolated)));
@@ -474,7 +545,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return result.build();
   }
 
-  static void disablePropertiesForWaitlist(final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
+  static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
 
     final HashSet<AutomatonSafetyProperty> toBlacklist = Sets.newHashSet(
       Collections2.transform(pToBlacklist, new Function<Property, AutomatonSafetyProperty>() {
@@ -497,6 +568,10 @@ public final class MultiPropertyAlgorithm implements Algorithm {
         pReachedSet.updatePrecision(e, piPrime);
       }
     }
+
+    for (Property p: pToBlacklist) {
+      pCpa.getCexSummary().signalPropertyDisabled(p);
+    }
   }
 
   public static Precision blacklistProperties(final Precision pi, final HashSet<AutomatonSafetyProperty> toBlacklist) {
@@ -513,7 +588,7 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return piPrime;
   }
 
-  public static String toReadable(ImmutableSet<ImmutableSet<Property>> pSetsOfProps) {
+  public static String toReadable(Iterable<ImmutableSet<Property>> pSetsOfProps) {
     final StringBuilder result = new StringBuilder();
     result.append("[");
     for (Set<Property> s: pSetsOfProps) {
