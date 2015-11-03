@@ -60,6 +60,9 @@
 
 # /lib/source/
 
+# /scripts/
+/scripts/witness-validation.pyz
+
 # /src/
 /src/.hg*
 /src/build.properties
