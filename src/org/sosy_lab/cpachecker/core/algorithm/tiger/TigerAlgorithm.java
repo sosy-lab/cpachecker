@@ -355,7 +355,8 @@ public class TigerAlgorithm
       throw new CPAException("Invalid configuration!", e1);
     }
 
-    assert (pGoalsToCover.isEmpty());
+    assert(pGoalsToCover.isEmpty());
+
     // write generated test suite and mapping to file system
     try (Writer writer =
         new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
@@ -364,6 +365,7 @@ public class TigerAlgorithm
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
     if (wasSound) {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     } else {
@@ -394,7 +396,8 @@ public class TigerAlgorithm
 
     while (!pGoalsToCover.isEmpty()) {
       Set<Goal> goalsToBeProcessed = new HashSet<>();
-      int testGoalSetSize = (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
+      int testGoalSetSize =
+          (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
       for (int i = 0; i < testGoalSetSize; i++) {
         statistics_numberOfProcessedTestGoals++;
         goalsToBeProcessed.add(pGoalsToCover.poll());
@@ -423,40 +426,42 @@ public class TigerAlgorithm
         }
         logString = logString.substring(0, logString.length() - 2);
         if (useTigerAlgorithm_with_pc) {
-          Region remainingPresenceCondition = BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, bddCpaNamedRegionManager);
-          logger.logf(Level.INFO, "%s of %d for PC %s.", logString, numberOfTestGoals, bddCpaNamedRegionManager.dumpRegion(remainingPresenceCondition));
+          Region remainingPresenceCondition =
+              BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, bddCpaNamedRegionManager);
+          logger.logf(Level.INFO, "%s of %d for PC %s.", logString, numberOfTestGoals,
+              bddCpaNamedRegionManager.dumpRegion(remainingPresenceCondition));
         } else {
           logger.logf(Level.INFO, "%s of %d.", logString, numberOfTestGoals);
         }
 
         // TODO: enable tiger techniques for multi-goal generation in one run
-//        if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
-//          // GoalPrediction does not use the target presence condition (remainingPCforGoalCoverage)
-//          // I think this is OK (any infeasible goal will be even more infeasible when restricted with a certain pc)
-//          // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
-//          logger.logf(Level.INFO, "This goal is predicted as infeasible!");
-//          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
-//          continue;
-//        }
-//
-//        NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = goal.getAutomaton();
-//        if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
-//          // current goal is for sure infeasible
-//          logger.logf(Level.INFO, "Test goal infeasible.");
-//          if (useTigerAlgorithm_with_pc) {
-//            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-//                bddCpaNamedRegionManager.dumpRegion(goal.getInfeasiblePresenceCondition()));
-//          }
-//          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
-//          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
-//        }
-//
-//        if (checkCoverage && isCovered(goal)) {
-//          if (lGoalPrediction != null) {
-//            lGoalPrediction[goal.getIndex() - 1] = Prediction.FEASIBLE;
-//          }
-//          continue;
-//        }
+        //        if (lGoalPrediction != null && lGoalPrediction[goal.getIndex() - 1] == Prediction.INFEASIBLE) {
+        //          // GoalPrediction does not use the target presence condition (remainingPCforGoalCoverage)
+        //          // I think this is OK (any infeasible goal will be even more infeasible when restricted with a certain pc)
+        //          // TODO: remainingPCforGoalCoverage could perhaps be used to improve precision of the prediction?
+        //          logger.logf(Level.INFO, "This goal is predicted as infeasible!");
+        //          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
+        //          continue;
+        //        }
+        //
+        //        NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = goal.getAutomaton();
+        //        if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
+        //          // current goal is for sure infeasible
+        //          logger.logf(Level.INFO, "Test goal infeasible.");
+        //          if (useTigerAlgorithm_with_pc) {
+        //            logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
+        //                bddCpaNamedRegionManager.dumpRegion(goal.getInfeasiblePresenceCondition()));
+        //          }
+        //          testsuite.addInfeasibleGoal(goal, goal.getRemainingPresenceCondition(), lGoalPrediction);
+        //          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
+        //        }
+        //
+        //        if (checkCoverage && isCovered(goal)) {
+        //          if (lGoalPrediction != null) {
+        //            lGoalPrediction[goal.getIndex() - 1] = Prediction.FEASIBLE;
+        //          }
+        //          continue;
+        //        }
 
         if (testsuite.areTestGoalsInfeasible(goalsToBeProcessed)) {
           continue;
@@ -471,7 +476,7 @@ public class TigerAlgorithm
           logger.logf(Level.WARNING, "Analysis run was unsound!");
           wasSound = false;
         }
-//        previousAutomaton = currentAutomaton;
+        //        previousAutomaton = currentAutomaton;
 
         if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
           continue;
@@ -716,11 +721,11 @@ public class TigerAlgorithm
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
 
     // TODO: enable tiger techniques for multi-goal generation in one run
-//    if (reuseARG && (reachedSet != null)) {
-//      reuseARG(pTestGoalsToBeProcessed, pPreviousGoalAutomaton, lARTCPA);
-//    } else {
-      initializeReachedSet(lARTCPA);
-//    }
+    //    if (reuseARG && (reachedSet != null)) {
+    //      reuseARG(pTestGoalsToBeProcessed, pPreviousGoalAutomaton, lARTCPA);
+    //    } else {
+    initializeReachedSet(lARTCPA);
+    //    }
 
     ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
     startupConfig.getConfig();
@@ -743,7 +748,7 @@ public class TigerAlgorithm
     }
 
     if (algorithmStatus != ReachabilityAnalysisResult.TIMEDOUT) {
-   // TODO: enable tiger techniques for multi-goal generation in one run
+      // TODO: enable tiger techniques for multi-goal generation in one run
       for (Goal goal : pTestGoalsToBeProcessed) {
         handleCounterexample(goal, pRemainingPresenceCondition, pGoals, lARTCPA, pInfeasibilityPropagation);
       }
@@ -752,7 +757,8 @@ public class TigerAlgorithm
     return algorithmStatus;
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition,
+  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed,
+      Region pRemainingPresenceCondition,
       ShutdownNotifier algNotifier, Algorithm algorithm)
           throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     ReachabilityAnalysisResult algorithmStatus;
@@ -814,7 +820,7 @@ public class TigerAlgorithm
 
           if (reusePredicates) {
             RefinementStrategy strategy = predicateRefiner.getStrategy();
-            assert (strategy instanceof PredicateAbstractionRefinementStrategy);
+            assert(strategy instanceof PredicateAbstractionRefinementStrategy);
 
             PredicateAbstractionRefinementStrategy refinementStrategy =
                 (PredicateAbstractionRefinementStrategy) strategy;
