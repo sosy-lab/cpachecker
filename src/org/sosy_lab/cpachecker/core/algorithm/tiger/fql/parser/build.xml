@@ -1,11 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
-<project name="FQLParserGeneration" default="generate-parser" basedir="./../../../../../../../../../">
+<project name="FQLParserGeneration" default="generate-scanner" basedir="./../../../../../../../../../">
   <!-- basedir should be the "CPAchecker" directory -->
   <property name="dir.parser" location="src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/" />
   <property name="scanner.target" value="FQLLexer"/>
   <property name="parser.target" value="FQLParser"/>
   <property name="symbols.target" value="FQLSym"/>
 
-  <import file="${basedir}/build/build-parser.xml"/>
+    <!-- basedir should be the "CPAchecker" directory -->
+    <dirname property="dir.base" file="${ant.file.imported}"/>
+    <property name="dir.src" location="${dir.base}/src" />
+    <property name="dir.lib" location="${dir.base}/lib/java/build" />
+
+    <!-- the following properties will be used as default
+         if the importing file does not overwrite them -->
+    <property name="scanner.source" value="Scanner.jflex"/>
+    <property name="skeleton.source" value="skeleton.nested"/>
+	
+    <taskdef name="jflex"
+        classname="jflex.anttask.JFlexTask"
+        classpath="${dir.lib}/jflex.jar"
+    />
+	
+    <target name="clean" description="Delete generated files">
+        <delete>
+            <fileset dir="${dir.parser}" includes="${scanner.target}.java${symbols.target}.java"/>
+        </delete>
+    </target>
+	
+    <uptodate property="scanner.uptodate" srcfile="${dir.parser}/${scanner.source}" targetfile="${dir.parser}/${scanner.target}.java"/>
+	
+    <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
+        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" />
+    </target>
+
 </project>

@@ -77,9 +77,6 @@ parser code
 	  this(new FQLLexer(pReader));
 	}
 
-	public FQLParser(InputStream pInputStream) {
-	  this(new FQLLexer(pInputStream));
-	}
 :}
 
 action code
