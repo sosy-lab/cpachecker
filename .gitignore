@@ -61,7 +61,7 @@
 # /lib/source/
 
 # /scripts/
-/scripts/witness-validation.pyz
+/scripts/witness_validation_web_cloud.pyz
 
 # /src/
 /src/.hg*

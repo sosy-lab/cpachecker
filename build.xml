@@ -241,7 +241,7 @@
     </target>
 
     <target name="build-witness-script" description="Build the script for witness validation as single file">
-        <property name="witness-script" value="scripts/witness-validation"/>
+        <property name="witness-script" value="scripts/witness_validation_web_cloud"/>
         <!-- Write ZIP archive to witness.zip, write script header to witness.sh, and concatenate. -->
         <zip destfile="${witness-script}.zip" whenempty="fail" duplicate="fail">
             <zipfileset dir="scripts" includes="witness_validation_web_cloud.py" fullpath="__main__.py" />
