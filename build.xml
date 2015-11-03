@@ -109,6 +109,7 @@
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
             <echo message="Generate precision-rewriting parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/build.xml" inheritAll="false"/>
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
