@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class AcceptAllVariableSelection<ConstantType> implements VariableSelection<ConstantType> {
 
   @Override
-  public boolean contains(String pVariableName) {
+  public boolean contains(MemoryLocation pMemoryLocation) {
     return true;
   }
 
@@ -40,7 +41,7 @@ public class AcceptAllVariableSelection<ConstantType> implements VariableSelecti
   }
 
   @Override
-  public VariableSelection<ConstantType> acceptAssignment(String pVariableName, NumeralFormula<ConstantType> pAssumption) {
+  public VariableSelection<ConstantType> acceptAssignment(MemoryLocation pMemoryLocation, NumeralFormula<ConstantType> pAssumption) {
     return this;
   }
 

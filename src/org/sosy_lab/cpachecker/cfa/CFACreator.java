@@ -52,6 +52,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser.FileToParse;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -61,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.export.FunctionCallDumper;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -89,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -652,8 +658,10 @@ private boolean classifyNodes = false;
       cfa = fca.unwindRecursion();
     }
 
-    if (useCFACloning) {
-      // must be done before adding global vars
+    if (useCFACloning && isMultiThreadedProgram(cfa)) {
+      // cloning must be done before adding global vars,
+      // current use case is ThreadingCPA, thus we check for the creation of new threads first.
+      logger.log(Level.INFO, "program contains concurrency, cloning functions...");
       final CFACloner cloner = new CFACloner(cfa, config, logger);
       cfa = cloner.execute();
     }
@@ -668,6 +676,28 @@ private boolean classifyNodes = false;
     }
 
     return cfa;
+  }
+
+  /** check, whether the program contains function calls to crate a new thread. */
+  private boolean isMultiThreadedProgram(MutableCFA pCfa) {
+    // for all possible edges
+    for (CFANode node : pCfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        // check for creation of new thread
+        if (edge instanceof AStatementEdge) {
+          final AStatement statement = ((AStatementEdge)edge).getStatement();
+          if (statement instanceof AFunctionCall) {
+            final AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+            if (functionNameExp instanceof AIdExpression) {
+              if (ThreadingTransferRelation.THREAD_START.equals(((AIdExpression)functionNameExp).getName())){
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private FunctionEntryNode getJavaMainMethod(List<String> sourceFiles, Map<String, FunctionEntryNode> cfas)

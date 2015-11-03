@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.logging.Level;
@@ -60,18 +61,19 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -169,7 +171,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           pShutdownNotifier, pCFA, pReachedSetFactory);
 
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, Optional.of(pShutdownNotifier), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -304,6 +306,21 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       }
 
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    } catch (InterruptedException e) {
+      if (invariantGenerator.isProgramSafe()) {
+        // The wait list may not be empty, which would wrongly indicate to the
+        // caller that the analysis is incomplete
+        for (AbstractState state : new ArrayList<>(reachedSet.getWaitlist())) {
+          reachedSet.removeOnlyFromWaitlist(state);
+        }
+        // The reachedSet might contain target states, which would give a wrong
+        // indication of safety to the caller, so remove them.
+        for (CandidateInvariant candidateInvariant : candidateGenerator) {
+          candidateInvariant.assumeTruth(reachedSet);
+        }
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      throw e;
     } finally {
     }
   }

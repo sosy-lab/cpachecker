@@ -70,7 +70,7 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public ThreadingCPA(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     locationCPA = new LocationCPA(pCfa, config);
     callstackCPA = new CallstackCPA(config, pLogger, pCfa);
-    transferRelation = new ThreadingTransferRelation(callstackCPA, locationCPA, pCfa);
+    transferRelation = new ThreadingTransferRelation(config, callstackCPA, locationCPA, pCfa);
   }
 
   @Override
@@ -103,7 +103,7 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
     Preconditions.checkNotNull(pNode);
     String mainThread = pNode.getFunctionName();
     ThreadingState ts = new ThreadingState();
-    return ts.addThreadAndCopy(mainThread, Pair.of(
+    return ts.addThreadAndCopy(mainThread, ThreadingState.MIN_THREAD_NUM, Pair.of(
             callstackCPA.getInitialState(pNode, pPartition),
             locationCPA.getInitialState(pNode, pPartition)));
   }

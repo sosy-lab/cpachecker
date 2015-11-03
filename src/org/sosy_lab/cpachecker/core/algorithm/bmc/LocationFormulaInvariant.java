@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -75,13 +75,13 @@ public abstract class LocationFormulaInvariant implements CandidateInvariant {
     // Do nothing
   }
 
-  public static LocationFormulaInvariant makeBooleanInvariant(CFANode pLocation, boolean pValue) {
+  public static LocationFormulaInvariant makeBooleanInvariant(CFANode pLocation, final boolean pValue) {
     return new LocationFormulaInvariant(pLocation) {
 
       @Override
       public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException,
           InterruptedException {
-        return pFMGR.getBooleanFormulaManager().makeBoolean(true);
+        return pFMGR.getBooleanFormulaManager().makeBoolean(pValue);
       }
     };
   }

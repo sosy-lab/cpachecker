@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -304,7 +305,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     if (parameter.containsAllPossibleValues()) {
       return true;
     }
-    String varName = pVariable.getName();
+    MemoryLocation memoryLocation = pVariable.getMemoryLocation();
     NumeralFormula<CompoundInterval> resolved = getFromEnvironment(pVariable);
     if (!resolved.accept(this, parameter)) {
       return false;
@@ -322,9 +323,9 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
       return false;
     }
     if (newValue.containsAllPossibleValues()) {
-      environment.remove(varName);
+      environment.remove(memoryLocation);
     } else {
-      environment.put(varName, InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getBitVectorInfo(), newValue));
+      environment.put(memoryLocation, InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getBitVectorInfo(), newValue));
     }
     return true;
   }
@@ -383,7 +384,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
    * @return the expression formula assigned to the variable.
    */
   private NumeralFormula<CompoundInterval> getFromEnvironment(Variable<CompoundInterval> pVariable) {
-    NumeralFormula<CompoundInterval> result = environment.get(pVariable.getName());
+    NumeralFormula<CompoundInterval> result = environment.get(pVariable.getMemoryLocation());
     if (result == null) {
       return InvariantsFormulaManager.INSTANCE.asConstant(pVariable.getBitVectorInfo(), getCompoundIntervalManager(pVariable).allPossibleValues());
     }

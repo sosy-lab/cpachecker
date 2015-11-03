@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 interface AbstractionState {
@@ -38,7 +39,7 @@ interface AbstractionState {
    * @param pOther the other abstraction state.
    * @return the set of widening targets.
    */
-  public Set<String> determineWideningTargets(AbstractionState pOther);
+  public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther);
 
   public Set<BooleanFormula<CompoundInterval>> getWideningHints();
 
