@@ -78,11 +78,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 
 /**
@@ -148,8 +149,27 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
   };
 
+  private Optional<ShutdownNotifier> shutdownOnSafeNotifier;
+
+  /**
+   * Creates a new {@link CPAInvariantGenerator}.
+   *
+   * @param pConfig the configuration options.
+   * @param pLogger the logger to be used.
+   * @param pShutdownNotifier shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
+   * notified if the invariant generator proves safety.
+   * @param pCFA the CFA to run the CPA on.
+   *
+   * @return a new {@link CPAInvariantGenerator}.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws CPAException if the CPA cannot be created.
+   */
   public static CPAInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
       final CFA pCFA)
           throws InvalidConfigurationException, CPAException {
 
@@ -157,15 +177,19 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
             pConfig,
             pLogger.withComponentName("CPAInvariantGenerator"),
             ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownOnSafeNotifier,
             pCFA);
   }
 
-  private CPAInvariantGenerator(final Configuration config, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA cfa)
-          throws InvalidConfigurationException, CPAException {
+  private CPAInvariantGenerator(final Configuration config,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final CFA cfa) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    shutdownOnSafeNotifier = pShutdownOnSafeNotifier;
 
     Configuration invariantConfig;
     try {
@@ -294,6 +318,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    */
   private class InvariantGenerationTask implements Callable<InvariantSupplier> {
 
+    private static final String SAFE_MESSAGE = "Invariant generation with abstract interpretation proved specification to hold.";
     private final List<AdjustableConditionCPA> conditionCPAs;
     private final CFANode initialLocation;
 
@@ -346,8 +371,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
       if (!from(taskReached).anyMatch(IS_TARGET_STATE)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
-        logger.log(Level.INFO, "Invariant generation with abstract interpretation proved specification to hold.");
+        logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;
+        if (shutdownOnSafeNotifier.isPresent()) {
+          shutdownOnSafeNotifier.get().requestShutdown(SAFE_MESSAGE);
+        }
       }
 
       return new ReachedSetBasedInvariantSupplier(
