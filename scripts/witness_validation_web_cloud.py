@@ -36,6 +36,7 @@ import urllib.request as request
 
 from benchmark.webclient import *  # @UnusedWildImport
 
+__version__ = '1.0'
 
 DEFAULT_OUTPUT_PATH = "./"
 
@@ -89,6 +90,9 @@ def _create_argument_parser():
                             + "If the path is a folder files are put into it,"
                             + "otherwise it is used as a prefix for the resulting files.")
 
+    parser.add_argument("--version",
+                        action="version",
+                        version="%(prog)s " + __version__)
     return parser
 
 def _setup_logging(config):
