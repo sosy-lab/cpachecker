@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Collections;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 /**
  * Instances of this class are parameterized invariants formula visitors used
  * to push one constant summand of an addition into the formula of the other
@@ -45,7 +47,7 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
    * is required because evaluations are exclusively done on the addition and
    * negation of constants.
    */
-  private final Map<? extends String, ? extends NumeralFormula<T>> EMPTY_ENVIRONMENT =
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<T>> EMPTY_ENVIRONMENT =
       Collections.emptyMap();
 
   /**

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -141,25 +142,25 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
       NumeralFormula<CompoundInterval> op1 = pEqual.getOperand1();
       NumeralFormula<CompoundInterval> op2 = pEqual.getOperand2();
       if (op1 instanceof Variable) {
-        String varName = ((Variable<?>) op1).getName();
-        NumeralFormula<CompoundInterval> previous = environment.get(varName);
-        environment.put(varName, op2);
+        MemoryLocation memoryLocation = ((Variable<?>) op1).getMemoryLocation();
+        NumeralFormula<CompoundInterval> previous = environment.get(memoryLocation);
+        environment.put(memoryLocation, op2);
         if (previous != null
             && !compoundIntervalFormulaManager.definitelyImplies(
                 environment,
                 compoundIntervalFormulaManager.equal(op1, previous))) {
-          environment.put(varName, previous);
+          environment.put(memoryLocation, previous);
         }
       }
       if (op2 instanceof Variable) {
-        String varName = ((Variable<?>) op2).getName();
-        NumeralFormula<CompoundInterval> previous = environment.get(varName);
-        environment.put(varName, op1);
+        MemoryLocation memoryLocation = ((Variable<?>) op2).getMemoryLocation();
+        NumeralFormula<CompoundInterval> previous = environment.get(memoryLocation);
+        environment.put(memoryLocation, op1);
         if (previous != null
             && !compoundIntervalFormulaManager.definitelyImplies(
                 environment,
                 compoundIntervalFormulaManager.equal(op2, previous))) {
-          environment.put(varName, previous);
+          environment.put(memoryLocation, previous);
         }
       }
       return pEqual.getOperand1().accept(this.pushValueToEnvironmentVisitor, rightValue)
@@ -171,15 +172,15 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     NumeralFormula<CompoundInterval> op1 = pEqual.getOperand1();
     NumeralFormula<CompoundInterval> op2 = pEqual.getOperand2();
     if (op1 instanceof Variable) {
-      String varName = ((Variable<?>) op1).getName();
-      if (environment.get(varName) == null) {
-        environment.put(varName, compoundIntervalFormulaManager.exclude(op2));
+      MemoryLocation memoryLocation = ((Variable<?>) op1).getMemoryLocation();
+      if (environment.get(memoryLocation) == null) {
+        environment.put(memoryLocation, compoundIntervalFormulaManager.exclude(op2));
       }
     }
     if (op2 instanceof Variable) {
-      String varName = ((Variable<?>) op2).getName();
-      if (environment.get(varName) == null) {
-        environment.put(varName, compoundIntervalFormulaManager.exclude(op1));
+      MemoryLocation memoryLocation = ((Variable<?>) op2).getMemoryLocation();
+      if (environment.get(memoryLocation) == null) {
+        environment.put(memoryLocation, compoundIntervalFormulaManager.exclude(op1));
       }
     }
 
@@ -272,9 +273,9 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
       }
 
       // If both may be false, the effects on the environment are united
-      for (Map.Entry<String, NumeralFormula<CompoundInterval>> entry : env2.entrySet()) {
-        String varName = entry.getKey();
-        NumeralFormula<CompoundInterval> value1 = env1.get(varName);
+      for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : env2.entrySet()) {
+        MemoryLocation memoryLocation = entry.getKey();
+        NumeralFormula<CompoundInterval> value1 = env1.get(memoryLocation);
         // Only if BOTH parts produced an environment value, they can be united to a non-top value
         if (value1 != null) {
           NumeralFormula<CompoundInterval> value2 = entry.getValue();
@@ -287,7 +288,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
           if (newValueFormula instanceof Constant<?> && ((Constant<CompoundInterval>) newValueFormula).getValue().containsAllPossibleValues()) {
             continue;
           }
-          this.environment.put(varName, newValueFormula);
+          this.environment.put(memoryLocation, newValueFormula);
         }
       }
     }

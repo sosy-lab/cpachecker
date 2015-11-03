@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -174,7 +175,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final ConditionAdjuster conditionAdjuster;
 
   @GuardedBy("itself")
-  private final Set<String> interestingVariables = new LinkedHashSet<>();
+  private final Set<MemoryLocation> interestingVariables = new LinkedHashSet<>();
 
   private final MergeOperator mergeOperator;
   private final AbstractDomain abstractDomain;
@@ -294,7 +295,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     // Collect relevant edges and guess that information might be interesting
     Set<CFAEdge> relevantEdges = new LinkedHashSet<>();
     Set<NumeralFormula<CompoundInterval>> interestingPredicates = new LinkedHashSet<>();
-    Set<String> interestingVariables;
+    Set<MemoryLocation> interestingVariables;
     synchronized (this.interestingVariables) {
       interestingVariables = new LinkedHashSet<>(this.interestingVariables);
     }
@@ -329,14 +330,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     // Try to specify all relevant variables
-    Set<String> relevantVariables = new LinkedHashSet<>();
+    Set<MemoryLocation> relevantVariables = new LinkedHashSet<>();
     boolean specifyRelevantVariables = options.analyzeRelevantVariablesOnly;
 
     final VariableSelection<CompoundInterval> variableSelection;
     if (specifyRelevantVariables) {
       // Collect all variables related to variables found on relevant assume edges from other edges with a fix point iteration
       expandFixpoint(relevantVariables, targetLocations, -1);
-      for (String variable : relevantVariables) {
+      for (MemoryLocation variable : relevantVariables) {
         if (interestingVariables.size() >= interestingVariableLimit) {
           break;
         }
@@ -352,7 +353,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     Iterator<NumeralFormula<CompoundInterval>> interestingPredicateIterator = interestingPredicates.iterator();
     while (interestingPredicateIterator.hasNext()) {
       NumeralFormula<CompoundInterval> interestingPredicate = interestingPredicateIterator.next();
-      List<String> containedUninterestingVariables = new ArrayList<>(interestingPredicate.accept(COLLECT_VARS_VISITOR));
+      List<MemoryLocation> containedUninterestingVariables = new ArrayList<>(interestingPredicate.accept(COLLECT_VARS_VISITOR));
       containedUninterestingVariables.removeAll(interestingVariables);
       if (containedUninterestingVariables.size() <= 1) {
         interestingPredicateIterator.remove();
@@ -412,7 +413,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption) throws UnrecognizedCodeException {
     if (pAssumption instanceof CAssumeEdge) {
       CAssumeEdge assumeEdge = (CAssumeEdge) pAssumption;
-      VariableNameExtractor vne = new VariableNameExtractor(
+      MemoryLocationExtractor vne = new MemoryLocationExtractor(
           compoundIntervalManagerFactory,
           machineModel,
           pAssumption);
@@ -430,7 +431,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     invariants.put(pLocation, pAssumption);
   }
 
-  public void addInterestingVariables(Iterable<String> pInterestingVariables) {
+  public void addInterestingVariables(Iterable<MemoryLocation> pInterestingVariables) {
     synchronized (this.interestingVariables) {
       Iterables.addAll(this.interestingVariables, pInterestingVariables);
     }
@@ -465,13 +466,13 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     return pLimit >= 0 && pCollection.size() >= pLimit;
   }
 
-  private void expandFixpoint(Set<String> pRelevantVariables, Set<CFANode> pRelevantLocations, int pLimit) {
+  private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, Set<CFANode> pRelevantLocations, int pLimit) {
     for (CFANode relevantLocation : pRelevantLocations) {
       expandFixpoint(pRelevantVariables, relevantLocation, pLimit);
     }
   }
 
-  private void expandFixpoint(Set<String> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
+  private void expandFixpoint(Set<MemoryLocation> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
     int prevSize = -1;
     while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
       prevSize = pRelevantVariables.size();
@@ -479,7 +480,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
   }
 
-  private void expandOnce(Set<String> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
+  private void expandOnce(Set<MemoryLocation> pRelevantVariables, CFANode pRelevantLocation, int pLimit) {
 
     Set<CFANode> pVisitedNodes = new HashSet<>();
 
@@ -530,7 +531,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
   }
 
-  private boolean anyOnPath(List<CFAEdge> pPath, Set<String> pRelevantVariables) {
+  private boolean anyOnPath(List<CFAEdge> pPath, Set<MemoryLocation> pRelevantVariables) {
     for (CFAEdge edge : pPath) {
       if (!Collections.disjoint(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet(), pRelevantVariables)) {
         return true;
@@ -565,14 +566,14 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     return true;
   }
 
-  private void addTransitivelyRelevantInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
-    Set<String> involvedVariables = edgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet();
+  private void addTransitivelyRelevantInvolvedVariables(Set<MemoryLocation> pRelevantVariables, CFAEdge pEdge, int pLimit) {
+    Set<MemoryLocation> involvedVariables = edgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet();
     if (!Collections.disjoint(pRelevantVariables, involvedVariables)) {
       addAll(pRelevantVariables, involvedVariables, pLimit);
     }
   }
 
-  private void addInvolvedVariables(Set<String> pRelevantVariables, CFAEdge pEdge, int pLimit) {
+  private void addInvolvedVariables(Set<MemoryLocation> pRelevantVariables, CFAEdge pEdge, int pLimit) {
     addAll(pRelevantVariables, edgeAnalyzer.getInvolvedVariableTypes(pEdge).keySet(), pLimit);
   }
 

@@ -74,8 +74,9 @@ import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.VariableNameExtractor;
+import org.sosy_lab.cpachecker.cpa.invariants.MemoryLocationExtractor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Instances of this class are c expression visitors used to convert c
@@ -87,9 +88,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
    * The variable name extractor used to extract variable names from c id
    * expressions.
    */
-  private final VariableNameExtractor variableNameExtractor;
+  private final MemoryLocationExtractor variableNameExtractor;
 
-  private final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> environment;
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment;
 
   private final MachineModel machineModel;
 
@@ -111,8 +112,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   public ExpressionToFormulaVisitor(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
-      VariableNameExtractor pVariableNameExtractor) {
-    this(pCompoundIntervalManagerFactory, pMachineModel, pVariableNameExtractor, Collections.<String, NumeralFormula<CompoundInterval>>emptyMap());
+      MemoryLocationExtractor pVariableNameExtractor) {
+    this(pCompoundIntervalManagerFactory, pMachineModel, pVariableNameExtractor, Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap());
   }
 
   /**
@@ -128,8 +129,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   public ExpressionToFormulaVisitor(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
-      VariableNameExtractor pVariableNameExtractor,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      MemoryLocationExtractor pVariableNameExtractor,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.machineModel = pMachineModel;
     this.variableNameExtractor = pVariableNameExtractor;
@@ -168,10 +169,10 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
         pValue);
   }
 
-  private NumeralFormula<CompoundInterval> asVariable(Type pType, String pVariableName) {
+  private NumeralFormula<CompoundInterval> asVariable(Type pType, MemoryLocation pMemoryLocation) {
     return InvariantsFormulaManager.INSTANCE.asVariable(
         BitVectorInfo.from(machineModel, pType),
-        pVariableName);
+        pMemoryLocation);
   }
 
   @Override
@@ -181,17 +182,17 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CIdExpression pCIdExpression) throws UnrecognizedCodeException {
-    return asVariable(pCIdExpression.getExpressionType(), this.variableNameExtractor.getVarName(pCIdExpression));
+    return asVariable(pCIdExpression.getExpressionType(), this.variableNameExtractor.getMemoryLocation(pCIdExpression));
   }
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CFieldReference pCFieldReference) throws UnrecognizedCodeException {
-    return asVariable(pCFieldReference.getExpressionType(), this.variableNameExtractor.getVarName(pCFieldReference));
+    return asVariable(pCFieldReference.getExpressionType(), this.variableNameExtractor.getMemoryLocation(pCFieldReference));
   }
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCodeException {
-    return asVariable(pCArraySubscriptExpression.getExpressionType(), this.variableNameExtractor.getVarName(pCArraySubscriptExpression));
+    return asVariable(pCArraySubscriptExpression.getExpressionType(), this.variableNameExtractor.getMemoryLocation(pCArraySubscriptExpression));
   }
 
   @Override
@@ -234,7 +235,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   @Override
   public NumeralFormula<CompoundInterval> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCodeException {
-    return asVariable(pCPointerExpression.getExpressionType(), variableNameExtractor.getVarName(pCPointerExpression));
+    return asVariable(pCPointerExpression.getExpressionType(), variableNameExtractor.getMemoryLocation(pCPointerExpression));
   }
 
   @Override
@@ -565,7 +566,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
 
   @Override
   public NumeralFormula<CompoundInterval> visit(JIdExpression pIdExpression) throws UnrecognizedCodeException {
-    return asVariable(pIdExpression.getExpressionType(), variableNameExtractor.getVarName(pIdExpression));
+    return asVariable(pIdExpression.getExpressionType(), variableNameExtractor.getMemoryLocation(pIdExpression));
   }
 
   @Override
@@ -585,7 +586,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
       NumeralFormula<CompoundInterval> pFormula,
       MachineModel pMachineModel,
       Type pTargetType,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
 
     BitVectorInfo bitVectorInfo = BitVectorInfo.from(pMachineModel, pTargetType);
 

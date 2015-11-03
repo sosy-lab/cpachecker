@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
@@ -96,7 +97,7 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given edge.
    */
-  public Map<String, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
+  public Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
     case AssumeEdge: {
       AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
@@ -105,7 +106,7 @@ public class EdgeAnalyzer {
     }
     case MultiEdge: {
       MultiEdge multiEdge = (MultiEdge) pCfaEdge;
-      Map<String, CType> result = new HashMap<>();
+      Map<MemoryLocation, CType> result = new HashMap<>();
       for (CFAEdge edge : multiEdge) {
         result.putAll(getInvolvedVariableTypes(edge));
       }
@@ -116,13 +117,13 @@ public class EdgeAnalyzer {
       ADeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
         CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-        String declaredVariable = variableDeclaration.getQualifiedName();
+        MemoryLocation declaredVariable = MemoryLocation.valueOf(variableDeclaration.getQualifiedName());
         CType type = variableDeclaration.getType();
         CInitializer initializer = variableDeclaration.getInitializer();
         if (initializer == null) {
           return Collections.singletonMap(declaredVariable, type);
         }
-        Map<String, CType> result = new HashMap<>();
+        Map<MemoryLocation, CType> result = new HashMap<>();
         result.put(declaredVariable, type);
         result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
         return result;
@@ -134,17 +135,17 @@ public class EdgeAnalyzer {
     }
     case FunctionCallEdge: {
       FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-      Map<String, CType> result = new HashMap<>();
+      Map<MemoryLocation, CType> result = new HashMap<>();
 
       // Extract arguments
       String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
       for (AExpression argument : functionCallEdge.getArguments()) {
         result.putAll(getInvolvedVariableTypes(argument,
-            new VariableNameExtractor(
+            new MemoryLocationExtractor(
                 compoundIntervalManagerFactory,
                 machineModel,
                 callerFunctionName,
-                Collections.<String, NumeralFormula<CompoundInterval>>emptyMap())));
+                Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap())));
       }
 
       // Extract formal parameters
@@ -158,11 +159,11 @@ public class EdgeAnalyzer {
       AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
       if (returnStatementEdge.getExpression().isPresent()) {
         AExpression returnExpression = returnStatementEdge.getExpression().get();
-        Map<String, CType> result = new HashMap<>();
+        Map<MemoryLocation, CType> result = new HashMap<>();
         Optional<? extends AVariableDeclaration> retVar = returnStatementEdge.getSuccessor().getEntryNode().getReturnVariable();
         if (retVar.isPresent()) {
           CType type = (CType) retVar.get().getType();
-          result.put(retVar.get().getQualifiedName(), type);
+          result.put(MemoryLocation.valueOf(retVar.get().getQualifiedName()), type);
         }
         result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
         return result;
@@ -174,7 +175,7 @@ public class EdgeAnalyzer {
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AExpressionAssignmentStatement) {
         AExpressionAssignmentStatement expressionAssignmentStatement = (AExpressionAssignmentStatement) statement;
-        Map<String, CType> result = new HashMap<>();
+        Map<MemoryLocation, CType> result = new HashMap<>();
         result.putAll(getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
         result.putAll(getInvolvedVariableTypes(expressionAssignmentStatement.getRightHandSide(), pCfaEdge));
         return result;
@@ -182,7 +183,7 @@ public class EdgeAnalyzer {
         return getInvolvedVariableTypes(((AExpressionStatement) statement).getExpression(), pCfaEdge);
       } else if (statement instanceof AFunctionCallAssignmentStatement) {
         AFunctionCallAssignmentStatement functionCallAssignmentStatement = (AFunctionCallAssignmentStatement) statement;
-        Map<String, CType> result = new HashMap<>();
+        Map<MemoryLocation, CType> result = new HashMap<>();
         result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
         AFunctionCallExpression functionCallExpression = functionCallAssignmentStatement.getFunctionCallExpression();
         for (AExpression expression : functionCallExpression.getParameterExpressions()) {
@@ -191,7 +192,7 @@ public class EdgeAnalyzer {
         return result;
       } else if (statement instanceof AFunctionCallStatement) {
         AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-        Map<String, CType> result = new HashMap<>();
+        Map<MemoryLocation, CType> result = new HashMap<>();
         for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
           result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
         }
@@ -208,10 +209,10 @@ public class EdgeAnalyzer {
             (AFunctionCallAssignmentStatement) functionCall;
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
         if (functionCallExpression != null) {
-          Map<String, CType> result = new HashMap<>();
+          Map<MemoryLocation, CType> result = new HashMap<>();
           Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
           if (retVar.isPresent()) {
-            result.put(retVar.get().getQualifiedName(), (CType) retVar.get().getType());
+            result.put(MemoryLocation.valueOf(retVar.get().getQualifiedName()), (CType) retVar.get().getType());
           }
           result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
           return result;
@@ -225,14 +226,14 @@ public class EdgeAnalyzer {
     }
   }
 
-  private Map<? extends String, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
+  private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
       CFAEdge pCFAEdge) {
     if (pParameter.getType() instanceof CType) {
       return Collections.singletonMap(
-          new VariableNameExtractor(
+          new MemoryLocationExtractor(
               compoundIntervalManagerFactory,
               machineModel,
-              pCFAEdge).getVarName(pParameter),
+              pCFAEdge).getMemoryLocation(pParameter),
           (CType) pParameter.getType());
     }
     return Collections.emptyMap();
@@ -247,14 +248,14 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given CInitializer.
    */
-  private Map<String, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
+  private Map<MemoryLocation, CType> getInvolvedVariableTypes(CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
       return getInvolvedVariableTypes(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList) {
       CInitializerList initializerList = (CInitializerList) pCInitializer;
-      Map<String, CType> result = new HashMap<>();
+      Map<MemoryLocation, CType> result = new HashMap<>();
       for (CInitializer initializer : initializerList.getInitializers()) {
         result.putAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
@@ -271,13 +272,13 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given expression.
    */
-  public Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
+  public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, CFAEdge pCFAEdge) {
     return getInvolvedVariableTypes(pExpression,
-        new VariableNameExtractor(
+        new MemoryLocationExtractor(
             compoundIntervalManagerFactory,
             machineModel,
             pCFAEdge,
-            Collections.<String, NumeralFormula<CompoundInterval>> emptyMap())
+            Collections.<MemoryLocation, NumeralFormula<CompoundInterval>> emptyMap())
     );
   }
 
@@ -289,10 +290,10 @@ public class EdgeAnalyzer {
    *
    * @return the variables involved in the given expression.
    */
-  public Map<String, CType> getInvolvedVariableTypes(AExpression pExpression, VariableNameExtractor pVariableNameExtractor) {
+  public Map<MemoryLocation, CType> getInvolvedVariableTypes(AExpression pExpression, MemoryLocationExtractor pVariableNameExtractor) {
     if (pExpression == null) { return Collections.emptyMap(); }
     if (pExpression instanceof CExpression) {
-      Map<String, CType> result = new HashMap<>();
+      Map<MemoryLocation, CType> result = new HashMap<>();
 
       for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(LHSVisitor.INSTANCE)) {
         NumeralFormula<CompoundInterval> formula;
@@ -300,8 +301,8 @@ public class EdgeAnalyzer {
           formula = ((CExpression) leftHandSide).accept(
               new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, pVariableNameExtractor));
 
-          for (String variableName : formula.accept(COLLECT_VARS_VISITOR)) {
-            result.put(variableName, (CType) leftHandSide.getExpressionType());
+          for (MemoryLocation memoryLocation : formula.accept(COLLECT_VARS_VISITOR)) {
+            result.put(memoryLocation, (CType) leftHandSide.getExpressionType());
           }
         } catch (UnrecognizedCodeException e) {
           // Don't record the variable name then
