@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -318,10 +319,32 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         for (CandidateInvariant candidateInvariant : candidateGenerator) {
           candidateInvariant.assumeTruth(reachedSet);
         }
+
+        // The reached set may be in an inconsistent state where the ARG
+        // contains states that are not covered and where the parents are not
+        // in the wait list
+        removeMissingStatesFromARG(reachedSet);
+
+        assert from(reachedSet).filter(IS_TARGET_STATE).isEmpty() : "Target states remaining";
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       throw e;
     } finally {
+    }
+  }
+
+  private void removeMissingStatesFromARG(ReachedSet pReachedSet) {
+    Collection<ARGState> missingChildren = new ArrayList<>();
+    for (ARGState e : from(pReachedSet).transform(toState(ARGState.class))) {
+      for (ARGState child : e.getChildren()) {
+        if (!pReachedSet.contains(child) && !(child.isCovered() && child.getChildren().isEmpty())
+            || pReachedSet.getWaitlist().containsAll(child.getParents())) {
+          missingChildren.add(child);
+        }
+      }
+    }
+    for (ARGState missingChild : missingChildren) {
+      missingChild.removeFromARG();
     }
   }
 
