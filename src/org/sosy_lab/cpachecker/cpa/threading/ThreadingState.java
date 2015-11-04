@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.threading;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.common.Pair;
@@ -150,7 +151,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
         + "} and ids={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadNums)
-        + "}";
+        + "})";
   }
 
   @Override
@@ -166,7 +167,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
 
   @Override
   public int hashCode() {
-    return states.hashCode() * 31 + locks.hashCode() * 17 + threadNums.hashCode();
+    return Objects.hash(states, locks, threadNums);
   }
 
   @Override
