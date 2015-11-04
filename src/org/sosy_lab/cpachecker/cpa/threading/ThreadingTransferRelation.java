@@ -88,6 +88,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
+  private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
@@ -193,16 +194,32 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       break;
     }
     case FunctionCallEdge: {
-      // cloning changes the function-name -> we use 'startsWith'
-      if (useAtomicLocks && cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN)) {
-        results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+      if (useAtomicLocks) {
+        // cloning changes the function-name -> we use 'startsWith'.
+        // we have 2 different atomic sequences:
+        //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be anything
+        final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
+        if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
+          results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+        } else if (calledFunction.startsWith(VERIFIER_ATOMIC)) {
+          results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+        }
       }
       break;
     }
     case FunctionReturnEdge: {
-      // cloning changes the function-name -> we use 'startsWith'
-      if (useAtomicLocks && cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END)) {
-        results = removeLock(activeThread, ATOMIC_LOCK, results);
+      if (useAtomicLocks) {
+        // cloning changes the function-name -> we use 'startsWith'.
+        // we have 2 different atomic sequences:
+        //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be anything
+        final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
+        if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
+          results = removeLock(activeThread, ATOMIC_LOCK, results);
+        } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)) {
+          results = removeLock(activeThread, ATOMIC_LOCK, results);
+        }
       }
       break;
     }
