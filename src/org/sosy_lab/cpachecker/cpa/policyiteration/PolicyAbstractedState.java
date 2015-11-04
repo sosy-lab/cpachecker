@@ -1,10 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -17,6 +19,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 public final class PolicyAbstractedState extends PolicyState
@@ -82,7 +85,12 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public void setNewVersion(PolicyAbstractedState pNewVersion) {
-    newVersion = Optional.of(pNewVersion);
+    if (pNewVersion == this) {
+      newVersion = Optional.absent();
+
+    } else {
+      newVersion = Optional.of(pNewVersion);
+    }
   }
 
   /**
@@ -96,12 +104,12 @@ public final class PolicyAbstractedState extends PolicyState
     }
 
     PolicyAbstractedState latest = this;
-    List<PolicyAbstractedState> toUpdate = new ArrayList<>();
+    Set<PolicyAbstractedState> toUpdate = new HashSet<>();
 
     // Traverse the pointers up.
     while (latest.newVersion.isPresent()) {
-      toUpdate.add(latest);
-      latest = latest.newVersion.get();
+      boolean changed = toUpdate.add(latest);
+      Preconditions.checkState(changed, "getLatestVersion is cyclic");
     }
 
     // Update the pointers on the visited states.
