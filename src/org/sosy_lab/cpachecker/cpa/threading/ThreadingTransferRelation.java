@@ -202,7 +202,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
         if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
           results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-        } else if (calledFunction.startsWith(VERIFIER_ATOMIC)) {
+        } else if (calledFunction.startsWith(VERIFIER_ATOMIC) && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
           results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
         }
       }
@@ -217,7 +217,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
         if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
           results = removeLock(activeThread, ATOMIC_LOCK, results);
-        } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)) {
+        } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)&& !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
           results = removeLock(activeThread, ATOMIC_LOCK, results);
         }
       }
