@@ -61,7 +61,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.ForOverride;
 
 
 public abstract class PathTranslator {
@@ -87,7 +86,6 @@ public abstract class PathTranslator {
    * Gets the piece of code that should appear at the target state; e.g. <code>assert(0)</code> or <code>exit(-1)</code>
    * @return Line of code for target state
    */
-  @ForOverride
   protected abstract String getTargetState();
 
   protected Appender generateCCode() {
