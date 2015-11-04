@@ -387,15 +387,20 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
         return false;
       }
 
+      boolean adjusted = false;
+
       // Adjust precision if at least one CPA can do it.
       for (AdjustableConditionCPA cpa : conditionCPAs) {
         if (cpa.adjustPrecision()) {
-          return true;
+          logger.log(Level.INFO, "Adjusting precision for CPA", cpa);
+          adjusted = true;
         }
       }
-      logger.log(Level.INFO, "None of the CPAs could adjust precision, "
-          + "stopping invariant generation");
-      return false;
+      if (!adjusted) {
+        logger.log(Level.INFO, "None of the CPAs could adjust precision, "
+            + "stopping invariant generation");
+      }
+      return adjusted;
     }
   }
 }
