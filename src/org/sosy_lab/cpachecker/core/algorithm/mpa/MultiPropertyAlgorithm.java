@@ -54,6 +54,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -90,7 +92,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
 @Options(prefix="analysis.mpa")
-public final class MultiPropertyAlgorithm implements Algorithm {
+public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm wrapped;
   private final LogManager logger;
@@ -607,5 +609,11 @@ public final class MultiPropertyAlgorithm implements Algorithm {
     return result.toString();
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (wrapped instanceof StatisticsProvider) {
+      ((StatisticsProvider)wrapped).collectStatistics(pStatsCollection);
+    }
+  }
 
 }
