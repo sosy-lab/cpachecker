@@ -1895,6 +1895,10 @@ cpa.threading.useAtomicLocks = true
 # cfa.postprocessing.CFACloner for detail.
 cpa.threading.useClonedFunctions = true
 
+# local access locks are used to avoid expensive interleaving, if a thread
+# only reads and writes its own variables.
+cpa.threading.useLocalAccessLocks = true
+
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
   allowed values: [sep, join]

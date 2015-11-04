@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -76,21 +77,28 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   @Option(description="atomic locks are used to simulate atomic statements, as described in the rules of SV-Comp.")
   private boolean useAtomicLocks = true;
 
+  @Option(description="local access locks are used to avoid expensive interleaving, "
+      + "if a thread only reads and writes its own variables.")
+  private boolean useLocalAccessLocks = true;
+
   public static final String THREAD_START = "pthread_create";
   private static final String THREAD_JOIN = "pthread_join";
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
-
-  private static final String THREAD_ATOMIC_BEGIN = "pthread_atomic_begin";
-  private static final String THREAD_ATOMIC_END = "pthread_atomic_end";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
+  private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+
+  private static final Set<String> THREAD_FUNCTIONS = Sets.newHashSet(
+      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
 
   private final CFA cfa;
   private final ConfigurableProgramAnalysis callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
+
+  private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
 
   public ThreadingTransferRelation(
       Configuration pConfig, ConfigurableProgramAnalysis pCallstackCPA,
@@ -128,6 +136,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     // get all possible successors
     Collection<ThreadingState> results = getAbstractSuccessorsForSimpleEdge(activeThread, threadingState, precision, cfaEdge);
+
+    if (useLocalAccessLocks) {
+      results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
+    }
 
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK) && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
@@ -246,6 +258,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // update all successors
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
+      if (useLocalAccessLocks) {
+        ts = ts.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+      }
       ts = ts.removeThreadAndCopy(activeThread);
       if (ts.getThreadIds().isEmpty()) {
         // we have exited all threads, no successor
@@ -396,7 +411,50 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return results;
   }
 
+  /** optimization for interleaved threads.
+   * When a thread only accesses local variables, we ignore other threads
+   * and add an internal 'atomic' lock. */
+  private Collection<ThreadingState> handleLocalAccessLock(CFAEdge cfaEdge, final ThreadingState threadingState,
+      String activeThread, Collection<ThreadingState> results) {
 
+    // check if local access lock exists and is set for current thread
+    if (threadingState.hasLock(LOCAL_ACCESS_LOCK) && !threadingState.hasLock(activeThread, LOCAL_ACCESS_LOCK)) {
+      return Collections.emptySet();
+    }
+
+    // add local access lock, if necessary and possible
+    final Collection<ThreadingState> newResults = new ArrayList<>();
+    final boolean isImporantForThreading = globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
+    for (ThreadingState ts : results) {
+      if (isImporantForThreading) {
+        newResults.add(ts.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK));
+      } else {
+        newResults.add(ts.addLockAndCopy(activeThread, LOCAL_ACCESS_LOCK));
+      }
+    }
+    return newResults;
+  }
+
+  private boolean isImporantForThreading(CFAEdge cfaEdge) {
+    switch (cfaEdge.getEdgeType()) {
+    case StatementEdge: {
+      AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
+      if (statement instanceof AFunctionCall) {
+        AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression) {
+          return THREAD_FUNCTIONS.contains(((AIdExpression)functionNameExp).getName());
+        }
+      }
+      return false;
+    }
+    case FunctionCallEdge:
+      return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN);
+    case FunctionReturnEdge:
+      return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END);
+    default:
+      return false;
+    }
+  }
 
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState element,
