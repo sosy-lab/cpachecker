@@ -85,11 +85,13 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public void setNewVersion(PolicyAbstractedState pNewVersion) {
-    if (pNewVersion == this) {
+    PolicyAbstractedState latestVersion = pNewVersion.getLatestVersion();
+
+    if (this == latestVersion) {
       newVersion = Optional.absent();
 
     } else {
-      newVersion = Optional.of(pNewVersion);
+      newVersion = Optional.of(latestVersion);
     }
   }
 
@@ -109,6 +111,7 @@ public final class PolicyAbstractedState extends PolicyState
     // Traverse the pointers up.
     while (latest.newVersion.isPresent()) {
       boolean changed = toUpdate.add(latest);
+      latest = latest.newVersion.get();
       Preconditions.checkState(changed, "getLatestVersion is cyclic");
     }
 
