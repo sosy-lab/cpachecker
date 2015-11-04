@@ -133,14 +133,19 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     return new ThreadingState(states, locks.removeAndCopy(lockId), threadNums);
   }
 
-  /** returns if any of the threads has the lock */
+  /** returns whether any of the threads has the lock */
   public boolean hasLock(String lockId) {
     return locks.containsKey(lockId); // TODO threadId needed?
   }
 
-  /** returns if the given thread has the lock */
+  /** returns whether the given thread has the lock */
   public boolean hasLock(String threadId, String lockId) {
     return locks.containsKey(lockId) && threadId.equals(locks.get(lockId));
+  }
+
+  /** returns whether there is any lock registered for the thread. */
+  public boolean hasLockForThread(String threadId) {
+    return locks.containsValue(threadId);
   }
 
   @Override

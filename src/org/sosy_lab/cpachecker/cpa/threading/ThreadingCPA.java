@@ -70,7 +70,7 @@ public class ThreadingCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public ThreadingCPA(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
     locationCPA = new LocationCPA(pCfa, config);
     callstackCPA = new CallstackCPA(config, pLogger, pCfa);
-    transferRelation = new ThreadingTransferRelation(config, callstackCPA, locationCPA, pCfa);
+    transferRelation = new ThreadingTransferRelation(config, callstackCPA, locationCPA, pCfa, pLogger);
   }
 
   @Override

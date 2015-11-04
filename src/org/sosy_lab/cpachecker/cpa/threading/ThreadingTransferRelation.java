@@ -29,12 +29,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -95,6 +97,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
 
   private final CFA cfa;
+  private final LogManager logger;
   private final ConfigurableProgramAnalysis callstackCPA;
   private final ConfigurableProgramAnalysis locationCPA;
 
@@ -102,12 +105,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   public ThreadingTransferRelation(
       Configuration pConfig, ConfigurableProgramAnalysis pCallstackCPA,
-      ConfigurableProgramAnalysis pLocationCPA, CFA pCfa)
+      ConfigurableProgramAnalysis pLocationCPA, CFA pCfa, LogManager pLogger)
           throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
     callstackCPA = pCallstackCPA;
     locationCPA = pLocationCPA;
+    logger = pLogger;
   }
 
   @Override
@@ -260,6 +264,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     for (ThreadingState ts : results) {
       if (useLocalAccessLocks) {
         ts = ts.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+      }
+      if (ts.hasLockForThread(activeThread)) {
+        logger.log(Level.WARNING, "dying thread", activeThread, "has remaining locks in state", ts);
       }
       ts = ts.removeThreadAndCopy(activeThread);
       if (ts.getThreadIds().isEmpty()) {
