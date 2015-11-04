@@ -328,8 +328,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           // Run value determination inside precision adjustment if the abstract
           // states are not joined.
           logger.log(Level.FINE,  "Emulating value determination");
+
+          PolicyAbstractedState latestSibling = siblings.iterator().next().getLatestVersion();
+          for (PolicyAbstractedState sibling : siblings) {
+            Preconditions.checkState(sibling.getLatestVersion() == latestSibling);
+          }
           outState = joinAbstractedStates(abstraction,
-              siblings.iterator().next().getLatestVersion(), precision);
+              latestSibling, precision);
           for (PolicyAbstractedState sibling : siblings) {
             sibling.setNewVersion(outState.asAbstracted());
           }
