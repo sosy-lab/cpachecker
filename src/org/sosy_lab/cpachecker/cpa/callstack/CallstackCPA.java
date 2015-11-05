@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -65,14 +66,16 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    super("sep", "sep",
-        new DomainInitializer(config).initializeDomain(),
-        new CallstackTransferRelation(config, pLogger)
-    );
+  protected CallstackCPA(TransferRelation transfer, Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    super("sep", "sep", new DomainInitializer(config).initializeDomain(), transfer);
     this.cfa = pCFA;
-    reducer = new CallstackReducer();
+    this.reducer = new CallstackReducer();
   }
+
+  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    this(new CallstackTransferRelation(config, pLogger), config, pLogger, pCFA);
+  }
+
 
   @Override
   public Reducer getReducer() {
