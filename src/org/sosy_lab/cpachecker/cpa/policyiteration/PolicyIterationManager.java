@@ -1079,13 +1079,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         out.add(s);
       }
     }
-    Optional<PolicyAbstractedState> pred = getPredecessor(state);
 
-    // todo: problem, in merge-configuration abstract predecessor does not
-    // make too much sense.
     if (joinOnMerge) {
+
+      // In merge configuration, predecessors do not make sense.
       return out;
     }
+    Optional<PolicyAbstractedState> pred = getPredecessor(state);
 
     // Intersection of reached set with a predecessor state.
     if (pred.isPresent() && out.contains(pred.get())) {
