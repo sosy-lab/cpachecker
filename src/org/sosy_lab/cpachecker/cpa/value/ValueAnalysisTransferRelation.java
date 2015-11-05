@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1583,59 +1584,20 @@ public class ValueAnalysisTransferRelation
         }
 
         CRightHandSide rightHandSide = getRightHandSide(edge);
-        if (rightHandSide instanceof CPointerExpression) {
-          String leftHandVariable = getLeftHandVariable(edge);
-          if (leftHandVariable == null) {
-            continue;
-          }
+        CLeftHandSide leftHandSide = getLeftHandSide(edge);
+        String leftHandVariable = getLeftHandVariable(edge);
+        PointerState pointerState = (PointerState) ae;
 
-          PointerState pointerState = (PointerState) ae;
+        result.clear();
 
-          CPointerExpression rhs = (CPointerExpression) rightHandSide;
-          CExpression addressExpression = rhs.getOperand();
-
-          result.clear();
-          for (ValueAnalysisState state : toStrengthen) {
-            ValueAnalysisState newState = state;
-
-            LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pointerState);
-
-            if (fullSet instanceof ExplicitLocationSet) {
-              ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-              if (explicitSet.getSize() == 1) {
-                String variable = explicitSet.iterator().next();
-                CType variableType = rhs.getExpressionType().getCanonicalType();
-                LocationSet pointsToSet = pointerState.getPointsToSet(variable);
-
-                if (pointsToSet instanceof ExplicitLocationSet) {
-                  ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-                  String otherVariable = explicitPointsToSet.iterator().next();
-                  MemoryLocation otherVariableLocation = MemoryLocation.valueOf(otherVariable);
-
-                  super.setInfo(element, precision, cfaEdge);
-
-                  Type otherVariableType = state.getTypeForMemoryLocation(otherVariableLocation);
-                  if (otherVariableType != null) {
-                    Value otherVariableValue = state.getValueFor(otherVariableLocation);
-                    if (otherVariableValue != null) {
-                      if (variableType.equals(otherVariableType)
-                          || variableType.equals(CNumericTypes.FLOAT)
-                          && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
-                          && otherVariableValue.isExplicitlyKnown()
-                          && Long.valueOf(0).equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT))) {
-                        newState = ValueAnalysisState.copyOf(state);
-                        newState.assignConstant(leftHandVariable, otherVariableValue);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            result.add(newState);
-          }
-          toStrengthen.clear();
-          toStrengthen.addAll(result);
+        for (ValueAnalysisState state : toStrengthen) {
+          super.setInfo(element, precision, cfaEdge);
+          ValueAnalysisState newState =
+              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandSide, leftHandVariable);
+          result.add(newState);
         }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
       }
 
     }
@@ -1655,6 +1617,96 @@ public class ValueAnalysisTransferRelation
     oldState = null;
 
     return postProcessedResult;
+  }
+
+  private ValueAnalysisState strengthenWithPointerInformation(
+      ValueAnalysisState pValueState,
+      PointerState pPointerInfo,
+      CRightHandSide pRightHandSide,
+      CLeftHandSide pLeftHandSide,
+      String pLeftHandVariable) throws UnrecognizedCCodeException {
+
+    ValueAnalysisState newState = pValueState;
+
+    Value value = UnknownValue.getInstance();
+    String target = pLeftHandVariable;
+    boolean shouldAssign = false;
+
+    if (target == null && pLeftHandSide instanceof CPointerExpression) {
+      CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
+      CExpression addressExpression = pointerExpression.getOperand();
+
+      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+
+      if (fullSet instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
+        if (explicitSet.getSize() == 1) {
+          String variable = explicitSet.iterator().next();
+          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
+          if (pointsToSet instanceof ExplicitLocationSet) {
+            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
+            Iterator<String> pointsToIterator = explicitPointsToSet.iterator();
+            String otherVariable = pointsToIterator.next();
+            if (!pointsToIterator.hasNext()) {
+              target = otherVariable;
+              shouldAssign = true;
+            }
+          }
+        }
+      }
+
+    }
+
+    if (pRightHandSide instanceof CPointerExpression) {
+      if (target == null) {
+        return pValueState;
+      }
+
+      CPointerExpression rhs = (CPointerExpression) pRightHandSide;
+      CExpression addressExpression = rhs.getOperand();
+
+      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+
+      if (fullSet instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
+        if (explicitSet.getSize() == 1) {
+          String variable = explicitSet.iterator().next();
+          CType variableType = rhs.getExpressionType().getCanonicalType();
+          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
+
+          if (pointsToSet instanceof ExplicitLocationSet) {
+            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
+            Iterator<String> pointsToIterator = explicitPointsToSet.iterator();
+            String otherVariable = pointsToIterator.next();
+            if (!pointsToIterator.hasNext()) {
+              MemoryLocation otherVariableLocation = MemoryLocation.valueOf(otherVariable);
+
+              Type otherVariableType = pValueState.getTypeForMemoryLocation(otherVariableLocation);
+              if (otherVariableType != null) {
+                Value otherVariableValue = pValueState.getValueFor(otherVariableLocation);
+                if (otherVariableValue != null) {
+                  if (variableType.equals(otherVariableType)
+                      || variableType.equals(CNumericTypes.FLOAT)
+                      && otherVariableType.equals(CNumericTypes.UNSIGNED_INT)
+                      && otherVariableValue.isExplicitlyKnown()
+                      && Long.valueOf(0).equals(otherVariableValue.asLong(CNumericTypes.UNSIGNED_INT))) {
+                    value = otherVariableValue;
+                    shouldAssign = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (target != null && shouldAssign) {
+      newState = ValueAnalysisState.copyOf(pValueState);
+      newState.assignConstant(target, value);
+    }
+
+    return newState;
   }
 
 
