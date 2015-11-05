@@ -358,12 +358,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(params.get(0) instanceof CUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-    if (!(expr0 instanceof CIdExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-    }
+//    CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
+//    if (!(expr0 instanceof CIdExpression)) {
+//      throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
+//    }
+//  String lockId = ((CIdExpression) expr0).getName();
 
-    String lockId = ((CIdExpression) expr0).getName();
+    String lockId = ((CUnaryExpression)params.get(0)).getOperand().toString();
 
     return addLock(threadingState, activeThread, lockId, results);
   }
@@ -395,12 +396,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(params.get(0) instanceof CUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
-    if (!(expr0 instanceof CIdExpression)) {
-      throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
-    }
+//  CExpression expr0 = ((CUnaryExpression)params.get(0)).getOperand();
+//  if (!(expr0 instanceof CIdExpression)) {
+//    throw new UnrecognizedCodeException("unsupported thread lock assignment", expr0);
+//  }
+//  String lockId = ((CIdExpression) expr0).getName();
 
-    String lockId = ((CIdExpression) expr0).getName();
+    String lockId = ((CUnaryExpression)params.get(0)).getOperand().toString();
 
     return removeLock(activeThread, lockId, results);
   }
