@@ -1,9 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -43,13 +41,18 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * Uninstantiated invariant associated with a state,
    * derived from other analyses.
-   * *NOT* used in comparison.
    */
   private final BooleanFormula extraInvariant;
 
   /**
+   * Predecessor intermediate state, empty only for the initial state.
+   */
+  private final Optional<PolicyIntermediateState> predecessor;
+
+  /**
    * Pointer to the latest version of the state associated with the given
    * location.
+   * // todo: refactor to points to itself for the latest location.
    */
   private transient Optional<PolicyAbstractedState> newVersion =
       Optional.absent();
@@ -65,11 +68,13 @@ public final class PolicyAbstractedState extends PolicyState
       CongruenceState pCongruence,
       int pLocationID,
       StateFormulaConversionManager pManager, SSAMap pSsaMap,
-      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate) {
+      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate,
+      Optional<PolicyIntermediateState> pPredecessor) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
     extraInvariant = pPredicate;
+    predecessor = pPredecessor;
     abstraction = ImmutableMap.copyOf(pAbstraction);
     congruence = pCongruence;
     locationID = pLocationID;
@@ -101,7 +106,7 @@ public final class PolicyAbstractedState extends PolicyState
    */
   public PolicyAbstractedState getLatestVersion() {
     if (!manager.shouldUseLatestVersion()) {
-      // An option to make this operation non-op.
+      // An option to make this operation a NO-OP.
       return this;
     }
 
@@ -112,7 +117,7 @@ public final class PolicyAbstractedState extends PolicyState
     while (latest.newVersion.isPresent()) {
       boolean changed = toUpdate.add(latest);
       latest = latest.newVersion.get();
-      Preconditions.checkState(changed, "getLatestVersion is cyclic");
+      Preconditions.checkState(changed, "getLatestVersion should not be cyclic");
     }
 
     // Update the pointers on the visited states.
@@ -130,18 +135,19 @@ public final class PolicyAbstractedState extends PolicyState
       StateFormulaConversionManager pManager,
       SSAMap pSSAMap,
       PointerTargetSet pPointerTargetSet,
-      BooleanFormula pPredicate
+      BooleanFormula pPredicate,
+      PolicyIntermediateState pPredecessor
   ) {
     return new PolicyAbstractedState(node, data,
         pCongruence, pLocationID, pManager, pSSAMap,
-        pPointerTargetSet, pPredicate);
+        pPointerTargetSet, pPredicate, Optional.of(pPredecessor));
   }
 
   public PolicyAbstractedState updateAbstraction(
       Map<Template, PolicyBound> newAbstraction) {
     return new PolicyAbstractedState(getNode(),
         newAbstraction, congruence, locationID, manager, ssaMap,
-        pointerTargetSet, extraInvariant);
+        pointerTargetSet, extraInvariant, predecessor);
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
@@ -172,19 +178,18 @@ public final class PolicyAbstractedState extends PolicyState
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      SSAMap pSSAMap,
-      PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
       StateFormulaConversionManager pManager) {
-    return PolicyAbstractedState.of(
-        ImmutableMap.<Template, PolicyBound>of(), // abstraction
+    return new PolicyAbstractedState(
         node, // node
+        ImmutableMap.<Template, PolicyBound>of(), // abstraction
         CongruenceState.empty(),
         -1,
         pManager,
-        pSSAMap,
-        pPointerTargetSet,
-        pPredicate
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        pPredicate,
+        Optional.<PolicyIntermediateState>absent()
     );
   }
 
@@ -221,6 +226,10 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public Iterator<Entry<Template, PolicyBound>> iterator() {
     return abstraction.entrySet().iterator();
+  }
+
+  public Optional<PolicyIntermediateState> getPredecessor() {
+    return predecessor;
   }
 
   @Override

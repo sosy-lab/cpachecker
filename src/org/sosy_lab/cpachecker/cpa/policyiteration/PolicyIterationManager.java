@@ -57,12 +57,11 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -225,8 +224,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     startInvariantGeneration(pNode);
 
     return PolicyAbstractedState.empty(
-        pNode, SSAMap.emptySSAMap(),
-        PointerTargetSet.emptyPointerTargetSet(),
+        pNode,
         bfmgr.makeBoolean(true), stateFormulaConversionManager);
   }
 
@@ -313,7 +311,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
         List<PolicyAbstractedState> siblings =
-            getSiblings(extraInvariant, states.getReached(pArgState));
+            getSiblings(state, extraInvariant, states.getReached(pArgState));
 
         PolicyAbstractedState abstraction = performAbstraction(
             iState,
@@ -325,9 +323,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             abstraction);
 
         if (!joinOnMerge && !siblings.isEmpty()) {
+
+          // todo: emulate merge for congruence for faster convergence?..
           // Run value determination inside precision adjustment if the abstract
           // states are not joined.
-          logger.log(Level.FINE,  "Emulating value determination");
+          logger.log(Level.FINE,  "Emulating value determination at node",
+              state.getNode());
 
           PolicyAbstractedState latestSibling = siblings.iterator().next().getLatestVersion();
           for (PolicyAbstractedState sibling : siblings) {
@@ -494,7 +495,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // todo: merge pointer target states [ONLY IF the new state is not coming
         // from under the loop].
         oldState.getPointerTargetSet(),
-        newPredicate
+        newPredicate,
+
+        // todo: this is legacy, future is the non-merging-code.
+        oldState.getPredecessor().get()
     );
 
     if (generateTemplatesUsingConvexHull) {
@@ -711,6 +715,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       locationID = otherStates.iterator().next().getLocationID();
     } else {
       locationID = locationIDGenerator.getFreshId();
+      logger.log(Level.FINE, "Generating new location ID", locationID);
     }
 
     final PathFormula p = state.getPathFormula();
@@ -891,7 +896,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             stateFormulaConversionManager,
             state.getPathFormula().getSsa(),
             state.getPathFormula().getPointerTargetSet(),
-            extraPredicate
+            extraPredicate,
+            state
         );
   }
 
@@ -1057,8 +1063,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    * with the argument state.
    */
   private List<PolicyAbstractedState> getSiblings(
+      PolicyState state,
       BooleanFormula extraInvariant,
       Collection<AbstractState> pSiblings) {
+
     List<PolicyAbstractedState> out = new ArrayList<>();
     if (pSiblings.isEmpty()) {
       return out;
@@ -1071,7 +1079,55 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         out.add(s);
       }
     }
-    return out;
+    Optional<PolicyAbstractedState> pred = getPredecessor(state);
+
+    // todo: problem, in merge-configuration abstract predecessor does not
+    // make too much sense.
+    if (joinOnMerge) {
+      return out;
+    }
+
+    // Intersection of reached set with a predecessor state.
+    if (pred.isPresent() && out.contains(pred.get())) {
+      return ImmutableList.of(pred.get());
+    } else {
+      return ImmutableList.of();
+    }
+
+
+  }
+
+  private Optional<PolicyAbstractedState> getPredecessor(final PolicyState state) {
+
+    CFANode node = state.getNode();
+    Optional<BooleanFormula> predicate;
+    if (state.isAbstract()) {
+      predicate = Optional.of(state.asAbstracted().getExtraInvariant());
+    } else {
+      predicate = Optional.absent();
+    }
+
+    PolicyState a = state;
+    while (true) {
+      if (a.isAbstract()) {
+        PolicyAbstractedState aState = a.asAbstracted();
+        if (aState.getNode() == node && (!predicate.isPresent() ||
+            predicate.get().equals(aState.getExtraInvariant()))) {
+
+          return Optional.of(aState);
+        } else {
+          if (aState.getPredecessor().isPresent()) {
+            a = aState.getPredecessor().get().getGeneratingState();
+          } else {
+            return Optional.absent();
+          }
+        }
+
+      } else {
+        PolicyIntermediateState iState = a.asIntermediate();
+        a = iState.getGeneratingState();
+      }
+    }
   }
 
   @Override
