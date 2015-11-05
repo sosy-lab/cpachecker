@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
@@ -94,6 +95,11 @@ public class TemplateManager {
     description="Strategy for filtering variables out of templates")
   private VarFilteringStrategy varFiltering = VarFilteringStrategy.ALL_LIVE;
 
+  // todo: merge with varFilteringStrategy enum.
+  @Option(secure=true, description="Use only variables which appear in IntAddVars "
+      + "in variable classification")
+  private boolean filterIntAddVars = false;
+
   private enum VarFilteringStrategy {
     ALL_LIVE,
     ONE_LIVE,
@@ -125,12 +131,14 @@ public class TemplateManager {
 
   private final HashMultimap<CFANode, Template> cache = HashMultimap.create();
   private final ImmutableList<ASimpleDeclaration> allVariables;
+  private final VariableClassification variableClassification;
 
   public TemplateManager(
       LogManager pLogger,
       Configuration pConfig,
       CFA pCfa, PolicyIterationStatistics pStatistics)
         throws InvalidConfigurationException {
+    variableClassification = pCfa.getVarClassification().get();
     statistics = pStatistics;
     extraTemplates = new HashSet<>();
     pConfig.inject(this, TemplateManager.class);
@@ -418,7 +426,9 @@ public class TemplateManager {
     return !var.getQualifiedName().contains(TMP_VARIABLE)
         && var.getType() instanceof CSimpleType
         && !var.getType().toString().contains("*")
-        && !var.getQualifiedName().contains(RET_VARIABLE);
+        && !var.getQualifiedName().contains(RET_VARIABLE)
+        && (!filterIntAddVars ||
+          variableClassification.getIntAddVars().contains(var.getQualifiedName()));
 
   }
 
