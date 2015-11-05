@@ -73,14 +73,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   @Option(description="the maximal number of parallel threads, -1 for infinite. "
       + "When combined with 'useClonedFunctions=true', we need at least N cloned functions. "
-      + "The option 'cfa.cfaCloner.numberOfCopies' should be set to N.")
+      + "The option 'cfa.cfaCloner.numberOfCopies' should be set to N.",
+      secure=true)
   private int maxNumberOfThreads = 5;
 
-  @Option(description="atomic locks are used to simulate atomic statements, as described in the rules of SV-Comp.")
+  @Option(description="atomic locks are used to simulate atomic statements, as described in the rules of SV-Comp.",
+      secure=true)
   private boolean useAtomicLocks = true;
 
   @Option(description="local access locks are used to avoid expensive interleaving, "
-      + "if a thread only reads and writes its own variables.")
+      + "if a thread only reads and writes its own variables.",
+      secure=true)
   private boolean useLocalAccessLocks = true;
 
   public static final String THREAD_START = "pthread_create";
