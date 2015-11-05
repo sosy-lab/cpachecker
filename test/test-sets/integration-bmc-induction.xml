@@ -16,8 +16,8 @@
     <tasks>
       <includesfile>../programs/simple/simple.set</includesfile>
       <exclude>../programs/simple/bitvectors/*</exclude>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <exclude>../programs/loop-lit/afnp2014_true-unreach-call.c.i</exclude>
@@ -30,7 +30,7 @@
       <exclude>../programs/benchmarks/systemc/toy2_false-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
-      <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*true-unreach-call*.cil.out.c</include>
       <include>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</include>
       <option name="-skipRecursion"/>

@@ -9,10 +9,10 @@
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <option name="-64"/>
   </tasks>
@@ -20,7 +20,7 @@
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
   </tasks>
   <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
   </tasks>
   <tasks name="Loops">
     <includesfile>../programs/benchmarks/Loops.set</includesfile>

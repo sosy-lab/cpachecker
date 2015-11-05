@@ -19,8 +19,8 @@
       <includesfile>../programs/simple/simple.set</includesfile>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <!-- SV-Comp files assume that malloc always succeeds -->
@@ -31,7 +31,7 @@
       <exclude>../programs/benchmarks/systemc/token_ring.03_true-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
-      <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-isdn-mISDN-mISDN_core.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>

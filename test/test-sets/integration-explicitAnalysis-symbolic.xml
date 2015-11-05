@@ -12,8 +12,8 @@
     <tasks>
       <include>../programs/simple/explicit/symbolic/*.c</include>
       <includesfile>../programs/benchmarks/Simple.set</includesfile>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
       <!-- exclude tasks from Sequentialized set -->
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
@@ -24,7 +24,7 @@
       <exclude>../programs/benchmarks/systemc/transmitter.07_false-unreach-call_false-termination.cil.c</exclude>
     </tasks>
     <tasks>
-      <includesfile>integration-DeviceDrivers64.set</includesfile>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
       <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-media-video-c-qcam.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
       <option name="-skipRecursion"/>
       <option name="-64"/>

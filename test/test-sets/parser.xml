@@ -5,14 +5,14 @@
 
   <rundefinition>
     <tasks>
-      <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+      <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
       <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
       <includesfile>../programs/benchmarks/DriverChallenges.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
       <includesfile>../programs/benchmarks/Loops.set</includesfile>
-      <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
       <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
       <includesfile>../programs/benchmarks/Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
