@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa.callstack")
 public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ReachedSetAdjustingCPA {
 
   private final Reducer reducer;
@@ -66,16 +67,14 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  protected CallstackCPA(TransferRelation transfer, Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    super("sep", "sep", new DomainInitializer(config).initializeDomain(), transfer);
+  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    super("sep", "sep",
+        new DomainInitializer(config).initializeDomain(),
+        new TransferInitializer(config).initializeTransfer(config, pLogger));
+    config.inject(this);
     this.cfa = pCFA;
     this.reducer = new CallstackReducer();
   }
-
-  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    this(new CallstackTransferRelation(config, pLogger), config, pLogger, pCFA);
-  }
-
 
   @Override
   public Reducer getReducer() {
@@ -150,6 +149,25 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
         return new CallstackPCCAbstractDomain();
       default:
         throw new InvalidConfigurationException("Unknown domain type for callstack cpa.");
+      }
+    }
+  }
+
+  @Options(prefix = "cpa.callstack")
+  private static class TransferInitializer {
+
+    @Option(description="analyse the CFA backwards", secure=true)
+    private boolean traverseBackwards = false;
+
+    public TransferInitializer(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    public TransferRelation initializeTransfer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+      if (traverseBackwards) {
+        return new CallstackTransferRelationBackwards(pConfig, pLogger);
+      } else {
+        return new CallstackTransferRelation(pConfig, pLogger);
       }
     }
   }

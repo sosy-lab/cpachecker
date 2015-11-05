@@ -823,6 +823,9 @@ cpa.callstack.skipRecursion = false
 # unsound).
 cpa.callstack.skipVoidRecursion = false
 
+# analyse the CFA backwards
+cpa.callstack.traverseBackwards = false
+
 # unsupported functions cause an exception
 cpa.callstack.unsupportedFunctions = {"pthread_create"}
 
