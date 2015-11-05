@@ -215,10 +215,10 @@ public class CFACreator {
       description="unwind recursive functioncalls (bounded to max call stack size)")
   private boolean useFunctionCallUnwinding = false;
 
-  @Option(secure=true, name="cfa.useCFACloning",
+  @Option(secure=true, name="cfa.useCFACloningForMultiThreadedPrograms",
       description="clone functions of the CFA, such that there are several "
           + "identical CFAs for each function, only with different names.")
-  private boolean useCFACloning = false;
+  private boolean useCFACloningForMultiThreadedPrograms = false;
 
   @Option(secure=true, name="cfa.findLiveVariables",
           description="By enabling this option the variables that are live are"
@@ -658,7 +658,7 @@ private boolean classifyNodes = false;
       cfa = fca.unwindRecursion();
     }
 
-    if (useCFACloning && isMultiThreadedProgram(cfa)) {
+    if (useCFACloningForMultiThreadedPrograms && isMultiThreadedProgram(cfa)) {
       // cloning must be done before adding global vars,
       // current use case is ThreadingCPA, thus we check for the creation of new threads first.
       logger.log(Level.INFO, "program contains concurrency, cloning functions...");

@@ -464,7 +464,7 @@ cfa.transformIntoSingleLoop.subgraphGrowthStrategy = MULTIPLE_PATHS
 
 # clone functions of the CFA, such that there are several identical CFAs for
 # each function, only with different names.
-cfa.useCFACloning = false
+cfa.useCFACloningForMultiThreadedPrograms = false
 
 # unwind recursive functioncalls (bounded to max call stack size)
 cfa.useFunctionCallUnwinding = false
