@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
@@ -1583,8 +1584,9 @@ public class ValueAnalysisTransferRelation
           edge = multiEdge.getEdges().get(multiEdge.getEdges().size() - 1);
         }
 
-        CRightHandSide rightHandSide = getRightHandSide(edge);
-        CLeftHandSide leftHandSide = getLeftHandSide(edge);
+        ARightHandSide rightHandSide = getRightHandSide(edge);
+        ALeftHandSide leftHandSide = getLeftHandSide(edge);
+        Type leftHandType = getLeftHandType(edge);
         String leftHandVariable = getLeftHandVariable(edge);
         PointerState pointerState = (PointerState) ae;
 
@@ -1593,7 +1595,7 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           ValueAnalysisState newState =
-              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandSide, leftHandVariable);
+              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable);
           result.add(newState);
         }
         toStrengthen.clear();
@@ -1622,14 +1624,19 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState strengthenWithPointerInformation(
       ValueAnalysisState pValueState,
       PointerState pPointerInfo,
-      CRightHandSide pRightHandSide,
-      CLeftHandSide pLeftHandSide,
+      ARightHandSide pRightHandSide,
+      Type pLeftHandType,
+      ALeftHandSide pLeftHandSide,
       String pLeftHandVariable) throws UnrecognizedCCodeException {
 
     ValueAnalysisState newState = pValueState;
 
     Value value = UnknownValue.getInstance();
-    String target = pLeftHandVariable;
+    MemoryLocation target = null;
+    if (pLeftHandVariable != null) {
+      target = MemoryLocation.valueOf(pLeftHandVariable);
+    }
+    Type type = pLeftHandType;
     boolean shouldAssign = false;
 
     if (target == null && pLeftHandSide instanceof CPointerExpression) {
@@ -1641,12 +1648,12 @@ public class ValueAnalysisTransferRelation
       if (fullSet instanceof ExplicitLocationSet) {
         ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
         if (explicitSet.getSize() == 1) {
-          String variable = explicitSet.iterator().next();
+          MemoryLocation variable = explicitSet.iterator().next();
           LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
           if (pointsToSet instanceof ExplicitLocationSet) {
             ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<String> pointsToIterator = explicitPointsToSet.iterator();
-            String otherVariable = pointsToIterator.next();
+            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
+            MemoryLocation otherVariable = pointsToIterator.next();
             if (!pointsToIterator.hasNext()) {
               target = otherVariable;
               shouldAssign = true;
@@ -1670,16 +1677,15 @@ public class ValueAnalysisTransferRelation
       if (fullSet instanceof ExplicitLocationSet) {
         ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
         if (explicitSet.getSize() == 1) {
-          String variable = explicitSet.iterator().next();
+          MemoryLocation variable = explicitSet.iterator().next();
           CType variableType = rhs.getExpressionType().getCanonicalType();
           LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
 
           if (pointsToSet instanceof ExplicitLocationSet) {
             ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<String> pointsToIterator = explicitPointsToSet.iterator();
-            String otherVariable = pointsToIterator.next();
+            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
+            MemoryLocation otherVariableLocation = pointsToIterator.next();
             if (!pointsToIterator.hasNext()) {
-              MemoryLocation otherVariableLocation = MemoryLocation.valueOf(otherVariable);
 
               Type otherVariableType = pValueState.getTypeForMemoryLocation(otherVariableLocation);
               if (otherVariableType != null) {
@@ -1701,25 +1707,39 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if (target != null && shouldAssign) {
+    if (target != null && type != null && shouldAssign) {
       newState = ValueAnalysisState.copyOf(pValueState);
-      newState.assignConstant(target, value);
+      newState.assignConstant(target, value, type);
     }
 
     return newState;
   }
 
-
+  private Type getLeftHandType(CFAEdge pEdge) throws UnrecognizedCodeException {
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
+        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declarationEdge.getDeclaration();
+        return variableDeclaration.getType();
+      }
+    } else {
+      ALeftHandSide lhs = getLeftHandSide(pEdge);
+      if (lhs instanceof AIdExpression) {
+        return ((AIdExpression) lhs).getDeclaration().getType();
+      }
+    }
+    return null;
+  }
 
   private String getLeftHandVariable(CFAEdge pEdge) throws UnrecognizedCodeException {
-    if (pEdge instanceof CDeclarationEdge) {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration = (CVariableDeclaration) declarationEdge.getDeclaration();
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
+        AVariableDeclaration variableDeclaration = (AVariableDeclaration) declarationEdge.getDeclaration();
         return variableDeclaration.getQualifiedName();
       }
     } else {
-      CLeftHandSide lhs = getLeftHandSide(pEdge);
+      ALeftHandSide lhs = getLeftHandSide(pEdge);
       if (lhs instanceof AIdExpression) {
         return ((AIdExpression) lhs).getDeclaration().getQualifiedName();
       }
@@ -1727,18 +1747,18 @@ public class ValueAnalysisTransferRelation
     return null;
   }
 
-  private static CLeftHandSide getLeftHandSide(CFAEdge pEdge) {
-    if (pEdge instanceof CStatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge) pEdge;
-      if (statementEdge.getStatement() instanceof CAssignment) {
-        CAssignment assignment = (CAssignment)statementEdge.getStatement();
+  private static ALeftHandSide getLeftHandSide(CFAEdge pEdge) {
+    if (pEdge instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+      if (statementEdge.getStatement() instanceof AAssignment) {
+        AAssignment assignment = (AAssignment)statementEdge.getStatement();
         return assignment.getLeftHandSide();
       }
-    } else if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
-      CFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof CFunctionCallAssignmentStatement) {
-        CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) functionCall;
+    } else if (pEdge instanceof FunctionCallEdge) {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
+      AFunctionCall functionCall = functionCallEdge.getSummaryEdge().getExpression();
+      if (functionCall instanceof AFunctionCallAssignmentStatement) {
+        AFunctionCallAssignmentStatement assignment = (AFunctionCallAssignmentStatement) functionCall;
         return assignment.getLeftHandSide();
       }
     }

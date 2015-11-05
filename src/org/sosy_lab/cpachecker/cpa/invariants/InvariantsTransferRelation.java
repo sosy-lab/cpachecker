@@ -479,11 +479,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (locationSet.isTop()) {
           return Collections.singleton(state.clear());
         }
-        Iterable<String> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
+        Iterable<MemoryLocation> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
         boolean moreThanOneLocation = hasMoreThanNElements(locations, 1);
-        for (String location : locations) {
-          int lastIndexOfDot = location.lastIndexOf('.');
-          int lastIndexOfArrow = location.lastIndexOf("->");
+        for (MemoryLocation location : locations) {
+          int lastIndexOfDot = location.getAsSimpleString().lastIndexOf('.');
+          int lastIndexOfArrow = location.getAsSimpleString().lastIndexOf("->");
           final boolean hasDot = lastIndexOfDot >= 0;
           final boolean hasArrow = lastIndexOfArrow >= 0;
           if (hasArrow || hasDot) {
@@ -491,7 +491,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
               ++lastIndexOfArrow;
             }
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
-            final String end = location.substring(lastIndexOfSep + 1);
+            final String end = location.getAsSimpleString().substring(lastIndexOfSep + 1);
             Iterable<? extends MemoryLocation> targets = FluentIterable.from(result.getEnvironment().keySet()).filter(new Predicate<MemoryLocation>() {
 
               @Override
@@ -509,9 +509,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
               }
             }
           } else if (moreThanOneLocation) {
-            Type type = result.getType(MemoryLocation.valueOf(location));
+            Type type = result.getType(location);
             if (type != null) {
-              result = result.assign(MemoryLocation.valueOf(location), allPossibleValues(type));
+              result = result.assign(location, allPossibleValues(type));
             }
           }
         }
