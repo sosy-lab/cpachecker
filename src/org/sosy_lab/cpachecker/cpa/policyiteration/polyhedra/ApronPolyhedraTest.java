@@ -8,6 +8,7 @@ import java.util.logging.StreamHandler;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
@@ -33,7 +34,8 @@ import apron.SetUp;
 
 public class ApronPolyhedraTest {
   static {
-    SetUp.init("lib/native/x86_64-linux/apron/");
+    SetUp.init(
+        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
   }
 
   private PolyhedraWideningManager pwm;

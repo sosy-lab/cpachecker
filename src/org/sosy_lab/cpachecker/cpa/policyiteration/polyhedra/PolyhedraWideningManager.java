@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
@@ -36,7 +37,8 @@ import apron.SetUp;
 
 public class PolyhedraWideningManager {
   static {
-    SetUp.init("lib/native/x86_64-linux/apron/");
+    SetUp.init(
+        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
   }
 
   private final Manager manager;
