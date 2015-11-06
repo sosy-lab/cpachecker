@@ -620,7 +620,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
 
-        if (value.isPresent()) {
+        if (value.isPresent() && !isOverflowing(template, value.get())) {
           Rational v = value.get();
           newAbstraction.put(template, existingBound.updateValue(v));
         } else {
@@ -637,6 +637,27 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return Optional.of(stateWithUpdates.updateAbstraction(newAbstraction));
   }
 
+  private boolean isOverflowing(Template template, Rational v) {
+    CSimpleType templateType = getTemplateType(template);
+    if (templateType.getType().isIntegerType()) {
+      BigInteger maxValue = cfa.getMachineModel()
+          .getMaximalIntegerValue(templateType);
+      BigInteger minValue = cfa.getMachineModel()
+          .getMinimalIntegerValue(templateType);
+
+      // The bound obtained is larger than the highest representable
+      // value, ignore it.
+      if (v.compareTo(Rational.ofBigInteger(maxValue)) == 1
+          || v.compareTo(Rational.ofBigInteger(minValue)) == -1) {
+        logger.log(Level.FINE, "Bound too high, ignoring",
+            v);
+        return true;
+      }
+    }
+
+    // todo: floats overflow.
+    return false;
+  }
 
   /**
    * @return Whether to perform the value determination on <code>node</code>.
@@ -821,7 +842,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             boolean unsignedAndLower = template.isUnsigned() &&
                 (template.getKind() == Kind.NEG_LOWER_BOUND ||
                 template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
-            if (bound.isPresent() || unsignedAndLower) {
+            if (bound.isPresent() && !isOverflowing(template, bound.get())
+                    || unsignedAndLower) {
               Rational boundValue;
               if (bound.isPresent() && unsignedAndLower) {
                 boundValue = Rational.max(bound.get(), Rational.ZERO);
@@ -834,23 +856,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               if (linearizePolicy) {
                 annotatedFormula = linearizationManager.convertToPolicy(
                     annotatedFormula, optEnvironment);
-              }
-
-              CSimpleType templateType = getTemplateType(template);
-              if (templateType.getType().isIntegerType()) {
-                BigInteger maxValue = cfa.getMachineModel()
-                    .getMaximalIntegerValue(templateType);
-                BigInteger minValue = cfa.getMachineModel()
-                    .getMinimalIntegerValue(templateType);
-
-                // The bound obtained is larger than the highest representable
-                // value, ignore it.
-                if (boundValue.compareTo(Rational.ofBigInteger(maxValue)) == 1
-                    || boundValue.compareTo(Rational.ofBigInteger(minValue)) == -1) {
-                  logger.log(Level.FINE, "Bound too high, replacing with 'unbounded'",
-                      bound);
-                  break;
-                }
               }
 
               PolicyBound policyBound = modelToPolicyBound(
