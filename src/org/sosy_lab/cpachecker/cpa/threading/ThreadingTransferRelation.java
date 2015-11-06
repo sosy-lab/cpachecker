@@ -124,7 +124,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(cfaEdge);
     Preconditions.checkArgument(!(cfaEdge instanceof MultiEdge),
-        "MultiEdges cannot be supported by ThreadingCPA");
+        "MultiEdges cannot be supported by ThreadingCPA, because we need interleaving steps for chains of edges.");
     final ThreadingState threadingState = (ThreadingState) state;
 
     // filter out all states, where the edge is not available
@@ -142,23 +142,22 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     String activeThread = Iterables.getOnlyElement(activeThreads);
 
-    // get all possible successors
-    Collection<ThreadingState> results = getAbstractSuccessorsForSimpleEdge(activeThread, threadingState, precision, cfaEdge);
-
-    if (useLocalAccessLocks) {
-      results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
-    }
-
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK) && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
       return Collections.emptySet();
     }
 
     // TODO we should exit after analyzing the edge, not before.
-    if (isEndOfMainFunction(cfaEdge) ||
-        isTerminatingEdge(cfaEdge)) {
+    if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
       return Collections.emptySet();
+    }
+
+    // get all possible successors
+    Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(activeThread, threadingState, precision, cfaEdge);
+
+    if (useLocalAccessLocks) {
+      results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
     }
 
     if (isLastEdgeOfThread(cfaEdge)) {
@@ -166,31 +165,35 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       results = exitThread(threadingState, activeThread, results);
     }
 
+    return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+  }
+
+  /** handle all edges related to thread-management:
+   * THREAD_START, THREAD_JOIN, THREAD_EXIT, THREAD_MUTEX_LOCK, VERIFIER_ATOMIC,... */
+  private Collection<ThreadingState> getAbstractSuccessorsForEdge0(
+      final CFAEdge cfaEdge, final ThreadingState threadingState,
+      final String activeThread, final Collection<ThreadingState> results)
+          throws UnrecognizedCodeException {
     switch (cfaEdge.getEdgeType()) {
     case StatementEdge: {
       AStatement statement = ((AStatementEdge)cfaEdge).getStatement();
       if (statement instanceof AFunctionCall) {
         AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
-          String functionName = ((AIdExpression)functionNameExp).getName();
-
+          final String functionName = ((AIdExpression)functionNameExp).getName();
           switch(functionName) {
           case THREAD_START:
-            results = startNewThread(threadingState, statement, results);
-            break;
+            return startNewThread(threadingState, statement, results);
           case THREAD_MUTEX_LOCK:
-            results = addLock(threadingState, activeThread, statement, results);
-            break;
+            return addLock(threadingState, activeThread, statement, results);
           case THREAD_MUTEX_UNLOCK:
-            results = removeLock(activeThread, statement, results);
-            break;
+            return removeLock(activeThread, statement, results);
           case THREAD_JOIN:
-            results = joinThread(threadingState, activeThread, statement, results);
-            break;
+            return joinThread(threadingState, activeThread, statement, results);
           case THREAD_EXIT:
-            results = exitThread(threadingState, activeThread, results);
-            break;
+            return exitThread(threadingState, activeThread, results);
           default:
+            // nothing to do, return results
           }
         }
       }
@@ -204,9 +207,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be anything
         final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
         if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-          results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+          return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
         } else if (calledFunction.startsWith(VERIFIER_ATOMIC) && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
-          results = addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+          return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
         }
       }
       break;
@@ -219,9 +222,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be anything
         final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
         if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
-          results = removeLock(activeThread, ATOMIC_LOCK, results);
-        } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)&& !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-          results = removeLock(activeThread, ATOMIC_LOCK, results);
+          return removeLock(activeThread, ATOMIC_LOCK, results);
+        } else if (exitedFunction.startsWith(VERIFIER_ATOMIC) && !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
+          return removeLock(activeThread, ATOMIC_LOCK, results);
         }
       }
       break;
@@ -234,8 +237,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** compute successors for the current edge.
    * There will be only one successor in most cases, even with N threads,
-   * because the edge limits the transitions to only one thread. */
-  private Collection<ThreadingState> getAbstractSuccessorsForSimpleEdge(
+   * because the edge limits the transitions to only one thread,
+   * because the LocationTransferRelation will only find one succeeding CFAnode. */
+  private Collection<ThreadingState> getAbstractSuccessorsFromWrappedCPAs(
       String activeThread, ThreadingState threadingState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
 

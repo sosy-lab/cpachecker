@@ -152,9 +152,9 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
   public String toString() {
     return "( threads={\n"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(states)
-        + "} with locks={"
+        + "}\n with locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
-        + "} and ids={"
+        + "}\n and ids={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadNums)
         + "})";
   }
