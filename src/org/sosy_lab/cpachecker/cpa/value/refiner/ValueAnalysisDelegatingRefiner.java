@@ -154,6 +154,8 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
     valueCpaPrefixProvider  = pValueCpaPrefixProvider;
 
     predicateCpaRefiner     = pPredicateRefiner;
+
+    _static__maxScoreOfValueDomainRefinement = maxScoreOfValueDomainRefinement;
   }
 
   @Override
@@ -199,9 +201,9 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
 
     return cex;
   }
-
+public static int _static__maxScoreOfValueDomainRefinement;
   private boolean favourValueAnalysisRefinement(ARGPath pErrorPath) throws CPAException, InterruptedException {
-    return !useRefinementSelection || (obtainScoreForValueDomain(pErrorPath) <= maxScoreOfValueDomainRefinement);
+    return !useRefinementSelection || (obtainScoreForValueDomain(pErrorPath) <= _static__maxScoreOfValueDomainRefinement);
   }
 
   private int obtainScoreForValueDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {

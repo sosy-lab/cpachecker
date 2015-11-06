@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisDelegatingRefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
@@ -252,7 +253,15 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
       return true;
     }
 
-    return false;
+    else {
+      ValueAnalysisDelegatingRefiner._static__maxScoreOfValueDomainRefinement = Integer.MAX_VALUE;
+
+      if (((double)ValueAnalysisTransferRelation.totalAssumptions.getValue() / totalAbstraction.getUpdateCount()) > 1) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 
   /**
