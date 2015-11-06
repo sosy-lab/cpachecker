@@ -84,16 +84,25 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   @Option(secure=true, description="restrict liveness abstractions to nodes with more than one entering and/or leaving edge")
   private boolean onlyAtNonLinearCFA = false;
 
-  private final ImmutableSet<CFANode> loopHeads;
+  @Option(secure=true, description="abstractionThreshold")
+  int abstractionThreshold = 4096;
 
   // statistics
   final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
   final StatTimer totalLiveness     = new StatTimer("Total time for liveness abstraction");
   final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
   final StatTimer totalEnforcePath  = new StatTimer("Total time for path thresholds");
-  private Set<MemoryLocation> trackedMemoryLocation = new HashSet<>();
 
   private final Statistics statistics;
+
+  private Set<MemoryLocation> trackedMemoryLocation = new HashSet<>();
+
+  private final ImmutableSet<CFANode> loopHeads;
+
+  /**
+   * the flag to determine whether or not abstraction as being performed
+   */
+  private Boolean performAbstraction = null;
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -208,6 +217,15 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    * @param precision the current precision
    */
   private void enforcePrecision(ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
+
+    if (performAbstraction == null && totalAbstraction.getUpdateCount() >= abstractionThreshold) {
+      performAbstraction = shouldPerformAbstraction();
+    }
+
+    if(performAbstraction == null || !performAbstraction) {
+      return;
+    }
+
     if (abstractAtEachLocation()
         || abstractAtBranch(location)
         || abstractAtJoin(location)
@@ -222,6 +240,19 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
       abstractions.inc();
     }
+  }
+
+  private boolean shouldPerformAbstraction() {
+
+    if (ValueAnalysisTransferRelation.totalAssumptions.getValue() == 0) {
+      return true;
+    }
+
+    if (ValueAnalysisTransferRelation.deterministicAssumptions.getValue() / (double)ValueAnalysisTransferRelation.totalAssumptions.getValue() < 0.85) {
+      return true;
+    }
+
+    return false;
   }
 
   /**

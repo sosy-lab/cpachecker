@@ -231,8 +231,8 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
-  private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
-  private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
+  public static StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
+  public static StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
 
   private Statistics transferStatistics = new Statistics() {
 
@@ -562,7 +562,9 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
 
-    totalAssumptions.inc();
+    if(!inStrengthen) {
+      totalAssumptions.inc();
+    }
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     expression = simplifiedExpression.getFirst();
@@ -574,7 +576,7 @@ public class ValueAnalysisTransferRelation
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
 
-    if(value.isExplicitlyKnown()) {
+    if(!inStrengthen && value.isExplicitlyKnown()) {
       deterministicAssumptions.inc();
     }
 
@@ -1744,12 +1746,12 @@ public class ValueAnalysisTransferRelation
     }
   }
 
+  private boolean inStrengthen = false;
   private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
-
+    inStrengthen = true;
     List<AssumeEdge> assumeEdges = pAutomatonState.getAsAssumeEdges(pCfaEdge.getPredecessor().getFunctionName());
 
     ValueAnalysisState state = pState;
-
 
     for (AssumeEdge assumeEdge : assumeEdges) {
       state = this.handleAssumption(assumeEdge, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
@@ -1761,6 +1763,7 @@ public class ValueAnalysisTransferRelation
       }
     }
 
+    inStrengthen = false;
     if (state == null) {
       return Collections.emptyList();
     } else {
