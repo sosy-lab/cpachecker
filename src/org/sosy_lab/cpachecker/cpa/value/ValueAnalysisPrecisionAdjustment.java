@@ -218,7 +218,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    */
   private void enforcePrecision(ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
 
-    if (performAbstraction == null && totalAbstraction.getUpdateCount() >= abstractionThreshold) {
+    if ((performAbstraction == null || !performAbstraction) && totalAbstraction.getUpdateCount() >= abstractionThreshold) {
       performAbstraction = shouldPerformAbstraction();
     }
 
