@@ -15,8 +15,8 @@
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
   </tasks>
-  <tasks name="Overflows">
-    <includesfile>../programs/benchmarks/Overflows.set</includesfile>
+  <tasks name="BitVectorsOverflows">
+    <includesfile>../programs/benchmarks/BitVectorsOverflows.set</includesfile>
     <option name="-64"/>
   </tasks>
   <tasks name="HeapReach">
@@ -52,7 +52,7 @@
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
   </tasks>
   <tasks name="Termination">
-    <includesfile>../programs/benchmarks/Termination-crafted.set</includesfile>
+    <includesfile>../programs/benchmarks/Termination.set</includesfile>
 <!--    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>-->
     <option name="-64" />
   </tasks>
