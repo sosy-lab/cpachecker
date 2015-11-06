@@ -74,19 +74,19 @@ public class StateFormulaConversionManager {
     // Returns the abstract state together with the conjoined extra invariant.
     PathFormula inputPath = getPathFormula(abstractState, fmgrv,
         attachExtraInvariant);
-    if (attachExtraInvariant) {
-      // todo: this is really hacky, can we think of a more elegant solution?
-      inputPath = inputPath.updateFormula(
-          bfmgr.and(
-              inputPath.getFormula(),
-              fmgr.instantiate(
-                  getInvariantFor(abstractState.getNode()),
-                  inputPath.getSsa()
-              )
-          ));
-    }
 
     List<BooleanFormula> constraints = new ArrayList<>();
+    if (attachExtraInvariant) {
+
+      // Formula by invariant generator.
+      constraints.add(fmgr.instantiate(
+        getInvariantFor(abstractState.getNode()), inputPath.getSsa()));
+
+      // Extra invariant.
+      constraints.add(fmgr.instantiate(abstractState.getExtraInvariant(),
+          inputPath.getSsa()));
+    }
+
     constraints.add(congruenceManager.toFormula(
         pfmgr, fmgrv,
         abstractState.getCongruence(), inputPath
