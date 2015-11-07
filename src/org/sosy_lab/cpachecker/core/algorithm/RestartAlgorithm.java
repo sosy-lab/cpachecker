@@ -258,6 +258,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (CPAException e) {
           lastAnalysisFailed = true;
+          if (e.getMessage().contains("Counterexample could not be analyzed")) {
+            status = status.withPrecise(false);
+          }
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
             if (e.getMessage().contains("recursion")) {
