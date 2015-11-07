@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -84,6 +85,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
@@ -416,7 +418,15 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       @Override
       public LocationSet visit(CFunctionCallExpression pIastFunctionCallExpression)
           throws UnrecognizedCCodeException {
-        return LocationSetTop.INSTANCE;
+        CFunctionDeclaration declaration = pIastFunctionCallExpression.getDeclaration();
+        if (declaration == null) {
+          LocationSet result = pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
+          if (result.isTop() || result.isBot()) {
+            return result;
+          }
+          return toLocationSet(FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
+        }
+        return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
       }
 
       @Override
