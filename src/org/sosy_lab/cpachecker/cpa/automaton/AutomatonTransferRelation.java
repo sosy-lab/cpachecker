@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -222,7 +223,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     // these transitions cannot be evaluated until last, because they might have sideeffects on other CPAs (dont want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
-    List<Pair<AutomatonTransition, Map<Integer, String>>> transitionsToBeTaken = new ArrayList<>(2);
+    List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken = new ArrayList<>(2);
 
     for (AutomatonTransition t : state.getInternalState().getTransitions()) {
       exprArgs.clearTransitionVariables();
@@ -261,7 +262,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             }
 
             // delay execution as described above
-            Map<Integer, String> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables());
+            Map<Integer, AAstNode> transitionVariables = ImmutableMap.copyOf(exprArgs.getTransitionVariables());
             transitionsToBeTaken.add(Pair.of(t, transitionVariables));
 
           } else {
@@ -285,10 +286,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     if (edgeMatched) {
       // execute Transitions
-      for (Pair<AutomatonTransition, Map<Integer, String>> pair : transitionsToBeTaken) {
+      for (Pair<AutomatonTransition, Map<Integer, AAstNode>> pair : transitionsToBeTaken) {
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
-        Map<Integer, String> transitionVariables = pair.getSecond();
+        Map<Integer, AAstNode> transitionVariables = pair.getSecond();
         actionTime.start();
         Map<String, AutomatonVariable> newVars = deepCloneVars(state.getVars());
         exprArgs.setAutomatonVariables(newVars);

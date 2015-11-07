@@ -40,6 +40,9 @@ public class AutomatonInternalState {
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
 
+  /** State representing INACTIVE: an automata that is not considered any more (removed from the precision). */
+  static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE, false);
+
   /** Error State */
   static final AutomatonInternalState ERROR = new AutomatonInternalState(
       "_predefinedState_ERROR",
@@ -79,6 +82,18 @@ public class AutomatonInternalState {
     this.transitions = pTransitions;
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
+  }
+
+  public AutomatonInternalState(String pName, AutomatonBoolExpr pSelfTransitionExpr, boolean pIsTarget) {
+    this.name = pName;
+    this.mIsTarget = pIsTarget;
+    this.mAllTransitions = false;
+    this.transitions = Collections.<AutomatonTransition>singletonList(new AutomatonTransition(
+        pSelfTransitionExpr,
+        Collections.<AutomatonBoolExpr>emptyList(),
+        null,
+        Collections.<AutomatonAction>emptyList(),
+        this, new StringExpression("")));
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {

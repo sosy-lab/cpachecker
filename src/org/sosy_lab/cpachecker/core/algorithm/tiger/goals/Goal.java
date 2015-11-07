@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -365,7 +365,7 @@ public class Goal {
 
         final String sucessorStateName = Integer.toString(t.getTarget().ID);
         final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
-        final ImmutableList<CStatement> assumptions = createAssumesForLabel(t.getLabel());
+        final ImmutableList<AStatement> assumptions = createAssumesForLabel(t.getLabel());
 
         AutomatonTransition ct = new AutomatonTransition(
             trigger,
@@ -390,8 +390,8 @@ public class Goal {
     }
   }
 
-  private ImmutableList<CStatement> createAssumesForLabel(GuardedEdgeLabel pLabel) {
-    Builder<CStatement> result = ImmutableList.builder();
+  private ImmutableList<AStatement> createAssumesForLabel(GuardedEdgeLabel pLabel) {
+    Builder<AStatement> result = ImmutableList.builder();
 
     for (ECPGuard g : pLabel) {
       if (g instanceof ECPPredicate) { throw new RuntimeException("ECPPredicate not yet supported as an assumption!"); }
@@ -416,6 +416,11 @@ public class Goal {
     @Override
     public String toString() {
       return label.toString();
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return null;
     }
 
   }
