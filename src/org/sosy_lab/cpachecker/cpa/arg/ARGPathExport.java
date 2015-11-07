@@ -538,6 +538,26 @@ public class ARGPathExport {
       if (exportAssumeCaseInfo) {
         if (pEdge instanceof AssumeEdge) {
           AssumeEdge a = (AssumeEdge) pEdge;
+          // If the assume edge or its sibling edge is followed by a pointer call,
+          // the assumption is artificial and should not be exported
+          if (CFAUtils.leavingEdges(a.getPredecessor()).anyMatch(new Predicate<CFAEdge>() {
+
+            @Override
+            public boolean apply(CFAEdge pArg0) {
+              return CFAUtils.leavingEdges(pArg0.getSuccessor()).anyMatch(new Predicate<CFAEdge>() {
+
+                @Override
+                public boolean apply(CFAEdge pArg0) {
+                  return pArg0.getRawStatement().startsWith("pointer call");
+                }
+
+              });
+            }
+
+          })) {
+            result.keyValues.clear();
+            return result;
+          }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
           result.put(KeyDef.CONTROLCASE, assumeCase.toString());
         }
@@ -817,6 +837,26 @@ public class ARGPathExport {
         }
       }
 
+      // Remove edges that lead to the sink but have a sibling edge that has the same label
+      Collection<Edge> toRemove = FluentIterable.from(leavingEdges.values()).filter(new Predicate<Edge>() {
+
+        @Override
+        public boolean apply(final Edge pEdge) {
+          return pEdge.target.equals(SINK_NODE_ID)
+              && FluentIterable.from(leavingEdges.get(pEdge.source)).filter(Predicates.not(Predicates.equalTo(pEdge))).anyMatch(new Predicate<Edge>() {
+
+                @Override
+                public boolean apply(Edge pArg0) {
+                  return pArg0.label.equals(pEdge.label);
+                }});
+        }
+
+      }).toList();
+      for (Edge edge : toRemove) {
+        enteringEdges.remove(edge.target, edge);
+        leavingEdges.remove(edge.source, edge);
+      }
+
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier = new Supplier<Iterator<Edge>>() {
 
@@ -831,7 +871,7 @@ public class ARGPathExport {
                   // An edge is redundant if it is the only leaving edge of a
                   // node and it is empty or all its non-assumption contents
                   // are summarized by a preceding edge
-                  return (!pEdge.label.hasTransitionRestrictions()
+                  if ((!pEdge.label.hasTransitionRestrictions()
                       || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
 
                         @Override
@@ -841,7 +881,10 @@ public class ARGPathExport {
 
                       })
                       || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
-                      && leavingEdges.get(pEdge.source).size() == 1;
+                      && leavingEdges.get(pEdge.source).size() == 1) {
+                    return true;
+                  }
+                  return false;
                 }
 
               }).iterator();
