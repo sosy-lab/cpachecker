@@ -405,7 +405,7 @@ public class Goal {
     private final GuardedEdgeLabel label;
 
     public GuardedEdgeMatcher(GuardedEdgeLabel pLabel) {
-      this.label = pLabel;
+      this.label = Preconditions.checkNotNull(pLabel);
     }
 
     @Override
@@ -418,9 +418,24 @@ public class Goal {
       return label.toString();
     }
 
+    /**
+     * Does this matcher behave semantically equal to
+     * other matchers?
+     */
     @Override
     public Equality equalityTo(Object pOther) {
-      return null;
+      if (!(pOther instanceof GuardedEdgeMatcher)) {
+        // Also matches that are implemented in other classes might
+        // implement the semantically same behavior, i.e.,
+        //  they might match exactly the same set of control-flow transitions
+        return Equality.UNKNOWN;
+      }
+
+      if (label.equals(pOther)) {
+        return Equality.EQUAL;
+      }
+
+      return Equality.UNKNOWN;
     }
 
   }
