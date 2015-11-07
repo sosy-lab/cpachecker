@@ -110,6 +110,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -130,6 +132,7 @@ import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Lists;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm
@@ -1152,13 +1155,20 @@ public class TigerAlgorithm
   }
 
   private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed) throws CPAException, InvalidConfigurationException {
-    Automaton goalAutomaton = null;
 
-    // TODO: Andreas remove goalAutomaton and use goalAutomatons.
-    Set<Automaton> goalAutomatons = new HashSet<>();
-    for (Goal goal : pGoalsToBeProcessed) {
-      goalAutomatons.add(goal.createControlAutomaton());
-      goalAutomaton = goal.createControlAutomaton();
+    Automaton productAutomaton;
+    {
+      List<Automaton> goalAutomatons = Lists.newArrayList();
+      for (Goal goal : pGoalsToBeProcessed) {
+        goalAutomatons.add(goal.createControlAutomaton());
+      }
+
+      try {
+        productAutomaton = ReducedAutomatonProduct.productOf(goalAutomatons, "GOAL_PRODUCT");
+
+      } catch (InvalidAutomatonException e) {
+        throw new CPAException("One of the automata is invalid!", e);
+      }
     }
 
     Preconditions.checkArgument(cpa instanceof ARGCPA,
@@ -1166,10 +1176,10 @@ public class TigerAlgorithm
     ARGCPA oldArgCPA = (ARGCPA) cpa;
 
     CPAFactory automataFactory = ControlAutomatonCPA.factory();
-    automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
-    automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
+    automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, productAutomaton.getName()));
+    automataFactory.setLogger(logger.withComponentName(productAutomaton.getName()));
     automataFactory.set(cfa, CFA.class);
-    automataFactory.set(goalAutomaton, Automaton.class);
+    automataFactory.set(productAutomaton, Automaton.class);
 
     // Add one automata for each goal
     //  TODO: Implement support for more than one (parallel) goal!
