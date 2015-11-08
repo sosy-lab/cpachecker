@@ -1,3 +1,26 @@
+
+CPARefSel - Competition Contribution to SV-COMP'16
+==================================================
+
+This is a special version of CPAchecker. It presents the two concepts
+sliced path prefixes [1] and refinement selection [2] in a composite
+analysis featuring the value and predicate analysis of CPAchecker.
+
+
+Specifically for the SV-COMP'16, the concept of refinement selection
+is made applicable together with adjustable-block encoding. This
+allows us to now compute abstraction always when control flow joins,
+as the analysis performs best with medium-sized blocks, proofing that
+selecting suitable refinements is as important as employing an
+appropriate block-encoding.
+
+
+[1] D. Beyer, S. Löwe, and P. Wendler. Sliced path prefixes: An effective method to enable refinement selection.
+     In Proc. FORTE, LNCS 9039, pages 228–243. Springer, 2015.
+[2] D. Beyer, S. Löwe, and P. Wendler. Refinement selection.
+     In Proc. SPIN, LNCS 9232, pages 20–38. Springer, 2015.
+
+
 Getting Started with CPAchecker
 ===============================
 
