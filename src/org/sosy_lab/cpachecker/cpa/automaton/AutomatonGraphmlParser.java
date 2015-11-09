@@ -324,7 +324,8 @@ public class AutomatonGraphmlParser {
           newStack = new ArrayDeque<>(newStack);
         }
 
-        AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
+        // Never match on the dummy edge directly after the main function entry node
+        AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
 
         // Add assumptions to the transition
         if (considerAssumptions) {
