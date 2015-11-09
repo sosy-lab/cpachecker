@@ -431,7 +431,9 @@ public class Goal {
         return Equality.UNKNOWN;
       }
 
-      if (label.equals(pOther)) {
+      GuardedEdgeMatcher other = (GuardedEdgeMatcher) pOther;
+
+      if (this.label.equals(other.label)) {
         return Equality.EQUAL;
       }
 
