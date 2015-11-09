@@ -31,9 +31,11 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
@@ -248,52 +250,81 @@ public class AppliedCustomInstructionParserTest {
     file.flush();
     file.close();
 
+    CFANode expectedStart = null;
+    for(CLabelNode n: getLabelNodes(cfa)){
+      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
+        expectedStart = n;
+      }
+    }
+    int startNodeNr = expectedStart.getNodeNumber();
+
     CustomInstructionApplications cia = aciParser.parse(p);
     Map<CFANode, AppliedCustomInstruction> cis = cia.getMapping();
     Truth.assertThat(cis.size()).isEqualTo(4);
-    for (CFANode key : cis.keySet()) {
+
+    for (Entry<CFANode, AppliedCustomInstruction> entry : cis.entrySet()) {
+      Pair<List<String>, String> fakeSMTDescription;
+      List<String> list = new ArrayList<>();
       List<String> variables = new ArrayList<>();
       SSAMap ssaMap;
 
-      // TODO ssamap outputvars der ci sind in denen der aci
+      if (entry.getKey().getNodeNumber() == startNodeNr) {
+          fakeSMTDescription = entry.getValue().getFakeSMTDescription();
+          list.add("(declare-fun |main::x| () Int)");
+          list.add("(declare-fun |main::y| () Int)");
+          list.add("(declare-fun |main::x@1| () Int)");
+          Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
+          Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun aci() Bool(and (= |main::x| 0)(and (= |main::y| 0) (= |main::x@1| 0)))");
 
-      switch (key.getNodeNumber()) {
-        case 54:
-          // TODO fake smt description
-          ssaMap = cis.get(key).getIndicesForReturnVars();
+          ssaMap = entry.getValue().getIndicesForReturnVars();
           variables.add("main::x");
-//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
-          break;
+          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        case 56:
-          ssaMap = cis.get(key).getIndicesForReturnVars();
-          variables.add("main::x");
-//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
-          break;
+      } else if (entry.getKey().getNodeNumber() == startNodeNr + 2) {
+          fakeSMTDescription = entry.getValue().getFakeSMTDescription();
+          list.clear();
+          list.add("(declare-fun |main::x| () Int)");
+          list.add("(declare-fun |main::x| () Int)");
+          list.add("(declare-fun |main::x@1| () Int)");
+          Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
+          Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun aci() Bool(and (= |main::x| 0)(and (= |main::x| 0) (= |main::x@1| 0)))");
 
-        case 57:
-          ssaMap = cis.get(key).getIndicesForReturnVars();
+          ssaMap = entry.getValue().getIndicesForReturnVars();
           variables.add("main::x");
+          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+
+        } else if (entry.getKey().getNodeNumber() == startNodeNr + 3) {
+          fakeSMTDescription = entry.getValue().getFakeSMTDescription();
+          list.clear();
+          list.add("(declare-fun |main::y| () Int)");
+          list.add("(declare-fun |main::y| () Int)");
+          list.add("(declare-fun |main::y@1| () Int)");
+          Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
+          Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun aci() Bool(and (= |main::y| 0)(and (= |main::y| 0) (= |main::y@1| 0)))");
+
+          ssaMap = entry.getValue().getIndicesForReturnVars();
           variables.add("main::y");
-//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
-//          Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
-          break;
+          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        case 58:
-          ssaMap = cis.get(key).getIndicesForReturnVars();
-          variables.add("main::x");
+        } else if (entry.getKey().getNodeNumber() == startNodeNr + 4) {
+          fakeSMTDescription = entry.getValue().getFakeSMTDescription();
+          list.clear();
+          list.add("(declare-fun |main::y| () Int)");
+          list.add("(declare-fun |main::x| () Int)");
+          list.add("(declare-fun |main::y@1| () Int)");
+          Truth.assertThat(fakeSMTDescription.getFirst()).containsExactlyElementsIn(list);
+          Truth.assertThat(fakeSMTDescription.getSecond()).isEqualTo("(define-fun aci() Bool(and (= |main::y| 0)(and (= |main::x| 0) (= |main::y@1| 0)))");
+
+          ssaMap = entry.getValue().getIndicesForReturnVars();
           variables.add("main::y");
-//          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-//          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
-//          Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
-          break;
+          Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+          Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
 
-        default:
+        } else {
           Truth.assertThat(false).isTrue();
-          break;
       }
     }
   }
