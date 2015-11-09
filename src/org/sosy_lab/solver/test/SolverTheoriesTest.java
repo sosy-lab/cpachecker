@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.solver.test;
 
-import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import org.junit.Ignore;
@@ -356,6 +356,15 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // check modulo-by-constant, a=-10 && a%(-3)=-1
     assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
     assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTest4_ModularCongruence_Simple() throws Exception {
+    final IntegerFormula x = imgr.makeVariable("x");
+    final BooleanFormula f1 = imgr.modularCongruence(x, imgr.makeNumber(0), 2);
+    final BooleanFormula f2 = imgr.equal(x, imgr.makeNumber(1));
+
+    assertThatFormula(bmgr.and(f1, f2)).isUnsatisfiable();
   }
 
   @Test
