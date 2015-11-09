@@ -318,7 +318,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // actual test
     BooleanFormula expr = fun.get();
     BooleanFormula parsedForm = mgr.parse(textToParse);
-    assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
+    assertThatFormula(parsedForm).isEquivalentTo(expr);
   }
 
   private void compareParseWithOrgParseFirst(String textToParse, Supplier<BooleanFormula> fun)
@@ -330,7 +330,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // actual test
     BooleanFormula parsedForm = mgr.parse(textToParse);
     BooleanFormula expr = fun.get();
-    assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
+    assertThatFormula(parsedForm).isEquivalentTo(expr);
   }
 
   private void checkThatFunOnlyDeclaredOnce(String formDump) {

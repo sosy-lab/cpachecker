@@ -278,7 +278,7 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     f = bfm.and(
         _forall_10_20_bx_0,
         qfm.forall(_x, _b_at_x_eq_0));
-    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+    assertThatFormula(f).isSatisfiable();
 
     // (forall x in [10..20] . b[x] = 1) AND (exits x in [15..17] . b[x] = 0) is UNSAT
     f = bfm.and(
