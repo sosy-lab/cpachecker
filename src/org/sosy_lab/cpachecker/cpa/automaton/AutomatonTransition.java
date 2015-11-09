@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
@@ -39,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpressio
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -70,13 +73,13 @@ public class AutomatonTransition {
 
     public PlainAutomatonTransition(AutomatonBoolExpr pTrigger, AutomatonBoolExpr pAssertion,
         ImmutableList<AStatement> pAssumption, ImmutableList<AutomatonAction> pActions,
-        StringExpression pViolatedPropertyDescription) {
+        @Nullable StringExpression pViolatedPropertyDescription) {
 
       assumptionTruth = true;
-      trigger = pTrigger;
-      assertion = pAssertion;
-      assumption = pAssumption;
-      actions = pActions;
+      trigger = Preconditions.checkNotNull(pTrigger);
+      assertion = Preconditions.checkNotNull(pAssertion);
+      assumption = Preconditions.checkNotNull(pAssumption);
+      actions = Preconditions.checkNotNull(pActions);
       violatedPropertyDescription = pViolatedPropertyDescription;
     }
 
@@ -90,13 +93,18 @@ public class AutomatonTransition {
     }
 
     @Override
+    public String toString() {
+      return trigger.toString();
+    }
+
+    @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((actions == null) ? 0 : actions.hashCode());
-      result = prime * result + ((assertion == null) ? 0 : assertion.hashCode());
-      result = prime * result + ((assumption == null) ? 0 : assumption.hashCode());
-      result = prime * result + ((trigger == null) ? 0 : trigger.hashCode());
+      result = prime * result + actions.hashCode();
+      result = prime * result + assertion.hashCode();
+      result = prime * result + assumption.hashCode();
+      result = prime * result + trigger.hashCode();
       result = prime * result + ((violatedPropertyDescription == null) ? 0 : violatedPropertyDescription.hashCode());
       return result;
     }

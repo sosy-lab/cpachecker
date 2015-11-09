@@ -85,6 +85,10 @@ analysis.algorithm.propertyCheck = false
 # use the TestGen Algorithm
 analysis.algorithm.testGen = false
 
+# Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal
+# Reachability Analyses, ESOP'13)
+analysis.algorithm.tiger = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -2469,4 +2473,69 @@ testgen.stopOnError = false
 # Output file Template under which the testcase automatons will be stored.
 # Must include one %s somewhere.
 testgen.testcaseOutputFile = "testcase%s.spc"
+
+# Configuration file for internal cpa algorithm.
+tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
+
+# Returns all test goals covered by a test case.
+tiger.allCoveredGoalsPerTestCase = false
+
+# Checks whether a test case for one goal covers another test goal
+tiger.checkCoverage = true
+
+# File for saving processed goal automata in DOT format (%s will be replaced
+# with automaton name)
+tiger.dumpGoalAutomataTo = "Automaton_%s.dot"
+
+# Coverage criterion given as an FQL query
+tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
+
+# Inverses the order of test goals each time a new round of re-processing of
+# timed-out goals begins.
+tiger.inverseOrder = true
+
+# Time limit per test goal in seconds (-1 for infinity).
+tiger.limitsPerGoal.time.cpu = -1
+
+# Value for which timeout gets incremented if timed-out goals are
+# re-processed.
+tiger.limitsPerGoal.time.cpu.increment = 0
+
+# The number of test goals processed per CPAchecker run (0: all test cases in
+# one run).
+tiger.numberOfTestGoalsPerRun = 1
+
+# Optimize the test goal automata
+tiger.optimizeGoalAutomata = true
+
+# Print the ARG for each test goal
+tiger.printARGperGoal = false
+
+# Prints labels reached with the error path of a test case.
+tiger.printLabels = false
+
+# Reuse ARG across test goals
+tiger.reuseARG = true
+
+# Reuse predicates across modifications of an ARG.
+tiger.reusePredicates = true
+
+# Filename for output of generated test suite
+tiger.testsuiteFile = "testsuite.txt"
+
+# Use Test Input Generator algorithm with an extension using the BDDCPA to
+# model product line presence conditions
+tiger.tiger_with_presenceConditions = false
+
+# How to proceed with timed-out goals if some time remains after processing
+# all other goals.
+tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
+  enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
+
+# Map information on infeasibility of one test goal to other test goals.
+tiger.useInfeasibilityPropagation = false
+
+# Enforce the original order each time a new round of re-processing of
+# timed-out goals begins.
+tiger.useOrder = true
 

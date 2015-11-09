@@ -90,7 +90,7 @@ public class Automaton {
    * @param pOut
    * @throws IOException
    */
-  void writeDotFile(Appendable pOut) throws IOException {
+  public void writeDotFile(Appendable pOut) throws IOException {
     pOut.append("digraph " + name + "{\n");
 
     boolean errorState = false;

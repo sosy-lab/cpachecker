@@ -55,6 +55,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -163,6 +164,11 @@ public class TigerAlgorithm
   @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
+
+  @Option(secure=true,
+      description="File for saving processed goal automata in DOT format (%s will be replaced with automaton name)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dumpGoalAutomataTo = PathTemplate.ofFormatString("Automaton_%s.dot");
 
   @Option(
       secure = true,
@@ -1154,17 +1160,30 @@ public class TigerAlgorithm
     return inputValues;
   }
 
+  private void dumpAutomaton(Automaton pA) {
+    try (Writer w = Files.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()))) {
+
+      pA.writeDotFile(w);
+
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+    }
+  }
+
   private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed) throws CPAException, InvalidConfigurationException {
 
     Automaton productAutomaton;
     {
       List<Automaton> goalAutomatons = Lists.newArrayList();
       for (Goal goal : pGoalsToBeProcessed) {
-        goalAutomatons.add(goal.createControlAutomaton());
+        final Automaton a = goal.createControlAutomaton();
+        goalAutomatons.add(a);
+        dumpAutomaton(a);
       }
 
       try {
         productAutomaton = ReducedAutomatonProduct.productOf(goalAutomatons, "GOAL_PRODUCT");
+        dumpAutomaton(productAutomaton);
 
       } catch (InvalidAutomatonException e) {
         throw new CPAException("One of the automata is invalid!", e);
