@@ -128,7 +128,6 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -407,7 +406,7 @@ public class TigerAlgorithm
       }
 
       // TODO DELETE-
-      Goal goal = pGoalsToCover.poll();
+//      Goal goal = pGoalsToCover.poll();
 
       // TODO DELETE-
       // while (!testsuite.isGoalCovered(goal) && !testsuite.isTestGoalInfeasible(goal)) {
@@ -485,22 +484,23 @@ public class TigerAlgorithm
           continue;
         }
 
-        if (useTigerAlgorithm_with_pc) {
-          // update PC coverage todo
-          try {
-            if (testsuite.isTestGoalInfeasible(goal) &&
-                bddCpaNamedRegionManager.entails(goal.getInfeasiblePresenceCondition(),
-                    goal.getRemainingPresenceCondition())) {
-              // 1st condition: this goal is infeasible for some constraint
-              // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
-              logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-                  bddCpaNamedRegionManager.dumpRegion(goal.getRemainingPresenceCondition()));
-              goal.setRemainingPresenceCondition(bddCpaNamedRegionManager.makeFalse());
-              // remainingPCforGoalCoverage := FALSE ensures that the while loop exits and the next goal is processed.
-            }
-          } catch (SolverException e) {
-          }
-        }
+        // TODO: enable
+//        if (useTigerAlgorithm_with_pc) {
+//          // update PC coverage todo
+//          try {
+//            if (testsuite.isTestGoalInfeasible(goal) &&
+//                bddCpaNamedRegionManager.entails(goal.getInfeasiblePresenceCondition(),
+//                    goal.getRemainingPresenceCondition())) {
+//              // 1st condition: this goal is infeasible for some constraint
+//              // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
+//              logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
+//                  bddCpaNamedRegionManager.dumpRegion(goal.getRemainingPresenceCondition()));
+//              goal.setRemainingPresenceCondition(bddCpaNamedRegionManager.makeFalse());
+//              // remainingPCforGoalCoverage := FALSE ensures that the while loop exits and the next goal is processed.
+//            }
+//          } catch (SolverException e) {
+//          }
+//        }
       }
     }
 

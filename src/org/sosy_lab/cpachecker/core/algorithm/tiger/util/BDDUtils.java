@@ -88,6 +88,10 @@ public class BDDUtils {
   }
 
   public static Region composeRemainingPresenceConditions(Set<Goal> pTestGoalsToBeProcessed, NamedRegionManager pBddCpaNamedRegionManager) {
+    if (pBddCpaNamedRegionManager == null) {
+      return null;
+    }
+
     Region presenceCondition = pBddCpaNamedRegionManager.makeFalse();
     for (Goal goal : pTestGoalsToBeProcessed) {
       presenceCondition = pBddCpaNamedRegionManager.makeOr(presenceCondition, goal.getRemainingPresenceCondition());
