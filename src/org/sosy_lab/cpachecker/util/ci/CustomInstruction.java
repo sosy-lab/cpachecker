@@ -270,12 +270,26 @@ public class CustomInstruction{
    */
   private String getAssignmentOfVariableToZero(final String var, final boolean isOutputVariable) {
     StringBuilder sb = new StringBuilder();
-    sb.append("(= |");
+
+    boolean isNumber = false;
+    try {
+      Integer.parseInt(var);
+      isNumber = true;
+    } catch (NumberFormatException ex) {
+    }
+
+    sb.append("(= ");
+    if (!isNumber) {
+      sb.append("|");
+    }
     sb.append(var);
     if (isOutputVariable) {
       sb.append("@1");
     }
-    sb.append("| 0)");
+    if (!isNumber) {
+      sb.append("|");
+    }
+    sb.append(" 0)");
     return sb.toString();
   }
 
@@ -365,8 +379,9 @@ public class CustomInstruction{
       return Pair.of(Collections.<String> emptyList(),
         "(define-fun ci() Bool true)");
     }
+
     StringBuilder sb = new StringBuilder();
-    sb.append("(define-fun ci() Bool ");
+    sb.append("(define-fun aci() Bool");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
@@ -398,15 +413,28 @@ public class CustomInstruction{
       }
     }
 
-    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of (define-fun ci Bool...
+    for (int i=0; i<BracketCounter; i++) {
       sb.append(")");
     }
 
     List<String> outputVariableList = new ArrayList<>();
-    for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun " + map.get(var) + "@1 () Int)");
+    for (String var : inputVariables) {
+      outputVariableList.add("(declare-fun " + getStringOf(map.get(var)) + " () Int)");
     }
+    for (String var : outputVariables) {
+      outputVariableList.add("(declare-fun |" + map.get(var) + "@1| () Int)");
+    }
+
     return Pair.of(outputVariableList, sb.toString());
+  }
+
+  private String getStringOf(String var) {
+    try {
+      Integer.parseInt(var);
+    } catch (NumberFormatException e) {
+      return "|" + var + "|";
+    }
+    return var;
   }
 
 
