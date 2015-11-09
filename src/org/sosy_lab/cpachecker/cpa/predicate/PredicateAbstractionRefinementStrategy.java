@@ -65,14 +65,12 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring.FormulaMeasures;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -81,6 +79,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -89,6 +89,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 
@@ -268,7 +269,6 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     if (useStaticRefinement()) {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       ARGState root = (ARGState)reached.getFirstState();
-      ARGState refinementRoot = Iterables.getLast(root.getChildren());
 
       PredicatePrecision heuristicPrecision;
       try {
@@ -281,7 +281,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       }
 
       shutdownNotifier.shutdownIfNecessary();
-      pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+      for (ARGState refinementRoot : Lists.newArrayList(root.getChildren())) {
+        pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+      }
 
       heuristicsCount++;
       lastRefinementUsedHeuristics = true;
