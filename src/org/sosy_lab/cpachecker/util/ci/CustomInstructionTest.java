@@ -285,7 +285,8 @@ public class CustomInstructionTest {
     locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
     locConstructor.setAccessible(true);
 
-    CFANode aciStartNode = null; // TODO
+    CFANode aciStartNode = null;
+
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();
     queue.add(cfa.getFunctionHead("main"));
@@ -329,19 +330,20 @@ public class CustomInstructionTest {
 
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
-//    Pair<List<String>, String> pair = aci.getFakeSMTDescription();
-//    Truth.assertThat(pair.getFirst()).hasSize(3);
-//    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b|() Int)");
-//    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1|() Int)");
-//    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1|() Int)");
-//    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0) (and (= |main::b| 0) (and (= |main::a@1| 0) (= |main::b@1| 0)))))");
-//
-//    SSAMap ssaMap = aci.getIndicesForReturnVars();
-//    List<String> variables = new ArrayList<>();
-//    variables.add("main::a");
-//    variables.add("main::b");
-//    Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
-//    Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
-//    Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
+    Pair<List<String>, String> pair = aci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).hasSize(4);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun 7 () Int)"); // TODO 7 auch hier drin?
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::b| () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::a@1| () Int)");
+    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |main::b@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun aci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0))))");
+
+    SSAMap ssaMap = aci.getIndicesForReturnVars();
+    List<String> variables = new ArrayList<>();
+    variables.add("main::a");
+    variables.add("main::b");
+    Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+    Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+    Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
   }
 }
