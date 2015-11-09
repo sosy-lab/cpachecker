@@ -24,9 +24,11 @@
 package org.sosy_lab.solver.test;
 
 import static com.google.common.collect.Iterables.getLast;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -82,6 +84,24 @@ public class SolverInterpolationTest extends SolverBasedTest0 {
 
   private static final UniqueIdGenerator index = new UniqueIdGenerator(); // to get different names
 
+  @Test
+  public <T> void simpleInterpolation() throws Exception {
+    try (InterpolatingProverEnvironment<T> prover = newEnvironmentForTest()) {
+      IntegerFormula x, y, z;
+      x = imgr.makeVariable("x");
+      y = imgr.makeVariable("y");
+      z = imgr.makeVariable("z");
+      BooleanFormula f1 = imgr.equal(y, imgr.multiply(imgr.makeNumber(2), x));
+      BooleanFormula f2 =
+          imgr.equal(y, imgr.add(imgr.makeNumber(1), imgr.multiply(z, imgr.makeNumber(2))));
+      prover.push(f1);
+      T id2 = prover.push(f2);
+      boolean check = prover.isUnsat();
+      assertThat(check).named("formulas must be contradicting").isTrue();
+      prover.getInterpolant(Collections.singletonList(id2));
+      // we actually only check for a successful execution here, the result is irrelevant.
+    }
+  }
 
   @Test
   @SuppressWarnings({"unchecked", "varargs"})
