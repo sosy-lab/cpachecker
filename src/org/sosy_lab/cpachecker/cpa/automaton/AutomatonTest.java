@@ -276,4 +276,150 @@ public class AutomatonTest {
       assertThat(results.getLog()).contains("B: A increased to 2 And i followed ");
       results.assertIsSafe();
   }
+
+  /* Automaton tests with SPLIT keyword */
+  @Test
+  public void splitAutomaton08() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_08_1a_A.spc"
+    );
+
+    TestResults results = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_08_true.c");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void splitAutomaton32() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_32_1a_split.spc"
+    );
+
+    TestResults results = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_32.c");
+    results.assertIsSafe();
+  }
+
+  /* Automaton tests with ASSUME keyword */
+  @Test
+  public void assumeAutomaton10() throws Exception {
+    Map<String, String> propA = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_10_1a_A.spc"
+    );
+    Map<String, String> propB = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_10_1a_B.spc"
+    );
+
+    TestResults resultsA = CPATestRunner.run(propA,
+        "test/programs/automata/ldv_test_10_true.c");
+    TestResults resultsB = CPATestRunner.run(propB,
+        "test/programs/automata/ldv_test_10_true.c");
+
+    resultsA.assertIsUnsafe();
+    resultsB.assertIsUnsafe();
+  }
+
+  @Test
+  public void assumeAutomaton147() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_147.spc"
+    );
+
+    TestResults resultsFalse = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_147_false.c");
+    TestResults resultsTrue = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_147_true.c");
+
+    resultsFalse.assertIsUnsafe();
+    resultsTrue.assertIsSafe();
+  }
+
+  @Test
+  public void assumeAutomaton32() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_32_1a_fixed.spc"
+    );
+
+    TestResults results = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_32.c");
+
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void assumeAutomaton43() throws Exception {
+    Map<String, String> propA = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_43_1a_fixed.spc"
+    );
+    Map<String, String> propB = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_43_1a.spc"
+    );
+
+    TestResults resultsA = CPATestRunner.run(propA,
+        "test/programs/automata/ldv_test_43_true.c");
+    TestResults resultsB = CPATestRunner.run(propB,
+        "test/programs/automata/ldv_test_43_true.c");
+
+    resultsA.assertIsSafe();
+    resultsB.assertIsUnsafe();
+  }
+
+  @Test
+  public void assumeAutomaton2() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_test2.spc"
+    );
+
+    TestResults results = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test2.c");
+
+    results.assertIsUnsafe();
+  }
+
+  /* Other automaton test files */
+  @Test
+  public void assertAutomaton147() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas", "cpa.location.LocationCPA, "
+            + "cpa.automaton.ObserverAutomatonCPA, cpa.value.ValueAnalysisCPA",
+        "log.consoleLevel", "FINER",
+        "cpa.automaton.inputFile", "test/config/automata/ldv_147_assert.spc"
+    );
+
+    TestResults resultsTrue = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_147_true.c");
+    TestResults resultsFalse = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_147_false.c");
+
+    resultsTrue.assertIsUnsafe();
+    resultsFalse.assertIsUnsafe();
+  }
+
 }
