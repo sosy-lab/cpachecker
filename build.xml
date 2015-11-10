@@ -235,8 +235,7 @@
 		includes="*.*"
 		prefix="bin"/>
             <tarfileset dir="." filemode="755"
-                includes="lib/native/**"
-                excludes="lib/native/source/** lib/native/*win*/** lib/native/x86-linux/**"/>
+                includes="lib/native/x86_64-linux/**"/>
         </tar>
     </target>
 

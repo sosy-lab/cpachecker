@@ -1,3 +1,11 @@
+Changes since CPAchecker 1.4
+----------------------------
+* r18407: Remove all supplied 32bit binaries of native libraries and tools.
+  If you need to run CPAchecker on a 32bit system with a configuration
+  that relies on native libraries, you need to compile them yourself
+  and put them in the directory "lib/native/x86-linux/".
+
+
 Changes from CPAchecker 1.3.4 to CPAchecker 1.4
 -----------------------------------------------
 * Sliced Interpolation for Value Analysis
