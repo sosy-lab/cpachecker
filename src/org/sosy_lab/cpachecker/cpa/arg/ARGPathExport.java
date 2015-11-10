@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -198,18 +197,6 @@ public class ARGPathExport {
     this.machineModel = pMachineModel;
     this.language = pLanguage;
     this.logger = pLogger;
-  }
-
-  private String getStateIdent(ARGState pState) {
-    return getStateIdent(pState, "");
-  }
-
-  private String getStateIdent(ARGState pState, String pIdentPostfix) {
-    return String.format("A%d%s", pState.getStateId(), pIdentPostfix);
-  }
-
-  private String getPseudoStateIdent(ARGState pState, int pSubStateNo, int pSubStateCount) {
-    return getStateIdent(pState, String.format("_%d_%d", pSubStateNo, pSubStateCount));
   }
 
   private static class TransitionCondition implements Comparable<TransitionCondition> {
@@ -376,7 +363,7 @@ public class ARGPathExport {
     throw new RuntimeException("Could not determine file name based on abstract state!");
   }
 
-  private class WitnessWriter {
+  private class WitnessWriter implements EdgeAppender {
 
     private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
     private final Multimap<String, String> violatedProperties = TreeMultimap.create();
@@ -392,7 +379,21 @@ public class ARGPathExport {
       this.defaultSourcefileName = pDefaultSourcefileName;
     }
 
-    private void appendNewEdge(final GraphMlBuilder pDoc, String pFrom,
+    @Override
+    public void appendNewEdge(final GraphMlBuilder pDoc, String pFrom,
+        final String pTo, final CFAEdge pEdge) {
+
+      attemptSwitchToFunctionScope(pEdge);
+
+      TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, null, Collections.<ARGState, CFAEdgeWithAssumptions>emptyMap());
+
+      Edge edge = new Edge(pFrom, pTo, desc);
+
+      putEdge(edge);
+    }
+
+    @Override
+    public void appendNewEdge(final GraphMlBuilder pDoc, String pFrom,
         final String pTo, final CFAEdge pEdge, final ARGState pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
@@ -403,6 +404,17 @@ public class ARGPathExport {
       Edge edge = new Edge(pFrom, pTo, desc);
 
       putEdge(edge);
+    }
+
+    @Override
+    public void appendNewEdgeToSink(GraphMlBuilder pDoc, String pFrom, CFAEdge pEdge, ARGState pFromState,
+        Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      appendNewEdge(pDoc, pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
+    }
+
+    @Override
+    public void appendNewEdgeToSink(GraphMlBuilder pDoc, String pFrom, CFAEdge pEdge) {
+      appendNewEdge(pDoc, pFrom, SINK_NODE_ID, pEdge);
     }
 
     private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
@@ -732,6 +744,8 @@ public class ARGPathExport {
 
       GraphType graphType = GraphType.PROGRAMPATH;
 
+      GraphBuilder graphBuilder = GraphBuilder.ARG_PATH;
+
       GraphMlBuilder doc;
       try {
         doc = new GraphMlBuilder(pTarget);
@@ -744,7 +758,7 @@ public class ARGPathExport {
       // TODO! (we could use the version of a XML schema)
 
       // ...
-      String entryStateNodeId = getStateIdent(pRootState);
+      String entryStateNodeId = graphBuilder.getId(pRootState);
 
       doc.appendDocHeader();
       appendKeyDefinitions(doc, graphType);
@@ -770,7 +784,7 @@ public class ARGPathExport {
 
       // Collect node flags in advance
       for (ARGState s : collectPathNodes(pRootState, pSuccessorFunction, pPathStates)) {
-        String sourceStateNodeId = getStateIdent(s);
+        String sourceStateNodeId = graphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
           sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
@@ -783,59 +797,7 @@ public class ARGPathExport {
       nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
 
       // Build the actual graph
-      int multiEdgeCount = 0;
-      for (Pair<ARGState, Iterable<ARGState>> argEdges : collectPathEdges(pRootState, pSuccessorFunction, pPathStates)) {
-        ARGState s = argEdges.getFirst();
-
-        // Location of the state
-        CFANode loc = AbstractStates.extractLocation(s);
-
-        String sourceStateNodeId = getStateIdent(s);
-
-        // Process child states
-        for (ARGState child : argEdges.getSecond()) {
-
-          String childStateId = getStateIdent(child);
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
-          String prevStateId = sourceStateNodeId;
-
-          if (edgeToNextState instanceof MultiEdge) {
-            // The successor state might have several incoming MultiEdges.
-            // In this case the state names like ARG<successor>_0 would occur
-            // several times.
-            // So we add this counter to the state names to make them unique.
-            multiEdgeCount++;
-
-            // Write out a long linear chain of pseudo-states (one state encodes multiple edges)
-            // because the AutomatonCPA also iterates through the MultiEdge.
-            List<CFAEdge> edges = ((MultiEdge)edgeToNextState).getEdges();
-
-            // inner part (without last edge)
-            for (int i = 0; i < edges.size()-1; i++) {
-              CFAEdge innerEdge = edges.get(i);
-              String pseudoStateId = getPseudoStateIdent(child, i, multiEdgeCount);
-
-              assert (!(innerEdge instanceof AssumeEdge));
-
-              appendNewEdge(doc, prevStateId, pseudoStateId, innerEdge, null, valueMap);
-              prevStateId = pseudoStateId;
-            }
-
-            // last edge connecting it with the real successor
-            edgeToNextState = edges.get(edges.size()-1);
-          }
-
-          // Only proceed with this state if the path states contains the child
-          if (pPathStates.apply(child) && pIsTargetPathEdge.apply(Pair.of(s, child))) {
-            // Child belongs to the path!
-            appendNewEdge(doc, prevStateId, childStateId, edgeToNextState, s, valueMap);
-          } else {
-            // Child does not belong to the path --> add a branch to the SINK node!
-            appendNewEdge(doc, prevStateId, SINK_NODE_ID, edgeToNextState, s, valueMap);
-          }
-        }
-      }
+      graphBuilder.buildGraph(pRootState, pPathStates, pIsTargetPathEdge, valueMap, doc, collectPathEdges(pRootState, pSuccessorFunction, pPathStates), this);
 
       // Remove edges that lead to the sink but have a sibling edge that has the same label
       Collection<Edge> toRemove = FluentIterable.from(leavingEdges.values()).filter(new Predicate<Edge>() {
