@@ -381,7 +381,7 @@ public class CustomInstruction{
     }
 
     StringBuilder sb = new StringBuilder();
-    sb.append("(define-fun aci() Bool");
+    sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
@@ -413,7 +413,7 @@ public class CustomInstruction{
       }
     }
 
-    for (int i=0; i<BracketCounter; i++) {
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of (define-fun ci Bool...)
       sb.append(")");
     }
 

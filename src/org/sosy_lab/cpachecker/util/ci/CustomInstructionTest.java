@@ -282,10 +282,7 @@ public class CustomInstructionTest {
         + "}";
     cfa = TestDataTools.makeCFA(testProgram);
 
-    locConstructor = LocationState.class.getDeclaredConstructor(CFANode.class, boolean.class);
-    locConstructor.setAccessible(true);
-
-    CFANode aciStartNode = null;
+    CFANode aciStartNode = null, aciEndNode = null;
 
     Set<CFANode> visitedNodes = new HashSet<>();
     Queue<CFANode> queue = new ArrayDeque<>();
@@ -314,9 +311,13 @@ public class CustomInstructionTest {
         if (e.getCode().equals("int a = 5 * b;")) {
           aciStartNode = e.getPredecessor();
         }
+        if (e.getCode().equals("x = x + 1;")) {
+          aciEndNode = e.getPredecessor();
+        }
       }
     }
     Truth.assertThat(aciStartNode).isNotNull();
+    Truth.assertThat(aciEndNode).isNotNull();
     Truth.assertThat(startNode).isNotNull();
     Truth.assertThat(endNodes).hasSize(1);
 
@@ -331,12 +332,12 @@ public class CustomInstructionTest {
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
     Pair<List<String>, String> pair = aci.getFakeSMTDescription();
-    Truth.assertThat(pair.getFirst()).hasSize(4);
+    Truth.assertThat(pair.getFirst()).hasSize(4);// TODO size 3
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun 7 () Int)"); // TODO 7 auch hier drin?
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::b| () Int)");
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::a@1| () Int)");
     Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |main::b@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun aci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0))))");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0)))))");
 
     SSAMap ssaMap = aci.getIndicesForReturnVars();
     List<String> variables = new ArrayList<>();
@@ -345,5 +346,10 @@ public class CustomInstructionTest {
     Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
     Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
     Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
+
+    Collection<CFANode> aciNodes = new ArrayList<>(2);
+    aciNodes.add(aciStartNode);
+    aciNodes.add(aciEndNode);
+    Truth.assertThat(aci.getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
   }
 }
