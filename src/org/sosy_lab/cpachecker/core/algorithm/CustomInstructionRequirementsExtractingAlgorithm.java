@@ -378,6 +378,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
 
       // breadth-first-search
       for (ARGState child : tmp.getChildren()) {
+        child = uncover(child);
         if (!visitedNodes.contains(child)) {
           queue.add(child);
           visitedNodes.add(child);
@@ -386,5 +387,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     }
 
     return list;
+  }
+
+  private ARGState uncover(final ARGState state){
+    if(state.isCovered()) {
+      return uncover(state.getCoveringState());
+    }
+    return state;
   }
 }
