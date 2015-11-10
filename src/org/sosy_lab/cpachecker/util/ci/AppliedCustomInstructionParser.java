@@ -324,7 +324,9 @@ public class AppliedCustomInstructionParser {
       }
     }
 
-    logger.log(Level.WARNING, "Multi edges used in custom instruction. Results may be unreliable. Disable option cfa.useMultiEdges to get reliable results.");
+    if (usesMultiEdges) {
+      logger.log(Level.WARNING, "Multi edges used in custom instruction. Results may be unreliable. Disable option cfa.useMultiEdges to get reliable results.");
+    }
 
     if (ciEndNodes.isEmpty()) {
       throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
