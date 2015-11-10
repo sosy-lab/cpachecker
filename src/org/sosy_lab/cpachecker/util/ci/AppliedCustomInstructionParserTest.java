@@ -37,9 +37,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -62,7 +64,7 @@ public class AppliedCustomInstructionParserTest {
   private List<CLabelNode> labelNodes;
 
   @Before
-  public void init() throws IOException, ParserException, InterruptedException {
+  public void init() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
     String testProgram = ""
           + "extern int test3(int);"
           + "int test(int p) {"
@@ -102,7 +104,8 @@ public class AppliedCustomInstructionParserTest {
             + "test2(4);"
           + "}";
     cfa = TestDataTools.makeCFA(testProgram);
-    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), cfa);
+    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(),
+        new BasicLogManager(TestDataTools.configurationForTest().build()), cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
     labelNodes = getLabelNodes(cfa);
@@ -216,7 +219,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, NoSuchFieldException, SecurityException, ParserException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, NoSuchFieldException, SecurityException, ParserException, InvalidConfigurationException {
     String testProgram = ""
         + "void main() {"
           + "int x;"
@@ -230,7 +233,8 @@ public class AppliedCustomInstructionParserTest {
 
     CFA cfa = TestDataTools.makeCFA(testProgram);
     GlobalInfo.getInstance().storeCFA(cfa);
-    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), cfa);
+    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), new BasicLogManager(TestDataTools
+            .configurationForTest().build()), cfa);
     Path p = Paths.createTempPath("test_acis", null);
     Writer file = Files.openOutputFile(p);
     file.append("main\n");

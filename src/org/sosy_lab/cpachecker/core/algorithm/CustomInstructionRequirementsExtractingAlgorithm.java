@@ -176,7 +176,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     CustomInstructionApplications cia = null;
     try {
       if (binaryOperatorForSimpleCustomInstruction.isEmpty()) {
-        cia = new AppliedCustomInstructionParser(shutdownNotifier, cfa).parse(appliedCustomInstructionsDefinition);
+        cia = new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
+                .parse(appliedCustomInstructionsDefinition);
       } else {
         logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
         cia = findSimpleCustomInstructionApplications(BinaryOperator.valueOf(binaryOperatorForSimpleCustomInstruction));
@@ -281,7 +282,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         }
       }
     }
-    return new AppliedCustomInstructionParser(shutdownNotifier, cfa).parse(ci, appliedCustomInstructionsDefinition);
+    return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa).
+        parse(ci, appliedCustomInstructionsDefinition);
   }
 
   /**

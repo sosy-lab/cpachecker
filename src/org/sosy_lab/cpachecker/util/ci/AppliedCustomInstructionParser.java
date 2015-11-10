@@ -38,12 +38,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -102,11 +104,14 @@ import com.google.common.collect.ImmutableSet;
 public class AppliedCustomInstructionParser {
 
   private final ShutdownNotifier shutdownNotifier;
+  private final LogManager logger;
   private final CFA cfa;
   private final GlobalVarCheckVisitor visitor = new GlobalVarCheckVisitor();
 
-  public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final CFA pCfa) {
+  public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final LogManager pLogger,
+      final CFA pCfa) {
     shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
     cfa = pCfa;
   }
 
@@ -266,6 +271,7 @@ public class AppliedCustomInstructionParser {
     Pair<CFANode, Set<String>> nextNode = Pair.of(ciStartNode, predOutputVars);
     pairQueue.add(nextNode);
     Set<FunctionEntryNode> functionsWithoutGlobalVars = new HashSet<>();
+    boolean usesMultiEdges = false;
 
     while(!pairQueue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
@@ -287,6 +293,7 @@ public class AppliedCustomInstructionParser {
           continue;
         }
         if (leavingEdge instanceof MultiEdge) {
+          usesMultiEdges = false;
           succOutputVars = predOutputVars;
           for (CFAEdge innerEdge : ((MultiEdge) leavingEdge).getEdges()) {
             // adapt output, inputvariables
@@ -316,6 +323,8 @@ public class AppliedCustomInstructionParser {
         }
       }
     }
+
+    logger.log(Level.WARNING, "Multi edges used in custom instruction. Results may be unreliable. Disable option cfa.useMultiEdges to get reliable results.");
 
     if (ciEndNodes.isEmpty()) {
       throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
