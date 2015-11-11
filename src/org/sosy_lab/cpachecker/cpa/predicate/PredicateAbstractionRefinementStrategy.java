@@ -274,10 +274,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       try {
         heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
       } catch (CPATransferException | SolverException e) {
-        logger.logUserException(Level.WARNING, e, "Static refinement failed");
-        lastRefinementUsedHeuristics = false;
-        super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
-        return;
+        throw new CPAException("Static refinement failed", e);
       }
 
       shutdownNotifier.shutdownIfNecessary();
