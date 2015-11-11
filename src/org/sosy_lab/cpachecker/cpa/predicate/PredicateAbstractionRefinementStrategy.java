@@ -161,6 +161,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private int heuristicsCount = 0;
 
   private boolean lastRefinementUsedHeuristics = false;
+  private boolean lastRefinementWasStatic = false;
 
 
   protected final LogManager logger;
@@ -260,6 +261,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return (staticRefiner != null) && (heuristicsCount == 0);
   }
 
+  public boolean wasLastRefinementStatic() {
+    return lastRefinementWasStatic;
+  }
+
   @Override
   public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
       List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
@@ -284,8 +289,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       heuristicsCount++;
       lastRefinementUsedHeuristics = true;
+      lastRefinementWasStatic = true;
     } else {
       lastRefinementUsedHeuristics = false;
+      lastRefinementWasStatic = false;
       super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
       newPredicates = null;
     }
