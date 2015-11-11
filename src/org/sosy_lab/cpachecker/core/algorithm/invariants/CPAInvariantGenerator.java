@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -160,6 +162,40 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
+   * @param additionalAutomata additional specification automata that should be used
+   *                           during invariant generation
+   *
+   * @return a new {@link CPAInvariantGenerator}.
+   *
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   * @throws CPAException if the CPA cannot be created.
+   */
+  public static CPAInvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final CFA pCFA,
+      final List<Automaton> additionalAutomata)
+          throws InvalidConfigurationException, CPAException {
+
+    return new CPAInvariantGenerator(
+            pConfig,
+            pLogger.withComponentName("CPAInvariantGenerator"),
+            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownOnSafeNotifier,
+            pCFA,
+            additionalAutomata);
+  }
+
+  /**
+   * Creates a new {@link CPAInvariantGenerator}.
+   *
+   * @param pConfig the configuration options.
+   * @param pLogger the logger to be used.
+   * @param pShutdownNotifier shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
+   * notified if the invariant generator proves safety.
+   * @param pCFA the CFA to run the CPA on.
    *
    * @return a new {@link CPAInvariantGenerator}.
    *
@@ -178,14 +214,15 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
             pLogger.withComponentName("CPAInvariantGenerator"),
             ShutdownNotifier.createWithParent(pShutdownNotifier),
             pShutdownOnSafeNotifier,
-            pCFA);
+            pCFA,
+            Collections.<Automaton>emptyList());
   }
 
   private CPAInvariantGenerator(final Configuration config,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
       Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
-      final CFA cfa) throws InvalidConfigurationException, CPAException {
+      final CFA cfa, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -201,7 +238,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
-    cpa = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildCPAWithSpecAutomatas(cfa);
+    cpa = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownNotifier);
   }
 
