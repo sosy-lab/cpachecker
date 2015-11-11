@@ -39,11 +39,6 @@ import com.google.common.collect.Ordering;
 /**
  * This class represents a model returned from an SMT solver:
  * assignments from terms to their values.
- *
- * If you are looking for rich meta-data used in the
- * {@link org.sosy_lab.cpachecker.core.CounterexampleInfo},
- * you might be after
- * {@link org.sosy_lab.cpachecker.core.counterexample.RichModel}.
  */
 public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
   private final ImmutableMap<AssignableTerm, Object> data;
