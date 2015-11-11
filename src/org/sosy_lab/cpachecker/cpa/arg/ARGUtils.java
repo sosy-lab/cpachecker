@@ -46,8 +46,10 @@ import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
@@ -900,6 +903,216 @@ public class ARGUtils {
       }
       sb.append("    TRUE -> STOP;\n\n");
     }
+    sb.append("END AUTOMATON\n");
+  }
+
+  /**
+   * Produce an automaton in the format for the AutomatonCPA from
+   * a given path. The automaton matches the edges along the path until a
+   * state is at location which is also included in a loop. Then this loop
+   * is recreated. Outgoing edges of this loop are then handled once again
+   * as they occur in the path. So for all outgoing edges of a loop which
+   * do not occur in the given path we create a sink (TRUE) and for the outgoing
+   * edge which is on the path we continue with unrolling the ARGPath from this
+   * point.
+   * If there is a target state, it is signaled as an error state in the automaton.
+   *
+   * @param sb Where to write the automaton to
+   * @param pRootState The root of the ARG
+   * @param pPathStates The states along the path
+   * @param name the name the automaton should have
+   * @param loopsToUproll the loops which should be recreated in the automaton
+   * @throws IOException
+   */
+  public static void producePathAutomatonWithLoops(Appendable sb, ARGState pRootState,
+      Set<ARGState> pPathStates, String name, Set<Loop> loopsToUproll) throws IOException {
+
+    sb.append("CONTROL AUTOMATON " + name + "\n\n");
+    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
+
+    int multiEdgeCount = 0; // see below
+
+    ARGState inLoopState = null;
+    ARGState outLoopState = null;
+    for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
+
+      CFANode loc = AbstractStates.extractLocation(s);
+
+      boolean loopFound = false;
+      for (Loop loop : loopsToUproll) {
+        if (loop.getLoopNodes().contains(loc)) {
+          loopFound = true;
+          break;
+        }
+      }
+
+      if (loopFound && inLoopState == null) {
+        inLoopState = s;
+        continue;
+      } else if (!loopFound) {
+        if (inLoopState != null && outLoopState == null) {
+          outLoopState = s;
+        }
+
+        sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
+
+        // no loop found up to now, we can create the states without
+        // any special constraints
+        if (!loopFound) {
+          for (ARGState child : s.getChildren()) {
+            if (child.isCovered()) {
+              child = child.getCoveringState();
+              assert !child.isCovered();
+            }
+
+            if (pPathStates.contains(child)) {
+              CFANode childLoc = AbstractStates.extractLocation(child);
+              CFAEdge edge = loc.getEdgeTo(childLoc);
+              if (edge instanceof MultiEdge) {
+                // The successor state might have several incoming MultiEdges.
+                // In this case the state names like ARG<successor>_0 would occur
+                // several times.
+                // So we add this counter to the state names to make them unique.
+                multiEdgeCount++;
+
+                // Write out a long linear chain of pseudo-states
+                // because the AutomatonCPA also iterates through the MultiEdge.
+                List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
+
+                // first, write edge entering the list
+                int i = 0;
+                sb.append("    MATCH \"");
+                escape(edges.get(i).getRawStatement(), sb);
+                sb.append("\" -> ");
+                sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
+                sb.append(";\n");
+
+                // inner part (without first and last edge)
+                for (; i < edges.size()-1; i++) {
+                  sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+                  sb.append("    MATCH \"");
+                  escape(edges.get(i).getRawStatement(), sb);
+                  sb.append("\" -> ");
+                  sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
+                  sb.append(";\n");
+                }
+
+                // last edge connecting it with the real successor
+                edge = edges.get(i);
+                sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+                // remainder is written by code below
+              }
+
+              sb.append("    MATCH \"");
+              escape(edge.getRawStatement(), sb);
+              sb.append("\" -> ");
+
+              if (child.isTarget()) {
+                sb.append("ERROR");
+              } else {
+                sb.append("GOTO ARG" + child.getStateId());
+              }
+              sb.append(";\n");
+            }
+          }
+        }
+      }
+      sb.append("    TRUE -> STOP;\n\n");
+    }
+
+    // now handle loop
+    if (inLoopState != null) {
+      sb.append("STATE USEFIRST ARG" + inLoopState.getStateId() + " :\n");
+      Set<CFANode> handledNodes = new HashSet<>();
+      Deque<CFANode> nodesToHandle = new ArrayDeque<>();
+      CFANode loc = AbstractStates.extractLocation(inLoopState);
+      sb.append("    TRUE -> GOTO NODE")
+        .append(Integer.toString(loc.getNodeNumber()))
+        .append(";\n\n");
+      nodesToHandle.offer(loc);
+      while(!nodesToHandle.isEmpty()) {
+        CFANode curNode = nodesToHandle.poll();
+        if (!handledNodes.add(curNode)) {
+          continue;
+        }
+        sb.append("STATE USEFIRST NODE")
+          .append(Integer.toString(curNode.getNodeNumber()))
+          .append(" :\n");
+
+        for(CFAEdge e : leavingEdges(curNode)) {
+          // make path out of multiedges
+          if (e instanceof MultiEdge) {
+            for (CFAEdge innerEdge : ((MultiEdge)e).getEdges()) {
+              sb.append("    MATCH \"");
+              escape(innerEdge.getRawStatement(), sb);
+              sb.append("\" -> GOTO NODE")
+                .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
+                .append(";\n");
+              // only inner edges should be handled here
+              if (innerEdge.getSuccessor() != e.getSuccessor()) {
+                sb.append("STATE USEFIRST NODE")
+                  .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
+                  .append(" :\n");
+              }
+            }
+            nodesToHandle.offer(e.getSuccessor());
+
+          // skip function calls
+          } else  if (e instanceof FunctionCallEdge) {
+            FunctionSummaryEdge sumEdge = ((FunctionCallEdge) e).getSummaryEdge();
+            nodesToHandle.offer(sumEdge.getSuccessor());
+
+            sb.append("    (! MATCH \"");
+            escape(sumEdge.getSuccessor().getEnteringEdge(0).getRawStatement(), sb);
+            sb.append("\") -> GOTO NODE")
+              .append(Integer.toString(curNode.getNodeNumber()))
+              .append(";\n");
+            sb.append("    MATCH \"");
+            escape(sumEdge.getSuccessor().getEnteringEdge(0).getRawStatement(), sb);
+            sb.append("\" -> GOTO NODE")
+              .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
+              .append(";\n");
+
+          // all other edges can be handled together
+          } else {
+            boolean stillInLoop = false;
+            for (Loop loop : loopsToUproll) {
+              if (loop.getLoopNodes().contains(e.getSuccessor())) {
+                stillInLoop = true;
+                break;
+              }
+            }
+
+            sb.append("    MATCH \"");
+            escape(e.getRawStatement(), sb);
+            sb.append("\" -> ");
+
+            // we are still in the loop, so we do not need to handle special cases
+            if (stillInLoop) {
+              sb.append("GOTO NODE")
+                .append(Integer.toString(e.getSuccessor().getNodeNumber()))
+                .append(";\n");
+
+              nodesToHandle.offer(e.getSuccessor());
+
+            // out of loop edge, check if it is the same edge as in the ARGPath
+            // if not we need a sink with STOP
+            } else if (outLoopState == null
+                       || !AbstractStates.extractLocation(outLoopState).equals(e.getSuccessor())) {
+              sb.append("STOP;\n");
+
+            // here we go out of the loop back to the arg path
+            } else {
+              sb.append("GOTO ARG")
+                .append(Integer.toString(outLoopState.getStateId()))
+                .append(";\n");
+            }
+          }
+        }
+        sb.append("    TRUE -> STOP;\n\n");
+      }
+    }
+
     sb.append("END AUTOMATON\n");
   }
 
