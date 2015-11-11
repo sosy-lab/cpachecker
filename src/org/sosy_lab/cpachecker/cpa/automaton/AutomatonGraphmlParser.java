@@ -99,6 +99,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteSource;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
@@ -147,12 +148,20 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-  * Parses a Specification File and returns the Automata found in the file.
+   * Parses a specification from a file and returns the Automata found in the file.
    * @throws CParserException
-  */
+   */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
+    return parseAutomatonFile(pInputFile.asByteSource());
+  }
+
+  /**
+   * Parses a specification from a ByteSource and returns the Automata found in the file.
+   * @throws CParserException
+   */
+  public List<Automaton> parseAutomatonFile(ByteSource pInputFile) throws InvalidConfigurationException {
     CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
-    try (InputStream input = pInputFile.asByteSource().openStream()) {
+    try (InputStream input = pInputFile.openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -548,8 +557,6 @@ public class AutomatonGraphmlParser {
 
       return result;
 
-    } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!: " + pInputFile.getPath());
     } catch (IOException | ParserConfigurationException | SAXException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {
