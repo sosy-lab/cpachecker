@@ -26,6 +26,7 @@
     </configurations>
 
     <dependencies>
+
         <!-- SoSy-Lab Common Library -->
         <dependency org="org.sosy_lab" name="common" rev="0.553" conf="runtime->runtime; contrib->sources"/>
 
@@ -100,5 +101,10 @@
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
+
+        <!-- JavaSMT -->
+        <dependency org="org.sosy_lab" name="JavaSMT" rev="0.58" conf="runtime->runtime; contrib->sources" />
+
+        <!-- Solver Binaries -->
     </dependencies>
 </ivy-module>
