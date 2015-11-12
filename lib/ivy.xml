@@ -103,7 +103,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="JavaSMT" rev="0.60" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="JavaSMT" rev="0.63" conf="runtime->runtime; contrib->sources" />
 
         <!-- Solver Binaries -->
         <dependency org="org.sosy_lab" name="JavaSMT-solver-z3" rev="z3-4.4.1-87-gad58226" conf="runtime->solver-z3" />
