@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -46,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -60,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
@@ -73,7 +77,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -199,17 +202,31 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return state;
   }
 
-  private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
-    CExpression expression = pEdge.getExpression();
+  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+    return handleAssume(pState, pEdge, pPrecision, getExpressionToFormulaVisitor(pEdge, pState));
+  }
+
+  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, InvariantsPrecision pPrecision, ExpressionToFormulaVisitor pExpressionToFormulaVisitor) throws UnrecognizedCodeException {
+    AExpression expression = pEdge.getExpression();
 
     // Create a formula representing the edge expression
-    NumeralFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
-    BooleanFormula<CompoundInterval> assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
+
+    BooleanFormula<CompoundInterval> assumption = null;
+    if (expression instanceof CExpression) {
+      NumeralFormula<CompoundInterval> expressionFormula = ((CExpression) expression).accept(pExpressionToFormulaVisitor);
+      assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
+    } else if (expression instanceof JExpression) {
+      NumeralFormula<CompoundInterval> expressionFormula = ((JExpression) expression).accept(pExpressionToFormulaVisitor);
+      assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
+    } else {
+      return pState;
+    }
+
     if (!pEdge.getTruthAssumption()) {
       assumption = compoundIntervalFormulaManager.logicalNot(assumption);
     }
 
-    return handleAssumption(pElement, pEdge, assumption, pPrecision);
+    return handleAssumption(pState, pEdge, assumption, pPrecision);
   }
 
   private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, BooleanFormula<CompoundInterval> pAssumption, InvariantsPrecision pPrecision) {
@@ -449,9 +466,19 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCCodeException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCodeException {
 
     InvariantsState state = (InvariantsState) pElement;
+
+    for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
+      for (AssumeEdge edge : assumptionState.getAsAssumeEdges(pCfaEdge.getSuccessor().getFunctionName())) {
+        state = handleAssume(state, edge, (InvariantsPrecision) pPrecision, getExpressionToFormulaVisitor(pCfaEdge, state));
+        if (state == null) {
+          return Collections.emptySet();
+        }
+      }
+    }
+
     CFAEdge edge = pCfaEdge;
     if (edge instanceof MultiEdge) {
       for (CFAEdge subEdge : ((MultiEdge) edge)) {
@@ -465,7 +492,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           state = (InvariantsState) Iterables.getOnlyElement(next);
         }
       }
-      return Collections.singleton(state);
+      return state == pElement ? Collections.<AbstractState>emptySet() : Collections.singleton(state);
     }
     CLeftHandSide leftHandSide = getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference && ((CFieldReference) leftHandSide).isPointerDereference()) {
@@ -559,7 +586,5 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   private static boolean hasMoreThanNElements(Iterable<?> pIterable, int pN) {
     return !Iterables.isEmpty(Iterables.skip(pIterable, pN));
   }
-
-
 
 }
