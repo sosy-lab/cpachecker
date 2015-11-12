@@ -186,6 +186,9 @@ public class TestSuite {
       if (printLabels) {
         str.append("Labels: ");
         for (CFAEdge edge : entry.getKey().getErrorPath()) {
+          if (edge == null) {
+            continue;
+          }
           CFANode predecessor = edge.getPredecessor();
           if (predecessor instanceof CLabelNode && !((CLabelNode) predecessor).getLabel().isEmpty()) {
             str.append(((CLabelNode) predecessor).getLabel());
@@ -271,7 +274,7 @@ public class TestSuite {
     return totalCoverage;
   }
 
-  public boolean isTestGoalInfeasible(Goal goal) {
+  public boolean isGoalInfeasible(Goal goal) {
     return infeasibleGoals.contains(goal);
   }
 
@@ -297,9 +300,9 @@ public class TestSuite {
     return true;
   }
 
-  public boolean areTestGoalsInfeasible(Set<Goal> pTestGoalsToBeProcessed) {
+  public boolean areGoalsInfeasible(Set<Goal> pTestGoalsToBeProcessed) {
     for (Goal goal : pTestGoalsToBeProcessed) {
-      if (!isTestGoalInfeasible(goal)) {
+      if (!isGoalInfeasible(goal)) {
         return false;
       }
     }
@@ -310,6 +313,15 @@ public class TestSuite {
     for (Goal goal : pTestGoalsToBeProcessed) {
       addTimedOutGoal(goal, pRemainingPresenceCondition);
     }
+  }
+
+  public boolean areGoalsCoveredOrInfeasible(Set<Goal> pGoals) {
+    for (Goal goal : pGoals) {
+      if (!(isGoalCovered(goal) || isGoalInfeasible(goal))) {
+        return false;
+      }
+    }
+    return true;
   }
 
 }
