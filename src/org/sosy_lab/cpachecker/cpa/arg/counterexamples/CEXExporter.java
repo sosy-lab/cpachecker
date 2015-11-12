@@ -44,16 +44,14 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -122,13 +120,13 @@ public class CEXExporter {
   private String codeStyle = "CMBC";
 
   private final LogManager logger;
-  private final ARGPathExport witnessExporter;
+  private final ARGPathExporter witnessExporter;
 
 
-  public CEXExporter(Configuration config, LogManager logger, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
+  public CEXExporter(Configuration config, LogManager logger, ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.witnessExporter = new ARGPathExport(config, logger, pMachineModel, pLanguage);
+    this.witnessExporter = pARGPathExporter;
 
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -264,8 +262,7 @@ public class CEXExporter {
     writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        witnessExporter.writePath(pAppendable, rootState,
-                ARGUtils.CHILDREN_OF_STATE,
+        witnessExporter.writeErrorWitness(pAppendable, rootState,
                 Predicates.in(pathElements),
                 isTargetPathEdge,
                 counterexample);

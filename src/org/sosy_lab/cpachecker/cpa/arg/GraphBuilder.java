@@ -67,7 +67,7 @@ enum GraphBuilder {
     @Override
     public void buildGraph(ARGState pRootState,
         Predicate<? super ARGState> pPathStates,
-        Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
+        Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
@@ -116,7 +116,7 @@ enum GraphBuilder {
           }
 
           // Only proceed with this state if the path states contain the child
-          if (pPathStates.apply(child) && pIsTargetPathEdge.apply(Pair.of(s, child))) {
+          if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(pDocument, prevStateId, childStateId, edgeToNextState, s, pValueMap);
           } else {
@@ -138,7 +138,7 @@ enum GraphBuilder {
     @Override
     public void buildGraph(ARGState pRootState,
         final Predicate<? super ARGState> pPathStates,
-        final Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
+        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
@@ -157,8 +157,8 @@ enum GraphBuilder {
                   .filter(Predicates.and(
                       // where the successor ARG node is in the set of target path states
                       pPathStates,
-                      // and the edge is on the target path
-                      Predicates.compose(pIsTargetPathEdge, new Function<ARGState, Pair<ARGState, ARGState>>() {
+                      // and the edge is relevant
+                      Predicates.compose(pIsRelevantEdge, new Function<ARGState, Pair<ARGState, ARGState>>() {
 
                         @Override
                         public Pair<ARGState, ARGState> apply(ARGState pTarget) {
@@ -209,7 +209,7 @@ enum GraphBuilder {
 
   public abstract void buildGraph(ARGState pRootState,
       Predicate<? super ARGState> pPathStates,
-      Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
+      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
       GraphMlBuilder pDocument,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,

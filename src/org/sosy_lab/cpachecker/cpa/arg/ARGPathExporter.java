@@ -103,6 +103,7 @@ import org.w3c.dom.Element;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -122,7 +123,7 @@ import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
 @Options(prefix="cpa.arg.witness")
-public class ARGPathExport {
+public class ARGPathExporter {
 
   private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
 
@@ -190,7 +191,7 @@ public class ARGPathExport {
 
   private final HackyOptions hackyOptions = new HackyOptions();
 
-  public ARGPathExport(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
+  public ARGPathExporter(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
     pConfig.inject(hackyOptions);
@@ -328,17 +329,27 @@ public class ARGPathExport {
 
   }
 
-  public void writePath(Appendable pTarget,
+  public void writeErrorWitness(Appendable pTarget,
       final ARGState pRootState,
-      final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-      final Predicate<? super ARGState> pPathElements,
-      Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
-      final CounterexampleInfo pCounterExample)
+      final Predicate<? super ARGState> pIsRelevantState,
+      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      CounterexampleInfo pCounterExample)
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer = new WitnessWriter(defaultFileName);
-    writer.writePath(pTarget, pRootState, pSuccessorFunction, pPathElements, pIsTargetPathEdge, pCounterExample);
+    writer.writePath(pTarget, pRootState, pIsRelevantState, pIsRelevantEdge, Optional.of(pCounterExample), GraphBuilder.ARG_PATH);
+  }
+
+  public void writeProofWitness(Appendable pTarget,
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
+      throws IOException {
+
+    String defaultFileName = getInitialFileName(pRootState);
+    WitnessWriter writer = new WitnessWriter(defaultFileName);
+    writer.writePath(pTarget, pRootState, pIsRelevantState, pIsRelevantEdge, Optional.<CounterexampleInfo>absent(), GraphBuilder.SUB_PROGRAM);
   }
 
   private String getInitialFileName(ARGState pRootState) {
@@ -728,23 +739,25 @@ public class ARGPathExport {
 
     public void writePath(Appendable pTarget,
         final ARGState pRootState,
-        final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-        final Predicate<? super ARGState> pPathStates,
-        Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
-        final CounterexampleInfo pCounterExample)
+        final Predicate<? super ARGState> pIsRelevantState,
+        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+        Optional<CounterexampleInfo> pCounterExample,
+        GraphBuilder pGraphBuilder)
         throws IOException {
 
+      final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction = ARGUtils.CHILDREN_OF_STATE;
+
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
-      RichModel model = pCounterExample.getTargetPathModel();
-      CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
-      if (cfaPath != null) {
-        ARGPath targetPath = pCounterExample.getTargetPath();
-        valueMap = model.getExactVariableValues(targetPath);
+      if (pCounterExample.isPresent()) {
+        RichModel model = pCounterExample.get().getTargetPathModel();
+        CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
+        if (cfaPath != null) {
+          ARGPath targetPath = pCounterExample.get().getTargetPath();
+          valueMap = model.getExactVariableValues(targetPath);
+        }
       }
 
       GraphType graphType = GraphType.PROGRAMPATH;
-
-      GraphBuilder graphBuilder = GraphBuilder.ARG_PATH;
 
       GraphMlBuilder doc;
       try {
@@ -758,7 +771,7 @@ public class ARGPathExport {
       // TODO! (we could use the version of a XML schema)
 
       // ...
-      String entryStateNodeId = graphBuilder.getId(pRootState);
+      String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       doc.appendDocHeader();
       appendKeyDefinitions(doc, graphType);
@@ -783,8 +796,8 @@ public class ARGPathExport {
           machineModel);
 
       // Collect node flags in advance
-      for (ARGState s : collectPathNodes(pRootState, pSuccessorFunction, pPathStates)) {
-        String sourceStateNodeId = graphBuilder.getId(s);
+      for (ARGState s : collectPathNodes(pRootState, successorFunction, pIsRelevantState)) {
+        String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
           sourceNodeFlags = EnumSet.of(NodeFlag.ISENTRY);
@@ -797,7 +810,7 @@ public class ARGPathExport {
       nodeFlags.put(SINK_NODE_ID, NodeFlag.ISSINKNODE);
 
       // Build the actual graph
-      graphBuilder.buildGraph(pRootState, pPathStates, pIsTargetPathEdge, valueMap, doc, collectPathEdges(pRootState, pSuccessorFunction, pPathStates), this);
+      pGraphBuilder.buildGraph(pRootState, pIsRelevantState, pIsRelevantEdge, valueMap, doc, collectPathEdges(pRootState, successorFunction, pIsRelevantState), this);
 
       // Remove edges that lead to the sink but have a sibling edge that has the same label
       Collection<Edge> toRemove = FluentIterable.from(leavingEdges.values()).filter(new Predicate<Edge>() {
