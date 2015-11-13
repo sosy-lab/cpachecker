@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.cbmctools;
+package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -116,7 +116,7 @@ public class CBMCExecutor extends ProcessExecutor<CounterexampleAnalysisFailed> 
     return unwindingAssertionFailed;
   }
 
-  boolean producedErrorOutput() {
+  public boolean producedErrorOutput() {
     checkState(isFinished());
     return errorOutputCount > 0;
   }

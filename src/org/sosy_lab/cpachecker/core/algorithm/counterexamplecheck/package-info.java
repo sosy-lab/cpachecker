@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Utilities for writing a c file for the error path, compiling it and executing it.
+ * Algorithms for checking counterexamples.
  */
-package org.sosy_lab.cpachecker.core.algorithm.realctools;
+package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;

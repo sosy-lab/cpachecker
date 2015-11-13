@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.realctools;
+package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.base.Preconditions.checkState;
 
