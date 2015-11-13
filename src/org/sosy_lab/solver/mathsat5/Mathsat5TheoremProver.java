@@ -31,6 +31,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -42,11 +43,15 @@ import com.google.common.base.Preconditions;
 
 class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvironment {
 
+  protected final ShutdownNotifier shut;
   private static final boolean USE_SHARED_ENV = true;
 
   Mathsat5TheoremProver(Mathsat5FormulaManager pMgr,
-      boolean generateModels, boolean generateUnsatCore) {
+      boolean generateModels, boolean generateUnsatCore,
+      ShutdownNotifier pShutdownNotifier) {
+
     super(pMgr, createConfig(generateModels, generateUnsatCore), USE_SHARED_ENV, true);
+    this.shut = pShutdownNotifier;
   }
 
   private static long createConfig(
@@ -117,6 +122,7 @@ class Mathsat5TheoremProver extends Mathsat5AbstractProver implements ProverEnvi
 
     @Override
     public void callback(long[] model) throws InterruptedException {
+      shut.shutdownIfNecessary();
       clientCallback.apply(new LongArrayBackedList<BooleanFormula>(model) {
         @Override
         protected BooleanFormula convert(long pE) {

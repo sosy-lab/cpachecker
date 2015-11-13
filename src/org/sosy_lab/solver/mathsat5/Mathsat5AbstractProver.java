@@ -27,8 +27,8 @@ import static org.sosy_lab.solver.mathsat5.Mathsat5NativeApi.*;
 
 import java.util.List;
 
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
