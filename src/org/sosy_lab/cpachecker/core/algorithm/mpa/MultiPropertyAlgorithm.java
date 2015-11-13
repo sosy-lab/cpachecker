@@ -320,6 +320,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           // either because ...
 
           if (interruptNotifier.getNotifier().shouldShutdown()) {
+            interruptNotifier.reset();
 
             // A) the resource limit for the analysis run has exceeded
             logger.log(Level.WARNING, "Resource limit for properties exceeded!");
@@ -339,6 +340,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           }
 
         }
+
+        interruptNotifier.canInterrupt();
 
         // ASSUMPTION:
         //    The wrapped algorithm immediately returns
@@ -432,6 +435,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           initAndStartLimitChecker();
         }
 
+        interruptNotifier.canInterrupt();
+
         // Run as long as...
         //  ... (1) the fixpoint has not been reached
         //  ... (2) or not all properties have been checked so far.
@@ -477,8 +482,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   private synchronized void initAndStartLimitChecker() {
 
     try {
-      interruptNotifier.reset();
-
       // Configure limits
       List<ResourceLimit> limits = Lists.newArrayList();
 
