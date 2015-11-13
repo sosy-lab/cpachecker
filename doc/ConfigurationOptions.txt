@@ -2249,6 +2249,9 @@ parser.usePreprocessor = false
 # exists for which violates the property
 pcc.arg.checkPropertyPerElement = false
 
+# Enable to store ARG states instead of abstract states wrapped by ARG state
+pcc.backwardtargets.certificateStatesAsARGStates = false
+
 # List of files with configurations to use. 
 pcc.cmc.configFiles = no default value
 
