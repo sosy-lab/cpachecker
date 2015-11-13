@@ -57,7 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
-import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Predicate;
@@ -204,7 +204,7 @@ public class CEXExporter {
 
       if (errorPathSourceFile != null) {
         if (codeStyle.equals("REALC")) {
-          pathProgram = PathToRealCTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
+          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
         } else {
           pathProgram = PathToCTranslator.translateSinglePath(targetPath);
         }
@@ -219,7 +219,7 @@ public class CEXExporter {
 
       if (errorPathSourceFile != null) {
         if (codeStyle.equals("REALC")) {
-          pathProgram = PathToRealCTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
+          pathProgram = PathToConcreteProgramTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
         } else {
           pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
         }

@@ -31,9 +31,9 @@ import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class PathToRealCTranslator extends PathTranslator {
+public class PathToConcreteProgramTranslator extends PathTranslator {
 
-  private PathToRealCTranslator() {}
+  private PathToConcreteProgramTranslator() {}
 
   /**
    * Transform a single linear path into C code.
@@ -48,7 +48,7 @@ public class PathToRealCTranslator extends PathTranslator {
    * @return An appender that generates C code.
    */
   public static Appender translateSinglePath(ARGPath pPath, RichModel model) {
-    PathToRealCTranslator translator = new PathToRealCTranslator();
+    PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translateSinglePath0(pPath,
         new RealCEdgeVisitor(translator, model.getExactVariableValuePath(pPath.getInnerEdges())));
@@ -71,7 +71,7 @@ public class PathToRealCTranslator extends PathTranslator {
    * @return An appender that generates C code.
    */
   public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, RichModel model) {
-    PathToRealCTranslator translator = new PathToRealCTranslator();
+    PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath,
         new RealCEdgeVisitor(translator, model.getCFAPathWithAssignments()));

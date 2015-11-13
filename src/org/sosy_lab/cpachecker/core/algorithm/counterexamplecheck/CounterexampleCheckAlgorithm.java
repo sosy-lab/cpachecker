@@ -49,7 +49,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -71,7 +70,7 @@ import com.google.common.collect.Iterables;
 public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   enum CounterexampleCheckerType {
-    CBMC, CPACHECKER, REALC;
+    CBMC, CPACHECKER, CONCRETE_EXECUTION;
   }
 
   private final Algorithm algorithm;
@@ -86,7 +85,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(secure=true, name="checker",
           description="Which model checker to use for verifying counterexamples as a second check.\n"
-                    + "Currently CBMC or CPAchecker with a different config or the concrete path \n"
+                    + "Currently CBMC or CPAchecker with a different config or the concrete execution \n"
                     + "checker can be used.")
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
@@ -116,8 +115,8 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     case CPACHECKER:
       checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename, cpa);
       break;
-    case REALC:
-      checker = new RealCChecker(config, logger, cfa, cpa);
+    case CONCRETE_EXECUTION:
+      checker = new ConcretePathExecutionChecker(config, logger, cfa, cpa);
       break;
     default:
       throw new AssertionError("Unhandled case statement: " + checkerType);

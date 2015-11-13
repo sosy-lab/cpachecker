@@ -488,10 +488,11 @@ cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 configuration.dumpFile = "UsedConfiguration.properties"
 
 # Which model checker to use for verifying counterexamples as a second check.
-# Currently CBMC or CPAchecker with a different config or the concrete path 
+# Currently CBMC or CPAchecker with a different config or the concrete
+# execution 
 # checker can be used.
 counterexample.checker = CBMC
-  enum:     [CBMC, CPACHECKER, REALC]
+  enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
@@ -500,6 +501,19 @@ counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
 # for the counterexample check. A temporary file is used if this is
 # unspecified.
 counterexample.checker.path.file = no default value
+
+# The file in which the generated C code is saved.
+counterexample.concrete.dumpFile = no default value
+
+# Path to the compiler. Can be absolute or only the name of the program if it
+# is in the PATH
+counterexample.concrete.pathToCompiler = "/usr/bin/gcc"
+
+# Maximum time limit for the concrete execution checker.
+# This limit is used for compilation as well as execution so overall, twice
+# the time of this limit may be consumed.
+# (use milliseconds or specify a unit; 0 for infinite)
+counterexample.concrete.timelimit = 0ms
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -2373,17 +2387,6 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
-
-# File name where to put the path program that is generated as input for a
-# common c compiler. A temporary file is used if this is unspecified. 
-realC.dumpRealCfile = no default value
-
-# Path to the compiler. Can be absolute or on PATH
-realC.pathToCompiler = no default value
-
-# maximum time limit for realC (use milliseconds or specify a unit; 0 for
-# infinite)
-realC.timelimit = 0ms
 
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
