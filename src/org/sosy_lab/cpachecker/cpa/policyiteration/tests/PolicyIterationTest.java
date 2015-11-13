@@ -173,16 +173,6 @@ public class PolicyIterationTest {
             "precision.trackVariablesBesidesEqAddBool", "false"));
   }
 
-  @Test public void cex_check() throws Exception {
-    check("test/programs/benchmarks/loops/terminator_01_false-unreach-call_false-termination.i",
-        ImmutableMap.of(
-            "analysis.checkCounterexamples", "true",
-            "counterexample.checker", "CPACHECKER",
-            "counterexample.checker.config",
-              "config/cex-checks/predicateAnalysis-as-bitprecise-cex-check.properties"
-        ));
-  }
-
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }
