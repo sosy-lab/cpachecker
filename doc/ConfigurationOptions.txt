@@ -487,10 +487,11 @@ cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
-# which model checker to use for verifying counterexamples as a second check
-# Currently CBMC or CPAchecker with a different config can be used.
-counterexample.checker = "CBMC"
-  allowed values: [CBMC, CPACHECKER, REALC]
+# Which model checker to use for verifying counterexamples as a second check.
+# Currently CBMC or CPAchecker with a different config or the concrete path 
+# checker can be used.
+counterexample.checker = CBMC
+  enum:     [CBMC, CPACHECKER, REALC]
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"

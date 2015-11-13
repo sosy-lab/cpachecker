@@ -71,6 +71,10 @@ import com.google.common.collect.Iterables;
 @Options(prefix="counterexample")
 public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
+  enum CounterexampleCheckerType {
+    CBMC, CPACHECKER, REALC;
+  }
+
   private final Algorithm algorithm;
   private final CounterexampleChecker checker;
   private final LogManager logger;
@@ -81,10 +85,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
   private final Set<ARGState> checkedTargetStates = Collections.newSetFromMap(new WeakHashMap<ARGState, Boolean>());
 
-  @Option(secure=true, name="checker", toUppercase=true, values={"CBMC", "CPACHECKER", "REALC"},
-          description="which model checker to use for verifying counterexamples as a second check\n"
-                    + "Currently CBMC or CPAchecker with a different config can be used.")
-  private String checkerName = "CBMC";
+  @Option(secure=true, name="checker",
+          description="Which model checker to use for verifying counterexamples as a second check.\n"
+                    + "Currently CBMC or CPAchecker with a different config or the concrete path \n"
+                    + "checker can be used.")
+  private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
   @Option(secure=true, description="continue analysis after an counterexample was found that was denied by the second check")
   private boolean continueAfterInfeasibleError = true;
@@ -105,14 +110,18 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     }
     cpa = (ARGCPA)pCpa;
 
-    if (checkerName.equals("CBMC")) {
+    switch (checkerType) {
+    case CBMC:
       checker = new CBMCChecker(config, logger, cfa);
-    } else if (checkerName.equals("CPACHECKER")) {
+      break;
+    case CPACHECKER:
       checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename, cpa);
-    }else if (checkerName.equals("REALC")){
+      break;
+    case REALC:
       checker = new RealCChecker(config, logger, cfa, cpa);
-    } else {
-      throw new AssertionError();
+      break;
+    default:
+      throw new AssertionError("Unhandled case statement: " + checkerType);
     }
   }
 
@@ -177,7 +186,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
     Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
 
-    logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerName + ".");
+    logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
     boolean feasibility;
     try {
       feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
@@ -188,12 +197,12 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     }
 
     if (feasibility) {
-      logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerName + ".");
+      logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerType + ".");
       return sound;
 
     } else {
       numberOfInfeasiblePaths++;
-      logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerName + ".");
+      logger.log(Level.INFO, "Error path found, but identified as infeasible by counterexample check with " + checkerType + ".");
 
       if (continueAfterInfeasibleError) {
         // This counterexample is infeasible, so usually we would remove it
