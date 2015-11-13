@@ -81,16 +81,26 @@ public class PathToRealCTranslator extends PathTranslator {
 
   @Override
   protected Appender generateCCode() {
-    mGlobalDefinitionsList.add("#define __CPROVER_assume(x) if(!(x)){exit(0);} // safe because assumption didn't hold");
-
     for (Iterator<String> it = mGlobalDefinitionsList.iterator(); it.hasNext();) {
       String s = it.next();
       s = s.toLowerCase().trim();
-      if (s.startsWith("void main()") || s.startsWith("int main()")) {
+      if (s.startsWith("void main()")
+          || s.startsWith("int main()")
+          || s.contains("__verifier_nondet_")) {
         it.remove();
       }
     }
-    mGlobalDefinitionsList.add("void main() {main_0();}");
+
+    mGlobalDefinitionsList.add(0, "#define __CPROVER_assume(x) if(!(x)){exit(0);}");
+    mGlobalDefinitionsList.add(1, "int __VERIFIER_nondet_int() {return 0;}");
+    mGlobalDefinitionsList.add(2, "long __VERIFIER_nondet_long() {return 0;}");
+    mGlobalDefinitionsList.add(3, "void *__VERIFIER_nondet_pointer() { return malloc(100); }"); // assume a size
+    mGlobalDefinitionsList.add(4, "char __VERIFIER_nondet_char() {return '0';}");
+    mGlobalDefinitionsList.add(5, "int __VERIFIER_nondet_bool() {return 0;}");
+    mGlobalDefinitionsList.add(6, "float __VERIFIER_nondet_float() {return 0.0;}");
+    mGlobalDefinitionsList.add(7, "short __VERIFIER_nondet_short() {return 0;}");
+    mGlobalDefinitionsList.add(8, "void main();");
+    mGlobalDefinitionsList.add(9, "void main() {main_0();}");
 
     return super.generateCCode();
   }
