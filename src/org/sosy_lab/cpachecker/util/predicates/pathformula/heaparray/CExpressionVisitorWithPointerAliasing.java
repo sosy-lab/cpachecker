@@ -100,7 +100,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
   }
 
-  public CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithPointerAliasing cToFormulaConverter,
+  public CExpressionVisitorWithPointerAliasing(final CToFormulaConverterWithHeapArray cToFormulaConverter,
                                           final CFAEdge cfaEdge,
                                           final String function,
                                           final SSAMapBuilder ssa,
@@ -196,7 +196,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   @Override
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, edge);
+    e = CToFormulaConverterWithHeapArray.eliminateArrow(e, edge);
 
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
@@ -488,7 +488,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     return Collections.unmodifiableMap(usedDeferredAllocationPointers);
   }
 
-  private final CToFormulaConverterWithPointerAliasing conv;
+  private final CToFormulaConverterWithHeapArray conv;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

@@ -220,7 +220,7 @@ extends DefaultCExpressionVisitor<PointerTargetPattern, UnrecognizedCCodeExcepti
   @Override
   public PointerTargetPattern visit(CFieldReference e) throws UnrecognizedCCodeException {
 
-    e = CToFormulaConverterWithPointerAliasing.eliminateArrow(e, cfaEdge);
+    e = CToFormulaConverterWithHeapArray.eliminateArrow(e, cfaEdge);
 
     final CExpression ownerExpression = e.getFieldOwner();
     final PointerTargetPattern result = ownerExpression.accept(this);

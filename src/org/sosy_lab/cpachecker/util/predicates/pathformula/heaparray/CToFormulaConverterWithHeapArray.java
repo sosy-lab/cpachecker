@@ -105,7 +105,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 
 import com.google.common.base.Optional;
 
-public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
+public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
 
   // Overrides just for visibility in other classes of this package
 
@@ -128,7 +128,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
 
-  public CToFormulaConverterWithPointerAliasing(final FormulaEncodingWithPointerAliasingOptions pOptions,
+  public CToFormulaConverterWithHeapArray(final FormulaEncodingWithPointerAliasingOptions pOptions,
                                    final FormulaManagerView formulaManagerView,
                                    final MachineModel pMachineModel,
                                    final Optional<VariableClassification> pVariableClassification,

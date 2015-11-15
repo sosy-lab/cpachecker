@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaType
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray.CToFormulaConverterWithHeapArray;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
@@ -103,6 +104,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(secure=true, description = "Handle arrays using the theory of arrays.")
   private boolean handleArrays = false;
+
+  @Option(secure = false, description = "Use the theory of arrays for heap "
+      + "memory abstraction.")
+  private boolean useArrayHeap = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -164,11 +169,27 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (handleArrays) {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
-      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
+      typeHandler =
+          new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel,
+              pFmgr);
+      converter =
+          new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
+              pVariableClassification, logger, shutdownNotifier, typeHandler,
+              direction);
 
-      logger.log(Level.WARNING, "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+      logger.log(Level.WARNING,
+          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
+
+    } else if (useArrayHeap) {
+      final FormulaEncodingWithPointerAliasingOptions options =
+          new FormulaEncodingWithPointerAliasingOptions(config);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler =
+          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel,
+              pFmgr, options);
+      typeHandler = aliasingTypeHandler;
+      converter = new CToFormulaConverterWithHeapArray(options, fmgr,
+          pMachineModel, pVariableClassification, logger, shutdownNotifier,
+          aliasingTypeHandler, direction);
 
     } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);

@@ -84,14 +84,14 @@ class DynamicMemoryHandler {
 
   private static final String MALLOC_INDEX_SEPARATOR = "#";
 
-  private final CToFormulaConverterWithPointerAliasing conv;
+  private final CToFormulaConverterWithHeapArray conv;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
-  DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
+  DynamicMemoryHandler(CToFormulaConverterWithHeapArray pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints,
       ErrorConditions pErrorConditions) {
@@ -305,10 +305,10 @@ class DynamicMemoryHandler {
   }
 
   static String makeAllocVariableName(final String functionName, final CType type,
-      final SSAMapBuilder ssa, final CToFormulaConverterWithPointerAliasing conv) {
+      final SSAMapBuilder ssa, final CToFormulaConverterWithHeapArray conv) {
     return functionName
         + "_"
-        + CToFormulaConverterWithPointerAliasing.getUFName(type)
+        + CToFormulaConverterWithHeapArray.getUFName(type)
         + MALLOC_INDEX_SEPARATOR
         + conv.makeFreshIndex(functionName, type, ssa);
   }

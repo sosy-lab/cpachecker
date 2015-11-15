@@ -81,7 +81,7 @@ class AssignmentHandler {
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
 
-  private final CToFormulaConverterWithPointerAliasing conv;
+  private final CToFormulaConverterWithHeapArray conv;
   private final CFAEdge edge;
   private final String function;
   private final SSAMapBuilder ssa;
@@ -89,7 +89,7 @@ class AssignmentHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
-  AssignmentHandler(CToFormulaConverterWithPointerAliasing pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+  AssignmentHandler(CToFormulaConverterWithHeapArray pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
     conv = pConv;
 
@@ -352,7 +352,7 @@ class AssignmentHandler {
                // The variable representing the RHS was used somewhere (i.e. has SSA index)
                !rvalue.asLocation().isAliased() &&
                  conv.hasIndex(rvalue.asLocation().asUnaliased().getVariableName() +
-                            CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
+                            CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR +
                             memberName,
                           newLvalueType,
                           ssa))) {
@@ -423,7 +423,8 @@ class AssignmentHandler {
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
+    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithHeapArray
+        .getUFName(lvalueType);
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int newIndex = useOldSSAIndices ?
             conv.getIndex(targetName, lvalueType, ssa) :
@@ -470,7 +471,7 @@ class AssignmentHandler {
     if (isSimpleType(lvalueType)) {
       Preconditions.checkArgument(startAddress != null,
                                   "Start address is mandatory for assigning to lvalues of simple types");
-      final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(lvalueType);
+      final String ufName = CToFormulaConverterWithHeapArray.getUFName(lvalueType);
       final int oldIndex = conv.getIndex(ufName, lvalueType, ssa);
       final int newIndex = conv.getFreshIndex(ufName, lvalueType, ssa);
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
@@ -484,7 +485,7 @@ class AssignmentHandler {
     } else if (pattern.isExact()) {
       pattern.setRange(size);
       for (final CType type : typesToRetain) {
-        final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
+        final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
         final int oldIndex = conv.getIndex(ufName, type, ssa);
         final int newIndex = conv.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
@@ -564,7 +565,7 @@ class AssignmentHandler {
       exact.setRange(target.getOffset(), size);
       BooleanFormula consequent = bfmgr.makeBoolean(true);
       for (final CType type : types) {
-        final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
+        final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
         final int oldIndex = conv.getIndex(ufName, type, ssa);
         final int newIndex = conv.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
@@ -591,7 +592,7 @@ class AssignmentHandler {
                                               final Set<CType> types) throws InterruptedException {
     final PointerTargetPattern any = PointerTargetPattern.any();
     for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
+      final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       final int oldIndex = conv.getIndex(ufName, type, ssa);
       final int newIndex = conv.getFreshIndex(ufName, type, ssa);
       final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
@@ -618,7 +619,7 @@ class AssignmentHandler {
 
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithPointerAliasing.getUFName(type);
+      final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       conv.makeFreshIndex(ufName, type, ssa);
     }
   }
@@ -674,7 +675,7 @@ class AssignmentHandler {
 
     } else {
       final UnaliasedLocation newLvalue = Location.ofVariableName(lvalue.asUnaliased().getVariableName() +
-                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName);
+                                                                  CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR + memberName);
       return Pair.of(newLvalue, newLvalueType);
     }
 
@@ -697,7 +698,7 @@ class AssignmentHandler {
     }
     case UNALIASED_LOCATION: {
       final UnaliasedLocation newRvalue = Location.ofVariableName(rvalue.asUnaliasedLocation().getVariableName() +
-                                                                  CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR +
+                                                                  CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR +
                                                                   memberName);
       return Pair.of(newRvalue, newLvalueType);
     }
