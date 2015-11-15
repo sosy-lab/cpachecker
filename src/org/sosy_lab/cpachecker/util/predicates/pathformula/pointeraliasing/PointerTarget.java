@@ -61,7 +61,7 @@ public class PointerTarget implements Serializable {
    * @param properOffset
    * @param containerOffset
    */
-  PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
+  public PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
     this.base = base;
     this.containerType = containerType;
     this.properOffset = properOffset;

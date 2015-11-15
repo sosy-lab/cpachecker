@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 
 import com.google.common.base.Predicate;
 
-class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
+public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
   private PointerTargetPattern() {
     this.matchRange = false;
@@ -93,7 +93,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     this.containerType = null;
   }
 
-  void setProperOffset(final int properOffset) {
+  public void setProperOffset(final int properOffset) {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
   }
@@ -117,7 +117,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    * Useful for array subscript visitors.
    * @param containerType
    */
-  void shift(final CType containerType) {
+  public void shift(final CType containerType) {
     assert !matchRange : "Contradiction in target pattern: shift";
     this.containerType = containerType;
     if (containerOffset != null) {
@@ -135,7 +135,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    * Useful for field access visitors.
    * @param containerType
    */
-  void shift(final CType containerType, final int properOffset) {
+  public void shift(final CType containerType, final int properOffset) {
     shift(containerType);
     this.properOffset = properOffset;
   }
@@ -143,7 +143,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   /**
    * Unset everything, except base
    */
-  void retainBase() {
+  public void retainBase() {
     assert !matchRange : "Contradiction in target pattern: retainBase";
     containerType = null;
     properOffset = null;
@@ -153,7 +153,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   /**
    * Unset all criteria
    */
-  void clear() {
+  public void clear() {
     assert !matchRange : "Contradiction in target pattern: clear";
     base = null;
     containerType = null;

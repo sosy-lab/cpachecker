@@ -181,7 +181,7 @@ public interface PointerTargetSetBuilder {
         }
       };
 
-    RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
+    public RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
         final FormulaManagerView pFormulaManager,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions) {
