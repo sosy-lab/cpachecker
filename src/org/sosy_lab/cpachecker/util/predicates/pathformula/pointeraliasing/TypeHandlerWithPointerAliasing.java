@@ -103,7 +103,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * member of the composite.
    * @param compositeType
    */
-  void addCompositeTypeToCache(CCompositeType compositeType) {
+  public void addCompositeTypeToCache(CCompositeType compositeType) {
     compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
     if (offsets.containsKey(compositeType)) {
       // Support for empty structs though it's a GCC extension

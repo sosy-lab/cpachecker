@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerVie
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -70,7 +71,7 @@ import org.sosy_lab.solver.api.FormulaType;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 
-class PointerTargetSetManager {
+public class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -114,7 +115,7 @@ class PointerTargetSetManager {
             mergePointerTargetSets(final PointerTargetSet pts1,
                                    final PointerTargetSet pts2,
                                    final SSAMapBuilder resultSSA,
-                                   final CToFormulaConverterWithPointerAliasing conv)
+                                   final CtoFormulaConverter conv)
                                        throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
@@ -450,7 +451,7 @@ class PointerTargetSetManager {
    * @param memberName
    * @return
    */
-  int getOffset(CCompositeType compositeType, final String memberName) {
+  public int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 
