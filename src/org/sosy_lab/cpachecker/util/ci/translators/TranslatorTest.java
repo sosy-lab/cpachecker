@@ -183,12 +183,12 @@ public class TranslatorTest {
     @SuppressWarnings("unchecked")
     List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1|() Int)");
-    content.add("(declare-fun |var2|() Int)");
-    content.add("(declare-fun |var3@1|() Int)");
-    content.add("(declare-fun |fun::var1|() Int)");
-    content.add("(declare-fun |fun::varB@1|() Int)");
-    content.add("(declare-fun |fun::varC|() Int)");
+    content.add("(declare-fun |var1@1| () Int)");
+    content.add("(declare-fun |var2| () Int)");
+    content.add("(declare-fun |var3@1| () Int)");
+    content.add("(declare-fun |fun::var1| () Int)");
+    content.add("(declare-fun |fun::varB@1| () Int)");
+    content.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
     // Test method convertToFormula()
@@ -211,7 +211,7 @@ public class TranslatorTest {
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1|() Int)");
+    content.add("(declare-fun |var1@1| () Int)");
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
     s = "(define-fun req () Bool (>= |var1@1| 0))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
