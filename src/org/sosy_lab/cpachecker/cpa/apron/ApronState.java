@@ -655,9 +655,15 @@ logger.log(Level.FINEST, "apron state: isEqual");
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?
           return bitFmgr.makeBitvector(32, (int) value);
+        } else {
+          throw new AssertionError("Floats are currently not handled");
         }
+
+      } else {
+        // this is an interval and cannot be handled here because we need
+        // the other side of the operator to create > or < constraints
+        throw new AssertionError("Intervals are currently not handled");
       }
-      throw new AssertionError("intervals not handled");
     }
 
     @Override
