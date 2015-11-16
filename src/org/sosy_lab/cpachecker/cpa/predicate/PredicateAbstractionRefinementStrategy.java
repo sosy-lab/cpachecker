@@ -34,7 +34,9 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -84,6 +86,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -106,6 +109,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
   private static enum PredicateSharing {
     GLOBAL,            // at all locations
+    SCOPE,             // at all locations in the scope of the variable
     FUNCTION,          // at all locations in the respective function
     LOCATION,          // at all occurrences of the respective location
     LOCATION_INSTANCE, // at the n-th occurrence of the respective location in each path
@@ -489,6 +493,16 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     case GLOBAL:
       newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
       break;
+    case SCOPE:
+      Set<AbstractionPredicate> globalPredicates = new HashSet<>();
+      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> localPredicates = ArrayListMultimap.create();
+
+      splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
+
+      newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
+      newPrecision = newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates));
+
+      break;
     case FUNCTION:
       newPrecision = basePrecision.addFunctionPredicates(mergePredicatesPerFunction(newPredicates));
       break;
@@ -532,6 +546,20 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");
     }
     return oldPredicatePrecision;
+  }
+
+  private void splitInLocalAndGlobalPredicates(Set<AbstractionPredicate> globalPredicates,
+      ListMultimap<Pair<CFANode, Integer>, AbstractionPredicate> localPredicates) {
+
+    for (Map.Entry<Pair<CFANode, Integer>, AbstractionPredicate> predicate : newPredicates.entries()) {
+      if (predicate.getValue().getSymbolicAtom().toString().contains("::")) {
+        localPredicates.put(predicate.getKey(), predicate.getValue());
+      }
+
+      else {
+        globalPredicates.add(predicate.getValue());
+      }
+    }
   }
 
   private ARGState getRefinementRoot(List<ARGState> pAffectedStates, PredicatePrecision targetStatePrecision,

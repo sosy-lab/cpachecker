@@ -133,16 +133,9 @@ public class PredicatePrecision implements Precision {
    */
   public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
     Set<AbstractionPredicate> result = getLocationInstancePredicates().get(Pair.of(loc, locInstance));
-    if (result.isEmpty()) {
-      result = getLocalPredicates().get(loc);
-    }
-    if (result.isEmpty()) {
-      result = getFunctionPredicates().get(loc.getFunctionName());
-    }
-    if (result.isEmpty()) {
-      result = getGlobalPredicates();
-    }
-    return result;
+    result = Sets.union(result, getLocalPredicates().get(loc));
+    result = Sets.union(result, getFunctionPredicates().get(loc.getFunctionName()));
+    return Sets.union(result, getGlobalPredicates());
   }
 
   /**
