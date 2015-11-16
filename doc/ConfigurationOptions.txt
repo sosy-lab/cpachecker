@@ -338,8 +338,11 @@ cbmc.options.unwindings = 0
 
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
+# maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
+# infinite)
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0ms
+cbmc.timelimit = no default value
 cbmc.timelimit = 0
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
@@ -491,11 +494,16 @@ configuration.dumpFile = "UsedConfiguration.properties"
 # Currently CBMC or CPAchecker with a different config or the concrete
 # execution 
 # checker can be used.
+# which model checker to use for verifying counterexamples as a second check
+# Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
+counterexample.checker = no default value
+  allowed values: [CBMC, CPACHECKER, REALC]
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
+counterexample.checker.config = no default value
 
 # File name where to put the path specification that is generated as input
 # for the counterexample check. A temporary file is used if this is
@@ -518,6 +526,7 @@ counterexample.concrete.timelimit = 0ms
 # continue analysis after an counterexample was found that was denied by the
 # second check
 counterexample.continueAfterInfeasibleError = true
+counterexample.continueAfterInfeasibleError = no default value
 
 # If the option assumeLinearArithmetics is set, this option can be used to
 # allow division and modulo by constants.
@@ -548,6 +557,7 @@ counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
 # counterexample before continuing.Setting this to false may prevent a lot of
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
+counterexample.removeInfeasibleErrors = no default value
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
@@ -678,22 +688,28 @@ cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
+cpa.arg.witness.exportAssumeCaseInfo = no default value
 
 # Verification witness: Include assumptions (C statements)?
 cpa.arg.witness.exportAssumptions = true
+cpa.arg.witness.exportAssumptions = no default value
 
 # Verification witness: Include function calls and function returns?
 cpa.arg.witness.exportFunctionCallsAndReturns = true
+cpa.arg.witness.exportFunctionCallsAndReturns = no default value
 
 # Verification witness: Include the (starting) line numbers of the operations
 # on the transitions?
 cpa.arg.witness.exportLineNumbers = true
+cpa.arg.witness.exportLineNumbers = no default value
 
 # Verification witness: Include the offset within the file?
 cpa.arg.witness.exportOffset = true
+cpa.arg.witness.exportOffset = no default value
 
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
+cpa.arg.witness.exportSourcecode = no default value
 
 # signal the analysis to break in case the given number of error state is
 # reached 
@@ -1277,6 +1293,8 @@ cpa.predicate.handleImplicitInitialization = true
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
+cpa.predicate.handlePointerAliasing = true
+cpa.predicate.handlePointerAliasing = no default value
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1362,7 +1380,7 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
-  enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+  enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
 
 # generate statistics about precisions (may be slow)
 cpa.predicate.precisionStatistics = true
@@ -1387,9 +1405,13 @@ cpa.predicate.predmap.predicateFormat = SMTLIB2
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
-# use only the atoms from the interpolants as predicates, and not the whole
+# use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
-cpa.predicate.refinement.atomicPredicates = true
+cpa.predicate.refinement.atomicInterpolants = true
+
+# use only atoms from generated invariantsas predicates, and not the whole
+# invariant
+cpa.predicate.refinement.atomicInvariants = false
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -2380,6 +2402,7 @@ precondition.solverbasedInterpolation = false
 
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []
+properties = no default value
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
@@ -2387,6 +2410,17 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
+
+# File name where to put the path program that is generated as input for a
+# common c compiler. A temporary file is used if this is unspecified. 
+realC.dumpRealCfile = no default value
+
+# Path to the compiler. Can be absolute or on PATH
+realC.pathToCompiler = no default value
+
+# maximum time limit for realC (use milliseconds or specify a unit; 0 for
+# infinite)
+realC.timelimit = no default value
 
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
