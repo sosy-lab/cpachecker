@@ -332,11 +332,10 @@ public class CustomInstructionTest {
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
     Pair<List<String>, String> pair = aci.getFakeSMTDescription();
-    Truth.assertThat(pair.getFirst()).hasSize(4);// TODO size 3
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun 7 () Int)"); // TODO 7 auch hier drin?
-    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::b| () Int)");
-    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::a@1| () Int)");
-    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |main::b@1| () Int)");
+    Truth.assertThat(pair.getFirst()).hasSize(3);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1| () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1| () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0)))))");
 
     SSAMap ssaMap = aci.getIndicesForReturnVars();
