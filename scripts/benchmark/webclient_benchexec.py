@@ -68,7 +68,8 @@ def init(config, benchmark):
         svn_branch = 'trunk'
         svn_revision = 'HEAD'
 
-    _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision)
+    _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision,
+                              config.cloud_threads, config.cloud_poll_interval)
 
     benchmark.tool_version = _webclient.tool_revision()
     logging.info('Using CPAchecker version {0}.'.format(benchmark.tool_version))
@@ -122,7 +123,7 @@ def _submitRunsParallel(runSet, benchmark):
 
     logging.info('Submitting runs...')
 
-    executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+    executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
@@ -167,7 +168,7 @@ def _submitRunsParallel(runSet, benchmark):
     return result_futures
 
 def _handle_results(result_futures, output_handler, benchmark):
-    executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+    executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]

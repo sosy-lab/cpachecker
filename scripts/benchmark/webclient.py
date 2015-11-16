@@ -58,7 +58,6 @@ This module provides helpers for accessing the web interface of the VerifierClou
 __all__ = [
     'WebClientError', 'WebInterface', 'handle_result',
     'MEMLIMIT', 'TIMELIMIT', 'SOFTTIMELIMIT', 'CORELIMIT',
-    'MAX_SUBMISSION_THREADS',
     'RESULT_FILE_LOG', 'RESULT_FILE_STDERR', 'RESULT_FILE_RUN_INFO', 'RESULT_FILE_HOST_INFO', 'RESULT_FILE_RUN_DESCRIPTION', 'SPECIAL_RESULT_FILES',
     ]
 
@@ -66,8 +65,6 @@ MEMLIMIT = 'memlimit'
 TIMELIMIT = 'timelimit'
 SOFTTIMELIMIT = 'softtimelimit'
 CORELIMIT = 'corelimit'
-
-MAX_SUBMISSION_THREADS = 5
 
 RESULT_FILE_LOG = 'output.log'
 RESULT_FILE_STDERR = 'stderr'
@@ -77,6 +74,7 @@ RESULT_FILE_RUN_DESCRIPTION = 'runDescription.txt'
 SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
                         RESULT_FILE_HOST_INFO, RESULT_FILE_RUN_DESCRIPTION}
 
+MAX_SUBMISSION_THREADS = 5
 CONNECTION_TIMEOUT = 600 #seconds
 HASH_CODE_CACHE_PATH = os.path.join(os.path.expanduser("~"), ".verifiercloud/cache/hashCodeCache")
 
@@ -91,7 +89,8 @@ class WebInterface:
     The WebInterface is a executor like class for the submission of runs to the VerifierCloud
     """
 
-    def __init__(self, web_interface_url, user_pwd, svn_branch='trunk', svn_revision='HEAD'):
+    def __init__(self, web_interface_url, user_pwd, svn_branch='trunk', svn_revision='HEAD',
+                 thread_count=1, result_poll_interval=2):
         """
         Creates a new WebInterface object.
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
@@ -99,7 +98,13 @@ class WebInterface:
         @param user_pwd: user name and password in the format '<user_name>:<password>' or none if no authentification is required
         @param svn_branch: the svn branch name or 'trunk', defaults to 'trunk'
         @param svn_revision: the svn revision number or 'HEAD', defaults to 'HEAD'
+        @param thread_count: the number of threads for fetching results in parallel
+        @param result_poll_interval: the number of seconds to wait between polling results
         """
+        if not (1 <= thread_count <= MAX_SUBMISSION_THREADS):
+            sys.exit("Invalid number {} of client threads, needs to be between 1 and {}.".format(thread_count, MAX_SUBMISSION_THREADS))
+        if not 1 <= result_poll_interval:
+            sys.exit("Poll interval {} is too small, needs to be at least 1s.".format(result_poll_interval))
         if not web_interface_url[-1] == '/':
             web_interface_url += '/'
 
@@ -111,7 +116,8 @@ class WebInterface:
         else:
             self._base64_user_pwd = None
 
-
+        self.thread_count = thread_count
+        self._result_poll_interval = result_poll_interval
         self._shutdown = threading.Event()
         self._thread_local = threading.local()
         self._hash_code_cache = {}
@@ -121,7 +127,7 @@ class WebInterface:
         self._read_hash_code_cache()
         self._resolved_tool_revision(svn_branch, svn_revision)
 
-        self._executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+        self._executor = ThreadPoolExecutor(self.thread_count)
         self._state_poll_thread = threading.Thread(target=self._get_results, name='web_interface_state_poll_thread')
         self._state_poll_thread.start()
 
@@ -389,7 +395,7 @@ class WebInterface:
 
     def _get_results(self):
         downloading_result_futures = {}
-        state_request_executor = ThreadPoolExecutor(max_workers=MAX_SUBMISSION_THREADS)
+        state_request_executor = ThreadPoolExecutor(max_workers=self.thread_count)
 
         def callback(downloaded_result):
             run_id = downloading_result_futures[downloaded_result]
@@ -435,8 +441,8 @@ class WebInterface:
 
             end = time();
             duration = end - start
-            if duration < 5 and not self._shutdown.is_set():
-                self._shutdown.wait(5 - duration)
+            if duration < self._result_poll_interval and not self._shutdown.is_set():
+                self._shutdown.wait(self._result_poll_interval - duration)
 
         state_request_executor.shutdown()
 
