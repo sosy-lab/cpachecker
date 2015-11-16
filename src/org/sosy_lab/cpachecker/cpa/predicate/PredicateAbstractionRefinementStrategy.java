@@ -101,11 +101,6 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
-  @Option(secure=true, name="refinement.atomicPredicates",
-      description="use only the atoms from the interpolants as predicates, "
-          + "and not the whole interpolant")
-  private boolean atomicPredicates = true;
-
   @Option(secure=true, name="precision.sharing",
       description="Where to apply the found predicates to?")
   private PredicateSharing predicateSharing = PredicateSharing.LOCATION;
@@ -162,6 +157,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   private boolean lastRefinementUsedHeuristics = false;
   private boolean lastRefinementWasStatic = false;
+  private boolean atomicPredicates = false;
 
 
   protected final LogManager logger;
@@ -263,6 +259,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   public boolean wasLastRefinementStatic() {
     return lastRefinementWasStatic;
+  }
+
+  public void setUseAtomicPredicates(boolean atomicPredicates) {
+    this.atomicPredicates = atomicPredicates;
   }
 
   @Override

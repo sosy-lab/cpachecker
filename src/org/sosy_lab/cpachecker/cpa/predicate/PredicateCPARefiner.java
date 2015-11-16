@@ -176,8 +176,16 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       + " found invariants may also be better for loops as interpolation.)")
   private boolean useStrongInvariantsOnly = true;
 
+  @Option(secure=true, description="use only the atoms from the interpolants"
+                                 + "as predicates, and not the whole interpolant")
+  private boolean atomicInterpolants = true;
+
+  @Option(secure=true, description="use only atoms from generated invariants"
+                                 + "as predicates, and not the whole invariant")
+  private boolean atomicInvariants = false;
 
   private Map<Loop, Integer> loopOccurrences = new HashMap<>();
+  private boolean wereInvariantsGenerated = false;
 
   Configuration config;
 
@@ -332,6 +340,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
     final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
+    if (! ((useStrongInvariantsOnly && wereInvariantsGenerated && !repeatedCounterexample)
+           || (useStrongInvariantsOnly && !wereInvariantsGenerated)
+           || !useStrongInvariantsOnly)) {
+      logger.log(Level.WARNING, "Repeated Countereample although generated invariants were strong enough to refute it.");
+    }
     lastErrorPath = errorPath;
 
     // get the relevant loops in the ARGPath and the number of occurences of
@@ -350,6 +363,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       List<BooleanFormula> precisionIncrement =
           computePrecisionIncrement(allStatesTrace, elementsOnPath, abstractionStatesTrace,
                                     formulas, loopsInPath, maxFoundLoop, counterexample);
+
+      if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+        ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(wereInvariantsGenerated ? atomicInvariants : atomicInterpolants);
+      }
 
       strategy.performRefinement(pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
 
@@ -420,23 +437,28 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
                  "No interpolants were computed, although they are needed,"
                  + " check #buildCounterExampleTrace for logic-problems." ;
 
+      logger.log(Level.INFO, "Using invariant generation for refinement");
       totalInvariantGeneration.start();
       precisionIncrement = generateInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
       totalInvariantGeneration.stop();
 
       // invariant generation was not successful, fall-back to interpolation
-      if (precisionIncrement == null
-          || from(precisionIncrement).allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)))) {
+      if (precisionIncrement == null) {
         logger.log(Level.INFO, "Invariant generation failed, falling back to interpolation.");
         counterexample = formulaManager.buildCounterexampleTrace(formulas,
             Lists.<AbstractState>newArrayList(abstractionStatesTrace),
             elementsOnPath, true);
         precisionIncrement = counterexample.getInterpolants();
+        wereInvariantsGenerated = false;
+      } else {
+        wereInvariantsGenerated = true;
       }
 
       // using interpolants
     } else {
+      logger.log(Level.INFO, "Using interpolation for refinement");
       precisionIncrement = counterexample.getInterpolants();
+      wereInvariantsGenerated = false;
     }
     return precisionIncrement;
   }
@@ -565,24 +587,31 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
           limits.cancel();
         }
 
-        List<BooleanFormula> invariants = new ArrayList<>();
-        for (ARGState s : abstractionStatesTrace) {
-          // the last one will always be false, we don't need it here
-          if (s != abstractionStatesTrace.get(abstractionStatesTrace.size()-1)) {
-            invariants.add(invSup.getInvariantFor(extractLocation(s), fmgr, pfmgr));
-          }
-        }
-
         // we do only want to use invariants that can be used to make the program safe
         if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {
+          List<BooleanFormula> invariants = new ArrayList<>();
+          for (ARGState s : abstractionStatesTrace) {
+            // the last one will always be false, we don't need it here
+            if (s != abstractionStatesTrace.get(abstractionStatesTrace.size()-1)) {
+              invariants.add(invSup.getInvariantFor(extractLocation(s), fmgr, pfmgr));
+              logger.log(Level.ALL, "Precision increment for location", extractLocation(s), "is", invSup.getInvariantFor(extractLocation(s), fmgr, pfmgr));
+            }
+          }
+
+          if (from(invariants).allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)))) {
+            logger.log(Level.FINEST, "All invariants were TRUE, ignoring result.");
+            return null;
+          }
+
           return invariants;
+
         } else {
           logger.log(Level.INFO, "Invariants found, but they are not strong enough to refute the counterexample");
           return null;
         }
 
       } catch (InvalidConfigurationException | IOException | CPAException | InterruptedException e) {
-        logger.log(Level.WARNING, "Could not compute invariants");
+        logger.log(Level.WARNING, "Could not compute invariants", e);
         return null;
       }
   }
