@@ -46,6 +46,8 @@ import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
+import com.google.common.math.DoubleMath;
+
 import apron.Abstract0;
 import apron.Dimchange;
 import apron.Dimension;
@@ -53,6 +55,9 @@ import apron.DoubleScalar;
 import apron.Interval;
 import apron.Lincons0;
 import apron.Linexpr0;
+import apron.MpfrScalar;
+import apron.MpqScalar;
+import apron.Scalar;
 import apron.Tcons0;
 import apron.Texpr0BinNode;
 import apron.Texpr0CstNode;
@@ -60,8 +65,7 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
-import com.google.common.math.DoubleMath;
+import gmp.Mpfr;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -637,7 +641,17 @@ logger.log(Level.FINEST, "apron state: isEqual");
     @Override
     BitvectorFormula visit(Texpr0CstNode pNode) {
       if (pNode.isScalar()) {
-        double value = ((DoubleScalar)pNode.getConstant().inf()).get();
+        double value;
+        Scalar scalar = pNode.getConstant().inf();
+        if (scalar instanceof DoubleScalar) {
+         value = ((DoubleScalar)scalar).get();
+        } else if (scalar instanceof MpqScalar) {
+          value = ((MpqScalar)scalar).get().doubleValue();
+        } else if (scalar instanceof MpfrScalar) {
+          value = ((MpfrScalar)scalar).get().doubleValue(Mpfr.RNDN);
+        } else {
+          throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+        }
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?
           return bitFmgr.makeBitvector(32, (int) value);
