@@ -1063,12 +1063,12 @@ public class ARGUtils {
             nodesToHandle.offer(sumEdge.getSuccessor());
 
             sb.append("    (! MATCH \"");
-            escape(sumEdge.getSuccessor().getEnteringEdge(0).getRawStatement(), sb);
+            escape(sumEdge.getRawStatement(), sb);
             sb.append("\") -> GOTO NODE")
               .append(Integer.toString(curNode.getNodeNumber()))
               .append(";\n");
             sb.append("    MATCH \"");
-            escape(sumEdge.getSuccessor().getEnteringEdge(0).getRawStatement(), sb);
+            escape(sumEdge.getRawStatement(), sb);
             sb.append("\" -> GOTO NODE")
               .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
               .append(";\n");
