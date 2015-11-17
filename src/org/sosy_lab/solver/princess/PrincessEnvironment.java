@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -257,13 +258,15 @@ class PrincessEnvironment {
 
         // save old console out for later reset
         PrintStream oldOut = Console.out();
+        // charset for encoding and decoding ByteArrayOutputStream (needs to be the same)
+        final String charset = StandardCharsets.UTF_8.name();
 
         // now as everything we know from the formula is declared we have to add
         // the abbreviations, too
         for (Entry<IExpression, IExpression> entry : abbrevCache.entrySet()) {
           // create new console out printstream to redirect the output of princess
           ByteArrayOutputStream stream = new ByteArrayOutputStream();
-          Console.setOut(new PrintStream(stream));
+          Console.setOut(new PrintStream(stream, true, charset));
 
           IExpression abbrev = entry.getKey();
           IExpression fullFormula = entry.getValue();
@@ -276,20 +279,20 @@ class PrincessEnvironment {
           out.append(" ((abbrev_arg Int)) Int (ite ");
           if (fullFormula instanceof IFormula) {
             SMTLineariser.apply((IFormula)fullFormula);
-            out.append(stream.toString());
+            out.append(stream.toString(charset));
           } else if (fullFormula instanceof ITerm) {
             SMTLineariser.apply((ITerm)fullFormula);
-            out.append(stream.toString());
+            out.append(stream.toString(charset));
           }
           out.append(" 0 1))\n");
         }
 
         // now add the final assert
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        Console.setOut(new PrintStream(stream));
+        Console.setOut(new PrintStream(stream, true, charset));
         SMTLineariser.apply((IFormula)lettedFormula);
         out.append("(assert ");
-        out.append(stream.toString());
+        out.append(stream.toString(charset));
         out.append(")");
 
         // reset console to usual value
