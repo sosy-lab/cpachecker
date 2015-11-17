@@ -34,10 +34,12 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -934,6 +936,7 @@ public class ARGUtils {
 
     ARGState inLoopState = null;
     ARGState outLoopState = null;
+    Map<ARGState, ARGState> inToOutLoopMap = new HashMap<>();
     CFANode inLoopNode = null;
     for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
 
@@ -950,6 +953,7 @@ public class ARGUtils {
       if (loopFound && inLoopState == null) {
         inLoopState = s;
         inLoopNode = extractLocation(inLoopState);
+        outLoopState = null;
         continue;
 
         // function call inside a loop we want to uproll
@@ -961,7 +965,9 @@ public class ARGUtils {
       } else if (!loopFound) {
         if (inLoopState != null && outLoopState == null) {
           outLoopState = s;
+          inToOutLoopMap.put(inLoopState, outLoopState);
           inLoopNode = null;
+          inLoopState = null;
         }
 
         sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
@@ -1031,99 +1037,111 @@ public class ARGUtils {
     }
 
     // now handle loop
+    for (Entry<ARGState, ARGState> entry : inToOutLoopMap.entrySet()) {
+      ARGState intoLoopState = entry.getKey();
+      ARGState outOfLoopState = entry.getValue();
+      handleLoop(sb, loopsToUproll, intoLoopState, outOfLoopState);
+    }
+
+    // last loop encountered has no outgoing edge
     if (inLoopState != null) {
-      sb.append("STATE USEFIRST ARG" + inLoopState.getStateId() + " :\n");
-      Set<CFANode> handledNodes = new HashSet<>();
-      Deque<CFANode> nodesToHandle = new ArrayDeque<>();
-      CFANode loc = AbstractStates.extractLocation(inLoopState);
-      sb.append("    TRUE -> GOTO NODE")
-        .append(Integer.toString(loc.getNodeNumber()))
-        .append(";\n\n");
-      nodesToHandle.offer(loc);
-      while(!nodesToHandle.isEmpty()) {
-        CFANode curNode = nodesToHandle.poll();
-        if (!handledNodes.add(curNode)) {
-          continue;
-        }
-        sb.append("STATE USEFIRST NODE")
-          .append(Integer.toString(curNode.getNodeNumber()))
-          .append(" :\n");
-
-        for(CFAEdge e : leavingEdges(curNode)) {
-          // make path out of multiedges
-          if (e instanceof MultiEdge) {
-            for (CFAEdge innerEdge : ((MultiEdge)e).getEdges()) {
-              sb.append("    MATCH \"");
-              escape(innerEdge.getRawStatement(), sb);
-              sb.append("\" -> GOTO NODE")
-                .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
-                .append(";\n");
-              // only inner edges should be handled here
-              if (innerEdge.getSuccessor() != e.getSuccessor()) {
-                sb.append("STATE USEFIRST NODE")
-                  .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
-                  .append(" :\n");
-              }
-            }
-            nodesToHandle.offer(e.getSuccessor());
-
-          // skip function calls
-          } else  if (e instanceof FunctionCallEdge) {
-            FunctionSummaryEdge sumEdge = ((FunctionCallEdge) e).getSummaryEdge();
-            nodesToHandle.offer(sumEdge.getSuccessor());
-
-            sb.append("    !( CHECK(location, \"functionname==");
-            sb.append(sumEdge.getPredecessor().getFunctionName());
-            sb.append("\")) -> GOTO NODE")
-              .append(Integer.toString(curNode.getNodeNumber()))
-              .append(";\n");
-            sb.append("    ( CHECK(location, \"functionname==");
-            sb.append(sumEdge.getPredecessor().getFunctionName());
-            sb.append("\")) -> GOTO NODE")
-              .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
-              .append(";\n");
-
-          // all other edges can be handled together
-          } else {
-            boolean stillInLoop = false;
-            for (Loop loop : loopsToUproll) {
-              if (loop.getLoopNodes().contains(e.getSuccessor())) {
-                stillInLoop = true;
-                break;
-              }
-            }
-
-            sb.append("    MATCH \"");
-            escape(e.getRawStatement(), sb);
-            sb.append("\" -> ");
-
-            // we are still in the loop, so we do not need to handle special cases
-            if (stillInLoop) {
-              sb.append("GOTO NODE")
-                .append(Integer.toString(e.getSuccessor().getNodeNumber()))
-                .append(";\n");
-
-              nodesToHandle.offer(e.getSuccessor());
-
-            // out of loop edge, check if it is the same edge as in the ARGPath
-            // if not we need a sink with STOP
-            } else if (outLoopState == null
-                       || !AbstractStates.extractLocation(outLoopState).equals(e.getSuccessor())) {
-              sb.append("STOP;\n");
-
-            // here we go out of the loop back to the arg path
-            } else {
-              sb.append("GOTO ARG")
-                .append(Integer.toString(outLoopState.getStateId()))
-                .append(";\n");
-            }
-          }
-        }
-        sb.append("    TRUE -> STOP;\n\n");
-      }
+      handleLoop(sb, loopsToUproll, inLoopState, null);
     }
 
     sb.append("END AUTOMATON\n");
+  }
+
+  private static void handleLoop(Appendable sb, Set<Loop> loopsToUproll, ARGState intoLoopState,
+      ARGState outOfLoopState) throws IOException {
+    sb.append("STATE USEFIRST ARG" + intoLoopState.getStateId() + " :\n");
+    Set<CFANode> handledNodes = new HashSet<>();
+    Deque<CFANode> nodesToHandle = new ArrayDeque<>();
+    CFANode loc = AbstractStates.extractLocation(intoLoopState);
+    sb.append("    TRUE -> GOTO NODE")
+      .append(Integer.toString(loc.getNodeNumber()))
+      .append(";\n\n");
+    nodesToHandle.offer(loc);
+    while(!nodesToHandle.isEmpty()) {
+      CFANode curNode = nodesToHandle.poll();
+      if (!handledNodes.add(curNode)) {
+        continue;
+      }
+      sb.append("STATE USEFIRST NODE")
+        .append(Integer.toString(curNode.getNodeNumber()))
+        .append(" :\n");
+
+      for(CFAEdge e : leavingEdges(curNode)) {
+        // make path out of multiedges
+        if (e instanceof MultiEdge) {
+          for (CFAEdge innerEdge : ((MultiEdge)e).getEdges()) {
+            sb.append("    MATCH \"");
+            escape(innerEdge.getRawStatement(), sb);
+            sb.append("\" -> GOTO NODE")
+              .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
+              .append(";\n");
+            // only inner edges should be handled here
+            if (innerEdge.getSuccessor() != e.getSuccessor()) {
+              sb.append("STATE USEFIRST NODE")
+                .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
+                .append(" :\n");
+            }
+          }
+          nodesToHandle.offer(e.getSuccessor());
+
+        // skip function calls
+        } else  if (e instanceof FunctionCallEdge) {
+          FunctionSummaryEdge sumEdge = ((FunctionCallEdge) e).getSummaryEdge();
+          nodesToHandle.offer(sumEdge.getSuccessor());
+
+          sb.append("    !( CHECK(location, \"functionname==");
+          sb.append(sumEdge.getPredecessor().getFunctionName());
+          sb.append("\")) -> GOTO NODE")
+            .append(Integer.toString(curNode.getNodeNumber()))
+            .append(";\n");
+          sb.append("    ( CHECK(location, \"functionname==");
+          sb.append(sumEdge.getPredecessor().getFunctionName());
+          sb.append("\")) -> GOTO NODE")
+            .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
+            .append(";\n");
+
+        // all other edges can be handled together
+        } else {
+          boolean stillInLoop = false;
+          for (Loop loop : loopsToUproll) {
+            if (loop.getLoopNodes().contains(e.getSuccessor())) {
+              stillInLoop = true;
+              break;
+            }
+          }
+
+          sb.append("    MATCH \"");
+          escape(e.getRawStatement(), sb);
+          sb.append("\" -> ");
+
+          // we are still in the loop, so we do not need to handle special cases
+          if (stillInLoop) {
+            sb.append("GOTO NODE")
+              .append(Integer.toString(e.getSuccessor().getNodeNumber()))
+              .append(";\n");
+
+            nodesToHandle.offer(e.getSuccessor());
+
+          // out of loop edge, check if it is the same edge as in the ARGPath
+          // if not we need a sink with STOP
+          } else if (outOfLoopState == null
+                     || !AbstractStates.extractLocation(outOfLoopState).equals(e.getSuccessor())) {
+            sb.append("STOP;\n");
+
+          // here we go out of the loop back to the arg path
+          } else {
+            sb.append("GOTO ARG")
+              .append(Integer.toString(outOfLoopState.getStateId()))
+              .append(";\n");
+          }
+        }
+      }
+      sb.append("    TRUE -> STOP;\n\n");
+    }
   }
 
   private static void addAssumption(Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
