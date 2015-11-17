@@ -1053,83 +1053,115 @@ public class ARGUtils {
 
   private static void handleLoop(Appendable sb, Set<Loop> loopsToUproll, ARGState intoLoopState,
       ARGState outOfLoopState) throws IOException {
-    sb.append("STATE USEFIRST ARG" + intoLoopState.getStateId() + " :\n");
+
     Set<CFANode> handledNodes = new HashSet<>();
     Deque<CFANode> nodesToHandle = new ArrayDeque<>();
-    CFANode loc = AbstractStates.extractLocation(intoLoopState);
-    sb.append("    TRUE -> GOTO NODE")
-      .append(Integer.toString(loc.getNodeNumber()))
-      .append(";\n\n");
-    nodesToHandle.offer(loc);
+    CFANode loopHead = AbstractStates.extractLocation(intoLoopState);
+    nodesToHandle.offer(loopHead);
+    boolean isFirstLoopIteration = true;
     while(!nodesToHandle.isEmpty()) {
       CFANode curNode = nodesToHandle.poll();
       if (!handledNodes.add(curNode)) {
         continue;
       }
-      sb.append("STATE USEFIRST NODE")
-        .append(Integer.toString(curNode.getNodeNumber()))
-        .append(" :\n");
 
-      for(CFAEdge e : leavingEdges(curNode)) {
+      if (isFirstLoopIteration) {
+        sb.append("STATE USEFIRST ARG")
+          .append(Integer.toString(intoLoopState.getStateId()))
+          .append(" :\n");
+        isFirstLoopIteration = false;
+      } else {
+        sb.append("STATE USEFIRST NODE")
+          .append(Integer.toString(curNode.getNodeNumber()))
+          .append(" :\n");
+      }
+
+      for(CFAEdge edge : leavingEdges(curNode)) {
         // make path out of multiedges
-        if (e instanceof MultiEdge) {
-          for (CFAEdge innerEdge : ((MultiEdge)e).getEdges()) {
+        if (edge instanceof MultiEdge) {
+          for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
             sb.append("    MATCH \"");
             escape(innerEdge.getRawStatement(), sb);
             sb.append("\" -> GOTO NODE")
               .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
               .append(";\n");
             // only inner edges should be handled here
-            if (innerEdge.getSuccessor() != e.getSuccessor()) {
+            if (innerEdge.getSuccessor() != edge.getSuccessor()) {
               sb.append("STATE USEFIRST NODE")
                 .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
                 .append(" :\n");
             }
           }
-          nodesToHandle.offer(e.getSuccessor());
+          nodesToHandle.offer(edge.getSuccessor());
 
         // skip function calls
-        } else  if (e instanceof FunctionCallEdge) {
-          FunctionSummaryEdge sumEdge = ((FunctionCallEdge) e).getSummaryEdge();
-          nodesToHandle.offer(sumEdge.getSuccessor());
+        } else  if (edge instanceof FunctionCallEdge) {
+          FunctionSummaryEdge sumEdge = ((FunctionCallEdge) edge).getSummaryEdge();
 
-          sb.append("    !( CHECK(location, \"functionname==");
-          sb.append(sumEdge.getPredecessor().getFunctionName());
-          sb.append("\")) -> GOTO NODE")
+          // only continue if we do not meet the loophead again
+          if (sumEdge.getSuccessor() != loopHead) {
+            nodesToHandle.offer(sumEdge.getSuccessor());
+          }
+
+          sb.append("    TRUE -> GOTO NODE")
             .append(Integer.toString(curNode.getNodeNumber()))
-            .append(";\n");
-          sb.append("    ( CHECK(location, \"functionname==");
-          sb.append(sumEdge.getPredecessor().getFunctionName());
-          sb.append("\")) -> GOTO NODE")
-            .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
-            .append(";\n");
+            .append("_FUNCTIONSINK;\n\n");
+
+          sb.append("STATE USEFIRST NODE")
+            .append(Integer.toString(curNode.getNodeNumber()))
+            .append("_FUNCTIONSINK :\n");
+
+          sb.append("    ( CHECK(location, \"functionname==")
+            .append(sumEdge.getPredecessor().getFunctionName())
+            .append("\")) -> GOTO ");
+
+          // depending on successor add the transition for going out of the method
+          if (sumEdge.getSuccessor() == loopHead) {
+            sb.append("ARG")
+              .append(Integer.toString(intoLoopState.getStateId()))
+              .append(";\n");
+          } else {
+            sb.append("NODE")
+              .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
+              .append(";\n");
+          }
+
+          sb.append("    TRUE -> GOTO NODE")
+            .append(Integer.toString(curNode.getNodeNumber()))
+            .append("_FUNCTIONSINK;\n");
 
         // all other edges can be handled together
         } else {
           boolean stillInLoop = false;
           for (Loop loop : loopsToUproll) {
-            if (loop.getLoopNodes().contains(e.getSuccessor())) {
+            if (loop.getLoopNodes().contains(edge.getSuccessor())) {
               stillInLoop = true;
               break;
             }
           }
 
           sb.append("    MATCH \"");
-          escape(e.getRawStatement(), sb);
+          escape(edge.getRawStatement(), sb);
           sb.append("\" -> ");
 
           // we are still in the loop, so we do not need to handle special cases
-          if (stillInLoop) {
+          if (stillInLoop && edge.getSuccessor() != loopHead) {
             sb.append("GOTO NODE")
-              .append(Integer.toString(e.getSuccessor().getNodeNumber()))
+              .append(Integer.toString(edge.getSuccessor().getNodeNumber()))
               .append(";\n");
 
-            nodesToHandle.offer(e.getSuccessor());
+            nodesToHandle.offer(edge.getSuccessor());
+
+            // we are in the loop but reaching the head again
+          } else if (stillInLoop) {
+            sb.append("GOTO ARG")
+            .append(Integer.toString(intoLoopState.getStateId()))
+            .append(";\n");
 
           // out of loop edge, check if it is the same edge as in the ARGPath
           // if not we need a sink with STOP
           } else if (outOfLoopState == null
-                     || !AbstractStates.extractLocation(outOfLoopState).equals(e.getSuccessor())) {
+                     || !AbstractStates.extractLocation(outOfLoopState).equals(edge.getSuccessor())) {
             sb.append("STOP;\n");
 
           // here we go out of the loop back to the arg path
