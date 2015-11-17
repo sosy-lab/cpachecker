@@ -177,14 +177,14 @@ public class CustomInstructionTest {
   @Test
   public void testGetSignature() {
     ci = new CustomInstruction(null, null, Collections.<String> emptyList(), Collections.<String> emptyList(), ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("( -> )");
+    Truth.assertThat(ci.getSignature()).isEqualTo("() -> ()");
 
     List<String> inputVars = new ArrayList<>();
     inputVars.add("var");
     List<String> outputVars = new ArrayList<>();
     outputVars.add("var0");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|var| -> |var0@1|)");
+    Truth.assertThat(ci.getSignature()).isEqualTo("(|var|) -> (|var0@1|)");
 
     inputVars = new ArrayList<>();
     inputVars.add("var1");
@@ -194,7 +194,7 @@ public class CustomInstructionTest {
     outputVars.add("var4");
     outputVars.add("var5");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|var1|, |var2| -> |var3@1|, |var4@1|, |var5@1|)");
+    Truth.assertThat(ci.getSignature()).isEqualTo("(|var1|, |var2|) -> (|var3@1|, |var4@1|, |var5@1|)");
   }
 
   @Test

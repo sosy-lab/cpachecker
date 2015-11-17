@@ -184,7 +184,7 @@ public class CustomInstruction{
       sb.append("|");
     }
 
-    sb.append(" -> ");
+    sb.append(") -> (");
 
     if (outputVariables.size() > 0) {
       sb.append("|");
