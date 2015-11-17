@@ -42,5 +42,6 @@
 
   <rundefinition>
     <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
   </rundefinition>
 </benchmark>
