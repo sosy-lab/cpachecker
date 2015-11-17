@@ -105,7 +105,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle arrays using the theory of arrays.")
   private boolean handleArrays = false;
 
-  @Option(secure = false, description = "Use the theory of arrays for heap "
+  @Option(secure = true, description = "Use the theory of arrays for heap "
       + "memory abstraction.")
   private boolean useArrayHeap = false;
 
