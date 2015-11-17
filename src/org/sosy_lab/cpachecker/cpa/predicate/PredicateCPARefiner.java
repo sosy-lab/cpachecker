@@ -610,7 +610,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         }
 
       } catch (InvalidConfigurationException | IOException | CPAException | InterruptedException e) {
-        logger.log(Level.WARNING, "Could not compute invariants", e);
+        logger.logUserException(Level.WARNING, e, "Could not compute invariants");
         return null;
       }
   }
