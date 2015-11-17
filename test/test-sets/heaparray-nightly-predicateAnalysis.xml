@@ -5,7 +5,7 @@
   <option name="-noout"/>
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-  <option name="-setprop">cpa.predicate.useArrayHeap = true</option>
+  <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
 
