@@ -934,6 +934,7 @@ public class ARGUtils {
 
     ARGState inLoopState = null;
     ARGState outLoopState = null;
+    CFANode inLoopNode = null;
     for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
 
       CFANode loc = AbstractStates.extractLocation(s);
@@ -948,10 +949,19 @@ public class ARGUtils {
 
       if (loopFound && inLoopState == null) {
         inLoopState = s;
+        inLoopNode = extractLocation(inLoopState);
         continue;
+
+        // function call inside a loop we want to uproll
+      } else if (!loopFound
+                 && inLoopNode != null
+                 && !inLoopNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
+        continue;
+
       } else if (!loopFound) {
         if (inLoopState != null && outLoopState == null) {
           outLoopState = s;
+          inLoopNode = null;
         }
 
         sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
@@ -1016,8 +1026,8 @@ public class ARGUtils {
             }
           }
         }
+        sb.append("    TRUE -> STOP;\n\n");
       }
-      sb.append("    TRUE -> STOP;\n\n");
     }
 
     // now handle loop
@@ -1062,14 +1072,14 @@ public class ARGUtils {
             FunctionSummaryEdge sumEdge = ((FunctionCallEdge) e).getSummaryEdge();
             nodesToHandle.offer(sumEdge.getSuccessor());
 
-            sb.append("    (! MATCH \"");
-            escape(sumEdge.getRawStatement(), sb);
-            sb.append("\") -> GOTO NODE")
+            sb.append("    !( CHECK(location, \"functionname==");
+            sb.append(sumEdge.getPredecessor().getFunctionName());
+            sb.append("\")) -> GOTO NODE")
               .append(Integer.toString(curNode.getNodeNumber()))
               .append(";\n");
-            sb.append("    MATCH \"");
-            escape(sumEdge.getRawStatement(), sb);
-            sb.append("\" -> GOTO NODE")
+            sb.append("    ( CHECK(location, \"functionname==");
+            sb.append(sumEdge.getPredecessor().getFunctionName());
+            sb.append("\")) -> GOTO NODE")
               .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
               .append(";\n");
 
