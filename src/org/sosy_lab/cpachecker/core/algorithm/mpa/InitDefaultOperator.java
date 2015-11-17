@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -46,17 +47,17 @@ public class InitDefaultOperator implements InitOperator {
 
   @Override
   public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
-      ImmutableList<ImmutableSet<Property>> pPartitioning) {
+      Partitioning pPartitioning) {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
     ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getActiveProperties(pE0, pReached);
 
-    Preconditions.checkArgument(pPartitioning.size() > 0, "This init operator requires at least one partition of properties!");
+    Preconditions.checkArgument(!pPartitioning.isEmpty(), "This init operator requires at least one partition of properties!");
     Preconditions.checkState(allProperties.size() > 0, "There must be a set of properties that get checked!");
 
     // At the moment we check the first partition in the list
-    ImmutableSet<Property> partitionToChcek = pPartitioning.get(0);
+    ImmutableSet<Property> partitionToChcek = pPartitioning.iterator().next();
 
     // Reset the sets 'reached' and 'waitlist' to contain only
     //  the initial state and its initial precision

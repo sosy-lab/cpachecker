@@ -24,20 +24,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 
 
 public class InitPartitionedOperator implements InitOperator {
 
   @Override
   public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
-      ImmutableList<ImmutableSet<Property>> pLastPartitioning) {
+      Partitioning pLastPartitioning) {
 
     // Use the PartitioningCPA to completely separate each partition during the analysis.
     throw new RuntimeException("Implement me!");

@@ -21,13 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpa;
+package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.Partitions;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
@@ -35,10 +38,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 
-public class PartitioningDefaultOperator implements PartitioningOperator {
+abstract class AbstractPartitioningOperator implements PartitioningOperator {
 
   /**
    *
@@ -47,7 +49,7 @@ public class PartitioningDefaultOperator implements PartitioningOperator {
    *            (if all partitions consist already of one element)
    */
   @VisibleForTesting
-  ImmutableList<ImmutableSet<Property>> bisectPartitons(ImmutableList<ImmutableSet<Property>> pInput,
+  protected ImmutableList<ImmutableSet<Property>> bisectPartitons(ImmutableList<ImmutableSet<Property>> pInput,
       Comparator<Property> pComp) {
 
     ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
@@ -71,35 +73,26 @@ public class PartitioningDefaultOperator implements PartitioningOperator {
     return result.build();
   }
 
+  @VisibleForTesting
+  protected ImmutableList<ImmutableSet<Property>> singletonPartitions(Set<Property> pInput,
+      Comparator<Property> pComp) {
 
-  @Override
-  public ImmutableList<ImmutableSet<Property>> partition(
-      ImmutableList<ImmutableSet<Property>> pLastCheckedPartitioning,
-      Set<Property> pToCheck, Set<Property> pExpensiveProperties,
-      Comparator<Property> pPropertyExpenseComparator) throws PartitioningException {
+    final ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
 
-    Set<Property> cheapProperties = Sets.difference(pToCheck, pExpensiveProperties);
+    final ArrayList<Property> l = Lists.newArrayList(pInput);
+    Collections.sort(l, pComp);
 
-    ImmutableList<ImmutableSet<Property>> result;
-
-    if (cheapProperties.size() > 0) {
-      result = ImmutableList.of(ImmutableSet.copyOf(cheapProperties));
-    } else {
-      result = ImmutableList.of(ImmutableSet.copyOf(pToCheck));
+    for (Property p: l) {
+      result.add(ImmutableSet.of(p));
     }
 
-    // At least as much partitions as in pLastCheckedPartitioning
-    if (result.size() < pLastCheckedPartitioning.size()) {
-      result = bisectPartitons(result, pPropertyExpenseComparator);
-    }
+    return result.build();
+  }
 
-    // If possible not equal to the last partitioning
-    if (pLastCheckedPartitioning.equals(result)) {
-      // Divide the partitioning into two halfs...
-      return bisectPartitons(result, pPropertyExpenseComparator);
-    }
+  protected Partitioning create(final PartitioningStatus pStatus,
+      final ImmutableList<ImmutableSet<Property>> pPartitions) {
 
-    return result;
+    return Partitions.partitions(pStatus, pPartitions);
   }
 
 }

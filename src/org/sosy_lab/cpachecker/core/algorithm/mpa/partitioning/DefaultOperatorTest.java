@@ -21,12 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpa;
+package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
@@ -34,9 +33,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 
-public class PartitioningDefaultOperatorTest {
+public class DefaultOperatorTest {
 
-  private PartitioningDefaultOperator op;
+  private DefaultOperator op;
 
   private Property p1;
   private Property p2;
@@ -46,7 +45,7 @@ public class PartitioningDefaultOperatorTest {
 
   @Before
   public void setUp() throws Exception {
-    op = new PartitioningDefaultOperator();
+    op = new DefaultOperator();
 
     p1 = NamedProperty.create("p1");
     p2 = NamedProperty.create("p2");
@@ -68,36 +67,6 @@ public class PartitioningDefaultOperatorTest {
     Assert.assertEquals(4, result.size());
     Assert.assertTrue(result.contains(ImmutableSet.of(p4)));
     Assert.assertTrue(result.contains(ImmutableSet.of(p5)));
-  }
-
-  @Test
-  public void testPartitoning_Case1() throws PartitioningException {
-
-    final ImmutableList<ImmutableSet<Property>> lastChecked = ImmutableList.of(
-        ImmutableSet.of(p1,p2,p3),
-        ImmutableSet.of(p4,p5));
-
-    final ImmutableSet<Property> all = ImmutableSet.of(p1,p2,p3,p4,p5);
-
-    ImmutableList<ImmutableSet<Property>> result = op.partition(lastChecked, all, ImmutableSet.<Property>of(), null);
-
-    Assert.assertNotEquals(lastChecked, result);
-    Assert.assertEquals(4, result.size());
-  }
-
-  @Test
-  public void testPartitoning_Case2() throws PartitioningException {
-
-    final ImmutableList<ImmutableSet<Property>> lastChecked = ImmutableList.of(
-        ImmutableSet.of(p1,p2,p3,p4,p5));
-
-    final ImmutableSet<Property> all = ImmutableSet.of(p1,p2,p3,p4,p5);
-
-    ImmutableList<ImmutableSet<Property>> result = op.partition(lastChecked, all, ImmutableSet.<Property>of(), null);
-
-    Assert.assertNotEquals(lastChecked, result);
-    Assert.assertEquals(2, result.size());
-    Assert.assertTrue(result.contains(ImmutableSet.of(p1,p2,p3)));
   }
 
 }

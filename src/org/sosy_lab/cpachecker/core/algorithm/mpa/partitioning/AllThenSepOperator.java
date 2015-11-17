@@ -21,27 +21,30 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
+package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 
 import java.util.Comparator;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-public interface PartitioningOperator {
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
-  public static class PartitioningException extends Exception {
-    private static final long serialVersionUID = -2327879006682138193L;
+public class AllThenSepOperator extends AbstractPartitioningOperator {
 
-    public PartitioningException(String pMessage) {
-      super(pMessage);
-    }
-  }
-
+  @Override
   public Partitioning partition(
       Partitioning pLastCheckedPartitioning,
-      Set<Property> pToCheck,
-      Set<Property> pDisabledProperties,
-      Comparator<Property> pPropertyExpenseComparator) throws PartitioningException;
+      Set<Property> pToCheck, Set<Property> pExpensiveProperties,
+      Comparator<Property> pPropertyExpenseComparator)
+          throws PartitioningException {
+
+    return pLastCheckedPartitioning.isEmpty()
+        ? create(PartitioningStatus.ALL_IN_ONE, ImmutableList.of(ImmutableSet.copyOf(pToCheck)))
+        : create(PartitioningStatus.ONE_FOR_EACH, singletonPartitions(pToCheck, pPropertyExpenseComparator));
+  }
 
 }

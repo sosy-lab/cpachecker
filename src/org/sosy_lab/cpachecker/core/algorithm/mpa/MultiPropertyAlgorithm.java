@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -45,10 +46,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.DefaultOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -73,6 +77,7 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTimeLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
@@ -84,7 +89,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
@@ -99,9 +103,10 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   private final InterruptProvider interruptNotifier;
   private final ARGCPA cpa;
 
-  @Option(secure=true, description = "Operator for determining the partitions of properties that have to be checked.")
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
-  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = PartitioningDefaultOperator.class;
+  @Option(secure=true, name="partition.operator",
+      description = "Operator for determining the partitions of properties that have to be checked.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning")
+  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = DefaultOperator.class;
   private final PartitioningOperator partitionOperator;
 
   @Option(secure=true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
@@ -123,6 +128,19 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       min=-1)
   private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
+  private class MPAStatistics extends AbstractStatistics {
+    int numberOfRestarts = 0;
+    int numberOfPartitionExhaustions = 0;
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      super.printStatistics(pOut, pResult, pReached);
+
+      put(pOut, 0, "Number of restarts", numberOfRestarts);
+    }
+  }
+
+  private MPAStatistics stats = new MPAStatistics();
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;
 
@@ -292,8 +310,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       final AbstractState e0 = pReachedSet.getFirstState();
       final Precision pi0 = pReachedSet.getPrecision(e0);
 
-      final ImmutableList<ImmutableSet<Property>> noPartitioning = ImmutableList.of();
-      ImmutableList<ImmutableSet<Property>> checkPartitions;
+      final Partitioning noPartitioning = Partitions.none();
+      Partitioning checkPartitions;
 
       try {
         checkPartitions = partitionOperator.partition(noPartitioning, all, ImmutableSet.<Property>of(), propertyExpenseComparator);
@@ -331,7 +349,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
             }
 
             Preconditions.checkState(!pReachedSet.isEmpty());
-            Stats.incCounter("Times reachability interrupted", 1);
+            stats.numberOfPartitionExhaustions++;
 
           } else {
             // B) the user (or the operating system) requested a stop of the verifier.
@@ -372,7 +390,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
           // The partitioning operator might remove the violated properties
           //  if we have found sufficient counterexamples
-          checkPartitions = removePropertiesFrom(checkPartitions, ImmutableSet.<Property>copyOf(runViolated.values()));
+          checkPartitions = checkPartitions.substract(ImmutableSet.<Property>copyOf(runViolated.values()));
 
           // Just adjust the precision of the states in the waitlist
           disablePropertiesForWaitlist(cpa, pReachedSet, violated);
@@ -430,6 +448,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           }
 
           // Re-initialize the sets 'waitlist' and 'reached'
+          stats.numberOfRestarts++;
           initReached(pReachedSet, e0, pi0, checkPartitions);
           // -- Reset the resource limit checker
           initAndStartLimitChecker();
@@ -512,7 +531,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
   private void initReached(final ReachedSet pReachedSet,
       final AbstractState pE0, final Precision pPi0,
-      final ImmutableList<ImmutableSet<Property>> pCheckPartitions) {
+      final Partitioning pCheckPartitions) {
 
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
@@ -520,7 +539,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
       logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
-      logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.size()));
+      logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.partitionCount()));
 
       {
         int nth = 0;
@@ -535,19 +554,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
       argCpa.getCexSummary().resetForNewSetOfProperties();
     }
-  }
-
-  static ImmutableList<ImmutableSet<Property>> removePropertiesFrom(
-      ImmutableList<ImmutableSet<Property>> pOldPartitions,
-      Set<Property> pRunViolated) {
-
-    ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
-
-    for (ImmutableSet<Property> p: pOldPartitions) {
-      result.add(ImmutableSet.<Property>copyOf(Sets.difference(p, pRunViolated)));
-    }
-
-    return result.build();
   }
 
   static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
@@ -614,6 +620,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
     if (wrapped instanceof StatisticsProvider) {
       ((StatisticsProvider)wrapped).collectStatistics(pStatsCollection);
     }

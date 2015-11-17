@@ -23,12 +23,32 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import java.util.Set;
 
-public interface InitOperator {
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-  public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0, Partitioning pPartitioning);
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+
+public interface Partitioning extends Iterable<ImmutableSet<Property>> {
+
+  public static enum PartitioningStatus {
+    NONE,
+    ALL_IN_ONE,
+    ONE_FOR_EACH,
+    CHEAPEST_BISECT,
+    NOT_EXHAUSTED_ONLY,
+    MORE_PARTITIONS
+  }
+
+  public ImmutableList<ImmutableSet<Property>> getPartitions();
+
+  public PartitioningStatus getStatus();
+
+  public boolean isEmpty();
+
+  public int partitionCount();
+
+  public Partitioning substract(Set<Property> pProperties);
 
 }
