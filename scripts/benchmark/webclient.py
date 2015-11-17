@@ -143,13 +143,16 @@ class WebInterface:
 
     def _write_hash_code_cache(self):
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
-        os.makedirs(directory, exist_ok=True)
-        with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-            for (path, mTime), hashValue in self._hash_code_cache.items():
-                line = (path + '\t' + mTime + '\t' + hashValue + '\n').encode()
-                tmpFile.write(line)
+        try:
+            os.makedirs(directory, exist_ok=True)
+            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
+                for (path, mTime), hashValue in self._hash_code_cache.items():
+                    line = (path + '\t' + mTime + '\t' + hashValue + '\n').encode()
+                    tmpFile.write(line)
 
-            os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
+                os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
+        except OSError as e:
+            logging.warning("Could not write hash-code cache file to {}: {}".format(HASH_CODE_CACHE_PATH, e.strerror))
 
     def _resolved_tool_revision(self, svn_branch, svn_revision):
 
