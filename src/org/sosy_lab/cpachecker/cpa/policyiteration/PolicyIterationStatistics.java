@@ -4,9 +4,6 @@ import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -16,7 +13,6 @@ import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
-@Options(prefix="cpa.stator.policy")
 public class PolicyIterationStatistics implements Statistics {
 
   final Multiset<TemplateUpdateEvent> templateUpdateCounter
@@ -87,11 +83,6 @@ public class PolicyIterationStatistics implements Statistics {
 
   public void stopPolyhedraWideningTimer() {
     polyhedraWideningTimer.stop();
-  }
-
-  public PolicyIterationStatistics(Configuration config)
-      throws InvalidConfigurationException {
-    config.inject(this, PolicyIterationStatistics.class);
   }
 
   @Override

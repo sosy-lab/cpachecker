@@ -93,7 +93,6 @@ public final class Solver implements AutoCloseable {
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
   private final LogManager logger;
-  private final Configuration config;
 
   // stats
   public final Timer solverTime = new Timer();
@@ -112,7 +111,6 @@ public final class Solver implements AutoCloseable {
   public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
-    this.config = config;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     logger = pLogger;
