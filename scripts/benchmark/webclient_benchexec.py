@@ -150,13 +150,9 @@ def _submitRunsParallel(runSet, benchmark):
                                 format(submissonCounter, len(runSet.runs)))
 
 
-            except (urllib2.HTTPError, WebClientError) as e:
-                try:
-                    message = e.read() #not all HTTPErrors have a read() method
-                except AttributeError:
-                    message = ""
-                logging.warning('Could not submit run {0}: {1}. {2}'.\
-                    format(run.identifier, e, message))
+            except (urllib2.URLError, WebClientError) as e:
+                logging.warning('Could not submit run {0}: {1}.'.\
+                    format(run.identifier, e))
             finally:
                 submissonCounter += 1
     finally:
