@@ -201,6 +201,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
 
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatInt totalSuccessfulInvariantRefinements = new StatInt(StatKind.COUNT, "Number of successful invariant refinements");
   private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
@@ -216,6 +217,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       if (numberOfRefinements > 0) {
         w0.put(totalPathLength)
           .put(totalPrefixes)
+          .put(totalSuccessfulInvariantRefinements)
           .spacer()
           .put(totalRefinement);
 
@@ -337,6 +339,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
            || (useStrongInvariantsOnly && !wereInvariantsGenerated)
            || !useStrongInvariantsOnly)) {
       logger.log(Level.WARNING, "Repeated Countereample although generated invariants were strong enough to refute it.");
+    }
+
+    if (wereInvariantsGenerated && !repeatedCounterexample) {
+      totalSuccessfulInvariantRefinements.setNextValue(1);
     }
     lastErrorPath = errorPath;
 
