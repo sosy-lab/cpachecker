@@ -142,6 +142,10 @@ analysis.memorizeReachedAfterRestart = false
 # was performed.
 analysis.mpa.initOperatorClass = InitDefaultOperator.class
 
+# Operator for determining the partitions of properties that have to be
+# checked.
+analysis.mpa.partition.operator = DefaultOperator.class
+
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 analysis.mpa.partition.time.cpu = -1ns
@@ -149,10 +153,6 @@ analysis.mpa.partition.time.cpu = -1ns
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 analysis.mpa.partition.time.wall = -1ns
-
-# Operator for determining the partitions of properties that have to be
-# checked.
-analysis.mpa.partitionOperatorClass = PartitioningDefaultOperator.class
 
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
@@ -718,9 +718,12 @@ cpa.automaton.merge.onInactive = false
 # Merge two automata states if one of them is TOP.
 cpa.automaton.merge.onTop = false
 
-# Disable a property after the avg. time (msec) for refinements was
-# exhausted.
+# Disable a property after the avg. time for refinements was exhausted.
 cpa.automaton.prec.limit.avgRefineTime = -1ns
+
+# Disable a property after a specific time (total) for refinements was
+# exhausted.
+cpa.automaton.prec.limit.totalRefineTime = -1ns
 
 # Handle at most k (> 0) violation of one property.
 cpa.automaton.prec.limit.violations = 1
