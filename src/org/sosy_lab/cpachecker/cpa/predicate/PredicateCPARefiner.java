@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +51,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -119,6 +121,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.io.CharSink;
+import com.google.common.io.FileWriteMode;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -182,6 +186,16 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(secure=true, description="use only atoms from generated invariants"
                                  + "as predicates, and not the whole invariant")
   private boolean atomicInvariants = false;
+
+  @Option(secure=true, description="Should the automata used for invariant"
+                                 + " generation be dumped to files?")
+  private boolean dumpInvariantGenerationAutomata = false;
+
+  @Option(secure=true,
+      description="Where to dump the automata that are used to narrow the"
+                + " analysis used for invariant generation.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathCounterTemplate dumpInvariantGenerationAutomataFile = PathCounterTemplate.ofFormatString("invgen.%d.spc");
 
   private Map<Loop, Integer> loopOccurrences = new HashMap<>();
   private boolean wereInvariantsGenerated = false;
@@ -560,6 +574,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       try {
         StringBuilder spc = new StringBuilder();
         ARGUtils.producePathAutomatonWithLoops(spc, allStatesTrace.getFirstState(), allStatesTrace.getStateSet(), "invGen", pLoopsInPath);
+
+        if (dumpInvariantGenerationAutomata) {
+          Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
+          CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
+          file.openStream().append(spc).close();
+        }
 
         Scope scope = cfa.getLanguage() == Language.C  ? new CProgramScope(cfa, logger)
                                                        : DummyScope.getInstance();
