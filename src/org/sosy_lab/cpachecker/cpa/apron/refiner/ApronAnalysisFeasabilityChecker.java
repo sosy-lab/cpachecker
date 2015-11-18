@@ -131,21 +131,25 @@ public class ApronAnalysisFeasabilityChecker {
 
       PathIterator pathIt = checkedPath.pathIterator();
 
-      while (pathIt.hasNext()) {
+      while (!next.isEmpty()) {
         successors.clear();
-        for (ApronState st : next) {
-          successors.addAll(transfer.getAbstractSuccessorsForEdge(
-              st,
-              pPrecision,
-              pathIt.getOutgoingEdge()));
 
-          // computing the feasibility check takes sometimes much time with octagons
-          // so we let the shutdownNotifer cancel the computation if necessary
-          shutdownNotifier.shutdownIfNecessary();
+        // we do only have an outgoing edge if there is a next state in the iterator
+        if (pathIt.hasNext()) {
+          for (ApronState st : next) {
+            successors.addAll(transfer.getAbstractSuccessorsForEdge(
+                st,
+                pPrecision,
+                pathIt.getOutgoingEdge()));
+
+            // computing the feasibility check takes sometimes much time with octagons
+            // so we let the shutdownNotifer cancel the computation if necessary
+            shutdownNotifier.shutdownIfNecessary();
+          }
         }
 
         // no successors => path is infeasible
-        if (successors.isEmpty()) {
+        if (successors.isEmpty() || !pathIt.hasNext()) {
           break;
         }
 
