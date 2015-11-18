@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.solver.princess;
 
+import static com.google.common.base.Optional.fromNullable;
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.getOnlyElement;
+import static java.util.Collections.singleton;
+import static org.sosy_lab.solver.princess.PrincessUtil.getVarsAndUIFs;
+import static scala.collection.JavaConversions.asJavaIterable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,9 +36,11 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,7 +60,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.solver.TermType;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 
 import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
@@ -85,6 +92,8 @@ class PrincessEnvironment {
 
   /** The key of this map is the abbreviation, the value is the full expression.*/
   private final Map<IExpression, IExpression> abbrevCache = new LinkedHashMap<>();
+  /** This map is necessary because of the missing equals implementations on princess expressions */
+  private final Map<String, IExpression> stringToAbbrev = new HashMap<>();
   private final Map<String, IFunction> functionsCache = new HashMap<>();
   private final Map<IFunction, TermType> functionsReturnTypes = new HashMap<>();
 
@@ -222,14 +231,32 @@ class PrincessEnvironment {
       @Override
       public void appendTo(Appendable out) throws IOException {
         out.append("(reset)\n(set-logic AUFLIA)\n");
-        Set<IExpression> declaredFunctions = PrincessUtil.getVarsAndUIFs(Collections.singleton(lettedFormula));
+        Set<IExpression> allVars = getVarsAndUIFs(singleton(lettedFormula));
+        Deque<IExpression> declaredFunctions = new ArrayDeque<>(allVars);
+        Set<String> doneFunctions = new HashSet<>();
+        Set<String> todoAbbrevs = new HashSet<>();
 
-        for (IExpression var : declaredFunctions) {
+        while (!declaredFunctions.isEmpty()) {
+          IExpression var = declaredFunctions.poll();
           String name = getName(var);
+
+          // we don't want to declare variables twice, so doublecheck
+          // if we have already found the current variable
+          if(doneFunctions.contains(name)) {
+            continue;
+          }
+          doneFunctions.add(name);
 
           // we do only want to add declare-funs for things we really declared
           // the rest is done afterwards
-          if (!name.startsWith("abbrev_")) {
+          if (name.startsWith("abbrev_")) {
+            todoAbbrevs.add(name);
+            Set<IExpression> varsFromAbbrev = getVarsAndUIFs(singleton(abbrevCache.get(stringToAbbrev.get(name))));
+            for (IExpression addVar : Sets.difference(varsFromAbbrev, allVars)) {
+              declaredFunctions.push(addVar);
+            }
+            allVars.addAll(varsFromAbbrev);
+          } else {
             out.append("(declare-fun ")
                .append(name);
 
@@ -237,7 +264,7 @@ class PrincessEnvironment {
             out.append(" (");
             if (var instanceof IFunApp) {
               IFunApp function = (IFunApp) var;
-              Iterator<ITerm> args = JavaConversions.asJavaIterable(function.args()).iterator();
+              Iterator<ITerm> args = asJavaIterable(function.args()).iterator();
               while (args.hasNext()) {
                 args.next();
                 // Princess does only support IntegerFormulas in UIFs we don't need
@@ -270,21 +297,29 @@ class PrincessEnvironment {
 
           IExpression abbrev = entry.getKey();
           IExpression fullFormula = entry.getValue();
-          String name = getName(Iterables.getOnlyElement(PrincessUtil.getVarsAndUIFs(Collections.singleton(abbrev))));
+          String name = getName(getOnlyElement(getVarsAndUIFs(singleton(abbrev))));
+
+          //only add the necessary abbreviations
+          if(!todoAbbrevs.contains(name)) {
+            continue;
+          }
 
           out.append("(define-fun ")
              .append(name);
 
           // the type of each abbreviation + the renamed formula
-          out.append(" ((abbrev_arg Int)) Int (ite ");
+          out.append(" ((abbrev_arg Int)) Int ");
           if (fullFormula instanceof IFormula) {
+            out.append("(ite ");
             SMTLineariser.apply((IFormula)fullFormula);
-            out.append(stream.toString(charset));
+            out.append(stream.toString(charset))
+            .append(" 0 1))\n");
           } else if (fullFormula instanceof ITerm) {
             SMTLineariser.apply((ITerm)fullFormula);
-            out.append(stream.toString(charset));
+            out.append(stream.toString(charset))
+            .append(" )\n");
           }
-          out.append(" 0 1))\n");
+
         }
 
         // now add the final assert
@@ -426,12 +461,13 @@ class PrincessEnvironment {
       stack.addAbbrev(abbrev, expr);
     }
 
+    stringToAbbrev.put(getName(getOnlyElement(getVarsAndUIFs(singleton(abbrev)))), abbrev);
     abbrevCache.put(abbrev, expr);
     return abbrev;
   }
 
   public Optional<IExpression> fullVersionOfAbbrev(final IExpression expr) {
-    return Optional.fromNullable(abbrevCache.get(expr));
+    return fromNullable(abbrevCache.get(expr));
   }
 
   public String getVersion() {
