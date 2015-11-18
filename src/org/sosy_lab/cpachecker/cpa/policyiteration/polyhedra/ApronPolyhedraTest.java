@@ -49,8 +49,6 @@ public class ApronPolyhedraTest {
     logger = new BasicLogManager(config, h);
     PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 
-    PolicyIterationStatistics stats = new PolicyIterationStatistics();
-
     pwm = new PolyhedraWideningManager(stats, logger);
   }
 
