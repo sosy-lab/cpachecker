@@ -737,6 +737,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     } else {
       locationID = locationIDGenerator.getFreshId();
       logger.log(Level.FINE, "Generating new location ID", locationID);
+      statistics.latestLocationID = locationID;
     }
 
     final PathFormula p = state.getPathFormula();

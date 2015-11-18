@@ -8,6 +8,7 @@ import java.util.logging.StreamHandler;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -15,6 +16,7 @@ import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -45,6 +47,7 @@ public class ApronPolyhedraTest {
     Handler h = new StreamHandler(System.out, new SimpleFormatter());
     Configuration config = TestDataTools.configurationForTest().build();
     logger = new BasicLogManager(config, h);
+    PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 
     PolicyIterationStatistics stats = new PolicyIterationStatistics();
 
