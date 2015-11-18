@@ -75,18 +75,13 @@ enum GraphBuilder {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
-
-        // Location of the state
-        CFANode loc = AbstractStates.extractLocation(s);
-
         String sourceStateNodeId = getId(s);
 
         // Process child states
         for (ARGState child : argEdges.getSecond()) {
 
           String childStateId = getId(child);
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
+          CFAEdge edgeToNextState = s.getEdgeToChild(child);
           String prevStateId = sourceStateNodeId;
 
           if (edgeToNextState instanceof MultiEdge) {

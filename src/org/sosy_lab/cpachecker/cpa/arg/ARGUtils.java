@@ -839,7 +839,6 @@ public class ARGUtils {
 
     for (ARGState s : Ordering.natural().immutableSortedCopy(pPathStates)) {
 
-      CFANode loc = AbstractStates.extractLocation(s);
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
 
       for (ARGState child : s.getChildren()) {
@@ -849,8 +848,7 @@ public class ARGUtils {
         }
 
         if (pPathStates.contains(child)) {
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edge = loc.getEdgeTo(childLoc);
+          CFAEdge edge = s.getEdgeToChild(child);
           if (edge instanceof MultiEdge) {
             // The successor state might have several incoming MultiEdges.
             // In this case the state names like ARG<successor>_0 would occur
@@ -976,8 +974,7 @@ public class ARGUtils {
             }
 
             if (pPathStates.contains(child)) {
-              CFANode childLoc = AbstractStates.extractLocation(child);
-              CFAEdge edge = loc.getEdgeTo(childLoc);
+              CFAEdge edge = s.getEdgeToChild(child);
               if (edge instanceof MultiEdge) {
                 // The successor state might have several incoming MultiEdges.
                 // In this case the state names like ARG<successor>_0 would occur
