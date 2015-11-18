@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
@@ -147,11 +146,9 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    MutableARGPath errorPath = pErrorPath.mutableCopy();
-
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(pErrorPath)) {
-      if (performValueAnalysisRefinement(reached, errorPath)) {
+      if (performValueAnalysisRefinement(reached, pErrorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
@@ -167,14 +164,14 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     int currentErrorPathId = errorPath.toString().hashCode();
 
     // same error path as in last iteration -> no progress
     if (currentErrorPathId == previousErrorPathId) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath.immutableCopy());
+      throw new RefinementFailedException(Reason.RepeatedCounterexample, errorPath);
     }
 
     previousErrorPathId = currentErrorPathId;
