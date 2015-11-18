@@ -325,7 +325,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         // in the wait list
         removeMissingStatesFromARG(reachedSet);
 
-        assert from(reachedSet).filter(IS_TARGET_STATE).isEmpty() : "Target states remaining";
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       throw e;
