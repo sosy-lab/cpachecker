@@ -347,7 +347,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
         AutomatonSafetyProperty violatedProperty = null;
         if (t.getFollowState().isTarget()) {
-          violatedProperty = new AutomatonSafetyProperty(pState.getOwningAutomaton(), t);
+          final String desc = t.getViolatedPropertyDescription(exprArgs);
+          violatedProperty = new AutomatonSafetyProperty(pState.getOwningAutomaton(), t, desc);
         }
 
         // The assumptions might reference to the current automata variables!
