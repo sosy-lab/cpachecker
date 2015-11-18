@@ -34,6 +34,7 @@ import hashlib
 import io
 import logging
 import os
+import platform
 import random
 import tempfile
 import threading
@@ -90,7 +91,7 @@ class WebInterface:
     """
 
     def __init__(self, web_interface_url, user_pwd, svn_branch='trunk', svn_revision='HEAD',
-                 thread_count=1, result_poll_interval=2):
+                 thread_count=1, result_poll_interval=2, user_agent=None, version=None):
         """
         Creates a new WebInterface object.
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
@@ -107,6 +108,11 @@ class WebInterface:
             sys.exit("Poll interval {} is too small, needs to be at least 1s.".format(result_poll_interval))
         if not web_interface_url[-1] == '/':
             web_interface_url += '/'
+
+        self.default_headers = {'Connection': 'Keep-Alive'}
+        if user_agent:
+            self.default_headers['User-Agent'] = \
+                '{}/{} (Python/{} {}/{})'.format(user_agent, version, platform.python_version(), platform.system(), platform.release())
 
         self._webclient = urllib.urlparse(web_interface_url)
         logging.info('Using VerifierCloud at {0}'.format(web_interface_url))
@@ -511,13 +517,15 @@ class WebInterface:
     def _request(self, method, path, body={}, headers={}, expectedStatusCodes=[200], user_pwd=None):
         connection = self._get_connection()
 
-        headers["Connection"] = "Keep-Alive"
-
         if user_pwd:
             base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
             headers["Authorization"] = "Basic " + base64_user_pwd
         elif self._base64_user_pwd:
             headers["Authorization"] = "Basic " + self._base64_user_pwd
+
+        for k, v in self.default_headers.items():
+            if k not in headers:
+                headers[k] = v
 
         counter = 0
         while (counter < 5):

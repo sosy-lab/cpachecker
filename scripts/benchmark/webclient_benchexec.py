@@ -37,6 +37,7 @@ import urllib.request as urllib2
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
+import benchexec
 from .webclient import *  # @UnusedWildImport
 
 """
@@ -69,7 +70,8 @@ def init(config, benchmark):
         svn_revision = 'HEAD'
 
     _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision,
-                              config.cloud_threads, config.cloud_poll_interval)
+                              config.cloud_threads, config.cloud_poll_interval,
+                              user_agent='BenchExec', version=benchexec.__version__)
 
     benchmark.tool_version = _webclient.tool_revision()
     logging.info('Using CPAchecker version {0}.'.format(benchmark.tool_version))

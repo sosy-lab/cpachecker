@@ -36,6 +36,7 @@ import urllib.request as request
 
 from benchmark.webclient import *  # @UnusedWildImport
 
+__version__ = '1.0'
 
 DEFAULT_OUTPUT_PATH = "./"
 
@@ -112,6 +113,9 @@ def _create_argument_parser():
                       metavar="N",
                       help="Limit the tool to N CPU cores.")
 
+    parser.add_argument("--version",
+                        action="version",
+                        version="%(prog)s " + __version__)
     return parser
 
 def _setup_logging(config):
@@ -138,7 +142,8 @@ def _init(config):
 
     (svn_branch, svn_revision) = _get_revision(config)
 
-    webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision)
+    webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision,
+                             user_agent='cpa_web_cloud.py', version=__version__)
 
     logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
     return webclient
