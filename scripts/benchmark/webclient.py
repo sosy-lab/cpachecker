@@ -427,7 +427,9 @@ class WebInterface:
                 for run_id in self._unfinished_runs.keys():
                     if self._unfinished_runs[run_id].cancelled():
                         self.state_request_executor.submit(self._stop_run, run_id)
-                    else:
+                    
+                    # request state of runs not yet finished
+                    elif run_id not in downloading_result_futures.values():
                         state_future = state_request_executor.submit(self._is_finished, run_id)
                         states[state_future] = run_id
 
