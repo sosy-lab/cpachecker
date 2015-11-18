@@ -84,6 +84,18 @@ class WebClientError(Exception):
         self.value = value
     def _str_(self):
         return repr(self.value)
+    
+class AutoCloseHTTPConnection(HTTPConnection):
+    
+    def __del__(self):
+        self.close()
+        logging.debug("Closed connection")
+        
+class AutoCloseHTTPSConnection(HTTPSConnection):
+    
+    def __del__(self):
+        self.close()
+        logging.debug("Closed connection")
 
 class WebInterface:
     """
@@ -136,7 +148,7 @@ class WebInterface:
         self._executor = ThreadPoolExecutor(self.thread_count)
         self._state_poll_thread = threading.Thread(target=self._get_results, name='web_interface_state_poll_thread')
         self._state_poll_thread.start()
-
+        
     def _read_hash_code_cache(self):
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
             return
@@ -565,9 +577,9 @@ class WebInterface:
 
         if connection is None:
             if self._webclient.scheme == 'http':
-                self._thread_local.connection = HTTPConnection(self._webclient.netloc, timeout=CONNECTION_TIMEOUT)
+                self._thread_local.connection = AutoCloseHTTPConnection(self._webclient.netloc, timeout=CONNECTION_TIMEOUT)
             elif self._webclient.scheme == 'https':
-                self._thread_local.connection = HTTPSConnection(self._webclient.netloc, timeout=CONNECTION_TIMEOUT)
+                self._thread_local.connection = AutoCloseHTTPSConnection(self._webclient.netloc, timeout=CONNECTION_TIMEOUT)
             else:
                 raise WebClientError("Unknown protocol {0}.".format(self._webclient.scheme))
 
