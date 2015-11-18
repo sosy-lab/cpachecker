@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -195,7 +195,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     // if the path is infeasible, try to refine the precision, this time
     // only with octagons, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(errorPath);
+    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(pErrorPath);
 
     if (!octChecker.isFeasible()) {
       if (performOctagonAnalysisRefinement(reached, octChecker)) {
@@ -340,7 +340,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(MutableARGPath path) throws CPAException, InterruptedException {
+  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasabilityChecker checker;
 
