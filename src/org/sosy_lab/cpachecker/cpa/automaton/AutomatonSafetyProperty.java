@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import com.google.common.base.Preconditions;
@@ -30,12 +32,20 @@ import com.google.common.base.Preconditions;
 
 public class AutomatonSafetyProperty implements Property {
 
-  private final Automaton automaton;
-  private final AutomatonTransition automatonTrans;
+  @Nonnull private final Automaton automaton;
+  @Nonnull private final AutomatonTransition automatonTrans;
+  @Nonnull private final String propertyInstanceDescription;
+
+  public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition, String pDesc) {
+    this.automaton = Preconditions.checkNotNull(pAutomaton);
+    this.automatonTrans = Preconditions.checkNotNull(pTransition);
+    this.propertyInstanceDescription = Preconditions.checkNotNull(pDesc);
+  }
 
   public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition) {
     this.automaton = Preconditions.checkNotNull(pAutomaton);
     this.automatonTrans = Preconditions.checkNotNull(pTransition);
+    this.propertyInstanceDescription = "";
   }
 
   public AutomatonTransition getAutomatonTransition() {
@@ -44,8 +54,9 @@ public class AutomatonSafetyProperty implements Property {
 
   @Override
   public String toString() {
-    // We assume here that one property is encoded in one automaton.
-    return automaton.getName();
+    return propertyInstanceDescription.length() > 0
+        ? propertyInstanceDescription
+        : automaton.getName();
   }
 
   @Override
@@ -54,6 +65,7 @@ public class AutomatonSafetyProperty implements Property {
     int result = 1;
     result = prime * result + automaton.hashCode();
     result = prime * result + automatonTrans.hashCode();
+    result = prime * result + propertyInstanceDescription.hashCode();
     return result;
   }
 
@@ -75,6 +87,10 @@ public class AutomatonSafetyProperty implements Property {
     }
 
     if (!automaton.equals(other.automaton)) {
+      return false;
+    }
+
+    if (!propertyInstanceDescription.equals(other.propertyInstanceDescription)) {
       return false;
     }
 
