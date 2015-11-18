@@ -767,9 +767,7 @@ public class ARGUtils {
             // remainder is written by code below
           }
 
-          sb.append("    MATCH \"");
-          escape(edge.getRawStatement(), sb);
-          sb.append("\" -> ");
+          handleMatchCase(sb, edge);
 
           if (child.isTarget()) {
             sb.append("ERROR");
@@ -789,9 +787,7 @@ public class ARGUtils {
 
     CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
     if (lastEdge != null) {
-      sb.append("    MATCH \"");
-      escape(lastEdge.getRawStatement(), sb);
-      sb.append("\" -> ");
+      handleMatchCase(sb, lastEdge);
       sb.append("GOTO EndLoop");
       sb.append(";\n");
       sb.append("    TRUE -> STOP;\n\n");
@@ -890,9 +886,7 @@ public class ARGUtils {
             // remainder is written by code below
           }
 
-          sb.append("    MATCH \"");
-          escape(edge.getRawStatement(), sb);
-          sb.append("\" -> ");
+          handleMatchCase(sb, edge);
 
           if (child.isTarget()) {
             sb.append("ERROR");
@@ -1019,9 +1013,7 @@ public class ARGUtils {
                 // remainder is written by code below
               }
 
-              sb.append("    MATCH \"");
-              escape(edge.getRawStatement(), sb);
-              sb.append("\" -> ");
+              handleMatchCase(sb, edge);
 
               if (child.isTarget()) {
                 sb.append("ERROR");
@@ -1071,108 +1063,131 @@ public class ARGUtils {
           .append(" :\n");
         isFirstLoopIteration = false;
       } else {
-        sb.append("STATE USEFIRST NODE")
-          .append(Integer.toString(curNode.getNodeNumber()))
-          .append(" :\n");
+        handleUseFirstNode(sb, curNode, false);
       }
 
       for(CFAEdge edge : leavingEdges(curNode)) {
+        CFANode edgeSuccessor = edge.getSuccessor();
+
         // make path out of multiedges
         if (edge instanceof MultiEdge) {
           for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-            sb.append("    MATCH \"");
-            escape(innerEdge.getRawStatement(), sb);
-            sb.append("\" -> GOTO NODE")
-              .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
-              .append(";\n");
+            CFANode innerSuccessor = innerEdge.getSuccessor();
+
+            handleMatchCase(sb, innerEdge);
+            handlePossibleOutOfLoopSuccessor(sb, intoLoopState, loopHead, innerSuccessor);
+
             // only inner edges should be handled here
-            if (innerEdge.getSuccessor() != edge.getSuccessor()) {
-              sb.append("STATE USEFIRST NODE")
-                .append(Integer.toString(innerEdge.getSuccessor().getNodeNumber()))
-                .append(" :\n");
+            if (innerSuccessor != edgeSuccessor) {
+              handleUseFirstNode(sb, innerSuccessor, false);
             }
           }
-          nodesToHandle.offer(edge.getSuccessor());
+          nodesToHandle.offer(edgeSuccessor);
 
         // skip function calls
         } else  if (edge instanceof FunctionCallEdge) {
           FunctionSummaryEdge sumEdge = ((FunctionCallEdge) edge).getSummaryEdge();
+          CFANode sumEdgeSuccessor = sumEdge.getSuccessor();
 
           // only continue if we do not meet the loophead again
-          if (sumEdge.getSuccessor() != loopHead) {
-            nodesToHandle.offer(sumEdge.getSuccessor());
+          if (sumEdgeSuccessor != loopHead) {
+            nodesToHandle.offer(sumEdgeSuccessor);
           }
 
-          sb.append("    TRUE -> GOTO NODE")
-            .append(Integer.toString(curNode.getNodeNumber()))
-            .append("_FUNCTIONSINK;\n\n");
+          sb.append("    TRUE -> ");
+          handleGotoNode(sb, curNode, true);
 
-          sb.append("STATE USEFIRST NODE")
-            .append(Integer.toString(curNode.getNodeNumber()))
-            .append("_FUNCTIONSINK :\n");
+          handleUseFirstNode(sb, curNode, true);
 
           sb.append("    ( CHECK(location, \"functionname==")
             .append(sumEdge.getPredecessor().getFunctionName())
-            .append("\")) -> GOTO ");
+            .append("\")) -> ");
 
-          // depending on successor add the transition for going out of the method
-          if (sumEdge.getSuccessor() == loopHead) {
-            sb.append("ARG")
-              .append(Integer.toString(intoLoopState.getStateId()))
-              .append(";\n");
-          } else {
-            sb.append("NODE")
-              .append(Integer.toString(sumEdge.getSuccessor().getNodeNumber()))
-              .append(";\n");
-          }
+          handlePossibleOutOfLoopSuccessor(sb, intoLoopState, loopHead, sumEdgeSuccessor);
 
-          sb.append("    TRUE -> GOTO NODE")
-            .append(Integer.toString(curNode.getNodeNumber()))
-            .append("_FUNCTIONSINK;\n");
+          sb.append("    TRUE -> ");
+          handleGotoNode(sb, curNode, true);
 
         // all other edges can be handled together
         } else {
           boolean stillInLoop = false;
           for (Loop loop : loopsToUproll) {
-            if (loop.getLoopNodes().contains(edge.getSuccessor())) {
+            if (loop.getLoopNodes().contains(edgeSuccessor)) {
               stillInLoop = true;
               break;
             }
           }
 
-          sb.append("    MATCH \"");
-          escape(edge.getRawStatement(), sb);
-          sb.append("\" -> ");
+          handleMatchCase(sb, edge);
 
           // we are still in the loop, so we do not need to handle special cases
-          if (stillInLoop && edge.getSuccessor() != loopHead) {
-            sb.append("GOTO NODE")
-              .append(Integer.toString(edge.getSuccessor().getNodeNumber()))
-              .append(";\n");
+          if (stillInLoop && edgeSuccessor != loopHead) {
+            handleGotoNode(sb, edgeSuccessor, false);
 
-            nodesToHandle.offer(edge.getSuccessor());
+            nodesToHandle.offer(edgeSuccessor);
 
             // we are in the loop but reaching the head again
           } else if (stillInLoop) {
-            sb.append("GOTO ARG")
-            .append(Integer.toString(intoLoopState.getStateId()))
-            .append(";\n");
+            handleGotoArg(sb, intoLoopState);
 
           // out of loop edge, check if it is the same edge as in the ARGPath
           // if not we need a sink with STOP
           } else if (outOfLoopState == null
-                     || !AbstractStates.extractLocation(outOfLoopState).equals(edge.getSuccessor())) {
+                     || !AbstractStates.extractLocation(outOfLoopState).equals(edgeSuccessor)) {
             sb.append("STOP;\n");
 
           // here we go out of the loop back to the arg path
           } else {
-            sb.append("GOTO ARG")
-              .append(Integer.toString(outOfLoopState.getStateId()))
-              .append(";\n");
+            handleGotoArg(sb, outOfLoopState);
           }
         }
       }
       sb.append("    TRUE -> STOP;\n\n");
+    }
+  }
+
+  private static void handleMatchCase(Appendable sb, CFAEdge edge) throws IOException {
+    sb.append("    MATCH \"");
+    escape(edge.getRawStatement(), sb);
+    sb.append("\" -> ");
+  }
+
+  private static void handleUseFirstNode(Appendable sb, CFANode node, boolean isFunctionSink) throws IOException {
+    sb.append("STATE USEFIRST NODE")
+      .append(Integer.toString(node.getNodeNumber()));
+
+    if (isFunctionSink) {
+      sb.append("_FUNCTIONSINK");
+    }
+
+    sb.append(" :\n");
+  }
+
+  private static void handleGotoArg(Appendable sb, ARGState state) throws IOException {
+    sb.append("GOTO ARG")
+      .append(Integer.toString(state.getStateId()))
+      .append(";\n");
+  }
+
+  private static void handleGotoNode(Appendable sb, CFANode node, boolean isFunctionSink) throws IOException {
+    sb.append("GOTO NODE")
+      .append(Integer.toString(node.getNodeNumber()));
+
+    if (isFunctionSink) {
+      sb.append("_FUNCTIONSINK");
+    }
+
+    sb.append(";\n");
+  }
+
+  private static void handlePossibleOutOfLoopSuccessor(Appendable sb, ARGState intoLoopState,
+                                                       CFANode loopHead, CFANode successor) throws IOException {
+
+    // depending on successor add the transition for going out of the loop
+    if (successor == loopHead) {
+      handleGotoArg(sb, intoLoopState);
+    } else {
+      handleGotoNode(sb, successor, false);
     }
   }
 
