@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -200,7 +200,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     // refinement
     ApronAnalysisFeasabilityChecker apronChecker;
     try {
-      apronChecker = createApronFeasibilityChecker(errorPath);
+      apronChecker = createApronFeasibilityChecker(pErrorPath);
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
@@ -350,7 +350,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    * @throws ApronException
    */
-  private ApronAnalysisFeasabilityChecker createApronFeasibilityChecker(MutableARGPath path) throws CPAException, ApronException {
+  private ApronAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
     try {
       ApronAnalysisFeasabilityChecker checker;
 
