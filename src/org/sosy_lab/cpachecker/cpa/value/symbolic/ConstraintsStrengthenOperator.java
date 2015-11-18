@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -189,11 +190,8 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
   private boolean couldNextEdgeUseValues(CFAEdge pEdge) {
     final CFANode nextNode = pEdge.getSuccessor();
-    final int nextEdgeAmount = nextNode.getNumLeavingEdges();
 
-    for (int i = 0; i < nextEdgeAmount; i++) {
-      CFAEdge currEdge = nextNode.getLeavingEdge(i);
-
+    for (CFAEdge currEdge : CFAUtils.leavingEdges(nextNode)) {
       if (usesValues(currEdge)) {
         return true;
       }
