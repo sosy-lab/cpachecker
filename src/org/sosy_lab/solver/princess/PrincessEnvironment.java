@@ -30,12 +30,9 @@ import static java.util.Collections.singleton;
 import static org.sosy_lab.solver.princess.PrincessUtil.getVarsAndUIFs;
 import static scala.collection.JavaConversions.asJavaIterable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -75,7 +72,6 @@ import ap.parser.IIntLit;
 import ap.parser.ITerm;
 import ap.parser.ITermITE;
 import ap.parser.SMTLineariser;
-import scala.Console;
 import scala.collection.JavaConversions;
 import scala.collection.mutable.ArrayBuffer;
 
@@ -283,18 +279,9 @@ class PrincessEnvironment {
           }
         }
 
-        // save old console out for later reset
-        PrintStream oldOut = Console.out();
-        // charset for encoding and decoding ByteArrayOutputStream (needs to be the same)
-        final String charset = StandardCharsets.UTF_8.name();
-
         // now as everything we know from the formula is declared we have to add
         // the abbreviations, too
         for (Entry<IExpression, IExpression> entry : abbrevCache.entrySet()) {
-          // create new console out printstream to redirect the output of princess
-          ByteArrayOutputStream stream = new ByteArrayOutputStream();
-          Console.setOut(new PrintStream(stream, true, charset));
-
           IExpression abbrev = entry.getKey();
           IExpression fullFormula = entry.getValue();
           String name = getName(getOnlyElement(getVarsAndUIFs(singleton(abbrev))));
@@ -310,28 +297,20 @@ class PrincessEnvironment {
           // the type of each abbreviation + the renamed formula
           out.append(" ((abbrev_arg Int)) Int ");
           if (fullFormula instanceof IFormula) {
-            out.append("(ite ");
-            SMTLineariser.apply((IFormula)fullFormula);
-            out.append(stream.toString(charset))
-            .append(" 0 1))\n");
+            out.append("(ite ")
+               .append(SMTLineariser.asString(fullFormula))
+               .append(" 0 1))\n");
           } else if (fullFormula instanceof ITerm) {
-            SMTLineariser.apply((ITerm)fullFormula);
-            out.append(stream.toString(charset))
-            .append(" )\n");
+            out.append(SMTLineariser.asString(fullFormula))
+               .append(" )\n");
           }
 
         }
 
         // now add the final assert
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        Console.setOut(new PrintStream(stream, true, charset));
-        SMTLineariser.apply((IFormula)lettedFormula);
-        out.append("(assert ");
-        out.append(stream.toString(charset));
-        out.append(")");
-
-        // reset console to usual value
-        Console.setOut(oldOut);
+        out.append("(assert ")
+           .append(SMTLineariser.asString(lettedFormula))
+           .append(")");
       }
     };
   }
