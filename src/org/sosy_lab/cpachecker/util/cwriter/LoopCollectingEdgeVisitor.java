@@ -62,15 +62,10 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
   @Option(toUppercase=true,
         description="Option to change the behaviour of the loop detection for"
             + " generating the Counterexample-C-Code that will probably be used to generate"
-            + " invariants. All loops will probably make no sense, as this will most"
-            + " likely be a huge part of the program and we do only want to create"
-            + " invariants for as small parts as possible. Also due to the incremental"
-            + " finding of counterexamples former loops may have been handled before."
-            + " Thus only recreating the last loop is the default. Note that last loop"
-            + " means the first loop encountered when backwards traversing the given"
-            + " ARGPath, thus, the last loop may contain other loops, which are in turn"
-            + " also counted to the last loop.", secure=true)
-  private LoopDetectionStrategy loopDetectionStrategy = LoopDetectionStrategy.ONLY_LAST_LOOP;
+            + " invariants. Note that last loop means the first loop encountered when"
+            + " backwards traversing the given ARGPath, thus, the last loop may contain"
+            + " other loops, which are in turn also counted to the last loop.", secure=true)
+  private LoopDetectionStrategy loopDetectionStrategy = LoopDetectionStrategy.ALL_LOOPS;
 
   private final LoopStructure loopStructure;
   private final List<Pair<CFAEdge, ARGState>> cfaPath = new ArrayList<>();
