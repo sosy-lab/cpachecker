@@ -369,6 +369,19 @@ public class ARGPath implements Appender {
       checkState(hasNext(), "Last state in ARGPath has no outgoing edge.");
       return path.edges.get(pos);
     }
+
+    /**
+     * Get the prefix of the current ARGPath from the first state to the current
+     * state (inclusive) returned by this iterator.
+     * The prefix will always be forwards directed, thus the {@link ReversePathIterator}
+     * does also return the sequence from the first state of the ARGPath up (inclusive)
+     * the current position of the iterator.
+     *
+     * @return A non-null {@link ARGPath}
+     */
+    public ARGPath getPrefix() {
+      return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos+1));
+    }
   }
 
   public static final class PathPosition {
