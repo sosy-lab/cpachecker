@@ -1008,8 +1008,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         LoopstackState.class);
 
     CFANode node = iState.getNode();
-    if ((node.isLoopStart() ||
-        cfa.getAllLoopHeads().get().contains(node))
+    if (
+        (cfa.getAllLoopHeads().get().contains(node))
 
         // If loopstackState is available,
         // do not compute abstractions at partial unrollings.
