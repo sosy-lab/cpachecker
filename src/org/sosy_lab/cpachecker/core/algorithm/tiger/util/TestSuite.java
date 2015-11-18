@@ -324,4 +324,8 @@ public class TestSuite {
     return true;
   }
 
+  public boolean isGoalCoveredOrInfeasible(Goal pGoal) {
+    return isGoalCovered(pGoal) || isGoalInfeasible(pGoal);
+  }
+
 }
