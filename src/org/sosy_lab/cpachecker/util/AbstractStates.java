@@ -36,10 +36,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -267,5 +268,14 @@ public final class AbstractStates {
     }
 
     return result;
+  }
+
+  public static boolean containsTargetState(ReachedSet pReachedSet) {
+    for (AbstractState abstractState : pReachedSet) {
+      if (AbstractStates.isTargetState(abstractState)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
