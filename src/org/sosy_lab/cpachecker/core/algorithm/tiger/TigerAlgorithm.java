@@ -805,6 +805,7 @@ public class TigerAlgorithm
       if (algorithmStatus == ReachabilityAnalysisResult.TIMEDOUT) {
         logger.logf(Level.INFO, "Test goal timed out!");
 
+        // TODO: Handle Timeout
         testsuite.addTimedOutGoals(pTestGoalsToBeProcessed, pRemainingPresenceCondition);
       } else {
         // TODO: enable tiger techniques for multi-goal generation in one run
@@ -812,7 +813,11 @@ public class TigerAlgorithm
 
         // TODO Andreas: exclude covered and infeasible test goals from further exploration
         if (useTigerAlgorithm_with_pc) {
-
+          Region remainingPC =
+              BDDUtils.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, bddCpaNamedRegionManager);
+          restrictBdd(remainingPC);
+          // TODO Andreas: exclude goals in combination with the corresponding presence condition from further exploration
+          // In a first step just remove the goals from further exploration
         } else {
           for (Goal goal : pTestGoalsToBeProcessed) {
             if (testsuite.isGoalCoveredOrInfeasible(goal)) {
@@ -830,6 +835,22 @@ public class TigerAlgorithm
     }
 
     return algorithmStatus;
+  }
+
+  private void restrictBdd(Region pRemainingPresenceCondition) {
+    // inject goal Presence Condition in BDDCPA
+    BDDCPA bddcpa = null;
+    if (cpa instanceof WrapperCPA) {
+      // must be non-null, otherwise Exception in constructor of this class
+      bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
+    } else if (cpa instanceof BDDCPA) {
+      bddcpa = (BDDCPA) cpa;
+    }
+    if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
+      ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
+      logger.logf(Level.INFO, "Restrict BDD to %s.",
+          bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
+    }
   }
 
   private Algorithm initializeAlgorithm(Region pRemainingPresenceCondition, ARGCPA lARTCPA,
@@ -872,19 +893,7 @@ public class TigerAlgorithm
       }
 
       if (useTigerAlgorithm_with_pc) {
-        // inject goal Presence Condition in BDDCPA
-        BDDCPA bddcpa = null;
-        if (cpa instanceof WrapperCPA) {
-          // must be non-null, otherwise Exception in constructor of this class
-          bddcpa = ((WrapperCPA) cpa).retrieveWrappedCpa(BDDCPA.class);
-        } else if (cpa instanceof BDDCPA) {
-          bddcpa = (BDDCPA) cpa;
-        }
-        if (bddcpa.getTransferRelation() instanceof BDDTransferRelation) {
-          ((BDDTransferRelation) bddcpa.getTransferRelation()).setGlobalConstraint(pRemainingPresenceCondition);
-          logger.logf(Level.INFO, "Restrict BDD to %s.",
-              bddCpaNamedRegionManager.dumpRegion(pRemainingPresenceCondition));
-        }
+        restrictBdd(pRemainingPresenceCondition);
       }
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
