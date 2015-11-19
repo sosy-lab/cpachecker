@@ -44,7 +44,7 @@ public class ARGPathTest {
 
   @Before
   public void setup() {
-    edge = BlankEdge.buildNoopEdge(new CFANode(""), new CFANode(""));
+    edge = BlankEdge.buildNoopEdge(new CFANode("test"), new CFANode("test"));
     state = new ARGState(null, null);
   }
 
@@ -61,7 +61,7 @@ public class ARGPathTest {
     ARGPathBuilder builder = ARGPath.builder();
     builder.add(state, edge);
 
-    CFAEdge secondEdge = BlankEdge.buildNoopEdge(new CFANode(""), new CFANode(""));
+    CFAEdge secondEdge = BlankEdge.buildNoopEdge(new CFANode("test"), new CFANode("test"));
     ARGState secondState = new ARGState(null, null);
     builder.add(secondState, secondEdge);
 
