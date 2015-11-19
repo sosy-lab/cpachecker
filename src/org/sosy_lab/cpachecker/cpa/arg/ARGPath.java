@@ -198,6 +198,22 @@ public class ARGPath implements Appender {
     return new ReversePathIterator(this);
   }
 
+  /**
+   * A forward directed {@link ARGPathBuilder} with no initial states and edges
+   * added. (States and edges are always appended to the end of the current path)
+   */
+  public static ARGPathBuilder builder() {
+    return new DefaultARGPathBuilder();
+  }
+
+  /**
+   * A backward directed {@link ARGPathBuilder} with no initial states and edges
+   * added. (States and edges are always appended to the beginning of the current path)
+   */
+  public static ARGPathBuilder reverseBuilder() {
+    return new ReverseARGPathBuilder();
+  }
+
   public int size() {
     return states.size();
   }
@@ -263,6 +279,114 @@ public class ARGPath implements Appender {
       path.add(elem);
     }
     JSON.writeJSONString(path, sb);
+  }
+
+  /**
+   * A class for creating {@link ARGPath}s by iteratively adding path elements
+   * one after another. ARGPaths can be built either from the beginning to the
+   * endpoint or in reverse.
+   * The builder can still be used after calling {@link #build(ARGState, CFAEdge)}.
+   * Please note that the state and edge given to the build method will not be
+   * added permanently to the builder. If they should be in the builder afterwards
+   * you need to use  {@link #add(ARGState, CFAEdge)}.
+   *
+   * In the future we want to remove the edge given to the build method. An
+   * outgoing edge of the last state of a path does not make sense.
+   */
+  public static abstract class ARGPathBuilder {
+    List<ARGState> states = new ArrayList<>();
+    List<CFAEdge> edges = new ArrayList<>();
+
+    private ARGPathBuilder() {}
+
+    /**
+     * Returns the amount of states which are currently added to this builder.
+     */
+    public int size() {
+      return states.size();
+    }
+
+    /**
+     * Add the given state and edge to the ARGPath that should be created.
+     */
+    public abstract ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge);
+
+    /**
+     * Remove the state and edge that were added at last.
+     */
+    public abstract ARGPathBuilder removeLast();
+
+    /**
+     * Build the ARGPath.
+     *
+     * In the future we want to remove the edge given to the build method. An
+     * outgoing edge of the last state of a path does not make sense.
+     */
+    public abstract ARGPath build(ARGState state, CFAEdge lastEdge);
+  }
+
+  /**
+   * The implementation of the ARGPathBuilder that adds new states and edges
+   * at the end of the Path.
+   */
+  private static class DefaultARGPathBuilder extends ARGPathBuilder {
+
+    @Override
+    public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
+      states.add(state);
+      edges.add(outgoingEdge);
+      return this;
+    }
+
+    @Override
+    public ARGPathBuilder removeLast() {
+      assert !states.isEmpty() && !edges.isEmpty();
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
+      return this;
+    }
+
+    @Override
+    public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
+      states.add(pState);
+      edges.add(pLastEdge);
+      ARGPath path = new ARGPath(states, edges);
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
+      return path;
+    }
+  }
+
+  /**
+   * The implementation of the ARGPathBuilder that adds new states and edges
+   * at the beginning of the Path.
+   */
+  private static class ReverseARGPathBuilder extends ARGPathBuilder {
+
+    @Override
+    public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
+      states.add(0, state);
+      edges.add(0, outgoingEdge);
+      return this;
+    }
+
+    @Override
+    public ARGPathBuilder removeLast() {
+      assert !states.isEmpty() && !edges.isEmpty();
+      states.remove(0);
+      edges.remove(0);
+      return this;
+    }
+
+    @Override
+    public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
+      states.add(0, pState);
+      edges.add(0, pLastEdge);
+      ARGPath path = new ARGPath(states, edges);
+      states.remove(0);
+      edges.remove(0);
+      return path;
+    }
   }
 
   /**
