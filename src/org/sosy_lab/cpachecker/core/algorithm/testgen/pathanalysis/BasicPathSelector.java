@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -85,7 +84,6 @@ public class BasicPathSelector implements PathSelector {
       pathInfo.increaseNodeCount();
       ARGState currentState = descendingPathIterator.getAbstractState();
       CFAEdge currentOutgoingEdge = descendingPathIterator.getOutgoingEdge();
-      Pair<ARGState, CFAEdge> currentPair = Pair.of(currentState, currentOutgoingEdge);
 
       //handle last node of the given path. (should never be a decision node, so we skip it)
       if (currentOutgoingEdge == null) {
@@ -97,7 +95,7 @@ public class BasicPathSelector implements PathSelector {
       CFANode node = currentOutgoingEdge.getPredecessor();
       //num of leaving edges does not include a summary edge, so the check is valid.
       if (node.getNumLeavingEdges() != 2) {
-        pathValidator.handleSinglePathElement(currentPair);
+        pathValidator.handleSinglePathElement(currentState);
         lastState = currentState;
         continue;
       }
@@ -116,10 +114,10 @@ public class BasicPathSelector implements PathSelector {
       /*
        * (DART: the j = pathLength-1 case)
        */
-      if (pathValidator.isVisitedBranching(descendingPathIterator.getPrefixExclusive().mutableCopy(), currentPair, node, otherEdge.get())) {
+      if (pathValidator.isVisitedBranching(descendingPathIterator.getPrefixExclusive(), currentState, node, otherEdge.get())) {
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
         lastState = currentState;
-        pathValidator.handleVisitedBranching(descendingPathIterator.getPrefixExclusive().mutableCopy(), currentPair);
+        pathValidator.handleVisitedBranching(descendingPathIterator.getPrefixExclusive(), currentState);
         continue;
       }
 
@@ -149,7 +147,7 @@ public class BasicPathSelector implements PathSelector {
        * evaluate path candidate symbolically using SMT-solving
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathValidator.validatePathCandidate(currentPair, newPath);
+      CounterexampleTraceInfo traceInfo = pathValidator.validatePathCandidate(currentState, newPath);
       stats.afterPathCheck();
       /*
        * check if path is feasible. If it's not continue to identify another decision node
