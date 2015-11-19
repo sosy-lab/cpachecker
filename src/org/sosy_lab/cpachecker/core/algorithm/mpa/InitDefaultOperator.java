@@ -51,7 +51,7 @@ public class InitDefaultOperator implements InitOperator {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getActiveProperties(pE0, pReached);
+    ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getAllProperties(pE0, pReached);
 
     Preconditions.checkArgument(!pPartitioning.isEmpty(), "This init operator requires at least one partition of properties!");
     Preconditions.checkState(allProperties.size() > 0, "There must be a set of properties that get checked!");

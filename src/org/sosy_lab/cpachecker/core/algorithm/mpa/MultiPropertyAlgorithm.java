@@ -91,6 +91,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -314,9 +315,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       final Partitioning noPartitioning = Partitions.none();
       Partitioning remainingPartitions = Partitions.none();
       Partitioning checkPartitions;
+      Partitioning lastPartitioning;
 
       try {
-        checkPartitions = partitionOperator.partition(noPartitioning, all, ImmutableSet.<Property>of(), propertyExpenseComparator);
+        checkPartitions = partition(noPartitioning, all, ImmutableSet.<Property>of());
+        lastPartitioning = checkPartitions;
       } catch (PartitioningException e1) {
         throw new CPAException("Partitioning failed!", e1);
       }
@@ -430,25 +433,30 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
             break;
           }
 
-          Stats.incCounter("Adjustments of property partitions", 1);
-          try {
-            ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
+          if (remainingPartitions.isEmpty()) {
+            Stats.incCounter("Adjustments of property partitions", 1);
+            try {
+              ImmutableSet<Property> disabledProperties = getInactiveProperties(pReachedSet);
 
-            logger.log(Level.INFO, "All properties: " + all.toString());
-            logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
-            logger.log(Level.INFO, "Satisfied properties: " + satisfied.toString());
-            logger.log(Level.INFO, "Violated properties: " + violated.toString());
+              logger.log(Level.INFO, "All properties: " + all.toString());
+              logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
+              logger.log(Level.INFO, "Satisfied properties: " + satisfied.toString());
+              logger.log(Level.INFO, "Violated properties: " + violated.toString());
 
-            ControlAutomatonPrecisionAdjustment.hackyLimitFactor = ControlAutomatonPrecisionAdjustment.hackyLimitFactor * 2;
+              ControlAutomatonPrecisionAdjustment.hackyLimitFactor = ControlAutomatonPrecisionAdjustment.hackyLimitFactor * 2;
 
-            checkPartitions = partitionOperator.partition(checkPartitions, remaining, disabledProperties, propertyExpenseComparator);
+              checkPartitions = partition(lastPartitioning, remaining, disabledProperties);
+              lastPartitioning = checkPartitions;
 
-            // Reset the statistics of the properties
-            PropertyStats.INSTANCE.clear();
+              // Reset the statistics of the properties
+              PropertyStats.INSTANCE.clear();
 
-          } catch (PartitioningException e) {
-            logger.log(Level.INFO, e.getMessage());
-            break;
+            } catch (PartitioningException e) {
+              logger.log(Level.INFO, e.getMessage());
+              break;
+            }
+          } else {
+            checkPartitions = remainingPartitions;
           }
 
           // Re-initialize the sets 'waitlist' and 'reached'
@@ -503,6 +511,25 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
+  private Partitioning partition(
+      Partitioning lastPartitioning,
+      Set<Property> remaining,
+      ImmutableSet<Property> disabledProperties) throws PartitioningException {
+
+    Partitioning result = partitionOperator.partition(lastPartitioning, remaining, disabledProperties, propertyExpenseComparator);
+
+    logger.log(Level.WARNING, String.format("New partitioning with %d partitions.", result.partitionCount()));
+    {
+      int nth = 0;
+      for (ImmutableSet<Property> p: result) {
+        nth++;
+        logger.logf(Level.WARNING, "Partition %d with %d elements: %s", nth, p.size(), p.toString());
+      }
+    }
+
+    return result;
+  }
+
   public Optional<PropertySummary> getLastRunPropertySummary() {
     return lastRunPropertySummary;
   }
@@ -544,26 +571,24 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
     Partitioning result = Partitions.none();
 
+    // Reset the information in counterexamples, inactive properties, ...
+    ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
+    Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
+    argCpa.getCexSummary().resetForNewSetOfProperties();
+
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
       result = initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
 
       logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
-      logger.log(Level.WARNING, String.format("%d partitions.", pCheckPartitions.partitionCount()));
 
-      {
-        int nth = 0;
-        for (ImmutableSet<Property> p: pCheckPartitions) {
-          nth++;
-          logger.logf(Level.WARNING, "Partition %d with %d elements: %s", nth, p.size(), p.toString());
-        }
+      // Logging: inactive properties
+      ImmutableSet<Property> inactive = getInactiveProperties(pReachedSet);
+      logger.log(Level.WARNING, String.format("Waitlist with %d inactive properties.", inactive.size()));
+      for (Property p: inactive) {
+        logger.logf(Level.WARNING, "INACTIVE: %s", p.toString());
       }
-
-      // Reset the information in counterexamples, inactive properties, ...
-      ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);
-      Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
-      argCpa.getCexSummary().resetForNewSetOfProperties();
     }
 
     return result;
@@ -637,6 +662,22 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     if (wrapped instanceof StatisticsProvider) {
       ((StatisticsProvider)wrapped).collectStatistics(pStatsCollection);
     }
+  }
+
+  public static ImmutableSet<Property> getAllProperties(AbstractState pAbstractState, ReachedSet pReached) {
+    Preconditions.checkNotNull(pAbstractState);
+    Preconditions.checkNotNull(pReached);
+    Preconditions.checkState(!pReached.isEmpty());
+
+    Builder<Property> result = ImmutableSet.<Property>builder();
+
+    Collection<AutomatonState> automataStates = AbstractStates.extractStatesByType(
+        pAbstractState, AutomatonState.class);
+    for (AutomatonState e: automataStates) {
+      result.addAll(e.getOwningAutomaton().getEncodedProperties());
+    }
+
+    return result.build();
   }
 
 }
