@@ -392,7 +392,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
           // The partitioning operator might remove the violated properties
           //  if we have found sufficient counterexamples
-          checkPartitions = checkPartitions.substract(ImmutableSet.<Property>copyOf(runViolated.values()));
+          //
+          // THIS DOES NOT MAKE SENSE AT THE MOMENT:
+          //    checkPartitions = checkPartitions.substract(ImmutableSet.<Property>copyOf(runViolated.values()));
 
           // Just adjust the precision of the states in the waitlist
           disablePropertiesForWaitlist(cpa, pReachedSet, violated);
