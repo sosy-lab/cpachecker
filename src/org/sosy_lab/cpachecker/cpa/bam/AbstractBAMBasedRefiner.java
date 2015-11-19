@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -45,7 +44,7 @@ import com.google.errorprone.annotations.ForOverride;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
- * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, MutableARGPath)}.
+ * flattening the ARG before calling {@link #performRefinement0(ARGReachedSet, ARGPath)}.
  *
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
