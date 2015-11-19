@@ -327,6 +327,20 @@ public class ARGPath implements Appender {
     public abstract void advance() throws IllegalStateException;
 
     /**
+     * Checks whether the iterator can be advanced and does so it it is possible.
+     *
+     * @return Indicates whether the iterator could be advanced or not
+     */
+    public boolean advanceIfPossible() {
+      if (hasNext()) {
+        advance();
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    /**
      * Get the abstract state at the current position.
      * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
      * @return A non-null {@link ARGState}.
@@ -379,8 +393,21 @@ public class ARGPath implements Appender {
      *
      * @return A non-null {@link ARGPath}
      */
-    public ARGPath getPrefix() {
+    public ARGPath getPrefixInclusive() {
       return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos+1));
+    }
+
+    /**
+     * Get the prefix of the current ARGPath from the first state to the current
+     * state (eclusive) returned by this iterator.
+     * The prefix will always be forwards directed, thus the {@link ReversePathIterator}
+     * does also return the sequence from the first state of the ARGPath up (exclusive)
+     * the current position of the iterator.
+     *
+     * @return A non-null {@link ARGPath}
+     */
+    public ARGPath getPrefixExclusive() {
+      return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos));
     }
   }
 

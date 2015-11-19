@@ -159,7 +159,7 @@ public class ApronAnalysisFeasabilityChecker {
         pathIt.advance();
       }
 
-      return pathIt.getPrefix();
+      return pathIt.getPrefixInclusive();
 
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
