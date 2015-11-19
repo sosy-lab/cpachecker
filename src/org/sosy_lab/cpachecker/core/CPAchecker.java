@@ -31,6 +31,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
@@ -71,8 +72,10 @@ import org.sosy_lab.cpachecker.core.interfaces.PropertySummaryExtractor;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
@@ -575,11 +578,11 @@ public class CPAchecker {
   private class DefaultSummaryExtractor implements PropertySummaryExtractor {
 
     private Set<Property> findViolatedProperties(final Algorithm pAlgorithm,
-        final ReachedSet reached) {
+        final ReachedSet pReached) {
 
       final Set<Property> result = Sets.newHashSet();
 
-      for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
+      for (AbstractState e : from(pReached).filter(IS_TARGET_STATE).toList()) {
         Targetable t = (Targetable) e;
         result.addAll(t.getViolatedProperties());
       }
@@ -587,11 +590,26 @@ public class CPAchecker {
       return result;
     }
 
+    private ImmutableSet<Property> findConsideredProperties(final Algorithm pAlgorithm,
+        final ReachedSet pReached) {
+
+      final Set<Property> result = Sets.newHashSet();
+
+      AbstractState e = pReached.getFirstState();
+      Collection<AutomatonState> automataStates = AbstractStates.extractStatesByType(e, AutomatonState.class);
+      for (AutomatonState a: automataStates) {
+        result.addAll(a.getOwningAutomaton().getEncodedProperties());
+      }
+
+      return ImmutableSet.copyOf(result);
+    }
+
 
     @Override
     public PropertySummary extractSummary(Algorithm pAlgorithm, ReachedSet pReached, AlgorithmStatus pStatus) {
 
       final ImmutableSet<Property> violatedProperties = ImmutableSet.<Property>copyOf(findViolatedProperties(pAlgorithm, pReached));
+      final ImmutableSet<Property> consideredProperties = findConsideredProperties(pAlgorithm, pReached);
 
       return new PropertySummary() {
 
@@ -608,6 +626,11 @@ public class CPAchecker {
         @Override
         public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
           return Optional.absent();
+        }
+
+        @Override
+        public ImmutableSet<Property> getConsideredProperties() {
+          return consideredProperties;
         }
       };
     }

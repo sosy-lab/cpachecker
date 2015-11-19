@@ -28,26 +28,35 @@ import com.google.common.collect.ImmutableSet;
 
 public interface PropertySummary {
 
-    public ImmutableSet<Property> getViolatedProperties();
-    public Optional<ImmutableSet<Property>> getSatisfiedProperties();
-    public Optional<ImmutableSet<Property>> getUnknownProperties();
+  public ImmutableSet<Property> getViolatedProperties();
 
-    public static PropertySummary UNKNOWN = new PropertySummary() {
+  public ImmutableSet<Property> getConsideredProperties();
 
-      @Override
-      public ImmutableSet<Property> getViolatedProperties() {
-        return ImmutableSet.<Property>of();
-      }
+  public Optional<ImmutableSet<Property>> getSatisfiedProperties();
 
-      @Override
-      public Optional<ImmutableSet<Property>> getUnknownProperties() {
-        return Optional.absent();
-      }
+  public Optional<ImmutableSet<Property>> getUnknownProperties();
 
-      @Override
-      public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
-        return Optional.absent();
-      }
-    };
+  public static PropertySummary UNKNOWN = new PropertySummary() {
+
+    @Override
+    public ImmutableSet<Property> getViolatedProperties() {
+      return ImmutableSet.<Property> of();
+    }
+
+    @Override
+    public Optional<ImmutableSet<Property>> getUnknownProperties() {
+      return Optional.absent();
+    }
+
+    @Override
+    public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
+      return Optional.absent();
+    }
+
+    @Override
+    public ImmutableSet<Property> getConsideredProperties() {
+      return ImmutableSet.<Property> of();
+    }
+  };
 
 }

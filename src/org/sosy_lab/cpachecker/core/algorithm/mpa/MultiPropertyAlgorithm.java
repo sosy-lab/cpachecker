@@ -490,6 +490,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
         public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
           return Optional.of(ImmutableSet.copyOf(satisfied));
         }
+
+        @Override
+        public ImmutableSet<Property> getConsideredProperties() {
+          return ImmutableSet.copyOf(all);
+        }
       });
     }
   }
