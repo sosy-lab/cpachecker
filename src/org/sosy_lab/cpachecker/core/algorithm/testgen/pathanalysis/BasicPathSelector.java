@@ -141,7 +141,7 @@ public class BasicPathSelector implements PathSelector {
       logger.logf(Level.FINER, "identified new path candidate (visited branchings: %d, nodes: %d)",
           pathInfo.getBranchCount(),
           pathInfo.getNodeCount());
-      newPath = Lists.newArrayList(descendingPathIterator.getPrefixExclusive().asEdgesList());
+      newPath = Lists.newArrayList(descendingPathIterator.getPrefixInclusive().getInnerEdges());
       newPath.add(otherEdge.get());
       /*
        * evaluate path candidate symbolically using SMT-solving

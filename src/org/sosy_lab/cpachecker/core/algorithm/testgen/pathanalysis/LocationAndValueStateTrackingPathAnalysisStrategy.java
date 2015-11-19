@@ -154,7 +154,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
        * extract the edge-list of the path and add the new edge to it.
        * Don't modify the ARGPath yet, because it is possible that the current decision is infeasible
        */
-      newPath = Lists.newArrayList(descendingPathIterator.getPrefixExclusive().asEdgesList());
+      newPath = Lists.newArrayList(descendingPathIterator.getPrefixInclusive().getInnerEdges());
       newPath.add(otherEdge);
       /*
        * check if path is feasible. If it's not continue to identify another decision node
