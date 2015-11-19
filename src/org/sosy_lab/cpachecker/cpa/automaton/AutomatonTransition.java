@@ -130,34 +130,23 @@ public class AutomatonTransition {
         return false;
       }
       PlainAutomatonTransition other = (PlainAutomatonTransition) obj;
-      if (actions == null) {
-        if (other.actions != null) {
-          return false;
-        }
-      } else if (!actions.equals(other.actions)) {
+
+      if (!actions.equals(other.actions)) {
         return false;
       }
-      if (assertion == null) {
-        if (other.assertion != null) {
-          return false;
-        }
-      } else if (!assertion.equals(other.assertion)) {
+
+      if (!assertion.equals(other.assertion)) {
         return false;
       }
-      if (assumption == null) {
-        if (other.assumption != null) {
-          return false;
-        }
-      } else if (!assumption.equals(other.assumption)) {
+
+      if (!assumption.equals(other.assumption)) {
         return false;
       }
-      if (trigger == null) {
-        if (other.trigger != null) {
-          return false;
-        }
-      } else if (!trigger.equals(other.trigger)) {
+
+      if (!trigger.equals(other.trigger)) {
         return false;
       }
+
       if (violatedPropertyDescription == null) {
         if (other.violatedPropertyDescription != null) {
           return false;
