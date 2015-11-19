@@ -146,7 +146,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
           // for interpolation, one transition after the infeasible transition is needed,
           // so we add exactly that extra transition to the successor state
           ARGState lastState = path.asStatesList().get(feasiblePrefixBuilder.size());
-          CFAEdge lastEdge = path.asEdgesList().get(feasiblePrefixBuilder.size());
+          CFAEdge lastEdge = path.getInnerEdges().get(feasiblePrefixBuilder.size());
           ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState,
                                                                  BlankEdge.buildNoopEdge(lastEdge.getPredecessor(),
                                                                                          lastEdge.getSuccessor()));
