@@ -43,14 +43,19 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Verify;
 import com.google.common.collect.Sets;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
+
+  private final CFA cfa;
+
+  private final Optional<CandidateGenerator> candidateGenerator;
 
   private InvariantSupplier locationInvariantsProvider = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
 
@@ -58,12 +63,15 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
                       ShutdownNotifier pShutdownNotifier, CFA pCFA,
-                      BMCStatistics pBMCStatistics)
+                      BMCStatistics pBMCStatistics,
+                      Optional<CandidateGenerator> pCandidateGenerator)
                       throws InvalidConfigurationException, CPAException {
     super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
         pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
+    cfa = pCFA;
+    candidateGenerator = pCandidateGenerator;
   }
 
   public InvariantSupplier getCurrentInvariants() {
@@ -75,12 +83,14 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   }
 
   @Override
-  protected CandidateGenerator getCandidateInvariants(CFA pCFA,
-      Collection<CFANode> pTargetLocations) {
+  protected CandidateGenerator getCandidateInvariants() {
+    if (candidateGenerator.isPresent()) {
+      return candidateGenerator.get();
+    }
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
-    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocations)) {
-      candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(getTargetLocations())) {
+      candidates.add(new EdgeFormulaNegation(cfa.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
     }
 
     return new StaticCandidateProvider(candidates);

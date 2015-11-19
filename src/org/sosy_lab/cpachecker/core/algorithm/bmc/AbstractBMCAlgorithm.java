@@ -134,6 +134,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final TargetLocationProvider targetLocationProvider;
 
+  private Collection<CFANode> targetLocations;
+
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -214,11 +216,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     // The set of candidate invariants that still need to be checked.
     // Successfully proven invariants are removed from the set.
-    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
-    if (targetLocations == null) {
-      targetLocations = cfa.getAllNodes();
-    }
-    final CandidateGenerator candidateGenerator = getCandidateInvariants(cfa, targetLocations);
+    final CandidateGenerator candidateGenerator = getCandidateInvariants();
 
     try {
       if (!candidateGenerator.produceMoreCandidates()) {
@@ -352,8 +350,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    *
    * @return the candidate invariants to be checked.
    */
-  protected abstract CandidateGenerator getCandidateInvariants(CFA cfa,
-      Collection<CFANode> targetLocations);
+  protected abstract CandidateGenerator getCandidateInvariants();
 
   /**
    * Adjusts the conditions of the CPAs which support the adjusting of
@@ -476,5 +473,22 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         reachedSetFactory,
         havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
+  }
+
+  /**
+   * Gets the potential target locations.
+   *
+   * @return the potential target locations.
+   */
+  protected Collection<CFANode> getTargetLocations() {
+    if (this.targetLocations != null) {
+      return this.targetLocations;
+    }
+    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+    if (targetLocations == null) {
+      targetLocations = cfa.getAllNodes();
+    }
+    return this.targetLocations = targetLocations;
+
   }
 }
