@@ -177,8 +177,8 @@ public class CPAcheckerResult {
 
     if (!propertySummary.getViolatedProperties().isEmpty()) {
       ret.append(" (").append(Joiner.on(", ").join(propertySummary.getViolatedProperties())).append(")");
+      ret.append(" found by chosen configuration.");
     }
-    ret.append(" found by chosen configuration.");
 
     return ret.toString();
   }
