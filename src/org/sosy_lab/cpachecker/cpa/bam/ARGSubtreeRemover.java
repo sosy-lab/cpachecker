@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 import com.google.common.base.Predicate;
@@ -91,7 +92,12 @@ public class ARGSubtreeRemover {
     assert subgraphStatesToReachedState.get(Iterables.getLast(pPath.asStatesList())) == lastState : "path should end with target state";
     assert lastState.isTarget();
 
-    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(pPath.asStatesList(), element, subgraphStatesToReachedState);
+    // we compute a separate path here, because it might be different from pPath, if other branches are used.
+    final ARGPath path = ARGUtils.getOnePathTo(element);
+    assert subgraphStatesToReachedState.get(path.asStatesList().get(0)) == firstState : "path should start with root state";
+    assert Iterables.getLast(path.asStatesList()) == element : "path should end with cut state";
+
+    final List<ARGState> relevantCallNodes = getRelevantDefinitionNodes(path.asStatesList(), element, subgraphStatesToReachedState);
     assert subgraphStatesToReachedState.get(relevantCallNodes.get(0)) == firstState : "root should be relevant";
     assert relevantCallNodes.size() >= 1 : "at least the main-function should be open at the target-state";
 
