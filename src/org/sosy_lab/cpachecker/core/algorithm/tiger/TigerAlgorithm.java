@@ -816,8 +816,7 @@ public class TigerAlgorithm
           Region remainingPC =
               BDDUtils.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, bddCpaNamedRegionManager);
           restrictBdd(remainingPC);
-          // TODO Andreas: exclude goals in combination with the corresponding presence condition from further exploration
-          // In a first step just remove the goals from further exploration
+          // TODO: exclude goals in combination with the presence condition corresponding to the already covered test cases from further exploration
         } else {
           for (Goal goal : pTestGoalsToBeProcessed) {
             if (testsuite.isGoalCoveredOrInfeasible(goal)) {
