@@ -38,15 +38,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -513,7 +512,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
     @Override
     public ARGPath getNextPathForInterpolation() {
-      MutableARGPath errorPath = new MutableARGPath();
+      ARGPathBuilder errorPathBuilder = ARGPath.builder();
+      ARGPath errorPath = null;
 
       ARGState current = sources.pop();
 
@@ -525,13 +525,13 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
       // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
       if (current != root) {
-        errorPath.add(Pair.of(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current)));
+        errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
       }
 
       while (successorRelation.get(current).iterator().hasNext()) {
         Iterator<ARGState> children = successorRelation.get(current).iterator();
         ARGState child = children.next();
-        errorPath.add(Pair.of(current, current.getEdgeToChild(child)));
+        errorPathBuilder.add(current, current.getEdgeToChild(child));
 
         // push all other children of the current state, if any, onto the stack for later interpolations
         int size = 1;
@@ -547,11 +547,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
         // add out-going edges of final state, too (just for compatibility reasons to compare to DelegatingRefiner)
         if (!successorRelation.get(current).iterator().hasNext()) {
-          errorPath.add(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
+          errorPath = errorPathBuilder.build(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull());
         }
       }
 
-      return errorPath.immutableCopy();
+      return errorPath;
     }
 
     /**
@@ -597,9 +597,10 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
       assert current.isTarget() : "current element is not a target";
 
-      MutableARGPath errorPath = new MutableARGPath();
+      ARGPathBuilder errorPathBuilder = ARGPath.reverseBuilder();
+      ARGPath errorPath = null;
 
-      errorPath.addFirst(Pair.of(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull()));
+      errorPathBuilder.add(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull());
 
       while (predecessorRelation.get(current) != null) {
 
@@ -610,12 +611,16 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
           return EMPTY_PATH;
         }
 
-        errorPath.addFirst(Pair.of(parent, parent.getEdgeToChild(current)));
+        if (predecessorRelation.get(parent) != null) {
+          errorPathBuilder.add(parent, parent.getEdgeToChild(current));
+        } else {
+          errorPath = errorPathBuilder.build(parent, parent.getEdgeToChild(current));
+        }
 
         current = parent;
       }
 
-      return errorPath.immutableCopy();
+      return errorPath;
     }
 
     @Override
