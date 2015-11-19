@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 public class InitPartitionedOperator implements InitOperator {
 
   @Override
-  public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
+  public Partitioning init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
       Partitioning pLastPartitioning) {
 
     // Use the PartitioningCPA to completely separate each partition during the analysis.

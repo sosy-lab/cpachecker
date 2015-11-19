@@ -312,6 +312,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       final Precision pi0 = pReachedSet.getPrecision(e0);
 
       final Partitioning noPartitioning = Partitions.none();
+      Partitioning remainingPartitions = Partitions.none();
       Partitioning checkPartitions;
 
       try {
@@ -450,7 +451,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
           // Re-initialize the sets 'waitlist' and 'reached'
           stats.numberOfRestarts++;
-          initReached(pReachedSet, e0, pi0, checkPartitions);
+          remainingPartitions = initReached(pReachedSet, e0, pi0, checkPartitions);
           // -- Reset the resource limit checker
           initAndStartLimitChecker();
         }
@@ -535,13 +536,15 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private void initReached(final ReachedSet pReachedSet,
+  private Partitioning initReached(final ReachedSet pReachedSet,
       final AbstractState pE0, final Precision pPi0,
       final Partitioning pCheckPartitions) {
 
+    Partitioning result = Partitions.none();
+
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
-      initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
+      result = initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
 
       logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));
@@ -560,6 +563,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       Preconditions.checkNotNull(argCpa, "An ARG must be constructed for this type of analysis!");
       argCpa.getCexSummary().resetForNewSetOfProperties();
     }
+
+    return result;
   }
 
   static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {

@@ -51,4 +51,8 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
 
   public Partitioning substract(Set<Property> pProperties);
 
+  public Partitioning withoutFirst();
+
+  public ImmutableSet<Property> getFirstPartition();
+
 }

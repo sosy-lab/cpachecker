@@ -29,6 +29,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public interface InitOperator {
 
-  public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0, Partitioning pPartitioning);
+  public Partitioning init(ReachedSet pReached, AbstractState pE0, Precision pPi0, Partitioning pPartitioning);
 
 }

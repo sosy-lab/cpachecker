@@ -117,4 +117,18 @@ public class Partitions implements Partitioning {
     return partitions.iterator();
   }
 
+  @Override
+  public Partitioning withoutFirst() {
+    Preconditions.checkState(!this.isEmpty());
+
+    return new Partitions(this.status, this.partitions.subList(1, this.partitions.size()));
+  }
+
+  @Override
+  public ImmutableSet<Property> getFirstPartition() {
+    Preconditions.checkState(!this.isEmpty());
+
+    return partitions.iterator().next();
+  }
+
 }

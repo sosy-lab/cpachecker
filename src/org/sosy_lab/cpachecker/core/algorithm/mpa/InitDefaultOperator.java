@@ -46,7 +46,7 @@ import com.google.common.collect.Sets.SetView;
 public class InitDefaultOperator implements InitOperator {
 
   @Override
-  public void init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
+  public Partitioning init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
       Partitioning pPartitioning) {
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
@@ -57,7 +57,7 @@ public class InitDefaultOperator implements InitOperator {
     Preconditions.checkState(allProperties.size() > 0, "There must be a set of properties that get checked!");
 
     // At the moment we check the first partition in the list
-    ImmutableSet<Property> partitionToChcek = pPartitioning.iterator().next();
+    ImmutableSet<Property> partitionToChcek = pPartitioning.getFirstPartition();
 
     // Reset the sets 'reached' and 'waitlist' to contain only
     //  the initial state and its initial precision
@@ -76,6 +76,8 @@ public class InitDefaultOperator implements InitOperator {
     // Check
     ImmutableSet<Property> active = MultiPropertyAlgorithm.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);
     Preconditions.checkState(Sets.intersection(toBlacklist, active).size() == 0, "Blacklisted properties must not be active!");
+
+    return pPartitioning.withoutFirst();
   }
 
 
