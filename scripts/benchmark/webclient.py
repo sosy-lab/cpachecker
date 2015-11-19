@@ -97,6 +97,91 @@ class AutoCloseHTTPSConnection(HTTPSConnection):
         self.close()
         logging.debug("Closed connection")
 
+class PollingResultDownloader:
+    
+    def __init__(self, web_interface, thread_count, result_poll_interval):
+        self._unfinished_runs = {}
+        self._unfinished_runs_lock = threading.Lock()
+        self._web_interface = web_interface
+        self._result_poll_interval = result_poll_interval
+        self._state_poll_executor = ThreadPoolExecutor(web_interface.thread_count)
+        self._result_downloader_executor = ThreadPoolExecutor(web_interface.thread_count)
+        self._state_poll_thread = threading.Thread(target=self._get_results, name='web_interface_state_poll_thread')
+        self._shutdown = threading.Event()
+        self._state_poll_thread.start()
+        
+    def add(self, run_id):
+        result = Future()
+        with self._unfinished_runs_lock:
+            self._unfinished_runs[run_id] =  result
+        return result     
+    
+    def _get_results(self):
+        downloading_result_futures = {}
+
+        def callback(downloaded_result):
+            run_id = downloading_result_futures[downloaded_result]
+            if not downloaded_result.exception():
+                with self._unfinished_runs_lock:
+                    result_future = self._unfinished_runs.pop(run_id, None)
+                if result_future:
+                    result_future.set_result(downloaded_result.result())
+                del downloading_result_futures[downloaded_result]
+
+            else:
+                logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
+                # retry it
+                future  = self._executor.submit(self._download_result, run_id)
+                downloading_result_futures[future] = run_id
+
+        # in every iteration the states of all unfinished runs are requested once
+        while not self._shutdown.is_set() :
+            start = time()
+            states = {}
+
+            with self._unfinished_runs_lock:
+                for run_id in self._unfinished_runs.keys():
+                    
+                    # stop canceled runs
+                    if self._unfinished_runs[run_id].cancelled():
+                        self._result_downloader_executor.submit(self._web_interface._stop_run, run_id)
+                        with self._unfinished_runs_lock:
+                            self._unfinished_runs.pop(run_id, None)
+                    
+                    # request state of runs not yet finished
+                    elif run_id not in downloading_result_futures.values():
+                        state_future = self._state_poll_executor.submit(self._web_interface._is_finished, run_id)
+                        states[state_future] = run_id
+
+            # Collect states of runs
+            for state_future in as_completed(states.keys()):
+
+                run_id = states[state_future]
+                state = state_future.result()
+
+                if state == "FINISHED" or state == "UNKNOWN":
+                    if run_id not in downloading_result_futures.values(): # result is not downloaded
+                        future  = self._result_downloader_executor.submit(self._web_interface._download_result, run_id)
+                        downloading_result_futures[future] = run_id
+                        future.add_done_callback(callback)
+
+                elif state == "ERROR":
+                    self._unfinished_runs[run_id].set_exception(WebClientError("Execution failed."))
+                    del self._unfinished_runs[run_id]
+
+
+            end = time();
+            duration = end - start
+            if duration < self._result_poll_interval and not self._shutdown.is_set():
+                self._shutdown.wait(self._result_poll_interval - duration)
+        
+    def shutdown(self):
+        self._shutdown.set()
+        self._state_poll_thread.join()
+        self._state_poll_executor.shutdown(wait=True)
+        self._result_downloader_executor.shutdown(wait=True)
+        return self._unfinished_runs
+
 class WebInterface:
     """
     The WebInterface is a executor like class for the submission of runs to the VerifierCloud
@@ -135,19 +220,12 @@ class WebInterface:
             self._base64_user_pwd = None
 
         self.thread_count = thread_count
-        self._result_poll_interval = result_poll_interval
-        self._shutdown = threading.Event()
+        self._result_downloader = PollingResultDownloader(self, thread_count, result_poll_interval)
         self._thread_local = threading.local()
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))
-        self._unfinished_runs = {}
-        self._unfinished_runs_lock = threading.Lock()
         self._read_hash_code_cache()
         self._resolved_tool_revision(svn_branch, svn_revision)
-
-        self._executor = ThreadPoolExecutor(self.thread_count)
-        self._state_poll_thread = threading.Thread(target=self._get_results, name='web_interface_state_poll_thread')
-        self._state_poll_thread.start()
         
     def _read_hash_code_cache(self):
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
@@ -231,11 +309,7 @@ class WebInterface:
         run_id = run_id.decode("UTF-8")
         logging.debug('Submitted witness validation run with id {0}'.format(run_id))
 
-        result = Future()
-        with self._unfinished_runs_lock:
-            self._unfinished_runs[run_id] =  result
-
-        return result
+        return self._result_downloader.add(run_id)
 
     def submit(self, run, limits, cpu_model, result_files_pattern = None, priority = 'IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
         """
@@ -323,10 +397,7 @@ class WebInterface:
         else:
             run_id = run_id.decode("UTF-8")
             logging.debug('Submitted run with id {0}'.format(run_id))
-            result = Future()
-            with self._unfinished_runs_lock:
-                self._unfinished_runs[run_id] =  result
-            return result
+            return self._result_downloader.add(run_id)
 
     def _handle_options(self, run, params, rlimits):
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
@@ -414,61 +485,6 @@ class WebInterface:
 
         self._request("POST", path, paramsCompressed, headers, expectedStatusCodes=[200,204])
 
-    def _get_results(self):
-        downloading_result_futures = {}
-        state_request_executor = ThreadPoolExecutor(max_workers=self.thread_count)
-
-        def callback(downloaded_result):
-            run_id = downloading_result_futures[downloaded_result]
-            if not downloaded_result.exception():
-                with self._unfinished_runs_lock:
-                    result_future = self._unfinished_runs.pop(run_id, None)
-                if result_future:
-                    result_future.set_result(downloaded_result.result())
-                del downloading_result_futures[downloaded_result]
-
-            else:
-                logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
-
-        # in every iteration the states of all unfinished runs are requested once
-        while not self._shutdown.is_set() :
-            start = time()
-            states = {}
-
-            with self._unfinished_runs_lock:
-                for run_id in self._unfinished_runs.keys():
-                    if self._unfinished_runs[run_id].cancelled():
-                        self.state_request_executor.submit(self._stop_run, run_id)
-                    
-                    # request state of runs not yet finished
-                    elif run_id not in downloading_result_futures.values():
-                        state_future = state_request_executor.submit(self._is_finished, run_id)
-                        states[state_future] = run_id
-
-            # Collect states of runs
-            for state_future in as_completed(states.keys()):
-
-                run_id = states[state_future]
-                state = state_future.result()
-
-                if state == "FINISHED" or state == "UNKNOWN":
-                    if run_id not in downloading_result_futures.values(): # result is not downloaded
-                        future  = self._executor.submit(self._download_result, run_id)
-                        downloading_result_futures[future] = run_id
-                        future.add_done_callback(callback)
-
-                elif state == "ERROR":
-                    self._unfinished_runs[run_id].set_exception(WebClientError("Execution failed."))
-                    del self._unfinished_runs[run_id]
-
-
-            end = time();
-            duration = end - start
-            if duration < self._result_poll_interval and not self._shutdown.is_set():
-                self._shutdown.wait(self._result_poll_interval - duration)
-
-        state_request_executor.shutdown()
-
     def _is_finished(self, run_id):
         headers = {"Accept": "text/plain"}
         path = self._webclient.path + "runs/" + run_id + "/state"
@@ -499,23 +515,21 @@ class WebInterface:
     def shutdown(self):
         """
         Cancels all unfinished runs and stops all internal threads.
-        """
-        self._shutdown.set()
+        """       
+        unfinished_runs = self._result_downloader.shutdown()
 
-        if len(self._unfinished_runs) > 0:
+        if len(unfinished_runs) > 0:
             logging.info("Stopping tasks on server...")
+            executor = ThreadPoolExecutor(max_workers = 5 * self.thread_count)
             stopTasks = set()
-            with self._unfinished_runs_lock:
-                for runId in self._unfinished_runs.keys():
-                    stopTasks.add(self._executor.submit(self._stop_run, runId))
+            for runId in unfinished_runs.keys():
+                stopTasks.add(executor.submit(self._stop_run, runId))
+                unfinished_runs[runId].cancel()
 
             for task in stopTasks:
                 task.result()
-            self._executor.shutdown(wait=True)
+            executor.shutdown(wait=True)
             logging.info("Stopped all tasks.")
-
-        else:
-            self._executor.shutdown(wait=True)
 
         self._write_hash_code_cache()
 
@@ -523,8 +537,6 @@ class WebInterface:
         path = self._webclient.path + "runs/" + run_id
         try:
             self._request("DELETE", path, expectedStatusCodes = [200,204])
-            with self._unfinished_runs_lock:
-                self._unfinished_runs.pop(run_id, None)
         except urllib2.HTTPError as e:
             logging.warn("Stopping of run {0} failed: {1}".format(run_id, e.reason))
 
