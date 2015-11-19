@@ -177,12 +177,6 @@ public class ARGPath implements Appender {
     };
   }
 
-  public MutableARGPath mutableCopy() {
-    MutableARGPath result = new MutableARGPath();
-    Iterables.addAll(result, Pair.zipWithPadding(states, edges));
-    return result;
-  }
-
   /**
    * Create a fresh {@link PathIterator} for this path,
    * with its position at the first state.
