@@ -26,6 +26,10 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -36,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 /**
  * Class that represents the result of a CPAchecker analysis.
@@ -102,6 +107,18 @@ public class CPAcheckerResult {
     }
   }
 
+  private Collection<Property> sortPropertiesByStrings(Set<Property> pProps) {
+    List<Property> result = Lists.newArrayList(pProps);
+    Collections.sort(result, new java.util.Comparator<Property>() {
+      @Override
+      public int compare(Property pO1, Property pO2) {
+        return pO1.toString().compareTo(pO2.toString());
+      }
+    });
+
+    return result;
+  }
+
   public void printResult(PrintStream out) {
     if (result == Result.NOT_YET_STARTED) {
       return;
@@ -122,18 +139,18 @@ public class CPAcheckerResult {
 
     out.println("\tStatus by property:");
 
-    for (Property prop: propertySummary.getViolatedProperties()) {
+    for (Property prop: sortPropertiesByStrings(propertySummary.getViolatedProperties())) {
       out.println(String.format("\t\tProperty %s: %s", prop.toString(), "FALSE"));
     }
 
     if (propertySummary.getUnknownProperties().isPresent()) {
-      for (Property prop: propertySummary.getUnknownProperties().get()) {
+      for (Property prop: sortPropertiesByStrings(propertySummary.getUnknownProperties().get())) {
         out.println(String.format("\t\tProperty %s: %s", prop.toString(), "UNKNOWN"));
       }
     }
 
     if (propertySummary.getSatisfiedProperties().isPresent()) {
-      for (Property prop: propertySummary.getSatisfiedProperties().get()) {
+      for (Property prop: sortPropertiesByStrings(propertySummary.getSatisfiedProperties().get())) {
         out.println(String.format("\t\tProperty %s: %s", prop.toString(), "TRUE"));
       }
     }

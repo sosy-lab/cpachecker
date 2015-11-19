@@ -36,18 +36,21 @@ interface AutomatonExpression {
 
   static class StringExpression implements AutomatonExpression {
 
-    private String toPrint;
+    private String pRawExpression;
 
     public StringExpression(String pString) {
-      super();
-      this.toPrint = pString;
+      this.pRawExpression = pString;
+    }
+
+    public String getRawExpression() {
+      return pRawExpression;
     }
 
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((toPrint == null) ? 0 : toPrint.hashCode());
+      result = prime * result + ((pRawExpression == null) ? 0 : pRawExpression.hashCode());
       return result;
     }
 
@@ -63,11 +66,11 @@ interface AutomatonExpression {
         return false;
       }
       StringExpression other = (StringExpression) obj;
-      if (toPrint == null) {
-        if (other.toPrint != null) {
+      if (pRawExpression == null) {
+        if (other.pRawExpression != null) {
           return false;
         }
-      } else if (!toPrint.equals(other.toPrint)) {
+      } else if (!pRawExpression.equals(other.pRawExpression)) {
         return false;
       }
       return true;
@@ -76,7 +79,7 @@ interface AutomatonExpression {
     @Override
     public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
-      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
+      String str = pRawExpression.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace $location
@@ -86,7 +89,7 @@ interface AutomatonExpression {
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {
-        return new ResultValue<>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
+        return new ResultValue<>("Failure in Variable Replacement in String \"" + pRawExpression + "\"","ActionExpr.Print");
       } else {
         return new ResultValue<>(str);
       }

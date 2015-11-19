@@ -36,25 +36,24 @@ public class AutomatonSafetyProperty implements Property {
 
   @Nonnull private final Automaton automaton;
   @Nonnull private final Optional<StringExpression> violationDescriptionExpression;
-  @Nonnull private final String propertyViolationInstance;
-
-  public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition, String pDesc) {
-    this.automaton = Preconditions.checkNotNull(pAutomaton);
-    this.violationDescriptionExpression = Preconditions.checkNotNull(pTransition.getViolationDescriptionExpression());
-    this.propertyViolationInstance = Preconditions.checkNotNull(pDesc);
-  }
 
   public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition) {
     this.automaton = Preconditions.checkNotNull(pAutomaton);
     this.violationDescriptionExpression = Preconditions.checkNotNull(pTransition.getViolationDescriptionExpression());
-    this.propertyViolationInstance = "";
   }
 
   @Override
   public String toString() {
-    return propertyViolationInstance.length() > 0
-        ? propertyViolationInstance
-        : automaton.getName();
+    final StringBuilder result = new StringBuilder();
+
+    result.append(automaton.getName());
+
+    if (violationDescriptionExpression.isPresent()) {
+      result.append(" / ");
+      result.append(violationDescriptionExpression.get().getRawExpression());
+    }
+
+   return result.toString();
   }
 
   @Override
@@ -63,7 +62,6 @@ public class AutomatonSafetyProperty implements Property {
     int result = 1;
     result = prime * result + automaton.hashCode();
     result = prime * result + violationDescriptionExpression.hashCode();
-    result = prime * result + propertyViolationInstance.hashCode();
     return result;
   }
 
@@ -85,10 +83,6 @@ public class AutomatonSafetyProperty implements Property {
     }
 
     if (!automaton.equals(other.automaton)) {
-      return false;
-    }
-
-    if (!propertyViolationInstance.equals(other.propertyViolationInstance)) {
       return false;
     }
 
