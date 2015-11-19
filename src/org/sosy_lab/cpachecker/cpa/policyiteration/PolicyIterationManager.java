@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import static com.google.common.collect.Iterables.filter;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,7 +66,6 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -272,7 +273,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         throws CPAException, InterruptedException {
 
     final PolicyIntermediateState iState = state.asIntermediate();
-    final boolean hasTargetState = Iterables.filter(
+    final boolean hasTargetState = filter(
         AbstractStates.asIterable(pArgState),
         AbstractStates.IS_TARGET_STATE).iterator().hasNext();
     final boolean shouldPerformAbstraction = shouldPerformAbstraction(iState,
@@ -292,18 +293,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyPrecision toNodePrecision = templateManager.precisionForNode(
         state.getNode());
 
-    statistics.startAbstractionTimer();
-    try {
-      assert !state.isAbstract();
+    assert !state.isAbstract();
 
-      PolicyState outState = state;
+    PolicyState outState = state;
 
-      // Only update precision on abstracted states.
-      Precision newPrecision = shouldPerformAbstraction ?
-          toNodePrecision : precision;
+    // Only update precision on abstracted states.
+    Precision newPrecision = shouldPerformAbstraction ?
+        toNodePrecision : precision;
 
-      // Perform the abstraction, if necessary.
-      if (shouldPerformAbstraction) {
+    // Perform the abstraction, if necessary.
+    if (shouldPerformAbstraction) {
+
+      statistics.startAbstractionTimer();
+      try {
 
         // Formulas reported by other CPAs.
         BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
@@ -327,7 +329,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           // todo: emulate merge for congruence for faster convergence?..
           // Run value determination inside precision adjustment if the abstract
           // states are not joined.
-          logger.log(Level.FINE,  "Emulating value determination at node",
+          logger.log(Level.INFO,  "Emulating value determination at node ",
               state.getNode());
 
           PolicyAbstractedState latestSibling = siblings.iterator().next().getLatestVersion();
@@ -339,18 +341,19 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           for (PolicyAbstractedState sibling : siblings) {
             sibling.setNewVersion(outState.asAbstracted());
           }
+          logger.log(Level.FINE, "Resulting outState = ", outState.toDOTLabel());
         } else {
           outState = abstraction;
         }
+      } finally {
+        statistics.stopAbstractionTimer();
       }
+    }
 
       return Optional.of(PrecisionAdjustmentResult.create(
           outState,
           newPrecision,
           PrecisionAdjustmentResult.Action.CONTINUE));
-    } finally {
-      statistics.stopAbstractionTimer();
-    }
 
   }
 
@@ -435,7 +438,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         newState.getLocationID() == oldState.getLocationID());
     CFANode node = oldState.getNode();
 
-    if (isLessOrEqualNoCheck(newState, oldState)) {
+    if (isLessOrEqualAbstracted(newState, oldState)) {
 
       // New state does not introduce any updates.
       return oldState;
@@ -550,9 +553,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       newState.setNewVersion(out);
     }
 
-    Verify.verify(isLessOrEqualNoCheck(newState, out),
-        "Merged state should be larger than the subsumed one",
-        newState, out);
+    assert isLessOrEqualAbstracted(newState, out)
+           && isLessOrEqualAbstracted(oldState, out) :
+        "Merged state should be larger than the subsumed one";
 
     return out;
   }
@@ -634,6 +637,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       statistics.stopValueDeterminationTimer();
     }
 
+    logger.flush();
     return Optional.of(stateWithUpdates.updateAbstraction(newAbstraction));
   }
 
@@ -736,8 +740,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       locationID = otherStates.iterator().next().getLocationID();
     } else {
       locationID = locationIDGenerator.getFreshId();
-      logger.log(Level.FINE, "Generating new location ID", locationID);
       statistics.latestLocationID = locationID;
+      logger.log(Level.INFO, "Generating new location ID", locationID,
+          " for node ", state.getNode());
     }
 
     final PathFormula p = state.getPathFormula();
@@ -1013,8 +1018,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // If loopstackState is available,
         // do not compute abstractions at partial unrollings.
-        && (loopState == null || loopState.isLoopCounterAbstracted())
-        ) {
+        && (loopState == null || loopState.isLoopCounterAbstracted())) {
       return true;
     }
     return false;
@@ -1150,7 +1154,16 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
     try {
       statistics.comparisonTimer.start();
-      boolean out = isLessOrEqualNoCheck(state1, state2);
+      Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
+      boolean out;
+      if (state1.isAbstract()) {
+        out = isLessOrEqualAbstracted(state1.asAbstracted(),
+            state2.asAbstracted());
+      } else {
+        out = isLessOrEqualIntermediate(state1.asIntermediate(),
+            state2.asIntermediate());
+      }
+
       Verify.verify(!(state1.isAbstract() && joinOnMerge && !out),
           "In the join config '<=' check on abstracted states should always return 'true'",
           state1, state2);
@@ -1160,37 +1173,42 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
   }
 
-  private boolean isLessOrEqualNoCheck(PolicyState state1, PolicyState state2) {
-    Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
+  /**
+   * @return state1 <= state2
+   */
+  private boolean isLessOrEqualIntermediate(
+      PolicyIntermediateState state1,
+      PolicyIntermediateState state2) {
+    return state1.getPathFormula().getFormula().equals(
+        state2.getPathFormula().getFormula()
+    ) && isLessOrEqualAbstracted(state1.getGeneratingState(),
+        state2.getGeneratingState())
+   || state1.isMergedInto(state2);
+  }
 
-    if (state1.isAbstract()) {
-      PolicyAbstractedState aState1 = state1.asAbstracted();
-      PolicyAbstractedState aState2 = state2.asAbstracted();
+  /**
+   * @return state1 <= state2
+   */
+  private boolean isLessOrEqualAbstracted(
+      PolicyAbstractedState aState1,
+      PolicyAbstractedState aState2
+  ) {
+    if (!congruenceManager.isLessOrEqual(aState1.getCongruence(),
+        aState2.getCongruence())) {
+      return false;
+    }
 
-      if (!congruenceManager.isLessOrEqual(aState1.getCongruence(),
-          aState2.getCongruence())) {
+    for (Entry<Template, PolicyBound> e : aState2) {
+      Template t = e.getKey();
+      PolicyBound bound2 = e.getValue();
+
+      Optional<PolicyBound> bound1 = aState1.getBound(t);
+      if (!bound1.isPresent()
+          || bound1.get().getBound().compareTo(bound2.getBound()) >= 1) {
         return false;
       }
-
-      for (Entry<Template, PolicyBound> e : aState2) {
-        Template t = e.getKey();
-        PolicyBound bound = e.getValue();
-
-        Optional<PolicyBound> otherBound = aState1.getBound(t);
-        if (!otherBound.isPresent()
-            || otherBound.get().getBound().compareTo(bound.getBound()) >= 1) {
-          return false;
-        }
-      }
-      return true;
-    } else {
-      PolicyIntermediateState iState1 = state1.asIntermediate();
-      PolicyIntermediateState iState2 = state2.asIntermediate();
-      return iState1.getPathFormula().getFormula().equals(
-          iState2.getPathFormula().getFormula()
-      ) && iState1.getGeneratingState().equals(iState2.getGeneratingState())
-          || iState1.isMergedInto(iState2);
     }
+    return true;
   }
 
   private BooleanFormula extractReportedFormulas(AbstractState state) {
