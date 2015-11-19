@@ -63,7 +63,7 @@ public class DefaultOperator extends AbstractPartitioningOperator {
     }
 
     // If possible not equal to the last partitioning
-    if (pLastCheckedPartitioning.equals(partitions)) {
+    if (pLastCheckedPartitioning.getPartitions().equals(partitions)) {
       // Divide the partitioning into two halfs...
       return create(PartitioningStatus.CHEAPEST_BISECT, bisectPartitons(partitions, pPropertyExpenseComparator));
     }
