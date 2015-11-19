@@ -44,7 +44,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -272,52 +271,6 @@ public class ARGUtils {
     }
 
     return result.build();
-  }
-
-  /**
-   * Create a path in the ARG from root to the given element.
-   * If there are several such paths, one is chosen randomly.
-   *
-   * This is a copy of {@link #getOnePathTo(ARGState)}
-   * that should be used only if a {@link MutableARGPath}
-   * is strictly required as the return object
-   * (we hope we can remove {@link MutableARGPath} and this method
-   * sometime in the future).
-   *
-   * @param pLastElement The last element in the path.
-   * @return A path from root to lastElement.
-   */
-  public static MutableARGPath getOneMutablePathTo(ARGState pLastElement) {
-    MutableARGPath path = new MutableARGPath();
-    Set<ARGState> seenElements = new HashSet<>();
-
-    // each element of the path consists of the abstract state and the outgoing
-    // edge to its successor
-
-    ARGState currentARGState = pLastElement;
-    // add the error node and its -first- outgoing edge
-    // that edge is not important so we pick the first even
-    // if there are more outgoing edges
-    CFANode loc = extractLocation(currentARGState);
-    CFAEdge lastEdge = leavingEdges(loc).first().orNull();
-    path.addFirst(Pair.of(currentARGState, lastEdge));
-    seenElements.add(currentARGState);
-
-    while (!currentARGState.getParents().isEmpty()) {
-      Iterator<ARGState> parents = currentARGState.getParents().iterator();
-
-      ARGState parentElement = parents.next();
-      while (!seenElements.add(parentElement) && parents.hasNext()) {
-        // while seenElements already contained parentElement, try next parent
-        parentElement = parents.next();
-      }
-
-      CFAEdge edge = parentElement.getEdgeToChild(currentARGState);
-      path.addFirst(Pair.of(parentElement, edge));
-
-      currentARGState = parentElement;
-    }
-    return path;
   }
 
   /**
