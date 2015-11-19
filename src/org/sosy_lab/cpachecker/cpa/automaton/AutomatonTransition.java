@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpressio
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
@@ -56,7 +57,7 @@ class AutomatonTransition {
   private final ImmutableList<AStatement> assumption;
   private final boolean assumptionTruth;
   private final ImmutableList<AutomatonAction> actions;
-  private final StringExpression violatedPropertyDescription;
+  private final StringExpression violationDescriptionExpression;
 
   /**
    * In some cases, we do not want AutomatonTransition because it encodes
@@ -90,7 +91,7 @@ class AutomatonTransition {
           pT.assertion,
           pT.assumption,
           pT.actions,
-          pT.violatedPropertyDescription);
+          pT.violationDescriptionExpression);
     }
 
     @Override
@@ -222,7 +223,7 @@ class AutomatonTransition {
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
-    this.violatedPropertyDescription = pViolatedPropertyDescription;
+    this.violationDescriptionExpression = pViolatedPropertyDescription;
 
     if (pAssertions.isEmpty()) {
       this.assertion = AutomatonBoolExpr.TRUE;
@@ -266,12 +267,12 @@ class AutomatonTransition {
       return Equality.UNKNOWN;
     }
 
-    if (this.violatedPropertyDescription == null) {
+    if (this.violationDescriptionExpression == null) {
       if (pT.violatedPropertyDescription != null) {
         return Equality.UNEQUAL;
       }
     } else {
-      if (!this.violatedPropertyDescription.equals(pT.violatedPropertyDescription)) {
+      if (!this.violationDescriptionExpression.equals(pT.violatedPropertyDescription)) {
         return Equality.UNEQUAL;
       }
     }
@@ -373,14 +374,18 @@ class AutomatonTransition {
     return trigger;
   }
 
+  public Optional<StringExpression> getViolationDescriptionExpression() {
+    return Optional.fromNullable(violationDescriptionExpression);
+  }
+
   public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
-    if (violatedPropertyDescription == null) {
+    if (violationDescriptionExpression == null) {
       if (getFollowState().isTarget()) {
           return getFollowState().getName();
       }
       return null;
     }
-    return (String)violatedPropertyDescription.eval(pArgs).getValue();
+    return (String)violationDescriptionExpression.eval(pArgs).getValue();
   }
 
   @Override
