@@ -50,6 +50,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -309,12 +310,21 @@ public class ARGPath implements Appender {
     /**
      * Add the given state and edge to the ARGPath that should be created.
      */
-    public abstract ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge);
+    public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
+      states.add(state);
+      edges.add(outgoingEdge);
+      return this;
+    }
 
     /**
      * Remove the state and edge that were added at last.
      */
-    public abstract ARGPathBuilder removeLast();
+    public ARGPathBuilder removeLast() {
+      assert !states.isEmpty() && !edges.isEmpty();
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
+      return this;
+    }
 
     /**
      * Build the ARGPath.
@@ -330,21 +340,6 @@ public class ARGPath implements Appender {
    * at the end of the Path.
    */
   private static class DefaultARGPathBuilder extends ARGPathBuilder {
-
-    @Override
-    public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
-      states.add(state);
-      edges.add(outgoingEdge);
-      return this;
-    }
-
-    @Override
-    public ARGPathBuilder removeLast() {
-      assert !states.isEmpty() && !edges.isEmpty();
-      states.remove(states.size()-1);
-      edges.remove(edges.size()-1);
-      return this;
-    }
 
     @Override
     public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
@@ -364,27 +359,12 @@ public class ARGPath implements Appender {
   private static class ReverseARGPathBuilder extends ARGPathBuilder {
 
     @Override
-    public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
-      states.add(0, state);
-      edges.add(0, outgoingEdge);
-      return this;
-    }
-
-    @Override
-    public ARGPathBuilder removeLast() {
-      assert !states.isEmpty() && !edges.isEmpty();
-      states.remove(0);
-      edges.remove(0);
-      return this;
-    }
-
-    @Override
     public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
-      states.add(0, pState);
-      edges.add(0, pLastEdge);
-      ARGPath path = new ARGPath(states, edges);
-      states.remove(0);
-      edges.remove(0);
+      states.add(pState);
+      edges.add(pLastEdge);
+      ARGPath path = new ARGPath(Lists.reverse(states), Lists.reverse(edges));
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
       return path;
     }
   }
