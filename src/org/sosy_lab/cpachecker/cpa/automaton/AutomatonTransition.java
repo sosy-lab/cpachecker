@@ -58,6 +58,15 @@ public class AutomatonTransition {
   private final StringExpression violatedPropertyDescription;
 
   /**
+   * When the parser instances this class it can not assign a followstate because
+   * that state might not be created (forward-reference).
+   * Only the name is known in the beginning and the followstate relation must be
+   * resolved by calling setFollowState() when all States are known.
+   */
+  private final String followStateName;
+  private AutomatonInternalState followState = null;
+
+  /**
    * In some cases, we do not want AutomatonTransition because it encodes
    *    the follower state.
    *    And we do not want to get into trouble with 'equals' (therefore we do not use inheritance)
@@ -160,16 +169,6 @@ public class AutomatonTransition {
     }
 
   }
-
-
-  /**
-   * When the parser instances this class it can not assign a followstate because
-   * that state might not be created (forward-reference).
-   * Only the name is known in the beginning and the followstate relation must be
-   * resolved by calling setFollowState() when all States are known.
-   */
-  private final String followStateName;
-  private AutomatonInternalState followState = null;
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions,
