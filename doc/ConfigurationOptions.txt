@@ -338,11 +338,8 @@ cbmc.options.unwindings = 0
 
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-# maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
-# infinite)
 # maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0ms
-cbmc.timelimit = no default value
 cbmc.timelimit = 0
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
@@ -494,16 +491,11 @@ configuration.dumpFile = "UsedConfiguration.properties"
 # Currently CBMC or CPAchecker with a different config or the concrete
 # execution 
 # checker can be used.
-# which model checker to use for verifying counterexamples as a second check
-# Currently CBMC or CPAchecker with a different config can be used.
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
-counterexample.checker = no default value
-  allowed values: [CBMC, CPACHECKER, REALC]
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
-counterexample.checker.config = no default value
 
 # File name where to put the path specification that is generated as input
 # for the counterexample check. A temporary file is used if this is
@@ -526,7 +518,6 @@ counterexample.concrete.timelimit = 0ms
 # continue analysis after an counterexample was found that was denied by the
 # second check
 counterexample.continueAfterInfeasibleError = true
-counterexample.continueAfterInfeasibleError = no default value
 
 # If the option assumeLinearArithmetics is set, this option can be used to
 # allow division and modulo by constants.
@@ -557,7 +548,6 @@ counterexample.presenceConditionFile = "ErrorPath.%d.presenceCondition.txt"
 # counterexample before continuing.Setting this to false may prevent a lot of
 # similar infeasible counterexamples to get discovered, but is unsound
 counterexample.removeInfeasibleErrors = false
-counterexample.removeInfeasibleErrors = no default value
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
@@ -688,28 +678,22 @@ cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
-cpa.arg.witness.exportAssumeCaseInfo = no default value
 
 # Verification witness: Include assumptions (C statements)?
 cpa.arg.witness.exportAssumptions = true
-cpa.arg.witness.exportAssumptions = no default value
 
 # Verification witness: Include function calls and function returns?
 cpa.arg.witness.exportFunctionCallsAndReturns = true
-cpa.arg.witness.exportFunctionCallsAndReturns = no default value
 
 # Verification witness: Include the (starting) line numbers of the operations
 # on the transitions?
 cpa.arg.witness.exportLineNumbers = true
-cpa.arg.witness.exportLineNumbers = no default value
 
 # Verification witness: Include the offset within the file?
 cpa.arg.witness.exportOffset = true
-cpa.arg.witness.exportOffset = no default value
 
 # Verification witness: Include the sourcecode of the operations?
 cpa.arg.witness.exportSourcecode = true
-cpa.arg.witness.exportSourcecode = no default value
 
 # signal the analysis to break in case the given number of error state is
 # reached 
@@ -1293,8 +1277,6 @@ cpa.predicate.handleImplicitInitialization = true
 # Handle aliasing of pointers. This adds disjunctions to the formulas, so be
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
-cpa.predicate.handlePointerAliasing = true
-cpa.predicate.handlePointerAliasing = no default value
 
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
@@ -1434,6 +1416,13 @@ cpa.predicate.refinement.dumpCounterexampleFile = "ErrorPath.%d.smt2"
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
+
+# Should the automata used for invariant generation be dumped to files?
+cpa.predicate.refinement.dumpInvariantGenerationAutomata = false
+
+# Where to dump the automata that are used to narrow the analysis used for
+# invariant generation.
+cpa.predicate.refinement.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
 
 # After each refinement, dump the newly found predicates.
 cpa.predicate.refinement.dumpPredicates = false
@@ -2157,14 +2146,10 @@ custominstructions.requirementsStateClassName = no default value
 
 # Option to change the behaviour of the loop detection for generating the
 # Counterexample-C-Code that will probably be used to generate invariants.
-# All loops will probably make no sense, as this will most likely be a huge
-# part of the program and we do only want to create invariants for as small
-# parts as possible. Also due to the incremental finding of counterexamples
-# former loops may have been handled before. Thus only recreating the last
-# loop is the default. Note that last loop means the first loop encountered
-# when backwards traversing the given ARGPath, thus, the last loop may
-# contain other loops, which are in turn also counted to the last loop.
-cwriter.withLoops.loopDetectionStrategy = ONLY_LAST_LOOP
+# Note that last loop means the first loop encountered when backwards
+# traversing the given ARGPath, thus, the last loop may contain other loops,
+# which are in turn also counted to the last loop.
+cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
 # Enable to use lazy refinement in current analysis instead of restarting
@@ -2402,7 +2387,6 @@ precondition.solverbasedInterpolation = false
 
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []
-properties = no default value
 
 # print reached set to graph file
 reachedSet.dot = "reached.dot"
@@ -2410,17 +2394,6 @@ reachedSet.dot = "reached.dot"
 # print reached set to text file
 reachedSet.export = false
 reachedSet.file = "reached.txt"
-
-# File name where to put the path program that is generated as input for a
-# common c compiler. A temporary file is used if this is unspecified. 
-realC.dumpRealCfile = no default value
-
-# Path to the compiler. Can be absolute or on PATH
-realC.pathToCompiler = no default value
-
-# maximum time limit for realC (use milliseconds or specify a unit; 0 for
-# infinite)
-realC.timelimit = no default value
 
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
@@ -2586,8 +2559,7 @@ testgen.automatonExportPaths = "automaton/next_automaton%s_%s.spc"
 
 # The path selector for TestGenAlgorithm
 testgen.pathSelector = CUTE_PATH_SELECTOR
-  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR,
-             CUTE_LIKE]
+  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR]
 
 # Set this to true to get the automaton files for exploring new Paths. You
 # also get the ARG as dot file and the local reached set for every algoritm

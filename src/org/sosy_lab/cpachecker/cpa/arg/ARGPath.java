@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.io.IOException;
 import java.util.AbstractList;
@@ -60,11 +58,7 @@ import com.google.common.collect.Lists;
  * Very often, the first state is the root state of the ARG,
  * and the last state is a target state, though this is not guaranteed.
  *
- * The number of states and edges is currently always equal.
- * To achieve this, the last edge is an outgoing edge of the location of the last state.
- * If you want only the edges up to the last state and not beyond,
- * use {@link #getInnerEdges()} or {@link #pathIterator()}
- * instead of {@link #asEdgesList()} (this is recommended).
+ * The number of states is always one larger than the number of edges.
  *
  * States on this path cannot be null.
  * Edges can be null,
@@ -86,31 +80,20 @@ public class ARGPath implements Appender {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
-    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size());
+    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size()-1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
       ARGState child = states.get(i+1);
       edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
     }
 
-    // For backwards compatibility,
-    // the list of states and edges should have same length.
-    // For this, we add one outgoing edge of the last state to the list.
-    CFANode lastLoc = extractLocation(states.get(states.size()-1));
-    edgesBuilder.add(leavingEdges(lastLoc).first().orNull());
-
     edges = Collections.unmodifiableList(edgesBuilder);
-    assert states.size() == edges.size();
+    assert states.size() - 1 == edges.size();
   }
 
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
-    checkArgument(pStates.size() == pEdges.size(), "ARGPaths must have equal number of states and edges");
-    CFAEdge lastEdge = pEdges.get(pEdges.size()-1);
-    if (lastEdge != null) {
-      CFANode lastLoc = extractLocation(pStates.get(pStates.size()-1));
-      checkArgument(leavingEdges(lastLoc).contains(lastEdge));
-    }
+    checkArgument(pStates.size() - 1 == pEdges.size(), "ARGPaths must have one state more than edges");
 
     states = ImmutableList.copyOf(pStates);
     edges = Collections.unmodifiableList(new ArrayList<>(pEdges));
@@ -120,17 +103,15 @@ public class ARGPath implements Appender {
     return states;
   }
 
-  public List<CFAEdge> asEdgesList() {
-    return edges;
-  }
-
   /**
    * This method returns the transition, as pair of state and edge, at the given offset.
    *
    * @param pOffset
    * @return the pair of state and edge at the given offset
+   * @throws IndexOutOfBoundsException If the offset is beyond the last edge (greater or equal than {@code getInnerEdges().size()}).
    */
   public Pair<ARGState, CFAEdge> obtainTransitionAt(int pOffset) {
+    checkElementIndex(pOffset, edges.size());
     return Pair.of(states.get(pOffset), edges.get(pOffset));
   }
 
@@ -147,13 +128,12 @@ public class ARGPath implements Appender {
   }
 
   /**
-   * Only return the list of edges between the states,
-   * excluding the one edge after the last state.
+   * Return the list of edges between the states.
    * The result of this method is always one element shorter
-   * than {@link #asEdgesList()}.
+   * than {@link #asStatesList()}.
    */
   public List<CFAEdge> getInnerEdges() {
-    return edges.subList(0, edges.size()-1);
+    return edges;
   }
 
   public ImmutableSet<ARGState> getStateSet() {
@@ -347,12 +327,9 @@ public class ARGPath implements Appender {
     }
 
     /**
-     * Build the ARGPath.
-     *
-     * In the future we want to remove the edge given to the build method. An
-     * outgoing edge of the last state of a path does not make sense.
+     * Build the ARGPath using the given state as the last state.
      */
-    public abstract ARGPath build(ARGState state, CFAEdge lastEdge);
+    public abstract ARGPath build(ARGState state);
   }
 
   /**
@@ -362,12 +339,10 @@ public class ARGPath implements Appender {
   private static class DefaultARGPathBuilder extends ARGPathBuilder {
 
     @Override
-    public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
+    public ARGPath build(ARGState pState) {
       states.add(pState);
-      edges.add(pLastEdge);
       ARGPath path = new ARGPath(states, edges);
       states.remove(states.size()-1);
-      edges.remove(edges.size()-1);
       return path;
     }
   }
@@ -379,12 +354,10 @@ public class ARGPath implements Appender {
   private static class ReverseARGPathBuilder extends ARGPathBuilder {
 
     @Override
-    public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
+    public ARGPath build(ARGState pState) {
       states.add(pState);
-      edges.add(pLastEdge);
       ARGPath path = new ARGPath(Lists.reverse(states), Lists.reverse(edges));
       states.remove(states.size()-1);
-      edges.remove(edges.size()-1);
       return path;
     }
   }
@@ -520,7 +493,7 @@ public class ARGPath implements Appender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getPrefixInclusive() {
-      return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos+1));
+      return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
     }
 
     /**
@@ -533,7 +506,7 @@ public class ARGPath implements Appender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getPrefixExclusive() {
-      return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos));
+      return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos-1));
     }
   }
 

@@ -468,12 +468,8 @@ public class ARGUtils {
       currentElement = child;
     }
 
-
-    // need to add another pair with target state and one (arbitrary) outgoing edge
-    CFANode loc = extractLocation(currentElement);
-    CFAEdge lastEdge = leavingEdges(loc).first().orNull();
+    // add last state
     states.add(currentElement);
-    edges.add(lastEdge);
 
     return new ARGPath(states, edges);
   }

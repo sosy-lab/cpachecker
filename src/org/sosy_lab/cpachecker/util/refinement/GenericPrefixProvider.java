@@ -142,14 +142,8 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         if (!successor.isPresent()) {
           logger.log(Level.FINE, "found infeasible prefix: ", outgoingEdge, " did not yield a successor");
 
-
-          // for interpolation, one transition after the infeasible transition is needed,
-          // so we add exactly that extra transition to the successor state
           ARGState lastState = path.asStatesList().get(feasiblePrefixBuilder.size());
-          CFAEdge lastEdge = path.getInnerEdges().get(feasiblePrefixBuilder.size());
-          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState,
-                                                                 BlankEdge.buildNoopEdge(lastEdge.getPredecessor(),
-                                                                                         lastEdge.getSuccessor()));
+          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState);
 
           // add infeasible prefix
           prefixes.add(buildInfeasiblePrefix(infeasiblePrefix));
@@ -159,9 +153,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
           // if the loop is ending after this iteration we need to set the feasible prefix
           if (!iterator.hasNext()) {
-            feasiblePrefix = feasiblePrefixBuilder.build(currentState,
-                                                          BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
-                                                                                  outgoingEdge.getSuccessor()));
+            feasiblePrefix = feasiblePrefixBuilder.build(currentState);
 
             // continue with feasible prefix
           } else {

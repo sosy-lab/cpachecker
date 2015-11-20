@@ -513,7 +513,6 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     @Override
     public ARGPath getNextPathForInterpolation() {
       ARGPathBuilder errorPathBuilder = ARGPath.builder();
-      ARGPath errorPath = null;
 
       ARGState current = sources.pop();
 
@@ -544,14 +543,9 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
         assert(size <= 2);
 
         current = child;
-
-        // add out-going edges of final state, too (just for compatibility reasons to compare to DelegatingRefiner)
-        if (!successorRelation.get(current).iterator().hasNext()) {
-          errorPath = errorPathBuilder.build(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull());
-        }
       }
 
-      return errorPath;
+      return errorPathBuilder.build(current);
     }
 
     /**
@@ -598,7 +592,6 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
       assert current.isTarget() : "current element is not a target";
 
       ARGPathBuilder errorPathBuilder = ARGPath.reverseBuilder();
-      ARGPath errorPath = null;
 
       errorPathBuilder.add(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull());
 
@@ -613,14 +606,12 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
         if (predecessorRelation.get(parent) != null) {
           errorPathBuilder.add(parent, parent.getEdgeToChild(current));
-        } else {
-          errorPath = errorPathBuilder.build(parent, parent.getEdgeToChild(current));
         }
 
         current = parent;
       }
 
-      return errorPath;
+      return errorPathBuilder.build(current);
     }
 
     @Override

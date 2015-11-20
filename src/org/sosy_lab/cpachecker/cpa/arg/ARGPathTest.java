@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,7 +73,6 @@ public class ARGPathTest {
   public void testDefaultBuilderBuild() {
     ARGPathBuilder builder = ARGPath.builder();
     builder.add(state, edge);
-    CFAEdge secondEdge = null; // last edge is null
     ARGState secondState = new ARGState(null, null);
 
     List<ARGState> states = new ArrayList<>();
@@ -82,10 +80,9 @@ public class ARGPathTest {
     states.add(secondState);
     List<CFAEdge> edges = new ArrayList<>();
     edges.add(edge);
-    edges.add(secondEdge);
     ARGPath path = new ARGPath(states, edges);
 
-    assertTrue(builder.build(secondState, secondEdge).equals(path));
+    assertThat(builder.build(secondState)).isEqualTo(path);
     assertThat(builder.edges).containsExactly(edge);
     assertThat(builder.states).containsExactly(state);
   }
@@ -93,20 +90,18 @@ public class ARGPathTest {
   @Test
   public void testReverseBuilderBuild() {
     ARGPathBuilder builder = ARGPath.reverseBuilder();
-    CFAEdge secondEdge = null; // last edge is null
     ARGState secondState = new ARGState(null, null);
-    builder.add(secondState, secondEdge);
+    builder.add(secondState, edge);
 
     List<ARGState> states = new ArrayList<>();
     states.add(state);
     states.add(secondState);
     List<CFAEdge> edges = new ArrayList<>();
     edges.add(edge);
-    edges.add(secondEdge);
     ARGPath path = new ARGPath(states, edges);
 
-    assertTrue(builder.build(state, edge).equals(path));
-    assertThat(builder.edges).containsExactly(secondEdge);
+    assertThat(builder.build(state)).isEqualTo(path);
+    assertThat(builder.edges).containsExactly(edge);
     assertThat(builder.states).containsExactly(secondState);
   }
 
