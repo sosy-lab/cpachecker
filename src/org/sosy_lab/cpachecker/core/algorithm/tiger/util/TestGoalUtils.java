@@ -96,19 +96,18 @@ public class TestGoalUtils {
     return fqlSpecification;
   }
 
-  public LinkedList<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, int pStatistics_numberOfTestGoals,
-      Prediction[] pGoalPrediction, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
+  public LinkedList<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
+      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator, boolean pOptimizeGoalAutomata) {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
 
     if (pInfeasibilityPropagation.getFirst()) {
-      goalPatterns =
-          extractTestGoalPatterns_InfeasibilityPropagation(pFqlSpecification, pStatistics_numberOfTestGoals,
-              pInfeasibilityPropagation.getSecond(), pCoverageSpecificationTranslator);
+      goalPatterns = extractTestGoalPatterns_InfeasibilityPropagation(pFqlSpecification,
+          pInfeasibilityPropagation.getSecond(), pCoverageSpecificationTranslator);
 
-      pGoalPrediction = new Prediction[pStatistics_numberOfTestGoals];
+      pGoalPrediction = new Prediction[goalPatterns.size()];
 
-      for (int i = 0; i < pStatistics_numberOfTestGoals; i++) {
+      for (int i = 0; i < goalPatterns.size(); i++) {
         pGoalPrediction[i] = Prediction.UNKNOWN;
       }
     } else {
@@ -141,7 +140,7 @@ public class TestGoalUtils {
   }
 
   private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns_InfeasibilityPropagation(
-      FQLSpecification pFQLQuery, int pStatistics_numberOfTestGoals, LinkedList<Edges> pEdges,
+      FQLSpecification pFQLQuery, LinkedList<Edges> pEdges,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
     logger.logf(Level.INFO, "Extracting test goals.");
 
@@ -151,13 +150,10 @@ public class TestGoalUtils {
             lInitialNode);
 
     ElementaryCoveragePattern[] lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
-    pStatistics_numberOfTestGoals = lGoalPatterns.length;
-
-    logger.logf(Level.INFO, "Number of test goals: %d", pStatistics_numberOfTestGoals);
 
     LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
 
-    for (int lGoalIndex = 0; lGoalIndex < pStatistics_numberOfTestGoals; lGoalIndex++) {
+    for (int lGoalIndex = 0; lGoalIndex < lGoalPatterns.length; lGoalIndex++) {
       goalPatterns.add(lGoalPatterns[lGoalIndex]);
     }
 
@@ -175,12 +171,10 @@ public class TestGoalUtils {
     IncrementalCoverageSpecificationTranslator lTranslator =
         new IncrementalCoverageSpecificationTranslator(pCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    int numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
-    logger.logf(Level.INFO, "Number of test goals: %d", numberOfTestGoals);
-
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
     LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
 
+    int numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
     for (int lGoalIndex = 0; lGoalIndex < numberOfTestGoals; lGoalIndex++) {
       lGoalPatterns.add(lGoalIterator.next());
     }

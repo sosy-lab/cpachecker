@@ -98,7 +98,6 @@ public class TestSuite {
       } else {
         goal.setInfeasiblePresenceCondition(presenceCondition);
       }
-      goal.setRemainingPresenceCondition(bddCpaNamedRegionManager.makeFalse());
     }
 
     if (!infeasibleGoals.contains(goal)) {

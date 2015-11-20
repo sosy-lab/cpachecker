@@ -347,10 +347,11 @@ public class TigerAlgorithm
     // Optimization: Infeasibility propagation
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
 
-    LinkedList<Goal> pGoalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification,
-        statistics_numberOfTestGoals, lGoalPrediction, lInfeasibilityPropagation, mCoverageSpecificationTranslator,
-        optimizeGoalAutomata);
+    LinkedList<Goal> pGoalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
+        lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata);
     statistics_numberOfTestGoals = pGoalsToCover.size();
+    logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
+
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
@@ -459,14 +460,17 @@ public class TigerAlgorithm
         //          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
         //        }
         //
-        //        if (checkCoverage && isCovered(goal)) {
-        //          if (lGoalPrediction != null) {
-        //            lGoalPrediction[goal.getIndex() - 1] = Prediction.FEASIBLE;
-        //          }
-        //          continue;
-        //        }
+        if (checkCoverage) {
+          for (Goal goalToBeChecked : goalsToBeProcessed) {
+            if (isCovered(goalToBeChecked)) {
+              if (lGoalPrediction != null) {
+                lGoalPrediction[goalToBeChecked.getIndex() - 1] = Prediction.FEASIBLE;
+              }
+            }
+          }
+        }
 
-        if (testsuite.areGoalsInfeasible(goalsToBeProcessed)) {
+        if (testsuite.areGoalsCoveredOrInfeasible(goalsToBeProcessed)) {
           continue;
         }
 
@@ -616,7 +620,7 @@ public class TigerAlgorithm
                       .makeAnd(pGoal.getRemainingPresenceCondition(), goalCriticalStateRegion)
                       .isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
                     testsuite.addTestCase(testcase, pGoal, goalCriticalStateRegion);
-                    logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s!",
+                    logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by existing test case!",
                         pGoal.getIndex(), testsuite.getTestGoalLabel(pGoal),
                         bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion));
                     logger.logf(Level.WARNING, "Remaining PC %s!",
@@ -630,6 +634,8 @@ public class TigerAlgorithm
         }
       } else {
         testsuite.addTestCase(testcase, pGoal, null);
+        logger.logf(Level.WARNING, "Covered Goal %d (%s) by existing test case!", pGoal.getIndex(),
+            testsuite.getTestGoalLabel(pGoal));
         if (!allCoveredGoalsPerTestCase) { return true; }
       }
     }
@@ -805,7 +811,7 @@ public class TigerAlgorithm
     // TODO: no timeout?
     for (Goal goal : pTestGoalsToBeProcessed) {
       if (!testsuite.isGoalCovered(goal)) {
-        handleInfeasibleTestGoal(goal, goal.getRemainingPresenceCondition(), pInfeasibilityPropagation);
+        handleInfeasibleTestGoal(goal, pInfeasibilityPropagation);
       }
     }
 
@@ -996,6 +1002,7 @@ public class TigerAlgorithm
                       bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion));
                   logger.logf(Level.WARNING, "Remaining PC %s!",
                       bddCpaNamedRegionManager.dumpRegion(pGoal.getRemainingPresenceCondition()));
+                  break;
                 }
               }
             }
@@ -1085,16 +1092,16 @@ public class TigerAlgorithm
     testsuite.addTestCase(testcase, pGoal, testCaseCriticalStateRegion);
   }
 
-  private void handleInfeasibleTestGoal(Goal pGoal, Region pRemainingPresenceCondition,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+  private void handleInfeasibleTestGoal(Goal pGoal, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
     if (lGoalPrediction != null) {
       lGoalPrediction[pGoal.getIndex() - 1] = Prediction.INFEASIBLE;
     }
 
     if (useTigerAlgorithm_with_pc) {
-      testsuite.addInfeasibleGoal(pGoal, pRemainingPresenceCondition, lGoalPrediction);
-      pGoal.setInfeasiblePresenceCondition(pRemainingPresenceCondition);
-      pGoal.setRemainingPresenceCondition(bddCpaNamedRegionManager.makeFalse());
+      testsuite.addInfeasibleGoal(pGoal, pGoal.getRemainingPresenceCondition(), lGoalPrediction);
+      pGoal.setInfeasiblePresenceCondition(pGoal.getRemainingPresenceCondition());
+      logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", pGoal.getIndex(),
+          bddCpaNamedRegionManager.dumpRegion(pGoal.getRemainingPresenceCondition()));
     } else {
       testsuite.addInfeasibleGoal(pGoal, null, lGoalPrediction);
     }
