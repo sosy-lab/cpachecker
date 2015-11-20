@@ -1313,8 +1313,7 @@ public class TigerAlgorithm
       pOut.println("Number of timedout test goals:                     " + timedoutGoals);
       pOut.println("Number of partially timedout test goals:           " + partiallyTimedoutGoals);
 
-      if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals()
-          + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
+      if (timedoutGoals > 0 || partiallyTimedoutGoals > 0) {
         pOut.println("Timeout occured during processing of a test goal!");
       }
     } else {
@@ -1322,8 +1321,7 @@ public class TigerAlgorithm
       pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
       pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
 
-      if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals()
-          + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
+      if (testsuite.getNumberOfTimedoutTestGoals() > 0) {
         pOut.println("Timeout occured during processing of a test goal!");
       }
     }
