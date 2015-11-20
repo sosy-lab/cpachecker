@@ -412,6 +412,7 @@ public class TigerAlgorithm
       }
 
       // TODO: remove covered and infeasible test goals from set?
+      // TODO: remove loop? it is not necessary anymore if we call the tiger-algorithm until the complete state space is covered for each goal
       while (!testsuite.areGoalsCoveredOrInfeasible(goalsToBeProcessed)) {
         if (useTigerAlgorithm_with_pc) {
           /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
@@ -481,24 +482,6 @@ public class TigerAlgorithm
         if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
           continue;
         }
-
-        // TODO: enable
-        //        if (useTigerAlgorithm_with_pc) {
-        //          // update PC coverage todo
-        //          try {
-        //            if (testsuite.isTestGoalInfeasible(goal) &&
-        //                bddCpaNamedRegionManager.entails(goal.getInfeasiblePresenceCondition(),
-        //                    goal.getRemainingPresenceCondition())) {
-        //              // 1st condition: this goal is infeasible for some constraint
-        //              // 2nd condition: remainingPCforGoalCoverage is part of this constraint (implied by this constraint)
-        //              logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", goal.getIndex(),
-        //                  bddCpaNamedRegionManager.dumpRegion(goal.getRemainingPresenceCondition()));
-        //              goal.setRemainingPresenceCondition(bddCpaNamedRegionManager.makeFalse());
-        //              // remainingPCforGoalCoverage := FALSE ensures that the while loop exits and the next goal is processed.
-        //            }
-        //          } catch (SolverException e) {
-        //          }
-        //        }
       }
     }
 
@@ -751,14 +734,6 @@ public class TigerAlgorithm
       }
     }
 
-    // TODO: BLUBB
-//    if (algorithmStatus != ReachabilityAnalysisResult.TIMEDOUT) {
-//      // TODO: enable tiger techniques for multi-goal generation in one run
-//      for (Goal goal : pTestGoalsToBeProcessed) {
-//        handleCounterexample(goal, lRemainingPresenceCondition, lARTCPA, pInfeasibilityPropagation);
-//      }
-//    }
-
     return algorithmStatus;
   }
 
@@ -827,6 +802,7 @@ public class TigerAlgorithm
       }
     } while (reachedSet.hasWaitingState() && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed));
 
+    // TODO: no timeout?
     for (Goal goal : pTestGoalsToBeProcessed) {
       if (!testsuite.isGoalCovered(goal)) {
         handleInfeasibleTestGoal(goal, goal.getRemainingPresenceCondition(), pInfeasibilityPropagation);
