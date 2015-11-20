@@ -308,9 +308,9 @@ public class TestSuite {
     return true;
   }
 
-  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition) {
+  public void addTimedOutGoals(Set<Goal> pTestGoalsToBeProcessed) {
     for (Goal goal : pTestGoalsToBeProcessed) {
-      addTimedOutGoal(goal, pRemainingPresenceCondition);
+      addTimedOutGoal(goal, goal.getRemainingPresenceCondition());
     }
   }
 

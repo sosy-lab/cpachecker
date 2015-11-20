@@ -484,7 +484,7 @@ public class TigerAlgorithm
         //        previousAutomaton = currentAutomaton;
 
         if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
-          continue;
+          break;
         }
       }
     }
@@ -783,12 +783,7 @@ public class TigerAlgorithm
         }
       }
 
-      if (algorithmStatus == ReachabilityAnalysisResult.TIMEDOUT) {
-        logger.logf(Level.INFO, "Test goal timed out!");
-
-        // TODO: Handle Timeout
-        testsuite.addTimedOutGoals(pTestGoalsToBeProcessed, pRemainingPresenceCondition);
-      } else {
+      if (algorithmStatus != ReachabilityAnalysisResult.TIMEDOUT) {
         // TODO: enable tiger techniques for multi-goal generation in one run
         handleCounterexample(pTestGoalsToBeProcessed, pRemainingPresenceCondition, pARTCPA, pInfeasibilityPropagation);
 
@@ -806,12 +801,18 @@ public class TigerAlgorithm
           }
         }
       }
-    } while (reachedSet.hasWaitingState() && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed));
+    } while ((reachedSet.hasWaitingState() && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
+        && (algorithmStatus != ReachabilityAnalysisResult.TIMEDOUT));
 
-    // TODO: no timeout?
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      if (!testsuite.isGoalCovered(goal)) {
-        handleInfeasibleTestGoal(goal, pInfeasibilityPropagation);
+    if (algorithmStatus == ReachabilityAnalysisResult.TIMEDOUT) {
+      logger.logf(Level.INFO, "Test goal timed out!");
+      testsuite.addTimedOutGoals(pTestGoalsToBeProcessed);
+    } else {
+      // set test goals infeasible
+      for (Goal goal : pTestGoalsToBeProcessed) {
+        if (!testsuite.isGoalCovered(goal)) {
+          handleInfeasibleTestGoal(goal, pInfeasibilityPropagation);
+        }
       }
     }
 
