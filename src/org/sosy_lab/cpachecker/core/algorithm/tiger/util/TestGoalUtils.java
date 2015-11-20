@@ -115,7 +115,7 @@ public class TestGoalUtils {
       // (ii) translate query into set of test goals
       // I didn't move this operation to the constructor since it is a potentially expensive operation.
       goalPatterns =
-          extractTestGoalPatterns(pFqlSpecification, pStatistics_numberOfTestGoals, pCoverageSpecificationTranslator);
+          extractTestGoalPatterns(pFqlSpecification, pCoverageSpecificationTranslator);
       // each test goal needs to be covered in all (if possible) products.
       // Therefore we add a "todo" presence-condition TRUE to each test goal
       // it is the "maximum" set of products for which we try to cover this goal (could be useful to limit this set if we have feature models?)
@@ -165,7 +165,7 @@ public class TestGoalUtils {
   }
 
   private LinkedList<ElementaryCoveragePattern> extractTestGoalPatterns(FQLSpecification pFQLQuery,
-      int pStatistics_numberOfTestGoals, CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
+      CoverageSpecificationTranslator pCoverageSpecificationTranslator) {
     logger.logf(Level.INFO, "Extracting test goals.");
 
     // TODO check for (temporarily) unsupported features
@@ -175,13 +175,13 @@ public class TestGoalUtils {
     IncrementalCoverageSpecificationTranslator lTranslator =
         new IncrementalCoverageSpecificationTranslator(pCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    pStatistics_numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
-    logger.logf(Level.INFO, "Number of test goals: %d", pStatistics_numberOfTestGoals);
+    int numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
+    logger.logf(Level.INFO, "Number of test goals: %d", numberOfTestGoals);
 
     Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
     LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
 
-    for (int lGoalIndex = 0; lGoalIndex < pStatistics_numberOfTestGoals; lGoalIndex++) {
+    for (int lGoalIndex = 0; lGoalIndex < numberOfTestGoals; lGoalIndex++) {
       lGoalPatterns.add(lGoalIterator.next());
     }
 

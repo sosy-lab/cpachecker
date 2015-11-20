@@ -328,4 +328,8 @@ public class TestSuite {
     return isGoalCovered(pGoal) || isGoalInfeasible(pGoal);
   }
 
+  public boolean isGoalTimedout(Goal pGoal) {
+    return timedOutGoals.containsKey(pGoal);
+  }
+
 }

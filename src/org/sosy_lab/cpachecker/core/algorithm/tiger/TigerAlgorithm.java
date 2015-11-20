@@ -1258,34 +1258,76 @@ public class TigerAlgorithm
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    // TODO Print information about feasible, infeasible, timed-out, and unprocessed test goals.
+    pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
+    pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
 
-    if (testsuiteFile != null) {
-      // write generated test suite and mapping to file system
-      try (Writer writer =
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.toFile()), "utf-8"))) {
-        writer.write(testsuite.toString());
-        writer.close();
-      } catch (IOException e) {
-        throw new RuntimeException(e);
+    if (useTigerAlgorithm_with_pc) {
+      int feasibleGoals = 0;
+      int partiallyFeasibleGoals = 0;
+      int infeasibleGoals = 0;
+      int partiallyInfeasibleGoals = 0;
+      int timedoutGoals = 0;
+      int partiallyTimedoutGoals = 0;
+
+      for (Goal goal : testsuite.getGoals()) {
+        if (goal.getCoveringTestCases().size() > 0) {
+          // goal is feasible
+          boolean partiallyFeasible = false;
+          if (testsuite.isGoalInfeasible(goal)) {
+            // goal is partially feasible
+            partiallyInfeasibleGoals++;
+            partiallyFeasible = true;
+          }
+          if (testsuite.isGoalTimedout(goal)) {
+            // goal is partially timedout
+            partiallyTimedoutGoals++;
+            partiallyFeasible = true;
+          }
+          if (partiallyFeasible) {
+            // goal is partially feasible
+            partiallyFeasibleGoals++;
+          } else {
+            // goal feasible
+            feasibleGoals++;
+          }
+        } else if (testsuite.isGoalInfeasible(goal)) {
+          // goal is infeasible
+          if (testsuite.isGoalTimedout(goal)) {
+            // goal is partially timed out
+            partiallyTimedoutGoals++;
+            partiallyInfeasibleGoals++;
+          } else {
+            // goal is infeasible
+            infeasibleGoals++;
+          }
+        } else {
+          // goal is timedout
+          timedoutGoals++;
+        }
+      }
+
+      pOut.println("Number of feasible test goals:                     " + feasibleGoals);
+      pOut.println("Number of partially feasible test goals:           " + partiallyFeasibleGoals);
+      pOut.println("Number of infeasible test goals:                   " + infeasibleGoals);
+      pOut.println("Number of partially infeasible test goals:         " + partiallyInfeasibleGoals);
+      pOut.println("Number of timedout test goals:                     " + timedoutGoals);
+      pOut.println("Number of partially timedout test goals:           " + partiallyTimedoutGoals);
+
+      if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals()
+          + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
+        pOut.println("Timeout occured during processing of a test goal!");
+      }
+    } else {
+      pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
+      pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
+      pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
+
+      if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals()
+          + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
+        pOut.println("Timeout occured during processing of a test goal!");
       }
     }
 
-    int numberOfTimedoutTestGoals =
-        statistics_numberOfProcessedTestGoals
-            - (testsuite.getNumberOfFeasibleTestGoals() + testsuite.getNumberOfInfeasibleTestGoals());
-
-    pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
-    pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
-    pOut.println("Number of feasible test goals:                     " + testsuite.getNumberOfFeasibleTestGoals());
-    pOut.println("Number of infeasible test goals:                   " + testsuite.getNumberOfInfeasibleTestGoals());
-    //pOut.println("Number of timedout test goals:                     " + testsuite.getNumberOfTimedoutTestGoals());
-    pOut.println("Number of timedout test goals:                     " + numberOfTimedoutTestGoals);
-
-    if (statistics_numberOfProcessedTestGoals > testsuite.getNumberOfFeasibleTestGoals()
-        + testsuite.getNumberOfInfeasibleTestGoals() + testsuite.getNumberOfTimedoutTestGoals()) {
-      pOut.println("Timeout occured during processing of a test goal!");
-    }
   }
 
 }
