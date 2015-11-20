@@ -62,6 +62,7 @@ import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -188,9 +189,9 @@ public class CEXExporter {
 
         if (counterexample.getTargetPathModel() != null
             && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
-          counterexample.getTargetPathModel().getCFAPathWithAssignments().toJSON(pAppendable, targetPath);
+          targetPath.toJSON(pAppendable, counterexample.getTargetPathModel().getCFAPathWithAssignments().asList());
         } else {
-          targetPath.toJSON(pAppendable);
+          targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
         }
       }
     });

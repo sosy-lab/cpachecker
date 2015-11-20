@@ -44,6 +44,7 @@ import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Joiner;
@@ -255,8 +256,22 @@ public class ARGPath implements Appender {
     return Joiner.on('\n').skipNulls().join(getInnerEdges());
   }
 
-  public void toJSON(Appendable sb) throws IOException {
+  /**
+   * Create a JSON representation of this path.
+   * @param sb The output to write to.
+   * @param pathWithAssignments A list of {@link CFAEdgeWithAssumptions} with additional information, may be empty.
+   */
+  public void toJSON(Appendable sb, List<CFAEdgeWithAssumptions> pathWithAssignments) throws IOException {
     List<Map<?, ?>> path = new ArrayList<>(size());
+
+    if (getInnerEdges().size() != pathWithAssignments.size()) {
+      // TODO: Probably pathWithAssignments should always be empty or have same size
+      // add assert?
+      pathWithAssignments = ImmutableList.of();
+    }
+
+    int index = 0;
+
     for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, edges)) {
       Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();
@@ -268,10 +283,19 @@ public class ARGPath implements Appender {
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
-      elem.put("val", "");
       elem.put("line", edge.getFileLocation().getStartingLineNumber());
       elem.put("file", edge.getFileLocation().getFileName());
+
+      // cfa path with assignments has no padding (only inner edges of argpath).
+      if (index == pathWithAssignments.size() || pathWithAssignments.isEmpty()) {
+        elem.put("val", "");
+      } else {
+        CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(index);
+        elem.put("val", edgeWithAssignment.printForHTML());
+      }
+
       path.add(elem);
+      index++;
     }
     JSON.writeJSONString(path, sb);
   }
