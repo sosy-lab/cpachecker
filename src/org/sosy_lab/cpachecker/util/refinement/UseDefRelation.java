@@ -135,6 +135,7 @@ public class UseDefRelation {
 
     PathIterator it = path.reversePathIterator();
     while(it.hasNext()) {
+      it.advance();
       ARGState currentState = it.getAbstractState();
       CFAEdge currentEdge   = it.getOutgoingEdge();
 
@@ -151,8 +152,6 @@ public class UseDefRelation {
       }
 
       expandedUses.put(currentState, new HashSet<>(unresolvedUses));
-
-      it.advance();
     }
 
     return expandedUses;
@@ -176,6 +175,7 @@ public class UseDefRelation {
   private void buildRelation(ARGPath path) {
     PathIterator iterator = path.reversePathIterator();
     while (iterator.hasNext()) {
+      iterator.advance();
       CFAEdge edge = iterator.getOutgoingEdge();
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -191,8 +191,6 @@ public class UseDefRelation {
       if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
         break;
       }
-
-      iterator.advance();
     }
   }
 
