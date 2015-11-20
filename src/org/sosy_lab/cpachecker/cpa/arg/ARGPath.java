@@ -272,7 +272,7 @@ public class ARGPath implements Appender {
 
     int index = 0;
 
-    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, edges)) {
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, getInnerEdges())) {
       Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();
