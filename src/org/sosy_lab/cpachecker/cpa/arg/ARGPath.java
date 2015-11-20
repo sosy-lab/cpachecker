@@ -262,7 +262,7 @@ public class ARGPath implements Appender {
    * @param pathWithAssignments A list of {@link CFAEdgeWithAssumptions} with additional information, may be empty.
    */
   public void toJSON(Appendable sb, List<CFAEdgeWithAssumptions> pathWithAssignments) throws IOException {
-    List<Map<?, ?>> path = new ArrayList<>(size());
+    List<Map<?, ?>> path = new ArrayList<>(getInnerEdges().size());
 
     if (getInnerEdges().size() != pathWithAssignments.size()) {
       // TODO: Probably pathWithAssignments should always be empty or have same size
@@ -270,16 +270,14 @@ public class ARGPath implements Appender {
       pathWithAssignments = ImmutableList.of();
     }
 
-    int index = 0;
-
-    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, getInnerEdges())) {
+    PathIterator iterator = pathIterator();
+    while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
-      ARGState argelem = pair.getFirst();
-      CFAEdge edge = pair.getSecond();
+      CFAEdge edge = iterator.getOutgoingEdge();
       if (edge == null) {
         continue; // in this case we do not need the edge
       }
-      elem.put("argelem", argelem.getStateId());
+      elem.put("argelem", iterator.getAbstractState().getStateId());
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
@@ -287,15 +285,15 @@ public class ARGPath implements Appender {
       elem.put("file", edge.getFileLocation().getFileName());
 
       // cfa path with assignments has no padding (only inner edges of argpath).
-      if (index == pathWithAssignments.size() || pathWithAssignments.isEmpty()) {
+      if (pathWithAssignments.isEmpty()) {
         elem.put("val", "");
       } else {
-        CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(index);
+        CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(iterator.getIndex());
         elem.put("val", edgeWithAssignment.printForHTML());
       }
 
       path.add(elem);
-      index++;
+      iterator.advance();
     }
     JSON.writeJSONString(path, sb);
   }
