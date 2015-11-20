@@ -90,6 +90,18 @@ public class FormulaManagerFactory {
   @Option(secure=true, description="Which solver to use specifically for interpolation (default is to use the main one).")
   private @Nullable Solvers interpolationSolver = null;
 
+  @Option(secure=true, description = "Use non-linear arithmetic when encoding formulas in corresponding theory. "
+      + "This effects the operations DIV, MOD, and MULT with two non-numeral operands, "
+      + "which are encoded with uninterpreted functions otherwise. "
+      + "If a solver does not support non-linear arithmetic, and this option is set, an exception is thrown.")
+  private boolean useNonLinearIntegerArithmetic = false;
+
+  @Option(secure=true, description = "Use non-linear arithmetic when encoding formulas in corresponding theory. "
+      + "This effects the operations DIV, MOD, and MULT with two non-numeral operands, "
+      + "which are encoded with uninterpreted functions otherwise. "
+      + "If a solver does not support non-linear arithmetic, and this option is set, an exception is thrown.")
+  private boolean useNonLinearRationalArithmetic = false;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
@@ -131,17 +143,17 @@ public class FormulaManagerFactory {
     try {
       switch (solver) {
       case SMTINTERPOL:
-        return loadSmtInterpol().create(config, logger, shutdownNotifier, logfile, randomSeed);
+        return loadSmtInterpol().create(config, logger, shutdownNotifier, logfile, randomSeed, useNonLinearIntegerArithmetic, useNonLinearRationalArithmetic);
 
       case MATHSAT5:
-          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
+          return Mathsat5FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed, useNonLinearIntegerArithmetic, useNonLinearRationalArithmetic);
 
       case Z3:
-        return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed);
+        return Z3FormulaManager.create(logger, config, shutdownNotifier, logfile, randomSeed, useNonLinearIntegerArithmetic, useNonLinearRationalArithmetic);
 
       case PRINCESS:
         // TODO: pass randomSeed to Princess
-        return PrincessFormulaManager.create(config, logger, shutdownNotifier, logfile);
+        return PrincessFormulaManager.create(config, logger, shutdownNotifier, logfile, useNonLinearIntegerArithmetic);
 
       default:
         throw new AssertionError("no solver selected");
@@ -173,7 +185,8 @@ public class FormulaManagerFactory {
   public static interface SolverFactory {
     FormulaManager create(Configuration config, LogManager logger,
         ShutdownNotifier pShutdownNotifier,
-        @Nullable PathCounterTemplate solverLogfile, long randomSeed) throws InvalidConfigurationException;
+        @Nullable PathCounterTemplate solverLogfile, long randomSeed,
+        boolean pUseNonLinearIntegerArithmetic, boolean pUseNonLinearRationalArithmetic) throws InvalidConfigurationException;
   }
 
   // ------------------------- SmtInterpol -------------------------

@@ -62,16 +62,20 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
    */
   private final int iteration;
   private final boolean stop;
+  private final boolean loopCounterAbstracted;
 
   private int hashCache = 0;
 
-  public LoopstackState(LoopstackState previousElement, Loop loop, int iteration, boolean stop) {
+  public LoopstackState(
+      LoopstackState previousElement, Loop loop, int iteration, boolean stop,
+      boolean pLoopCounterAbstracted) {
     this.previousState = checkNotNull(previousElement);
     this.loop = checkNotNull(loop);
     this.depth = previousElement.getDepth() + 1;
     checkArgument(iteration >= 0);
     this.iteration = iteration;
     this.stop = stop;
+    loopCounterAbstracted = pLoopCounterAbstracted;
   }
 
   public LoopstackState() {
@@ -80,6 +84,11 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
     depth = 0;
     iteration = 0;
     stop = false;
+    loopCounterAbstracted = false;
+  }
+
+  public boolean isLoopCounterAbstracted() {
+    return loopCounterAbstracted;
   }
 
   public LoopstackState getPreviousState() {

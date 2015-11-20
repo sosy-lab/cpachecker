@@ -50,6 +50,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
@@ -170,6 +171,13 @@ public class PartialReachedSetIOCheckingInterleavedStrategy extends AbstractStra
   protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
     ioHelper.readMetadata(pIn, true);
+  }
+
+  @Override
+  public Collection<Statistics> getAdditionalProofGenerationStatistics() {
+    Collection<Statistics> result = new ArrayList<>(super.getAdditionalProofGenerationStatistics());
+    result.add(ioHelper.getGraphStatistic());
+    return result;
   }
 
   private class PartitionReader implements Runnable {

@@ -20,11 +20,17 @@
     <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
   </tasks>
 
-  <tasks name="MemorySafety">
-    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
-    <exclude>../programs/benchmarks/list-ext-properties/test-0504_1_true-valid-memsafety.i</exclude>
+  <tasks name="HeapMemSafety">
+    <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
     <option name="-sv-comp16--memorysafety"/>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </tasks>
+  
+  <tasks name="ArraysMemSafety">
+    <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    <option name="-sv-comp16--memorysafety"/>
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+  </tasks>
+  
   <rundefinition/>
 </benchmark>

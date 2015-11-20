@@ -34,8 +34,9 @@ class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, In
 
   Z3IntegerFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+          Z3FunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -56,6 +57,17 @@ class Z3IntegerFormulaManager extends Z3NumeralFormulaManager<IntegerFormula, In
   @Override
   protected Long makeNumberImpl(BigDecimal pNumber) {
     return decimalAsInteger(pNumber);
+  }
+
+  @Override
+  public Long linearModulo(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber2);
+    return nonLinearModulo(pNumber1, pNumber2);
+  }
+
+  @Override
+  public Long nonLinearModulo(Long pNumber1, Long pNumber2) {
+    return mk_mod(z3context, pNumber1, pNumber2);
   }
 
   @Override

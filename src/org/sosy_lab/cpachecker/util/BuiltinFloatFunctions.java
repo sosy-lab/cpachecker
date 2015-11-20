@@ -90,7 +90,7 @@ public class BuiltinFloatFunctions {
   }
 
   /**
-   * Get the return type of a builtin float function.
+   * Get the type of a builtin float function. This could be the return type or a parameter type.
    * @param pFunctionName A function name for which {@link #isBuiltinFloatFunction(String)} returns true.
    * @throws IllegalArgumentException For unhandled functions.
    */

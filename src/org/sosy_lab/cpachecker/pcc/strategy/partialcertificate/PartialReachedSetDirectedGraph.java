@@ -23,16 +23,21 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.base.Preconditions;
@@ -40,7 +45,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
-public class PartialReachedSetDirectedGraph {
+public class PartialReachedSetDirectedGraph implements Statistics{
 
   /* index of node is its position in <code>nodes</code>*/
   private final AbstractState[] nodes;
@@ -145,6 +150,56 @@ public class PartialReachedSetDirectedGraph {
       throw new IllegalArgumentException("Wrong index set must not be null and all indices must be within [0;" + numNodes + "-1].");
     }
      return listRes.toArray(new AbstractState[listRes.size()]);
+  }
+
+  @Override
+  public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+
+    int edges = 0, maxin = 0, minin = Integer.MAX_VALUE, maxout = 0, minout = Integer.MAX_VALUE;
+    double avgin = 0, avgout = 0;
+    int successorSize;
+
+    int[] indegrees = new int[nodes.length];
+
+    for (ImmutableList<Integer> successors : adjacencyList) {
+      successorSize = successors.size();
+      edges += successors.size();
+      maxout = Math.max(maxout, successorSize);
+      minout = Math.min(minout, successorSize);
+      avgout += successorSize;
+      for (Integer succ : successors) {
+        indegrees[succ] = indegrees[succ] + 1;
+      }
+    }
+
+    if (nodes.length > 0) {
+      Arrays.sort(indegrees);
+      minin = indegrees[0];
+      maxin = indegrees[indegrees.length - 1];
+      for (int indegree : indegrees) {
+        avgin += indegree;
+      }
+      avgin = avgin / nodes.length;
+      avgout = avgout / nodes.length;
+    } else {
+      minin = 0;
+      minout = 0;
+    }
+
+    pOut.println("#nodes:         " + nodes.length);
+    pOut.println("#edges:         " + edges);
+    pOut.println("max indegree:   " + maxin);
+    pOut.println("min indegree:   " + minin);
+    pOut.format(Locale.ENGLISH,"avg. indegree:  %.2f%n", avgin);
+    pOut.println("max outdegree:  " + maxout);
+    pOut.println("min outdegree:  " + minout);
+    pOut.format(Locale.ENGLISH,"avg. outdegree: %.2f%n", avgout);
+  }
+
+  @Override
+  public @Nullable
+  String getName() {
+    return null;
   }
 
   private void visitOutsideSuccessorsOf(final int pPredecessor, final NodeVisitor pVisitor,

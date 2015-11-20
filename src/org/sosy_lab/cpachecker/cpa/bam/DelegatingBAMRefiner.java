@@ -75,7 +75,7 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
     assert refiners.size() == totalRefinementsSelected.size();
     assert refiners.size() == totalRefinementsFinished.size();
   }
-
+  int counter = 0;
   @Override
   protected CounterexampleInfo performRefinement0(final ARGReachedSet reached, ARGPath pErrorPath)
       throws CPAException, InterruptedException {
@@ -86,7 +86,6 @@ public class DelegatingBAMRefiner extends AbstractBAMBasedRefiner {
     //      like the score-based sorting from ValueAnalysisDelegatingRefiner
 
     logger.logf(Level.FINE, "starting refinement with %d refiners", refiners.size());
-
     for (int i = 0; i < refiners.size(); i++) {
       totalRefinementsSelected.get(i).inc();
       try {

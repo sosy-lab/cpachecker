@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
+import com.google.common.collect.ImmutableSet;
+
 
 
 public class AppliedCustomInstruction {
@@ -93,5 +95,9 @@ public class AppliedCustomInstruction {
 
   public SSAMap getIndicesForReturnVars() {
     return indicesForReturnVars;
+  }
+
+  public Collection<CFANode> getStartAndEndNodes() {
+    return ImmutableSet.<CFANode> builder().add(ciStartNode).addAll(ciEndNodes).build();
   }
 }

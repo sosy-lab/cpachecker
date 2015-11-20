@@ -128,7 +128,17 @@ public class CProgramScope implements Scope {
 
     @Override
     public boolean apply(CSimpleDeclaration pDeclaration) {
-      return pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null;
+      if (pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null) {
+        return true;
+      }
+      if (pDeclaration.getName() == null
+          && pDeclaration.getQualifiedName() == null
+          && pDeclaration instanceof CComplexTypeDeclaration) {
+        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+        CComplexType complexType = complexTypeDeclaration.getType();
+        return complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null;
+      }
+      return false;
     }
   };
 
@@ -136,7 +146,18 @@ public class CProgramScope implements Scope {
 
     @Override
     public String apply(CSimpleDeclaration pDeclaration) {
-      return pDeclaration.getName();
+      String result = pDeclaration.getName();
+      if (result != null) {
+        return result;
+      }
+      if (pDeclaration instanceof CComplexTypeDeclaration) {
+        CComplexTypeDeclaration complexTypeDeclaration = (CComplexTypeDeclaration) pDeclaration;
+        CComplexType complexType = complexTypeDeclaration.getType();
+        if (complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null) {
+          return complexType.getName();
+        }
+      }
+      throw new AssertionError("Cannot extract a name.");
     }
   };
 
@@ -145,6 +166,9 @@ public class CProgramScope implements Scope {
     @Override
     public String apply(CSimpleDeclaration pDeclaration) {
       String name = pDeclaration.getName();
+      if (name == null) {
+        return getComplexDeclarationName(pDeclaration);
+      }
       String originalName = pDeclaration.getOrigName();
       String qualifiedName = pDeclaration.getQualifiedName();
       if (name.equals(originalName)) {
@@ -153,6 +177,24 @@ public class CProgramScope implements Scope {
       assert qualifiedName.endsWith(name);
 
       return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
+    }
+
+    private String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
+      if (pDeclaration instanceof CComplexTypeDeclaration) {
+        CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
+        if (complexType != null) {
+          String name = complexType.getName();
+          String originalName = complexType.getOrigName();
+          String qualifiedName = complexType.getQualifiedName();
+          if (name.equals(originalName)) {
+            return qualifiedName;
+          }
+          assert qualifiedName.endsWith(name);
+
+          return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
+        }
+      }
+      throw new AssertionError("Cannot extract a name.");
     }
   };
 
@@ -222,7 +264,9 @@ public class CProgramScope implements Scope {
      */
     Collection<CFANode> nodes = cfa.getAllNodes();
 
-    FluentIterable<CSimpleDeclaration> dcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS).filter(HAS_NAME);
+    FluentIterable<CSimpleDeclaration> allDcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS);
+
+    FluentIterable<CSimpleDeclaration> dcls = allDcls.filter(HAS_NAME);
 
     FluentIterable<CFunctionDeclaration> functionDcls = dcls.filter(CFunctionDeclaration.class);
     FluentIterable<CSimpleDeclaration> nonFunctionDcls = dcls.filter(not(instanceOf(CFunctionDeclaration.class)));
@@ -360,9 +404,14 @@ public class CProgramScope implements Scope {
   public String getFileSpecificTypeName(String type) {
     if (isFileSpecificTypeName(type)) {
       return type;
-    } else {
-      return type + "__" + currentFile;
     }
+    String fileSpecificTypeName = type + "__" + currentFile;
+    if (currentFile.isEmpty()
+        && lookupTypedef(fileSpecificTypeName) == null
+        && lookupTypedef(type) != null) {
+      return type;
+    }
+    return fileSpecificTypeName;
   }
 
   @Override

@@ -49,10 +49,11 @@ public class BuiltinFunctions {
 
   /**
    * Returns the function type of the specified function, if known.
+   * This could be the return type or a parameter type.
    * Returns the type <code>UNSPECIFIED</code> otherwise.
    *
    * @param pFunctionName function name to get the return type for
-   * @return the return type of the specified function, if known
+   * @return the type of the specified function, if known
    */
   public static CType getFunctionType(String pFunctionName) {
     if (pFunctionName.equals(FREE)) {

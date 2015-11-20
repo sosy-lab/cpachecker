@@ -27,7 +27,7 @@
 
     <dependencies>
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.537" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.553" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -74,7 +74,7 @@
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.10.0.201506070905" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201509131935" conf="runtime->default; contrib->sources"/>
         <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
@@ -84,7 +84,10 @@
         </dependency>
 
         <!-- Princess -->
-        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-07-03-r2432" conf="runtime->default"/>
+        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-11-18-r2543" conf="runtime->runtime; contrib->sources">
+          <artifact name="princess" e:classifier="assertionless" conf="runtime"/>
+          <artifact name="princess" e:classifier="sources-assertionless" conf="contrib" ext="zip"/>
+        </dependency>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->

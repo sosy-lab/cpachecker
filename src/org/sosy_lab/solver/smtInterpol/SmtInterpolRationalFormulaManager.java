@@ -38,8 +38,9 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
 
   SmtInterpolRationalFormulaManager(
           SmtInterpolFormulaCreator pCreator,
-          SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+          SmtInterpolFunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -83,5 +84,14 @@ class SmtInterpolRationalFormulaManager extends SmtInterpolNumeralFormulaManager
   protected Term makeVariableImpl(String varName) {
     Sort t = getFormulaCreator().getRationalType();
     return getFormulaCreator().makeVariable(t, varName);
+  }
+
+  @Override
+  public Term linearDivide(Term pNumber1, Term pNumber2) {
+    Sort intSort = pNumber1.getTheory().getNumericSort();
+    Sort realSort = pNumber1.getTheory().getRealSort();
+    assert intSort.equals(pNumber1.getSort()) || realSort.equals(pNumber1.getSort());
+    assert intSort.equals(pNumber2.getSort()) || realSort.equals(pNumber2.getSort());
+    return getFormulaCreator().getEnv().term("/", pNumber1, pNumber2);
   }
 }

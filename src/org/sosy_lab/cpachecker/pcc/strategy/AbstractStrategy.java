@@ -32,6 +32,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -182,6 +183,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.addAll(pccStats);
+  }
+
+  @Override
+  public Collection<Statistics> getAdditionalProofGenerationStatistics(){
+    // by default do nothing and return the empty set
+    return Collections.emptySet();
   }
 
   public static class PCStrategyStatistics implements Statistics {

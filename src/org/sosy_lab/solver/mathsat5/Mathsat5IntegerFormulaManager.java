@@ -35,8 +35,9 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
 
   public Mathsat5IntegerFormulaManager(
           Mathsat5FormulaCreator pCreator,
-          Mathsat5FunctionFormulaManager functionManager) {
-    super(pCreator, functionManager);
+          Mathsat5FunctionFormulaManager functionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, functionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -60,13 +61,12 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
   }
 
   @Override
-  public Long divide(Long pNumber1, Long pNumber2) {
+  public Long linearDivide(Long pNumber1, Long pNumber2) {
+    assert isNumeral(pNumber2);
     long mathsatEnv = getFormulaCreator().getEnv();
     long t1 = pNumber1;
     long t2 = pNumber2;
 
-    long result;
-    if (msat_term_is_number(mathsatEnv, t2)) {
       // invert t2 and multiply with it
       String n = msat_term_repr(t2);
       if (n.startsWith("(")) {
@@ -75,19 +75,13 @@ class Mathsat5IntegerFormulaManager extends Mathsat5NumeralFormulaManager<Intege
       String[] frac = n.split("/");
       if (frac.length == 1) {
         // cannot multiply with term 1/n because the result will have type rat instead of int
-        return super.divide(pNumber1, pNumber2);
-
+        return super.linearDivide(pNumber1, pNumber2);
       } else {
         assert (frac.length == 2);
         n = frac[1] + "/" + frac[0];
       }
       t2 = msat_make_number(mathsatEnv, n);
-      result = msat_make_times(mathsatEnv, t2, t1);
-    } else {
-      return super.divide(pNumber1, pNumber2);
-    }
-
-    return result;
+      return msat_make_times(mathsatEnv, t2, t1);
   }
 
   @Override

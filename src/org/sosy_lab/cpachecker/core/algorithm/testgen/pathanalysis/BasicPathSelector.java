@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,13 +36,12 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 
@@ -71,58 +68,45 @@ public class BasicPathSelector implements PathSelector {
      * create copy of the given path, because it will be modified with this algorithm.
      * represents the current new valid path.
      */
-    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
-    PathInfo pathInfo = new PathInfo(newARGPath.size());
-    //    ARGPath newARGPathView = Collections.unmodifiableList(newARGPath);
-    /*
-     * only by edge representation of the new path.
-     */
-    List<CFAEdge> newPath = Lists.newArrayList(newARGPath.asEdgesList());
-    /*
-     * element removed from the path in the previous iteration
-     */
-    Pair<ARGState, CFAEdge> lastElement = null;
-    Pair<ARGState, CFAEdge> currentElement;
-    /*
-     * this is a variation of the solve_path_constraint(..., path_constraint, stack) function of DART.
-     *
-     */
-    /*
-     * create a descending consuming iterator to iterate through the path from last to first, while consuming elements.
-     * Elements are consumed because the new path is a subpath of the original.
-     */
-    Iterator<Pair<ARGState, CFAEdge>> descendingPathElements =
-        Iterators.consumingIterator(newARGPath.descendingIterator());
+    PathInfo pathInfo = new PathInfo(pExecutedPath.size());
+
+    // only by edge representation of the new path.
+    List<CFAEdge> newPath;
+
+    // element removed from the path in the previous iteration
+    ARGState lastState = null;
+
+    // this is a variation of the solve_path_constraint(..., path_constraint, stack) function of DART.
+
+    PathIterator descendingPathIterator = pExecutedPath.reversePathIterator();
     pathValidator.handleNewCheck(pExecutedPath);
-    while (descendingPathElements.hasNext()) {
+    do {
       pathInfo.increaseNodeCount();
-      currentElement = descendingPathElements.next();
-      CFAEdge edge = currentElement.getSecond();
+      ARGState currentState = descendingPathIterator.getAbstractState();
+      CFAEdge currentOutgoingEdge = descendingPathIterator.getOutgoingEdge();
+
       //handle last node of the given path. (should never be a decision node, so we skip it)
-      if (edge == null) {
-        lastElement = currentElement;
+      if (currentOutgoingEdge == null) {
+        lastState = currentState;
         continue;
       }
-      pathValidator.handleNext(pathInfo, edge);
+      pathValidator.handleNext(pathInfo, currentOutgoingEdge);
 
-      CFANode node = edge.getPredecessor();
+      CFANode node = currentOutgoingEdge.getPredecessor();
       //num of leaving edges does not include a summary edge, so the check is valid.
       if (node.getNumLeavingEdges() != 2) {
-        pathValidator.handleSinglePathElement(currentElement);
-        lastElement = currentElement;
+        pathValidator.handleSinglePathElement(currentState);
+        lastState = currentState;
         continue;
       }
-      /*
-       * current node is a branching / deciding node. select the edge that isn't represented
-       * with the current path.
-       */
+
+      // current node is a branching / deciding node. select the edge that isn't
+      // represented with the current path.
       pathInfo.increaseBranchCount();
       CFANode decidingNode = node;
-      CFAEdge wrongEdge = edge;
+      CFAEdge wrongEdge = currentOutgoingEdge;
 
-      /*
-       * (DART: negate the path constraint)
-       */
+      // DART: negate the path constraint
       Optional<CFAEdge> otherEdge = CFAUtils2.getAlternativeLeavingEdge(decidingNode, wrongEdge);
       //no edge found should not happen because we filtered nodes such that only those with more than one leaving edge encounter this.; If it does make it visible.
       assert otherEdge.isPresent();
@@ -130,14 +114,14 @@ public class BasicPathSelector implements PathSelector {
       /*
        * (DART: the j = pathLength-1 case)
        */
-      if (pathValidator.isVisitedBranching(newARGPath, currentElement, node, otherEdge.get())) {
+      if (pathValidator.isVisitedBranching(descendingPathIterator.getPrefixExclusive(), currentState, node, otherEdge.get())) {
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
-        lastElement = currentElement;
-        pathValidator.handleVisitedBranching(newARGPath, currentElement);
+        lastState = currentState;
+        pathValidator.handleVisitedBranching(descendingPathIterator.getPrefixExclusive(), currentState);
         continue;
       }
 
-      if (lastElement == null) {
+      if (lastState == null) {
         /*
          * if the last element is not set, we encountered a branching node where both paths are infeasible
          * for the current value mapping or both successors were handled already with a previous iteration.
@@ -145,7 +129,7 @@ public class BasicPathSelector implements PathSelector {
          */
         logger.log(Level.FINER,
             "encountered an executed path that continues into an already reached region. -> Skipping");
-        lastElement = currentElement;
+        lastState = currentState;
         continue;
       }
 
@@ -157,31 +141,31 @@ public class BasicPathSelector implements PathSelector {
       logger.logf(Level.FINER, "identified new path candidate (visited branchings: %d, nodes: %d)",
           pathInfo.getBranchCount(),
           pathInfo.getNodeCount());
-      newPath = Lists.newArrayList(newARGPath.asEdgesList());
+      newPath = Lists.newArrayList(descendingPathIterator.getPrefixInclusive().getInnerEdges());
       newPath.add(otherEdge.get());
       /*
        * evaluate path candidate symbolically using SMT-solving
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathValidator.validatePathCandidate(currentElement, newPath);
+      CounterexampleTraceInfo traceInfo = pathValidator.validatePathCandidate(currentState, newPath);
       stats.afterPathCheck();
       /*
        * check if path is feasible. If it's not continue to identify another decision node
        * If path is feasible, add the ARGState belonging to the decision node and the new edge to the ARGPath. Exit and Return result.
        */
       if (!traceInfo.isSpurious()) {
-        newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge.get()));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
-        PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
+        PredicatePathAnalysisResult result = new PredicatePathAnalysisResult(traceInfo, currentState, lastState, descendingPathIterator.getPrefixInclusive());
         pathValidator.handleValidPath(result);
         return result;
       } else {
-        lastElement = currentElement;
+        lastState = currentState;
         logger.logf(Level.FINER, "path candidate is infeasible");
         continue;
       }
 
-    }
+    } while (descendingPathIterator.advanceIfPossible());
+
     //all possible paths explored. (DART: the j = -1 case)
     logger.logf(Level.FINER, "No possible path left to explore");
     return PredicatePathAnalysisResult.INVALID;

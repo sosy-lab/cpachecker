@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * The singleton instance of this class is a compound state invariants formula
@@ -51,14 +52,14 @@ public class PartialEvaluator implements
    * A map representing an empty environment; since only constants are
    * evaluated, no real environment is required.
    */
-  private final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> environment;
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
   private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
 
   public PartialEvaluator(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
-    this(pCompoundIntervalManagerFactory, Collections.<String, NumeralFormula<CompoundInterval>>emptyMap());
+    this(pCompoundIntervalManagerFactory, Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap());
   }
 
   public PartialEvaluator(
@@ -71,7 +72,7 @@ public class PartialEvaluator implements
 
   public PartialEvaluator(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.environment = pEnvironment;
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);

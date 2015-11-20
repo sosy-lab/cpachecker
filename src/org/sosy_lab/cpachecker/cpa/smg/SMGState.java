@@ -36,6 +36,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
@@ -463,7 +464,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
 
     // Do not create a value if the read is invalid.
-    if(valueAndState.getValue().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
+    if(valueAndState.getObject().isUnknown()  && valueAndState.getSmgState().invalidRead == false) {
       Integer newValue = SMGValueFactory.getNewValue();
       SMGStateEdgePair stateAndNewEdge = writeValue(pObject, pOffset, pType, newValue);
       return SMGValueAndState.of(stateAndNewEdge.getState(), SMGKnownSymValue.valueOf(stateAndNewEdge.getNewEdge().getValue()));
@@ -804,6 +805,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getHeapObjects().contains(object);
   }
 
+  /** memory allocated in the heap has to be freed by the user,
+   * otherwise this is a memory-leak. */
   public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
@@ -816,15 +819,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return points_to;
   }
 
-  //TODO ()code sharing with addNewAllocation
-  public SMGEdgePointsTo addNewAllocAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+  /** memory allocated on the stack is automatically freed when leaving the current function scope */
+  public SMGEdgePointsTo addNewStackAllocation(int pSize, String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addStackObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
-
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return points_to;
   }
@@ -968,7 +970,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
    * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source
+   * @param pSourceRangeSize the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
    * @param pSourceRangeOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
@@ -1125,5 +1127,37 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
     return heap.getTypeForMemoryLocation(pMemoryLocation);
+  }
+
+  public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
+
+    /* Treat functions as global objects with unnkown memory size.
+     * Only write them into the smg when necessary*/
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+
+    return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
+  }
+
+  public SMGObject createObjectForFunction(CFunctionDeclaration pDeclaration) throws SMGInconsistentException {
+
+    /* Treat functions as global variable with unknown memory size.
+     * Only write them into the smg when necessary*/
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+
+    assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;
+
+    return addGlobalVariable(0, functionQualifiedSMGName);
+  }
+
+  private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
+
+    StringBuilder functionName = new StringBuilder(pDeclaration.getQualifiedName());
+
+    for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
+      functionName.append("_");
+      functionName.append(parameterDcl.toASTString().replace("*", "_").replace(" ", "_"));
+    }
+
+    return "__" + functionName;
   }
 }

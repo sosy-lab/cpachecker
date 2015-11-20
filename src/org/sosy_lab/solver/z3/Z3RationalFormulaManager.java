@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.solver.z3;
 
-import static org.sosy_lab.solver.z3.Z3NativeApi.*;
-
 import java.math.BigDecimal;
 
 import org.sosy_lab.solver.api.FormulaType;
@@ -35,19 +33,9 @@ class Z3RationalFormulaManager extends Z3NumeralFormulaManager<NumeralFormula, R
 
   Z3RationalFormulaManager(
           Z3FormulaCreator pCreator,
-          Z3FunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
-  }
-
-  @Override
-  public Long divide(Long pNumber1, Long pNumber2) {
-    long result;
-    if (is_numeral_ast(z3context, pNumber2)) {
-      result = mk_div(z3context, pNumber1, pNumber2);
-    } else {
-      result = super.divide(pNumber1, pNumber2);
-    }
-    return result;
+          Z3FunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -37,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class SMG {
   final private Set<SMGObject> objects = new HashSet<>();
@@ -86,30 +89,25 @@ public class SMG {
    * @param pHeap Original SMG.
    */
   public SMG(final SMG pHeap) {
-    objects.addAll(pHeap.objects);
-    values.addAll(pHeap.values);
-    hv_edges.addAll(pHeap.hv_edges);
-    pt_edges.putAll(pHeap.pt_edges);
-
-    object_validity.putAll(pHeap.object_validity);
-
     machine_model = pHeap.machine_model;
-
+    hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
+    object_validity.putAll(pHeap.object_validity);
+    objects.addAll(pHeap.objects);
+    pt_edges.putAll(pHeap.pt_edges);
+    values.addAll(pHeap.values);
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((hv_edges == null) ? 0 : hv_edges.hashCode());
-    result = prime * result + ((machine_model == null) ? 0 : machine_model.hashCode());
-    result = prime * result + ((neq == null) ? 0 : neq.hashCode());
-    result = prime * result + ((object_validity == null) ? 0 : object_validity.hashCode());
-    result = prime * result + ((objects == null) ? 0 : objects.hashCode());
-    result = prime * result + ((pt_edges == null) ? 0 : pt_edges.hashCode());
-    result = prime * result + ((values == null) ? 0 : values.hashCode());
-    return result;
+    return Objects.hash(
+        machine_model,
+        hv_edges,
+        neq,
+        object_validity,
+        objects,
+        pt_edges,
+        values);
   }
 
   @Override
@@ -124,52 +122,13 @@ public class SMG {
       return false;
     }
     SMG other = (SMG) obj;
-    if (hv_edges == null) {
-      if (other.hv_edges != null) {
-        return false;
-      }
-    } else if (!hv_edges.equals(other.hv_edges)) {
-      return false;
-    }
-    if (machine_model != other.machine_model) {
-      return false;
-    }
-    if (neq == null) {
-      if (other.neq != null) {
-        return false;
-      }
-    } else if (!neq.equals(other.neq)) {
-      return false;
-    }
-    if (object_validity == null) {
-      if (other.object_validity != null) {
-        return false;
-      }
-    } else if (!object_validity.equals(other.object_validity)) {
-      return false;
-    }
-    if (objects == null) {
-      if (other.objects != null) {
-        return false;
-      }
-    } else if (!objects.equals(other.objects)) {
-      return false;
-    }
-    if (pt_edges == null) {
-      if (other.pt_edges != null) {
-        return false;
-      }
-    } else if (!pt_edges.equals(other.pt_edges)) {
-      return false;
-    }
-    if (values == null) {
-      if (other.values != null) {
-        return false;
-      }
-    } else if (!values.equals(other.values)) {
-      return false;
-    }
-    return true;
+    return machine_model == other.machine_model
+        && Objects.equals(hv_edges, other.hv_edges)
+        && Objects.equals(neq, other.neq)
+        && Objects.equals(object_validity,other.object_validity)
+        && Objects.equals(objects, other.objects)
+        && Objects.equals(pt_edges, other.pt_edges)
+        && Objects.equals(values, other.values);
   }
 
   /**
@@ -204,6 +163,7 @@ public class SMG {
    *
    * @param pObj Object to remove
    */
+  @VisibleForTesting
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
     object_validity.remove(pObj);
@@ -468,7 +428,7 @@ public class SMG {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    return object_validity.get(pObject).booleanValue();
+    return object_validity.get(pObject);
   }
 
   /**

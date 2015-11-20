@@ -257,6 +257,34 @@ NULL_ARG(msat_type, 4)
 CALL4(int, is_array_type)
 BOOLEAN_RETURN
 
+DEFINE_FUNC(jtype, 1get_1array_1index_1type) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
+msat_type r_arg3;
+msat_type *m_arg3 = &r_arg3;
+NULL_ARG(msat_type, 4)
+CALL4(int, is_array_type)
+  if (retval != 1) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "Cannot get index type of non-array type"); \
+    return -1;
+  } \
+  return (jlong)r_arg3.repr; \
+}
+
+DEFINE_FUNC(jtype, 1get_1array_1element_1type) WITH_TWO_ARGS(jenv, jtype)
+ENV_ARG(1)
+TYPE_ARG(2)
+NULL_ARG(msat_type, 3)
+msat_type r_arg4;
+msat_type *m_arg4 = &r_arg4;
+CALL4(int, is_array_type)
+  if (retval != 1) { \
+    throwException(jenv, "java/lang/IllegalArgumentException", "Cannot get element type of non-array type"); \
+    return -1;
+  } \
+  return (jlong)r_arg4.repr; \
+}
+
 DEFINE_FUNC(jboolean, 1is_1fp_1type) WITH_TWO_ARGS(jenv, jtype)
 ENV_ARG(1)
 TYPE_ARG(2)

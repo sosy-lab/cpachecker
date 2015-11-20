@@ -37,8 +37,9 @@ class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<
 
   SmtInterpolIntegerFormulaManager(
           SmtInterpolFormulaCreator pCreator,
-          SmtInterpolFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+          SmtInterpolFunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -75,5 +76,21 @@ class SmtInterpolIntegerFormulaManager extends SmtInterpolNumeralFormulaManager<
   protected Term makeVariableImpl(String varName) {
     Sort t = getFormulaCreator().getIntegerType();
     return getFormulaCreator().makeVariable(t, varName);
+  }
+
+  @Override
+  public Term linearDivide(Term pNumber1, Term pNumber2) {
+    assert isNumeral(pNumber2);
+    Sort intSort = pNumber1.getTheory().getNumericSort();
+    assert intSort.equals(pNumber1.getSort()) && intSort.equals(pNumber2.getSort());
+    return getFormulaCreator().getEnv().term("div", pNumber1, pNumber2);
+  }
+
+  @Override
+  protected Term linearModulo(Term pNumber1, Term pNumber2) {
+    assert isNumeral(pNumber2);
+    Sort intSort = pNumber1.getTheory().getNumericSort();
+    assert intSort.equals(pNumber1.getSort()) && intSort.equals(pNumber2.getSort());
+    return getFormulaCreator().getEnv().term("mod", pNumber1, pNumber2);
   }
 }

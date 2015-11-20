@@ -66,16 +66,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BasicProverEnvironment;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
@@ -85,6 +79,12 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.Sequential
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.WellScopedInterpolation;
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BasicProverEnvironment;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -117,6 +117,12 @@ public final class InterpolationManager {
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
       out.println("    Interpolant verification:         " + interpolantVerificationTimer);
     }
+    out.println("    Timer1:         " + timer1);
+    out.println("    Timer2:         " + timer2);
+    out.println("    Timer3:         " + timer3);
+    out.println("    Timer4:         " + timer4);
+    out.println("    Timer5:         " + timer5);
+    out.println("    Timer6:         " + timer6);
   }
 
 
@@ -286,6 +292,12 @@ public final class InterpolationManager {
             pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet(), true);
   }
 
+  Timer timer1 = new Timer();
+  Timer timer2 = new Timer();
+  Timer timer3 = new Timer();
+  Timer timer4 = new Timer();
+  Timer timer5 = new Timer();
+  Timer timer6 = new Timer();
   private CounterexampleTraceInfo buildCounterexampleTrace0(
       final List<BooleanFormula> pFormulas,
       final List<AbstractState> pAbstractionStates,
@@ -296,20 +308,20 @@ public final class InterpolationManager {
     cexAnalysisTimer.start();
     try {
 
+      timer1.start();
       // Final adjustments to the list of formulas
       List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
-
       if (fmgr.useBitwiseAxioms()) {
         addBitwiseAxioms(f);
       }
 
       f = Collections.unmodifiableList(f);
       logger.log(Level.ALL, "Counterexample trace formulas:", f);
-
+      timer1.stop();
       // now f is the DAG formula which is satisfiable iff there is a
       // concrete counterexample
 
-
+      timer2.start();
       // Check if refinement problem is not too big
       if (maxRefinementSize > 0) {
         int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
@@ -318,7 +330,9 @@ public final class InterpolationManager {
           throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
         }
       }
+      timer2.stop();
 
+      timer3.start();
       final Interpolator<?> currentInterpolator;
       if (reuseInterpolationEnvironment) {
         currentInterpolator = checkNotNull(interpolator);
@@ -326,10 +340,13 @@ public final class InterpolationManager {
         currentInterpolator = new Interpolator<>();
       }
 
+      timer3.stop();
       try {
         try {
+          timer5.start();
           return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
         } finally {
+          timer5.stop();
           if (!reuseInterpolationEnvironment) {
             currentInterpolator.close();
           }
@@ -338,6 +355,7 @@ public final class InterpolationManager {
         logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
+        timer4.start();
         try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
           for (BooleanFormula block : f) {
             prover.push(block);
@@ -349,6 +367,7 @@ public final class InterpolationManager {
           // in case of exception throw original one below
           logger.logDebugException(e2, "Solving trace failed even without interpolation");
         }
+        timer4.stop();
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
 
@@ -746,7 +765,7 @@ public final class InterpolationManager {
       } finally {
         satCheckTimer.stop();
       }
-
+      timer6.start();
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
 
@@ -775,6 +794,7 @@ public final class InterpolationManager {
 
       logger.log(Level.ALL, "Counterexample information:", info);
 
+      timer6.stop();
       return info;
     }
 

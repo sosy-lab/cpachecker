@@ -465,6 +465,7 @@ class AppEngineSystemInfo(object):
         self.cpu_model = 'unknown'
         self.cpu_number_of_cores = 'unknown'
         self.cpu_max_frequency = cpu_max_frequency
+        self.cpu_turboboost = None
         self.memory = memory
         self.hostname = 'Google App Engine'
         self.environment = {}

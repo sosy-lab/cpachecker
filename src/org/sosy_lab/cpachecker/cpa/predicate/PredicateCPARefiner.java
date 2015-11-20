@@ -23,32 +23,49 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.CPAInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,14 +74,20 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -73,12 +96,14 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
+import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
+import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -89,12 +114,15 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.io.CharSink;
+import com.google.common.io.FileWriteMode;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -123,6 +151,55 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private PrefixPreference prefixPreference = PrefixPreference.NONE;
 
+  @Option(secure=true, name="useInvariantRefinement",
+      description="Should the refinement be done with invariants instead of"
+          + " interpolation? This is currently a heuristic as we cannot be "
+          + "sure that all invariants are good enough to refute a counterexample"
+          + " therefore the fallback is still interpolation.")
+  private boolean useInvariantRefinement = false;
+
+  @Option(secure=true, description="Timelimit for invariant generation which may be"
+                                 + " used during refinement.\n"
+                                 + "(Use seconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+                  defaultUserUnit=TimeUnit.SECONDS,
+                  min=0)
+  private TimeSpan timeForInvariantGeneration = TimeSpan.ofNanos(0);
+
+  @Option(secure=true, description="For differing errorpaths, the loop for which"
+      + " invariants should be generated may still be the same, with this option"
+      + " you can set the maximal amount of invariant generation runs per loop."
+      + " 0 means no upper limit given.")
+  private int maxInvariantGenerationsPerLoop = 2;
+
+  @Option(secure=true, description="Invariants that are not strong enough to"
+      + " refute the counterexample can be ignored with this option."
+      + " (Weak invariants will lead to repeated counterexamples, thus taking"
+      + " time which could be used for the rest of the analysis, however, the"
+      + " found invariants may also be better for loops as interpolation.)")
+  private boolean useStrongInvariantsOnly = true;
+
+  @Option(secure=true, description="use only the atoms from the interpolants"
+                                 + "as predicates, and not the whole interpolant")
+  private boolean atomicInterpolants = true;
+
+  @Option(secure=true, description="use only atoms from generated invariants"
+                                 + "as predicates, and not the whole invariant")
+  private boolean atomicInvariants = false;
+
+  @Option(secure=true, description="Should the automata used for invariant"
+                                 + " generation be dumped to files?")
+  private boolean dumpInvariantGenerationAutomata = false;
+
+  @Option(secure=true,
+      description="Where to dump the automata that are used to narrow the"
+                + " analysis used for invariant generation.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathCounterTemplate dumpInvariantGenerationAutomataFile = PathCounterTemplate.ofFormatString("invgen.%d.spc");
+
+  private Map<Loop, Integer> loopOccurrences = new HashMap<>();
+  private boolean wereInvariantsGenerated = false;
+
   Configuration config;
 
   // the previously analyzed counterexample to detect repeated counterexamples
@@ -131,12 +208,14 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   // statistics
   private final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   private final StatTimer totalRefinement = new StatTimer("Time for refinement");
+  private final StatTimer totalInvariantGeneration = new StatTimer("Time for invariant generation");
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
   private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
 
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
+  private final StatInt totalSuccessfulInvariantRefinements = new StatInt(StatKind.COUNT, "Number of successful invariant refinements");
   private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
@@ -152,6 +231,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       if (numberOfRefinements > 0) {
         w0.put(totalPathLength)
           .put(totalPrefixes)
+          .put(totalSuccessfulInvariantRefinements)
           .spacer()
           .put(totalRefinement);
 
@@ -160,6 +240,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         w0.beginLevel().put(errorPathProcessing);
         w0.beginLevel().put(getFormulasForPathTime);
         w0.beginLevel().put(buildCounterexampeTraceTime);
+        w0.beginLevel().put(totalInvariantGeneration);
         w0.beginLevel().put(preciseCouterexampleTime);
         w0.beginLevel().put(prefixExtractionTime);
         w0.beginLevel().put(prefixSelectionTime);
@@ -185,6 +266,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final Solver solver;
   private final PredicateAssumeStore assumesStore;
   private final CFA cfa;
+//  private final ARGPathExport witnessExporter;
+//  private final AutomatonGraphmlParser witnessParser;
+  private final ShutdownNotifier shutdownNotifier;
 
   public PredicateCPARefiner(final Configuration pConfig, final LogManager pLogger,
       final ConfigurableProgramAnalysis pCpa,
@@ -211,6 +295,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     fmgr = solver.getFormulaManager();
     strategy = pStrategy;
     cfa = pCfa;
+    shutdownNotifier = CPAs.retrieveCPA(pCpa, PredicateCPA.class).getShutdownNotifier();
+//    witnessExporter = new ARGPathExport(pConfig, logger, cfa.getMachineModel(), Language.C);
+//    witnessParser = new AutomatonGraphmlParser(pConfig, logger, cfa.getMachineModel(), new CProgramScope(cfa, logger));
 
     prefixProvider = pPrefixProvider;
 
@@ -220,12 +307,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   }
 
   @Override
-  public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, ARGPath allStatesTrace) throws CPAException, InterruptedException {
+  public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    if (isRefinementSelectionEnabled(allStatesTrace)) {
-      allStatesTrace = performRefinementSelection(allStatesTrace);
-    }
     Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
     assert elementsOnPath.containsAll(allStatesTrace.getStateSet());
     assert elementsOnPath.size() >= allStatesTrace.size();
@@ -238,7 +322,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       branchingOccurred = false;
     }
 
-    logger.log(Level.FINEST, "Starting interpolation-based refinement");
+    logger.log(Level.FINEST, "Starting interpolation/invariant-based refinement");
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
@@ -249,35 +333,55 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     // create list of formulas on path
     final List<BooleanFormula> formulas;
     try {
-      formulas = (isRefinementSelectionEnabled(allStatesTrace))
-        ? recomputePathFormulae(allStatesTrace)
+      formulas = (isRefinementSelectionEnabled())
+        ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
         : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
     } catch (SolverException e) {
       throw new CPAException("Solver Exception", e);
     }
 
-    assert abstractionStatesTrace.size() == formulas.size();
+    assert abstractionStatesTrace.size() == formulas.size() : abstractionStatesTrace.size() + " != " + formulas.size();
     // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
     // however we do not have the very first state in the trace,
     // because the rootState has always abstraction "True".
 
     logger.log(Level.ALL, "Error path formulas: ", formulas);
 
-    // build the counterexample
-    buildCounterexampeTraceTime.start();
-    final CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(
-            formulas, Lists.<AbstractState>newArrayList(abstractionStatesTrace), elementsOnPath, strategy.needsInterpolants());
-    buildCounterexampeTraceTime.stop();
+    final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+    final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
+    if (! ((useStrongInvariantsOnly && wereInvariantsGenerated && !repeatedCounterexample)
+           || (useStrongInvariantsOnly && !wereInvariantsGenerated)
+           || !useStrongInvariantsOnly)) {
+      logger.log(Level.WARNING, "Repeated Countereample although generated invariants were strong enough to refute it.");
+    }
+
+    if (wereInvariantsGenerated && !repeatedCounterexample) {
+      totalSuccessfulInvariantRefinements.setNextValue(1);
+    }
+    lastErrorPath = errorPath;
+
+    // get the relevant loops in the ARGPath and the number of occurences of
+    // the most often found one
+    Set<Loop> loopsInPath = getRelevantLoops(allStatesTrace);
+    int maxFoundLoop = getMaxCountOfOccuredLoop(loopsInPath);
+
+    CounterexampleTraceInfo counterexample =
+        buildCounterexampleTrace(elementsOnPath, abstractionStatesTrace, formulas,
+                                 repeatedCounterexample, loopsInPath, maxFoundLoop);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
-      final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
-      boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
-      lastErrorPath = errorPath;
+      List<BooleanFormula> precisionIncrement =
+          computePrecisionIncrement(allStatesTrace, elementsOnPath, abstractionStatesTrace,
+                                    formulas, loopsInPath, maxFoundLoop, counterexample);
 
-      strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
+      if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+        ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(wereInvariantsGenerated ? atomicInvariants : atomicInterpolants);
+      }
+
+      strategy.performRefinement(pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
 
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
@@ -285,79 +389,259 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      final ARGPath targetPath;
-      final CounterexampleTraceInfo preciseCounterexample;
-
-      preciseCouterexampleTime.start();
-      if (branchingOccurred) {
-        Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
-
-        if (preciseInfo != null) {
-          targetPath = preciseInfo.getFirst();
-          if (preciseInfo.getSecond() != null) {
-            preciseCounterexample = preciseInfo.getSecond();
-          } else {
-            logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
-            preciseCounterexample = counterexample;
-          }
-        } else {
-          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-          targetPath = allStatesTrace;
-          preciseCounterexample = counterexample;
-        }
-      } else {
-        targetPath = allStatesTrace;
-        preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
-      }
-      preciseCouterexampleTime.stop();
-
-      CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
-      cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
-          dumpCounterexampleFile);
+      CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
 
       totalRefinement.stop();
       return cex;
     }
   }
 
-  private ARGPath performRefinementSelection(ARGPath allStatesTrace) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> infeasiblePrefixes = extractInfeasiblePrefixes(allStatesTrace);
+  /**
+   * Creates a new CounterexampleInfo object out of the given parameters.
+   */
+  private CounterexampleInfo handleRealError(final ARGPath allStatesTrace, boolean branchingOccurred,
+      CounterexampleTraceInfo counterexample) throws InterruptedException, CPATransferException {
+    final ARGPath targetPath;
+    final CounterexampleTraceInfo preciseCounterexample;
 
-    if(!infeasiblePrefixes.isEmpty()) {
-      totalPrefixes.setNextValue(infeasiblePrefixes.size());
+    preciseCouterexampleTime.start();
+    if (branchingOccurred) {
+      Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
 
-      prefixSelectionTime.start();
-      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
-      allStatesTrace = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes).getPath();
-      prefixSelectionTime.stop();
+      if (preciseInfo != null) {
+        targetPath = preciseInfo.getFirst();
+        if (preciseInfo.getSecond() != null) {
+          preciseCounterexample = preciseInfo.getSecond();
+        } else {
+          logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
+          preciseCounterexample = counterexample;
+        }
+      } else {
+        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+        targetPath = allStatesTrace;
+        preciseCounterexample = counterexample;
+      }
+    } else {
+      targetPath = allStatesTrace;
+      preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
     }
+    preciseCouterexampleTime.stop();
 
-    return allStatesTrace;
+    CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+    cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
+        dumpCounterexampleFile);
+    return cex;
   }
 
-  private List<InfeasiblePrefix> extractInfeasiblePrefixes(ARGPath allStatesTrace) throws CPAException,
-      InterruptedException {
+  /**
+   * Computes the precision increment out of the given parameters. Based on
+   * some configuration options, either invariant refinement or earlier computed
+   * interpolants will be used.
+   */
+  private List<BooleanFormula> computePrecisionIncrement(final ARGPath allStatesTrace, Set<ARGState> elementsOnPath,
+      final List<ARGState> abstractionStatesTrace, final List<BooleanFormula> formulas, Set<Loop> loopsInPath,
+      int maxFoundLoop, CounterexampleTraceInfo counterexample) throws CPAException, InterruptedException {
+    List<BooleanFormula> precisionIncrement;
 
-    prefixExtractionTime.start();
-    List<InfeasiblePrefix> infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(
-        allStatesTrace);
-    prefixExtractionTime.stop();
+    if (counterexample.getInterpolants() == null && strategy.needsInterpolants()) {
+        assert  useInvariantRefinement // if we are here invariants need to be used
+                && maxFoundLoop <= maxInvariantGenerationsPerLoop // respect the configuration option
+                && !loopsInPath.isEmpty(): // invariants only make sense for error paths with loops
+                 "No interpolants were computed, although they are needed,"
+                 + " check #buildCounterExampleTrace for logic-problems." ;
 
-    return infeasiblePrefixes;
+      logger.log(Level.INFO, "Using invariant generation for refinement");
+      totalInvariantGeneration.start();
+      precisionIncrement = generateInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
+      totalInvariantGeneration.stop();
+
+      // invariant generation was not successful, fall-back to interpolation
+      if (precisionIncrement == null) {
+        logger.log(Level.INFO, "Invariant generation failed, falling back to interpolation.");
+        counterexample = formulaManager.buildCounterexampleTrace(formulas,
+            Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+            elementsOnPath, true);
+        precisionIncrement = counterexample.getInterpolants();
+        wereInvariantsGenerated = false;
+      } else {
+        wereInvariantsGenerated = true;
+      }
+
+      // using interpolants
+    } else {
+      logger.log(Level.INFO, "Using interpolation for refinement");
+      precisionIncrement = counterexample.getInterpolants();
+      wereInvariantsGenerated = false;
+    }
+    return precisionIncrement;
+  }
+
+  /**
+   * Builds the CounterexampleTraceInfo object out of the given information.
+   * Depending on some configuration options (e.g. invariant refinement usage)
+   * and the refinement strategy interpolants may be computed during this step.
+   */
+  private CounterexampleTraceInfo buildCounterexampleTrace(Set<ARGState> elementsOnPath,
+      final List<ARGState> abstractionStatesTrace, final List<BooleanFormula> formulas,
+      final boolean repeatedCounterexample, Set<Loop> loopsInPath, int maxFoundLoop)
+          throws CPAException, InterruptedException {
+    // build the counterexample, we only need interpolants if the cexPath has
+    // not occured twice
+    buildCounterexampeTraceTime.start();
+    CounterexampleTraceInfo counterexample;
+
+    // last refinement was static or we have a new counterexample, so we can try
+    // with invariants and therefore don't need interpolants
+    if (useInvariantRefinement
+        && maxFoundLoop <= maxInvariantGenerationsPerLoop // respect limit from configuration option
+        && !loopsInPath.isEmpty()                 // invariants make sense only for loops
+        && ((strategy instanceof PredicateAbstractionRefinementStrategy
+                 && ((PredicateAbstractionRefinementStrategy)strategy).wasLastRefinementStatic())
+            || !repeatedCounterexample)) {
+      counterexample = formulaManager.buildCounterexampleTrace(formulas,
+          Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+          elementsOnPath,
+          false);
+
+      // this is a repeated counterexample so we ask the strategy about
+      // the interpolation needs
+    } else {
+      counterexample = formulaManager.buildCounterexampleTrace(formulas,
+          Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+          elementsOnPath,
+          strategy.needsInterpolants());
+    }
+
+    buildCounterexampeTraceTime.stop();
+    return counterexample;
+  }
+
+  /**
+   * Returns the maximal number of occurences of one of the loops given in the
+   * parameter. This method takes loops found in earlier refinements into account.
+   */
+  private int getMaxCountOfOccuredLoop(Set<Loop> loopsInPath) {
+    int maxFoundLoop = 0;
+    for (Loop loop : loopsInPath) {
+      if (loopOccurrences.containsKey(loop)) {
+        int tmpFoundLoop = loopOccurrences.get(loop) + 1;
+        if (tmpFoundLoop > maxFoundLoop) {
+          maxFoundLoop = tmpFoundLoop;
+        }
+        loopOccurrences.put(loop, tmpFoundLoop);
+      } else {
+        loopOccurrences.put(loop, 1);
+        if (maxFoundLoop == 0) {
+          maxFoundLoop = 1;
+        }
+      }
+    }
+    return maxFoundLoop;
+  }
+
+  /**
+   * This method returns the set of loops which are relevant for the given
+   * ARGPath.
+   */
+  private Set<Loop> getRelevantLoops(final ARGPath allStatesTrace) {
+    PathIterator pathIt = allStatesTrace.pathIterator();
+    LoopCollectingEdgeVisitor loopFinder = null;
+
+    try {
+      loopFinder = new LoopCollectingEdgeVisitor(cfa.getLoopStructure().get(), config);
+    } catch (InvalidConfigurationException e1) {
+      // this will never happen, but for the case it does, we just return
+      // the empty set, therefore the refinement will be done without invariant
+      // generation definitely and only with interpolation / static refinement
+      return Collections.emptySet();
+    }
+
+    while(pathIt.hasNext()) {
+      loopFinder.visit(pathIt.getAbstractState(), pathIt.getOutgoingEdge(), null);
+      pathIt.advance();
+    }
+
+    return loopFinder.getRelevantLoops().keySet();
+  }
+
+  /**
+   * This method generates the invariants used for refinement.
+   * @return the list of generated invariants or null
+   */
+  private List<BooleanFormula> generateInvariants(final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace, final Set<Loop> pLoopsInPath) {
+
+      try {
+        StringBuilder spc = new StringBuilder();
+        ARGUtils.producePathAutomatonWithLoops(spc, allStatesTrace.getFirstState(), allStatesTrace.getStateSet(), "invGen", pLoopsInPath);
+
+        if (dumpInvariantGenerationAutomata) {
+          Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
+          CharSink file = logPath.asCharSink(Charset.defaultCharset(), FileWriteMode.APPEND);
+          file.openStream().append(spc).close();
+        }
+
+        Scope scope = cfa.getLanguage() == Language.C  ? new CProgramScope(cfa, logger)
+                                                       : DummyScope.getInstance();
+
+        List<Automaton> automata = AutomatonParser.parseAutomaton(new StringReader(spc.toString()),
+                                                                  Optional.<Path>absent(),
+                                                                  config, logger, cfa.getMachineModel(),
+                                                                  scope, cfa.getLanguage());
+
+        ShutdownNotifier notifier = shutdownNotifier;
+        ResourceLimitChecker limits = null;
+        if (!timeForInvariantGeneration.isEmpty()) {
+          notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+          WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+          limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+          limits.start();
+        }
+
+        CPAInvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
+        invGen.start(cfa.getMainFunction());
+        InvariantSupplier invSup = invGen.get();
+
+        if (!timeForInvariantGeneration.isEmpty()) {
+          limits.cancel();
+        }
+
+        // we do only want to use invariants that can be used to make the program safe
+        if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {
+          List<BooleanFormula> invariants = new ArrayList<>();
+          for (ARGState s : abstractionStatesTrace) {
+            // the last one will always be false, we don't need it here
+            if (s != abstractionStatesTrace.get(abstractionStatesTrace.size()-1)) {
+              invariants.add(invSup.getInvariantFor(extractLocation(s), fmgr, pfmgr));
+              logger.log(Level.ALL, "Precision increment for location", extractLocation(s), "is", invSup.getInvariantFor(extractLocation(s), fmgr, pfmgr));
+            }
+          }
+
+          if (from(invariants).allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)))) {
+            logger.log(Level.FINEST, "All invariants were TRUE, ignoring result.");
+            return null;
+          }
+
+          return invariants;
+
+        } else {
+          logger.log(Level.INFO, "Invariants found, but they are not strong enough to refute the counterexample");
+          return null;
+        }
+
+      } catch (InvalidConfigurationException | IOException | CPAException | InterruptedException e) {
+        logger.logUserException(Level.WARNING, e, "Could not compute invariants");
+        return null;
+      }
   }
 
   /**
    * This method determines whether or not to perform refinement selection.
    *
-   * For this to be possible, a prefix preference has to be set, and the analysis
-   * has to be configured such that every state is an abstraction state (i.e, SBE).
-   *
-   * @param errorPath to check whether or not block-encoding is set to SBE
    * @return true, if refinement selection has to be performed, else false
    */
-  private boolean isRefinementSelectionEnabled(ARGPath errorPath) {
-    return prefixPreference != PrefixPreference.NONE
-        && (errorPath.size() - transformPath(errorPath).size()) == 1;
+  private boolean isRefinementSelectionEnabled() {
+    return prefixPreference != PrefixPreference.NONE;
   }
 
   static List<ARGState> transformPath(ARGPath pPath) {
@@ -380,7 +664,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     return result;
   }
 
-  private static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA
+  static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA
                 = new Function<PredicateAbstractState, BooleanFormula>() {
                     @Override
                     public BooleanFormula apply(PredicateAbstractState e) {
@@ -453,19 +737,34 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private List<BooleanFormula> recomputePathFormulae(ARGPath pAllStatesTrace)
-      throws CPATransferException, InterruptedException {
-    ArrayList<BooleanFormula> list = new ArrayList<>(pAllStatesTrace.size() - 1);
+  private List<BooleanFormula> performRefinementSelection(final ARGPath pAllStatesTrace,
+      final List<ARGState> pAbstractionStatesTrace)
+      throws InterruptedException, CPAException, SolverException {
 
-    PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
-    for (CFAEdge edge : pAllStatesTrace.getInnerEdges()) {
-      pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), edge);
-      list.add(pathFormula.getFormula());
+    prefixExtractionTime.start();
+    List<InfeasiblePrefix> infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(pAllStatesTrace);
+    prefixExtractionTime.stop();
+
+    totalPrefixes.setNextValue(infeasiblePrefixes.size());
+
+    if (infeasiblePrefixes.isEmpty()) {
+      return getFormulasForPath(pAbstractionStatesTrace, pAllStatesTrace.getFirstState());
     }
 
-    assert(list.size() == (pAllStatesTrace.size() - 1));
+    else {
+      PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
 
-    return list;
+      prefixSelectionTime.start();
+      InfeasiblePrefix selectedPrefix = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
+      prefixSelectionTime.stop();
+
+      List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
+      while (formulas.size() < pAbstractionStatesTrace.size()) {
+        formulas.add(solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true));
+      }
+
+      return formulas;
+    }
   }
 
   private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {

@@ -25,15 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import java.io.Serializable;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.common.collect.PersistentSortedMaps;
@@ -49,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 /**
  * Maps a variable name to its latest "SSA index", that should be used when
@@ -219,7 +215,8 @@ public class SSAMap implements Serializable {
    * Further returns a list with all variables for which different indices
    * were found, together with the two conflicting indices.
    */
-  public static Pair<SSAMap, List<Triple<String, Integer, Integer>>> merge(SSAMap s1, SSAMap s2) {
+  public static SSAMap merge(
+      SSAMap s1, SSAMap s2, MapsDifference.Visitor<String, Integer> collectDifferences) {
     // This method uses some optimizations to avoid work when parts of both SSAMaps
     // are equal. These checks use == instead of equals() because it is much faster
     // and we create sets lazily (so when they are not identical, they are
@@ -229,26 +226,30 @@ public class SSAMap implements Serializable {
 
     PersistentSortedMap<String, Integer> vars;
     FreshValueProvider freshValueProvider;
-    List<Triple<String, Integer, Integer>> differences;
     if (s1.vars == s2.vars && s1.freshValueProvider == s2.freshValueProvider) {
-      differences = ImmutableList.of();
       // both are absolutely identical
-      return Pair.of(s1, differences);
+      return s1;
 
     } else {
-      differences = new ArrayList<>();
-      vars = PersistentSortedMaps.merge(s1.vars, s2.vars, Equivalence.equals(),
-          PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(), differences);
+      vars =
+          PersistentSortedMaps.merge(
+              s1.vars,
+              s2.vars,
+              Equivalence.equals(),
+              PersistentSortedMaps.<String, Integer>getMaximumMergeConflictHandler(),
+              collectDifferences);
       freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
     }
 
-    PersistentSortedMap<String, CType> varTypes = PersistentSortedMaps.merge(
-        s1.varTypes, s2.varTypes,
-        CTypes.canonicalTypeEquivalence(),
-        TYPE_CONFLICT_CHECKER,
-        null);
+    PersistentSortedMap<String, CType> varTypes =
+        PersistentSortedMaps.merge(
+            s1.varTypes,
+            s2.varTypes,
+            CTypes.canonicalTypeEquivalence(),
+            TYPE_CONFLICT_CHECKER,
+            MapsDifference.ignoreMapsDifference());
 
-    return Pair.of(new SSAMap(vars, freshValueProvider, 0, varTypes), differences);
+    return new SSAMap(vars, freshValueProvider, 0, varTypes);
   }
 
   private final PersistentSortedMap<String, Integer> vars;

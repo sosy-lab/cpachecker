@@ -1,9 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -30,12 +27,6 @@ public interface IPolicyIterationManager {
   Collection<? extends PolicyState> getAbstractSuccessors(
       PolicyState state,
       CFAEdge edge
-  ) throws CPATransferException, InterruptedException;
-
-  Collection<? extends PolicyState> strengthen(
-      PolicyState state,
-      List<AbstractState> otherStates,
-      @Nullable CFAEdge pCFAEdge
   ) throws CPATransferException, InterruptedException;
 
   PolicyState getInitialState(CFANode node);

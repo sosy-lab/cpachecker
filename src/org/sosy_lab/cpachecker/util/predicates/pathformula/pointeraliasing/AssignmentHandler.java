@@ -129,7 +129,7 @@ class AssignmentHandler {
     }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
-    final List<Pair<CCompositeType, String>> rhsUsedFields = rhsVisitor.getUsedFields();
+    pts.addEssentialFields(rhsVisitor.getUsedFields());
     final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
     final Map<String, CType> rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
 
@@ -138,7 +138,7 @@ class AssignmentHandler {
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    final List<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
         ? null
@@ -160,8 +160,6 @@ class AssignmentHandler {
                           batchMode,
                           destroyedTypes);
 
-    pts.addEssentialFields(lhsUsedFields);
-    pts.addEssentialFields(rhsUsedFields);
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
     }

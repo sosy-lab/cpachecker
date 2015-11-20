@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Collections;
 import java.util.Set;
 
@@ -30,12 +32,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -75,19 +78,46 @@ public abstract class LocationFormulaInvariant implements CandidateInvariant {
     // Do nothing
   }
 
-  public static LocationFormulaInvariant makeBooleanInvariant(CFANode pLocation, boolean pValue) {
+  public static LocationFormulaInvariant makeBooleanInvariant(CFANode pLocation, final boolean pValue) {
     return new LocationFormulaInvariant(pLocation) {
 
       @Override
       public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException,
           InterruptedException {
-        return pFMGR.getBooleanFormulaManager().makeBoolean(true);
+        return pFMGR.getBooleanFormulaManager().makeBoolean(pValue);
       }
     };
   }
 
-  public Set<CFANode> getLocations() {
-    return locations;
+  public static LocationFormulaInvariant makeLocationInvariant(final CFANode pLocation, final BooleanFormula pInvariant) {
+    return new LocationFormulaInvariant(pLocation) {
+
+      /**
+       * Is the invariant known to be the boolean constant 'false'
+       */
+      private boolean isDefinitelyBooleanFalse = false;
+
+      @Override
+      public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR) throws CPATransferException,
+          InterruptedException {
+        if (!isDefinitelyBooleanFalse && pFMGR.getBooleanFormulaManager().isFalse(pInvariant)) {
+          isDefinitelyBooleanFalse = true;
+        }
+        return pInvariant;
+      }
+
+      @Override
+      public void assumeTruth(ReachedSet pReachedSet) {
+        if (isDefinitelyBooleanFalse) {
+          Iterable<AbstractState> targetStates = AbstractStates.filterLocation(pReachedSet, pLocation);
+          pReachedSet.removeAll(targetStates);
+          for (ARGState s : from(targetStates).filter(ARGState.class)) {
+            s.removeFromARG();
+          }
+        }
+      }
+
+    };
   }
 
 }

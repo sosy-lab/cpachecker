@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -43,8 +44,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
-import org.sosy_lab.cpachecker.util.NativeLibraries.OS;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -124,12 +123,14 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
 
   public static synchronized Z3FormulaManager create(LogManager logger,
       Configuration config, ShutdownNotifier pShutdownNotifier,
-      @Nullable PathCounterTemplate solverLogfile, long randomSeed)
+      @Nullable PathCounterTemplate solverLogfile, long randomSeed,
+      boolean pUseNonLinearIntegerArithmetic, boolean pUseNonLinearRationalArithmetic)
       throws InvalidConfigurationException {
     ExtraOptions extraOptions = new ExtraOptions();
     config.inject(extraOptions);
 
-    if (NativeLibraries.OS.guessOperatingSystem() == OS.WINDOWS) {
+    if (NativeLibraries.OS.guessOperatingSystem() ==
+        NativeLibraries.OS.WINDOWS) {
       // Z3 itself
       NativeLibraries.loadLibrary("libz3");
     }
@@ -201,8 +202,8 @@ public class Z3FormulaManager extends AbstractFormulaManager<Long, Long, Long> i
     Z3UnsafeFormulaManager unsafeManager = new Z3UnsafeFormulaManager(creator);
     Z3FunctionFormulaManager functionTheory = new Z3FunctionFormulaManager(creator, unsafeManager, smtLogger);
     Z3BooleanFormulaManager booleanTheory = new Z3BooleanFormulaManager(creator);
-    Z3IntegerFormulaManager integerTheory = new Z3IntegerFormulaManager(creator, functionTheory);
-    Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory);
+    Z3IntegerFormulaManager integerTheory = new Z3IntegerFormulaManager(creator, functionTheory, pUseNonLinearIntegerArithmetic);
+    Z3RationalFormulaManager rationalTheory = new Z3RationalFormulaManager(creator, functionTheory, pUseNonLinearRationalArithmetic);
     Z3BitvectorFormulaManager bitvectorTheory = new Z3BitvectorFormulaManager(creator);
     Z3QuantifiedFormulaManager quantifierManager = new Z3QuantifiedFormulaManager(creator);
     Z3ArrayFormulaManager arrayManager = new Z3ArrayFormulaManager(creator);

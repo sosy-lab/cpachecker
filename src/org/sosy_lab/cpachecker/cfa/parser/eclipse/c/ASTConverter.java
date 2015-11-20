@@ -742,6 +742,11 @@ class ASTConverter {
      */
      final CType castType = convert(e.getTypeId());
 
+    if (castType.equals(CVoidType.VOID)) {
+      // ignore casts to void as in "(void) f();"
+      return convertExpressionWithSideEffects(e.getOperand());
+    }
+
     // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g. sizeof(struct s)*/);
     if (e.getOperand() instanceof CASTFunctionCallExpression &&
         castType.getCanonicalType() instanceof CPointerType &&

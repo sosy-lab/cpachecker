@@ -50,6 +50,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -176,12 +177,6 @@ public class ARGPath implements Appender {
     };
   }
 
-  public MutableARGPath mutableCopy() {
-    MutableARGPath result = new MutableARGPath();
-    Iterables.addAll(result, Pair.zipWithPadding(states, edges));
-    return result;
-  }
-
   /**
    * Create a fresh {@link PathIterator} for this path,
    * with its position at the first state.
@@ -196,6 +191,22 @@ public class ARGPath implements Appender {
    */
   public PathIterator reversePathIterator() {
     return new ReversePathIterator(this);
+  }
+
+  /**
+   * A forward directed {@link ARGPathBuilder} with no initial states and edges
+   * added. (States and edges are always appended to the end of the current path)
+   */
+  public static ARGPathBuilder builder() {
+    return new DefaultARGPathBuilder();
+  }
+
+  /**
+   * A backward directed {@link ARGPathBuilder} with no initial states and edges
+   * added. (States and edges are always appended to the beginning of the current path)
+   */
+  public static ARGPathBuilder reverseBuilder() {
+    return new ReverseARGPathBuilder();
   }
 
   public int size() {
@@ -266,6 +277,93 @@ public class ARGPath implements Appender {
   }
 
   /**
+   * A class for creating {@link ARGPath}s by iteratively adding path elements
+   * one after another. ARGPaths can be built either from the beginning to the
+   * endpoint or in reverse.
+   * The builder can still be used after calling {@link #build(ARGState, CFAEdge)}.
+   * Please note that the state and edge given to the build method will not be
+   * added permanently to the builder. If they should be in the builder afterwards
+   * you need to use  {@link #add(ARGState, CFAEdge)}.
+   *
+   * In the future we want to remove the edge given to the build method. An
+   * outgoing edge of the last state of a path does not make sense.
+   */
+  public static abstract class ARGPathBuilder {
+    List<ARGState> states = new ArrayList<>();
+    List<CFAEdge> edges = new ArrayList<>();
+
+    private ARGPathBuilder() {}
+
+    /**
+     * Returns the amount of states which are currently added to this builder.
+     */
+    public int size() {
+      return states.size();
+    }
+
+    /**
+     * Add the given state and edge to the ARGPath that should be created.
+     */
+    public ARGPathBuilder add(ARGState state, CFAEdge outgoingEdge) {
+      states.add(state);
+      edges.add(outgoingEdge);
+      return this;
+    }
+
+    /**
+     * Remove the state and edge that were added at last.
+     */
+    public ARGPathBuilder removeLast() {
+      assert !states.isEmpty() && !edges.isEmpty();
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
+      return this;
+    }
+
+    /**
+     * Build the ARGPath.
+     *
+     * In the future we want to remove the edge given to the build method. An
+     * outgoing edge of the last state of a path does not make sense.
+     */
+    public abstract ARGPath build(ARGState state, CFAEdge lastEdge);
+  }
+
+  /**
+   * The implementation of the ARGPathBuilder that adds new states and edges
+   * at the end of the Path.
+   */
+  private static class DefaultARGPathBuilder extends ARGPathBuilder {
+
+    @Override
+    public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
+      states.add(pState);
+      edges.add(pLastEdge);
+      ARGPath path = new ARGPath(states, edges);
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
+      return path;
+    }
+  }
+
+  /**
+   * The implementation of the ARGPathBuilder that adds new states and edges
+   * at the beginning of the Path.
+   */
+  private static class ReverseARGPathBuilder extends ARGPathBuilder {
+
+    @Override
+    public ARGPath build(ARGState pState, CFAEdge pLastEdge) {
+      states.add(pState);
+      edges.add(pLastEdge);
+      ARGPath path = new ARGPath(Lists.reverse(states), Lists.reverse(edges));
+      states.remove(states.size()-1);
+      edges.remove(edges.size()-1);
+      return path;
+    }
+  }
+
+  /**
    * An {@link Iterator}-like class for iterating through an {@link ARGPath}
    * providing access to both the abstract states and the edges.
    * The iterator's position is always at an abstract state,
@@ -327,6 +425,20 @@ public class ARGPath implements Appender {
     public abstract void advance() throws IllegalStateException;
 
     /**
+     * Checks whether the iterator can be advanced and does so it it is possible.
+     *
+     * @return Indicates whether the iterator could be advanced or not
+     */
+    public boolean advanceIfPossible() {
+      if (hasNext()) {
+        advance();
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    /**
      * Get the abstract state at the current position.
      * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
      * @return A non-null {@link ARGState}.
@@ -368,6 +480,32 @@ public class ARGPath implements Appender {
     public @Nullable CFAEdge getOutgoingEdge() {
       checkState(hasNext(), "Last state in ARGPath has no outgoing edge.");
       return path.edges.get(pos);
+    }
+
+    /**
+     * Get the prefix of the current ARGPath from the first state to the current
+     * state (inclusive) returned by this iterator.
+     * The prefix will always be forwards directed, thus the {@link ReversePathIterator}
+     * does also return the sequence from the first state of the ARGPath up (inclusive)
+     * the current position of the iterator.
+     *
+     * @return A non-null {@link ARGPath}
+     */
+    public ARGPath getPrefixInclusive() {
+      return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos+1));
+    }
+
+    /**
+     * Get the prefix of the current ARGPath from the first state to the current
+     * state (eclusive) returned by this iterator.
+     * The prefix will always be forwards directed, thus the {@link ReversePathIterator}
+     * does also return the sequence from the first state of the ARGPath up (exclusive)
+     * the current position of the iterator.
+     *
+     * @return A non-null {@link ARGPath}
+     */
+    public ARGPath getPrefixExclusive() {
+      return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos));
     }
   }
 

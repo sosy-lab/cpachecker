@@ -7,7 +7,7 @@
   <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>

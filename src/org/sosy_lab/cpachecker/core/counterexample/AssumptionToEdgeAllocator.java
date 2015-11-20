@@ -983,7 +983,13 @@ public class AssumptionToEdgeAllocator {
           return Address.getUnknownAddress();
         }
 
-        BigDecimal subscriptValue = new BigDecimal(subscriptValueNumber.toString());
+        final BigDecimal subscriptValue;
+        if (subscriptValueNumber instanceof Rational) {
+          Rational rational = (Rational) subscriptValueNumber;
+          subscriptValue = new BigDecimal(rational.getNum()).divide(new BigDecimal(rational.getDen()));
+        } else {
+          subscriptValue = new BigDecimal(subscriptValueNumber.toString());
+        }
 
         BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeof(pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 

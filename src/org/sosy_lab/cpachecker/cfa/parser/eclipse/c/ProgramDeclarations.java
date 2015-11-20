@@ -419,7 +419,7 @@ public class ProgramDeclarations {
 
       // length is ok, so check the if the types are ok, too
       return areEqualTypes(((CArrayType)type1).getType(),
-                          ((CArrayType)type1).getType(),
+                          ((CArrayType)type2).getType(),
                           foundTypes);
 
 

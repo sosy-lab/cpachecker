@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.solver.princess;
 
-import static org.sosy_lab.solver.princess.PrincessUtil.*;
+import static org.sosy_lab.solver.princess.PrincessUtil.castToTerm;
 
 import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.NumeralFormula;
@@ -32,7 +32,6 @@ import org.sosy_lab.solver.basicimpl.AbstractNumeralFormulaManager;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.ITerm;
-import ap.theories.BitShiftMultiplication;
 
 abstract class PrincessNumeralFormulaManager
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
@@ -40,8 +39,9 @@ abstract class PrincessNumeralFormulaManager
 
   PrincessNumeralFormulaManager(
           PrincessFormulaCreator pCreator,
-          PrincessFunctionFormulaManager pFunctionManager) {
-    super(pCreator, pFunctionManager);
+          PrincessFunctionFormulaManager pFunctionManager,
+          boolean useNonLinearArithmetic) {
+    super(pCreator, pFunctionManager, useNonLinearArithmetic);
   }
 
   @Override
@@ -57,28 +57,6 @@ abstract class PrincessNumeralFormulaManager
   @Override
   public ITerm subtract(IExpression pNumber1, IExpression pNumber2) {
     return castToTerm(pNumber1).$minus(castToTerm(pNumber2));
-  }
-
-  @Override
-  public IExpression divide(IExpression pNumber1, IExpression pNumber2) {
-    return BitShiftMultiplication.eDiv(castToTerm(pNumber1), castToTerm(pNumber2));
-  }
-
-  @Override
-  public IExpression modulo(IExpression pNumber1, IExpression pNumber2) {
-    return BitShiftMultiplication.eMod(castToTerm(pNumber1), castToTerm(pNumber2));
-  }
-
-  @Override
-  public IExpression multiply(IExpression pNumber1, IExpression pNumber2) {
-    IExpression result;
-    if (isNumber(pNumber1) || isNumber(pNumber2)) {
-      result = castToTerm(pNumber1).$times(castToTerm(pNumber2));
-    } else {
-      result = super.multiply(pNumber1, pNumber2);
-    }
-
-    return result;
   }
 
   @Override

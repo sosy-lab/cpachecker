@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -198,6 +199,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       boolean lastAnalysisFailed = false;
       boolean lastAnalysisTerminated = false;
       boolean recursionFound = false;
+      boolean concurrencyFound = false;
 
       try {
         Path singleConfigFileName = configFilesIterator.next();
@@ -257,10 +259,16 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (CPAException e) {
           lastAnalysisFailed = true;
+          if (e.getMessage().contains("Counterexample could not be analyzed")) {
+            status = status.withPrecise(false);
+          }
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
             if (e.getMessage().contains("recursion")) {
               recursionFound = true;
+            }
+            if (e.getMessage().contains("pthread_create")) {
+              concurrencyFound = true;
             }
           } else {
             throw e;
@@ -299,6 +307,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               break;
             case "if-recursive":
               foundConfig = recursionFound;
+              break;
+            case "if-concurrent":
+              foundConfig = concurrencyFound;
               break;
             default:
               logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);

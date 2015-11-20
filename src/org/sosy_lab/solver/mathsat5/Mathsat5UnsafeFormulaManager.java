@@ -66,7 +66,7 @@ class Mathsat5UnsafeFormulaManager extends AbstractUnsafeFormulaManager<Long, Lo
       // (for example, arguments to floating-point arithmetic operators),
       // but we do not want to work with them.
       // So we just return an untyped formula here.
-      return new Mathsat5Formula(f) { };
+      return new Mathsat5Formula(arg) { };
     }
     return super.getArg(pF, pN);
   }

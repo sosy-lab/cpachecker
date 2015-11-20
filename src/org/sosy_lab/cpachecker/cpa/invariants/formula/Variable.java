@@ -26,24 +26,25 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class Variable<ConstantType> extends AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
-  private final String name;
+  private final MemoryLocation memoryLocation;
 
-  private Variable(BitVectorInfo pInfo, String name) {
+  private Variable(BitVectorInfo pInfo, MemoryLocation pMemoryLocation) {
     super(pInfo);
-    this.name = name;
+    this.memoryLocation = pMemoryLocation;
   }
 
-  public String getName() {
-    return this.name;
+  public MemoryLocation getMemoryLocation() {
+    return this.memoryLocation;
   }
 
   @Override
   public String toString() {
-    return getName();
+    return getMemoryLocation().getAsSimpleString();
   }
 
   @Override
@@ -54,14 +55,14 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
     if (pOther instanceof Variable) {
       Variable<?> other = (Variable<?>) pOther;
       return getBitVectorInfo().equals(other.getBitVectorInfo())
-          && getName().equals(other.getName());
+          && getMemoryLocation().equals(other.getMemoryLocation());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getBitVectorInfo(), getName());
+    return Objects.hash(getBitVectorInfo(), getMemoryLocation());
   }
 
   @Override
@@ -76,14 +77,14 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType> implem
   }
 
   /**
-   * Gets an invariants formula representing the variable with the given name.
+   * Gets an invariants formula representing the variable with the given memory location.
    *
    * @param pInfo the bit vector information.
-   * @param pName the name of the variable.
+   * @param pMemoryLocation the memory location of the variable.
    *
-   * @return an invariants formula representing the variable with the given name.
+   * @return an invariants formula representing the variable with the given memory location.
    */
-  static <ConstantType> Variable<ConstantType> of(BitVectorInfo pInfo, String pName) {
-    return new Variable<>(pInfo, pName);
+  static <ConstantType> Variable<ConstantType> of(BitVectorInfo pInfo, MemoryLocation pMemoryLocation) {
+    return new Variable<>(pInfo, pMemoryLocation);
   }
 }

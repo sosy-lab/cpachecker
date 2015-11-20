@@ -42,13 +42,13 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.api.FormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -120,11 +120,11 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     InvariantGenerator invariantGenerator;
     if (useInvariantsForAbstraction) {
       invariantGenerator = CPAInvariantGenerator
-          .create(config, logger, shutdownNotifier, cfa);
+          .create(config, logger, shutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
-    statistics = new PolicyIterationStatistics(pConfig);
+    statistics = new PolicyIterationStatistics(cfa);
     TemplateManager templateManager = new TemplateManager(pLogger, pConfig, cfa,
         statistics);
     CongruenceManager pCongruenceManager = new CongruenceManager(
@@ -209,8 +209,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> strengthen(AbstractState state,
       List<AbstractState> otherStates, @Nullable CFAEdge cfaEdge,
       Precision precision) throws CPATransferException, InterruptedException {
-    return policyIterationManager.strengthen(
-        (PolicyState)state, otherStates, cfaEdge);
+
+    // We perform strengthening in precision adjustment.
+    return null;
   }
 
   @Override

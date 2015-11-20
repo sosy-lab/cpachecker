@@ -46,9 +46,12 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 STOPPED_BY_INTERRUPT = False
 
+_ROOT_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+
 _justReprocessResults = False
 
 def init(config, benchmark):
+    global _justReprocessResults
     _justReprocessResults = config.reprocessResults
     benchmark.executable = benchmark.tool.executable()
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -65,7 +68,9 @@ def execute_benchmark(benchmark, output_handler):
         output_handler.all_created_files.append(cloudInputFile)
 
         # install cloud and dependencies
-        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=util.is_windows())
+        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"],
+                               cwd=_ROOT_DIR,
+                               shell=util.is_windows())
         ant.communicate()
         ant.wait()
 
@@ -76,8 +81,8 @@ def execute_benchmark(benchmark, output_handler):
         else:
             logLevel = "INFO"
         heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10 # 100 MB and 100 kB per run
-        libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
-        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
+        lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
+        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
@@ -104,6 +109,7 @@ def execute_benchmark(benchmark, output_handler):
                 output_handler.set_error(errorMsg)
     else:
         returnCode = 0
+        usedWallTime = None
 
     handleCloudResults(benchmark, output_handler, usedWallTime)
 

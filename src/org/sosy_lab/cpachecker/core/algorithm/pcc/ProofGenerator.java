@@ -64,6 +64,11 @@ public class ProofGenerator {
       pOut.println("------------------------------------");
       pOut.println("Time for proof writing: " + writingTimer);
 
+      if (checkingStrategy != null) {
+        for (Statistics stats : checkingStrategy.getAdditionalProofGenerationStatistics()) {
+          stats.printStatistics(pOut, pResult, pReached);
+        }
+      }
     }
 
     @Override

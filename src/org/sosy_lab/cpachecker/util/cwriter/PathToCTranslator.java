@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class PathToCTranslator extends PathTranslator {
 
-  private PathToCTranslator() {}
+  PathToCTranslator() {}
 
   /**
    * Transform a single linear path into C code.

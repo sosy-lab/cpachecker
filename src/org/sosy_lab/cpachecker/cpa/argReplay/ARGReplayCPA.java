@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.argReplay;
 import java.util.Collections;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -64,17 +63,14 @@ public class ARGReplayCPA implements ConfigurableProgramAnalysis {
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
 
-  private final CFA cfa;
-
   private ReachedSet reached = null;
   private ConfigurableProgramAnalysis cpa = null;
 
-  public ARGReplayCPA(LogManager pLogger, CFA pCfa) {
+  public ARGReplayCPA(LogManager pLogger) {
     transferRelation = new ARGReplayTransferRelation();
     abstractDomain = DelegateAbstractDomain.<ARGReplayState>getInstance();
     mergeOperator = new MergeJoinOperator(abstractDomain);
     stopOperator = new StopJoinOperator(abstractDomain);
-    cfa = pCfa;
   }
 
   /** This method should be run directly after the constructor. */

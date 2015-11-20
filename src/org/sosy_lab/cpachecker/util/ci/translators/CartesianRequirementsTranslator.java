@@ -50,7 +50,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     String def;
     for (String var : vars) {
       def = "(declare-fun " + getVarWithIndex(var, ssaMap);
-      def += "() Int)";
+      def += " () Int)";
       list.add(def);
     }
     return list;

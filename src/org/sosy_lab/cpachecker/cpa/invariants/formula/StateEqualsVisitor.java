@@ -28,6 +28,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -47,7 +48,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
   /**
    * The environment providing the context for the analysis of state equality.
    */
-  private final Map<? extends String, ? extends NumeralFormula<CompoundInterval>> environment;
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment;
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
@@ -62,7 +63,7 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
    */
   public StateEqualsVisitor(
       FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
           CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
     this.evaluationVisitor = pEvaluationVisitor;
     this.environment = pEnvironment;
@@ -302,8 +303,8 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
     if (pVariable.equals(pOther)) {
       return true;
     }
-    String leftVarName = pVariable.getName();
-    NumeralFormula<CompoundInterval> resolvedLeft = this.environment.get(leftVarName);
+    MemoryLocation leftVarLocation = pVariable.getMemoryLocation();
+    NumeralFormula<CompoundInterval> resolvedLeft = this.environment.get(leftVarLocation);
     CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pVariable.getBitVectorInfo());
     resolvedLeft = resolvedLeft == null
         ? InvariantsFormulaManager.INSTANCE.asConstant(
@@ -311,11 +312,11 @@ public class StateEqualsVisitor extends DefaultParameterizedNumeralFormulaVisito
             cim.allPossibleValues())
         : resolvedLeft;
     if (pOther instanceof Variable) {
-      String rightVarName = ((Variable<?>) pOther).getName();
-      if (leftVarName.equals(rightVarName)) {
+      MemoryLocation rightVarLocation = ((Variable<?>) pOther).getMemoryLocation();
+      if (leftVarLocation.equals(rightVarLocation)) {
         return true;
       }
-      NumeralFormula<CompoundInterval> resolvedRight = this.environment.get(rightVarName);
+      NumeralFormula<CompoundInterval> resolvedRight = this.environment.get(rightVarLocation);
       cim = compoundIntervalManagerFactory.createCompoundIntervalManager(pOther.getBitVectorInfo());
       resolvedRight = resolvedRight == null
           ? InvariantsFormulaManager.INSTANCE.asConstant(

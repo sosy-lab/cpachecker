@@ -50,7 +50,7 @@ public class OptProversTestSuite {
         ShutdownNotifier pShutdownNotifier
     ) throws InvalidConfigurationException {
       return Z3FormulaManager.create(
-          logger, config, pShutdownNotifier, null, 42
+          logger, config, pShutdownNotifier, null, 42, false, false
       );
 
     }
@@ -65,7 +65,7 @@ public class OptProversTestSuite {
         ShutdownNotifier pShutdownNotifier
     ) throws InvalidConfigurationException {
       return Mathsat5FormulaManager.create(
-          logger, config, pShutdownNotifier, null, 42
+          logger, config, pShutdownNotifier, null, 42, false, false
       );
     }
   }

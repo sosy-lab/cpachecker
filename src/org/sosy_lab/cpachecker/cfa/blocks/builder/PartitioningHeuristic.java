@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 
 /**
@@ -75,8 +76,7 @@ public abstract class PartitioningHeuristic {
         }
       }
 
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFANode nextNode = node.getLeavingEdge(i).getSuccessor();
+      for (CFANode nextNode : CFAUtils.successorsOf(node)) {
         if (!seen.contains(nextNode)) {
           stack.push(nextNode);
           seen.add(nextNode);

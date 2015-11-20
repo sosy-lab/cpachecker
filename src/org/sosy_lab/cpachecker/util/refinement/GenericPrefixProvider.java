@@ -41,9 +41,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -62,7 +62,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
   private final LogManager logger;
   private final StrongestPostOperator<S> strongestPost;
   private final VariableTrackingPrecision precision;
-  private MutableARGPath feasiblePrefix;
+  private ARGPath feasiblePrefix;
   private final CFA cfa;
   private final S initialState;
 
@@ -124,33 +124,57 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     Deque<S> callstack = new ArrayDeque<>();
 
     try {
-      feasiblePrefix = new MutableARGPath();
+      ARGPathBuilder feasiblePrefixBuilder = ARGPath.builder();
       S next = pInitial;
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {
-        final CFAEdge edge = iterator.getOutgoingEdge();
+        final CFAEdge outgoingEdge = iterator.getOutgoingEdge();
+        final ARGState currentState = iterator.getAbstractState();
+        iterator.advance();
 
-        Optional<S> successor = getSuccessor(next, edge, callstack);
+        Optional<S> successor = getSuccessor(next, outgoingEdge, callstack);
 
-        feasiblePrefix.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
+
+        feasiblePrefixBuilder.add(currentState, outgoingEdge);
 
         // no successors => path is infeasible
         if (!successor.isPresent()) {
-          logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " did not yield a successor");
+          logger.log(Level.FINE, "found infeasible prefix: ", outgoingEdge, " did not yield a successor");
+
+
+          // for interpolation, one transition after the infeasible transition is needed,
+          // so we add exactly that extra transition to the successor state
+          ARGState lastState = path.asStatesList().get(feasiblePrefixBuilder.size());
+          CFAEdge lastEdge = path.getInnerEdges().get(feasiblePrefixBuilder.size());
+          ARGPath infeasiblePrefix = feasiblePrefixBuilder.build(lastState,
+                                                                 BlankEdge.buildNoopEdge(lastEdge.getPredecessor(),
+                                                                                         lastEdge.getSuccessor()));
 
           // add infeasible prefix
-          prefixes.add(buildInfeasiblePrefix(path, feasiblePrefix));
+          prefixes.add(buildInfeasiblePrefix(infeasiblePrefix));
 
-          // continue with feasible prefix
-          Pair<ARGState, CFAEdge> assumeState = feasiblePrefix.removeLast();
+          feasiblePrefixBuilder.removeLast();
 
-          feasiblePrefix.add(Pair.<ARGState, CFAEdge>of(assumeState.getFirst(),
-              BlankEdge.buildNoopEdge(
-                  assumeState.getSecond().getPredecessor(),
-                  assumeState.getSecond().getSuccessor())));
+
+          // if the loop is ending after this iteration we need to set the feasible prefix
+          if (!iterator.hasNext()) {
+            feasiblePrefix = feasiblePrefixBuilder.build(currentState,
+                                                          BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
+                                                                                  outgoingEdge.getSuccessor()));
+
+            // continue with feasible prefix
+          } else {
+            feasiblePrefixBuilder.add(currentState,
+                                      BlankEdge.buildNoopEdge(outgoingEdge.getPredecessor(),
+                                                              outgoingEdge.getSuccessor()));
+          }
 
           successor = Optional.of(next);
+
+          // the loop is ending after this iteration, we need to set the feasible prefix
+        } else if (!iterator.hasNext()) {
+          feasiblePrefix = iterator.getPrefixInclusive();
         }
 
         // extract singleton successor state
@@ -158,9 +182,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
         // some variables might be blacklisted or tracked by BDDs
         // so perform abstraction computation here
-        next = strongestPost.performAbstraction(next, edge.getSuccessor(), path, precision);
-
-        iterator.advance();
+        next = strongestPost.performAbstraction(next, outgoingEdge.getSuccessor(), path, precision);
       }
 
       return prefixes;
@@ -187,40 +209,25 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     return strongestPost.getStrongestPost(next, precision, pEdge);
   }
 
-  private InfeasiblePrefix buildInfeasiblePrefix(final ARGPath path, MutableARGPath currentPrefix) {
-    MutableARGPath infeasiblePrefix = new MutableARGPath();
-    infeasiblePrefix.addAll(currentPrefix);
-
-    // for interpolation, one transition after the infeasible transition is needed,
-    // so we add exactly that extra transition to the successor state
-    infeasiblePrefix.add(obtainSuccessorTransition(path, currentPrefix.size()));
-
-    UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix.immutableCopy(),
+  private InfeasiblePrefix buildInfeasiblePrefix(final ARGPath infeasiblePrefix) {
+    UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix,
         cfa.getVarClassification().isPresent()
             ? cfa.getVarClassification().get().getIntBoolVars()
             : Collections.<String>emptySet());
 
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
-        infeasiblePrefix.immutableCopy(),
+        infeasiblePrefix,
         useDefRelation,
         cfa.getMachineModel()).obtainInterpolants();
 
-    return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix.immutableCopy(),
+    return InfeasiblePrefix.buildForValueDomain(infeasiblePrefix,
         FluentIterable.from(interpolants).transform(Pair.<ValueAnalysisInterpolant>getProjectionToSecond()).toList());
   }
 
   public ARGPath extractFeasilbePath(final ARGPath path)
       throws CPAException, InterruptedException {
     extractInfeasiblePrefixes(path);
-    return feasiblePrefix.immutableCopy();
+    return feasiblePrefix;
   }
 
-  /**
-   * This method returns the pair of state and edge at the given offset.
-   */
-  private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
-    Pair<ARGState, CFAEdge> transition = path.obtainTransitionAt(offset);
-    return Pair.<ARGState, CFAEdge>of(transition.getFirst(),
-        BlankEdge.buildNoopEdge(transition.getSecond().getPredecessor(), transition.getSecond().getSuccessor()));
-  }
 }
