@@ -224,7 +224,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
 
     if(result.isReachable()) {
 
-      return isTarget(result.getLastState(), pPath.asEdgesList().get(pPath.asEdgesList().size() - 1), pAutomaton);
+      return isTarget(result.getLastState(), pPath.getInnerEdges().get(pPath.getInnerEdges().size() - 1), pAutomaton);
     } else {
       return false;
     }
