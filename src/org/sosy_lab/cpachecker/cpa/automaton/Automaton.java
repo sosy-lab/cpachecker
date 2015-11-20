@@ -79,9 +79,16 @@ public class Automaton {
         AutomatonInternalState succ = t.getFollowState();
         if (succ != null) {
           if (t.getFollowState().isTarget()) {
-            AutomatonSafetyProperty p = new AutomatonSafetyProperty(this, t);
-            encodedProperties.add(p);
+            encodedProperties.addAll(t.getViolatedWhenEnteringTarget());
           }
+        }
+
+        // Add a reference from the properties to the automaton.
+        for (AutomatonSafetyProperty p: t.getViolatedWhenAssertionFailed()) {
+          p.setAutomaton(this);
+        }
+        for (AutomatonSafetyProperty p: t.getViolatedWhenEnteringTarget()) {
+          p.setAutomaton(this);
         }
       }
     }

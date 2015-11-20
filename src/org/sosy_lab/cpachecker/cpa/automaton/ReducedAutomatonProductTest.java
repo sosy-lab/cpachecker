@@ -58,7 +58,6 @@ public class ReducedAutomatonProductTest {
   private AutomatonTransition newTrans (AutomatonBoolExpr pTrigger, String pTarget) {
     return new AutomatonTransition(
         pTrigger,
-        ImmutableList.<AutomatonBoolExpr>of(),
         ImmutableList.<AutomatonAction>of(),
         pTarget);
   }

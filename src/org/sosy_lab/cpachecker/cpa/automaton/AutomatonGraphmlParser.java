@@ -86,11 +86,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -631,36 +629,6 @@ public class AutomatonGraphmlParser {
       super(pTriggers, pAssertions, pActions, pTargetState);
     }
 
-    @Override
-    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
-      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
-      List<String> violatedPropertyDescriptions = new ArrayList<>();
-
-      if (!Strings.isNullOrEmpty(own)) {
-        violatedPropertyDescriptions.add(own);
-      }
-
-      for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
-        if (other != pArgs.getState() && other.getInternalState().isTarget()) {
-          String violatedPropDesc = "";
-
-          Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
-          if (violatedProperty.isPresent()) {
-            violatedPropDesc = violatedProperty.get().toString();
-          }
-
-          if (!violatedPropDesc.isEmpty()) {
-            violatedPropertyDescriptions.add(violatedPropDesc);
-          }
-        }
-      }
-
-      if (violatedPropertyDescriptions.isEmpty() && own == null) {
-        return null;
-      }
-
-      return Joiner.on(',').join(violatedPropertyDescriptions);
-    }
 
   }
 

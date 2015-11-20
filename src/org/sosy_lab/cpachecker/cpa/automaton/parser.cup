@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty.AutomatonSafetyPropertyFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -63,20 +64,23 @@ parser code {:
   private LogManager logger;
   private CParser cparser;
   private Scope scope;
+  private AutomatonSafetyPropertyFactory propFact;
 
   // this int is used to determine unique names for anonymous automata
   private static int anonymousCounter;
 
-  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, CParser pCparser, Scope scope) {
+  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, AutomatonSafetyPropertyFactory pPropFact, CParser pCparser, Scope scope) {
       super(scanner, sf);
       this.logger = pLogger;
       this.cparser = pCparser;
+      this.propFact = pPropFact;
       this.scope = scope;
   }
   
-  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger) {
+  public AutomatonParser(Scanner scanner, SymbolFactory sf, LogManager pLogger, AutomatonSafetyPropertyFactory pPropFact) {
       super(scanner, sf);
       this.logger = pLogger;
+      this.propFact = pPropFact;
       this.cparser = DummyParser.getInstance();
       this.scope = DummyScope.getInstance();
   }
@@ -124,14 +128,16 @@ parser code {:
       Scanner scanner = new AutomatonScanner(input, pInputFile, pLogger, sf);
 
       AutomatonParser automatonParser;
+      
+      AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config);
 
       switch (pLanguage) {
       case C:
         CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
-        automatonParser = new AutomatonParser(scanner, sf, pLogger, cparser, scope);
+        automatonParser = new AutomatonParser(scanner, sf, pLogger, propFactory, cparser, scope);
         break;
       default:
-        automatonParser = new AutomatonParser(scanner, sf, pLogger);
+        automatonParser = new AutomatonParser(scanner, sf, pLogger, propFactory);
       }
 
       Symbol symbol = automatonParser.parse();
@@ -251,9 +257,9 @@ Transition   ::= Bool:trigger  ARROW Split:a GOTO IDENTIFIER:follow NEGATION GOT
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, follow.toString())); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression(""))); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, new AutomatonExpression.StringExpression(property.toString()))); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM, null)); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts INACTIVE SEMICOLON

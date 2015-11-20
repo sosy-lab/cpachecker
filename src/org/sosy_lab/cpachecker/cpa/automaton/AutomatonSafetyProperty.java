@@ -23,23 +23,86 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import javax.annotation.Nonnull;
+import java.util.Set;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 
 public class AutomatonSafetyProperty implements Property {
 
-  @Nonnull private final Automaton automaton;
-  @Nonnull private final Optional<StringExpression> violationDescriptionExpression;
+  public static enum PropertyGranularity {
+    /** One automaton encodes exactly one property. */
+    AUTOMATON,
 
-  public AutomatonSafetyProperty(Automaton pAutomaton, AutomatonTransition pTransition) {
-    this.automaton = Preconditions.checkNotNull(pAutomaton);
-    this.violationDescriptionExpression = Preconditions.checkNotNull(pTransition.getViolationDescriptionExpression());
+    /** One automaton can encode multiple properties that are distinguished based on the violating (string) expression. */
+    VIOLATING_EXPRESSION
+  }
+
+  @Options(prefix="automata.properties")
+  public static class AutomatonSafetyPropertyFactory {
+
+    @Option(description="Granularity of safety properties that are encoded in automata.")
+    private PropertyGranularity granularity = PropertyGranularity.AUTOMATON;
+
+    public AutomatonSafetyPropertyFactory(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    public Set<AutomatonSafetyProperty> createSingleProperty() {
+
+      return ImmutableSet.of(new AutomatonSafetyProperty());
+    }
+
+    public Set<AutomatonSafetyProperty> createSingleProperty(StringExpression pViolationExpr) {
+      if (granularity == PropertyGranularity.VIOLATING_EXPRESSION) {
+        return ImmutableSet.of(new AutomatonSafetyProperty(pViolationExpr));
+      }
+
+      return ImmutableSet.of(new AutomatonSafetyProperty());
+    }
+
+  }
+
+  @Nullable private Automaton automaton; // Has to be set delayed because of the parsing process!
+  @Nonnull private final StringExpression violationDescriptionExpression;
+
+  public AutomatonSafetyProperty(StringExpression pViolationExpr) {
+    this.automaton = null;
+    this.violationDescriptionExpression = Preconditions.checkNotNull(pViolationExpr);
+  }
+
+  public AutomatonSafetyProperty(Automaton pAutomaton) {
+    this.automaton = pAutomaton;
+    this.violationDescriptionExpression = StringExpression.empty();
+  }
+
+  public AutomatonSafetyProperty() {
+    this.automaton = null;
+    this.violationDescriptionExpression = StringExpression.empty();
+  }
+
+  public void setAutomaton(Automaton pAutomaton) {
+    automaton = Preconditions.checkNotNull(pAutomaton);
+  }
+
+  public StringExpression getViolationDescriptionExpression() {
+    return violationDescriptionExpression;
+  }
+
+  public ResultValue<?> instantiate(AutomatonExpressionArguments pArgs) {
+    return violationDescriptionExpression.eval(pArgs);
   }
 
   @Override
@@ -48,9 +111,9 @@ public class AutomatonSafetyProperty implements Property {
 
     result.append(automaton.getName());
 
-    if (violationDescriptionExpression.isPresent()) {
+    if (violationDescriptionExpression.getRawExpression().length() > 0) {
       result.append(" / ");
-      result.append(violationDescriptionExpression.get().getRawExpression());
+      result.append(violationDescriptionExpression.getRawExpression());
     }
 
    return result.toString();
@@ -60,7 +123,7 @@ public class AutomatonSafetyProperty implements Property {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + automaton.hashCode();
+    result = prime * result + (automaton == null ? 0 : automaton.hashCode());
     result = prime * result + violationDescriptionExpression.hashCode();
     return result;
   }
@@ -82,7 +145,11 @@ public class AutomatonSafetyProperty implements Property {
       return false;
     }
 
-    if (!automaton.equals(other.automaton)) {
+    if (automaton == null) {
+      if (other.automaton != null) {
+        return false;
+      }
+    } else if (!automaton.equals(other.automaton)) {
       return false;
     }
 

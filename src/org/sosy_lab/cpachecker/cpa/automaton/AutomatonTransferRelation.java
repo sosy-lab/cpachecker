@@ -312,10 +312,21 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            AutomatonSafetyProperty prop = new AutomatonSafetyProperty(pState.getOwningAutomaton(), t);
+
+            Set<AutomatonSafetyProperty> assertionProperties = Sets.newHashSet(t.getViolatedWhenAssertionFailed());
+            if (assertionProperties.isEmpty()) {
+              assertionProperties.add(new AutomatonSafetyProperty(pState.getOwningAutomaton()));
+            }
+
+            Map<AutomatonSafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
+            if (t.getFollowState().isTarget()) {
+              for (AutomatonSafetyProperty p : assertionProperties) {
+                violatedProperties.put(p, p.instantiate(exprArgs));
+              }
+            }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedProperties);
 
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + pEdge.getDescription() + "\"");
             result.add(errorState);
@@ -345,9 +356,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         t.executeActions(exprArgs);
         actionTime.stop();
 
-        AutomatonSafetyProperty violatedProperty = null;
+        Map<AutomatonSafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
         if (t.getFollowState().isTarget()) {
-          violatedProperty = new AutomatonSafetyProperty(pState.getOwningAutomaton(), t);
+          Preconditions.checkState(!t.getViolatedWhenEnteringTarget().isEmpty());
+          for (AutomatonSafetyProperty p : t.getViolatedWhenEnteringTarget()) {
+            violatedProperties.put(p, p.instantiate(exprArgs));
+          }
         }
 
         // The assumptions might reference to the current automata variables!
@@ -363,7 +377,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             instantiatedAssumes,
             pState.getMatches() + 1,
             pState.getFailedMatches(),
-            violatedProperty);
+            violatedProperties);
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           result.add(lSuccessor);

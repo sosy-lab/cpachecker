@@ -28,7 +28,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -69,13 +68,6 @@ public class AutomatonStateARGCombiningHelper {
     String qualifiedName = toReplace.getOwningAutomatonName()+"::" +toReplace.getInternalStateName();
 
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
-      AutomatonSafetyProperty violatedProp = null;
-
-      if (toReplace.getViolatedProperties().size() > 0) {
-        Property prop = toReplace.getViolatedProperties().iterator().next();
-        assert prop instanceof AutomatonSafetyProperty;
-        violatedProp = (AutomatonSafetyProperty) prop;
-      }
 
       return AutomatonState.automatonStateFactory(
           toReplace.getVars(),
@@ -84,7 +76,7 @@ public class AutomatonStateARGCombiningHelper {
           toReplace.getAssumptions(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
-          violatedProp);
+          toReplace.getViolatedPropertyInstances());
     }
 
     throw new CPAException("Changing state failed, unknown state.");

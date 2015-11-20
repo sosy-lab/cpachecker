@@ -50,12 +50,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
@@ -146,31 +147,31 @@ public class AutomatonState
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
-  private final AutomatonSafetyProperty violatedPropertyInstance;
+  private final Map<? extends Property, ResultValue<?>> violatedPropertyInstance;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       int successfulMatches, int failedMatches,
-      AutomatonSafetyProperty pSafetyProperty) {
+      Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
       return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
           pInstantiatedAssumes, successfulMatches, failedMatches,
-          pSafetyProperty);
+          pViolatedProperties);
     }
   }
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       int successfulMatches, int failedMatches,
-      AutomatonSafetyProperty pSafetyProperty) {
+      Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
         ImmutableList.<Pair<AStatement, Boolean>> of(),
-        successfulMatches, failedMatches, pSafetyProperty);
+        successfulMatches, failedMatches, pViolatedProperties);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
@@ -179,7 +180,7 @@ public class AutomatonState
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       int successfulMatches,
       int failedMatches,
-      AutomatonSafetyProperty pSafetyProperty) {
+      Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     this.vars = checkNotNull(pVars);
     this.internalState = checkNotNull(pInternalState);
@@ -189,8 +190,8 @@ public class AutomatonState
     this.assumptions = pInstantiatedAssumes;
 
     if (isTarget()) {
-      checkNotNull(pSafetyProperty);
-      violatedPropertyInstance = pSafetyProperty;
+      checkArgument(pViolatedProperties.size() > 0);
+      violatedPropertyInstance = pViolatedProperties;
     } else {
       violatedPropertyInstance = null;
     }
@@ -201,14 +202,14 @@ public class AutomatonState
     return this.automatonCPA.isTreatingErrorsAsTargets() && internalState.isTarget();
   }
 
+  public ImmutableMap<? extends Property, ResultValue<?>> getViolatedPropertyInstances() {
+    return ImmutableMap.copyOf(violatedPropertyInstance);
+  }
+
   @Override
   public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return ImmutableSet.<Property> of(violatedPropertyInstance);
-  }
-
-  Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
-    return Optional.<AutomatonSafetyProperty> fromNullable(violatedPropertyInstance);
+    return ImmutableSet.<Property>copyOf(violatedPropertyInstance.keySet());
   }
 
   @Override

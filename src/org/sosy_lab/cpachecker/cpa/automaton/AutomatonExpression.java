@@ -36,6 +36,10 @@ interface AutomatonExpression {
 
   static class StringExpression implements AutomatonExpression {
 
+    public static StringExpression empty() {
+      return new StringExpression("");
+    }
+
     private String pRawExpression;
 
     public StringExpression(String pString) {
