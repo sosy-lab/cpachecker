@@ -181,6 +181,8 @@ public class ARGPath implements Appender {
   /**
    * Create a fresh {@link PathIterator} for this path,
    * with its position at the first state.
+   * Note that you cannot call {@link PathIterator#getIncomingEdge()} before calling
+   * {@link PathIterator#advance()} at least once.
    */
   public PathIterator pathIterator() {
     return new DefaultPathIterator(this);
@@ -189,6 +191,8 @@ public class ARGPath implements Appender {
   /**
    * Create a fresh {@link PathIterator} for this path,
    * with its position at the last state and iterating backwards.
+   * Note that you cannot call {@link PathIterator#getOutgoingEdge()} before calling
+   * {@link PathIterator#advance()} at least once.
    */
   public PathIterator reversePathIterator() {
     return new ReversePathIterator(this);
@@ -484,8 +488,9 @@ public class ARGPath implements Appender {
 
     /**
      * Get the edge before the current abstract state.
-     * May not be called before {@link #advance()} was called once
-     * (there is no edge before the first state).
+     * May not be called when this iterator points to the first state in the path
+     * (at the beginning of an iteration with a forwards PathIterator,
+     * or at the end of an iteration with a backwards PathIterator).
      * @return A {@link CFAEdge} or null, if there is no edge between these two states.
      */
     public @Nullable CFAEdge getIncomingEdge() {
@@ -495,12 +500,13 @@ public class ARGPath implements Appender {
 
     /**
      * Get the edge after the current abstract state.
-     * May not be called when {@link #hasNext()} would return false
-     * (there is no edge after the last state).
+     * May not be called when this iterator points to the last state in the path
+     * (at the end of an iteration with a forwards PathIterator,
+     * or at the beginning of an iteration with a backwards PathIterator).
      * @return A {@link CFAEdge} or null, if there is no edge between these two states.
      */
     public @Nullable CFAEdge getOutgoingEdge() {
-      checkState(hasNext(), "Last state in ARGPath has no outgoing edge.");
+      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
       return path.edges.get(pos);
     }
 
