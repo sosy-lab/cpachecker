@@ -160,6 +160,7 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void generateAutomatonFileForNextIteration(PredicatePathAnalysisResult pResult, Path pFilePath) {
     stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(pFilePath.toAbsolutePath(), Charset.forName("UTF8"))) {

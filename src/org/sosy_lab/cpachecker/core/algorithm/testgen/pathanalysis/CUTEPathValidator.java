@@ -42,10 +42,6 @@ import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 
@@ -157,6 +153,11 @@ public class CUTEPathValidator extends AbstractPathValidator{
     }
 
     public void resetTo(ARGPath argPath) {
+      throw new AssertionError("UNIMPLEMENTED");
+      /*
+       * TODO: asEdgesList() contains one edge that is beyond the last state in the path.
+       * The new ARGPath does not contain this edge anymore.
+       * It is unclear whether this code actually needs to have that edge in the path.
       Iterator<CFAEdge> descendingEdgePath = Lists.reverse(argPath.asEdgesList()).iterator();
       edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
 
@@ -169,6 +170,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
       pathDepths = argPath.size();
       currentDepths = pathDepths;
       visitedEdges.put(Iterables.getLast(argPath.asEdgesList()), true);
+      */
     }
 
 

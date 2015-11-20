@@ -653,7 +653,9 @@ public class ARGUtils {
    * @param pCounterExample Given to try to write exact variable assignment values
    * into the automaton
    * @throws IOException
+   * @deprecated Code is broken
    */
+  @Deprecated
   public static void produceTestGenPathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
     checkNotNull(pCounterExample);
@@ -738,6 +740,12 @@ public class ARGUtils {
       }
     }
 
+    throw new AssertionError("UNIMPLEMENTED");
+    /*
+     * TODO: lastEdge is the edge beyond the last state in the path.
+     * The new ARGPath does not contain this edge anymore.
+     * It is unclear whether it actually needs to be that edge,
+     * or whether the last regular edge of the path can be used.
     CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
     if (lastEdge != null) {
       handleMatchCase(sb, lastEdge);
@@ -753,6 +761,7 @@ public class ARGUtils {
       sb.append("    TRUE -> STOP;\n\n");
     }
     sb.append("END AUTOMATON\n");
+    */
   }
 
 
