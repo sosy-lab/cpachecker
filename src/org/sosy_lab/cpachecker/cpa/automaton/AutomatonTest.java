@@ -290,6 +290,7 @@ public class AutomatonTest {
 
     TestResults results = CPATestRunner.run(prop,
         "test/programs/automata/ldv_test_08_true.c");
+
     results.assertIsSafe();
   }
 
@@ -302,9 +303,13 @@ public class AutomatonTest {
         "cpa.automaton.inputFile", "test/config/automata/ldv_32_1a_split.spc"
     );
 
-    TestResults results = CPATestRunner.run(prop,
+    TestResults resultsTrue = CPATestRunner.run(prop,
         "test/programs/automata/ldv_test_32.c");
-    results.assertIsSafe();
+    TestResults resultsFalse = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_32_false.c");
+
+    resultsTrue.assertIsSafe();
+    resultsFalse.assertIsUnsafe();
   }
 
   /* Automaton tests with ASSUME keyword */
@@ -361,10 +366,13 @@ public class AutomatonTest {
         "cpa.automaton.inputFile", "test/config/automata/ldv_32_1a_fixed.spc"
     );
 
-    TestResults results = CPATestRunner.run(prop,
+    TestResults resultsTrue = CPATestRunner.run(prop,
         "test/programs/automata/ldv_test_32.c");
+    TestResults resultsFalse = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test_32_false.c");
 
-    results.assertIsSafe();
+    resultsTrue.assertIsSafe();
+    resultsFalse.assertIsUnsafe();
   }
 
   @Test
@@ -384,30 +392,36 @@ public class AutomatonTest {
         "cpa.automaton.inputFile", "test/config/automata/ldv_43_1a.spc"
     );
 
-    TestResults resultsA = CPATestRunner.run(propA,
+    TestResults resultsATrue = CPATestRunner.run(propA,
         "test/programs/automata/ldv_test_43_true.c");
-    TestResults resultsB = CPATestRunner.run(propB,
+    TestResults resultsBTrue = CPATestRunner.run(propB,
         "test/programs/automata/ldv_test_43_true.c");
+    TestResults resultsAFalse = CPATestRunner.run(propA,
+        "test/programs/automata/ldv_test_43_false.c");
 
-    resultsA.assertIsSafe();
-    resultsB.assertIsSafe();
+    resultsATrue.assertIsSafe();
+    resultsBTrue.assertIsSafe();
+    resultsAFalse.assertIsUnsafe();
   }
 
   @Test
   public void assumeAutomaton2() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
         "CompositeCPA.cpas", "cpa.location.LocationCPA,"
+            + "cpa.callstack.CallstackCPA,"
             + "cpa.functionpointer.FunctionPointerCPA,"
             + "cpa.predicate.PredicateCPA, cpa.coverage.CoverageCPA",
         "log.consoleLevel", "ALL",
-        "cfa.useMultiEdges", "false",
         "cpa.automaton.inputFile", "test/config/automata/ldv_test2.spc"
     );
 
-    TestResults results = CPATestRunner.run(prop,
+    TestResults resultsTrue = CPATestRunner.run(prop,
         "test/programs/automata/ldv_test2.c");
+    TestResults resultsFalse = CPATestRunner.run(prop,
+        "test/programs/automata/ldv_test2_false.c");
 
-    results.assertIsSafe();
+    resultsTrue.assertIsSafe();
+    resultsFalse.assertIsSafe();
   }
 
   /* Other automaton test files */
