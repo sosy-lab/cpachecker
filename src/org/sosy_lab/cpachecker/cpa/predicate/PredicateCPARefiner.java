@@ -266,8 +266,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private final Solver solver;
   private final PredicateAssumeStore assumesStore;
   private final CFA cfa;
-//  private final ARGPathExport witnessExporter;
-//  private final AutomatonGraphmlParser witnessParser;
   private final ShutdownNotifier shutdownNotifier;
 
   public PredicateCPARefiner(final Configuration pConfig, final LogManager pLogger,
@@ -296,8 +294,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     strategy = pStrategy;
     cfa = pCfa;
     shutdownNotifier = CPAs.retrieveCPA(pCpa, PredicateCPA.class).getShutdownNotifier();
-//    witnessExporter = new ARGPathExport(pConfig, logger, cfa.getMachineModel(), Language.C);
-//    witnessParser = new AutomatonGraphmlParser(pConfig, logger, cfa.getMachineModel(), new CProgramScope(cfa, logger));
 
     prefixProvider = pPrefixProvider;
 
