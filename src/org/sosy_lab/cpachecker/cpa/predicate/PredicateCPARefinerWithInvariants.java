@@ -49,6 +49,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -163,6 +164,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       + " sliced prefixs and check if they are invariants. If this failes invariant"
       + " generation via other CPAs will be done if possible.")
   private boolean useKInduction = true;
+
+  @Option(secure=true, description="configuration file for bmc generation")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path bmcConfig = null;
 
   private Map<Loop, Integer> loopOccurrences = new HashMap<>();
   private boolean wereInvariantsGenerated = false;
@@ -491,7 +496,16 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         limits.start();
       }
 
-      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(config, logger, notifier, cfa, reached, candidateGenerator);
+      Configuration invariantConfig;
+      try {
+        ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
+        configBuilder.loadFromFile(bmcConfig);
+        invariantConfig = configBuilder.build();
+      } catch (IOException e) {
+        throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
+      }
+
+      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, notifier, cfa, reached, candidateGenerator);
 
       List<BooleanFormula> invariants = generateInvariants0(pAbstractionStatesTrace, invGen);
       if (!timeForInvariantGeneration.isEmpty()) {
