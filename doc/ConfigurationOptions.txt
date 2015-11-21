@@ -1532,6 +1532,11 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # interpolation.
 cpa.predicate.refinement.useInvariantRefinement = false
 
+# Try to generate inductive invariants, by using sliced prefixs and check if
+# they are invariants. If this failes invariant generation via other CPAs
+# will be done if possible.
+cpa.predicate.refinement.useKInduction = true
+
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
 # counterexamples, thus taking time which could be used for the rest of the

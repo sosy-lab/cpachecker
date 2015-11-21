@@ -138,23 +138,24 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   // statistics
   protected final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   protected final StatTimer totalRefinement = new StatTimer("Time for refinement");
+  protected final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
+
   private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
   private final StatTimer buildCounterexampeTraceTime = new StatTimer("Building the counterexample trace");
   private final StatTimer preciseCouterexampleTime = new StatTimer("Extracting precise counterexample");
 
   private final StatInt totalPrefixes = new StatInt(StatKind.SUM, "Number of infeasible sliced prefixes");
-  private final StatTimer prefixExtractionTime = new StatTimer("Extracting infeasible sliced prefixes");
   private final StatTimer prefixSelectionTime = new StatTimer("Selecting infeasible sliced prefixes");
 
   // the previously analyzed counterexample to detect repeated counterexamples
   private List<CFANode> lastErrorPath = null;
 
-  private final PrefixProvider prefixProvider;
   private final PathChecker pathChecker;
   private final Solver solver;
   private final PredicateAssumeStore assumesStore;
 
+  protected final PrefixProvider prefixProvider;
   protected final LogManager logger;
   protected final PathFormulaManager pfmgr;
   protected final FormulaManagerView fmgr;
