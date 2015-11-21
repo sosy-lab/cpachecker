@@ -205,7 +205,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     private boolean produced = false;
     private List<CandidateInvariant> candidates = new ArrayList<>();
-    private Set<CandidateInvariant> invariants;
 
     private ARGPath argPath;
     private List<CFANode> abstractionNodes;
@@ -261,7 +260,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     @Override
     public void confirmCandidates(Iterable<CandidateInvariant> pCandidates) {
       for (CandidateInvariant inv : pCandidates) {
-        invariants.add(inv);
         candidates.remove(inv);
       }
     }
