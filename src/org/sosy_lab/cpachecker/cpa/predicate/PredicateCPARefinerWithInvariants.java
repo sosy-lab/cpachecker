@@ -245,7 +245,14 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     logger.log(Level.FINEST, "Starting invariant-generation-based refinement");
 
     Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
-    boolean branchingOccurred = !elementsOnPath.isEmpty();
+
+    // No branches/merges in path, it is precise.
+    // We don't need to care about creating extra predicates for branching etc.
+    boolean branchingOccurred = true;
+    if (elementsOnPath.size() == allStatesTrace.size()) {
+      elementsOnPath = Collections.emptySet();
+      branchingOccurred = false;
+    }
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
