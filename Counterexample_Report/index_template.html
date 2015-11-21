@@ -4,7 +4,7 @@
     <link rel="stylesheet" type="text/css" href="bootstrap-3.3.5-dist/css/bootstrap.min.css"/>
     <link href="app/generic.css" rel="stylesheet" type="text/css">
     <link href="prettify.css" rel="stylesheet" type="text/css">
-    <!--the jquery-script is necessary for bootstrap has to be added BEFORE the bootstrap-script-->
+    <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
     <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
     <script type="text/javascript" src="bootstrap-3.3.5-dist/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="angular.js"></script>
@@ -34,7 +34,7 @@
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
             <div class="input-group input-group-sm">
-                <input type="text" class="form-control search-input" placeholder="Search for...">
+                <input type="text" ng-keydown="report.checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
                     <span class="input-group-btn">
                         <button ng-click="report.searchFor()" class="btn btn-default" type="button">
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>

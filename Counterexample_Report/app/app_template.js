@@ -45,6 +45,7 @@
             return values;
         };
 
+        var level = 0;
         for(var a = 0; a<errorPathData.length; a++) {
             var errPathElem = errorPathData[a];
             if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
@@ -64,11 +65,18 @@
                         errPathElem.valDict[key] = newValues[key];
                     }
                 }
-                // if I do it in one of the for-loops before I get the new values doubled
+                // if I do it in one of the for-loops before, I get the new values doubled
                 for (key in errPathElem.valDict){
                     errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.valDict[key] + "\n";
                 }
+                for(var b = 1; b <= level; b++) {
+                    errPathElem.desc = "   " + errPathElem.desc;
+                }
                 this.errorPathData.push(errPathElem);
+            } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
+                level -= 1;
+            } else if(errPathElem.desc == "Function start dummy edge"){
+                level += 1;
             }
         }
 
@@ -118,6 +126,12 @@
                 element.classList.add("markedTableElement");
             }
         };
+
+        this.checkIfEnter = function($event){
+            if($event.keyCode == 13){
+                this.searchFor();
+            }
+        }
 
         this.numOfValueMatches = 0;
         this.numOfDescriptionMatches = 0;
@@ -365,7 +379,7 @@
         this.clearZoomCFA = function(){
             this.zoomFactorCFA = 100;
             document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactorCFA/100, this.zoomFactorCFA/100);
-        }
+        };
     }]);
 })();
 

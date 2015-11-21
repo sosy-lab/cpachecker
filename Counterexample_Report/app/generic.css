@@ -192,12 +192,14 @@ td:first-child {
     border-radius: 25px;
     margin-bottom: 2px;
     padding: 2px;
+    padding-left: 8px;
     max-width: 200px;
 }
 .markedDescriptions{
     background-color: #71afff;
     border-radius: 20px;
     padding: 2px;
+    padding-left: 8px;
     margin-bottom: 2px;
     max-width: 200px;
 }

@@ -34,7 +34,7 @@
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
             <div class="input-group input-group-sm">
-                <input type="text" class="form-control search-input" placeholder="Search for...">
+                <input type="text" ng-keydown="report.checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
                     <span class="input-group-btn">
                         <button ng-click="report.searchFor()" class="btn btn-default" type="button">
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
@@ -79,7 +79,9 @@
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
         </ul>
+
         <div class="fileContent" ng-show="report.tabIsSet(1)">
+
             <div class="edit-line">
                 <div class="dropdown">
                     <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
