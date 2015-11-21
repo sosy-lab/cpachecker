@@ -306,18 +306,53 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     logger.log(Level.INFO, "Using refinement for predicate analysis with " + strategy.getClass().getSimpleName() + " strategy.");
   }
 
+  /**
+   * Extracts the elements on the given path.
+   */
+  private Set<ARGState> extractElementsOnPath(final ARGPath path) {
+    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(path.getLastState());
+
+    assert elementsOnPath.containsAll(path.getStateSet());
+    assert elementsOnPath.size() >= path.size();
+
+    return elementsOnPath;
+  }
+
+  /**
+   * Create list of formulas on path.
+   */
+  private List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
+                                                      final List<ARGState> abstractionStatesTrace)
+                                                      throws CPAException, InterruptedException {
+    List<BooleanFormula> formulas;
+    try {
+      formulas = (isRefinementSelectionEnabled())
+        ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
+        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Exception", e);
+    }
+
+    // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
+    // however we do not have the very first state in the trace,
+    // because the rootState has always abstraction "True".
+    assert abstractionStatesTrace.size() == formulas.size()
+               : abstractionStatesTrace.size() + " != " + formulas.size();
+
+    logger.log(Level.ALL, "Error path formulas: ", formulas);
+    return formulas;
+  }
+
   @Override
   public final CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
 
-    Set<ARGState> elementsOnPath = ARGUtils.getAllStatesOnPathsTo(allStatesTrace.getLastState());
-    assert elementsOnPath.containsAll(allStatesTrace.getStateSet());
-    assert elementsOnPath.size() >= allStatesTrace.size();
+    Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
 
+    // No branches/merges in path, it is precise.
+    // We don't need to care about creating extra predicates for branching etc.
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == allStatesTrace.size()) {
-      // No branches/merges in path, it is precise.
-      // We don't need to care about creating extra predicates for branching etc.
       elementsOnPath = Collections.emptySet();
       branchingOccurred = false;
     }
@@ -330,22 +365,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
-    // create list of formulas on path
-    final List<BooleanFormula> formulas;
-    try {
-      formulas = (isRefinementSelectionEnabled())
-        ? performRefinementSelection(allStatesTrace, abstractionStatesTrace)
-        : getFormulasForPath(abstractionStatesTrace, allStatesTrace.getFirstState());
-    } catch (SolverException e) {
-      throw new CPAException("Solver Exception", e);
-    }
-
-    assert abstractionStatesTrace.size() == formulas.size() : abstractionStatesTrace.size() + " != " + formulas.size();
-    // a user would expect "abstractionStatesTrace.size() == formulas.size()+1",
-    // however we do not have the very first state in the trace,
-    // because the rootState has always abstraction "True".
-
-    logger.log(Level.ALL, "Error path formulas: ", formulas);
+    final List<BooleanFormula> formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
 
     final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
     final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
