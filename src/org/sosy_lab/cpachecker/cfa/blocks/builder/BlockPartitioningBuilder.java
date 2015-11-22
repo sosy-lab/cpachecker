@@ -65,7 +65,8 @@ public class BlockPartitioningBuilder {
     boolean changed = true;
     outer: while (changed) {
       changed = false;
-      for (CFANode node : referencedVariablesMap.keySet()) {
+      for (Entry<CFANode, Set<ReferencedVariable>> entry : referencedVariablesMap.entrySet()) {
+        CFANode node = entry.getKey();
         for (CFANode calledFun : innerFunctionCallsMap.get(node)) {
           Set<ReferencedVariable> functionVars = referencedVariablesMap.get(calledFun);
           Set<CFANode> functionBody = blockNodesMap.get(calledFun);
@@ -82,7 +83,7 @@ public class BlockPartitioningBuilder {
             continue outer;
           }
 
-          if (referencedVariablesMap.get(node).addAll(functionVars)) {
+          if (entry.getValue().addAll(functionVars)) {
             changed = true;
           }
           if (blockNodesMap.get(node).addAll(functionBody)) {
