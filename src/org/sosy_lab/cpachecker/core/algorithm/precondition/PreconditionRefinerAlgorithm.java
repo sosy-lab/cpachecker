@@ -477,7 +477,9 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
             handledValidTraces.add(validTrace.get());
 
-            if (!(pCoveredPairs.containsEntry(violatingTrace, validTrace))) {
+            if (violatingTrace.isPresent()
+                && validTrace.isPresent()
+                && !(pCoveredPairs.containsEntry(violatingTrace.get(), validTrace.get()))) {
               return Pair.of(violatingTrace.get(), validTrace.get());
             }
 
