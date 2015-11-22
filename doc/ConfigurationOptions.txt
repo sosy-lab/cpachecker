@@ -615,8 +615,9 @@ cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 # export error path as automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
-# use either CMBC or real C
-cpa.arg.errorPath.codeStyle = "CMBC"
+# exports either CMBC format or a concrete path program
+cpa.arg.errorPath.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
 
 # export error path core as text file
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
