@@ -143,7 +143,10 @@ public final class PolicyAbstractedState extends PolicyState
         pPointerTargetSet, pPredicate, Optional.of(pPredecessor));
   }
 
-  public PolicyAbstractedState updateAbstraction(
+  /**
+   * Replace the abstraction with the given input.
+   */
+  public PolicyAbstractedState replaceAbstraction(
       Map<Template, PolicyBound> newAbstraction) {
     return new PolicyAbstractedState(getNode(),
         newAbstraction, congruence, locationID, manager, ssaMap,

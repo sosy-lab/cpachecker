@@ -63,8 +63,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
                AbstractDomain,
                PrecisionAdjustment,
                AdjustableConditionCPA,
-               ReachedSetAdjustingCPA {
-
+               ReachedSetAdjustingCPA,
+               MergeOperator {
 
   @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
@@ -73,14 +73,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       description="Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
 
-  @Option(secure=true,
-    description="Whether to join states on merge (leads to cycles in ARG)")
-  private boolean joinOnMerge = true;
-
   private final Configuration config;
   private final IPolicyIterationManager policyIterationManager;
   private final LogManager logger;
-  private final MergeOperator mergeOperator;
   private final PolicyIterationStatistics statistics;
   private final StopOperator stopOperator;
 
@@ -151,7 +146,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
 
-
     policyIterationManager = new PolicyIterationManager(
         pConfig,
         formulaManager,
@@ -161,10 +155,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         statistics,
         formulaLinearizationManager,
         pCongruenceManager,
-        joinOnMerge,
         pPwm,
         invariantGenerator, stateFormulaConversionManager);
-    mergeOperator = new PolicyMergeOperator(policyIterationManager, joinOnMerge);
     stopOperator = new StopSepOperator(this);
   }
 
@@ -226,7 +218,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return this;
   }
 
   @Override
@@ -258,7 +250,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
 
-    return policyIterationManager.prec((PolicyState)state,
+    return policyIterationManager.precisionAdjustment(
+        (PolicyState)state,
         (PolicyPrecision)precision, states,
         fullState);
   }
@@ -279,6 +272,14 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   public Configuration getConfig() {
     return config;
+  }
+
+  @Override
+  public AbstractState merge(AbstractState state1, AbstractState state2,
+      Precision precision) throws CPAException, InterruptedException {
+    return policyIterationManager.merge(
+        (PolicyState) state1, (PolicyState) state2, (PolicyPrecision) precision
+    );
   }
 }
 

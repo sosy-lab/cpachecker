@@ -154,11 +154,11 @@ public class CongruenceManager {
 
     for (Entry<Template, Congruence> entry : abstraction.entrySet()) {
       Template template = entry.getKey();
-      Congruence congr = entry.getValue();
+      Congruence congruence = entry.getValue();
 
       Formula formula = templateManager.toFormula(pfmgr, fmgr, template, ref);
       Formula remainder;
-      switch (congr) {
+      switch (congruence) {
         case ODD:
           remainder = makeBv(fmgr.getBitvectorFormulaManager(), formula, 1);
           break;

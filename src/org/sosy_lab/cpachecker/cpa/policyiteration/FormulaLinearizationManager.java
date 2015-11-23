@@ -64,6 +64,7 @@ public class FormulaLinearizationManager {
   }
 
   private class LinearizationManager extends BooleanFormulaTransformationVisitor {
+    // todo: shouldn't we just convert to NNF instead?
 
     protected LinearizationManager(
         FormulaManagerView pFmgr, Map<BooleanFormula, BooleanFormula> pCache) {
@@ -184,6 +185,11 @@ public class FormulaLinearizationManager {
     return out;
   }
 
+  /**
+   * Ackermannization:
+   * Requires a fixpoint computation as UFs can take other UFs as arguments.
+   * First removes UFs with no arguments, etc.
+   */
   private BooleanFormula processUFs(BooleanFormula f) {
     List<Formula> UFs = new ArrayList<>(findUFs(f));
 
@@ -204,6 +210,10 @@ public class FormulaLinearizationManager {
         Formula otherFreshVar = fmgr.makeVariable(fmgr.getFormulaType(otherUF),
             freshUFName(idx2));
 
+        /**
+         * If UFs are equal _under_given_model_, make them equal in the
+         * resulting policy bound.
+         */
         if (evaluate(uf).equals(evaluate(otherUF))) {
           extraConstraints.add(fmgr.makeEqual(freshVar, otherFreshVar));
         }

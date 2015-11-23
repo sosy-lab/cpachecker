@@ -357,7 +357,7 @@ public class TemplateManager {
   /**
    * Convert {@code template} to {@link Formula}, using
    * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
-   * context provided by {@code contextFormula}.
+   * the context provided by {@code contextFormula}.
    *
    * @return Resulting formula.
    */
