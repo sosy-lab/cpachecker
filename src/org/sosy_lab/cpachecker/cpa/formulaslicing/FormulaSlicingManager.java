@@ -50,9 +50,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
 
-  @Option(secure=true, description="Check abstract state subsumption using SMT")
-  private boolean expensiveSubsumptionCheck = true;
-
   public FormulaSlicingManager(
       Configuration config,
       PathFormulaManager pPfmgr,
@@ -264,18 +261,16 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         return true;
       }
 
-      if (expensiveSubsumptionCheck) {
-        try {
-          return isLessOrEqual(
-              pState1.asAbstracted().getAbstraction(),
-              pState2.asAbstracted().getAbstraction()
-          );
-        } catch (SolverException e) {
-          throw new CPAException("Solver failed on a query", e);
-        }
-      } else {
-        return true;
+      try {
+        assert isLessOrEqual(
+                pState1.asAbstracted().getAbstraction(),
+                pState2.asAbstracted().getAbstraction()
+            ) : "Parent of the smaller state should be subsumed as well";
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed on a query", e);
       }
+
+      return true;
     }
   }
 
