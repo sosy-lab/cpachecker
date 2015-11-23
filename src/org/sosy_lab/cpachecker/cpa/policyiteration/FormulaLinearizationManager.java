@@ -26,6 +26,7 @@ public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
+  private final PolicyIterationStatistics statistics;
 
   // Opt environment cached to perform evaluation queries on the model.
   private OptEnvironment environment;
@@ -35,11 +36,13 @@ public class FormulaLinearizationManager {
 
   public FormulaLinearizationManager(UnsafeFormulaManager pUfmgr,
       BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr) {
+      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr,
+      PolicyIterationStatistics pStatistics) {
     ufmgr = pUfmgr;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     ifmgr = pIfmgr;
+    statistics = pStatistics;
   }
 
   /**
@@ -145,11 +148,16 @@ public class FormulaLinearizationManager {
 
     environment = optEnvironment;
 
+    statistics.ackermannizationTimer.start();
+
     // Get rid of UFs.
     BooleanFormula noUFs = processUFs(f);
 
     // Get rid of ite-expressions.
-    return replaceITE(noUFs);
+    BooleanFormula out = replaceITE(noUFs);
+    statistics.ackermannizationTimer.stop();
+
+    return out;
   }
 
   private BooleanFormula replaceITE(BooleanFormula f) {

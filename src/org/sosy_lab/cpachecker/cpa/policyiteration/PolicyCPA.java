@@ -142,7 +142,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
           realFormulaManager.getUnsafeFormulaManager(),
           formulaManager.getBooleanFormulaManager(),
           formulaManager,
-        formulaManager.getIntegerFormulaManager());
+        formulaManager.getIntegerFormulaManager(), statistics);
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
 
