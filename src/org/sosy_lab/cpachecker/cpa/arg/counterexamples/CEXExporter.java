@@ -62,10 +62,14 @@ import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
 
+  enum CounterexampleExportType {
+    CBMC, CONCRETE_EXECUTION;
+  }
 
   @Option(secure=true, name="export",
       description="export error path to file, if one is found")
@@ -116,8 +120,8 @@ public class CEXExporter {
   private PathTemplate errorPathAutomatonGraphmlFile = null;
 
   @Option(secure=true, name="codeStyle",
-          description="use either CMBC or real C")
-  private String codeStyle = "CMBC";
+          description="exports either CMBC format or a concrete path program")
+  private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
 
   private final LogManager logger;
   private final ARGPathExporter witnessExporter;
@@ -188,9 +192,9 @@ public class CEXExporter {
 
         if (counterexample.getTargetPathModel() != null
             && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
-          counterexample.getTargetPathModel().getCFAPathWithAssignments().toJSON(pAppendable, targetPath);
+          targetPath.toJSON(pAppendable, counterexample.getTargetPathModel().getCFAPathWithAssignments().asList());
         } else {
-          targetPath.toJSON(pAppendable);
+          targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
         }
       }
     });
@@ -203,10 +207,15 @@ public class CEXExporter {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {
-        if (codeStyle.equals("REALC")) {
+        switch(codeStyle) {
+        case CONCRETE_EXECUTION:
           pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
-        } else {
+          break;
+        case CBMC:
           pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+          break;
+        default:
+          throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
 
@@ -218,10 +227,15 @@ public class CEXExporter {
       pathElements = ARGUtils.getAllStatesOnPathsTo(lastState);
 
       if (errorPathSourceFile != null) {
-        if (codeStyle.equals("REALC")) {
+        switch(codeStyle) {
+        case CONCRETE_EXECUTION:
           pathProgram = PathToConcreteProgramTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
-        } else {
+          break;
+        case CBMC:
           pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+          break;
+        default:
+          throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
     }

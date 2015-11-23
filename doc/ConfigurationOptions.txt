@@ -615,8 +615,9 @@ cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 # export error path as automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
-# use either CMBC or real C
-cpa.arg.errorPath.codeStyle = "CMBC"
+# exports either CMBC format or a concrete path program
+cpa.arg.errorPath.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
 
 # export error path core as text file
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
@@ -1362,7 +1363,7 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
-  enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+  enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
 
 # generate statistics about precisions (may be slow)
 cpa.predicate.precisionStatistics = true
@@ -1387,9 +1388,16 @@ cpa.predicate.predmap.predicateFormat = SMTLIB2
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
-# use only the atoms from the interpolants as predicates, and not the whole
+# use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
-cpa.predicate.refinement.atomicPredicates = true
+cpa.predicate.refinement.atomicInterpolants = true
+
+# use only atoms from generated invariantsas predicates, and not the whole
+# invariant
+cpa.predicate.refinement.atomicInvariants = false
+
+# configuration file for bmc generation
+cpa.predicate.refinement.bmcConfig = no default value
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -1412,6 +1420,13 @@ cpa.predicate.refinement.dumpCounterexampleFile = "ErrorPath.%d.smt2"
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
+
+# Should the automata used for invariant generation be dumped to files?
+cpa.predicate.refinement.dumpInvariantGenerationAutomata = false
+
+# Where to dump the automata that are used to narrow the analysis used for
+# invariant generation.
+cpa.predicate.refinement.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
 
 # After each refinement, dump the newly found predicates.
 cpa.predicate.refinement.dumpPredicates = false
@@ -1520,6 +1535,11 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # good enough to refute a counterexample therefore the fallback is still
 # interpolation.
 cpa.predicate.refinement.useInvariantRefinement = false
+
+# Try to generate inductive invariants, by using sliced prefixs and check if
+# they are invariants. If this failes invariant generation via other CPAs
+# will be done if possible.
+cpa.predicate.refinement.useKInduction = true
 
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
@@ -2138,14 +2158,10 @@ custominstructions.requirementsStateClassName = no default value
 
 # Option to change the behaviour of the loop detection for generating the
 # Counterexample-C-Code that will probably be used to generate invariants.
-# All loops will probably make no sense, as this will most likely be a huge
-# part of the program and we do only want to create invariants for as small
-# parts as possible. Also due to the incremental finding of counterexamples
-# former loops may have been handled before. Thus only recreating the last
-# loop is the default. Note that last loop means the first loop encountered
-# when backwards traversing the given ARGPath, thus, the last loop may
-# contain other loops, which are in turn also counted to the last loop.
-cwriter.withLoops.loopDetectionStrategy = ONLY_LAST_LOOP
+# Note that last loop means the first loop encountered when backwards
+# traversing the given ARGPath, thus, the last loop may contain other loops,
+# which are in turn also counted to the last loop.
+cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
 # Enable to use lazy refinement in current analysis instead of restarting
@@ -2555,8 +2571,7 @@ testgen.automatonExportPaths = "automaton/next_automaton%s_%s.spc"
 
 # The path selector for TestGenAlgorithm
 testgen.pathSelector = CUTE_PATH_SELECTOR
-  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR,
-             CUTE_LIKE]
+  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR]
 
 # Set this to true to get the automaton files for exploring new Paths. You
 # also get the ARG as dot file and the local reached set for every algoritm

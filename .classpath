@@ -33,7 +33,7 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/princess-assertionless.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/princess-assertionless.jar" sourcepath="lib/java-contrib/princess-sources-assertionless.zip"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-actors.jar"/>
 	<classpathentry kind="output" path="bin"/>

@@ -641,20 +641,30 @@ public class AutomatonGraphmlParser {
     public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
       String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
       List<String> violatedPropertyDescriptions = new ArrayList<>();
+
       if (!Strings.isNullOrEmpty(own)) {
         violatedPropertyDescriptions.add(own);
       }
+
       for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
         if (other != pArgs.getState() && other.getInternalState().isTarget()) {
-          Optional<String> violatedPropertyDescription = other.getOptionalViolatedPropertyDescription();
-          if (violatedPropertyDescription.isPresent() && !violatedPropertyDescription.get().isEmpty()) {
-            violatedPropertyDescriptions.add(violatedPropertyDescription.get());
+          String violatedPropDesc = "";
+
+          Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
+          if (violatedProperty.isPresent()) {
+            violatedPropDesc = violatedProperty.get().toString();
+          }
+
+          if (!violatedPropDesc.isEmpty()) {
+            violatedPropertyDescriptions.add(violatedPropDesc);
           }
         }
       }
+
       if (violatedPropertyDescriptions.isEmpty() && own == null) {
         return null;
       }
+
       return Joiner.on(',').join(violatedPropertyDescriptions);
     }
 

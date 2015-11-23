@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +40,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 
 enum GraphBuilder {
 
@@ -75,18 +70,13 @@ enum GraphBuilder {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
-
-        // Location of the state
-        CFANode loc = AbstractStates.extractLocation(s);
-
         String sourceStateNodeId = getId(s);
 
         // Process child states
         for (ARGState child : argEdges.getSecond()) {
 
           String childStateId = getId(child);
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
+          CFAEdge edgeToNextState = s.getEdgeToChild(child);
           String prevStateId = sourceStateNodeId;
 
           if (edgeToNextState instanceof MultiEdge) {
@@ -145,30 +135,18 @@ enum GraphBuilder {
         EdgeAppender pEdgeAppender) {
 
       final CFANode rootNode = AbstractStates.extractLocation(pRootState);
-      Set<CFANode> subProgramNodes = FluentIterable.from(
-          Iterables.concat(Collections.singleton(rootNode),
-          Iterables.concat(FluentIterable.from(pARGEdges).transform(new Function<Pair<ARGState, Iterable<ARGState>>, Iterable<CFANode>>() {
 
-            @Override
-            public Iterable<CFANode> apply(final Pair<ARGState, Iterable<ARGState>> pEdges) {
-              // Get all successor nodes of edges...
-              return FluentIterable
-                  .from(pEdges.getSecond())
-                  .filter(Predicates.and(
-                      // where the successor ARG node is in the set of target path states
-                      pPathStates,
-                      // and the edge is relevant
-                      Predicates.compose(pIsRelevantEdge, new Function<ARGState, Pair<ARGState, ARGState>>() {
-
-                        @Override
-                        public Pair<ARGState, ARGState> apply(ARGState pTarget) {
-                          return Pair.of(pEdges.getFirst(), pTarget);
-                        }
-
-                  }))).transform(AbstractStates.EXTRACT_LOCATION);
-            }
-
-          })))).toSet();
+      // Get all successor nodes of edges
+      final Set<CFANode> subProgramNodes = new HashSet<>();
+      subProgramNodes.add(rootNode);
+      for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
+        for (ARGState target : edge.getSecond()) {
+          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
+            subProgramNodes.add(AbstractStates.extractLocation(target));
+          }
+        }
+      }
 
       Queue<CFANode> waitlist = new ArrayDeque<>();
       Set<CFANode> visited = new HashSet<>();

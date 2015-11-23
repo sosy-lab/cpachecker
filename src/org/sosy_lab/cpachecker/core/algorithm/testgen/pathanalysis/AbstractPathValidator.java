@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -46,13 +44,13 @@ public abstract class AbstractPathValidator implements PathValidator {
   }
 
   @Override
-  public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)
+  public CounterexampleTraceInfo validatePathCandidate(ARGState pCurrentState, List<CFAEdge> pNewPath)
       throws CPAException, InterruptedException {
     return validatePath(pNewPath);
   }
 
   @Override
-  public void handleVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
+  public void handleVisitedBranching(ARGPath pNewARGPath, ARGState pCurrentState) {
     // no action required
   }
 
@@ -62,7 +60,7 @@ public abstract class AbstractPathValidator implements PathValidator {
   }
 
   @Override
-  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement) {
+  public void handleSinglePathElement(ARGState pCurrentState) {
     // no action required
   }
 

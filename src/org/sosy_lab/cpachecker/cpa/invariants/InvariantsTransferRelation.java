@@ -492,7 +492,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           state = (InvariantsState) Iterables.getOnlyElement(next);
         }
       }
-      return state == pElement ? Collections.<AbstractState>emptySet() : Collections.singleton(state);
+      return Collections.singleton(state);
     }
     CLeftHandSide leftHandSide = getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference && ((CFieldReference) leftHandSide).isPointerDereference()) {

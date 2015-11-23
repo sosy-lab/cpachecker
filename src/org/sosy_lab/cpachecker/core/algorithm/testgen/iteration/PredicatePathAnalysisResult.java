@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.iteration;
 
-import java.util.List;
-
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -83,15 +80,6 @@ public class PredicatePathAnalysisResult {
   public @Nullable CFANode getWrongNode() {
     ARGState wState = getWrongState();
     return AbstractStates.extractLocation(wState);
-  }
-  public CFAEdge getSelectedLastEdge() {
-    checkValid();
-    List<CFAEdge> edges = argPath.asEdgesList();
-    CFAEdge edge = edges.get(edges.size()-1);
-    if (edge == null && edges.size()>1) {
-      edge = edges.get(edges.size()-2);
-    }
-    return edge;
   }
 
   public ARGPath getPath() {

@@ -439,8 +439,7 @@ public class TemplateManager {
     Set<Template> templates = new HashSet<>();
 
     for (CFANode node : cfa.getAllNodes()) {
-      for (int edgeIdx=0; edgeIdx<node.getNumLeavingEdges(); edgeIdx++) {
-        CFAEdge edge = node.getLeavingEdge(edgeIdx);
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         String statement = edge.getRawStatement();
         Optional<Template> template = Optional.absent();
 
@@ -449,9 +448,7 @@ public class TemplateManager {
         if (statement.contains(ASSERT_H_FUNC_NAME)
             && edge instanceof CStatementEdge) {
 
-          for (int enteringEdgeIdx=0;
-               enteringEdgeIdx<node.getNumEnteringEdges(); enteringEdgeIdx++) {
-            CFAEdge enteringEdge = node.getEnteringEdge(enteringEdgeIdx);
+          for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
             if (enteringEdge instanceof CAssumeEdge) {
               CAssumeEdge assumeEdge = (CAssumeEdge) enteringEdge;
               CExpression expression = assumeEdge.getExpression();

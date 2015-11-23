@@ -37,6 +37,7 @@ import urllib.request as urllib2
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
+import benchexec
 from .webclient import *  # @UnusedWildImport
 
 """
@@ -68,7 +69,9 @@ def init(config, benchmark):
         svn_branch = 'trunk'
         svn_revision = 'HEAD'
 
-    _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision)
+    _webclient = WebInterface(config.cloudMaster, config.cloudUser, svn_branch, svn_revision,
+                              config.cloud_threads, config.cloud_poll_interval,
+                              user_agent='BenchExec', version=benchexec.__version__)
 
     benchmark.tool_version = _webclient.tool_revision()
     logging.info('Using CPAchecker version {0}.'.format(benchmark.tool_version))
@@ -122,7 +125,7 @@ def _submitRunsParallel(runSet, benchmark):
 
     logging.info('Submitting runs...')
 
-    executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+    executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
@@ -149,13 +152,9 @@ def _submitRunsParallel(runSet, benchmark):
                                 format(submissonCounter, len(runSet.runs)))
 
 
-            except (urllib2.HTTPError, WebClientError) as e:
-                try:
-                    message = e.read() #not all HTTPErrors have a read() method
-                except AttributeError:
-                    message = ""
-                logging.warning('Could not submit run {0}: {1}. {2}'.\
-                    format(run.identifier, e, message))
+            except (urllib2.URLError, WebClientError) as e:
+                logging.warning('Could not submit run {0}: {1}.'.\
+                    format(run.identifier, e))
             finally:
                 submissonCounter += 1
     finally:
@@ -167,7 +166,7 @@ def _submitRunsParallel(runSet, benchmark):
     return result_futures
 
 def _handle_results(result_futures, output_handler, benchmark):
-    executor = ThreadPoolExecutor(MAX_SUBMISSION_THREADS)
+    executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]

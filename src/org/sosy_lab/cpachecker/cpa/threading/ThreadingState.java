@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -42,8 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.FluentIterable;
 
 /** This immutable state represents a location state combined with a callstack state. */
 public class ThreadingState implements AbstractState, AbstractStateWithLocation, Graphable, Partitionable {
@@ -175,6 +172,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     return Objects.hash(states, locks, threadNums);
   }
 
+
   @Override
   public CFANode getLocationNode() {
     Preconditions.checkState(!states.isEmpty());
@@ -183,15 +181,39 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     return ((AbstractStateWithLocation)states.values().iterator().next().getSecond()).getLocationNode();
   }
 
+  private FluentIterable<AbstractStateWithLocation> getLocations() {
+    return FluentIterable.from(states.values()).transform(
+        new Function<Pair<AbstractState, AbstractState>, AbstractStateWithLocation>() {
+          @Override
+          public AbstractStateWithLocation apply(Pair<AbstractState, AbstractState> p) {
+            return ((AbstractStateWithLocation) p.getSecond());
+          }
+        });
+  }
+
+  private final static Function<AbstractStateWithLocation, CFANode> LOCATION_NODES =
+      new Function<AbstractStateWithLocation, CFANode>() {
+        @Override
+        public CFANode apply(AbstractStateWithLocation loc) {
+          return loc.getLocationNode();
+        }
+      };
+
+  private final static Function<AbstractStateWithLocation, Iterable<CFAEdge>> OUTGOING_EDGES =
+      new Function<AbstractStateWithLocation, Iterable<CFAEdge>>() {
+        @Override
+        public Iterable<CFAEdge> apply(AbstractStateWithLocation loc) {
+          return loc.getOutgoingEdges();
+        }
+      };
+
+  public Iterable<CFANode> getLocationNodes() {
+    return getLocations().transform(LOCATION_NODES);
+  }
+
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return Iterables.concat(Collections2.transform(states.values(),
-        new Function<Pair<AbstractState, AbstractState>,Iterable<CFAEdge>>() {
-      @Override
-      public Iterable<CFAEdge> apply(Pair<AbstractState, AbstractState> p) {
-        return leavingEdges(((AbstractStateWithLocation)p.getSecond()).getLocationNode());
-      }
-    }));
+    return getLocations().transformAndConcat(OUTGOING_EDGES);
   }
 
   @Override

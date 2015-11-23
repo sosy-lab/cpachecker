@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
@@ -186,11 +185,9 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    MutableARGPath errorPath = pErrorPath.mutableCopy();
-
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(pErrorPath) && !existsExplicitApronRefinement) {
-      if (performValueAnalysisRefinement(reached, errorPath)) {
+      if (performValueAnalysisRefinement(reached, pErrorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
@@ -200,7 +197,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     // refinement
     ApronAnalysisFeasabilityChecker apronChecker;
     try {
-      apronChecker = createApronFeasibilityChecker(errorPath);
+      apronChecker = createApronFeasibilityChecker(pErrorPath);
     } catch (ApronException e) {
       throw new RuntimeException("An error occured while operating with the apron library", e);
     }
@@ -223,7 +220,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * @throws CPAException when value-analysis interpolation fails
    * @throws InvalidConfigurationException
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
@@ -307,7 +304,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * @param valueAnalysisPrecision the previous precision
    * @param refinedValueAnalysisPrecision the refined precision
    */
-  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
+  private boolean valueAnalysisRefinementWasSuccessful(ARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
       VariableTrackingPrecision refinedValueAnalysisPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
@@ -350,7 +347,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    * @throws ApronException
    */
-  private ApronAnalysisFeasabilityChecker createApronFeasibilityChecker(MutableARGPath path) throws CPAException, ApronException {
+  private ApronAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
     try {
       ApronAnalysisFeasabilityChecker checker;
 

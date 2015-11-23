@@ -311,8 +311,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       nodes.offer(location);
       while (!nodes.isEmpty()) {
         location = nodes.poll();
-        for (int i = 0; i < location.getNumEnteringEdges(); ++i) {
-          CFAEdge edge = location.getEnteringEdge(i);
+        for (CFAEdge edge : CFAUtils.enteringEdges(location)) {
           if (relevantEdges.add(edge)) {
             nodes.offer(edge.getPredecessor());
           }

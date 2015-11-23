@@ -17,15 +17,15 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -103,6 +103,8 @@ public class InductiveWeakeningManagerTest {
   }
 
   @Test public void testSlicingComplex() throws Exception {
+    // FIXME Tests should not rely on a user manually checking log message
+    // but instead use proper assertions, otherwise they are useless as regression tests.
     PathFormula input = toPathFormula(toCFA(
         "int x, y, p, nondet;",
         "x = 5;",

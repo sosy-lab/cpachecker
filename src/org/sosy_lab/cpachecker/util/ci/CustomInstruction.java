@@ -184,7 +184,7 @@ public class CustomInstruction{
       sb.append("|");
     }
 
-    sb.append(" -> ");
+    sb.append(") -> (");
 
     if (outputVariables.size() > 0) {
       sb.append("|");
@@ -254,7 +254,11 @@ public class CustomInstruction{
 
     List<String> outputVariableList = new ArrayList<>();
     for (String var : inputVariables) {
-      outputVariableList.add("(declare-fun |" + var + "| () Int)");
+      try {
+        Integer.parseInt(var);
+      } catch (NumberFormatException e) {
+        outputVariableList.add("(declare-fun |" + var + "| () Int)");
+      }
     }
     for (String var : outputVariables) {
       outputVariableList.add("(declare-fun |" + var + "@1| () Int)");
@@ -419,22 +423,17 @@ public class CustomInstruction{
 
     List<String> outputVariableList = new ArrayList<>();
     for (String var : inputVariables) {
-      outputVariableList.add("(declare-fun " + getStringOf(map.get(var)) + " () Int)");
+      try {
+        Integer.parseInt(map.get(var));
+      } catch (NumberFormatException e) {
+        outputVariableList.add("(declare-fun |" + map.get(var) + "| () Int)");
+      }
     }
     for (String var : outputVariables) {
       outputVariableList.add("(declare-fun |" + map.get(var) + "@1| () Int)");
     }
 
     return Pair.of(outputVariableList, sb.toString());
-  }
-
-  private String getStringOf(String var) {
-    try {
-      Integer.parseInt(var);
-    } catch (NumberFormatException e) {
-      return "|" + var + "|";
-    }
-    return var;
   }
 
 

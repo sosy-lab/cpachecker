@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,25 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.Set;
-
-import javax.annotation.Nonnull;
 
 /**
- * This interface is provided as a shortcut, so that other CPAs' strengthen
- * operator can check whether one abstract state represents some kind of
- * "target" or "error" abstract state without needing to know more about the state
- * (especially without knowing its actual type).
+ * This interface represents a property that is checked
+ * during the analysis.
+ *
+ * A specification might consist of a set of properties.
+ *
+ * Instances of this interface...
+ *    MUST override the .toString() method to provide a description of the property!
+ *    MIGHT override the .equals(...) method! (and implicitly the hashCode() method)
  */
-public interface Targetable {
-
-  public boolean isTarget();
+public interface Property {
 
   /**
-   * Return a human-readable description of the violated property.
-   * Example: "assert statement in line X"
-   * @return A non-null String, may be empty if no description is available.
-   * @throws IllegalStateException if {@link #isTarget()} returns false
+   * @return  The textual description of the property.
    */
-  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException;
+  @Override
+  public String toString();
+
 }

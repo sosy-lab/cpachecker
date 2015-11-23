@@ -124,7 +124,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
-    statistics = new PolicyIterationStatistics(pConfig);
+    statistics = new PolicyIterationStatistics(cfa);
     TemplateManager templateManager = new TemplateManager(pLogger, pConfig, cfa,
         statistics);
     CongruenceManager pCongruenceManager = new CongruenceManager(

@@ -55,7 +55,6 @@ public class PathSelectorFactory {
     case CFA_TRACKING:
       validator = new CFATrackingPathValidator(pathChecker, startupConfig);
       break;
-    case CUTE_LIKE:
     case LOCATION_AND_VALUE_STATE_TRACKING:
       throw new IllegalArgumentException("Currently not supported strategy with a validator");
     default:
@@ -68,15 +67,11 @@ public class PathSelectorFactory {
     return new BasicPathSelector(pPathValidator,startupConfig, stats);
   }
 
-  @SuppressWarnings("deprecation") //suppresses deprecated CUTEBasicPathSelector
   public PathSelector createPathSelector(AnalysisStrategySelector selector, CFA pCfa, TestGenStatistics stats) throws InvalidConfigurationException {
     PathSelector analysisStrategy;
     switch (selector) {
     case LOCATION_AND_VALUE_STATE_TRACKING:
       analysisStrategy = new LocationAndValueStateTrackingPathAnalysisStrategy(createPathChecker(pCfa), startupConfig, stats);
-      break;
-    case CUTE_LIKE:
-      analysisStrategy = new CUTEBasicPathSelector(createPathChecker(pCfa), startupConfig, stats);
       break;
     case CUTE_PATH_SELECTOR:
     case CFA_TRACKING:

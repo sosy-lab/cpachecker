@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,44 +21,48 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.error;
+package org.sosy_lab.cpachecker.core.defaults;
 
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
-public class DummyErrorState extends ARGState {
+public final class NamedProperty implements Property {
 
-  private static final Property dummyProperty = new Property() {
-    @Override
-    public String toString() {
-      return "DummyProperty";
+  private final String text;
+
+  private NamedProperty(String pText) {
+    this.text = Preconditions.checkNotNull(pText);
+  }
+
+  @Override
+  public int hashCode() {
+    return text.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if (!(pOther instanceof NamedProperty)) {
+      return false;
     }
-  };
-
-  private static final long serialVersionUID = 1338393013733003150L;
-
-  public DummyErrorState(final AbstractState pWrapped) {
-    super(pWrapped, null);
+    return this.text.equals(pOther.toString());
   }
 
   @Override
-  public boolean isTarget() {
-    return true;
+  public String toString() {
+    return text;
   }
 
-  @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    return ImmutableSet.of(dummyProperty);
+  public static NamedProperty create(final String pText) {
+    return new NamedProperty(pText);
   }
 
-  @Override
-  public Object getPartitionKey() {
-    return null;
+  public static Set<Property> singleton(final String pText) {
+    return ImmutableSet.<Property>of(NamedProperty.create(pText));
   }
+
 }

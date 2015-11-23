@@ -30,8 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -183,11 +182,9 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   protected CounterexampleInfo performRefinement(final ARGReachedSet reached, final ARGPath pErrorPath)
       throws CPAException, InterruptedException {
 
-    MutableARGPath errorPath = pErrorPath.mutableCopy();
-
     // if path is infeasible, try to refine the precision
     if (!isPathFeasable(pErrorPath) && !existsExplicitOctagonRefinement) {
-      if (performValueAnalysisRefinement(reached, errorPath)) {
+      if (performValueAnalysisRefinement(reached, pErrorPath)) {
         return CounterexampleInfo.spurious();
       }
     }
@@ -195,7 +192,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     // if the path is infeasible, try to refine the precision, this time
     // only with octagons, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(errorPath);
+    OctagonAnalysisFeasabilityChecker octChecker = createOctagonFeasibilityChecker(pErrorPath);
 
     if (!octChecker.isFeasible()) {
       if (performOctagonAnalysisRefinement(reached, octChecker)) {
@@ -216,7 +213,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @throws CPAException when value-analysis interpolation fails
    * @throws InvalidConfigurationException
    */
-  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final MutableARGPath errorPath) throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
@@ -298,7 +295,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @param valueAnalysisPrecision the previous precision
    * @param refinedValueAnalysisPrecision the refined precision
    */
-  private boolean valueAnalysisRefinementWasSuccessful(MutableARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
+  private boolean valueAnalysisRefinementWasSuccessful(ARGPath errorPath, VariableTrackingPrecision valueAnalysisPrecision,
       VariableTrackingPrecision refinedValueAnalysisPrecision) {
     // new error path or precision refined -> success
     boolean success = (errorPath.toString().hashCode() != previousErrorPathID)
@@ -340,7 +337,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    */
-  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(MutableARGPath path) throws CPAException, InterruptedException {
+  private OctagonAnalysisFeasabilityChecker createOctagonFeasibilityChecker(ARGPath path) throws CPAException, InterruptedException {
     try {
       OctagonAnalysisFeasabilityChecker checker;
 

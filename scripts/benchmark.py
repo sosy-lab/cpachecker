@@ -82,7 +82,7 @@ class Benchmark(benchexec.BenchExec):
         vcloud_args.add_argument("--revision",
                           dest="revision",
                           metavar="BRANCH:REVISION",
-                          help="The svn revision of CPAchecker to use  (if using the web interface of the VerifierCloud).")
+                          help="The svn revision of CPAchecker to use (if using the web interface of the VerifierCloud).")
 
         vcloud_args.add_argument("--justReprocessResults",
                           dest="reprocessResults",
@@ -94,7 +94,20 @@ class Benchmark(benchexec.BenchExec):
                           metavar="MB",
                           default=100,
                           type=int,
-                          help="The heap-size (in MB) used by the VerifierCloudClient. A too small heap-size may terminate the client without any results.")
+                          help="The heap-size (in MB) used by the VerifierCloud client. A too small heap-size may terminate the client without any results.")
+
+        vcloud_args.add_argument("--cloudSubmissionThreads",
+                          dest="cloud_threads",
+                          default=5,
+                          type=int,
+                          help="The number of threads used for parallel run submission (if using the web interface of the VerifierCloud).")
+
+        vcloud_args.add_argument("--cloudPollInterval",
+                          dest="cloud_poll_interval",
+                          metavar="SECONDS",
+                          default=5,
+                          type=int,
+                          help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).")
 
         appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
         appengine_args.add_argument("--appengine",

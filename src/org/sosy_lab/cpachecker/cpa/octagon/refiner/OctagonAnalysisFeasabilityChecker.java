@@ -27,22 +27,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
-import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -56,11 +54,11 @@ public class OctagonAnalysisFeasabilityChecker {
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final MutableARGPath checkedPath;
-  private final MutableARGPath foundPath;
+  private final ARGPath checkedPath;
+  private final ARGPath foundPath;
   private final CFA cfa;
 
-  public OctagonAnalysisFeasabilityChecker(CFA pCfa, LogManager pLog, ShutdownNotifier pShutdownNotifier, MutableARGPath pPath, OctagonCPA pCpa) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasabilityChecker(CFA pCfa, LogManager pLog, ShutdownNotifier pShutdownNotifier, ARGPath pPath, OctagonCPA pCpa) throws InvalidConfigurationException, CPAException, InterruptedException {
     logger = pLog;
     shutdownNotifier = pShutdownNotifier;
     cfa = pCfa;
@@ -106,7 +104,7 @@ public class OctagonAnalysisFeasabilityChecker {
    * of the last (failing) assume edge in the found error path.
    */
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
-    UseDefRelation useDefRelation = new UseDefRelation(foundPath.immutableCopy(), Collections.<String>emptySet());
+    UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet());
 
     return FluentIterable.from(useDefRelation.getUsesAsQualifiedName()).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
   }
@@ -122,40 +120,45 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final OctagonState pInitial)
+  private ARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final OctagonState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<OctagonState> next = Lists.newArrayList(pInitial);
 
-      MutableARGPath prefix = new MutableARGPath();
-
       Collection<OctagonState> successors = new HashSet<>();
 
-      for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
-        successors.clear();
-        for (OctagonState st : next) {
-          successors.addAll(transfer.getAbstractSuccessorsForEdge(
-              st,
-              pPrecision,
-              pathElement.getSecond()));
+      PathIterator pathIt = checkedPath.pathIterator();
 
-          // computing the feasibility check takes sometimes much time with octagons
-          // so we let the shutdownNotifer cancel the computation if necessary
-          shutdownNotifier.shutdownIfNecessary();
+      while (!next.isEmpty()) {
+        successors.clear();
+
+        // we do only have an outgoing edge if there is a next state in the iterator
+        if (pathIt.hasNext()) {
+          for (OctagonState st : next) {
+            successors.addAll(transfer.getAbstractSuccessorsForEdge(
+                st,
+                pPrecision,
+                pathIt.getOutgoingEdge()));
+
+            // computing the feasibility check takes sometimes much time with octagons
+            // so we let the shutdownNotifer cancel the computation if necessary
+            shutdownNotifier.shutdownIfNecessary();
+          }
         }
 
-        prefix.addLast(pathElement);
-
         // no successors => path is infeasible
-        if (successors.isEmpty()) {
+        if (successors.isEmpty() || !pathIt.hasNext()) {
           break;
         }
 
         // get matching successor state and apply precision
         next.clear();
         next.addAll(successors);
+        pathIt.advance();
       }
-      return prefix;
+
+      return pathIt.getPrefixInclusive();
+
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }

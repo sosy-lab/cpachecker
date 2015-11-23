@@ -113,7 +113,8 @@ def _init(config):
     if not config.cloud_master:
         sys.exit("No URL of a VerifierCloud instance is given.")
 
-    webclient = WebInterface(config.cloud_master, config.cloud_user)
+    webclient = WebInterface(config.cloud_master, config.cloud_user,
+                             user_agent='witness_validation_web_cloud.py', version=__version__)
 
     logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
     return webclient

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.collect.ImmutableMap;
@@ -241,8 +242,8 @@ public class AssumptionToEdgeAllocatorTest {
   public void testAllocateAssignmentsToEdge() throws InvalidConfigurationException {
 
     for (CFANode node : cfa.getAllNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        testWithEdge(node.getLeavingEdge(i));
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        testWithEdge(edge);
       }
     }
   }
