@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
@@ -305,7 +306,7 @@ class DynamicMemoryHandler {
   }
 
   static String makeAllocVariableName(final String functionName, final CType type,
-      final SSAMapBuilder ssa, final CToFormulaConverterWithHeapArray conv) {
+      final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
     return functionName
         + "_"
         + CToFormulaConverterWithHeapArray.getUFName(type)

@@ -86,7 +86,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @param memberName
    * @return
    */
-  int getOffset(CCompositeType compositeType, final String memberName) {
+  public int getOffset(CCompositeType compositeType, final String memberName) {
     compositeType = (CCompositeType) CTypeUtils.simplifyType(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
     Multiset<String> multiset = offsets.get(compositeType);
