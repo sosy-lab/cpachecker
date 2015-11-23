@@ -3,12 +3,10 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import static com.google.common.collect.Iterables.filter;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -32,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -62,7 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -114,7 +110,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure=true, description="Remove UFs and ITEs from policies. "
       + "NOTE: Currently seems to decrease performance.")
-  private boolean linearizePolicy = false;
+  private boolean linearizePolicy = true;
 
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
   private boolean generateTemplatesUsingConvexHull = false;
@@ -285,32 +281,24 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       logger.log(Level.INFO, "Returning BOTTOM state");
       return Optional.absent();
     }
-    PolicyPrecision toNodePrecision = templateManager.precisionForNode(
-        state.getNode());
-
-    assert !state.isAbstract();
-
-    PolicyState outState = state;
-
-    // Only update precision on abstracted states.
-    Precision newPrecision = shouldPerformAbstraction ?
-        toNodePrecision : precision;
 
     // Perform the abstraction, if necessary.
     if (shouldPerformAbstraction) {
+      PolicyPrecision toNodePrecision = templateManager.precisionForNode(
+          state.getNode());
 
+      // Formulas reported by other CPAs.
+      BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
+      logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
 
-        // Formulas reported by other CPAs.
-        BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
-        logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
-        List<PolicyAbstractedState> siblings =
-            getSiblings(state, extraInvariant, states.getReached(pArgState));
+      Optional<PolicyAbstractedState> sibling =
+          getSiblings(iState, extraInvariant, states.getReached(pArgState));
 
       statistics.startAbstractionTimer();
       PolicyAbstractedState abstraction;
       try {
         abstraction = performAbstraction(
-            iState, siblings, toNodePrecision, extraInvariant
+            iState, sibling, toNodePrecision, extraInvariant
         );
         logger.log(Level.FINE, ">>> Abstraction produced a state: ",
             abstraction);
@@ -318,35 +306,35 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         statistics.stopAbstractionTimer();
       }
 
-      if (!siblings.isEmpty()) {
+      PolicyAbstractedState outState;
+      if (sibling.isPresent()) {
 
         // Emulate large-step (join followed by value-determination) on the
         // resulting abstraction at the same location.
-        outState = emulateLargeStep(abstraction, siblings, precision);
+        outState = emulateLargeStep(abstraction, sibling.get(), precision);
       } else {
         outState = abstraction;
       }
+      return Optional.of(PrecisionAdjustmentResult.create(
+          outState,
+          toNodePrecision,
+          PrecisionAdjustmentResult.Action.CONTINUE));
+    } else {
+      return Optional.of(PrecisionAdjustmentResult.create(
+          iState,
+          precision,
+          PrecisionAdjustmentResult.Action.CONTINUE));
     }
-
-    return Optional.of(PrecisionAdjustmentResult.create(
-        outState,
-        newPrecision,
-        PrecisionAdjustmentResult.Action.CONTINUE));
   }
 
   private PolicyAbstractedState emulateLargeStep(
       PolicyAbstractedState abstraction,
-      Iterable<PolicyAbstractedState> siblings,
+      PolicyAbstractedState latestSibling,
       PolicyPrecision precision
       ) throws CPATransferException, InterruptedException {
 
     CFANode node = abstraction.getNode();
     logger.log(Level.INFO, "Emulating large step at node ", node);
-
-    PolicyAbstractedState latestSibling = siblings.iterator().next().getLatestVersion();
-    for (PolicyAbstractedState sibling : siblings) {
-      Preconditions.checkState(sibling.getLatestVersion() == latestSibling);
-    }
 
     Map<Template, PolicyBound> updated = new HashMap<>();
     PolicyAbstractedState merged = joinAbstractedStates(
@@ -385,9 +373,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
 
-    for (PolicyAbstractedState sibling : siblings) {
-      sibling.setNewVersion(out.asAbstracted());
-    }
+    latestSibling.setNewVersion(out);
 
     return out;
   }
@@ -515,9 +501,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         newState.getLocationID(),
         stateFormulaConversionManager,
         oldState.getSSA(),
-
-        // todo: merge pointer target states [ONLY IF the new state is not coming
-        // from under the loop].
         newState.getPointerTargetSet(),
         newPredicate,
         newState.getPredecessor().get()
@@ -700,7 +683,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private PolicyAbstractedState performAbstraction(
       final PolicyIntermediateState state,
-      final List<PolicyAbstractedState> otherStates,
+      final Optional<PolicyAbstractedState> otherState,
       PolicyPrecision precision,
       BooleanFormula extraPredicate)
       throws CPAException, InterruptedException {
@@ -708,10 +691,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
 
     int locationID;
-    if (!otherStates.isEmpty()) {
-
-      // They should all share the same location ID.
-      locationID = otherStates.iterator().next().getLocationID();
+    if (otherState.isPresent()) {
+      locationID = otherState.get().getLocationID();
     } else {
       locationID = locationIDGenerator.getFreshId();
       statistics.latestLocationID = locationID;
@@ -768,8 +749,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         // add a lemma that the new value has to be strictly larger otherwise.
         BooleanFormula prevStateConstraint = bfmgr.makeBoolean(true);
         PolicyBound prevBound = null;
-        if (usePreviousBounds && !otherStates.isEmpty()) {
-          PolicyAbstractedState prevState = otherStates.iterator().next()
+        if (usePreviousBounds && otherState.isPresent()) {
+          PolicyAbstractedState prevState = otherState.get()
               .getLatestVersion();
           Optional<PolicyBound> bound = prevState.getBound(template);
           if (!bound.isPresent()) {
@@ -1045,62 +1026,47 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   /**
    * Find the PolicyAbstractedState sibling: something about-to-be-merged
    * with the argument state.
-   * todo: describe logic, join with #getPredecessor.
+   * ReachedSet gives us all elements potentially joinable
+   * (== in the same partition) with {@code state}.
+   * However, we would like to get the *latest* such element.
+   * In ARG terminology, that's the first one we get by following backpointers.
+   *
    */
-  private List<PolicyAbstractedState> getSiblings(
-      PolicyState state,
+  private Optional<PolicyAbstractedState> getSiblings(
+      PolicyIntermediateState state,
       BooleanFormula extraInvariant,
       Collection<AbstractState> pSiblings) {
 
-    List<PolicyAbstractedState> out = new ArrayList<>();
     if (pSiblings.isEmpty()) {
-      return out;
+      return Optional.absent();
     }
 
+    Set<PolicyAbstractedState> filteredSiblings = new HashSet<>(pSiblings.size());
     for (AbstractState sibling : pSiblings) {
       PolicyAbstractedState s = AbstractStates.extractStateByType(sibling,
           PolicyAbstractedState.class);
       if (s != null && s.getExtraInvariant().equals(extraInvariant)) {
-        out.add(s);
+        filteredSiblings.add(s);
       }
     }
-
-    Optional<PolicyAbstractedState> pred = getPredecessor(state);
-
-    // Intersection of reached set with a predecessor state.
-    if (pred.isPresent() && out.contains(pred.get())) {
-      return ImmutableList.of(pred.get());
-    } else {
-      return ImmutableList.of();
+    if (filteredSiblings.isEmpty()) {
+      return Optional.absent();
     }
 
-
-  }
-
-  private Optional<PolicyAbstractedState> getPredecessor(final PolicyState state) {
-
-    CFANode node = state.getNode();
-    Optional<BooleanFormula> predicate;
-    if (state.isAbstract()) {
-      predicate = Optional.of(state.asAbstracted().getExtraInvariant());
-    } else {
-      predicate = Optional.absent();
-    }
-
+    // We follow the chain of backpointers.
+    // The chain is necessary as we might have nested loops.
     PolicyState a = state;
     while (true) {
       if (a.isAbstract()) {
         PolicyAbstractedState aState = a.asAbstracted();
-        if (aState.getNode() == node && (!predicate.isPresent() ||
-            predicate.get().equals(aState.getExtraInvariant()))) {
 
+        if (filteredSiblings.contains(aState)) {
           return Optional.of(aState);
         } else {
-          if (aState.getPredecessor().isPresent()) {
-            a = aState.getPredecessor().get().getGeneratingState();
-          } else {
+          if (!aState.getPredecessor().isPresent()) {
             return Optional.absent();
           }
+          a = aState.getPredecessor().get().getGeneratingState();
         }
 
       } else {
@@ -1206,6 +1172,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     return true;
   }
 
+  /**
+   * @return Formulas known to be true at {@code state}.
+   */
   private BooleanFormula extractReportedFormulas(AbstractState state) {
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (FormulaReportingState s : AbstractStates.asIterable(state).filter(FormulaReportingState.class)) {
