@@ -41,7 +41,12 @@
                         </button>
                     </span>
             </div>
-            <div>
+            <div id="searchOptions">
+                <label for="optionExactMatch">
+                    <input id="optionExactMatch" type="checkbox" name="searchOption">
+                    Find only exact matches</label>
+            </div>
+            <div id="matches">
                 <p class="markedValues">Matches in 'values': {{report.numOfValueMatches}}</p>
                 <p class="markedDescriptions">Matches in 'description': {{report.numOfDescriptionMatches}}</p>
             </div>
@@ -49,8 +54,8 @@
         <div class="fileContent">
             <table id="err_table">
                 <tr id="errpath-{{$index}}" ng-repeat="line in report.errorPathData">
-                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>{{line.source}}</pre></td>
-                    <td ng-click="report.clickedErrpathElement($event)"><pre>{{line.desc}}</pre></td>
+                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
+                    <td ng-click="report.clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
                 </tr>
             </table>
         </div>

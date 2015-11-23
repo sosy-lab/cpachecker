@@ -53,6 +53,7 @@
                     errPathElem.target = fCallEdges[errPathElem.source][0];
                 }
                 var newValues = this.getValues(errPathElem.val);
+                errPathElem["newValDict"] = newValues;
                 errPathElem["valDict"] = {};
                 errPathElem["valString"] = "";
                 if (a > 0) {
@@ -133,9 +134,16 @@
             }
         }
 
+
         this.numOfValueMatches = 0;
         this.numOfDescriptionMatches = 0;
         this.searchFor = function(){
+            //you have to search for it that way, because display:none does not allow direct search
+            var matchesDiv = document.getElementsByClassName("markedValues")[0].parentNode;
+            if(matchesDiv.style.display != "inline"){
+                matchesDiv.style.display = "inline";
+                document.getElementById("err_table").parentNode.style.height = "calc(100% - 160px)";
+            }
             this.numOfValueMatches = 0;
             this.numOfDescriptionMatches = 0;
             var allMarkedValueElements = document.getElementsByClassName("markedValueElement");
@@ -154,7 +162,7 @@
                 allMarkedValueDescElements[0].classList.remove("markedValueDescElement");
             }
             var searchedString = document.getElementsByClassName("search-input")[0].value;
-            if(searchedString.trim() != "") {
+            if(searchedString.trim() != "" && !document.getElementById("optionExactMatch").checked) {
                 for (var l = 0; l < this.errorPathData.length; l++) {
                     var errorPathElem = this.errorPathData[l];
                     if (errorPathElem.val.contains(searchedString) && errorPathElem.desc.contains(searchedString)) {
@@ -167,6 +175,23 @@
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueElement");
                     }
                     else if (errorPathElem.desc.contains(searchedString)) {
+                        this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
+                        document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedDescElement");
+                    }
+                }
+            } else if(searchedString.trim() != "" && document.getElementById("optionExactMatch").checked) {
+                for (var l = 0; l < this.errorPathData.length; l++) {
+                    var errorPathElem = this.errorPathData[l];
+                    if (searchedString in errorPathElem.newValDict && errorPathElem.desc == searchedString) {
+                        this.numOfValueMatches = this.numOfValueMatches + 1;
+                        this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
+                        document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueDescElement");
+                    }
+                    else if (searchedString in errorPathElem.newValDict) {
+                        this.numOfValueMatches = this.numOfValueMatches + 1;
+                        document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueElement");
+                    }
+                    else if (errorPathElem.desc == searchedString) {
                         this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedDescElement");
                     }
