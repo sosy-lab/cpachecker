@@ -86,7 +86,7 @@ public class DeferredAllocationPool implements Serializable {
     this.baseVariables = baseVariables;
   }
 
-  DeferredAllocationPool(final String pointerVariable,
+  public DeferredAllocationPool(final String pointerVariable,
                          final boolean isZeroing,
                          final CIntegerLiteralExpression size,
                          final String baseVariable) {
@@ -117,13 +117,13 @@ public class DeferredAllocationPool implements Serializable {
     return size;
   }
 
-  DeferredAllocationPool addPointerVariable(final String pointerVariable) {
+  public DeferredAllocationPool addPointerVariable(final String pointerVariable) {
     assert !pointerVariables.contains(pointerVariable)
         : "Pointer variable " + pointerVariable + " added twice to deferred allocation pool.";
     return new DeferredAllocationPool(this, this.pointerVariables.with(pointerVariable));
   }
 
-  DeferredAllocationPool removePointerVariable(final String pointerVariable) {
+  public DeferredAllocationPool removePointerVariable(final String pointerVariable) {
     return new DeferredAllocationPool(this, pointerVariables.without(pointerVariable));
   }
 
