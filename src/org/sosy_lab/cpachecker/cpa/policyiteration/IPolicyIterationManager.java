@@ -35,7 +35,7 @@ public interface IPolicyIterationManager {
 
   void adjustReachedSet(ReachedSet pReachedSet);
 
-  boolean isLessOrEqual(PolicyState pState1, PolicyState pState2);
+  boolean isLessOrEqual(PolicyState pState1, PolicyState pState2) throws CPAException;
 
   PolicyState merge(
       PolicyState state1, PolicyState state2,

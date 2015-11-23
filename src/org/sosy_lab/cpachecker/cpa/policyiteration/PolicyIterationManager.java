@@ -337,8 +337,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     logger.log(Level.INFO, "Emulating large step at node ", node);
 
     Map<Template, PolicyBound> updated = new HashMap<>();
-    PolicyAbstractedState merged = joinAbstractedStates(
-        abstraction, latestSibling, precision, updated);
+    PolicyAbstractedState merged;
+    try {
+      merged = joinAbstractedStates(
+          abstraction, latestSibling, precision, updated);
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed", e);
+    }
 
     PolicyAbstractedState out;
     if (!shouldPerformValueDetermination(node, updated)) {
@@ -439,7 +444,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyAbstractedState oldState,
       final PolicyPrecision precision,
       Map<Template, PolicyBound> updated
-  ) throws CPATransferException, InterruptedException {
+  ) throws CPATransferException, InterruptedException, SolverException {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
@@ -1087,7 +1092,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   }
 
   @Override
-  public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
+  public boolean isLessOrEqual(PolicyState state1, PolicyState state2)
+      throws CPAException {
     try {
       statistics.comparisonTimer.start();
       Preconditions.checkState(state1.isAbstract() == state2.isAbstract());
@@ -1100,6 +1106,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             state2.asIntermediate());
       }
       return out;
+    } catch (SolverException | InterruptedException e) {
+      throw new CPAException("Solver failed", e);
     } finally {
       statistics.comparisonTimer.stop();
     }
@@ -1139,7 +1147,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
    */
   private boolean isLessOrEqualIntermediate(
       PolicyIntermediateState state1,
-      PolicyIntermediateState state2) {
+      PolicyIntermediateState state2)
+      throws SolverException, InterruptedException {
     return state1.getPathFormula().getFormula().equals(
         state2.getPathFormula().getFormula()
     ) && isLessOrEqualAbstracted(state1.getGeneratingState(),
@@ -1153,7 +1162,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean isLessOrEqualAbstracted(
       PolicyAbstractedState aState1,
       PolicyAbstractedState aState2
-  ) {
+  ) throws SolverException, InterruptedException {
     if (!congruenceManager.isLessOrEqual(aState1.getCongruence(),
         aState2.getCongruence())) {
       return false;
@@ -1169,6 +1178,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         return false;
       }
     }
+    if (!(aState1.getExtraInvariant().equals(aState2.getExtraInvariant()))
+      &&
+        !solver.isUnsat(bfmgr.and(aState1.getExtraInvariant(),
+        bfmgr.not(aState2.getExtraInvariant())))) {
+      return false;
+    }
+
     return true;
   }
 
