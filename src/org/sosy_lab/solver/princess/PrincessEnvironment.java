@@ -294,17 +294,16 @@ class PrincessEnvironment {
           out.append("(define-fun ")
              .append(name);
 
-          // the type of each abbreviation + the renamed formula
-          out.append(" ((abbrev_arg Int)) Int ");
+          // the type of each abbreviation
           if (fullFormula instanceof IFormula) {
-            out.append("(ite ")
-               .append(SMTLineariser.asString(fullFormula))
-               .append(" 0 1))\n");
+            out.append(" () Bool ");
           } else if (fullFormula instanceof ITerm) {
-            out.append(SMTLineariser.asString(fullFormula))
-               .append(" )\n");
+            out.append(" () Int ");
           }
 
+          // the abbreviated formula
+          out.append(SMTLineariser.asString(fullFormula))
+             .append(" )\n");
         }
 
         // now add the final assert
