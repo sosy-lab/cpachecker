@@ -105,6 +105,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -801,6 +802,8 @@ public class TigerAlgorithm
 
       CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
 
+      ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
+
       algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
 
       if (algorithm instanceof CEGARAlgorithm) {
@@ -823,7 +826,8 @@ public class TigerAlgorithm
         ARGStatistics lARTStatistics;
         try {
           lARTStatistics =
-              new ARGStatistics(internalConfiguration, logger, lARTCPA, cfa.getMachineModel(), cfa.getLanguage(), null);
+              new ARGStatistics(internalConfiguration, logger, lARTCPA,
+                  cfa.getMachineModel(), cfa.getLanguage(), null, argPathExporter);
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }
@@ -945,6 +949,7 @@ public class TigerAlgorithm
                   + " PC "
                   + bddCpaNamedRegionManager.dumpRegion((testCaseFinalRegion == null
                       ? testCaseFinalRegion : testCaseFinalRegion)));
+
           TestCase testcase = new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().asEdgesList(),
               (testCaseFinalRegion == null ? testCaseFinalRegion : testCaseFinalRegion), bddCpaNamedRegionManager);
 
