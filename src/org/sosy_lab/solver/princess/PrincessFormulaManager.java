@@ -61,7 +61,7 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
       ShutdownNotifier pShutdownNotifier, PathCounterTemplate pLogfileTemplate,
       boolean pUseNonLinearIntegerArithmetic) throws InvalidConfigurationException {
 
-    PrincessEnvironment env = new PrincessEnvironment(config, logger, pLogfileTemplate, pShutdownNotifier);
+    PrincessEnvironment env = new PrincessEnvironment(logger, pLogfileTemplate, pShutdownNotifier);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
         TermType.Boolean, TermType.Integer);
