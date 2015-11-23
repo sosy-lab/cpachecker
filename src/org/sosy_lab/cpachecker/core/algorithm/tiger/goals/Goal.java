@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -340,6 +342,38 @@ public class Goal {
     return getPattern().accept(visitor);
   }
 
+  public static class GoalSafetyProperty extends AutomatonSafetyProperty {
+    private final Goal goal;
+
+    public GoalSafetyProperty(Goal pGoal) {
+      super();
+      this.goal = Preconditions.checkNotNull(pGoal);
+    }
+
+    public Goal getGoal() {
+      return goal;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (!super.equals(pObj)) {
+        return false;
+      }
+
+      if (!(pObj instanceof GoalSafetyProperty)) {
+        return false;
+      }
+
+      GoalSafetyProperty other = (GoalSafetyProperty) pObj;
+
+      if (!other.goal.equals(this.goal)) {
+        return false;
+      }
+
+      return true;
+    }
+  }
+
   /**
    * Converts the NondeterministicFiniteAutomaton<GuardedEdgeLabel>
    *    into a ControlAutomaton
@@ -371,8 +405,12 @@ public class Goal {
             trigger,
             Collections.<AutomatonBoolExpr> emptyList(),
             assumptions,
+            true,
             Collections.<AutomatonAction> emptyList(),
-            sucessorStateName);
+            sucessorStateName,
+            null,
+            ImmutableSet.<AutomatonSafetyProperty>of(new GoalSafetyProperty(this)),
+            ImmutableSet.<AutomatonSafetyProperty>of());
 
         transitions.add(ct);
       }
