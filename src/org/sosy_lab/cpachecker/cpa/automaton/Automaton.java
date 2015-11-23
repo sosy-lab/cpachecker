@@ -24,53 +24,107 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
 public class Automaton {
+
   private final String name;
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
   private final Map<String, AutomatonVariable> initVars;
-  private final List<AutomatonInternalState> states;
+  private final Set<AutomatonInternalState> states = Sets.newHashSet();
+  private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
+  private final Set<AutomatonSafetyProperty> encodedProperties = Sets.newHashSet();
+
+  private Optional<Boolean> isObservingOnly = Optional.absent();
 
   public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInitialStateName) throws InvalidAutomatonException {
+
     this.name = pName;
     this.initVars = pVars;
-    this.states = pStates;
 
-    Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
-    for (AutomatonInternalState s : pStates) {
-      if (statesMap.put(s.getName(), s) != null) {
-        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
+    Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pStates.size());
+    for (AutomatonInternalState q : pStates) {
+      // Check for duplicated state names in the input
+      if (nameToState.put(q.getName(), q) != null) {
+        throw new InvalidAutomatonException("State " + q.getName() + " exists twice in automaton " + pName);
+      }
+
+      // The collection of states is a set (unique names)
+      this.states.add(q);
+      if (q.isTarget()) {
+        this.targetStates.add(q);
+      }
+
+      for (AutomatonTransition t: q.getTransitions()) {
+        AutomatonInternalState succ = t.getFollowState();
+        if (succ != null) {
+          if (t.getFollowState().isTarget()) {
+            encodedProperties.addAll(t.getViolatedWhenEnteringTarget());
+          }
+        }
+
+        // Add a reference from the properties to the automaton.
+        for (AutomatonSafetyProperty p: t.getViolatedWhenAssertionFailed()) {
+          p.setAutomaton(this);
+        }
+        for (AutomatonSafetyProperty p: t.getViolatedWhenEnteringTarget()) {
+          p.setAutomaton(this);
+        }
       }
     }
 
-    initState = statesMap.get(pInitialStateName);
+    initState = nameToState.get(pInitialStateName);
     if (initState == null) {
       throw new InvalidAutomatonException("Inital state " + pInitialStateName + " not found in automaton " + pName);
     }
 
     // set the FollowStates of all Transitions
-    for (AutomatonInternalState s : pStates) {
-      s.setFollowStates(statesMap);
+    for (AutomatonInternalState q : pStates) {
+      q.setFollowStates(nameToState);
     }
   }
 
-  public List<AutomatonInternalState> getStates() {
+  public Set<AutomatonInternalState> getStates() {
     return states;
+  }
+
+  public int getTransitionsToTargetStatesCount() {
+    ArrayList<AutomatonTransition> result = Lists.newArrayList();
+
+    for (AutomatonInternalState q: states) {
+      for (AutomatonTransition t: q.getTransitions()) {
+
+        if (t.getFollowState().isTarget()) {
+          result.add(t);
+        }
+      }
+    }
+
+    return result.size();
+  }
+
+  public Set<AutomatonInternalState> getTargetStates() {
+    return targetStates;
   }
 
   public String getName() {
@@ -120,12 +174,21 @@ public class Automaton {
   }
 
   private static String formatState(AutomatonInternalState s, String color) {
-    String name = s.getName().replace("_predefinedState_", "");
-    String shape = s.isTarget() ? "doublecircle" :
-      s.getDoesMatchAll() ? "Mcircle" :
-        "circle";
+    StringBuilder sb = new StringBuilder();
 
-    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
+    final String name = s.getName().replace("_predefinedState_", "");
+    sb.append(String.format("%d [label=\"%s\" ", s.getStateId(), name));
+
+    String shape = s.isTarget() ? "doublecircle" : "circle";
+    sb.append("shape=\"" + shape + "\" ");
+
+    if (s.getDoesMatchAll()) {
+      sb.append("style=filled ");
+    }
+
+    sb.append(String.format("]\n"));
+
+    return sb.toString();
   }
 
   private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
@@ -148,8 +211,32 @@ public class Automaton {
           if (!t.meetsObserverRequirements()) {
             throw new InvalidConfigurationException("The transition " + t
                 + " in state \"" + s + "\" is not valid for an ObserverAutomaton.");
-          }
         }
       }
     }
+
+    this.isObservingOnly = Optional.of(Boolean.TRUE);
+  }
+
+  public boolean getIsObservingOnly() {
+    if (isObservingOnly.isPresent()) {
+      return isObservingOnly.get();
+    }
+    return false;
+  }
+
+  public Set<AutomatonInternalState> getStatesThatMightReachTargetOverapprox(AutomatonInternalState pTarget) {
+    // All target states is a valid overapproximation
+    //    TODO!!
+    return targetStates;
+  }
+
+  public Set<AutomatonInternalState> getReachableTargetStatesOverapprox() {
+    return ImmutableSet.copyOf(states);
+  }
+
+  public ImmutableSet<AutomatonSafetyProperty> getEncodedProperties() {
+    return ImmutableSet.copyOf(encodedProperties);
+  }
+
 }

@@ -28,7 +28,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
+
+import com.google.common.collect.ImmutableSet;
 
 /** Represents a State in the automaton.
  */
@@ -40,18 +41,21 @@ public class AutomatonInternalState {
   /** State representing BOTTOM */
   static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
 
+  /** State representing TOP */
+  static final AutomatonInternalState TOP = new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList());
+
   /** State representing INACTIVE: an automata that is not considered any more (removed from the precision). */
-  static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE, false);
+  static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE);
 
   /** Error State */
   static final AutomatonInternalState ERROR = new AutomatonInternalState(
       "_predefinedState_ERROR",
       Collections.singletonList(new AutomatonTransition(
                                     AutomatonBoolExpr.TRUE,
-                                    Collections.<AutomatonBoolExpr>emptyList(),
                                     null,
+                                    true,
                                     Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM, new StringExpression(""))),
+                                    BOTTOM, ImmutableSet.<AutomatonSafetyProperty>of())),
       true, false);
 
   /** Break state, used to halt the analysis without being a target state */
@@ -59,10 +63,10 @@ public class AutomatonInternalState {
       "_predefinedState_BREAK",
       Collections.singletonList(new AutomatonTransition(
                                     AutomatonBoolExpr.TRUE,
-                                    Collections.<AutomatonBoolExpr>emptyList(),
                                     null,
+                                    true,
                                     Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM, null)),
+                                    BOTTOM, ImmutableSet.<AutomatonSafetyProperty>of())),
       false, false);
 
   /** Name of this State.  */
@@ -84,16 +88,17 @@ public class AutomatonInternalState {
     this.mAllTransitions = pAllTransitions;
   }
 
-  public AutomatonInternalState(String pName, AutomatonBoolExpr pSelfTransitionExpr, boolean pIsTarget) {
+  public AutomatonInternalState(String pName, AutomatonBoolExpr pSelfTransitionExpr) {
     this.name = pName;
-    this.mIsTarget = pIsTarget;
+    this.mIsTarget = false;
     this.mAllTransitions = false;
     this.transitions = Collections.<AutomatonTransition>singletonList(new AutomatonTransition(
         pSelfTransitionExpr,
-        Collections.<AutomatonBoolExpr>emptyList(),
         null,
+        true,
         Collections.<AutomatonAction>emptyList(),
-        this, new StringExpression("")));
+        this,
+        ImmutableSet.<AutomatonSafetyProperty>of()));
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
@@ -153,4 +158,43 @@ public class AutomatonInternalState {
   public String toString() {
     return this.name;
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + stateId;
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+
+    AutomatonInternalState other = (AutomatonInternalState) obj;
+
+    if (name == null) {
+      if (other.name != null) {
+        return false;
+      }
+    } else if (!name.equals(other.name)) {
+      return false;
+    }
+
+    if (stateId != other.stateId) {
+      return false;
+    }
+
+    return true;
+  }
+
 }

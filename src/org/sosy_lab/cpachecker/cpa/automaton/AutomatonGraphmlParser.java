@@ -86,11 +86,9 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -99,7 +97,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.io.ByteSource;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
@@ -148,20 +145,12 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Parses a specification from a file and returns the Automata found in the file.
+  * Parses a Specification File and returns the Automata found in the file.
    * @throws CParserException
-   */
+  */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
-    return parseAutomatonFile(pInputFile.asByteSource());
-  }
-
-  /**
-   * Parses a specification from a ByteSource and returns the Automata found in the file.
-   * @throws CParserException
-   */
-  public List<Automaton> parseAutomatonFile(ByteSource pInputFile) throws InvalidConfigurationException {
     CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
-    try (InputStream input = pInputFile.openStream()) {
+    try (InputStream input = pInputFile.asByteSource().openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -210,10 +199,10 @@ public class AutomatonGraphmlParser {
         EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
         if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          violationStates.add(targetStateId);
+          violationStates.add(sourceStateId);
         }
         if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          violationStates.add(sourceStateId);
+          violationStates.add(targetStateId);
         }
       }
 
@@ -333,8 +322,7 @@ public class AutomatonGraphmlParser {
           newStack = new ArrayDeque<>(newStack);
         }
 
-        // Never match on the dummy edge directly after the main function entry node
-        AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+        AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
 
         // Add assumptions to the transition
         if (considerAssumptions) {
@@ -538,16 +526,7 @@ public class AutomatonGraphmlParser {
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
       AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      Integer initialStateDistance = distances.get(initialStateName);
-      if (initialStateDistance != null) {
-        distanceVariable.setValue(-distances.get(initialStateName));
-      } else {
-        logger.log(Level.WARNING,
-            String.format("There is no path from the entry state %s"
-                + " to a state explicitly marked as violation state."
-                + " Distance-to-violation waitlist order will not work"
-                + " and witness validation may fail to confirm this witness.", initialStateName));
-      }
+      distanceVariable.setValue(-distances.get(initialStateName));
       Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
@@ -563,6 +542,8 @@ public class AutomatonGraphmlParser {
 
       return result;
 
+    } catch (FileNotFoundException e) {
+      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!: " + pInputFile.getPath());
     } catch (IOException | ParserConfigurationException | SAXException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {
@@ -604,6 +585,7 @@ public class AutomatonGraphmlParser {
             pTriggers,
             pAssertions,
             pAssumptions,
+            pAssumeTruth,
             pActions,
             pTargetStateId);
   }
@@ -636,7 +618,7 @@ public class AutomatonGraphmlParser {
         boolean pAssumeTruth,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
-      super(pTriggers, pAssertions, pAssumptions, pActions, pTargetStateId);
+      super(pTriggers, pAssertions, pAssumptions, pAssumeTruth, pActions, pTargetStateId);
     }
 
     private ViolationCopyingAutomatonTransition(
@@ -647,36 +629,6 @@ public class AutomatonGraphmlParser {
       super(pTriggers, pAssertions, pActions, pTargetState);
     }
 
-    @Override
-    public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
-      String own = getFollowState().isTarget() ? super.getViolatedPropertyDescription(pArgs) : null;
-      List<String> violatedPropertyDescriptions = new ArrayList<>();
-
-      if (!Strings.isNullOrEmpty(own)) {
-        violatedPropertyDescriptions.add(own);
-      }
-
-      for (AutomatonState other : FluentIterable.from(pArgs.getAbstractStates()).filter(AutomatonState.class)) {
-        if (other != pArgs.getState() && other.getInternalState().isTarget()) {
-          String violatedPropDesc = "";
-
-          Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
-          if (violatedProperty.isPresent()) {
-            violatedPropDesc = violatedProperty.get().toString();
-          }
-
-          if (!violatedPropDesc.isEmpty()) {
-            violatedPropertyDescriptions.add(violatedPropDesc);
-          }
-        }
-      }
-
-      if (violatedPropertyDescriptions.isEmpty() && own == null) {
-        return null;
-      }
-
-      return Joiner.on(',').join(violatedPropertyDescriptions);
-    }
 
   }
 

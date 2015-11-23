@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements an Action with side-effects that has no return value.
  * The Action can be executed multiple times.
  */
-public abstract class AutomatonAction {
+abstract class AutomatonAction {
   private AutomatonAction() {}
   private static ResultValue<String> defaultResultValue = new ResultValue<>("");
 

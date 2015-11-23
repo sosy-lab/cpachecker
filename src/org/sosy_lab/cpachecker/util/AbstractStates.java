@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -43,10 +46,13 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
 
 /**
@@ -90,6 +96,44 @@ public final class AbstractStates {
     }
 
     return null;
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T extends AbstractState & Targetable> Collection<T> extractsActiveTargets(AbstractState pState) {
+
+    if (pState instanceof AbstractSingleWrapperState) {
+      AbstractState wrapped = ((AbstractSingleWrapperState)pState).getWrappedState();
+      return extractsActiveTargets(wrapped);
+
+    } else if (pState instanceof AbstractWrapperState) {
+      Collection<T> result = Lists.newArrayList();
+      for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
+        result.addAll((Collection<? extends T>) extractsActiveTargets(wrapped));
+      }
+      return result;
+
+    } else if (pState instanceof Targetable && ((Targetable) pState).isTarget()) {
+      return ImmutableList.<T>of((T)pState);
+
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
+  public static <T extends Property> Set<T> extractViolatedProperties(AbstractState pState, Class<T> pType) {
+    Set<T> result = Sets.newHashSet();
+    Collection<? extends Targetable> targetStates = extractsActiveTargets(pState);
+
+    for (Targetable e: targetStates) {
+      for (Property p: e.getViolatedProperties()) {
+        Preconditions.checkState(pType.isInstance(p));
+        @SuppressWarnings("unchecked")
+        T property = (T) p;
+        result.add(property);
+      }
+    }
+
+    return result;
   }
 
   /**

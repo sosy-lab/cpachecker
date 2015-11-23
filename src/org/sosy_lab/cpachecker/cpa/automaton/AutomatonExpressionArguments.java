@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
-public class AutomatonExpressionArguments {
+class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
@@ -105,7 +105,7 @@ public class AutomatonExpressionArguments {
     return abstractStates;
   }
 
-  public CFAEdge getCfaEdge() {
+  CFAEdge getCfaEdge() {
     return cfaEdge;
   }
 

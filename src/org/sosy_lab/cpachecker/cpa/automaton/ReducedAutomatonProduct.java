@@ -107,11 +107,6 @@ public final class ReducedAutomatonProduct {
 
       return result;
     }
-
-    @Override
-    public String toString() {
-      return transitions.toString();
-    }
   }
 
   /**
@@ -197,11 +192,6 @@ public final class ReducedAutomatonProduct {
     @Override
     public int hashCode() {
       return componentStates.hashCode();
-    }
-
-    @Override
-    public String toString() {
-      return getStateName();
     }
   }
 
@@ -337,6 +327,7 @@ public final class ReducedAutomatonProduct {
               t.trigger,
               Collections.singletonList(t.assertion),
               t.assumption,
+              t.assumptionTruth,
               t.actions,
               succ.getStateName()));
         }

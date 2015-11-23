@@ -39,7 +39,7 @@ import com.google.common.base.Optional;
  * Implementation of prec operator which does not change the precision or
  * the state, but checks for target states and signals a break in this case.
  */
-public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
+public class BreakOnTargetsPrecisionAdjustment extends WrappingPrecisionAdjustment {
 
   /**
    * the counter for targets found so far
@@ -68,38 +68,11 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
    */
   private final int extraIterationsLimit;
 
-  public BreakOnTargetsPrecisionAdjustment(final int pFoundTargetLimit, final int pExtraIterationsLimit) {
+  public BreakOnTargetsPrecisionAdjustment(final PrecisionAdjustment pWrappedPrecOp,
+      final int pFoundTargetLimit, final int pExtraIterationsLimit) {
+    super(pWrappedPrecOp);
     foundTargetLimit      = pFoundTargetLimit;
     extraIterationsLimit  = pExtraIterationsLimit;
-  }
-
-  @Override
-  public Optional<PrecisionAdjustmentResult> prec(final AbstractState pState,
-      final Precision pPrecision,
-      final UnmodifiableReachedSet pStates,
-      Function<AbstractState, AbstractState> projection,
-      final AbstractState fullState)
-          throws CPAException {
-
-    resetCountersIfNecessary(pStates);
-
-    if (foundTargetCounter > 0) {
-      extraIterations++;
-    }
-
-    if (extraIterationsLimitReached()) {
-      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
-    }
-
-    if (((Targetable)pState).isTarget()) {
-      foundTargetCounter++;
-
-      if (foundTargetLimitReached()) {
-        return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
-      }
-    }
-
-    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
   }
 
   /**
@@ -141,4 +114,33 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
     foundTargetCounter  = 0;
     extraIterations     = 0;
   }
+
+  @Override
+  protected Optional<PrecisionAdjustmentResult> wrappingPrec(AbstractState pState, Precision pPrecision,
+      UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pProjection, AbstractState pFullState)
+          throws CPAException {
+
+    resetCountersIfNecessary(pStates);
+
+    if (foundTargetCounter > 0) {
+      extraIterations++;
+    }
+
+    if (extraIterationsLimitReached()) {
+      return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
+    }
+
+    if (((Targetable)pState).isTarget()) {
+      foundTargetCounter++;
+
+      if (foundTargetLimitReached()) {
+        return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.BREAK));
+      }
+    }
+
+    return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
+
+  }
+
+
 }

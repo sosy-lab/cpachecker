@@ -34,17 +34,56 @@ interface AutomatonExpression {
 
   ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
-
   static class StringExpression implements AutomatonExpression {
-    private String toPrint;
-    public StringExpression(String pString) {
-      super();
-      this.toPrint = pString;
+
+    public static StringExpression empty() {
+      return new StringExpression("");
     }
+
+    private String pRawExpression;
+
+    public StringExpression(String pString) {
+      this.pRawExpression = pString;
+    }
+
+    public String getRawExpression() {
+      return pRawExpression;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((pRawExpression == null) ? 0 : pRawExpression.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      StringExpression other = (StringExpression) obj;
+      if (pRawExpression == null) {
+        if (other.pRawExpression != null) {
+          return false;
+        }
+      } else if (!pRawExpression.equals(other.pRawExpression)) {
+        return false;
+      }
+      return true;
+    }
+
     @Override
     public ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
-      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
+      String str = pRawExpression.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace $location
@@ -54,11 +93,12 @@ interface AutomatonExpression {
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {
-        return new ResultValue<>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
+        return new ResultValue<>("Failure in Variable Replacement in String \"" + pRawExpression + "\"","ActionExpr.Print");
       } else {
         return new ResultValue<>(str);
       }
     }
+
   }
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.
