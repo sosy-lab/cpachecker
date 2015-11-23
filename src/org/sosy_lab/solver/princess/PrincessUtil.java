@@ -35,6 +35,7 @@ import java.util.Set;
 
 import com.google.common.base.Optional;
 
+import ap.SimpleAPI;
 import ap.basetypes.IdealInt;
 import ap.parser.IAtom;
 import ap.parser.IBinFormula;
@@ -261,7 +262,13 @@ class PrincessUtil {
    * tree is unique afterwards
    * @param term
    * @return
+   * @deprecated formulas can now be letted by using the {@link SimpleAPI} with
+   *             {@code SimpleAPI.abbrevSharedExpressions(booleanFormula, 100)}
+   *             where booleanFormula is the formula to be abbreviated and the
+   *             number is the lower bound of atoms a term has to have before
+   *             he gets abbreviated (if it is necessary at all)
    */
+  @Deprecated
   public static IExpression let(IExpression expr, PrincessEnvironment env) {
     IExpression lettedExp = replaceCommonExpressionsInTree(expr, getCommonSubTreeExpressions(expr), env, new HashMap<IExpression, IExpression>());
     assert areEqualTerms(expr, lettedExp, env);
@@ -366,7 +373,11 @@ class PrincessUtil {
    * their original statements
    * @param term
    * @return
+   * @deprecated formulas only need to be unletted with this method if the
+   *             deprecated method {@code PrincessUtil#let(IExpression, PrincessEnvironment)}}
+   *             is used.
    */
+  @Deprecated
   public static IExpression unlet(IExpression expr, PrincessEnvironment env) {
     IExpression unlettedExp = unlet0(expr, env);
     assert areEqualTerms(expr, unlettedExp, env);

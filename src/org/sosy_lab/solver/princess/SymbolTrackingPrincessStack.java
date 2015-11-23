@@ -34,17 +34,15 @@ import java.util.Set;
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 
-import scala.Enumeration.Value;
-import scala.Option;
-import scala.collection.Seq;
-import scala.collection.mutable.ArrayBuffer;
 import ap.SimpleAPI;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 import ap.parser.IFunction;
 import ap.parser.ITerm;
-
-import com.google.common.collect.ImmutableList;
+import scala.Enumeration.Value;
+import scala.Option;
+import scala.collection.Seq;
+import scala.collection.mutable.ArrayBuffer;
 
 /** This is a Wrapper around some parts of the PrincessAPI.
  * It allows to have a stack with operations like: push, pop, assert, checkSat, getInterpolants, getModel.
@@ -116,7 +114,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   /** This function adds the term on top of the stack. */
   @Override
   public void assertTerm(IFormula booleanFormula) {
-    api.addAssertion(booleanFormula);
+    api.addAssertion(api.abbrevSharedExpressions(booleanFormula, 100));
   }
 
   /** This function sets a partition number for all the term,
@@ -125,7 +123,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   public void assertTermInPartition(IFormula booleanFormula, int index) {
     // set partition number and add formula
     api.setPartitionNumber(index);
-    api.addAssertion(booleanFormula);
+    assertTerm(booleanFormula);
 
     // reset partition number to magic number -1, that represents formulae belonging to all partitions.
     api.setPartitionNumber(-1);
@@ -174,7 +172,8 @@ class SymbolTrackingPrincessStack implements PrincessStack {
     assert itps.length() == partitions.size() - 1 : "There should be (n-1) interpolants for n partitions";
 
     // convert data-structure back
-    return ImmutableList.copyOf(asJavaCollection(itps));
+    // TODO check that interpolants do not contain abbreviations we did not introduce ourselves
+    return seqAsJavaList(itps);
   }
 
   @Override
