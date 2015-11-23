@@ -554,7 +554,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
           limits.start();
         }
 
-        CPAInvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
+        InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
 
         if (!timeForInvariantGeneration.isEmpty()) {
           limits.cancel();
