@@ -25,10 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -39,6 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 
 
 public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> implements InvariantGenerator, StatisticsProvider {
@@ -48,6 +53,8 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> imple
   private final AtomicBoolean cancelled = new AtomicBoolean();
 
   private final AdjustableInvariantGenerator<T> invariantGenerator;
+
+  private final AtomicReference<Future<InvariantSupplier>> taskFuture = new AtomicReference<>();
 
   public AutoAdjustingInvariantGenerator(ShutdownNotifier pShutdownNotifier, AdjustableInvariantGenerator<T> pInitialGenerator) {
     shutdownNotifier = pShutdownNotifier;
@@ -63,19 +70,19 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> imple
   public void start(final CFANode pInitialLocation) {
     invariantGenerator.start(pInitialLocation);
     ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
-    executor.submit(new Callable<Void>() {
+    taskFuture.set(executor.submit(new Callable<InvariantSupplier>() {
 
       @Override
-      public Void call() throws Exception {
+      public InvariantSupplier call() throws Exception {
         while (!cancelled.get() && !invariantGenerator.isProgramSafe() && invariantGenerator.adjustAndContinue(pInitialLocation)) {
           if (shutdownNotifier.shouldShutdown()) {
             cancel();
           }
         }
-        return null;
+        return invariantGenerator.get();
       }
 
-    });
+    }));
     executor.shutdown();
   }
 
@@ -87,6 +94,15 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> imple
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
+    Future<InvariantSupplier> futureResult = taskFuture.get();
+    if (futureResult.isDone()) {
+      try {
+        return futureResult.get();
+      } catch (ExecutionException e) {
+        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        throw new UnexpectedCheckedException("invariant generation", e.getCause());
+      }
+    }
     return invariantGenerator.get();
   }
 
