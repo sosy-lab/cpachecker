@@ -1685,9 +1685,6 @@ cpa.slicing.checkTargetStates = true
 # -1 for no limit.
 cpa.slicing.destructiveIterationLimit = -1
 
-# Check abstract state subsumption using SMT
-cpa.slicing.expensiveSubsumptionCheck = true
-
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
@@ -1888,9 +1885,6 @@ cpa.stator.policy.generateTemplatesUsingConvexHull = false
 
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
-
-# Whether to join states on merge (leads to cycles in ARG)
-cpa.stator.policy.joinOnMerge = true
 
 # Any intermediate state with formula length bigger than specified will be
 # checked for reachability.
@@ -2431,6 +2425,10 @@ solver.mathsat5.furtherOptions = ""
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
 
 # Random seed for SMT solver.
 solver.randomSeed = 42

@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.solver.princess.PrincessFormulaManager.PrincessOptions;
 
 import ap.SimpleAPI;
 import ap.parser.IExpression;
@@ -59,15 +60,18 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   private final SimpleAPI api;
   private final boolean usableForInterpolation;
   private final ShutdownNotifier shutdownNotifier;
+  private final PrincessOptions princessOptions;
 
   /** data-structures for tracking symbols */
   private final Deque<Level> trackingStack = new ArrayDeque<>();
 
-  public SymbolTrackingPrincessStack(final PrincessEnvironment env, final SimpleAPI api, boolean usableForInterpolation, ShutdownNotifier shutdownNotifier) {
+  public SymbolTrackingPrincessStack(final PrincessEnvironment env, final SimpleAPI api,
+      boolean usableForInterpolation, ShutdownNotifier shutdownNotifier, PrincessOptions princessOptions) {
     this.env = env;
     this.api = api;
     this.usableForInterpolation = usableForInterpolation;
     this.shutdownNotifier = shutdownNotifier;
+    this.princessOptions = princessOptions;
   }
 
   public boolean canBeUsedForInterpolation() {
@@ -114,7 +118,7 @@ class SymbolTrackingPrincessStack implements PrincessStack {
   /** This function adds the term on top of the stack. */
   @Override
   public void assertTerm(IFormula booleanFormula) {
-    api.addAssertion(api.abbrevSharedExpressions(booleanFormula, 100));
+    api.addAssertion(api.abbrevSharedExpressions(booleanFormula, princessOptions.getMinAtomsForAbbreviation()));
   }
 
   /** This function sets a partition number for all the term,

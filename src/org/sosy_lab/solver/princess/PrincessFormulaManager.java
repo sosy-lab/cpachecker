@@ -29,6 +29,8 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.solver.TermType;
@@ -42,7 +44,24 @@ import org.sosy_lab.solver.basicimpl.AbstractFormulaManager;
 import ap.parser.IExpression;
 import ap.parser.IFormula;
 
+
 public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, TermType, PrincessEnvironment> {
+
+  @Options(prefix="solver.princess")
+  static class PrincessOptions {
+    @Option(secure=true, description="The number of atoms a term has to have before"
+        + " it gets abbreviated if there are more identical terms.")
+    private int minAtomsForAbbreviation = 100;
+
+
+    public PrincessOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    public int getMinAtomsForAbbreviation() {
+      return minAtomsForAbbreviation;
+    }
+  }
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -61,7 +80,9 @@ public class PrincessFormulaManager extends AbstractFormulaManager<IExpression, 
       ShutdownNotifier pShutdownNotifier, PathCounterTemplate pLogfileTemplate,
       boolean pUseNonLinearIntegerArithmetic) throws InvalidConfigurationException {
 
-    PrincessEnvironment env = new PrincessEnvironment(logger, pLogfileTemplate, pShutdownNotifier);
+    PrincessOptions options = new PrincessOptions(config);
+
+    PrincessEnvironment env = new PrincessEnvironment(logger, pLogfileTemplate, pShutdownNotifier, options);
 
     PrincessFormulaCreator creator = new PrincessFormulaCreator(env,
         TermType.Boolean, TermType.Integer);

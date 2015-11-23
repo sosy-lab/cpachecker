@@ -54,6 +54,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.solver.TermType;
+import org.sosy_lab.solver.princess.PrincessFormulaManager.PrincessOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
@@ -104,15 +105,19 @@ class PrincessEnvironment {
   private final List<SymbolTrackingPrincessStack> reusableStacks = new ArrayList<>();
   private final List<SymbolTrackingPrincessStack> allStacks = new ArrayList<>();
 
+  private final PrincessOptions princessOptions;
+
   /** The Constructor creates the wrapped Element, sets some options
    * and initializes the logger.
-   * @param pShutdownNotifier */
+   * @param pShutdownNotifier
+   * @param pOptions */
   public PrincessEnvironment(final LogManager pLogger, final PathCounterTemplate pBasicLogfile,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier, PrincessOptions pOptions) {
 
     basicLogfile = pBasicLogfile;
     shutdownNotifier = pShutdownNotifier;
     api = getNewApi(false); // this api is only used local in this environment, no need for interpolation
+    princessOptions = pOptions;
   }
 
 
@@ -132,7 +137,8 @@ class PrincessEnvironment {
     // if not we have to create a new one
 
     SimpleAPI newApi = getNewApi(useForInterpolation);
-    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi, useForInterpolation, shutdownNotifier);
+    SymbolTrackingPrincessStack stack = new SymbolTrackingPrincessStack(this, newApi,
+        useForInterpolation, shutdownNotifier, princessOptions);
 
     // add all symbols, that are available until now
     for (IFormula s : boolVariablesCache.values()) {
