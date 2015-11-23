@@ -24,12 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+
+import com.google.common.collect.ImmutableSet;
 
 public abstract class GuardedEdgeAutomatonStateElement implements
     GuardedEdgeAutomatonElement, IGuardedEdgeAutomatonStateElement, Targetable {
@@ -83,6 +88,13 @@ public abstract class GuardedEdgeAutomatonStateElement implements
   @Override
   public String toString() {
     return "GuardedEdgeAutomatonStateElement[" + mAutomatonState.toString() + "]@" + hashCode();
+  }
+
+  @Override
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
+    return isTarget()
+        ? ImmutableSet.<Property>of(NamedProperty.create("GuardedEdgeAutomatonStateElement"))
+        : ImmutableSet.<Property>of();
   }
 
 }

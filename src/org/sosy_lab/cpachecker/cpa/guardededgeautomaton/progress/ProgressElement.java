@@ -23,14 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.IGuardedEdgeAutomatonStateElement;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
+
+import com.google.common.collect.ImmutableSet;
 
 public class ProgressElement implements Targetable, AbstractState, IGuardedEdgeAutomatonStateElement {
 
@@ -71,8 +77,10 @@ public class ProgressElement implements Targetable, AbstractState, IGuardedEdgeA
   }
 
   @Override
-  public String getViolatedPropertyDescription() {
-    return "";
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
+    return isTarget()
+        ? ImmutableSet.<Property>of(NamedProperty.create("ProgressElement"))
+        : ImmutableSet.<Property>of();
   }
 
 }

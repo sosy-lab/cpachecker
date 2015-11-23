@@ -23,8 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.guardededgeautomaton.progress;
 
+import java.util.Set;
+
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.GuardedEdgeAutomatonStateElement;
+
+import com.google.common.collect.ImmutableSet;
 
 public class AlternationElement extends GuardedEdgeAutomatonStateElement
     implements Targetable {
@@ -51,8 +57,8 @@ public class AlternationElement extends GuardedEdgeAutomatonStateElement
   }
 
   @Override
-  public String getViolatedPropertyDescription() {
-    return "";
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
+    return ImmutableSet.<Property>of(NamedProperty.create("AlternationElement"));
   }
 
 }

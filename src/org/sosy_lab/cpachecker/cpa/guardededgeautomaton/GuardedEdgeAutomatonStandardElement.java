@@ -64,9 +64,4 @@ public class GuardedEdgeAutomatonStandardElement extends GuardedEdgeAutomatonSta
     return this;
   }
 
-  @Override
-  public String getViolatedPropertyDescription() {
-    return "";
-  }
-
 }
