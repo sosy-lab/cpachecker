@@ -13,6 +13,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
@@ -149,6 +150,7 @@ public class FormulaLinearizationManager {
     environment = optEnvironment;
 
     statistics.ackermannizationTimer.start();
+    f = bfmgr.applyTactic(f, Tactic.NNF);
 
     // Get rid of UFs.
     BooleanFormula noUFs = processUFs(f);
