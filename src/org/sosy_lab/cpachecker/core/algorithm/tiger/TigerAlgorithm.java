@@ -88,7 +88,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -950,7 +949,7 @@ public class TigerAlgorithm
                   + bddCpaNamedRegionManager.dumpRegion((testCaseFinalRegion == null
                       ? testCaseFinalRegion : testCaseFinalRegion)));
 
-          TestCase testcase = new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().asEdgesList(),
+          TestCase testcase = new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().getInnerEdges(),
               (testCaseFinalRegion == null ? testCaseFinalRegion : testCaseFinalRegion), bddCpaNamedRegionManager);
 
           PathIterator pathIterator = cex.getTargetPath().pathIterator();
@@ -973,7 +972,7 @@ public class TigerAlgorithm
             pathIterator.advance();
           }
         } else {
-          for (CFAEdge lCFAEdge : cex.getTargetPath().asEdgesList()) {
+          for (CFAEdge lCFAEdge : cex.getTargetPath().getInnerEdges()) {
             if (lCFAEdge != null && lCFAEdge.equals(pGoal.getCriticalEdge())) {
               // we consider the test goal as feasible
               logger.logf(Level.INFO, "Test goal is feasible.");
@@ -982,7 +981,7 @@ public class TigerAlgorithm
 
               logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
               TestCase testcase =
-                  new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().asEdgesList(), null, null);
+                  new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().getInnerEdges(), null, null);
               testsuite.addTestCase(testcase, pGoal, null);
 
               if (lGoalPrediction != null) {
@@ -1115,13 +1114,14 @@ public class TigerAlgorithm
           @Override
           public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
             assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
-            assert pArg0.getKey() instanceof Model.Variable;
-            assert pArg1.getKey() instanceof Model.Variable;
+            assert pArg0.getKey() instanceof AssignableTerm.Variable;
+            assert pArg1.getKey() instanceof AssignableTerm.Variable;
 
-            Model.Variable v0 = (Model.Variable) pArg0.getKey();
-            Model.Variable v1 = (Model.Variable) pArg1.getKey();
+            AssignableTerm.Variable v0 = (AssignableTerm.Variable) pArg0.getKey();
+            AssignableTerm.Variable v1 = (AssignableTerm.Variable) pArg1.getKey();
 
-            return (v0.getSSAIndex() - v1.getSSAIndex());
+            // TODO: use SSA index
+            return 1; //(v0.getSSAIndex() - v1.getSSAIndex());
           }
 
         };
@@ -1129,8 +1129,8 @@ public class TigerAlgorithm
     TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
 
     for (Entry<AssignableTerm, Object> e : model.entrySet()) {
-      if (e.getKey() instanceof Model.Variable) {
-        Model.Variable v = (Model.Variable) e.getKey();
+      if (e.getKey() instanceof AssignableTerm.Variable) {
+        AssignableTerm.Variable v = (AssignableTerm.Variable) e.getKey();
 
         if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
           inputs.add(e);
