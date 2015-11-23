@@ -8,13 +8,13 @@
 
   <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   <sourcefiles name="BitVectors">
-    <includesfile>../../../svcomp15/BitVectors.set</includesfile>
+    <includesfile>../../../svcomp15/BitVectorsReach.set</includesfile>
   </sourcefiles>
   <sourcefiles name="Floats">
     <includesfile>../../../svcomp15/Floats.set</includesfile>
   </sourcefiles>
   <sourcefiles name="ControlFlowInteger">
-    <includesfile>../../../svcomp15/ControlFlowInteger.set</includesfile>
+    <includesfile>../../../svcomp15/ControlFlow.set</includesfile>
   </sourcefiles>
   <sourcefiles name="ECA">
     <includesfile>../../../svcomp15/ECA.set</includesfile>
@@ -26,12 +26,12 @@
     <includesfile>../../../svcomp15/ProductLines.set</includesfile>
   </sourcefiles>
   <sourcefiles name="DeviceDrivers">
-    <includesfile>../../../svcomp15/DeviceDrivers64.set</includesfile>
+    <includesfile>../../../svcomp15/DeviceDriversLinux64.set</includesfile>
     <option name="-setprop">cpa.value.symbolic.handlePointers=false</option>
     <option name="-64"/>
   </sourcefiles>
   <sourcefiles name="HeapManipulation">
-    <includesfile>../../../svcomp15/HeapManipulation.set</includesfile>
+    <includesfile>../../../svcomp15/HeapReach.set</includesfile>
   </sourcefiles>
   <sourcefiles name="Sequentialized">
     <includesfile>../../../svcomp15/Sequentialized.set</includesfile>

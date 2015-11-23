@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
@@ -151,14 +150,12 @@ public class ValueAnalysisPathInterpolator
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
-    assert(prefixPreference != PrefixPreference.NONE)
-    : "static path-based interpolation requires a sliced infeasible prefix"
-    + " - set cpa.value.refiner.prefixPreference, e.g. to " + PrefixPreference.DOMAIN_GOOD_LONG;
-
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
           : Collections.<String>emptySet());
+
+    useDefRelation.addAllAssumes(prefixPreference == PrefixPreference.NONE);
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,
@@ -181,17 +178,16 @@ public class ValueAnalysisPathInterpolator
     return getClass().getSimpleName();
   }
 
-  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(MutableARGPath errorPath)
+  public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
 
-    assignments = AbstractStates.extractStateByType(errorPath.getLast().getFirst(),
-        UniqueAssignmentsInPathConditionState.class);
+    assignments = AbstractStates.extractStateByType(errorPath.getLastState(),
+                                                    UniqueAssignmentsInPathConditionState.class);
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
     Map<ARGState, ValueAnalysisInterpolant> itps =
-        performInterpolation(errorPath.immutableCopy(),
-            interpolantManager.createInitialInterpolant());
+        performInterpolation(errorPath, interpolantManager.createInitialInterpolant());
 
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
       addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()),
@@ -231,23 +227,23 @@ public class ValueAnalysisPathInterpolator
    * @throws RefinementFailedException if no refinement root can be determined
    */
   public Pair<ARGState, CFAEdge> determineRefinementRoot(
-      MutableARGPath errorPath,
+      ARGPath errorPath,
       Multimap<CFANode, MemoryLocation> increment,
       boolean isRepeatedRefinement
   ) throws RefinementFailedException {
 
     if (interpolationOffset == -1) {
-      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath.immutableCopy());
+      throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
     }
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-      return errorPath.get(interpolationOffset);
+      return errorPath.obtainTransitionAt(interpolationOffset);
     }
 
     // otherwise, just use the successor of the root node
     else {
-      return errorPath.get(1);
+      return errorPath.obtainTransitionAt(1);
     }
   }
 }

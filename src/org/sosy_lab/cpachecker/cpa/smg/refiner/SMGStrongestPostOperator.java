@@ -50,7 +50,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
 
   public SMGStrongestPostOperator(LogManager pLogger, Configuration pBuild, CFA pCfa)
       throws InvalidConfigurationException {
-    transfer = SMGTransferRelation.createTransferRelationForRefinment(pBuild, pLogger, pCfa.getMachineModel());
+    transfer = SMGTransferRelation.createTransferRelationForRefinement(pBuild, pLogger, pCfa.getMachineModel());
   }
 
   @Override

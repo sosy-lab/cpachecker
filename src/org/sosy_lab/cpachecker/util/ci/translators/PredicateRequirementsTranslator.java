@@ -52,7 +52,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
       final SSAMap pIndices) throws CPAException {
 
     if (!pRequirement.isAbstractionState()) {
-      throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState.");
+      throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState. Ensure that property cpa.predicate.blk.alwaysAtExplicitNodes is set to true");
     }
 
     BooleanFormula formulaBool = fmgr.instantiate(pRequirement.getAbstractionFormula().asFormula(), pIndices);
@@ -71,7 +71,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
     String element = pair.getFirst();
     // element =(assert ...)
     element = element.substring(element.indexOf('t') + 1, element.length() - 1);
-    secReturn = "(define-fun .defci" + (counter++) + " Bool() " + element + ")";
+    secReturn = "(define-fun .defci" + (counter++) + " () Bool " + element + ")";
 
 
     return Pair.of(list, secReturn);

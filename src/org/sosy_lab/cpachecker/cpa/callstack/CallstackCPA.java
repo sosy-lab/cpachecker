@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -68,10 +69,9 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
   public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super("sep", "sep",
         new DomainInitializer(config).initializeDomain(),
-        new CallstackTransferRelation(config, pLogger)
-    );
+        new TransferInitializer(config).initializeTransfer(config, pLogger));
     this.cfa = pCFA;
-    reducer = new CallstackReducer();
+    this.reducer = new CallstackReducer();
   }
 
   @Override
@@ -147,6 +147,25 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
         return new CallstackPCCAbstractDomain();
       default:
         throw new InvalidConfigurationException("Unknown domain type for callstack cpa.");
+      }
+    }
+  }
+
+  @Options(prefix = "cpa.callstack")
+  private static class TransferInitializer {
+
+    @Option(description="analyse the CFA backwards", secure=true)
+    private boolean traverseBackwards = false;
+
+    public TransferInitializer(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+    }
+
+    public TransferRelation initializeTransfer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+      if (traverseBackwards) {
+        return new CallstackTransferRelationBackwards(pConfig, pLogger);
+      } else {
+        return new CallstackTransferRelation(pConfig, pLogger);
       }
     }
   }

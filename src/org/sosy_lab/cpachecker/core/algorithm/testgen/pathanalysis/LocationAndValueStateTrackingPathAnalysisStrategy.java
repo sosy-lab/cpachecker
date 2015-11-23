@@ -25,11 +25,9 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,8 +37,8 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -51,7 +49,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSelector {
@@ -75,38 +72,35 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
   public PredicatePathAnalysisResult findNewFeasiblePathUsingPredicates(final ARGPath pExecutedPath, final ReachedSet reached)
       throws CPAException, InterruptedException {
     /*
-     * create copy of the given path, because it will be modified with this algorithm.
-     * represents the current new valid path.
-     */
-    MutableARGPath newARGPath = pExecutedPath.mutableCopy();
-    /*
      * only by edge representation of the new path.
      */
-    List<CFAEdge> newPath = Lists.newArrayList(newARGPath.asEdgesList());
+    List<CFAEdge> newPath;
     /*
      * element removed from the path in the previous iteration
      */
-    Pair<ARGState, CFAEdge> lastElement = null;
-    Pair<ARGState, CFAEdge> currentElement;
+    ARGState lastState = null;
     /*
      * create a descending consuming iterator to iterate through the path from last to first, while consuming elements.
      * Elements are consumed because the new path is a subpath of the original.
      */
     long branchCounter = 0;
     long nodeCounter = 0;
-    Iterator<Pair<ARGState, CFAEdge>> branchingEdges = Iterators.consumingIterator(newARGPath.descendingIterator());
-    while (branchingEdges.hasNext()) {
+    PathIterator descendingPathIterator = pExecutedPath.reversePathIterator();
+
+    do {
       nodeCounter++;
-      currentElement = branchingEdges.next();
-      CFAEdge edge = currentElement.getSecond();
-      if (edge == null) {
-        lastElement = currentElement;
+
+      CFAEdge currentOutgoingEdge = descendingPathIterator.getOutgoingEdge();
+      ARGState currentState = descendingPathIterator.getAbstractState();
+
+      if (currentOutgoingEdge == null) {
+        lastState = currentState;
         continue;
       }
-      CFANode node = edge.getPredecessor();
+      CFANode node = currentOutgoingEdge.getPredecessor();
       //num of leaving edges does not include a summary edge, so the check is valid.
       if (node.getNumLeavingEdges() != 2) {
-        lastElement = currentElement;
+        lastState = currentState;
         continue;
       }
       //current node is a branching / deciding node. select the edge that isn't represented with the current path.
@@ -115,7 +109,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
 
       // WARNING: some hack don't know if any good or enough
       // ----->
-      final AbstractState currentElementTmp = currentElement.getFirst();
+      final AbstractState currentElementTmp = currentState;
       if (from(handledDecisions).anyMatch(new Predicate<AbstractState>() {
 
         @Override
@@ -132,17 +126,17 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       {
 
         logger.log(Level.FINER, "Branch on path was handled in an earlier iteration -> skipping branching.");
-        lastElement = currentElement;
+        lastState = currentState;
         continue;
       }
 //      cpa.getTransferRelation().
-      if (lastElement == null) {
+      if (lastState == null) {
         //if the last element is not set, we encountered a branching node where both paths are infeasible for the current value mapping.
         logger.log(Level.FINER, "encountered an executed path that might be spurious.");
-        lastElement = currentElement;
+        lastState = currentState;
         continue;
       }
-      CFAEdge wrongEdge = edge;
+      CFAEdge wrongEdge = currentOutgoingEdge;
       CFAEdge otherEdge = null;
       for (CFAEdge cfaEdge : CFAUtils.leavingEdges(decidingNode)) {
         if (cfaEdge.equals(wrongEdge)) {
@@ -160,7 +154,7 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
        * extract the edge-list of the path and add the new edge to it.
        * Don't modify the ARGPath yet, because it is possible that the current decision is infeasible
        */
-      newPath = Lists.newArrayList(newARGPath.asEdgesList());
+      newPath = Lists.newArrayList(descendingPathIterator.getPrefixInclusive().getInnerEdges());
       newPath.add(otherEdge);
       /*
        * check if path is feasible. If it's not continue to identify another decision node
@@ -176,16 +170,16 @@ public class LocationAndValueStateTrackingPathAnalysisStrategy implements PathSe
       stats.afterPathCheck();
 
       if (!traceInfo.isSpurious()) {
-        newARGPath.add(Pair.of(currentElement.getFirst(), otherEdge));
         logger.logf(Level.FINEST, "selected new path %s", newPath.toString());
-        handledDecisions.add(currentElement.getFirst());
-        return new PredicatePathAnalysisResult(traceInfo, currentElement.getFirst(), lastElement.getFirst(), newARGPath.immutableCopy());
+        handledDecisions.add(currentState);
+        return new PredicatePathAnalysisResult(traceInfo, currentState, lastState, descendingPathIterator.getPrefixInclusive());
       } else {
-        lastElement = currentElement;
+        lastState = currentState;
         continue;
       }
 
-    }
+    } while (descendingPathIterator.advanceIfPossible());
+
     return PredicatePathAnalysisResult.INVALID;
   }
 

@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.solver.test;
 
+import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
+import static org.sosy_lab.solver.test.ProverEnvironmentSubject.proverEnvironment;
 
 import javax.annotation.Nullable;
 
@@ -50,9 +52,6 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
-import com.google.common.truth.FailureStrategy;
-import com.google.common.truth.SubjectFactory;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
@@ -77,7 +76,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *  }
  * </code>
  *
- * {@link #BooleanFormula()} can be used to easily write assertions
+ * {@link #assertThatFormula()} can be used to easily write assertions
  * about formulas using Truth.
  *
  * Test that rely on a theory that not all solvers support
@@ -186,44 +185,17 @@ public abstract class SolverBasedTest0 {
 
   /**
    * Use this for checking assertions about BooleanFormulas with Truth:
-   * <code>assert_().about(BooleanFormula()).that(formula).is...()</code>.
+   * <code>assertThatFormula(formula).is...()</code>.
    */
-  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
-      justification="fits better when called as about(BooleanFormula())")
-  protected final SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormula() {
-    return BooleanFormulaOfSolver(mgr);
-  }
-
-  /**
-   * Use this for checking assertions about BooleanFormulas
-   * (given the corresponding solver) with Truth:
-   * <code>assert_().about(BooleanFormulaOfSolver(factory)).that(formula).is...()</code>.
-   */
-  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
-      justification="fits better when called as about(BooleanFormulaOfSolver())")
-  public static SubjectFactory<BooleanFormulaSubject, BooleanFormula> BooleanFormulaOfSolver(
-      final FormulaManager mgr) {
-    return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
-          @Override
-          public BooleanFormulaSubject getSubject(FailureStrategy pFs, BooleanFormula pFormula) {
-            return new BooleanFormulaSubject(pFs, pFormula, mgr);
-          }
-        };
+  protected final BooleanFormulaSubject assertThatFormula(BooleanFormula formula) {
+    return assert_().about(BooleanFormulaSubject.forSolver(mgr)).that(formula);
   }
 
   /**
    * Use this for checking assertions about ProverEnvironments with Truth:
-   * <code>assert_().about(ProverEnvironment()).that(stack).is...()</code>.
+   * <code>assertThatEnvironment(stack).is...()</code>.
    */
-  @SuppressFBWarnings(value="NM_METHOD_NAMING_CONVENTION",
-      justification="fits better when called as about(ProverEnvironment())")
-  public static SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>> ProverEnvironment() {
-    return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
-          @Override
-          public ProverEnvironmentSubject getSubject(FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {
-            return new ProverEnvironmentSubject(pFs, pFormula);
-          }
-        };
+  protected final ProverEnvironmentSubject assertThatEnvironment(BasicProverEnvironment<?> prover) {
+    return assert_().about(proverEnvironment()).that(prover);
   }
-
 }

@@ -110,12 +110,22 @@ public class UseDefRelation {
    */
   private boolean hasContradictingAssumeEdgeBeenHandled = false;
 
+  /**
+   * the flag to determine, if all asumme operations should add to the use-def-relation
+   * instead of only the final (failing, contradicting) one
+   */
+  private boolean addAllAssumes = false;
+
   public UseDefRelation(ARGPath path,
       Set<String> pBooleanVariables) {
 
     booleanVariables = pBooleanVariables;
 
     buildRelation(path);
+  }
+
+  public void addAllAssumes(boolean pAddAllAssumes) {
+    addAllAssumes = pAddAllAssumes;
   }
 
   public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
@@ -125,6 +135,7 @@ public class UseDefRelation {
 
     PathIterator it = path.reversePathIterator();
     while(it.hasNext()) {
+      it.advance();
       ARGState currentState = it.getAbstractState();
       CFAEdge currentEdge   = it.getOutgoingEdge();
 
@@ -141,8 +152,6 @@ public class UseDefRelation {
       }
 
       expandedUses.put(currentState, new HashSet<>(unresolvedUses));
-
-      it.advance();
     }
 
     return expandedUses;
@@ -166,6 +175,7 @@ public class UseDefRelation {
   private void buildRelation(ARGPath path) {
     PathIterator iterator = path.reversePathIterator();
     while (iterator.hasNext()) {
+      iterator.advance();
       CFAEdge edge = iterator.getOutgoingEdge();
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -181,8 +191,6 @@ public class UseDefRelation {
       if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
         break;
       }
-
-      iterator.advance();
     }
   }
 
@@ -294,7 +302,7 @@ public class UseDefRelation {
         if (hasContradictingAssumeEdgeBeenHandled) {
           handleFeasibleAssumption(state, (CAssumeEdge)edge);
         } else {
-          hasContradictingAssumeEdgeBeenHandled = true;
+          hasContradictingAssumeEdgeBeenHandled = true && !addAllAssumes;
           addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
         }
 

@@ -39,7 +39,7 @@ public class AutomatonVariableWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    int sortKey = 0;
+    int sortKey = Integer.MIN_VALUE;
     for (AutomatonState automatonState : AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
       AutomatonVariable variable = automatonState.getVars().get(variableId);
       if (variable != null) {

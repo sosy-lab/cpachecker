@@ -11,7 +11,7 @@
   <option name="-noout"/>
   <option name="-heap">1200M</option>
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
   </tasks>
  <!--
   <tasks name="Simple">

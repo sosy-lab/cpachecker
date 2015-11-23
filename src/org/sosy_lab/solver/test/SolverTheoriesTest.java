@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.solver.test;
 
-import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import org.junit.Ignore;
@@ -73,8 +73,8 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
 
     BooleanFormula notImpl = bmgr.and(a, bmgr.not(e));
 
-    assert_().about(BooleanFormula()).that(a).implies(c);
-    assert_().about(BooleanFormula()).that(notImpl).isSatisfiable();
+    assertThatFormula(a).implies(c);
+    assertThatFormula(notImpl).isSatisfiable();
   }
 
   @Test
@@ -92,7 +92,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     RationalFormula num = rmgr.makeNumber(4);
 
     BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
-    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+    assertThatFormula(f).isSatisfiable();
   }
 
   @Test
@@ -101,7 +101,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     IntegerFormula num = imgr.makeNumber(2);
 
     BooleanFormula f = imgr.equal(imgr.add(a, a), num);
-    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+    assertThatFormula(f).isSatisfiable();
   }
 
   @Test
@@ -110,7 +110,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     IntegerFormula num = imgr.makeNumber(1);
 
     BooleanFormula f = imgr.equal(imgr.add(a, a), num);
-    assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
+    assertThatFormula(f).isUnsatisfiable();
   }
 
   @Test
@@ -136,20 +136,20 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fAMod3 = imgr.equal(imgr.modulo(a, num3), num1);
 
     // check division-by-constant, a=10 && b=2 && a/5=b
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
 
     // check division-by-constant, a=10 && a/3=3
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=10 && a%5=0
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=10 && a%3=1
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
   }
 
   @Test
@@ -170,7 +170,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fADivB = imgr.equal(imgr.divide(a, b), num5);
 
     // check division-by-variable, a=10 && b=2 && a/b=5
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
 
     // TODO disabled, because we would need the option solver.solver.useNonLinearIntegerArithmetic=true.
     // assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
@@ -207,28 +207,28 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // SMTlib always rounds against +/- infinity.
 
     // check division-by-constant, a=-10 && b=-2 && a/5=b
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
 
     // check division-by-constant, a=-10 && a/3=-4
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
 
     // check division-by-constant, a=-10 && a/(-3)=4
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=-10 && a%5=0
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=-10 && a%3=2
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=-10 && a%(-3)=2
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
   }
 
   @Test
@@ -252,7 +252,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // SMTlib always rounds against +/- infinity.
 
     // check division-by-variable, a=-10 && b=-2 && a/b=5
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
     // TODO disabled, because we would need the option solver.solver.useNonLinearIntegerArithmetic=true.
     // assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
   }
@@ -280,25 +280,25 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fAMod3 = bvmgr.equal(bvmgr.modulo(a, num3, true), num1);
 
     // check division-by-constant, a=10 && b=2 && a/5=b
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
 
     // check division-by-constant, a=10 && a/3=3
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
 
     // check division-by-variable, a=10 && b=2 && a/b=5
     // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivB)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=10 && a%5=0
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=10 && a%3=1
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
   }
 
   @Test
@@ -329,33 +329,42 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     // bitvector-division for negative numbers is C99-conform!
 
     // check division-by-constant, a=-10 && b=-2 && a/5=b
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv5)))).isUnsatisfiable();
 
     // check division-by-constant, a=-10 && a/3=-3
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADiv3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADiv3)))).isUnsatisfiable();
 
     // check division-by-constant, a=-10 && a/(-3)=3
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADivNeg3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivNeg3)))).isUnsatisfiable();
 
     // check division-by-variable, a=-10 && b=-2 && a/b=5
     // TODO not all solvers support division-by-variable, we guarantee soundness by allowing any value, that yields SAT.
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fADivB)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fADivB))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fADivB)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=-10 && a%5=0
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod5)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=-10 && a%3=-1
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAMod3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAMod3)))).isUnsatisfiable();
 
     // check modulo-by-constant, a=-10 && a%(-3)=-1
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fAModNeg3))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, bmgr.not(fAModNeg3)))).isUnsatisfiable();
+  }
+
+  @Test
+  public void intTest4_ModularCongruence_Simple() throws Exception {
+    final IntegerFormula x = imgr.makeVariable("x");
+    final BooleanFormula f1 = imgr.modularCongruence(x, imgr.makeNumber(0), 2);
+    final BooleanFormula f2 = imgr.equal(x, imgr.makeNumber(1));
+
+    assertThatFormula(bmgr.and(f1, f2)).isUnsatisfiable();
   }
 
   @Test
@@ -385,20 +394,20 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fCond7 = imgr.modularCongruence(a, d, 7);
 
     // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb5)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc5)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond5))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fConb5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fConb5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, fConc5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, bmgr.not(fConc5)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fd, fCond5))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fd, bmgr.not(fCond5)))).isUnsatisfiable();
 
     // check modular congruence, a=10 && b=5 && (a mod 7 != b mod 7)
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb7))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb7)))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc7))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc7)))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond7))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond7)))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fConb7))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fConb7)))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, fConc7))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, bmgr.not(fConc7)))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fd, fCond7))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fd, bmgr.not(fCond7)))).isSatisfiable();
   }
 
   @Test
@@ -417,10 +426,10 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fConc = imgr.modularCongruence(a, c, 5);
 
     // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fConb))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fConb)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, fConc))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, bmgr.not(fConc)))).isUnsatisfiable();
   }
 
   @Test
@@ -445,12 +454,12 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fCond = bvmgr.modularCongruence(a, d, 5);
 
     // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,fCond))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fd,bmgr.not(fCond)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fConb))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fConb)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, fConc))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, bmgr.not(fConc)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fd, fCond))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fd, bmgr.not(fCond)))).isUnsatisfiable();
   }
 
   @Test
@@ -471,10 +480,10 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula fConc = bvmgr.modularCongruence(a, c, 5);
 
     // check modular congruence, a=10 && b=5 && (a mod 5 = b mod 5)
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,fConb))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fb,bmgr.not(fConb)))).isUnsatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,fConc))).isSatisfiable();
-    assert_().about(BooleanFormula()).that(bmgr.and(Lists.newArrayList(fa,fc,bmgr.not(fConc)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, fConb))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fb, bmgr.not(fConb)))).isUnsatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, fConc))).isSatisfiable();
+    assertThatFormula(bmgr.and(Lists.newArrayList(fa, fc, bmgr.not(fConc)))).isUnsatisfiable();
   }
 
   @Test
@@ -485,7 +494,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     RationalFormula num = rmgr.makeNumber(1);
 
     BooleanFormula f = rmgr.equal(rmgr.add(a, a), num);
-    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+    assertThatFormula(f).isSatisfiable();
   }
 
   @Test
@@ -515,7 +524,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     b = bvmgr.extract(b, 7, 0, true);
     BooleanFormula f = bmgr.not(bvmgr.equal(a, b));
 
-    assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
+    assertThatFormula(f).isUnsatisfiable();
   }
 
   @Test
@@ -528,12 +537,12 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     BooleanFormula f01 = bmgr.xor(uf0, uf1);
     BooleanFormula f02 = bmgr.xor(uf0, uf2);
     BooleanFormula f12 = bmgr.xor(uf1, uf2);
-    assert_().about(BooleanFormula()).that(f01).isSatisfiable();
-    assert_().about(BooleanFormula()).that(f02).isSatisfiable();
-    assert_().about(BooleanFormula()).that(f12).isSatisfiable();
+    assertThatFormula(f01).isSatisfiable();
+    assertThatFormula(f02).isSatisfiable();
+    assertThatFormula(f12).isSatisfiable();
 
     BooleanFormula f = bmgr.and(ImmutableList.of(f01, f02, f12));
-    assert_().about(BooleanFormula()).that(f).isUnsatisfiable();
+    assertThatFormula(f).isUnsatisfiable();
   }
 
   @Test @Ignore
@@ -548,7 +557,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
 
     BooleanFormula f = bmgr.not(imgr.equal(ufTrue, ufFalse));
     assertThat(f.toString()).isEmpty();
-    assert_().about(BooleanFormula()).that(f).isSatisfiable();
+    assertThatFormula(f).isSatisfiable();
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -576,7 +585,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     assertThat(result.toString()).doesNotContain("c");
 
     BooleanFormula expected = imgr.greaterOrEquals(var_B, imgr.makeNumber(1003));
-    assert_().about(BooleanFormula()).that(result).isEquivalentTo(expected);
+    assertThatFormula(result).isEquivalentTo(expected);
   }
 
   @Test @Ignore
@@ -609,7 +618,7 @@ public class SolverTheoriesTest extends SolverBasedTest0 {
     assertThat(result.toString()).doesNotContain("j@1");
 
     BooleanFormula expected = bmgr.not(imgr.equal(i1, j2));
-    assert_().about(BooleanFormula()).that(result).isEquivalentTo(expected);
+    assertThatFormula(result).isEquivalentTo(expected);
   }
 
   @Test

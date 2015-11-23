@@ -332,8 +332,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
   @Test
@@ -476,8 +475,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg2.addObject(obj2);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -489,7 +487,6 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg1.addObject(obj1);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 }

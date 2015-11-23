@@ -5,14 +5,20 @@
   <option name="-heap">1200M</option>
 
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Simple">
     <includesfile>../programs/benchmarks/Simple.set</includesfile>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Nested">
     <includesfile>nested.set</includesfile>

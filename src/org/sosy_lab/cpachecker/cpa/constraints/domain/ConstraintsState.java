@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,16 +46,16 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.Model;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.Lists;
 
@@ -360,19 +361,19 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
 
     // for each constraint a formula exists for, we check if the formula can be replaced
     // with a version holding more information, and do so.
-    for (Constraint c : constraintFormulas.keySet()) {
-      Set<SymbolicIdentifier> identifiers = c.accept(locator);
+    for (Entry<Constraint, BooleanFormula> entry : constraintFormulas.entrySet()) {
+      Set<SymbolicIdentifier> identifiers = entry.getKey().accept(locator);
 
       // if the constraint contains any identifier we now know a definite assignment for,
       // we replace the constraint's formula by a new formula using these definite assignments.
       if (!Collections.disjoint(newlyKnownIdentifiers, identifiers)) {
-        BooleanFormula newFormula = formulaCreator.createFormula(c, pNewDefinites);
+        BooleanFormula newFormula = formulaCreator.createFormula(entry.getKey(), pNewDefinites);
 
-        assert !newFormula.equals(constraintFormulas.get(c))
-            || formulaManager.getBooleanFormulaManager().isTrue(constraintFormulas.get(c))
+        assert !newFormula.equals(entry.getValue())
+            || formulaManager.getBooleanFormulaManager().isTrue(entry.getValue())
             : "Identifier was not replaced by definite assignment";
 
-        constraintFormulas.put(c, newFormula);
+        entry.setValue(newFormula);
       }
     }
   }

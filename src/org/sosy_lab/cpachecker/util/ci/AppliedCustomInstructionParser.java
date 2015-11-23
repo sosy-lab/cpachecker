@@ -24,43 +24,70 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.Writer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -77,10 +104,14 @@ import com.google.common.collect.ImmutableSet;
 public class AppliedCustomInstructionParser {
 
   private final ShutdownNotifier shutdownNotifier;
+  private final LogManager logger;
   private final CFA cfa;
+  private final GlobalVarCheckVisitor visitor = new GlobalVarCheckVisitor();
 
-  public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final CFA pCfa) {
+  public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final LogManager pLogger,
+      final CFA pCfa) {
     shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
     cfa = pCfa;
   }
 
@@ -95,12 +126,7 @@ public class AppliedCustomInstructionParser {
   public CustomInstructionApplications parse (final Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
 
-    Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
-
-    CFANode startNode;
     CustomInstruction ci = null;
-    AppliedCustomInstruction aci;
 
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
@@ -109,22 +135,55 @@ public class AppliedCustomInstructionParser {
         throw new AppliedCustomInstructionParsingFailedException("Empty specification. Missing at least function name for custom instruction.");
       }
 
-      // TODO line auseinandernehmen => functionName raussuchen
-      String[] l = line.split(" ");
-      ci = readCustomInstruction(l[1].replace("()", ""));
+      ci = readCustomInstruction(line);
 
-      while ((line = br.readLine()) != null) {
-        shutdownNotifier.shutdownIfNecessary();
-        startNode = getCFANode(line, cfaInfo); // TODO nodeID‚
+      writeCustomInstructionSpecification(ci);
 
-        try {
-          aci = ci.inspectAppliedCustomInstruction(startNode);
-        } catch (InterruptedException ex) {
-          throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: " + ex.getMessage());
-        }
+      return parseACIs(br, ci);
+    }
+  }
 
-        map.put(startNode, aci);
+  private void writeCustomInstructionSpecification(final CustomInstruction ci) throws IOException {
+    try (Writer br = Files.openOutputFile(Paths.get("output" + File.separator + "ci_spec.txt"))) {
+      br.write(ci.getSignature() + "\n");
+      String ciString = ci.getFakeSMTDescription().getSecond();
+      br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
+    }
+  }
+
+
+  public CustomInstructionApplications parse(final CustomInstruction pCi, final Path file)
+      throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+    try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file.toFile()), "UTF-8"))) {
+      return parseACIs(br, pCi);
+    }
+  }
+
+  private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
+      throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+    Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+
+    CFANode startNode;
+    AppliedCustomInstruction aci;
+    String line;
+
+    while ((line = br.readLine()) != null) {
+      shutdownNotifier.shutdownIfNecessary();
+      startNode = getCFANode(line, cfaInfo);
+      if (startNode == null) {
+        continue;
       }
+
+
+      try {
+        aci = ci.inspectAppliedCustomInstruction(startNode);
+      } catch (InterruptedException ex) {
+        throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: "
+            + ex.getMessage());
+      }
+
+      map.put(startNode, aci);
     }
 
     return new CustomInstructionApplications(map.build(), ci);
@@ -190,7 +249,7 @@ public class AppliedCustomInstructionParser {
       }
 
       // breadth-first-search
-      for (CFANode succ : CFAUtils.successorsOf(pred)) {
+      for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
         if (!visitedNodes.contains(succ) && succ.getFunctionName().equals(functionName)){
           queue.add(succ);
           visitedNodes.add(succ);
@@ -203,7 +262,6 @@ public class AppliedCustomInstructionParser {
     }
 
     Queue<Pair<CFANode, Set<String>>> pairQueue = new ArrayDeque<>();
-    CFANode succ;
     Set<String> inputVariables = new HashSet<>();
     Set<String> outputVariables = new HashSet<>();
     Set<String> predOutputVars = new HashSet<>();
@@ -212,6 +270,8 @@ public class AppliedCustomInstructionParser {
     Pair<CFANode, Set<String>> nextPair;
     Pair<CFANode, Set<String>> nextNode = Pair.of(ciStartNode, predOutputVars);
     pairQueue.add(nextNode);
+    Set<FunctionEntryNode> functionsWithoutGlobalVars = new HashSet<>();
+    boolean usesMultiEdges = false;
 
     while(!pairQueue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
@@ -229,7 +289,11 @@ public class AppliedCustomInstructionParser {
 
       // search for endNodes in the subtree of pred, breadth-first search
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pred)) {
+        if (leavingEdge instanceof FunctionReturnEdge) {
+          continue;
+        }
         if (leavingEdge instanceof MultiEdge) {
+          usesMultiEdges = false;
           succOutputVars = predOutputVars;
           for (CFAEdge innerEdge : ((MultiEdge) leavingEdge).getEdges()) {
             // adapt output, inputvariables
@@ -242,14 +306,26 @@ public class AppliedCustomInstructionParser {
           succOutputVars = getOutputVariablesForSuccessorAndAddNewOutputVariables(leavingEdge, predOutputVars, outputVariables);
         }
 
-        // breadth-first-search
-        succ = leavingEdge.getSuccessor();
-        nextPair = Pair.of(succ, succOutputVars);
-        if (!visitedPairs.contains(nextPair)) {
+        // breadth-first-search within method
+        if (leavingEdge instanceof FunctionCallEdge) {
+          if (!noGlobalVariablesUsed(functionsWithoutGlobalVars, ((CFunctionCallEdge) leavingEdge).getSuccessor())) {
+            throw new AppliedCustomInstructionParsingFailedException(
+              "Function " + leavingEdge.getSuccessor().getFunctionName()
+                  + " is not side effect free, uses global variables");
+          }
+          nextPair = Pair.of(((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor(), succOutputVars);
+        } else {
+          nextPair = Pair.of(leavingEdge.getSuccessor(), succOutputVars);
+        }
+
+        if (visitedPairs.add(nextPair)) {
           pairQueue.add(nextPair);
-          visitedPairs.add(nextPair);
         }
       }
+    }
+
+    if (usesMultiEdges) {
+      logger.log(Level.WARNING, "Multi edges used in custom instruction. Results may be unreliable. Disable option cfa.useMultiEdges to get reliable results.");
     }
 
     if (ciEndNodes.isEmpty()) {
@@ -332,7 +408,7 @@ public class AppliedCustomInstructionParser {
     return Collections.emptySet();
   }
 
- private Set<String> getFunctionParameterInput(CFunctionCallExpression funCall) {
+ private Set<String> getFunctionParameterInput(final CFunctionCallExpression funCall) {
    Set<String> edgeInputVariables = new HashSet<>();
    for (CExpression exp : funCall.getParameterExpressions()) {
      edgeInputVariables.addAll(CIdExpressionCollectorVisitor.getVariablesOfExpression(exp));
@@ -361,15 +437,10 @@ public class AppliedCustomInstructionParser {
       edgeOutputVariables = new HashSet<>();
       edgeOutputVariables.add(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
-    } else if (pLeavingEdge instanceof CFunctionReturnEdge) {
-      CFunctionCall funCall = (((CFunctionReturnEdge) pLeavingEdge).getSummaryEdge().getExpression());
+    } else if (pLeavingEdge instanceof CFunctionCallEdge) {
+      CFunctionCall funCall = (((CFunctionCallEdge) pLeavingEdge).getSummaryEdge().getExpression());
       if (funCall instanceof CFunctionCallAssignmentStatement) {
         edgeOutputVariables = getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);
-      }
-    } else if (pLeavingEdge instanceof CFunctionCallEdge) {
-      String functionName = ((CFunctionCallEdge) pLeavingEdge).getSuccessor().getFunctionName();
-      for (String name : ((CFunctionCallEdge) pLeavingEdge).getSuccessor().getFunctionParameterNames()) {
-        edgeOutputVariables.add(functionName + "::" + name);
       }
     } else {
       return pPredOutputVars;
@@ -382,8 +453,210 @@ public class AppliedCustomInstructionParser {
     return returnRes;
   }
 
-  private Set<String> getFunctionalCallAssignmentOutputVars(CFunctionCallAssignmentStatement stmt) {
+  private Set<String> getFunctionalCallAssignmentOutputVars(final CFunctionCallAssignmentStatement stmt) {
     return CIdExpressionCollectorVisitor.getVariablesOfExpression(stmt.getLeftHandSide());
+  }
+
+  private boolean noGlobalVariablesUsed(final Set<FunctionEntryNode> noGlobalVarUse, final FunctionEntryNode function) {
+    Deque<CFANode> toVisit = new ArrayDeque<>();
+    Collection<CFANode> visited = new HashSet<>();
+    CFANode visit, successor;
+
+    toVisit.push(function);
+    visited.add(function);
+
+    while(!toVisit.isEmpty()) {
+      visit = toVisit.pop();
+
+      if(visit instanceof FunctionExitNode) {
+        continue;
+      }
+
+      if (visit instanceof FunctionEntryNode && !noGlobalVarUse.add((FunctionEntryNode) visit)) {
+        continue;
+      }
+
+      for(CFAEdge leave : CFAUtils.allLeavingEdges(visit)) {
+        if(containsGlobalVars(leave)) {
+          return false;
+        }
+
+        successor = leave.getSuccessor();
+        if(visited.add(successor)) {
+          toVisit.push(successor);
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private boolean containsGlobalVars(final CFAEdge pLeave) {
+    switch (pLeave.getEdgeType()) {
+    case BlankEdge:
+      // no additional check needed.
+      break;
+    case AssumeEdge:
+      return ((CAssumeEdge) pLeave).getExpression().accept(visitor);
+    case StatementEdge:
+      return globalVarInStatement(((CStatementEdge) pLeave).getStatement());
+    case DeclarationEdge:
+      if(((CDeclarationEdge) pLeave).getDeclaration() instanceof CVariableDeclaration) {
+       CInitializer init = ((CVariableDeclaration) ((CDeclarationEdge) pLeave).getDeclaration()).getInitializer();
+       if(init != null) {
+         return init.accept(visitor);
+       }
+      }
+      break;
+    case ReturnStatementEdge:
+      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) { return ((CReturnStatementEdge) pLeave)
+          .getExpression().get().accept(visitor); }
+      break;
+    case FunctionCallEdge:
+      for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {
+        if (exp.accept(visitor)) { return true; }
+      }
+      break;
+    case FunctionReturnEdge:
+      // no additional check needed.
+      break;
+    case MultiEdge:
+      for (CFAEdge edge : ((MultiEdge) pLeave).getEdges()) {
+        if (containsGlobalVars(edge)) { return true; }
+      }
+      break;
+    case CallToReturnEdge:
+      return globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
+    }
+    return false;
+  }
+
+  private boolean globalVarInStatement(final CStatement statement) {
+    if (statement instanceof CExpressionStatement) {
+      return ((CExpressionStatement) statement).getExpression().accept(visitor);
+    } else if (statement instanceof CFunctionCallStatement) {
+      for (CExpression param : ((CFunctionCallStatement) statement).getFunctionCallExpression()
+          .getParameterExpressions()) {
+        if (param.accept(visitor)) { return true; }
+      }
+    } else if (statement instanceof CExpressionAssignmentStatement) {
+      if (((CExpressionAssignmentStatement) statement).getLeftHandSide().accept(visitor)) { return true; }
+      return ((CExpressionAssignmentStatement) statement).getRightHandSide().accept(visitor);
+    } else if (statement instanceof CFunctionCallAssignmentStatement) {
+      if (((CFunctionCallAssignmentStatement) statement).getLeftHandSide().accept(visitor)) { return true; }
+      for (CExpression param : ((CFunctionCallAssignmentStatement) statement).getFunctionCallExpression()
+          .getParameterExpressions()) {
+        if (param.accept(visitor)) { return true; }
+      }
+    }
+    return false;
+  }
+
+  private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> implements
+      CInitializerVisitor<Boolean, RuntimeException>, CDesignatorVisitor<Boolean, RuntimeException> {
+
+    private Boolean falseResult = Boolean.valueOf(false);
+    private Boolean trueResult = Boolean.valueOf(true);
+
+    @Override
+    public Boolean visit(final CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
+      if (!pIastArraySubscriptExpression.getArrayExpression().accept(this)) {
+        return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+      }
+      return trueResult;
+    }
+
+    @Override
+    public Boolean visit(final CFieldReference pIastFieldReference) throws RuntimeException {
+      return pIastFieldReference.getFieldOwner().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CIdExpression pIastIdExpression) throws RuntimeException {
+      // test if global variable
+      if (pIastIdExpression.getDeclaration().getQualifiedName().equals(pIastIdExpression.getDeclaration().getName())) { return trueResult; }
+      return falseResult;
+    }
+
+    @Override
+    public Boolean visit(final CPointerExpression pPointerExpression) throws RuntimeException {
+      return pPointerExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CComplexCastExpression pComplexCastExpression) throws RuntimeException {
+      return pComplexCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+      if (!pIastBinaryExpression.getOperand1().accept(this)) {
+        return pIastBinaryExpression.getOperand2().accept(this);
+      }
+      return trueResult;
+    }
+
+    @Override
+    public Boolean visit(final CCastExpression pIastCastExpression) throws RuntimeException {
+      return pIastCastExpression.getOperand().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+      return pIastUnaryExpression.getOperand().accept(this);
+    }
+
+    @Override
+    protected Boolean visitDefault(final CExpression pExp) throws RuntimeException {
+      return falseResult;
+    }
+
+    @Override
+    public Boolean visit(final CInitializerExpression pInitializerExpression) throws RuntimeException {
+      return pInitializerExpression.getExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CInitializerList pInitializerList) throws RuntimeException {
+      for(CInitializer init : pInitializerList.getInitializers()) {
+        if(init.accept(this)) {
+          return trueResult;
+        }
+      }
+      return falseResult;
+    }
+
+    @Override
+    public Boolean visit(final CDesignatedInitializer pCStructInitializerPart) throws RuntimeException {
+      for(CDesignator des : pCStructInitializerPart.getDesignators()) {
+        if(des.accept(this)) {
+          return trueResult;
+        }
+      }
+      if(pCStructInitializerPart.getRightHandSide() != null) {
+        return pCStructInitializerPart.getRightHandSide().accept(this);
+      }
+      return falseResult;
+    }
+
+    @Override
+    public Boolean visit(final CArrayDesignator pArrayDesignator) throws RuntimeException {
+      return pArrayDesignator.getSubscriptExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CArrayRangeDesignator pArrayRangeDesignator) throws RuntimeException {
+      if(pArrayRangeDesignator.getCeilExpression().accept(this)) {
+        return trueResult;
+      }
+      return pArrayRangeDesignator.getFloorExpression().accept(this);
+    }
+
+    @Override
+    public Boolean visit(final CFieldDesignator pFieldDesignator) throws RuntimeException {
+      return falseResult;
+    }
+
   }
 
 }

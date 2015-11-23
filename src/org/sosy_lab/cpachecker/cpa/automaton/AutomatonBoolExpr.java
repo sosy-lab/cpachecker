@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -93,6 +94,30 @@ public interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable
     @Override
     public Equality equalityTo(Object pOther) {
       return pOther instanceof MatchProgramExit
+          ? Equality.EQUAL
+          : Equality.UNKNOWN; // Also other matches might match a program exit
+    }
+
+  }
+
+  static enum MatchProgramEntry implements AutomatonBoolExpr {
+
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode predecessor = edge.getPredecessor();
+      if (predecessor instanceof FunctionEntryNode
+          && predecessor.getNumEnteringEdges() == 0) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
+    }
+
+    @Override
+    public Equality equalityTo(Object pOther) {
+      return pOther instanceof MatchProgramEntry
           ? Equality.EQUAL
           : Equality.UNKNOWN; // Also other matches might match a program exit
     }

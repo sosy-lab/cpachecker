@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.ci;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,6 +34,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +44,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -168,5 +172,183 @@ public class CustomInstructionTest {
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(CPAException.class);
     }
+  }
+
+  @Test
+  public void testGetSignature() {
+    ci = new CustomInstruction(null, null, Collections.<String> emptyList(), Collections.<String> emptyList(), ShutdownNotifier.create());
+    Truth.assertThat(ci.getSignature()).isEqualTo("() -> ()");
+
+    List<String> inputVars = new ArrayList<>();
+    inputVars.add("var");
+    List<String> outputVars = new ArrayList<>();
+    outputVars.add("var0");
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    Truth.assertThat(ci.getSignature()).isEqualTo("(|var|) -> (|var0@1|)");
+
+    inputVars = new ArrayList<>();
+    inputVars.add("var1");
+    inputVars.add("var2");
+    outputVars = new ArrayList<>();
+    outputVars.add("var3");
+    outputVars.add("var4");
+    outputVars.add("var5");
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    Truth.assertThat(ci.getSignature()).isEqualTo("(|var1|, |var2|) -> (|var3@1|, |var4@1|, |var5@1|)");
+  }
+
+  @Test
+  public void testGetFakeSMTDescription() {
+    ci = new CustomInstruction(null, null, Collections.<String> emptyList(), Collections.<String> emptyList(), ShutdownNotifier.create());
+    Pair<List<String>, String> pair = ci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).isEmpty();
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool true)");
+
+    List<String> inputVars = new ArrayList<>();
+    inputVars.add("var");
+    ci = new CustomInstruction(null, null, inputVars, Collections.<String> emptyList(), ShutdownNotifier.create());
+    pair = ci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).hasSize(1);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= |var| 0))");
+
+    List<String> outputVars = new ArrayList<>();
+    outputVars.add("var1");
+    ci = new CustomInstruction(null, null, Collections.<String> emptyList(), outputVars, ShutdownNotifier.create());
+    pair = ci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).hasSize(1);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var1@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= |var1@1| 0))");
+
+    inputVars = new ArrayList<>();
+    inputVars.add("var1");
+    outputVars = new ArrayList<>();
+    outputVars.add("var2");
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    pair = ci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).hasSize(2);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var1| () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |var2@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |var1| 0) (= |var2@1| 0)))");
+
+    inputVars = new ArrayList<>();
+    inputVars.add("var");
+    inputVars.add("var1");
+    inputVars.add("var2");
+    outputVars = new ArrayList<>();
+    outputVars.add("var3");
+    outputVars.add("var4");
+    ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
+    pair = ci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).hasSize(5);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var| () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |var1| () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |var2| () Int)");
+    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |var3@1| () Int)");
+    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |var4@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |var| 0)(and (= |var1| 0)(and (= |var2| 0)(and (= |var3@1| 0) (= |var4@1| 0))))))");
+  }
+
+  @Test
+  public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, IOException, ParserException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    String testProgram = ""
+        + "extern int f2(int);"
+        + "int f(int x) {"
+          + "return x * x;"
+        + "}"
+        + "void main() {"
+          + "int z;"
+          + "int y;"
+          + "start_ci: int x = 5 * z;"
+          + "if (!(x>y)) {"
+            + "if (z>0) {"
+              + "x + y;"
+              + "z = x + y;"
+              + "z = f(x);"
+              + "x = f2(y);"
+            + "}"
+          + "}"
+          + "end_ci_1: int b;"
+          + "int a = 5 * b;"
+          + "if (!(a>7)) {"
+            + "if (b>0) {"
+              + "a + 7;"
+              + "b = a + 7;"
+              + "b = f(a);"
+              + "a = f2(7);"
+            + "}"
+          + "}"
+          + "x = x + 1;"
+        + "}";
+    cfa = TestDataTools.makeCFA(testProgram);
+
+    CFANode aciStartNode = null, aciEndNode = null;
+
+    Set<CFANode> visitedNodes = new HashSet<>();
+    Queue<CFANode> queue = new ArrayDeque<>();
+    queue.add(cfa.getFunctionHead("main"));
+    CFANode node;
+    endNodes = new HashSet<>();
+    startNode = null;
+
+    while (!queue.isEmpty()) {
+      node = queue.poll();
+      if (node instanceof CLabelNode) {
+        if (((CLabelNode) node).getLabel().startsWith("start_ci")) {
+          startNode = node;
+        }
+        if (((CLabelNode) node).getLabel().startsWith("end_ci")) {
+          for(CFANode predecessor: CFAUtils.allPredecessorsOf(node)) {
+            endNodes.add(predecessor);
+          }
+        }
+      }
+      for (CFAEdge e : CFAUtils.allLeavingEdges(node)) {
+        if (!visitedNodes.contains(e.getSuccessor())) {
+          queue.add(e.getSuccessor());
+          visitedNodes.add(e.getSuccessor());
+        }
+        if (e.getCode().equals("int a = 5 * b;")) {
+          aciStartNode = e.getPredecessor();
+        }
+        if (e.getCode().equals("x = x + 1;")) {
+          aciEndNode = e.getPredecessor();
+        }
+      }
+    }
+    Truth.assertThat(aciStartNode).isNotNull();
+    Truth.assertThat(aciEndNode).isNotNull();
+    Truth.assertThat(startNode).isNotNull();
+    Truth.assertThat(endNodes).hasSize(1);
+
+    List<String> input = new ArrayList<>();
+    input.add("main::y");
+    input.add("main::z");
+    List<String> output = new ArrayList<>();
+    output.add("main::x");
+    output.add("main::z");
+    ci = new CustomInstruction(startNode, endNodes, input, output, ShutdownNotifier.create());
+
+    aci = ci.inspectAppliedCustomInstruction(aciStartNode);
+
+    Pair<List<String>, String> pair = aci.getFakeSMTDescription();
+    Truth.assertThat(pair.getFirst()).hasSize(3);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1| () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0)))))");
+
+    SSAMap ssaMap = aci.getIndicesForReturnVars();
+    List<String> variables = new ArrayList<>();
+    variables.add("main::a");
+    variables.add("main::b");
+    Truth.assertThat(ssaMap.allVariables()).containsExactlyElementsIn(variables);
+    Truth.assertThat(ssaMap.getIndex(variables.get(0))).isEqualTo(1);
+    Truth.assertThat(ssaMap.getIndex(variables.get(1))).isEqualTo(1);
+
+    Collection<CFANode> aciNodes = new ArrayList<>(2);
+    aciNodes.add(aciStartNode);
+    aciNodes.add(aciEndNode);
+    Truth.assertThat(aci.getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
   }
 }

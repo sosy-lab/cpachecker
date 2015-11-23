@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.solver.z3;
 
-import static com.google.common.truth.Truth.assertThat;
-
 import org.junit.Test;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
-import org.sosy_lab.solver.api.ProverEnvironment;
 
 /**
  * Testing the custom SSA implementation.
@@ -46,19 +42,5 @@ public class Z3Test extends SolverBasedTest0 {
     // Will exit(1) without an exception handler.
     //noinspection ConstantConditions,ResultOfMethodCallIgnored
     rmgr.makeNumber("not-a-number");
-  }
-
-  @Test
-  public void testCongruence() throws Exception {
-    IntegerFormula x;
-    x = imgr.makeVariable("x");
-
-    try (ProverEnvironment env = mgr.newProverEnvironment(false, false)) {
-      //noinspection ResultOfMethodCallIgnored
-      env.push(imgr.modularCongruence(x, imgr.makeNumber(0), 2));
-      //noinspection ResultOfMethodCallIgnored
-      env.push(imgr.equal(x, imgr.makeNumber(1)));
-      assertThat(env.isUnsat()).isEqualTo(true);
-    }
   }
 }

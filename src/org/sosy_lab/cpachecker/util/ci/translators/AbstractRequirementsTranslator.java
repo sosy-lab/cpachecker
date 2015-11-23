@@ -66,7 +66,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
 
     if (post.isEmpty()) {
-      return Pair.of(formulaPre, Pair.of(Collections.<String>emptyList(), "(define-fun post Bool() false)"));
+      return Pair.of(formulaPre, Pair.of(Collections.<String>emptyList(), "(define-fun post () Bool false)"));
     }
 
     List<String> list = new ArrayList<>();
@@ -77,7 +77,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     int amount = post.size();
     int index;
 
-    sb.append("(define-fun post Bool () ");
+    sb.append("(define-fun post () Bool ");
 
     for (AbstractState state : post){
       formula = convertToFormula(extractRequirement(state), postIndices);
@@ -87,7 +87,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
         sb.append("(or ");
         BracketCounter++;
       }
-      // distinguish between (define-fun name Bool() (f)) and (define-fun name Bool() var)
+      // distinguish between (define-fun name () Bool (f)) and (define-fun name () Bool var)
       index = formula.getSecond().indexOf("(", formula.getSecond().indexOf(")"));
       if (index>0){
         definition = formula.getSecond().substring(index, formula.getSecond().length()-1);

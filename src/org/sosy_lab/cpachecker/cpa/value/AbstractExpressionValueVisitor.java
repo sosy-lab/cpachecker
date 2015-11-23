@@ -667,16 +667,13 @@ public abstract class AbstractExpressionValueVisitor
       String functionName = ((CIdExpression) functionNameExp).getName();
 
       if (BuiltinFunctions.isBuiltinFunction(functionName)) {
-        CType functionReturnType = BuiltinFunctions.getFunctionType(functionName);
+        CType functionType = BuiltinFunctions.getFunctionType(functionName);
 
-        if (isUnspecifiedType(functionReturnType)) {
+        if (isUnspecifiedType(functionType)) {
           // unsupported formula
           return Value.UnknownValue.getInstance();
         }
 
-        assert functionReturnType.equals(pIastFunctionCallExpression.getExpressionType())
-            : "Builtin function's return type is false. " + functionName
-            + " has return type " + pIastFunctionCallExpression.getExpressionType();
         List<CExpression> parameterExpressions = pIastFunctionCallExpression.getParameterExpressions();
         List<Value> parameterValues = new ArrayList<>(parameterExpressions.size());
 
@@ -734,6 +731,99 @@ public abstract class AbstractExpressionValueVisitor
                 : "Unhandled builtin function for NaN: " + functionName;
 
             return new NumericValue(Double.NaN);
+          }
+        } else if (BuiltinFloatFunctions.matchesIsNaN(functionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+              case FLOAT:
+                return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
+              case DOUBLE:
+                return Double.isNaN(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
+              default:
+                break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesIsInfinity(functionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+              case FLOAT:
+                return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
+              case DOUBLE:
+                return Double.isInfinite(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
+              default:
+                break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFinite(functionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+              case FLOAT:
+                return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(0) : new NumericValue(1);
+              case DOUBLE:
+                return Double.isInfinite(numericValue.doubleValue()) ? new NumericValue(0) : new NumericValue(1);
+              default:
+                break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesFloatClassify(functionName)) {
+
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+              case FLOAT: {
+                float v = numericValue.floatValue();
+                if (Float.isNaN(v)) {
+                  return new NumericValue(0);
+                }
+                if (Float.isInfinite(v)) {
+                  return new NumericValue(1);
+                }
+                if (v == 0.0) {
+                  return new NumericValue(2);
+                }
+                if (Float.toHexString(v).startsWith("0x0.")) {
+                  return new NumericValue(3);
+                }
+                return new NumericValue(4);
+              }
+              case DOUBLE: {
+                double v = numericValue.doubleValue();
+                if (Double.isNaN(v)) {
+                  return new NumericValue(0);
+                }
+                if (Double.isInfinite(v)) {
+                  return new NumericValue(1);
+                }
+                if (v == 0.0) {
+                  return new NumericValue(2);
+                }
+                if (Double.toHexString(v).startsWith("0x0.")) {
+                  return new NumericValue(3);
+                }
+                return new NumericValue(4);
+              }
+              default:
+                break;
+              }
+            }
           }
         }
       }

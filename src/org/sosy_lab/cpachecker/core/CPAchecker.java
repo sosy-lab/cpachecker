@@ -35,8 +35,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -63,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -73,7 +72,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
@@ -283,7 +281,12 @@ public class CPAchecker {
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      violatedPropertyDescription = findViolatedProperties(reached);
+      violatedPropertyDescription = null;
+      Set<Property> violatedProperties = findViolatedProperties(algorithm, reached);
+      if (!violatedProperties.isEmpty()) {
+        violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
+      }
+
       if (violatedPropertyDescription != null) {
         if (!status.isPrecise()) {
           result = Result.UNKNOWN;
@@ -408,21 +411,17 @@ public class CPAchecker {
     }
   }
 
-  private @Nullable String findViolatedProperties(final ReachedSet reached) {
-    Set<String> descriptions = from(reached).filter(IS_TARGET_STATE)
-                        .transform(new Function<AbstractState, String>() {
-                                    @Override
-                                    public String apply(AbstractState s) {
-                                      return  ((Targetable)s).getViolatedPropertyDescription();
-                                    }
-                                  })
-                        .copyInto(new HashSet<String>());
-    if (descriptions.isEmpty()) {
-      // signal no target state -> result safe
-      return null;
+  private Set<Property> findViolatedProperties(final Algorithm pAlgorithm,
+      final ReachedSet reached) {
+
+    final Set<Property> result = Sets.newHashSet();
+
+    for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
+      Targetable t = (Targetable) e;
+      result.addAll(t.getViolatedProperties());
     }
-    descriptions.remove("");
-    return Joiner.on(", ").join(descriptions);
+
+    return result;
   }
 
   private Result analyzeResult(final ReachedSet reached, boolean isSound) {

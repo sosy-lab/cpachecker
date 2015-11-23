@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -267,8 +266,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
-            String violatedPropertyDescription = Strings.nullToEmpty(t.getViolatedPropertyDescription(exprArgs));
-            AutomatonState errorState = AutomatonState.automatonStateFactory(Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedPropertyDescription);
+            AutomatonSafetyProperty prop = new AutomatonSafetyProperty(state.getOwningAutomaton(), t);
+
+            AutomatonState errorState = AutomatonState.automatonStateFactory(
+                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, prop);
+
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + edge.getDescription() + "\"");
             lSuccessors.add(errorState);
           }
@@ -296,11 +298,16 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         exprArgs.putTransitionVariables(transitionVariables);
         t.executeActions(exprArgs);
         actionTime.stop();
-        String violatedPropertyDescription = null;
+
+        AutomatonSafetyProperty violatedProperty = null;
         if (t.getFollowState().isTarget()) {
-          violatedPropertyDescription = t.getViolatedPropertyDescription(exprArgs);
+          final String desc = t.getViolatedPropertyDescription(exprArgs);
+          violatedProperty = new AutomatonSafetyProperty(state.getOwningAutomaton(), t, desc);
         }
-        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedPropertyDescription);
+
+        AutomatonState lSuccessor = AutomatonState.automatonStateFactory(
+            newVars, t.getFollowState(), cpa, t.getAssumptions(), state.getMatches() + 1, state.getFailedMatches(), violatedProperty);
+
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
           lSuccessors.add(lSuccessor);
         } else {

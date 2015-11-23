@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 /**
  * Instances of this class are visitors that are used to collect the variables
  * used in the given formulae. Possible environments are ignored by these
@@ -36,115 +38,110 @@ import java.util.Set;
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<String>>, BooleanFormulaVisitor<T, Set<String>> {
-
-  /**
-   * The empty set of strings.
-   */
-  private static final Set<String> EMPTY_SET = Collections.emptySet();
+public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<MemoryLocation>>, BooleanFormulaVisitor<T, Set<MemoryLocation>> {
 
   @Override
-  public Set<String> visit(Add<T> pAdd) {
+  public Set<MemoryLocation> visit(Add<T> pAdd) {
     return concat(pAdd.getSummand1().accept(this), pAdd.getSummand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(BinaryAnd<T> pAnd) {
+  public Set<MemoryLocation> visit(BinaryAnd<T> pAnd) {
     return concat(pAnd.getOperand1().accept(this), pAnd.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(BinaryNot<T> pNot) {
+  public Set<MemoryLocation> visit(BinaryNot<T> pNot) {
     return pNot.getFlipped().accept(this);
   }
 
   @Override
-  public Set<String> visit(BinaryOr<T> pOr) {
+  public Set<MemoryLocation> visit(BinaryOr<T> pOr) {
     return concat(pOr.getOperand1().accept(this), pOr.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(BinaryXor<T> pXor) {
+  public Set<MemoryLocation> visit(BinaryXor<T> pXor) {
     return concat(pXor.getOperand1().accept(this), pXor.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(Constant<T> pConstant) {
-    return EMPTY_SET;
+  public Set<MemoryLocation> visit(Constant<T> pConstant) {
+    return Collections.emptySet();
   }
 
   @Override
-  public Set<String> visit(Divide<T> pDivide) {
+  public Set<MemoryLocation> visit(Divide<T> pDivide) {
     return concat(pDivide.getNumerator().accept(this), pDivide.getDenominator().accept(this));
   }
 
   @Override
-  public Set<String> visit(Equal<T> pEqual) {
+  public Set<MemoryLocation> visit(Equal<T> pEqual) {
     return concat(pEqual.getOperand1().accept(this), pEqual.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(Exclusion<T> pExclusion) {
+  public Set<MemoryLocation> visit(Exclusion<T> pExclusion) {
     return pExclusion.getExcluded().accept(this);
   }
 
   @Override
-  public Set<String> visit(LessThan<T> pLessThan) {
+  public Set<MemoryLocation> visit(LessThan<T> pLessThan) {
     return concat(pLessThan.getOperand1().accept(this), pLessThan.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(LogicalAnd<T> pAnd) {
+  public Set<MemoryLocation> visit(LogicalAnd<T> pAnd) {
     return concat(pAnd.getOperand1().accept(this), pAnd.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(LogicalNot<T> pNot) {
+  public Set<MemoryLocation> visit(LogicalNot<T> pNot) {
     return pNot.getNegated().accept(this);
   }
 
   @Override
-  public Set<String> visit(Modulo<T> pModulo) {
+  public Set<MemoryLocation> visit(Modulo<T> pModulo) {
     return concat(pModulo.getNumerator().accept(this), pModulo.getDenominator().accept(this));
   }
 
   @Override
-  public Set<String> visit(Multiply<T> pMultiply) {
+  public Set<MemoryLocation> visit(Multiply<T> pMultiply) {
     return concat(pMultiply.getFactor1().accept(this), pMultiply.getFactor2().accept(this));
   }
 
   @Override
-  public Set<String> visit(ShiftLeft<T> pShiftLeft) {
+  public Set<MemoryLocation> visit(ShiftLeft<T> pShiftLeft) {
     return concat(pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this));
   }
 
   @Override
-  public Set<String> visit(ShiftRight<T> pShiftRight) {
+  public Set<MemoryLocation> visit(ShiftRight<T> pShiftRight) {
     return concat(pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this));
   }
 
   @Override
-  public Set<String> visit(Union<T> pUnion) {
+  public Set<MemoryLocation> visit(Union<T> pUnion) {
     return concat(pUnion.getOperand1().accept(this), pUnion.getOperand2().accept(this));
   }
 
   @Override
-  public Set<String> visit(Variable<T> pVariable) {
-    return Collections.singleton(pVariable.getName());
+  public Set<MemoryLocation> visit(Variable<T> pVariable) {
+    return Collections.singleton(pVariable.getMemoryLocation());
   }
 
   @Override
-  public Set<String> visitFalse() {
+  public Set<MemoryLocation> visitFalse() {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<String> visitTrue() {
+  public Set<MemoryLocation> visitTrue() {
     return Collections.emptySet();
   }
 
   @Override
-  public Set<String> visit(IfThenElse<T> pIfThenElse) {
+  public Set<MemoryLocation> visit(IfThenElse<T> pIfThenElse) {
     return concat(
         pIfThenElse.getCondition().accept(this),
         concat(
@@ -154,7 +151,7 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Strin
   }
 
   @Override
-  public Set<String> visit(Cast<T> pCast) {
+  public Set<MemoryLocation> visit(Cast<T> pCast) {
     return pCast.getCasted().accept(this);
   }
 
@@ -166,7 +163,7 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Strin
    *
    * @return the concatenation of the given sets.
    */
-  private Set<String> concat(Set<String> a, Set<String> b) {
+  private static <T> Set<T> concat(Set<T> a, Set<T> b) {
     // If one of the sets is empty, return the other one
     if (a.isEmpty()) {
       return b;
@@ -184,7 +181,7 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Strin
      * are of size one, a new modifiable set is created for the result.
      */
     if (a.size() == 1 && b.size() == 1) {
-      Set<String> result = new LinkedHashSet<>(a);
+      Set<T> result = new LinkedHashSet<>(a);
       result.addAll(b);
       return result;
     }

@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.FILTER_ABSTRACTION_STATES;
 import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.logging.Level;
@@ -54,24 +55,26 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -131,6 +134,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final TargetLocationProvider targetLocationProvider;
 
+  private Collection<CFANode> targetLocations;
+
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -169,7 +174,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           pShutdownNotifier, pCFA, pReachedSetFactory);
 
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, Optional.of(pShutdownNotifier), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -211,11 +216,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     // The set of candidate invariants that still need to be checked.
     // Successfully proven invariants are removed from the set.
-    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
-    if (targetLocations == null) {
-      targetLocations = cfa.getAllNodes();
-    }
-    final CandidateGenerator candidateGenerator = getCandidateInvariants(cfa, targetLocations);
+    final CandidateGenerator candidateGenerator = getCandidateInvariants();
 
     try {
       if (!candidateGenerator.produceMoreCandidates()) {
@@ -304,7 +305,43 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       }
 
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    } catch (InterruptedException e) {
+      if (invariantGenerator.isProgramSafe()) {
+        // The wait list may not be empty, which would wrongly indicate to the
+        // caller that the analysis is incomplete
+        for (AbstractState state : new ArrayList<>(reachedSet.getWaitlist())) {
+          reachedSet.removeOnlyFromWaitlist(state);
+        }
+        // The reachedSet might contain target states, which would give a wrong
+        // indication of safety to the caller, so remove them.
+        for (CandidateInvariant candidateInvariant : candidateGenerator) {
+          candidateInvariant.assumeTruth(reachedSet);
+        }
+
+        // The reached set may be in an inconsistent state where the ARG
+        // contains states that are not covered and where the parents are not
+        // in the wait list
+        removeMissingStatesFromARG(reachedSet);
+
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+      throw e;
     } finally {
+    }
+  }
+
+  private void removeMissingStatesFromARG(ReachedSet pReachedSet) {
+    Collection<ARGState> missingChildren = new ArrayList<>();
+    for (ARGState e : from(pReachedSet).transform(toState(ARGState.class))) {
+      for (ARGState child : e.getChildren()) {
+        if (!pReachedSet.contains(child) && !(child.isCovered() && child.getChildren().isEmpty())
+            || pReachedSet.getWaitlist().containsAll(child.getParents())) {
+          missingChildren.add(child);
+        }
+      }
+    }
+    for (ARGState missingChild : missingChildren) {
+      missingChild.removeFromARG();
     }
   }
 
@@ -313,8 +350,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    *
    * @return the candidate invariants to be checked.
    */
-  protected abstract CandidateGenerator getCandidateInvariants(CFA cfa,
-      Collection<CFANode> targetLocations);
+  protected abstract CandidateGenerator getCandidateInvariants();
 
   /**
    * Adjusts the conditions of the CPAs which support the adjusting of
@@ -437,5 +473,22 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         reachedSetFactory,
         havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
+  }
+
+  /**
+   * Gets the potential target locations.
+   *
+   * @return the potential target locations.
+   */
+  protected Collection<CFANode> getTargetLocations() {
+    if (this.targetLocations != null) {
+      return this.targetLocations;
+    }
+    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
+    if (targetLocations == null) {
+      targetLocations = cfa.getAllNodes();
+    }
+    return this.targetLocations = targetLocations;
+
   }
 }

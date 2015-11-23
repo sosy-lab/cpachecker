@@ -183,12 +183,12 @@ public class TranslatorTest {
     @SuppressWarnings("unchecked")
     List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1|() Int)");
-    content.add("(declare-fun |var2|() Int)");
-    content.add("(declare-fun |var3@1|() Int)");
-    content.add("(declare-fun |fun::var1|() Int)");
-    content.add("(declare-fun |fun::varB@1|() Int)");
-    content.add("(declare-fun |fun::varC|() Int)");
+    content.add("(declare-fun |var1@1| () Int)");
+    content.add("(declare-fun |var2| () Int)");
+    content.add("(declare-fun |var3@1| () Int)");
+    content.add("(declare-fun |fun::var1| () Int)");
+    content.add("(declare-fun |fun::varB@1| () Int)");
+    content.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
     // Test method convertToFormula()
@@ -211,7 +211,7 @@ public class TranslatorTest {
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1|() Int)");
+    content.add("(declare-fun |var1@1| () Int)");
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
     s = "(define-fun req () Bool (>= |var1@1| 0))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
@@ -265,7 +265,7 @@ public class TranslatorTest {
     // Test method convertToFormula()
     Pair<List<String>, String> convertedFormula = pReqTrans.convertToFormula(ptrueState, ssaTest);
     Truth.assertThat(convertedFormula.getFirst()).isEmpty();
-    String s = "(define-fun .defci0 Bool()  true)";
+    String s = "(define-fun .defci0 () Bool  true)";
     Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
 
     convertedFormula = pReqTrans.convertToFormula(pf1State, ssaTest);
@@ -274,7 +274,7 @@ public class TranslatorTest {
     list.add("(declare-fun var3@1 () Int)");
     list.add("(declare-fun var1@1 () Int)");
     Truth.assertThat(convertedFormula.getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun .defci1 Bool()  (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0)))";
+    s = "(define-fun .defci1 () Bool  (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0)))";
     Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
 
     // Test method convertRequirements()
@@ -284,10 +284,10 @@ public class TranslatorTest {
     list.add("(declare-fun var3 () Int)");
     list.add("(declare-fun |fun::var1| () Int)");
     Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun pre Bool()  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))";
+    s = "(define-fun pre () Bool  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))";
     Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
     Truth.assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
-    s = "(define-fun post Bool() false)";
+    s = "(define-fun post () Bool false)";
     Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
 
     Collection<PredicateAbstractState> pAbstrStates = new ArrayList<>();
@@ -298,10 +298,10 @@ public class TranslatorTest {
     list.add("(declare-fun |fun::varB| () Int)");
     list.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(convertedRequirements.getFirst().getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun pre Bool()  (and (> var2 |fun::varB|) (< |fun::varC| 0)))";
+    s = "(define-fun pre () Bool  (and (> var2 |fun::varB|) (< |fun::varC| 0)))";
     Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
     Truth.assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
-    s = "(define-fun post Bool ()  true)";
+    s = "(define-fun post () Bool  true)";
     Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
 
     pAbstrStates = new ArrayList<>();
@@ -309,7 +309,7 @@ public class TranslatorTest {
     pAbstrStates.add(pf2State);
     convertedRequirements = pReqTrans.convertRequirements(ptrueState, pAbstrStates, ssaTest);
     Truth.assertThat(convertedRequirements.getFirst().getFirst()).isEmpty();
-    s = "(define-fun pre Bool()  true)";
+    s = "(define-fun pre () Bool  true)";
     Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);
     list.clear();
     list.add("(declare-fun var1@1 () Int)");
@@ -319,7 +319,7 @@ public class TranslatorTest {
     list.add("(declare-fun |fun::varB@1| () Int)");
     list.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(convertedRequirements.getSecond().getFirst()).containsExactlyElementsIn(list);
-    s = "(define-fun post Bool () (or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0))))";
+    s = "(define-fun post () Bool (or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0))))";
     Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
   }
 }

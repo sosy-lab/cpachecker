@@ -23,27 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen;
 
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
-
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 
 @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
@@ -59,13 +50,9 @@ public class TestGenStatistics implements Statistics {
   private volatile int countPathChecks = 0;
   private final boolean printAutomatonFileGenerationStats;
   private final List<Statistics> cpaAlgorithmStatistics = new ArrayList<>();
-  private final List<MutableARGPath> testCases = new ArrayList<>();
-  private CFA cfa;
-
 
   public TestGenStatistics(boolean pPrintAutomatonFileGenerationStats, CFA pCfa) {
     printAutomatonFileGenerationStats = pPrintAutomatonFileGenerationStats;
-    cfa = pCfa;
   }
 
   @Override
@@ -77,11 +64,8 @@ public class TestGenStatistics implements Statistics {
   public void printStatistics(PrintStream out, Result pResult,
       ReachedSet pReached) {
 
-    int locs = calculateTestedLocations();
 
     out.println("Number of CPA algorithm runs:         " + cpaAlgorithmCount);
-    out.println("Locations covered by testcases:       " + locs);
-    out.println("Testcase location coverage:           " + StatisticsUtils.toPercent(locs, cfa.getAllNodes().size()));
 
     if (cpaAlgorithmCount > 0) {
 
@@ -119,10 +103,6 @@ public class TestGenStatistics implements Statistics {
     }
   }
 
-  public void addTestCase(MutableARGPath pARGPath) {
-    testCases.add(pARGPath);
-  }
-
   public void beforeAutomationFileGeneration() {
     automatonFileGenerationTimer.start();
   }
@@ -150,18 +130,6 @@ public class TestGenStatistics implements Statistics {
   public void afterCpaAlgortihm(Algorithm pAlgorithm) {
     cpaAlogorithmTimer.stop();
     collectStatisticsForAlgorithm(pAlgorithm);
-  }
-
-  private int calculateTestedLocations() {
-
-    Set<CFANode> locations = new HashSet<>();
-    for (MutableARGPath path : testCases) {
-      Set<CFANode> currentLocs = from(path.getStateSet()).transform(EXTRACT_LOCATION).filter(notNull()).toSet();
-      locations.addAll(currentLocs);
-    }
-
-    return locations.size();
-
   }
 
   Timer getTotalTimer() {

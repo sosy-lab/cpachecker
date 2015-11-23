@@ -82,7 +82,7 @@ public class PathExtractor implements Statistics {
   public PathExtractor(final LogManager pLogger, Configuration config)
      throws InvalidConfigurationException {
 
-    config.inject(this);
+    config.inject(this, PathExtractor.class);
     logger = pLogger;
   }
 

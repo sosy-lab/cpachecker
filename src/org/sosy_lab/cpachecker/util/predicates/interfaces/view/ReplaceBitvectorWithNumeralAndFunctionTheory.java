@@ -214,6 +214,9 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
    * @param pLength size of bitvector to determine the current range of values
    * @param pSigned to determine the current range of values
    */
+  @Deprecated
+  /* reason: we are sound, but not efficient, due to lack of information about signedness.
+             The better implementation is CtoFormula.encodeOverflowsWithUFs. */
   private T replaceOverflowWithUF(T pValue, int pLength, boolean pSigned) {
 
     if (pLength == 0) {

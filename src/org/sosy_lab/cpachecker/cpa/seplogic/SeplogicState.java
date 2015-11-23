@@ -28,17 +28,66 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.Handle;
 import org.sosy_lab.cpachecker.cpa.seplogic.interfaces.PartingstarInterface;
+
+import com.google.common.collect.ImmutableSet;
 
 public class SeplogicState implements AbstractState, Cloneable, Targetable {
   private Handle heap;
   private boolean breakFlag;
   private Deque<String> namespaces = new ArrayDeque<>();
   private Exception causeForError = null;
+
+  static class ExceptionBasedProperty implements Property {
+
+    private final Exception cause;
+
+    public ExceptionBasedProperty(Exception pE) {
+      this.cause = pE;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((cause == null) ? 0 : cause.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      ExceptionBasedProperty other = (ExceptionBasedProperty) obj;
+      if (cause == null) {
+        if (other.cause != null) {
+          return false;
+        }
+      } else if (!cause.equals(other.cause)) {
+        return false;
+      }
+      return true;
+    }
+
+    @Override
+    public String toString() {
+      return cause.toString();
+    }
+
+  }
 
   public SeplogicState(Handle pHeap, Handle pMissing, Deque<String> namespaces) {
     super();
@@ -172,8 +221,8 @@ public class SeplogicState implements AbstractState, Cloneable, Targetable {
   }
 
   @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return "";
+    return ImmutableSet.<Property>of(new ExceptionBasedProperty(causeForError));
   }
 }

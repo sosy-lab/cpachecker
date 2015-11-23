@@ -42,13 +42,14 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.FluentIterable;
 
 
 public class CompoundIntervalFormulaManager {
 
-  private static final Map<String, NumeralFormula<CompoundInterval>> EMPTY_ENVIRONMENT = Collections.emptyMap();
+  private static final Map<MemoryLocation, NumeralFormula<CompoundInterval>> EMPTY_ENVIRONMENT = Collections.emptyMap();
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
@@ -70,11 +71,11 @@ public class CompoundIntervalFormulaManager {
     this.partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
   }
 
-  public static Set<String> collectVariableNames(NumeralFormula<CompoundInterval> pFormula) {
+  public static Set<MemoryLocation> collectVariableNames(NumeralFormula<CompoundInterval> pFormula) {
     return pFormula.accept(COLLECT_VARS_VISITOR);
   }
 
-  public static Set<String> collectVariableNames(BooleanFormula<CompoundInterval> pFormula) {
+  public static Set<MemoryLocation> collectVariableNames(BooleanFormula<CompoundInterval> pFormula) {
     return pFormula.accept(COLLECT_VARS_VISITOR);
   }
 
@@ -113,11 +114,11 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, new HashMap<String, NumeralFormula<CompoundInterval>>());
+    return definitelyImplies(pFormulas, pFormula, new HashMap<MemoryLocation, NumeralFormula<CompoundInterval>>());
   }
 
-  public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, Map<String, NumeralFormula<CompoundInterval>> pBaseEnvironment) {
-    Map<String, NumeralFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
+  public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pBaseEnvironment) {
+    Map<MemoryLocation, NumeralFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
     if (pFormula instanceof Collection<?>) {
       return definitelyImplies((Collection<BooleanFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false);
     }
@@ -142,7 +143,7 @@ public class CompoundIntervalFormulaManager {
    * @return {@code true} if the information base definitely implies the given
    * formula.
    */
-  private boolean definitelyImplies(Collection<BooleanFormula<CompoundInterval>> pInformationBaseFormulas, BooleanFormula<CompoundInterval> pFormula, boolean pExtend, Map<String, NumeralFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete) {
+  private boolean definitelyImplies(Collection<BooleanFormula<CompoundInterval>> pInformationBaseFormulas, BooleanFormula<CompoundInterval> pFormula, boolean pExtend, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete) {
     final Collection<BooleanFormula<CompoundInterval>> formulas;
     if (pExtend) {
       formulas = new HashSet<>();
@@ -160,7 +161,7 @@ public class CompoundIntervalFormulaManager {
       Collection<BooleanFormula<CompoundInterval>> disjunctions = formula.accept(SPLIT_DISJUNCTIONS_VISITOR);
       if (disjunctions.size() > 1) {
         ArrayList<BooleanFormula<CompoundInterval>> newFormulas = new ArrayList<>(formulas);
-        Map<String, NumeralFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
+        Map<MemoryLocation, NumeralFormula<CompoundInterval>> newBaseEnvironment = new HashMap<>(pInformationBaseEnvironment);
         newFormulas.remove(formula);
         for (BooleanFormula<CompoundInterval> disjunctivePart : disjunctions) {
           Collection<BooleanFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
@@ -188,13 +189,13 @@ public class CompoundIntervalFormulaManager {
     return definitelyImplies(formulas, tmpEnvironment, pFormula);
   }
 
-  public boolean definitelyImplies(final Map<String, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
+  public boolean definitelyImplies(final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
       final BooleanFormula<CompoundInterval> pFormula) {
     return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula);
   }
 
   private boolean definitelyImplies(final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
-      final Map<String, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
+      final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
       final BooleanFormula<CompoundInterval> pFormula) {
 
     /*
@@ -260,10 +261,6 @@ public class CompoundIntervalFormulaManager {
           if (!cim.doIntersect(leftEval, rightEval)) {
             return false;
           }
-          if (op1 instanceof Constant && rightEval.isSingleton() && cim.contains(leftEval, rightEval)
-              || op2 instanceof Constant && leftEval.isSingleton() && cim.contains(rightEval, leftEval)) {
-            continue;
-          }
         } else if (resolved instanceof LogicalNot) {
           LogicalNot<CompoundInterval> negation = (LogicalNot<CompoundInterval>) resolved;
           BooleanFormula<CompoundInterval> negated = negation.getNegated();
@@ -286,15 +283,15 @@ public class CompoundIntervalFormulaManager {
 
         if (!pCompleteEnvironment.isEmpty() && formulaAtom.accept(CONTAINS_ONLY_ENV_INFO_VISITOR)) {
           impliedEnvironment.clear();
-          Set<String> varNames = formulaAtom.accept(COLLECT_VARS_VISITOR);
-          if (!pCompleteEnvironment.keySet().containsAll(varNames)) {
+          Set<MemoryLocation> memoryLocations = formulaAtom.accept(COLLECT_VARS_VISITOR);
+          if (!pCompleteEnvironment.keySet().containsAll(memoryLocations)) {
             return false;
           }
           PushAssumptionToEnvironmentVisitor patev = new PushAssumptionToEnvironmentVisitor(compoundIntervalManagerFactory, evaluationVisitor, impliedEnvironment);
           formulaAtom.accept(patev, BooleanConstant.<CompoundInterval>getTrue());
-          for (String varName : varNames) {
-            NumeralFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(varName);
-            NumeralFormula<CompoundInterval> rightFormula = impliedEnvironment.get(varName);
+          for (MemoryLocation memoryLocation : memoryLocations) {
+            NumeralFormula<CompoundInterval> leftFormula = pCompleteEnvironment.get(memoryLocation);
+            NumeralFormula<CompoundInterval> rightFormula = impliedEnvironment.get(memoryLocation);
             // If the right formula is null, we learned nothing about the variable from pushing it,
             // so continuing would be unsound.
             // If the left formula is null, it cannot imply any information about the right variable.
@@ -361,7 +358,7 @@ public class CompoundIntervalFormulaManager {
 
     Collection<BooleanFormula<CompoundInterval>> leftFormulas = pFormula1.accept(SPLIT_CONJUNCTIONS_VISITOR);
 
-    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<String, NumeralFormula<CompoundInterval>>(), false);
+    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<MemoryLocation, NumeralFormula<CompoundInterval>>(), false);
   }
 
   /**

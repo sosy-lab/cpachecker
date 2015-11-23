@@ -40,6 +40,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -55,7 +57,15 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.collect.Iterables;
 
+@Options(prefix="cpa.bam")
 public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRelation {
+
+  @Option(secure=true, description="if we connot determine a repeating/covering call-state, "
+      + "we will run into CallStackOverflowException. Thus we bound the stack size (unsound!). "
+      + "This option only limits non-covered recursion, but not a recursion "
+      + "where we find a coverage and re-use the cached block several times. "
+      + "The value '-1' disables this option.")
+  private int maximalDepthForExplicitRecursion = -1;
 
   // flags of the fixpoint-algorithm for recursion
   private boolean recursionSeen = false;
@@ -67,6 +77,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
                              ProofChecker wrappedChecker, BAMDataManager data, ShutdownNotifier pShutdownNotifier)
                                  throws InvalidConfigurationException {
     super(pConfig, pLogger, bamCpa, wrappedChecker, data, pShutdownNotifier);
+    pConfig.inject(this);
   }
 
   @Override
@@ -79,6 +90,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     if (stack.isEmpty() && isHeadOfMainFunction(node)) {
       // we are at the start of the program (root-node of CFA).
       return doFixpointIterationForRecursion(pState, pPrecision, node);
+    }
+
+    if (maximalDepthForExplicitRecursion != -1 && stack.size() > maximalDepthForExplicitRecursion) {
+      return Collections.emptySet();
     }
 
     return super.getAbstractSuccessorsWithoutWrapping(pState, pPrecision);

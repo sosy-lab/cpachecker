@@ -339,58 +339,6 @@ public class VariableClassification {
     return newScore;
   }
 
-  public int obtainDomainTypeScoreForVariables2(Collection<String> variableNames,
-      Optional<LoopStructure> loopStructure) {
-    final int BOOLEAN_VAR   = 1;
-    final int INTEQUAL_VAR  = 100;
-    final int INTADD_VAR    = 1000;
-    final int UNKNOWN_VAR   = 10000;
-    final int LOOP_VAR      = 1000000000;
-
-    if(variableNames.isEmpty()) {
-      return 0;
-    }
-
-    int newScore = 0;
-    int oldScore = newScore;
-    for (String variableName : variableNames) {
-      int summand = UNKNOWN_VAR;
-
-      if (getIntBoolVars().contains(variableName)) {
-        summand = BOOLEAN_VAR;
-
-      } else if (getIntEqualVars().contains(variableName)) {
-        summand = INTEQUAL_VAR;
-      }
-
-      else if (getIntAddVars().contains(variableName)) {
-        summand = INTADD_VAR;
-      }
-
-      if (loopStructure.isPresent()
-          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        summand = LOOP_VAR;
-      }
-
-      newScore = newScore + summand;
-
-      // check for overflow
-      if(newScore < oldScore) {
-        logger.log(Level.WARNING,
-            "Highest possible value reached in score computation."
-                + " Error path prefix preference may not be applied reliably.");
-        logger.logf(Level.FINE,
-            "Overflow in score computation happened for variables %s.",
-            variableNames.toString());
-
-        return Integer.MAX_VALUE - 1;
-      }
-      oldScore = newScore;
-    }
-
-    return newScore;
-  }
-
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder();

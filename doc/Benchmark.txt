@@ -39,6 +39,25 @@ with the specification for the verifier,
 as the script will automatically add it to the command line.
 
 
+Specifying Machine Model and Further Program Characteristics
+------------------------------------------------------------
+It is important to specify the correct values for the following options
+according to the characteristics of the input files to avoid wrong answers:
+
+- Machine model (32 vs. 64 bit):
+  For 64 bit, specify "-64" on the command line.
+
+- Whether the "simple" memory model of SV-Comp is used or not
+  (cf. http://sv-comp.sosy-lab.org/2016/rules.php#programs):
+  If yes, set "cpa.predicate.handlePointerAliasing=false".
+
+- Whether malloc may return null or not:
+  If the program assumes malloc never returns null,
+  set "cpa.predicate.memoryAllocationsAlwaysSucceed=true".
+  Note that this assumption is true for all SV-Comp files,
+  thus this option is already set in all "-sv-comp*" configurations.
+
+
 Specifying Resource Limits
 --------------------------
 When benchmarking CPAchecker, it is important to correctly specify

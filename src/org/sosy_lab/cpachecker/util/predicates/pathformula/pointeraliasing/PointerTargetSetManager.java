@@ -142,6 +142,15 @@ class PointerTargetSetManager {
               public void rightValueOnly(String pKey, CType pRightValue) {
                 basesOnlyPts2.put(pKey, pRightValue);
               }
+
+              @Override
+              public void differingValues(String pKey, CType pLeftValue, CType pRightValue) {
+                if (isFakeBaseType(pLeftValue) && !(pRightValue instanceof CElaboratedType)) {
+                  basesOnlyPts2.put(pKey, pRightValue);
+                } else if (isFakeBaseType(pRightValue) && !(pLeftValue instanceof CElaboratedType)) {
+                  basesOnlyPts1.put(pKey, pLeftValue);
+                }
+              }
             });
     shutdownNotifier.shutdownIfNecessary();
 
@@ -231,9 +240,9 @@ class PointerTargetSetManager {
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 =
-        makeSharingConstraints(basesOnlyPts1.getSnapshot(), sharedFields, resultSSA, pts2);
+        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, resultSSA, pts2);
     final BooleanFormula mergeFormula1 =
-        makeSharingConstraints(basesOnlyPts2.getSnapshot(), sharedFields, resultSSA, pts1);
+        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, resultSSA, pts1);
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder = new RealPointerTargetSetBuilder(
@@ -345,7 +354,10 @@ class PointerTargetSetManager {
     };
   }
 
-  private BooleanFormula makeSharingConstraints(final PersistentSortedMap<String, CType> newBases,
+  /**
+   * Create constraint that imports the old value of a variable into the memory handled with UFs.
+   */
+  private BooleanFormula makeValueImportConstraints(final PersistentSortedMap<String, CType> newBases,
       final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa, final PointerTargetSet pts) {
     BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
@@ -353,7 +365,7 @@ class PointerTargetSetManager {
           !CTypeUtils.containsArray(base.getValue())) {
         final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
                                                    CTypeUtils.getBaseType(base.getValue()));
-        mergeFormula = bfmgr.and(mergeFormula, makeSharingConstraints(formulaManager.makeVariable(baseFormulaType,
+        mergeFormula = bfmgr.and(mergeFormula, makeValueImportConstraints(formulaManager.makeVariable(baseFormulaType,
                                                                                           PointerTargetSet.getBaseName(
                                                                                               base.getKey())),
                                                                         base.getKey(),
@@ -366,7 +378,7 @@ class PointerTargetSetManager {
     return mergeFormula;
   }
 
-  private BooleanFormula makeSharingConstraints(final Formula address,
+  private BooleanFormula makeValueImportConstraints(final Formula address,
                                                 final String variablePrefix,
                                                 final CType variableType,
                                                 final List<Pair<CCompositeType, String>> sharedFields,
@@ -387,7 +399,7 @@ class PointerTargetSetManager {
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
-          result = bfmgr.and(result, makeSharingConstraints(
+          result = bfmgr.and(result, makeValueImportConstraints(
                                        formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset), IS_POINTER_SIGNED),
                                        newPrefix,
                                        memberType,

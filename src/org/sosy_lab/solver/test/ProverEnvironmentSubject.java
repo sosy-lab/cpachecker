@@ -33,6 +33,7 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
+import com.google.common.truth.SubjectFactory;
 import com.google.common.truth.TestVerb;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -41,14 +42,31 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * {@link Subject} subclass for testing assertions about ProverEnvironments with Truth
  * (allows to use <code>assert_().about(...).that(stack).isUnsatisfiable()</code> etc.).
  *
- * Use {@link SolverBasedTest0#ProverEnvironment()}
- * when calling {@link TestVerb#about(com.google.common.truth.SubjectFactory)}..
+ * Use {@link SolverBasedTest0#assertThatEnvironment(BasicProverEnvironment)},
+ * or {@link TestVerb#about(com.google.common.truth.SubjectFactory)} and
+ * {@link #proverEnvironment()}.
  */
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
 public class ProverEnvironmentSubject extends Subject<ProverEnvironmentSubject, BasicProverEnvironment<?>> {
 
-  public ProverEnvironmentSubject(FailureStrategy pFailureStrategy, BasicProverEnvironment<?> pStack) {
+  private ProverEnvironmentSubject(
+      FailureStrategy pFailureStrategy, BasicProverEnvironment<?> pStack) {
     super(pFailureStrategy, pStack);
+  }
+
+  /**
+   * Use this for checking assertions about ProverEnvironments with Truth:
+   * <code>assert_().about(proverEnvironment()).that(stack).is...()</code>.
+   */
+  public static SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>
+      proverEnvironment() {
+    return new SubjectFactory<ProverEnvironmentSubject, BasicProverEnvironment<?>>() {
+      @Override
+      public ProverEnvironmentSubject getSubject(
+          FailureStrategy pFs, BasicProverEnvironment<?> pFormula) {
+        return new ProverEnvironmentSubject(pFs, pFormula);
+      }
+    };
   }
 
   /**

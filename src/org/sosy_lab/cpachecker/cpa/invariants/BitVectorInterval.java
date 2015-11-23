@@ -250,7 +250,7 @@ public class BitVectorInterval implements BitVectorType {
    *
    * @return the mathematical negation of this interval.
    */
-  public BitVectorInterval negate(boolean pAllowSignedWrapAround) {
+  public BitVectorInterval negate(boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
     BigInteger newLowerBound = upperBound.negate();
     BigInteger newUpperBound = lowerBound.negate();
 
@@ -261,6 +261,7 @@ public class BitVectorInterval implements BitVectorType {
     if (lbExceedsBelow || lbExceedsAbove || ubExceedsBelow || ubExceedsAbove) {
       // If the type is signed, wrap-around is implementation defined
       if (!pAllowSignedWrapAround && info.isSigned()) {
+        pOverflowEventHandler.signedOverflow();
         return info.getRange();
       }
       final BigInteger fromLB;
@@ -290,12 +291,16 @@ public class BitVectorInterval implements BitVectorType {
     return new BitVectorInterval(info, newLowerBound, newUpperBound);
   }
 
-  public static BitVectorInterval cast(BitVectorInfo pInfo, BigInteger pI, boolean pAllowSignedWrapAround) {
+  public static BitVectorInterval cast(BitVectorInfo pInfo,
+      BigInteger pI,
+      boolean pAllowSignedWrapAround,
+      OverflowEventHandler pOverflowEventHandler) {
     if (pInfo.getRange().contains(pI)) {
       return BitVectorInterval.singleton(pInfo, pI);
     }
     // If the type is signed, wrap-around is implementation defined
     if (!pAllowSignedWrapAround && pInfo.isSigned()) {
+      pOverflowEventHandler.signedOverflow();
       return pInfo.getRange();
     }
     BigInteger rangeLength = pInfo.getRange().size();
@@ -308,9 +313,13 @@ public class BitVectorInterval implements BitVectorType {
     return BitVectorInterval.singleton(pInfo, value);
   }
 
-  public static BitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound, boolean pAllowSignedWrapAround) {
+  public static BitVectorInterval cast(BitVectorInfo pInfo,
+      BigInteger pLowerBound,
+      BigInteger pUpperBound,
+      boolean pAllowSignedWrapAround,
+      OverflowEventHandler pOverflowEventHandler) {
     if (pLowerBound.equals(pUpperBound)) {
-      return cast(pInfo, pLowerBound, pAllowSignedWrapAround);
+      return cast(pInfo, pLowerBound, pAllowSignedWrapAround, pOverflowEventHandler);
 
     }
     BigInteger lowerBound = pLowerBound;
@@ -330,6 +339,7 @@ public class BitVectorInterval implements BitVectorType {
 
     // If the type is signed, wrap-around is implementation defined
     if (!pAllowSignedWrapAround && pInfo.isSigned()) {
+      pOverflowEventHandler.signedOverflow();
       return pInfo.getRange();
     }
 

@@ -37,6 +37,7 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
+import com.google.common.truth.SubjectFactory;
 import com.google.common.truth.TestVerb;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -45,19 +46,34 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * {@link Subject} subclass for testing assertions about BooleanFormulas with Truth
  * (allows to use <code>assert_().about(...).that(formula).isUnsatisfiable()</code> etc.).
  *
- * Use {@link SolverBasedTest0#BooleanFormula()}
- * or {@link SolverBasedTest0#BooleanFormulaOfSolver(FormulaManagerFactory)}
- * when calling {@link TestVerb#about(com.google.common.truth.SubjectFactory)}..
+ * Use {@link SolverBasedTest0#assertThatFormula(BooleanFormula)},
+ * or {@link TestVerb#about(com.google.common.truth.SubjectFactory)} and
+ * {@link #forSolver(FormulaManagerFactory)}.
  */
 @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
 public class BooleanFormulaSubject extends Subject<BooleanFormulaSubject, BooleanFormula> {
 
   private final FormulaManager mgr;
 
-  BooleanFormulaSubject(FailureStrategy pFailureStrategy,
-      BooleanFormula pFormula, FormulaManager pMgr) {
+  private BooleanFormulaSubject(
+      FailureStrategy pFailureStrategy, BooleanFormula pFormula, FormulaManager pMgr) {
     super(pFailureStrategy, pFormula);
     mgr = checkNotNull(pMgr);
+  }
+
+  /**
+   * Use this for checking assertions about BooleanFormulas
+   * (given the corresponding solver) with Truth:
+   * <code>assert_().about(BooleanFormulaSubject.forSolver(mgr)).that(formula).is...()</code>.
+   */
+  public static SubjectFactory<BooleanFormulaSubject, BooleanFormula> forSolver(
+      final FormulaManager mgr) {
+    return new SubjectFactory<BooleanFormulaSubject, BooleanFormula>() {
+      @Override
+      public BooleanFormulaSubject getSubject(FailureStrategy pFs, BooleanFormula pFormula) {
+        return new BooleanFormulaSubject(pFs, pFormula, mgr);
+      }
+    };
   }
 
   private void checkIsUnsat(final BooleanFormula subject, final String verb, final Object expected)

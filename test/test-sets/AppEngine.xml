@@ -27,8 +27,11 @@
   <option name="-setprop">cpa.conditions.global.memory.process=-1</option>
   <option name="-setprop">cpa.conditions.global.reached.size=-1</option>
 
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
   <tasks name="ControlFlowInteger">
-  	<includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
+  	<includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
   	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </tasks>
 
@@ -44,7 +47,7 @@
 
   <tasks name="DeviceDrivers64">
   	<option name="-setprop">analysis.machineModel=Linux64</option>
-    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
 	<propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   	<exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_false-unreach-call.cil.out.i.pp.i</exclude>
 	<exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-drbd-drbd.ko_true-unreach-call.cil.out.i.pp.i</exclude>

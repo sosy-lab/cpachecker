@@ -72,6 +72,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaMan
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.solver.SolverException;
 
+import com.google.common.base.Optional;
+
 /**
  * CPA that defines symbolic predicate abstraction.
  */
@@ -196,7 +198,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     if (useInvariantsForAbstraction) {
-      invariantGenerator = CPAInvariantGenerator.create(config, logger, pShutdownNotifier, cfa);
+      invariantGenerator = CPAInvariantGenerator.create(config, logger, pShutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

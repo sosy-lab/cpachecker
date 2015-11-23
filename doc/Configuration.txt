@@ -40,6 +40,10 @@ The following command-line arguments are allowed:
 -preprocess		sets "parser.usePreprocessor = true"
 -java			sets "language = JAVA"
 -secureMode		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
+-debug			enables the JVM debug interface on TCP port 5005 for remote debugging
+-disable-java-assertions disables assertions in CPAchecker for improved performance (recommended for benchmarking)
+-generateReport		executes scripts/report-generator.py after CPAchecker finishes
+-heap HEAP_SIZE		sets the heap size of the JVM
 -setprop <KEY>=<VALUE>	sets any option: "KEY = VALUE"
 
 The file doc/ConfigurationOptions.txt contains an explanation

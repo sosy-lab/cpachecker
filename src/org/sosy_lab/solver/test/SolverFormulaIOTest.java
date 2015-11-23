@@ -25,6 +25,7 @@ package org.sosy_lab.solver.test;
 
 import static com.google.common.collect.Iterables.getLast;
 import static com.google.common.truth.Truth.*;
+import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -106,6 +107,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     assertThat(formDump).contains("(declare-fun a () Bool)");
     assertThat(formDump).contains("(declare-fun b () Bool)");
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   @Test
@@ -130,7 +132,10 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     String formDump = mgr.dumpFormula(branchComp).toString();
     assertThat(formDump).contains("(declare-fun a () Bool)");
     assertThat(formDump).contains("(declare-fun b () Bool)");
+
+    // the last line has to begin with assert and the dump has to be parseable
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   @Test
@@ -147,6 +152,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
 
     String formDump = mgr.dumpFormula(valComp5).toString();
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   @Test
@@ -160,6 +166,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // check that int variable is declared correctly + necessary assert that has to be there
     assertThat(formDump).contains("(declare-fun a () Int)");
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   @Test
@@ -179,6 +186,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // check that function is dumped correctly + necessary assert that has to be there
     assertThat(formDump).contains("(declare-fun fun_a (Int Int) Int)");
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   @Test
@@ -280,6 +288,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // check if dumped formula fits our specification
     checkThatFunOnlyDeclaredOnce(formDump);
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   @Test
@@ -297,6 +306,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // check if dumped formula fits our specification
     checkThatFunOnlyDeclaredOnce(formDump);
     checkThatAssertIsInLastLine(formDump);
+    checkThatDumpIsParseable(formDump);
   }
 
   private void compareParseWithOrgExprFirst(String textToParse, Supplier<BooleanFormula> fun)
@@ -308,7 +318,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // actual test
     BooleanFormula expr = fun.get();
     BooleanFormula parsedForm = mgr.parse(textToParse);
-    assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
+    assertThatFormula(parsedForm).isEquivalentTo(expr);
   }
 
   private void compareParseWithOrgParseFirst(String textToParse, Supplier<BooleanFormula> fun)
@@ -320,7 +330,7 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     // actual test
     BooleanFormula parsedForm = mgr.parse(textToParse);
     BooleanFormula expr = fun.get();
-    assert_().about(BooleanFormula()).that(parsedForm).isEquivalentTo(expr);
+    assertThatFormula(parsedForm).isEquivalentTo(expr);
   }
 
   private void checkThatFunOnlyDeclaredOnce(String formDump) {
@@ -347,6 +357,14 @@ public class SolverFormulaIOTest extends SolverBasedTest0 {
     assertThat(getLast(Splitter.on('\n').split(lines)))
       .named("last line of <\n"+lines+">")
       .startsWith("(assert ");
+  }
+
+  private void checkThatDumpIsParseable(String dump) {
+    try {
+      mgr.parse(dump);
+    } catch (Exception e){
+      fail("Dump could not be parsed again.");
+    }
   }
 
   private BooleanFormula genBoolExpr() {

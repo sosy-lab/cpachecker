@@ -114,6 +114,7 @@ public class UseDefBasedInterpolator {
     LinkedList<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new LinkedList<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
+      iterator.advance();
       ARGState state = iterator.getAbstractState();
 
       Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
@@ -129,8 +130,6 @@ public class UseDefBasedInterpolator {
       if (interpolant != trivialItp) {
         trivialItp = ValueAnalysisInterpolant.TRUE;
       }
-
-      iterator.advance();
     }
 
     return interpolants;
