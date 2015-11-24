@@ -149,8 +149,8 @@ public class ARGPath implements Appender {
     CFANode curNode = AbstractStates.extractLocation(it.getAbstractState());
     CFAEdge curOutgoingEdge = it.getOutgoingEdge();
 
-    it.advance();
     while (it.hasNext()) {
+      it.advance();
       CFANode nextNode = AbstractStates.extractLocation(it.getAbstractState());
 
       // compute path between cur and next node
@@ -171,9 +171,10 @@ public class ARGPath implements Appender {
         fullPath.add(curOutgoingEdge);
       }
 
-      curOutgoingEdge = it.getOutgoingEdge();
+      if (it.hasNext()) {
+        curOutgoingEdge = it.getOutgoingEdge();
+      }
       curNode = nextNode;
-      it.advance();
     }
 
     return fullPath;
