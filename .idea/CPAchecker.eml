@@ -72,6 +72,11 @@
 	<lib name="smt-parser.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/smt-parser.jar!/"/>
 	</lib>
+	<lib name="error_prone_annotations.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/error_prone_annotations-sources.jar!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/build/error_prone_annotations.jar!/"/>
+	</lib>
 	<lib name="objenesis.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/test/objenesis.jar!/"/>
 	</lib>
@@ -109,8 +114,10 @@
 	<lib name="meconsole010.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/meconsole010.jar!/"/>
 	</lib>
-	<lib name="princess.jar" scope="COMPILE">
-		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/princess.jar!/"/>
+	<lib name="princess-assertionless.jar" scope="COMPILE">
+		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/princess-sources-assertionless.zip!/"/>
+		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/princess-sources-assertionless.zip!/"/>
+		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/princess-assertionless.jar!/"/>
 	</lib>
 	<lib name="scala-library.jar" scope="COMPILE">
 		<relative-module-cls project-related="jar://$PROJECT_DIR$/lib/java/runtime/scala-library.jar!/"/>
