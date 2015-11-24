@@ -178,26 +178,24 @@ public class UseDefRelation {
     PathIterator iterator = path.reversePathIterator();
     Iterator<CFAEdge> fullPath = Lists.reverse(path.getFullPath()).iterator();
 
-    // consume last edge (it is the edge to the error and therefore not useful here)
-    fullPath.next();
+    // move from last state to second last, this is the first interesting one
     iterator.advance();
 
     while (fullPath.hasNext()) {
       CFAEdge edge = fullPath.next();
 
-      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
-        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-          updateUseDefRelation(iterator.getAbstractState(), singleEdge);
-        }
-      }
-      else {
-        updateUseDefRelation(iterator.getAbstractState(), edge);
-      }
-
       // if the edge leads to location which equals to the location of the abstract
       // state we have to advance the iterator for one position
       if (edge.getSuccessor().equals(extractLocation(iterator.getAbstractState()))) {
         iterator.advance();
+      }
+
+      if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
+        for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
+          updateUseDefRelation(iterator.getAbstractState(), singleEdge);
+        }
+      } else {
+        updateUseDefRelation(iterator.getAbstractState(), edge);
       }
 
       // stop the traversal once a fix-point is reached
