@@ -105,8 +105,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   @Option(secure=true, description="Check whether the policy depends on the initial value")
   private boolean checkPolicyInitialCondition = true;
 
-  @Option(secure=true, description="Remove UFs and ITEs from policies. "
-      + "NOTE: Currently seems to decrease performance.")
+  @Option(secure=true, description="Remove UFs and ITEs from policies.")
   private boolean linearizePolicy = true;
 
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
