@@ -32,7 +32,7 @@ import os
 import platform
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
-for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
     sys.path.insert(0, egg)
 
 import benchexec
