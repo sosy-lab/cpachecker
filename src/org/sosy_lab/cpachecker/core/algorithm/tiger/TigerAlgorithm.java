@@ -93,6 +93,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -132,6 +133,7 @@ import org.sosy_lab.solver.AssignableTerm;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm
@@ -752,11 +754,15 @@ public class TigerAlgorithm
           restrictBdd(remainingPC);
           // TODO: exclude goals in combination with the presence condition corresponding to the already covered test cases from further exploration
         } else {
+          // Exclude covered goals from further exploration
+          Set<Property> toBlacklist = Sets.newHashSet();
           for (Goal goal : pTestGoalsToBeProcessed) {
             if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-              // TODO Andreas: exlcude goal from further exploration
+              toBlacklist.add(goal);
             }
           }
+
+          Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist);
         }
       }
     } while ((reachedSet.hasWaitingState() && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
