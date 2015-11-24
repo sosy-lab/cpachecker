@@ -153,6 +153,8 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       }
     }
 
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the Apron Analysis
     return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 

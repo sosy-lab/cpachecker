@@ -228,6 +228,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
     String automatonName = String.format("Testcase%s", testCaseCounter);
     ARGState rootState = pExecutedPath.getFirstState();
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done during the analysis. It is also not important here
+    // as the ceInfo object is only used for generating an automaton and not for
+    // creating a C-file with CEXExporter
     CounterexampleInfo ceInfo = CounterexampleInfo.feasible(pExecutedPath, pTraceInfo.getModel());
 
     try (Writer w = Files.openOutputFile(filePath)) {

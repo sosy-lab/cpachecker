@@ -301,6 +301,8 @@ public class ARGStatistics implements IterationStatistics {
         } else {
 
           RichModel model = createModelForPath(path);
+          // we use the imprecise version of the CounterexampleInfo, due to the possible
+          // merges which are done in the used CPAs
           cex = CounterexampleInfo.feasible(path, model);
         }
       }

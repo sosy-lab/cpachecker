@@ -208,6 +208,8 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       }
     }
 
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the ApronCPA
     return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 

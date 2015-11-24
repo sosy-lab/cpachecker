@@ -201,6 +201,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       }
     }
 
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the OctagonCPA
     return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 

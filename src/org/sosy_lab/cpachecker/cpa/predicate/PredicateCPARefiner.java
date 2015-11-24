@@ -298,6 +298,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final CounterexampleTraceInfo preciseCounterexample;
 
     preciseCouterexampleTime.start();
+    boolean isPreciseErrorPath = true;
     if (branchingOccurred) {
       Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
 
@@ -313,6 +314,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
         targetPath = allStatesTrace;
         preciseCounterexample = counterexample;
+        isPreciseErrorPath = false;
       }
     } else {
       targetPath = allStatesTrace;
@@ -320,7 +322,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
     preciseCouterexampleTime.stop();
 
-    CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+    CounterexampleInfo cex;
+    if (isPreciseErrorPath) {
+      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel());
+    } else {
+      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+    }
     cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
         dumpCounterexampleFile);
     return cex;
