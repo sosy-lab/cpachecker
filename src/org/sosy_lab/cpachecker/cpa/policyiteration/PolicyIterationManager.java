@@ -397,13 +397,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return newState;
     }
 
-    if (oldState.getPathFormula().equals(newState.getPathFormula())) {
-
-      // Special logic for checking after the value determination:
-      // if two states share the formula, there is no reason to merge the formula.
-      return newState;
-    }
-
     PathFormula newPath = newState.getPathFormula();
     PathFormula oldPath = oldState.getPathFormula();
     PathFormula mergedPath = pfmgr.makeOr(newPath, oldPath);
