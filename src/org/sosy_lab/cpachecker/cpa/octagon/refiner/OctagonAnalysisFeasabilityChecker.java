@@ -141,7 +141,7 @@ public class OctagonAnalysisFeasabilityChecker {
           successors.addAll(transfer.getAbstractSuccessorsForEdge(
               st,
               pPrecision,
-              pathIt.getOutgoingEdge()));
+              edge));
 
           // computing the feasibility check takes sometimes much time with octagons
           // so we let the shutdownNotifer cancel the computation if necessary
