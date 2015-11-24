@@ -136,19 +136,29 @@ public class UseDefRelation {
     Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
 
     PathIterator it = path.reversePathIterator();
-    while(it.hasNext()) {
-      it.advance();
+    Iterator<CFAEdge> fullPath = Lists.reverse(path.getFullPath()).iterator();
+
+    // move from last state to second last, this is the first interesting one
+    it.advance();
+
+    while (fullPath.hasNext()) {
+      CFAEdge currentEdge = fullPath.next();
+
+      // if the edge leads to location which equals to the location of the abstract
+      // state we have to advance the iterator for one position
+      if (currentEdge.getSuccessor().equals(extractLocation(it.getAbstractState()))) {
+        it.advance();
+      }
+
       ARGState currentState = it.getAbstractState();
-      CFAEdge currentEdge   = it.getOutgoingEdge();
 
       if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)currentEdge).getEdges())) {
           unresolvedUses.removeAll(getDef(currentState, singleEdge));
           unresolvedUses.addAll(getUses(currentState, singleEdge));
         }
-      }
 
-      else {
+      } else {
         unresolvedUses.removeAll(getDef(currentState, currentEdge));
         unresolvedUses.addAll(getUses(currentState, currentEdge));
       }
