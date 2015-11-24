@@ -23,12 +23,26 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import java.util.HashSet;
+import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
+import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
 
 public class Precisions {
@@ -106,4 +120,64 @@ public class Precisions {
       return pNewPrecision;
     }
   }
+
+  public static Precision replaceByFunction(Precision pOldPrecision, Function<Precision, Precision> pFunction) {
+
+    if (pOldPrecision instanceof CompositePrecision) {
+      return ((CompositePrecision) pOldPrecision).replacePrecision(pFunction);
+    }
+
+    Precision result = pFunction.apply(pOldPrecision);
+
+    if (result == pOldPrecision ) {
+      return null;
+    }
+
+    return result;
+  }
+
+  public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
+
+    final HashSet<AutomatonSafetyProperty> toBlacklist = Sets.newHashSet(
+      Collections2.transform(pToBlacklist, new Function<Property, AutomatonSafetyProperty>() {
+        @Override
+        public AutomatonSafetyProperty apply(Property pProp) {
+          Preconditions.checkArgument(pProp instanceof AutomatonSafetyProperty);
+          return (AutomatonSafetyProperty) pProp;
+        }
+
+      }).iterator());
+
+    // update the precision:
+    //  (optional) disable some automata transitions (global precision)
+    for (AbstractState e: pReachedSet.getWaitlist()) {
+
+      final Precision pi = pReachedSet.getPrecision(e);
+      final Precision piPrime = blacklistProperties(pi, toBlacklist);
+
+      if (piPrime != null) {
+        pReachedSet.updatePrecision(e, piPrime);
+      }
+    }
+
+    for (Property p: pToBlacklist) {
+      pCpa.getCexSummary().signalPropertyDisabled(p);
+    }
+  }
+
+  public static Precision blacklistProperties(final Precision pi, final HashSet<AutomatonSafetyProperty> toBlacklist) {
+    final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
+      @Override
+      public Precision apply(Precision pPrecision) {
+        if (pPrecision instanceof AutomatonPrecision) {
+          AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
+          return pi.cloneAndAddBlacklisted(toBlacklist);
+        }
+        return null;
+      }
+    });
+    return piPrime;
+  }
+
+
 }
