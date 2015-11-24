@@ -31,8 +31,10 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -202,13 +204,30 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
       this.callableMatchMode = pCallMatchMode;
     }
 
+    private boolean isFunctionCall(CFAEdge pEdge) {
+
+      if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        return true;
+      }
+
+      if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        if (pEdge instanceof AStatementEdge) {
+          if (((AStatementEdge) pEdge).getStatement() instanceof AFunctionCall) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws UnrecognizedCFAEdgeException {
       final Optional<?> ast;
 
       switch (callableMatchMode) {
       case CALL:
-        if (pArgs.getCfaEdge().getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+        if (isFunctionCall(pArgs.getCfaEdge())) {
           ast = pArgs.getCfaEdge().getRawAST();
         } else {
           return CONST_FALSE;
