@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -97,8 +98,12 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return states.keySet();
   }
 
-  public Pair<AbstractState, AbstractState> getThreadLocation(String id) {
-    return Preconditions.checkNotNull(states.get(id));
+  public AbstractState getThreadCallstack(String id) {
+    return Preconditions.checkNotNull(states.get(id).getFirst());
+  }
+
+  public LocationState getThreadLocation(String id) {
+    return (LocationState) Preconditions.checkNotNull(states.get(id).getSecond());
   }
 
   Set<Integer> getThreadNums() {
