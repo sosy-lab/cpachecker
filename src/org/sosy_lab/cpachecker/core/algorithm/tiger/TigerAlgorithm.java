@@ -1126,8 +1126,9 @@ public class TigerAlgorithm
             AssignableTerm.Variable v0 = (AssignableTerm.Variable) pArg0.getKey();
             AssignableTerm.Variable v1 = (AssignableTerm.Variable) pArg1.getKey();
 
-            // TODO: use SSA index
-            return 1; //(v0.getSSAIndex() - v1.getSSAIndex());
+            int v0ssa = new Integer((v0.getName().substring(v0.getName().indexOf("@") + 1)));
+            int v1ssa = new Integer((v1.getName().substring(v1.getName().indexOf("@") + 1)));
+            return v0ssa - v1ssa;
           }
 
         };
@@ -1138,7 +1139,7 @@ public class TigerAlgorithm
       if (e.getKey() instanceof AssignableTerm.Variable) {
         AssignableTerm.Variable v = (AssignableTerm.Variable) e.getKey();
 
-        if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
+        if (v.getName().startsWith(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
           inputs.add(e);
         }
       }
