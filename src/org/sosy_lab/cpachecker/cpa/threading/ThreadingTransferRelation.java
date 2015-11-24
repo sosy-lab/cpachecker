@@ -124,8 +124,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     Preconditions.checkNotNull(cfaEdge);
     Preconditions.checkArgument(!(cfaEdge instanceof MultiEdge),
         "MultiEdges cannot be supported by ThreadingCPA, because we need interleaving steps for chains of edges.");
-    final ThreadingState threadingState = (ThreadingState) state;
 
+    final ThreadingState threadingState = exitThreads((ThreadingState) state);
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
 
@@ -147,11 +147,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     if (useLocalAccessLocks) {
       results = handleLocalAccessLock(cfaEdge, threadingState, activeThread, results);
-    }
-
-    if (isLastEdgeOfThread(cfaEdge)) {
-      // if thread does not exit with "pthread_exit"
-      results = exitThread(threadingState, activeThread, results);
     }
 
     return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
@@ -202,7 +197,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_JOIN:
             return joinThread(threadingState, activeThread, statement, results);
           case THREAD_EXIT:
-            return exitThread(threadingState, activeThread, results);
+            // this function-call is already handled in the beginning with isLastNodeOfThread.
+            // return exitThread(threadingState, activeThread, results);
+            // TODO check for code like "x=4; pthread_exit(); x=5; return 0;", that would be invalid.
           default:
             // nothing to do, return results
           }
@@ -274,9 +271,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return results;
   }
 
-  /** the current thread will terminate after this edge */
-  private boolean isLastEdgeOfThread(CFAEdge edge) {
-    return 0 == edge.getSuccessor().getNumLeavingEdges();
+  /** checks whether the location is the last node of a thread,
+   * i.e. the current thread will terminate after this node. */
+  private boolean isLastNodeOfThread(CFANode node) {
+    return 0 == node.getNumLeavingEdges();
   }
 
   /** the whole program will terminate after this edge */
@@ -287,6 +285,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
     return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
+  }
+
+  private ThreadingState exitThreads(ThreadingState tmp) {
+    // clean up exited threads.
+    // this is done before applying any other step.
+    for (String id : tmp.getThreadIds()) {
+      if (isLastNodeOfThread(tmp.getThreadLocation(id).getLocationNode())) {
+        tmp = exitThread(tmp, id);
+      }
+    }
+    return tmp;
   }
 
   private Collection<ThreadingState> exitThread(

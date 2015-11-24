@@ -134,17 +134,24 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     final Iterable<CFANode> currentLocs = extractLocations(this);
     final Iterable<CFANode> childLocs = extractLocations(pChild);
 
+    // first try to get a normal edge
     for (CFANode currentLoc : currentLocs) {
       for (CFANode childLoc : childLocs) {
         if (currentLoc.hasEdgeTo(childLoc)) { // Forwards
           return currentLoc.getEdgeTo(childLoc);
 
-        } else if (currentLoc.getLeavingSummaryEdge() != null
-            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
-          return currentLoc.getLeavingSummaryEdge();
-
         } else if (childLoc.hasEdgeTo(currentLoc)) { // Backwards
           return childLoc.getEdgeTo(currentLoc);
+        }
+      }
+    }
+
+    // then try to get a special edge, just to have some edge.
+    for (CFANode currentLoc : currentLocs) {
+      for (CFANode childLoc : childLocs) {
+        if (currentLoc.getLeavingSummaryEdge() != null
+            && currentLoc.getLeavingSummaryEdge().getSuccessor().equals(childLoc)) { // Forwards
+          return currentLoc.getLeavingSummaryEdge();
 
         } else if (currentLoc.getEnteringSummaryEdge() != null
             && currentLoc.getEnteringSummaryEdge().getSuccessor().equals(childLoc)) { // Backwards
