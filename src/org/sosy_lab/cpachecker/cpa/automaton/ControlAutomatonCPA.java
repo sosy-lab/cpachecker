@@ -116,6 +116,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final PrecisionAdjustment precisionAdjustment;
   private final MergeOperator mergeOperator;
   private final Statistics stats = new AutomatonStatistics(this);
+  private final AutomatonSafetyPropertyFactory propertyFactory;
 
   private final CFA cfa;
   private final LogManager logger;
@@ -129,7 +130,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     this.cfa = pCFA;
     this.logger = pLogger;
 
-    this.transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
+    this.propertyFactory = new AutomatonSafetyPropertyFactory(pConfig);
+    this.transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger, propertyFactory);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
     this.mergeOperator = new AutomatonMergeOperator(pConfig, this, automatonDomain, topState);
 

@@ -76,12 +76,8 @@ public class Automaton {
       }
 
       for (AutomatonTransition t: q.getTransitions()) {
-        AutomatonInternalState succ = t.getFollowState();
-        if (succ != null) {
-          if (t.getFollowState().isTarget()) {
-            encodedProperties.addAll(t.getViolatedWhenEnteringTarget());
-          }
-        }
+        encodedProperties.addAll(t.getViolatedWhenEnteringTarget());
+        encodedProperties.addAll(t.getViolatedWhenAssertionFailed());
 
         // Add a reference from the properties to the automaton.
         for (SafetyProperty p: t.getViolatedWhenAssertionFailed()) {

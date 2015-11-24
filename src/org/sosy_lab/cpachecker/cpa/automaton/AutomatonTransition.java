@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory.AutomatonAssertionProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Joiner;
@@ -61,8 +62,8 @@ class AutomatonTransition {
   private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AutomatonAction> actions;
 
-  private final ImmutableSet<SafetyProperty> violatedWhenEnteringTarget;
-  private final ImmutableSet<SafetyProperty> violatedWhenAssertionFailed;
+  private final ImmutableSet<? extends SafetyProperty> violatedWhenEnteringTarget;
+  private final ImmutableSet<? extends SafetyProperty> violatedWhenAssertionFailed;
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -140,8 +141,8 @@ class AutomatonTransition {
       List<AutomatonAction> pActions,
       String pFollowStateName,
       @Nullable AutomatonInternalState pFollowState,
-      Set<SafetyProperty> pViolatedWhenEnteringTarget,
-      Set<SafetyProperty> pViolatedWhenAssertionFailed) {
+      Set<? extends SafetyProperty> pViolatedWhenEnteringTarget,
+      Set<? extends SafetyProperty> pViolatedWhenAssertionFailed) {
 
     this.trigger = checkNotNull(pTrigger);
 
@@ -157,11 +158,20 @@ class AutomatonTransition {
     this.followStateName = checkNotNull(pFollowStateName);
     this.followState = pFollowState;
     this.violatedWhenEnteringTarget = ImmutableSet.copyOf(pViolatedWhenEnteringTarget);
-    this.violatedWhenAssertionFailed = ImmutableSet.copyOf(pViolatedWhenAssertionFailed);
 
     if (pAssertions.isEmpty()) {
+
       this.assertion = AutomatonBoolExpr.TRUE;
+      this.violatedWhenAssertionFailed = ImmutableSet.of();
+
     } else {
+
+      if (pViolatedWhenAssertionFailed.isEmpty()) {
+        this.violatedWhenAssertionFailed = ImmutableSet.of(new AutomatonAssertionProperty());
+      } else {
+        this.violatedWhenAssertionFailed = ImmutableSet.copyOf(pViolatedWhenAssertionFailed);
+      }
+
       AutomatonBoolExpr lAssertion = null;
       for (AutomatonBoolExpr nextAssertion : pAssertions) {
         if (lAssertion == null) {
@@ -376,13 +386,13 @@ class AutomatonTransition {
     final boolean assumptionTruth;
     final ImmutableList<AStatement> assumption;
     final ImmutableList<AutomatonAction> actions;
-    final ImmutableSet<SafetyProperty> violatedWhenEnteringTarget;
-    final ImmutableSet<SafetyProperty> violatedWhenAssertionFailed;
+    final ImmutableSet<? extends SafetyProperty> violatedWhenEnteringTarget;
+    final ImmutableSet<? extends SafetyProperty> violatedWhenAssertionFailed;
 
     public PlainAutomatonTransition(AutomatonBoolExpr pTrigger, AutomatonBoolExpr pAssertion,
         ImmutableList<AStatement> pAssumption, ImmutableList<AutomatonAction> pActions,
-        ImmutableSet<SafetyProperty> pViolatedWhenEnteringTarget,
-        ImmutableSet<SafetyProperty> pViolatedWhenAssertionFailed) {
+        ImmutableSet<? extends SafetyProperty> pViolatedWhenEnteringTarget,
+        ImmutableSet<? extends SafetyProperty> pViolatedWhenAssertionFailed) {
 
       assumptionTruth = true;
       trigger = Preconditions.checkNotNull(pTrigger);

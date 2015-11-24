@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty.AutomatonSafetyPropertyFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;

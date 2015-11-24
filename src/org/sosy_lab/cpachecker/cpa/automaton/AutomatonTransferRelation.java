@@ -87,6 +87,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Stop in the automata transfer relation if the analysis identified one feasible path for each target state.")
   private boolean stopAfterOneFeasiblePathPerProperty = false;
 
+  private final AutomatonSafetyPropertyFactory propertyFactory;
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private @Nullable CounterexamplesSummary cexSummary;
@@ -100,10 +101,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
-      LogManager pLogger) throws InvalidConfigurationException {
+      LogManager pLogger, AutomatonSafetyPropertyFactory pAspf) throws InvalidConfigurationException {
+
     config.inject(this);
 
     this.cpa = pCpa;
+    this.propertyFactory = pAspf;
     this.logger = pLogger;
   }
 
@@ -313,16 +316,16 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
 
-            Set<SafetyProperty> assertionProperties = Sets.newHashSet(t.getViolatedWhenAssertionFailed());
+            Set<SafetyProperty> assertionProperties = Sets.newHashSet();
+            assertionProperties.addAll(t.getViolatedWhenAssertionFailed());
+
             if (assertionProperties.isEmpty()) {
-              assertionProperties.add(new AutomatonSafetyProperty(pState.getOwningAutomaton()));
+              assertionProperties.addAll(propertyFactory.createAssertionProperty(t.getAssertion()));
             }
 
             Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
-            if (t.getFollowState().isTarget()) {
-              for (SafetyProperty p : assertionProperties) {
-                violatedProperties.put(p, p.instantiate(exprArgs));
-              }
+            for (SafetyProperty p : assertionProperties) {
+              violatedProperties.put(p, p.instantiate(exprArgs));
             }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
