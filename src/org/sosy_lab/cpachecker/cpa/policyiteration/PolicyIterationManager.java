@@ -70,10 +70,6 @@ import com.google.common.collect.Sets;
 public class PolicyIterationManager implements IPolicyIterationManager {
 
   @Option(secure = true,
-      description = "Call [simplify] on the formulas resulting from the C code")
-  private boolean simplifyFormulas = true;
-
-  @Option(secure = true,
       description = "Perform abstraction only at the nodes from the cut-set.")
   private boolean pathFocusing = true;
 
@@ -95,7 +91,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private boolean usePreviousBounds = true;
 
   @Option(secure=true, description="Any intermediate state with formula length "
-      + "bigger than specified will be checked for reachability.")
+      + "bigger than specified will be checked for reachability. "
+      + "Set to -1 for no limit.")
   private int lengthLimitForSATCheck = 300;
 
   @Option(secure=true, description="Run simple congruence analysis")
@@ -239,13 +236,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
-
-    if (simplifyFormulas) {
-      statistics.simplifyTimer.start();
-      outPath = outPath.updateFormula(fmgr.simplify(outPath.getFormula()));
-      statistics.simplifyTimer.stop();
-    }
-
     PolicyIntermediateState out = PolicyIntermediateState.of(
         node,
         outPath,
@@ -274,7 +264,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     // Perform reachability checking, either for property states, or when the
     // formula gets too long, or before abstractions.
     if ((hasTargetState && checkTargetStates
-        || (iState.getPathFormula().getLength() > lengthLimitForSATCheck)
+        || (lengthLimitForSATCheck != -1 &&
+              iState.getPathFormula().getLength() > lengthLimitForSATCheck)
         || shouldPerformAbstraction
       ) && isUnreachable(iState)) {
 
@@ -392,8 +383,13 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       PolicyIntermediateState oldState
   ) throws InterruptedException, SolverException {
 
-    Preconditions.checkState(newState.getNode() == oldState.getNode(),
-        "PolicyCPA must run with LocationCPA");
+    Preconditions.checkState(newState.getNode() == oldState.getNode());
+
+    if (!newState.getGeneratingState().equals(oldState.getGeneratingState())) {
+
+      // Different parents: do not merge.
+      return oldState;
+    }
 
     if (newState.isMergedInto(oldState)) {
       return oldState;
@@ -408,23 +404,9 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return newState;
     }
 
-    if (!newState.getGeneratingState().equals(oldState.getGeneratingState())) {
-
-      // Different parents: do not merge.
-      return oldState;
-    }
-
     PathFormula newPath = newState.getPathFormula();
     PathFormula oldPath = oldState.getPathFormula();
-
     PathFormula mergedPath = pfmgr.makeOr(newPath, oldPath);
-    if (simplifyFormulas) {
-      statistics.simplifyTimer.start();
-      mergedPath = mergedPath.updateFormula(
-          fmgr.simplify(mergedPath.getFormula()));
-      statistics.simplifyTimer.stop();
-    }
-
     PolicyIntermediateState out = PolicyIntermediateState.of(
         newState.getNode(),
         mergedPath,
@@ -1126,20 +1108,12 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return state2;
     }
 
-    // We wish to merge if and only if both states have same versions of
-    // abstract predecessors.
-    PolicyIntermediateState iState1 = state1.asIntermediate();
-    PolicyIntermediateState iState2 = state2.asIntermediate();
-    if (iState1.getGeneratingState().equals(iState2.getGeneratingState())) {
-      try {
-        return joinIntermediateStates(iState1, iState2);
-      } catch (SolverException e) {
-        throw new CPAException("Solver Failure", e);
-      }
-    } else {
-      return state2;
+    try {
+      return joinIntermediateStates(
+          state1.asIntermediate(), state2.asIntermediate());
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     }
-
   }
 
   /**
