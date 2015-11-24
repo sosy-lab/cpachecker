@@ -329,7 +329,10 @@ public final class ReducedAutomatonProduct {
               t.assumption,
               t.assumptionTruth,
               t.actions,
-              succ.getStateName()));
+              succ.getStateName(),
+              null,
+              t.violatedWhenEnteringTarget,
+              t.violatedWhenAssertionFailed));
         }
       }
 

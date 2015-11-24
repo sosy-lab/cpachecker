@@ -133,7 +133,7 @@ class AutomatonTransition {
         ImmutableSet.<AutomatonSafetyProperty>of());
   }
 
-  private AutomatonTransition(AutomatonBoolExpr pTrigger,
+  public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions,
       @Nullable List<AStatement> pAssumption,
       boolean pAssumeTruth,
