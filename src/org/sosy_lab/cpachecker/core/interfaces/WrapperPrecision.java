@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 public interface WrapperPrecision extends Precision {
@@ -48,10 +49,17 @@ public interface WrapperPrecision extends Precision {
    */
   public Precision replaceWrappedPrecision(Precision newPrecision, Predicate<? super Precision> replaceType);
 
+  public Precision replacePrecision(Function<Precision, Precision> pFunction);
+
   /**
    * Retrieve all wrapped precisions contained directly in this object.
    * @return A non-empty list of precisions.
    */
   public Iterable<Precision> getWrappedPrecisions();
+
+  /**
+   * @return Number of wrapped precision components.
+   */
+  public int getNumberOfWrapped();
 
 }

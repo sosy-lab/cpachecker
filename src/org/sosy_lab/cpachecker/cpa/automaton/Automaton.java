@@ -52,7 +52,7 @@ public class Automaton {
   private final Set<AutomatonInternalState> states = Sets.newHashSet();
   private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
-  private final Set<AutomatonSafetyProperty> encodedProperties = Sets.newHashSet();
+  private final Set<SafetyProperty> encodedProperties = Sets.newHashSet();
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
 
@@ -84,10 +84,10 @@ public class Automaton {
         }
 
         // Add a reference from the properties to the automaton.
-        for (AutomatonSafetyProperty p: t.getViolatedWhenAssertionFailed()) {
+        for (SafetyProperty p: t.getViolatedWhenAssertionFailed()) {
           p.setAutomaton(this);
         }
-        for (AutomatonSafetyProperty p: t.getViolatedWhenEnteringTarget()) {
+        for (SafetyProperty p: t.getViolatedWhenEnteringTarget()) {
           p.setAutomaton(this);
         }
       }
@@ -235,7 +235,7 @@ public class Automaton {
     return ImmutableSet.copyOf(states);
   }
 
-  public ImmutableSet<AutomatonSafetyProperty> getEncodedProperties() {
+  public ImmutableSet<? extends SafetyProperty> getEncodedProperties() {
     return ImmutableSet.copyOf(encodedProperties);
   }
 

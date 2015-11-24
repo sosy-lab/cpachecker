@@ -46,12 +46,14 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
@@ -64,11 +66,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class Goal {
+public class Goal implements SafetyProperty {
 
   private int mIndex;
   private ElementaryCoveragePattern mPattern;
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
+  private Automaton mCheckedWithAutomaton;
   private Region mRemainingPresenceCondition;
   private Map<TestCase, Region> mCoveringTestCases;
   private Region mInfeasiblePresenceCondition;
@@ -342,38 +345,6 @@ public class Goal {
     return getPattern().accept(visitor);
   }
 
-  public static class GoalSafetyProperty extends AutomatonSafetyProperty {
-    private final Goal goal;
-
-    public GoalSafetyProperty(Goal pGoal) {
-      super();
-      this.goal = Preconditions.checkNotNull(pGoal);
-    }
-
-    public Goal getGoal() {
-      return goal;
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (!super.equals(pObj)) {
-        return false;
-      }
-
-      if (!(pObj instanceof GoalSafetyProperty)) {
-        return false;
-      }
-
-      GoalSafetyProperty other = (GoalSafetyProperty) pObj;
-
-      if (!other.goal.equals(this.goal)) {
-        return false;
-      }
-
-      return true;
-    }
-  }
-
   /**
    * Converts the NondeterministicFiniteAutomaton<GuardedEdgeLabel>
    *    into a ControlAutomaton
@@ -409,8 +380,8 @@ public class Goal {
             Collections.<AutomatonAction> emptyList(),
             sucessorStateName,
             null,
-            ImmutableSet.<AutomatonSafetyProperty>of(new GoalSafetyProperty(this)),
-            ImmutableSet.<AutomatonSafetyProperty>of());
+            ImmutableSet.<SafetyProperty>of(this),
+            ImmutableSet.<SafetyProperty>of());
 
         transitions.add(ct);
       }
@@ -483,5 +454,58 @@ public class Goal {
   private AutomatonBoolExpr createMatcherForLabel(GuardedEdgeLabel pLabel) {
     return new GuardedEdgeMatcher(pLabel);
   }
+
+  @Override
+  public ResultValue<?> instantiate(AutomatonExpressionArguments pArgs) {
+    return StringExpression.empty().eval(pArgs);
+  }
+
+  @Override
+  public void setAutomaton(Automaton pAutomaton) {
+    mCheckedWithAutomaton = pAutomaton;
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((mAutomaton == null) ? 0 : mAutomaton.hashCode());
+    result = prime * result + ((mCheckedWithAutomaton == null) ? 0 : mCheckedWithAutomaton.hashCode());
+    result = prime * result + ((mCoveringTestCases == null) ? 0 : mCoveringTestCases.hashCode());
+    result = prime * result + mIndex;
+    result = prime * result + ((mInfeasiblePresenceCondition == null) ? 0 : mInfeasiblePresenceCondition.hashCode());
+    result = prime * result + ((mPattern == null) ? 0 : mPattern.hashCode());
+    result = prime * result + ((mRemainingPresenceCondition == null) ? 0 : mRemainingPresenceCondition.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) { return true; }
+    if (obj == null) { return false; }
+    if (!(obj instanceof Goal)) { return false; }
+    Goal other = (Goal) obj;
+    if (mAutomaton == null) {
+      if (other.mAutomaton != null) { return false; }
+    } else if (!mAutomaton.equals(other.mAutomaton)) { return false; }
+    if (mCheckedWithAutomaton == null) {
+      if (other.mCheckedWithAutomaton != null) { return false; }
+    } else if (!mCheckedWithAutomaton.equals(other.mCheckedWithAutomaton)) { return false; }
+    if (mCoveringTestCases == null) {
+      if (other.mCoveringTestCases != null) { return false; }
+    } else if (!mCoveringTestCases.equals(other.mCoveringTestCases)) { return false; }
+    if (mIndex != other.mIndex) { return false; }
+    if (mInfeasiblePresenceCondition == null) {
+      if (other.mInfeasiblePresenceCondition != null) { return false; }
+    } else if (!mInfeasiblePresenceCondition.equals(other.mInfeasiblePresenceCondition)) { return false; }
+    if (mPattern == null) {
+      if (other.mPattern != null) { return false; }
+    } else if (!mPattern.equals(other.mPattern)) { return false; }
+    if (mRemainingPresenceCondition == null) {
+      if (other.mRemainingPresenceCondition != null) { return false; }
+    } else if (!mRemainingPresenceCondition.equals(other.mRemainingPresenceCondition)) { return false; }
+    return true;
+  }
+
 
 }

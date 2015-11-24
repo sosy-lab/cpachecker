@@ -302,14 +302,14 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
 
-            Set<AutomatonSafetyProperty> assertionProperties = Sets.newHashSet(t.getViolatedWhenAssertionFailed());
+            Set<SafetyProperty> assertionProperties = Sets.newHashSet(t.getViolatedWhenAssertionFailed());
             if (assertionProperties.isEmpty()) {
               assertionProperties.add(new AutomatonSafetyProperty(pState.getOwningAutomaton()));
             }
 
-            Map<AutomatonSafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
+            Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
             if (t.getFollowState().isTarget()) {
-              for (AutomatonSafetyProperty p : assertionProperties) {
+              for (SafetyProperty p : assertionProperties) {
                 violatedProperties.put(p, p.instantiate(exprArgs));
               }
             }
@@ -345,10 +345,10 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         t.executeActions(exprArgs);
         actionTime.stop();
 
-        Map<AutomatonSafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
+        Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
         if (t.getFollowState().isTarget()) {
           Preconditions.checkState(!t.getViolatedWhenEnteringTarget().isEmpty());
-          for (AutomatonSafetyProperty p : t.getViolatedWhenEnteringTarget()) {
+          for (SafetyProperty p : t.getViolatedWhenEnteringTarget()) {
             violatedProperties.put(p, p.instantiate(exprArgs));
           }
         }
