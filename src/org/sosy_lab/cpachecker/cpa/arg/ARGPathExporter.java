@@ -356,9 +356,7 @@ public class ARGPathExporter {
   }
 
   private String getInitialFileName(ARGState pRootState) {
-    CFANode initialLoc = AbstractStates.extractLocation(pRootState);
-    Deque<CFANode> worklist = Queues.newArrayDeque();
-    worklist.push(initialLoc);
+    Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
 
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
