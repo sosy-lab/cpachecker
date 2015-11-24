@@ -546,6 +546,13 @@ class WebInterface:
 
                     elif option == "-noout":
                         options.append("output.disable=true")
+                    elif option == "-outputpath":
+                        options.append("output.path=" + next(i))
+                    elif option == "-logfile":
+                        options.append("log.file=" + next(i))
+                    elif option == "-nolog":
+                        options.append("log.level=OFF")
+                        options.append("log.consoleLevel=OFF")
                     elif option == "-stats":
                         # ignore, is always set by this script
                         pass
@@ -564,6 +571,13 @@ class WebInterface:
                     elif option == "-skipRecursion":
                         options.append("cpa.callstack.skipRecursion=true")
                         options.append("analysis.summaryEdges=true")
+                    elif option == "-cbmc":
+                        options.append("analysis.checkCounterexamples=true")
+                        options.append("counterexample.checker=CBMC")
+                    elif option == "-preprocess":
+                        options.append("parser.usePreprocessor=true")
+                    elif option == "-generateReport":
+                        params['generateReport'] = 'true'
 
                     elif option == "-spec":
                         spec_path = next(i)
