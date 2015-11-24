@@ -28,7 +28,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +64,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonPrecisionAdjustment;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -86,10 +84,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
 import org.sosy_lab.cpachecker.util.statistics.Stats.Contexts;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -400,7 +396,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           //    checkPartitions = checkPartitions.substract(ImmutableSet.<Property>copyOf(runViolated.values()));
 
           // Just adjust the precision of the states in the waitlist
-          disablePropertiesForWaitlist(cpa, pReachedSet, violated);
+          Precisions.disablePropertiesForWaitlist(cpa, pReachedSet, violated);
 
         } else {
 
@@ -592,49 +588,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     }
 
     return result;
-  }
-
-  static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
-
-    final HashSet<AutomatonSafetyProperty> toBlacklist = Sets.newHashSet(
-      Collections2.transform(pToBlacklist, new Function<Property, AutomatonSafetyProperty>() {
-        @Override
-        public AutomatonSafetyProperty apply(Property pProp) {
-          Preconditions.checkArgument(pProp instanceof AutomatonSafetyProperty);
-          return (AutomatonSafetyProperty) pProp;
-        }
-
-      }).iterator());
-
-    // update the precision:
-    //  (optional) disable some automata transitions (global precision)
-    for (AbstractState e: pReachedSet.getWaitlist()) {
-
-      final Precision pi = pReachedSet.getPrecision(e);
-      final Precision piPrime = blacklistProperties(pi, toBlacklist);
-
-      if (piPrime != null) {
-        pReachedSet.updatePrecision(e, piPrime);
-      }
-    }
-
-    for (Property p: pToBlacklist) {
-      pCpa.getCexSummary().signalPropertyDisabled(p);
-    }
-  }
-
-  public static Precision blacklistProperties(final Precision pi, final HashSet<AutomatonSafetyProperty> toBlacklist) {
-    final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
-      @Override
-      public Precision apply(Precision pPrecision) {
-        if (pPrecision instanceof AutomatonPrecision) {
-          AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
-          return pi.cloneAndAddBlacklisted(toBlacklist);
-        }
-        return null;
-      }
-    });
-    return piPrime;
   }
 
   public static String toReadable(Iterable<ImmutableSet<Property>> pSetsOfProps) {
