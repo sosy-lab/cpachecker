@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 
@@ -40,7 +39,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 
-public class AutomatonSafetyProperty implements Property {
+class AutomatonSafetyProperty implements SafetyProperty {
 
   public static enum PropertyGranularity {
     /** One automaton encodes exactly one property. */
@@ -60,17 +59,17 @@ public class AutomatonSafetyProperty implements Property {
       pConfig.inject(this);
     }
 
-    public Set<AutomatonSafetyProperty> createSingleProperty() {
+    public Set<SafetyProperty> createSingleProperty() {
 
-      return ImmutableSet.of(new AutomatonSafetyProperty());
+      return ImmutableSet.<SafetyProperty>of(new AutomatonSafetyProperty());
     }
 
-    public Set<AutomatonSafetyProperty> createSingleProperty(StringExpression pViolationExpr) {
+    public Set<SafetyProperty> createSingleProperty(StringExpression pViolationExpr) {
       if (granularity == PropertyGranularity.VIOLATING_EXPRESSION) {
-        return ImmutableSet.of(new AutomatonSafetyProperty(pViolationExpr));
+        return ImmutableSet.<SafetyProperty>of(new AutomatonSafetyProperty(pViolationExpr));
       }
 
-      return ImmutableSet.of(new AutomatonSafetyProperty());
+      return ImmutableSet.<SafetyProperty>of(new AutomatonSafetyProperty());
     }
 
   }
@@ -93,6 +92,7 @@ public class AutomatonSafetyProperty implements Property {
     this.violationDescriptionExpression = StringExpression.empty();
   }
 
+  @Override
   public void setAutomaton(Automaton pAutomaton) {
     automaton = Preconditions.checkNotNull(pAutomaton);
   }
@@ -101,6 +101,7 @@ public class AutomatonSafetyProperty implements Property {
     return violationDescriptionExpression;
   }
 
+  @Override
   public ResultValue<?> instantiate(AutomatonExpressionArguments pArgs) {
     return violationDescriptionExpression.eval(pArgs);
   }

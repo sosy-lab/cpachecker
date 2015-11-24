@@ -61,8 +61,8 @@ class AutomatonTransition {
   private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AutomatonAction> actions;
 
-  private final ImmutableSet<AutomatonSafetyProperty> violatedWhenEnteringTarget;
-  private final ImmutableSet<AutomatonSafetyProperty> violatedWhenAssertionFailed;
+  private final ImmutableSet<SafetyProperty> violatedWhenEnteringTarget;
+  private final ImmutableSet<SafetyProperty> violatedWhenAssertionFailed;
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -80,16 +80,16 @@ class AutomatonTransition {
         ImmutableList.<AutomatonBoolExpr>of(),
         ImmutableList.<AStatement>of(), true, pActions,
         pFollowStateName, null,
-        ImmutableSet.<AutomatonSafetyProperty>of(),
-        ImmutableSet.<AutomatonSafetyProperty>of());
+        ImmutableSet.<SafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of());
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger, List<AutomatonBoolExpr> pAssertions,
       List<AutomatonAction> pActions, AutomatonInternalState pFollowState) {
 
     this(pTrigger, pAssertions, ImmutableList.<AStatement>of(), true, pActions, pFollowState.getName(), pFollowState,
-        ImmutableSet.<AutomatonSafetyProperty>of(),
-        ImmutableSet.<AutomatonSafetyProperty>of());
+        ImmutableSet.<SafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of());
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
@@ -97,12 +97,12 @@ class AutomatonTransition {
       boolean pAssumeTruth,
       List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState,
-      Set<AutomatonSafetyProperty> pViolatedWhenEnteringTarget) {
+      Set<SafetyProperty> pViolatedWhenEnteringTarget) {
 
     this(pTrigger, ImmutableList.<AutomatonBoolExpr>of(),
         pAssumption, pAssumeTruth, pActions,
         pFollowState.getName(), pFollowState,
-        ImmutableSet.<AutomatonSafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of(),
         Preconditions.checkNotNull(pViolatedWhenEnteringTarget));
   }
 
@@ -112,13 +112,13 @@ class AutomatonTransition {
       boolean pAssumeTruth,
       List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState,
-      Set<AutomatonSafetyProperty> pViolatedWhenEnteringTarget) {
+      Set<SafetyProperty> pViolatedWhenEnteringTarget) {
 
     this(pTrigger, pAssertions,
         pAssumption, pAssumeTruth, pActions,
         pFollowState.getName(), pFollowState,
         pViolatedWhenEnteringTarget,
-        ImmutableSet.<AutomatonSafetyProperty>of());
+        ImmutableSet.<SafetyProperty>of());
   }
 
   AutomatonTransition(AutomatonBoolExpr pTrigger,
@@ -129,8 +129,8 @@ class AutomatonTransition {
       String pFollowStateName) {
 
     this(pTrigger, pAssertions, pAssumption, pAssumeTruth, pActions, pFollowStateName, null,
-        ImmutableSet.<AutomatonSafetyProperty>of(),
-        ImmutableSet.<AutomatonSafetyProperty>of());
+        ImmutableSet.<SafetyProperty>of(),
+        ImmutableSet.<SafetyProperty>of());
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
@@ -140,8 +140,8 @@ class AutomatonTransition {
       List<AutomatonAction> pActions,
       String pFollowStateName,
       @Nullable AutomatonInternalState pFollowState,
-      Set<AutomatonSafetyProperty> pViolatedWhenEnteringTarget,
-      Set<AutomatonSafetyProperty> pViolatedWhenAssertionFailed) {
+      Set<SafetyProperty> pViolatedWhenEnteringTarget,
+      Set<SafetyProperty> pViolatedWhenAssertionFailed) {
 
     this.trigger = checkNotNull(pTrigger);
 
@@ -306,11 +306,11 @@ class AutomatonTransition {
     return trigger;
   }
 
-  public ImmutableSet<AutomatonSafetyProperty> getViolatedWhenAssertionFailed() {
+  public ImmutableSet<? extends SafetyProperty> getViolatedWhenAssertionFailed() {
     return violatedWhenAssertionFailed;
   }
 
-  public ImmutableSet<AutomatonSafetyProperty> getViolatedWhenEnteringTarget() {
+  public ImmutableSet<? extends SafetyProperty> getViolatedWhenEnteringTarget() {
     return violatedWhenEnteringTarget;
   }
 
@@ -376,13 +376,13 @@ class AutomatonTransition {
     final boolean assumptionTruth;
     final ImmutableList<AStatement> assumption;
     final ImmutableList<AutomatonAction> actions;
-    final ImmutableSet<AutomatonSafetyProperty> violatedWhenEnteringTarget;
-    final ImmutableSet<AutomatonSafetyProperty> violatedWhenAssertionFailed;
+    final ImmutableSet<SafetyProperty> violatedWhenEnteringTarget;
+    final ImmutableSet<SafetyProperty> violatedWhenAssertionFailed;
 
     public PlainAutomatonTransition(AutomatonBoolExpr pTrigger, AutomatonBoolExpr pAssertion,
         ImmutableList<AStatement> pAssumption, ImmutableList<AutomatonAction> pActions,
-        ImmutableSet<AutomatonSafetyProperty> pViolatedWhenEnteringTarget,
-        ImmutableSet<AutomatonSafetyProperty> pViolatedWhenAssertionFailed) {
+        ImmutableSet<SafetyProperty> pViolatedWhenEnteringTarget,
+        ImmutableSet<SafetyProperty> pViolatedWhenAssertionFailed) {
 
       assumptionTruth = true;
       trigger = Preconditions.checkNotNull(pTrigger);

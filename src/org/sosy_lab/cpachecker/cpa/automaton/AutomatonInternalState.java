@@ -55,7 +55,7 @@ public class AutomatonInternalState {
                                     null,
                                     true,
                                     Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM, ImmutableSet.<AutomatonSafetyProperty>of())),
+                                    BOTTOM, ImmutableSet.<SafetyProperty>of())),
       true, false);
 
   /** Break state, used to halt the analysis without being a target state */
@@ -66,7 +66,7 @@ public class AutomatonInternalState {
                                     null,
                                     true,
                                     Collections.<AutomatonAction>emptyList(),
-                                    BOTTOM, ImmutableSet.<AutomatonSafetyProperty>of())),
+                                    BOTTOM, ImmutableSet.<SafetyProperty>of())),
       false, false);
 
   /** Name of this State.  */
@@ -98,7 +98,7 @@ public class AutomatonInternalState {
         true,
         Collections.<AutomatonAction>emptyList(),
         this,
-        ImmutableSet.<AutomatonSafetyProperty>of()));
+        ImmutableSet.<SafetyProperty>of()));
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
