@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -73,7 +73,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 
 import com.google.common.base.Preconditions;
 
-
+/**
+ * Implements a handler for assignments.
+ */
 class AssignmentHandler {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
@@ -89,6 +91,17 @@ class AssignmentHandler {
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
+  /**
+   * Creates a new AssignmentHandler.
+   *
+   * @param pConv The C to SMT formula converter.
+   * @param pEdge The current edge of the CFA (for logging purposes).
+   * @param pFunction The name of the current function.
+   * @param pSsa The SSA map.
+   * @param pPts The underlying set of pointer targets.
+   * @param pConstraints Additional constraints.
+   * @param pErrorConditions Additional error conditions.
+   */
   AssignmentHandler(CToFormulaConverterWithHeapArray pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
     conv = pConv;
@@ -106,6 +119,18 @@ class AssignmentHandler {
     errorConditions = pErrorConditions;
   }
 
+  /**
+   * Creates a formula to handle assignments.
+   *
+   * @param lhs The left hand side of an assignment.
+   * @param lhsForChecking The left hand side of an assignment to check.
+   * @param rhs Either {@code null} or the right hand side of the assignment.
+   * @param batchMode A flag indicating batch mode.
+   * @param destroyedTypes Either {@code null} or a set of destroyed types.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   BooleanFormula handleAssignment(final CLeftHandSide lhs,
                                   final CLeftHandSide lhsForChecking,
                                   final @Nullable CRightHandSide rhs,
@@ -196,6 +221,21 @@ class AssignmentHandler {
     return result;
   }
 
+  /**
+   * Creates a formula for an assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param pattern Either {@code null} or the pattern of pointer targets.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA
+   *                         indices or not.
+   * @param updatedTypes Eiter {@code null} or a set of updated types.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   BooleanFormula makeAssignment(@Nonnull CType lvalueType,
                                 final @Nonnull CType rvalueType,
                                 final @Nonnull Location lvalue,
@@ -253,6 +293,15 @@ class AssignmentHandler {
     return result;
   }
 
+  /**
+   * Finishes an assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param lvalue The location of the lvalue.
+   * @param pattern The pattern of the pointer targets.
+   * @param updatedTypes A set of updated types.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   void finishAssignments(@Nonnull CType lvalueType,
                          final @Nonnull AliasedLocation lvalue,
                          final @Nonnull PointerTargetPattern pattern,
@@ -263,6 +312,20 @@ class AssignmentHandler {
     updateSSA(updatedTypes, ssa);
   }
 
+  /**
+   * Creates a formula for a destructive assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA
+   *                         indices or not.
+   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedVariables Either {@code null} or a set of updated variables.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   private BooleanFormula makeDestructiveAssignment(@Nonnull CType lvalueType,
                                                    @Nonnull CType rvalueType,
                                                    final @Nonnull  Location lvalue,
@@ -387,6 +450,20 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Creates a formula for a simple destructive assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param rvalueType The type of the rvalue.
+   * @param lvalue The location of the lvalue.
+   * @param rvalue The rvalue expression.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA
+   *                         indices or not.
+   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedVariables Either {@code null} or a set of updated variables.
+   * @return A formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   */
   private BooleanFormula makeSimpleDestructiveAssignment(@Nonnull CType lvalueType,
                                                          @Nonnull CType rvalueType,
                                                          final @Nonnull Location lvalue,
@@ -462,6 +539,15 @@ class AssignmentHandler {
     return result;
   }
 
+  /**
+   * Adds a retention for an assignment.
+   *
+   * @param lvalueType The type of the lvalue.
+   * @param startAddress Either {@code null} or the start address formula.
+   * @param pattern The pattern of pointer targets
+   * @param typesToRetain A set of types to retain.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   private void addRetentionForAssignment(@Nonnull CType lvalueType,
                                          final @Nullable Formula startAddress,
                                          final @Nonnull PointerTargetPattern pattern,
@@ -508,6 +594,18 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Adds retention constraints.
+   *
+   * @param pattern The pattern of pointer targets.
+   * @param lvalueType The type of the lvalue expression.
+   * @param ufName The name of the UF.
+   * @param oldIndex The old index.
+   * @param newIndex The new index.
+   * @param returnType The formula type of the return.
+   * @param lvalue A formula for the lvalue.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   private void addRetentionConstraints(final PointerTargetPattern pattern,
                                        final CType lvalueType,
                                        final String ufName,
@@ -549,6 +647,16 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Adds a constraint of a semi exact retention.
+   *
+   * @param pattern A pattern of pointer targets.
+   * @param firstElementType The type of the first element.
+   * @param startAddress The formula representing the start address of the type.
+   * @param size The size of the type.
+   * @param types A set of types.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   private void addSemiexactRetentionConstraints(final PointerTargetPattern pattern,
                                                 final CType firstElementType,
                                                 final Formula startAddress,
@@ -587,6 +695,14 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Adds a constraint for an inexact retention.
+   *
+   * @param startAddress The formula representing the start address of the type.
+   * @param size The size of the type.
+   * @param types A set of types.
+   * @throws InterruptedException If the execution was interrupted.
+   */
   private void addInexactRetentionConstraints(final Formula startAddress,
                                               final int size,
                                               final Set<CType> types) throws InterruptedException {
@@ -617,6 +733,12 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Updates the SSA map.
+   *
+   * @param types A set of types that should be added to the SSA map.
+   * @param ssa The current SSA map.
+   */
   private void updateSSA(final @Nonnull Set<CType> types, final SSAMapBuilder ssa) {
     for (final CType type : types) {
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
@@ -624,6 +746,14 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Shifts the array's lvalue.
+   *
+   * @param lvalue The lvalue location.
+   * @param offset The offset of the shift.
+   * @param lvalueElementType The type of the lvalue element.
+   * @return A tuple of location and type after the shift.
+   */
   private Pair<AliasedLocation, CType> shiftArrayLvalue(final AliasedLocation lvalue,
                                                         final int offset,
                                                         final CType lvalueElementType) {
@@ -632,6 +762,15 @@ class AssignmentHandler {
     return Pair.of(newLvalue, lvalueElementType);
   }
 
+  /**
+   * Shifts the array's rvalue.
+   *
+   * @param rvalue The rvalue expression.
+   * @param rvalueType The type of the rvalue.
+   * @param offset The offset of the shift.
+   * @param lvalueElementType The type of the lvalue element.
+   * @return A tuple of expression and type after the shift.
+   */
   private Pair<? extends Expression, CType> shiftArrayRvalue(final Expression rvalue,
                                                              final CType rvalueType,
                                                              final int offset,
@@ -661,6 +800,15 @@ class AssignmentHandler {
     }
   }
 
+  /**
+   * Shifts the composite lvalue.
+   *
+   * @param lvalue The lvalue location.
+   * @param offset The offset of the shift.
+   * @param memberName The name of the member.
+   * @param memberType The type of the member.
+   * @return A tuple of location and type after the shift.
+   */
   private Pair<? extends Location, CType> shiftCompositeLvalue(final Location lvalue,
                                                                final int offset,
                                                                final String memberName,
@@ -681,6 +829,16 @@ class AssignmentHandler {
 
   }
 
+  /**
+   * Shifts the composite rvalue.
+   *
+   * @param rvalue The rvalue expression.
+   * @param offset The offset of the shift.
+   * @param memberName The name of the member.
+   * @param rvalueType The type of the rvalue.
+   * @param memberType The type of the member.
+   * @return A tuple of expression and type after the shift.
+   */
   private Pair<? extends Expression, CType> shiftCompositeRvalue(final Expression rvalue,
                                                                  final int offset,
                                                                  final String memberName,

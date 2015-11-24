@@ -130,6 +130,14 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     }
   };
 
+  /**
+   * Creates a new RealPointerTargetSetBuilder.
+   *
+   * @param pointerTargetSet The underlying PointerTargetSet
+   * @param formulaManager The formula manager for SMT formulae
+   * @param ptsMgr The PointerTargetSetManager
+   * @param options Additional configuration options.
+   */
   public RealPointerTargetSetBuilder(final PointerTargetSet pointerTargetSet,
       final FormulaManagerView formulaManager,
       final PointerTargetSetManager ptsMgr,
@@ -157,6 +165,13 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     targets = ptsMgs.addToTargets(name, type, null, 0, 0, targets, fields);
   }
 
+  /**
+   * Returns a boolean formula for a prepared base of a pointer.
+   *
+   * @param name The name of the variable.
+   * @param type The type of the variable.
+   * @return A boolean formula representing the base.
+   */
   @Override
   public BooleanFormula prepareBase(final String name, CType type) {
     type = CTypeUtils.simplifyType(type);
@@ -173,6 +188,12 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     return nextInequality;
   }
 
+  /**
+   * Shares a base of a pointer.
+   *
+   * @param name The variable name.
+   * @param type The type of the variable.
+   */
   @Override
   public void shareBase(final String name, CType type) {
     type = CTypeUtils.simplifyType(type);
@@ -215,6 +236,13 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     return nextInequality;
   }
 
+  /**
+   * Returns, whether a field of a composite type is tracked or not.
+   *
+   * @param compositeType The composite type.
+   * @param fieldName The name of the field in the composite type.
+   * @return True, if the field is already tracked, false otherwise.
+   */
   @Override
   public boolean tracksField(final CCompositeType compositeType,
       final String fieldName) {
@@ -293,6 +321,13 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     }
   }
 
+  /**
+   * Adds a field of a composite type to the tracking.
+   *
+   * @param composite The composite type with the field in it.
+   * @param fieldName The name of the field in the composite type.
+   * @return True, if the addition of the target was successful, false otherwise
+   */
   @Override
   public boolean addField(final CCompositeType composite,
       final String fieldName) {
@@ -325,8 +360,8 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * This can happen if we try to track a field of a composite that has no
    * corresponding allocated bases.
    *
-   * @param composite
-   * @param fieldName
+   * @param composite The composite type which's field should be removed.
+   * @param fieldName The name of the field that should be removed.
    */
   private void shallowRemoveField(final CCompositeType composite,
       final String fieldName) {
@@ -355,7 +390,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * fields into chunks by their nesting and avoid optimizations when adding
    * fields of the same chunk.
    *
-   * @param fields
+   * @param fields The fields that should be tracked.
    */
   @Override
   public void addEssentialFields(
@@ -404,6 +439,14 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     }
   }
 
+  /**
+   * Adds a pointer variable to the pool of tracked deferred allocations.
+   *
+   * @param pointerVariable The name of the pointer variable.
+   * @param isZeroing A flag indicating if the variable is zeroing.
+   * @param size The size of the memory.
+   * @param baseVariable The name of the base variable.
+   */
   private void addDeferredAllocation(final String pointerVariable,
       final boolean isZeroing, final CIntegerLiteralExpression size,
       final String baseVariable) {
@@ -412,12 +455,25 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
             baseVariable));
   }
 
+  /**
+   * Adds a temporary deferred allocation to the tracking pool.
+   *
+   * @param isZeroing A flag indicating if the variable is zeroing.
+   * @param size The size of the memory.
+   * @param baseVariable The name of the base variable.
+   */
   @Override
   public void addTemporaryDeferredAllocation(final boolean isZeroing,
       final CIntegerLiteralExpression size, final String baseVariable) {
     addDeferredAllocation(baseVariable, isZeroing, size, baseVariable);
   }
 
+  /**
+   * Adds a pointer to the tracking of deferred memory allocations.
+   *
+   * @param newPointerVariable The new pointer variable.
+   * @param originalPointerVariable The original pointer variable.
+   */
   @Override
   public void addDeferredAllocationPointer(final String newPointerVariable,
       final String originalPointerVariable) {
@@ -437,7 +493,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   /**
    * Removes pointer to a deferred memory allocation from tracking.
    *
-   * @param oldVariable
+   * @param oldVariable The variable to be removed.
    * @return Whether the removed variable was the only pointer to the
    *         corresponding referred allocation.
    */
@@ -458,6 +514,13 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     }
   }
 
+  /**
+   * Removes a variable from the pool of deferred allocations and returns the
+   * pool without the variable.
+   *
+   * @param allocatedVariable The name of the variable to be removed.
+   * @return The deferred allocation pool without the variable.
+   */
   @Override
   public DeferredAllocationPool removeDeferredAllocation(
       final String allocatedVariable) {
@@ -470,11 +533,23 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     return allocationPool;
   }
 
+  /**
+   * Returns a set of all deferred allocation variables.
+   *
+   * @return The set of deferred allocation variables.
+   */
   @Override
   public SortedSet<String> getDeferredAllocationVariables() {
     return deferredAllocations.keySet();
   }
 
+  /**
+   * Checks, if a variable is a temporary deferred allocation pointer.
+   *
+   * @param pointer The variable name.
+   * @return True, if the variable is a temporary deferred allocation pointer,
+   *         false otherwise.
+   */
   @Override
   public boolean isTemporaryDeferredAllocationPointer(final String pointer) {
     final DeferredAllocationPool allocationPool = deferredAllocations.get(
@@ -486,22 +561,48 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
         && allocationPool.getBaseVariables().get(0).equals(pointer);
   }
 
+  /**
+   * Checks, if a variable is a deferred allocation pointer.
+   *
+   * @param variable The variable name.
+   * @return True, if the variable is a deferred allocation pointer, false
+   *         otherwise.
+   */
   @Override
   public boolean isDeferredAllocationPointer(final String variable) {
     return deferredAllocations.containsKey(variable);
   }
 
+  /**
+   * Returns, if a variable is the actual base of a pointer.
+   *
+   * @param name The name of the variable.
+   * @return True, if the variable is an actual base, false otherwise.
+   */
   @Override
   public boolean isActualBase(final String name) {
     return bases.containsKey(name)
         && !PointerTargetSetManager.isFakeBaseType(bases.get(name));
   }
 
+  /**
+   * Returns, if a variable name is a prepared base.
+   *
+   * @param name The name of the variable.
+   * @return True, if the variable is a prepared base, false otherwise.
+   */
   @Override
   public boolean isPreparedBase(final String name) {
     return bases.containsKey(name);
   }
 
+  /**
+   * Checks, if a variable is a base of a pointer.
+   *
+   * @param name The name of the variable.
+   * @param type The type of the variable.
+   * @return True, if the variable is a base, false otherwise.
+   */
   @Override
   public boolean isBase(final String name, CType type) {
     type = CTypeUtils.simplifyType(type);
@@ -509,23 +610,48 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     return baseType != null && baseType.equals(type);
   }
 
+  /**
+   * Returns a set of all pointer bases.
+   *
+   * @return A set of all pointer bases.
+   */
   @Override
   public SortedSet<String> getAllBases() {
     return bases.keySet();
   }
 
+  /**
+   * Gets a list of all targets of a pointer type.
+   *
+   * @param type The type of the pointer variable.
+   * @return A list of all targets of a pointer type.
+   */
   @Override
   public PersistentList<PointerTarget> getAllTargets(final CType type) {
     return firstNonNull(targets.get(CTypeUtils.typeToString(type)),
         PersistentLinkedList.<PointerTarget>of());
   }
 
+  /**
+   * Gets all matching targets of a pointer target pattern.
+   *
+   * @param type The type of the pointer variable.
+   * @param pattern The pointer target pattern.
+   * @return A list of matching pointer targets.
+   */
   @Override
   public Iterable<PointerTarget> getMatchingTargets(final CType type,
       final PointerTargetPattern pattern) {
     return from(getAllTargets(type)).filter(pattern);
   }
 
+  /**
+   * Gets all spurious targets of a pointer target pattern.
+   *
+   * @param type The type of the pointer variable.
+   * @param pattern The pointer target pattern.
+   * @return A list of spurious pointer targets.
+   */
   @Override
   public Iterable<PointerTarget> getSpuriousTargets(final CType type,
       final PointerTargetPattern pattern) {
@@ -536,7 +662,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * Returns an immutable PointerTargetSet with all the changes made to the
    * builder.
    *
-   * @return
+   * @return A PointerTargetSet with all changes made to the builder.
    */
   @Override
   public PointerTargetSet build() {

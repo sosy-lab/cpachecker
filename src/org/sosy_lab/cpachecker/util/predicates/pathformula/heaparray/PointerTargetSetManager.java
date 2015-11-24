@@ -78,7 +78,7 @@ import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 
 /**
- *
+ * A manager for pointer target sets.
  */
 public class PointerTargetSetManager {
 
@@ -87,11 +87,26 @@ public class PointerTargetSetManager {
 
   private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
+  /**
+   * Returns whether a {@code CType} is a fake base type or not.
+   * <p/>
+   * A fake base type is an array of void.
+   *
+   * @param type The type to be checked.
+   * @return Whether the type is a fake base type or not.
+   */
   static boolean isFakeBaseType(final CType type) {
     return type instanceof CArrayType
         && ((CArrayType) type).getType() instanceof CVoidType;
   }
 
+  /**
+   * Returns a fake base type of a given size, i.e. an array of {@code size}
+   * voids.
+   *
+   * @param size The size of the fake base type.
+   * @return An array of {@code size} voids.
+   */
   static CType getFakeBaseType(int size) {
     return CTypeUtils.simplifyType(
         new CArrayType(false, false, CVoidType.VOID,
@@ -99,6 +114,12 @@ public class PointerTargetSetManager {
                 CNumericTypes.SIGNED_CHAR, BigInteger.valueOf(size))));
   }
 
+  /**
+   * Returns a name for united field bases with a specified index.
+   *
+   * @param index The index of the united field base.
+   * @return A name for the united field base.
+   */
   private static String getUnitedFieldBaseName(final int index) {
     return UNITED_BASE_FIELD_NAME_PREFIX + index;
   }
@@ -110,6 +131,15 @@ public class PointerTargetSetManager {
   private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
+  /**
+   * Creates a new PointerTargetSetManager.
+   *
+   * @param options Additional configuration options.
+   * @param formulaManager The manager for SMT formulae.
+   * @param typeHandler A type handler for certain types.
+   * @param shutdownNotifier A notifier for external shutdowns to stop
+   *                         long-running algorithms.
+   */
   public PointerTargetSetManager(
       final FormulaEncodingWithPointerAliasingOptions options,
       final FormulaManagerView formulaManager,
@@ -123,6 +153,17 @@ public class PointerTargetSetManager {
     this.shutdownNotifier = shutdownNotifier;
   }
 
+  /**
+   * Merges two {@link PointerTargetSet}s into one.
+   *
+   * @param pts1 The first {@code PointerTargetSet}.
+   * @param pts2 The second {@code PointerTargetSet}.
+   * @param resultSSA The map of SSA indices.
+   * @param converter The converter for C code to SMT formulae.
+   * @return The merged {@code PointerTargetSet}s.
+   * @throws InterruptedException If the algorithms gets interrupted by an
+   *                              external shutdown.
+   */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       final PointerTargetSet pts1,
       final PointerTargetSet pts2,
@@ -271,6 +312,14 @@ public class PointerTargetSetManager {
     return new MergeResult<>(result, mergeFormula1, mergeFormula2, mergeFormula);
   }
 
+  /**
+   * Merges two {@link DeferredAllocationPool}s into one.
+   *
+   * @param pts1 The first pool.
+   * @param pts2 The second pool.
+   * @return A merged {@code DeferredAllocationPool} with the content of both
+   *         parameters.
+   */
   private PersistentSortedMap<String, DeferredAllocationPool>
   mergeDeferredAllocationPools(final PointerTargetSet pts1,
       final PointerTargetSet pts2) {
@@ -308,10 +357,21 @@ public class PointerTargetSetManager {
     return mergedAllocations;
   }
 
+  /**
+   * A handler for merge conflicts that appear when merging bases.
+   */
   private enum BaseUnitingConflictHandler
       implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
+    /**
+     * Resolves a merge conflict between two types and returns the resolved type
+     *
+     * @param key Not used in the algorithm.
+     * @param type1 The first type to merge.
+     * @param type2 The second type to merge.
+     * @return A conflict resolving C type.
+     */
     @Override
     public CType resolveConflict(final String key, final CType type1,
         final CType type2) {
@@ -384,6 +444,13 @@ public class PointerTargetSetManager {
     }
   }
 
+  /**
+   * Gives a handler for merge conflicts.
+   *
+   * @param <K> The type of the keys in the merge conflict handler.
+   * @param <T> The type of the list entries in the merge conflict handler.
+   * @return A handler for merge conflicts.
+   */
   private static <K, T> MergeConflictHandler<K, PersistentList<T>>
   mergeOnConflict() {
     return new MergeConflictHandler<K, PersistentList<T>>() {
@@ -399,11 +466,11 @@ public class PointerTargetSetManager {
    * Create constraint that imports the old value of a variable into the
    * memory handled with UFs.
    *
-   * @param newBases
-   * @param sharedFields
-   * @param ssa
-   * @param pts
-   * @return
+   * @param newBases A map of new bases.
+   * @param sharedFields A list of shared fields.
+   * @param ssa The SSA map.
+   * @param pts The underlying PointerTargetSet
+   * @return A boolean formula for the import constraint.
    */
   private BooleanFormula makeValueImportConstraints(
       final PersistentSortedMap<String, CType> newBases,
@@ -425,6 +492,18 @@ public class PointerTargetSetManager {
     return mergeFormula;
   }
 
+  /**
+   * Create constraint that imports the old value of a variable into the
+   * memory handled with UFs.
+   *
+   * @param address The formula for the address.
+   * @param variablePrefix A prefix for variables.
+   * @param variableType The type of the variable.
+   * @param sharedFields A list of shared fields.
+   * @param ssa The SSA map.
+   * @param pts The underlying PointerTargetSet.
+   * @return A boolean formula for the import constraint.
+   */
   private BooleanFormula makeValueImportConstraints(
       final Formula address,
       final String variablePrefix,
@@ -481,6 +560,14 @@ public class PointerTargetSetManager {
     return result;
   }
 
+  /**
+   * Creates a formula for a dereference of a type.
+   *
+   * @param type The type to be dereferenced.
+   * @param address The formula of the type's address.
+   * @param ssa The SSA map.
+   * @return A formula for the dereference of the type.
+   */
   private Formula makeDereference(final CType type,
       final Formula address,
       final SSAMapBuilder ssa) {
@@ -496,8 +583,8 @@ public class PointerTargetSetManager {
    * The method is used to speed up {@code sizeof} computation by caching sizes
    * of declared composite types.
    *
-   * @param type
-   * @return
+   * @param type The type to determine the size of.
+   * @return The size of a given type.
    */
   int getSize(CType type) {
     return typeHandler.getSizeof(type);
@@ -507,15 +594,23 @@ public class PointerTargetSetManager {
    * The method is used to speed up member offset computation for declared
    * composite types.
    *
-   * @param compositeType
-   * @param memberName
-   * @return
+   * @param compositeType The composite type.
+   * @param memberName The name of the member of the composite type.
+   * @return The offset of the member in the composite type.
    */
   public int getOffset(final CCompositeType compositeType,
       final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);
   }
 
+  /**
+   * Gets the next base address.
+   *
+   * @param newBase Not used.
+   * @param bases A map of existing bases.
+   * @param lastBase The name of the last added base.
+   * @return A formula for the next base address.
+   */
   BooleanFormula getNextBaseAddressInequality(final String newBase,
       final PersistentSortedMap<String, CType> bases,
       final String lastBase) {
@@ -541,6 +636,18 @@ public class PointerTargetSetManager {
     }
   }
 
+  /**
+   * Adds pointer targets for every used (tracked) (sub)field of the newly
+   * allocated base.
+   *
+   * @param base The name of the base.
+   * @param targetType The type of the target.
+   * @param containerType The type of the container, might be {@code null}.
+   * @param properOffset The offset.
+   * @param containerOffset The offset in the container.
+   * @param targets The map of available targets.
+   * @return The new map of targets.
+   */
   @CheckReturnValue
   private static PersistentSortedMap<String, PersistentList<PointerTarget>>
   addToTarget(final String base,
