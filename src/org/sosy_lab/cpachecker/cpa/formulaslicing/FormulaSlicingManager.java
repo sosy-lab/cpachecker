@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -90,24 +89,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     return Collections.singleton(out);
   }
-
-  @Override
-  public SlicingState join(SlicingState newState,
-      SlicingState oldState) throws CPAException, InterruptedException {
-    Preconditions.checkState(oldState.isAbstracted() == newState.isAbstracted());
-
-    SlicingState out;
-    if (oldState.isAbstracted()) {
-      out = joinAbstractedStates(oldState.asAbstracted(),
-          newState.asAbstracted());
-    } else {
-      out = joinIntermediateStates(oldState.asIntermediate(),
-          newState.asIntermediate());
-    }
-
-    return out;
-  }
-
 
   /**
    * Slicing is performed in the {@code strengthen} call.
@@ -262,15 +243,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       }
 
       try {
-        assert isLessOrEqual(
+        return isLessOrEqual(
                 pState1.asAbstracted().getAbstraction(),
-                pState2.asAbstracted().getAbstraction()
-            ) : "Parent of the smaller state should be subsumed as well";
+                pState2.asAbstracted().getAbstraction());
       } catch (SolverException e) {
         throw new CPAException("Solver failed on a query", e);
       }
-
-      return true;
     }
   }
 
@@ -288,6 +266,12 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingIntermediateState oldState) throws InterruptedException {
     Preconditions.checkState(newState.getAbstractParent().equals(
         oldState.getAbstractParent()));
+
+    if (!newState.getAbstractParent().equals(oldState.getAbstractParent())) {
+
+      // No merge.
+      return oldState;
+    }
 
     if (newState.isMergedInto(oldState)) {
       return oldState;
@@ -308,41 +292,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     oldState.setMergedInto(out);
     return out;
   }
-
-  private SlicingState joinAbstractedStates(
-      SlicingAbstractedState newState,
-      SlicingAbstractedState oldState) throws InterruptedException {
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
-
-    // The only state with a generating state not being present
-    // is the initial one, and that should not be merged.
-    Preconditions.checkState(newState.getGeneratingState().isPresent() &&
-        oldState.getGeneratingState().isPresent());
-
-    if (newState.getAbstraction().equals(bfmgr.makeBoolean(false))
-        || newState.getAbstraction().equals(oldState.getAbstraction())
-        || oldState == newState) {
-      return oldState;
-    }
-    if (oldState.getAbstraction().equals(bfmgr.makeBoolean(false))) {
-      return newState;
-    }
-    logger.log(Level.INFO, "Joining abstracted states",
-        "this should be quite rare");
-
-    return SlicingAbstractedState.of(
-        fmgr.simplify(bfmgr.or(newState.getAbstraction(),
-            oldState.getAbstraction())),
-        oldState.getSSA(),
-        oldState.getPointerTargetSet(),
-        fmgr,
-        newState.getNode(),
-
-        // todo: this might not be valid if they both are not coming from the loop.
-        oldState.getGeneratingState()
-    );
-  }
-
 
   private SlicingIntermediateState abstractStateToIntermediate(
       SlicingAbstractedState pSlicingAbstractedState) {
@@ -412,5 +361,20 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
 
     return Optional.of(PrecisionAdjustmentResult.create(
         pState, SingletonPrecision.getInstance(), Action.CONTINUE));
+  }
+
+  @Override
+  public SlicingState merge(SlicingState pState1, SlicingState pState2) throws InterruptedException {
+    Preconditions.checkState(pState1.isAbstracted() == pState2.isAbstracted());
+
+    if (pState1.isAbstracted()) {
+
+      // No merge.
+      return pState2;
+    } else {
+      SlicingIntermediateState iState1 = pState1.asIntermediate();
+      SlicingIntermediateState iState2 = pState2.asIntermediate();
+      return joinIntermediateStates(iState1, iState2);
+    }
   }
 }
