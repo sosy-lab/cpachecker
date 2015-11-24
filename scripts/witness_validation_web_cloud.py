@@ -31,8 +31,15 @@ import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import argparse
+import glob
 import logging
+import os
 import urllib.request as request
+
+if os.path.basename(__file__) == 'witness_validation_web_cloud.py':
+    # try looking up additional libraries if not packaged
+    for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+        sys.path.insert(0, egg)
 
 from benchmark.webclient import *  # @UnusedWildImport
 
