@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Collections2.filter;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -174,9 +176,14 @@ public class UseDefRelation {
 
   private void buildRelation(ARGPath path) {
     PathIterator iterator = path.reversePathIterator();
-    while (iterator.hasNext()) {
-      iterator.advance();
-      CFAEdge edge = iterator.getOutgoingEdge();
+    Iterator<CFAEdge> fullPath = Lists.reverse(path.getFullPath()).iterator();
+
+    // consume last edge (it is the edge to the error and therefore not useful here)
+    fullPath.next();
+    iterator.advance();
+
+    while (fullPath.hasNext()) {
+      CFAEdge edge = fullPath.next();
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
@@ -185,6 +192,12 @@ public class UseDefRelation {
       }
       else {
         updateUseDefRelation(iterator.getAbstractState(), edge);
+      }
+
+      // if the edge leads to location which equals to the location of the abstract
+      // state we have to advance the iterator for one position
+      if (edge.getSuccessor().equals(extractLocation(iterator.getAbstractState()))) {
+        iterator.advance();
       }
 
       // stop the traversal once a fix-point is reached
