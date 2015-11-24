@@ -264,8 +264,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private SlicingIntermediateState joinIntermediateStates(
       SlicingIntermediateState newState,
       SlicingIntermediateState oldState) throws InterruptedException {
-    Preconditions.checkState(newState.getAbstractParent().equals(
-        oldState.getAbstractParent()));
 
     if (!newState.getAbstractParent().equals(oldState.getAbstractParent())) {
 
