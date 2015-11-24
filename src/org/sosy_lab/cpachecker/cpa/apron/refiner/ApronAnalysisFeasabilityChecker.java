@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
@@ -130,33 +134,44 @@ public class ApronAnalysisFeasabilityChecker {
       Collection<ApronState> successors = new HashSet<>();
 
       PathIterator pathIt = checkedPath.pathIterator();
+      List<CFAEdge> fullEdgePath = checkedPath.getFullPath();
 
-      while (!next.isEmpty()) {
+      for (CFAEdge edge : fullEdgePath) {
         successors.clear();
 
-        // we do only have an outgoing edge if there is a next state in the iterator
-        if (pathIt.hasNext()) {
-          for (ApronState st : next) {
-            successors.addAll(transfer.getAbstractSuccessorsForEdge(
-                st,
-                pPrecision,
-                pathIt.getOutgoingEdge()));
+        for (ApronState st : next) {
+          successors.addAll(transfer.getAbstractSuccessorsForEdge(
+              st,
+              pPrecision,
+              pathIt.getOutgoingEdge()));
 
-            // computing the feasibility check takes sometimes much time with octagons
-            // so we let the shutdownNotifer cancel the computation if necessary
-            shutdownNotifier.shutdownIfNecessary();
-          }
+          // computing the feasibility check takes sometimes much time with octagons
+          // so we let the shutdownNotifer cancel the computation if necessary
+          shutdownNotifier.shutdownIfNecessary();
         }
 
         // no successors => path is infeasible
-        if (successors.isEmpty() || !pathIt.hasNext()) {
+        if (successors.isEmpty()) {
+          // we found an infeasible prefix, if we are currently in a whole
+          // of the path we need to advance the iterator by one position
+          // so that we have the real infeasible path for later usage
+          if (!edge.getPredecessor().equals(extractLocation(pathIt.getAbstractState()))
+              && pathIt.hasNext()) {
+            pathIt.advance();
+          }
           break;
+        }
+
+        // update path iterator position if we encounter the next location for
+        // which we have an ARGState
+        if (edge.getPredecessor().equals(extractLocation(pathIt.getAbstractState()))
+            && pathIt.hasNext()) {
+          pathIt.advance();
         }
 
         // get matching successor state and apply precision
         next.clear();
         next.addAll(successors);
-        pathIt.advance();
       }
 
       return pathIt.getPrefixInclusive();
