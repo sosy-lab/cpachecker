@@ -172,6 +172,7 @@ def _handle_results(result_futures, output_handler, benchmark):
         run = result_futures[result_future]
         result = result_future.result()
         executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+    executor.shutdown(wait=True)
 
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """
