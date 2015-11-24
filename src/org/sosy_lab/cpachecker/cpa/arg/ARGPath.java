@@ -136,6 +136,49 @@ public class ARGPath implements Appender {
     return edges;
   }
 
+  /**
+   * Returns the full path contained in this {@link ARGPath}. This means, edges
+   * which are null while using getInnerEdges or the pathIterator will be resolved
+   * and the complete path from the first {@link ARGState} to the last ARGState
+   * is created. This is done by filling up the wholes in the path.
+   */
+  public List<CFAEdge> getFullPath() {
+    List<CFAEdge> fullPath = new ArrayList<>();
+
+    PathIterator it = pathIterator();
+    CFANode curNode = AbstractStates.extractLocation(it.getAbstractState());
+    CFAEdge curOutgoingEdge = it.getOutgoingEdge();
+
+    it.advance();
+    while (it.hasNext()) {
+      CFANode nextNode = AbstractStates.extractLocation(it.getAbstractState());
+
+      // compute path between cur and next node
+      if (curOutgoingEdge == null) {
+        while (curNode != nextNode) {
+          assert curNode.getNumLeavingEdges() == 1
+                 && curNode.getLeavingSummaryEdge() == null;
+
+          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
+          fullPath.add(intermediateEdge);
+          curNode = intermediateEdge.getSuccessor();
+        }
+
+      // we have a normal connection without whole in the edges
+      } else {
+        assert curOutgoingEdge.getPredecessor() == curNode
+               && curOutgoingEdge.getSuccessor() == nextNode;
+        fullPath.add(curOutgoingEdge);
+      }
+
+      curOutgoingEdge = it.getOutgoingEdge();
+      curNode = nextNode;
+      it.advance();
+    }
+
+    return fullPath;
+  }
+
   public ImmutableSet<ARGState> getStateSet() {
     return ImmutableSet.copyOf(states);
   }
