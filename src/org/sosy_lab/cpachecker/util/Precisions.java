@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
 
 import com.google.common.base.Function;
@@ -138,12 +138,12 @@ public class Precisions {
 
   public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
 
-    final HashSet<AutomatonSafetyProperty> toBlacklist = Sets.newHashSet(
-      Collections2.transform(pToBlacklist, new Function<Property, AutomatonSafetyProperty>() {
+    final HashSet<SafetyProperty> toBlacklist = Sets.newHashSet(
+      Collections2.transform(pToBlacklist, new Function<Property, SafetyProperty>() {
         @Override
-        public AutomatonSafetyProperty apply(Property pProp) {
-          Preconditions.checkArgument(pProp instanceof AutomatonSafetyProperty);
-          return (AutomatonSafetyProperty) pProp;
+        public SafetyProperty apply(Property pProp) {
+          Preconditions.checkArgument(pProp instanceof SafetyProperty);
+          return (SafetyProperty) pProp;
         }
 
       }).iterator());
@@ -165,7 +165,7 @@ public class Precisions {
     }
   }
 
-  public static Precision blacklistProperties(final Precision pi, final HashSet<AutomatonSafetyProperty> toBlacklist) {
+  public static Precision blacklistProperties(final Precision pi, final HashSet<SafetyProperty> toBlacklist) {
     final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
       @Override
       public Precision apply(Precision pPrecision) {

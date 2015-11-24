@@ -31,22 +31,22 @@ import com.google.common.collect.ImmutableSet;
 
 public class AutomatonPrecision implements Precision {
 
-  private ImmutableSet<AutomatonSafetyProperty> blacklist = ImmutableSet.of();
+  private ImmutableSet<SafetyProperty> blacklist = ImmutableSet.of();
 
-  private AutomatonPrecision(ImmutableSet<AutomatonSafetyProperty> pBlacklist) {
+  private AutomatonPrecision(ImmutableSet<SafetyProperty> pBlacklist) {
     this.blacklist = pBlacklist;
   }
 
   public static AutomatonPrecision emptyBlacklist() {
-    return new AutomatonPrecision(ImmutableSet.<AutomatonSafetyProperty>of());
+    return new AutomatonPrecision(ImmutableSet.<SafetyProperty>of());
   }
 
-  public AutomatonPrecision cloneAndAddBlacklisted(Set<AutomatonSafetyProperty> pProperty) {
+  public AutomatonPrecision cloneAndAddBlacklisted(Set<SafetyProperty> pProperty) {
     return new AutomatonPrecision(
-        ImmutableSet.<AutomatonSafetyProperty>builder().addAll(this.blacklist).addAll(pProperty).build());
+        ImmutableSet.<SafetyProperty>builder().addAll(this.blacklist).addAll(pProperty).build());
   }
 
-  public ImmutableSet<AutomatonSafetyProperty> getBlacklist() {
+  public ImmutableSet<SafetyProperty> getBlacklist() {
     return blacklist;
   }
 

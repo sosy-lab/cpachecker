@@ -216,10 +216,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       //      (they should not be considered as target states)
       if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
 
-        Set<AutomatonSafetyProperty> violated = AbstractStates.extractViolatedProperties(state, AutomatonSafetyProperty.class);
-        Set<AutomatonSafetyProperty> exhausted = Sets.newHashSet();
+        Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
+        Set<SafetyProperty> exhausted = Sets.newHashSet();
 
-        for (AutomatonSafetyProperty p: violated) {
+        for (SafetyProperty p: violated) {
           if (isBudgedExhausted(p)) {
             exhausted.add(p);
           }
