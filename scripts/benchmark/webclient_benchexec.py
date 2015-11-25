@@ -165,13 +165,19 @@ def _submitRunsParallel(runSet, benchmark):
     logging.info("Run submission finished.")
     return result_futures
 
+
+def _log_future_exception(result):
+    if result.exception() is not None:
+        logging.warning('Error during result processing.', exc_info=True)
+
 def _handle_results(result_futures, output_handler, benchmark):
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]
         result = result_future.result()
-        executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+        f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+        f.add_done_callback(_log_future_exception)
     executor.shutdown(wait=True)
 
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
