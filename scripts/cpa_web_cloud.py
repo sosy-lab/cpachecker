@@ -150,7 +150,7 @@ def _init(config):
     webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision,
                              user_agent='cpa_web_cloud.py', version=__version__)
 
-    logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
+    logging.info('Using {0} version {1}.'.format(webclient.tool_name(), webclient.tool_revision()))
     return webclient
 
 def _get_revision(config):

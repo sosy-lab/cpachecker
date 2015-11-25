@@ -345,6 +345,7 @@ class WebInterface:
         self._group_id = str(random.randint(0, 1000000))
         self._read_hash_code_cache()
         self._resolved_tool_revision(svn_branch, svn_revision)
+        self._tool_name = self._request_tool_name()
         
         try:
             self._result_downloader = SseResultDownloader(self, web_interface_url, result_poll_interval)
@@ -382,9 +383,17 @@ class WebInterface:
         (resolved_svn_revision, _) = self._request("GET", path)
         self._svn_branch = svn_branch
         self._svn_revision = resolved_svn_revision.decode("UTF-8")
+        
+    def _request_tool_name(self):
+        path = self._webclient.path + "tool/name"
+        (tool_name, _) = self._request("GET", path)
+        return tool_name.decode("UTF-8")
 
     def tool_revision(self):
         return self._svn_branch + ':' + self._svn_revision
+    
+    def tool_name(self):
+        return self._tool_name
 
     def _get_sha1_hash(self, path):
         path = os.path.abspath(path)
