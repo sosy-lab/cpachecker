@@ -221,4 +221,111 @@ public class ARGPathTest {
       pathIt.advance();
     }
   }
+
+  @Test
+  public void testReverseFullPathIterator() {
+    // Build a cfa-path, this is simply a chain of 10 edges
+    List<CFAEdge> edges= new ArrayList<>();
+    CFANode firstNode = new CFANode("test");
+
+    for (int i = 0; i < 10 ; i++) {
+      CFANode secondNode = new CFANode("test");
+      CFAEdge edge = BlankEdge.buildNoopEdge(firstNode, secondNode);
+      edges.add(edge);
+      firstNode.addLeavingEdge(edge);
+      secondNode.addEnteringEdge(edge);
+      firstNode = secondNode;
+    }
+
+    int statePos1 = 0; // position of first ARGState in ARGPath
+    int statePos2 = 1; // position of second ARGState in ARGPath
+    int statePos3 = 4; // position of third ARGState in ARGPath
+
+    // mock location states for ARGPath
+    LocationState firstState = Mockito.mock(LocationState.class);
+    Mockito.when(firstState.getLocationNode()).thenReturn(edges.get(statePos1).getPredecessor());
+    LocationState secondState = Mockito.mock(LocationState.class);
+    Mockito.when(secondState.getLocationNode()).thenReturn(edges.get(statePos2).getPredecessor());
+    LocationState thirdState = Mockito.mock(LocationState.class);
+    Mockito.when(thirdState.getLocationNode()).thenReturn(edges.get(statePos3).getPredecessor());
+
+    // last ARGState is the end of the CFA-path we created before
+    LocationState lastState = Mockito.mock(LocationState.class);
+    Mockito.when(lastState.getLocationNode()).thenReturn(edges.get(edges.size()-1).getSuccessor());
+
+    // build argPath
+    ARGPathBuilder builder = ARGPath.builder();
+    ARGState firstARGState = new ARGState(firstState, null);
+    builder.add(firstARGState, edges.get(statePos1)); // edge connects to next ARGState directly
+    ARGState secondARGState = new ARGState(secondState, null);
+    builder.add(secondARGState, null);
+    ARGState thirdARGState = new ARGState(thirdState, null);
+    builder.add(thirdARGState, null);
+    ARGState lastARGState = new ARGState(lastState, null);
+    ARGPath path = builder.build(lastARGState);
+
+    // test fullPath iterator
+    PathIterator pathIt = path.reverseFullPathIterator();
+    // pathIt is on the last state, we want the outgoing edge of it, so we adance it once
+    pathIt.advance();
+    for (int i = edges.size()-1; i >= 0; i--) {
+      CFAEdge edge = edges.get(i);
+      assertThat(pathIt.getOutgoingEdge()).isEqualTo(edge);
+
+      if (i == statePos1) {
+        try {
+          ExpectedException thrown = ExpectedException.none();
+          thrown.expect(IllegalStateException.class);
+          pathIt.getPreviousAbstractState();
+          thrown.reportMissingExceptionWithMessage("Calling getPreviousAbstractState should throw an exception while"
+              + " not having advanced the iterator by one position.");
+        } catch (Exception e) { /*do nothing we want to continue testing*/}
+
+        assertThat(pathIt.getAbstractState()).isEqualTo(firstARGState);
+        assertThat(pathIt.getNextAbstractState()).isEqualTo(secondARGState);
+
+      } else if (i == statePos2) {
+        assertThat(pathIt.getPreviousAbstractState()).isEqualTo(firstARGState);
+        assertThat(pathIt.getAbstractState()).isEqualTo(secondARGState);
+        assertThat(pathIt.getNextAbstractState()).isEqualTo(thirdARGState);
+
+      } else if (i == statePos3) {
+        assertThat(pathIt.getPreviousAbstractState()).isEqualTo(secondARGState);
+        assertThat(pathIt.getAbstractState()).isEqualTo(thirdARGState);
+        assertThat(pathIt.getNextAbstractState()).isEqualTo(lastARGState);
+
+      } else {
+        try {
+          ExpectedException thrown = ExpectedException.none();
+          thrown.expect(IllegalStateException.class);
+          pathIt.getAbstractState();
+          thrown.reportMissingExceptionWithMessage("Calling getAbstractState should throw an exception while"
+              + " in the middle of a whole in the path");
+        } catch (Exception e) { /*do nothing we want to continue testing*/}
+
+        if (i < statePos2) {
+          assertThat(pathIt.getPreviousAbstractState()).isEqualTo(firstARGState);
+          assertThat(pathIt.getNextAbstractState()).isEqualTo(secondARGState);
+        } else if (i < statePos3) {
+          assertThat(pathIt.getPreviousAbstractState()).isEqualTo(secondARGState);
+          assertThat(pathIt.getNextAbstractState()).isEqualTo(thirdARGState);
+        } else if (i < edges.size() -1) {
+          assertThat(pathIt.getPreviousAbstractState()).isEqualTo(thirdARGState);
+          assertThat(pathIt.getNextAbstractState()).isEqualTo(lastARGState);
+        } else {
+          try {
+            ExpectedException thrown = ExpectedException.none();
+            thrown.expect(IllegalStateException.class);
+            pathIt.getNextAbstractState();
+            thrown.reportMissingExceptionWithMessage("Calling getNextAbstractState should throw an exception"
+                + " if the iterator is on its last element.");
+          } catch (Exception e) { /*do nothing we want to continue testing*/}
+        }
+      }
+
+      if (i > 0) {
+        pathIt.advance();
+      }
+    }
+  }
 }

@@ -225,12 +225,23 @@ public class ARGPath implements Appender {
 
   /**
    * Create a fresh {@link PathIterator} for this path, with its position at the
-   * first state. Wholes in the path are filled up by inserting more {@link CFAEdge}.
+   * first state. Holes in the path are filled up by inserting more {@link CFAEdge}.
    * Note that you cannot call {@link PathIterator#getIncomingEdge()} before calling
    * {@link PathIterator#advance()} at least once.
    */
   public PathIterator fullPathIterator() {
-    return new FullPathIterator(this);
+    return new DefaultFullPathIterator(this);
+  }
+
+  /**
+   * Create a fresh {@link PathIterator} for this path, with its position at the
+   * last state and iterating backwards. Holes in the path are filled up by inserting
+   * more {@link CFAEdge}.
+   * Note that you cannot call {@link PathIterator#getOutgoingEdge()} before calling
+   * {@link PathIterator#advance()} at least once.
+   */
+  public PathIterator reverseFullPathIterator() {
+    return new ReverseFullPathIterator(this);
   }
 
   /**
@@ -691,18 +702,64 @@ public class ARGPath implements Appender {
     }
   }
 
-  private static class FullPathIterator extends PathIterator {
-
-    private final List<CFAEdge> fullPath;
-    private boolean currentPositionHasState = true;
-    private int overallOffset = 0;
+  private static abstract class FullPathIterator extends PathIterator {
+    protected final List<CFAEdge> fullPath;
+    protected boolean currentPositionHasState = true;
+    protected int overallOffset = 0;
 
     private FullPathIterator(ARGPath pPath, int pPos) {
       super(pPath, pPos);
       fullPath = pPath.getFullPath();
     }
 
-    private FullPathIterator(ARGPath pPath) {
+    /**
+     * {@inheritDoc}
+     * May only be called on positions of the iterator where we have an {@link ARGState}
+     * not in the edges that fill up holes between them.
+     */
+    @Override
+    public ARGState getAbstractState() {
+      checkState(currentPositionHasState);
+      return path.states.get(pos);
+    }
+
+    @Override
+    public @Nullable CFAEdge getIncomingEdge() {
+      checkState(pos > 0, "First state in ARGPath has no incoming edge.");
+      return fullPath.get(overallOffset-1);
+    }
+
+    @Override
+    public @Nullable CFAEdge getOutgoingEdge() {
+      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
+      return fullPath.get(overallOffset);
+    }
+
+    /**
+     * {@inheritDoc}
+     * Returns the directly previous AbstractState that can be found, thus this is
+     * the appropriate replacement for {@code FullPathIterator#getAbstractState()}
+     * if the iterator is currently in a hole in the path that was filled with
+     * additional edges.
+     */
+    @Override
+    public ARGState getPreviousAbstractState() {
+      checkState(pos - 1 >= 0);
+      if (currentPositionHasState) {
+        return path.states.get(pos-1);
+      } else {
+        return path.states.get(pos);
+      }
+    }
+  }
+
+  private static class DefaultFullPathIterator extends FullPathIterator {
+
+    private DefaultFullPathIterator(ARGPath pPath, int pPos) {
+      super(pPath, pPos);
+    }
+
+    private DefaultFullPathIterator(ARGPath pPath) {
       this(pPath, 0);
     }
 
@@ -722,45 +779,39 @@ public class ARGPath implements Appender {
     public boolean hasNext() {
       return pos < path.states.size()-1;
     }
+  }
 
-    /**
-     * {@inheritDoc}
-     * May only be called on positions of the iterator where we have an {@link ARGState}
-     * not in the edges that fill up wholes between them.
-     */
-    @Override
-    public ARGState getAbstractState() {
-      checkState(currentPositionHasState);
-      return path.states.get(pos);
+  private static class ReverseFullPathIterator extends FullPathIterator {
+
+    private ReverseFullPathIterator(ARGPath pPath, int pPos) {
+      super(pPath, pPos);
+      overallOffset = fullPath.size();
     }
 
-    /**
-     * {@inheritDoc}
-     * Returns the directly previous AbstractState that can be found, thus this is
-     * the appropriate replacement for {@code FullPathIterator#getAbstractState()}
-     * if the iterator is currently in a whole in the path that was filled with
-     * additional edges.
-     */
+    private ReverseFullPathIterator(ARGPath pPath) {
+      this(pPath, pPath.states.size() - 1);
+    }
+
     @Override
-    public ARGState getPreviousAbstractState() {
-      checkState(pos - 1 >= 0);
+    public void advance() throws IllegalStateException {
+      checkState(hasNext(), "No more states in PathIterator.");
+
+      boolean nextPositionHasState = fullPath.get(overallOffset-1)
+                                        .getPredecessor()
+                                        .equals(extractLocation(getPreviousAbstractState()));
+
       if (currentPositionHasState) {
-        return path.states.get(pos-1);
-      } else {
-        return path.states.get(pos);
+        pos--; // only reduce by one if it was a real node before we are leaving it now
       }
+
+      currentPositionHasState = nextPositionHasState;
+
+      overallOffset--;
     }
 
     @Override
-    public @Nullable CFAEdge getIncomingEdge() {
-      checkState(pos > 0, "First state in ARGPath has no incoming edge.");
-      return fullPath.get(overallOffset-1);
-    }
-
-    @Override
-    public @Nullable CFAEdge getOutgoingEdge() {
-      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
-      return fullPath.get(overallOffset);
+    public boolean hasNext() {
+      return pos > 0;
     }
   }
 }
