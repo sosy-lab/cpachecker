@@ -541,15 +541,21 @@ class WebInterface:
     def _handle_options(self, run, params, rlimits):
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
-        options = ["statistics.print=true"]
-        if 'softtimelimit' in rlimits and not '-timelimit' in options:
-            options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
+        options = []
+        if self._tool_name == "CPAchecker":
+            options.append("statistics.print=true")
+            
+            if 'softtimelimit' in rlimits and not '-timelimit' in options:
+                options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
 
         if run.options:
             i = iter(run.options)
             while True:
                 try:
                     option = next(i)
+                    if len(option) == 0:
+                        continue
+                    
                     if option == "-heap":
                         params['heap'] = next(i)
 
