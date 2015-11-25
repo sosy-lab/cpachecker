@@ -675,18 +675,17 @@ class WebInterface:
     def _download_result_async(self, run_id):
         
         def callback(downloaded_result):
-            run_id = self._downloading_result_futures[downloaded_result]
+            run_id = self._downloading_result_futures.pop(downloaded_result)
             if not downloaded_result.exception():
                 with self._unfinished_runs_lock:
                     result_future = self._unfinished_runs.pop(run_id, None)
                 if result_future:
                     result_future.set_result(downloaded_result.result())
-                del self._downloading_result_futures[downloaded_result]
 
             else:
                 logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
                 # retry it
-                self._download_results(run_id)
+                self._download_result_async(run_id)
         
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
