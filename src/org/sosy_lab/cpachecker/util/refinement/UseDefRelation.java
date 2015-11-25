@@ -144,12 +144,6 @@ public class UseDefRelation {
     while (fullPath.hasNext()) {
       CFAEdge currentEdge = fullPath.next();
 
-      // if the edge leads to location which equals to the location of the abstract
-      // state we have to advance the iterator for one position
-      if (currentEdge.getSuccessor().equals(extractLocation(it.getAbstractState()))) {
-        it.advance();
-      }
-
       ARGState currentState = it.getAbstractState();
 
       if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -164,6 +158,14 @@ public class UseDefRelation {
       }
 
       expandedUses.put(currentState, new HashSet<>(unresolvedUses));
+
+      // if the edge starts from the location which equals to the location of the
+      // abstract state we have to advance the iterator for one position
+      if (currentEdge.getPredecessor().equals(extractLocation(currentState))
+          && fullPath.hasNext()) {
+        assert it.hasNext();
+        it.advance();
+      }
     }
 
     return expandedUses;
@@ -194,12 +196,6 @@ public class UseDefRelation {
     while (fullPath.hasNext()) {
       CFAEdge edge = fullPath.next();
 
-      // if the edge leads to location which equals to the location of the abstract
-      // state we have to advance the iterator for one position
-      if (edge.getSuccessor().equals(extractLocation(iterator.getAbstractState()))) {
-        iterator.advance();
-      }
-
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
           updateUseDefRelation(iterator.getAbstractState(), singleEdge);
@@ -208,11 +204,20 @@ public class UseDefRelation {
         updateUseDefRelation(iterator.getAbstractState(), edge);
       }
 
+      // if the edge starts from the location which equals to the location of the
+      // abstract state we have to advance the iterator for one position
+      if (edge.getPredecessor().equals(extractLocation(iterator.getAbstractState()))
+          && fullPath.hasNext()) {
+        assert iterator.hasNext();
+        iterator.advance();
+      }
+
       // stop the traversal once a fix-point is reached
       if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
         break;
       }
     }
+
   }
 
   private boolean hasUnresolvedUse(ASimpleDeclaration use) {
