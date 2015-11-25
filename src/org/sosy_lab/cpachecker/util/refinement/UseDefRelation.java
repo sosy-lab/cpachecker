@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.Collections2.filter;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -135,16 +133,17 @@ public class UseDefRelation {
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
     Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
 
-    PathIterator it = path.reversePathIterator();
-    Iterator<CFAEdge> fullPath = Lists.reverse(path.getFullPath()).iterator();
+    PathIterator it = path.reverseFullPathIterator();
 
-    // move from last state to second last, this is the first interesting one
-    it.advance();
-
-    while (fullPath.hasNext()) {
-      CFAEdge currentEdge = fullPath.next();
-
-      ARGState currentState = it.getAbstractState();
+    while (it.hasNext()) {
+      it.advance();
+      ARGState currentState;
+      if (it.isPositionWithState()) {
+        currentState = it.getAbstractState();
+      } else {
+        currentState = it.getPreviousAbstractState();
+      }
+      CFAEdge currentEdge   = it.getOutgoingEdge();
 
       if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)currentEdge).getEdges())) {
@@ -158,14 +157,6 @@ public class UseDefRelation {
       }
 
       expandedUses.put(currentState, new HashSet<>(unresolvedUses));
-
-      // if the edge starts from the location which equals to the location of the
-      // abstract state we have to advance the iterator for one position
-      if (currentEdge.getPredecessor().equals(extractLocation(currentState))
-          && fullPath.hasNext()) {
-        assert it.hasNext();
-        it.advance();
-      }
     }
 
     return expandedUses;
@@ -187,29 +178,24 @@ public class UseDefRelation {
   }
 
   private void buildRelation(ARGPath path) {
-    PathIterator iterator = path.reversePathIterator();
-    Iterator<CFAEdge> fullPath = Lists.reverse(path.getFullPath()).iterator();
+    PathIterator iterator = path.reverseFullPathIterator();
 
-    // move from last state to second last, this is the first interesting one
-    iterator.advance();
-
-    while (fullPath.hasNext()) {
-      CFAEdge edge = fullPath.next();
+    while (iterator.hasNext()) {
+      iterator.advance();
+      CFAEdge edge = iterator.getOutgoingEdge();
+      ARGState state;
+      if (iterator.isPositionWithState()) {
+        state = iterator.getAbstractState();
+      } else {
+        state = iterator.getPreviousAbstractState();
+      }
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-          updateUseDefRelation(iterator.getAbstractState(), singleEdge);
+          updateUseDefRelation(state, singleEdge);
         }
       } else {
-        updateUseDefRelation(iterator.getAbstractState(), edge);
-      }
-
-      // if the edge starts from the location which equals to the location of the
-      // abstract state we have to advance the iterator for one position
-      if (edge.getPredecessor().equals(extractLocation(iterator.getAbstractState()))
-          && fullPath.hasNext()) {
-        assert iterator.hasNext();
-        iterator.advance();
+        updateUseDefRelation(state, edge);
       }
 
       // stop the traversal once a fix-point is reached
@@ -217,7 +203,6 @@ public class UseDefRelation {
         break;
       }
     }
-
   }
 
   private boolean hasUnresolvedUse(ASimpleDeclaration use) {

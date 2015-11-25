@@ -504,6 +504,18 @@ public class ARGPath implements Appender {
     }
 
     /**
+     * Indicates whether the current position of this iterator has a state.
+     * For {@code ARGPath#pathIterator()} and {@code ARGPath#reversePathIterator()}
+     * this will always return <code>true</code>. For other iterators, e.g. the
+     * {@link FullPathIterator} there may be holes in the iterated path, as the
+     * edges are expanded to the full path (and therefore they do not have holes
+     * anymore).
+     */
+    public boolean isPositionWithState() {
+      return true;
+    }
+
+    /**
      * Get the abstract state at the current position.
      * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
      * @return A non-null {@link ARGState}.
@@ -778,6 +790,11 @@ public class ARGPath implements Appender {
     @Override
     public boolean hasNext() {
       return pos < path.states.size()-1;
+    }
+
+    @Override
+    public boolean isPositionWithState() {
+      return currentPositionHasState;
     }
   }
 
