@@ -208,6 +208,9 @@ def _parse_cpachecker_args(cpachecker_args):
     while True:
         try:
             option=next(i)
+            if len(option) == 0:
+                continue # ignore empty arguments
+            
             if option in ["-heap", "-timelimit", "-entryfunction", "-spec", "-config", "-setprop"]:
                 run.options.append(option)
                 run.options.append(next(i))
