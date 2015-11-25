@@ -447,27 +447,17 @@ class AssignmentHandler {
         final CType newLvalueType = CTypeUtils.simplifyType(
             memberDeclaration.getType());
 
-        // The variable representing the RHS was used somewhere
-        // (i.e. has SSA index)
-        final boolean hasRhsSSAIndex = !pRvalue.asLocation().isAliased()
-            && converter.hasIndex(
-                pRvalue.asLocation().asUnaliased().getVariableName()
-                    + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
-                    + memberName, newLvalueType, ssa);
         // Optimizing away the assignments from uninitialized fields
-        final boolean optimizeAssignments =
-            converter.isRelevantField(lvalueCompositeType, memberName)
-                && (!pLvalue.isAliased() // Assignment to a variable, no profit
-                       // in optimizing it
-                    || !isSimpleType(newLvalueType) // That's not a simple
-                       // assignment, check the nested composite
-                    || pRvalue.isValue() // This is initialization, so the
-                       // assignment is mandatory
-                    || pts.tracksField(lvalueCompositeType, memberName) // The
-                       // field is tracked as essential
-                    || hasRhsSSAIndex);
-
-        if (optimizeAssignments) {
+        if (converter.isRelevantField(lvalueCompositeType, memberName) &&
+            (!pLvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
+             !isSimpleType(newLvalueType) || // That's not a simple assignment, check the nested composite
+             pRvalue.isValue() || // This is initialization, so the assignment is mandatory
+             pts.tracksField(lvalueCompositeType, memberName) || // The field is tracked as essential
+             // The variable representing the RHS was used some where (i.e. has SSA index)
+             !pRvalue.asLocation().isAliased() &&
+                 converter.hasIndex(pRvalue.asLocation().asUnaliased().getVariableName()
+                     + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
+                     + memberName, newLvalueType, ssa))) {
           final Pair<? extends Location, CType> newLvalue =
               shiftCompositeLvalue(pLvalue, offset, memberName,
                   memberDeclaration.getType());
