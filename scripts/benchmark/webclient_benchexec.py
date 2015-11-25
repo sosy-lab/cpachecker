@@ -74,7 +74,8 @@ def init(config, benchmark):
                               user_agent='BenchExec', version=benchexec.__version__)
 
     benchmark.tool_version = _webclient.tool_revision()
-    logging.info('Using {0} version {1}.'.format(benchmark.tool_name, benchmark.tool_version))    
+    benchmark.executable = 'scripts/cpa.sh'
+    logging.info('Using {0} version {1}.'.format(benchmark.tool_name, benchmark.tool_version))
 
 def get_system_info():
     return None
