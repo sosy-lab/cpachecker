@@ -272,7 +272,8 @@ try:
             if self._sse_client:
                 self._sseclient.resp.close()
             else:
-                self._state_receive_executor.submit(self._start_sse_connection)
+                future = self._state_receive_executor.submit(self._start_sse_connection)
+                future.add_done_callback(_log_future_exception)
         
         def shutdown(self):
             self._shutdown = True
@@ -923,3 +924,7 @@ def _parse_cloud_file(file):
         values[key] = value
 
     return values
+
+def _log_future_exception(result):
+    if result.exception() is not None:
+        logging.warning('Error during result processing.', exc_info=True)
