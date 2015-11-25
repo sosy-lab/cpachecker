@@ -54,7 +54,7 @@ from concurrent.futures import Future
 
 try:
     import sseclient
-    import requests.exceptions.HTTPError as HTTPError
+    from requests import HTTPError
 except:
     pass
     
