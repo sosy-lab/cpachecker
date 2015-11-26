@@ -2,7 +2,6 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import static com.google.common.collect.Iterables.filter;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,13 +20,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
@@ -133,7 +127,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private final PolyhedraWideningManager pwm;
   private final InvariantGenerator invariantGenerator;
   private final StateFormulaConversionManager stateFormulaConversionManager;
-  private final CBinaryExpressionBuilder expressionBuilder;
 
   public PolicyIterationManager(
       Configuration config,
@@ -168,8 +161,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     linearizationManager = pLinearizationManager;
     congruenceManager = pCongruenceManager;
     invariantGenerator = pInvariantGenerator;
-    expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(),
-        logger);
 
     /** Compute the cache for loops */
     ImmutableMap.Builder<CFANode, LoopStructure.Loop> loopStructureBuilder =
@@ -560,7 +551,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
 
-        if (value.isPresent() && !isOverflowing(template, value.get())) {
+        if (value.isPresent() &&
+            !templateManager.isOverflowing(template, value.get())) {
           Rational v = value.get();
           newAbstraction.put(template, existingBound.updateValue(v));
         } else {
@@ -575,26 +567,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
 
     return Optional.of(stateWithUpdates.replaceAbstraction(newAbstraction));
-  }
-
-  private boolean isOverflowing(Template template, Rational v) {
-    CSimpleType templateType = getTemplateType(template);
-    if (templateType.getType().isIntegerType()) {
-      BigInteger maxValue = cfa.getMachineModel()
-          .getMaximalIntegerValue(templateType);
-      BigInteger minValue = cfa.getMachineModel()
-          .getMinimalIntegerValue(templateType);
-
-      // The bound obtained is larger than the highest representable
-      // value, ignore it.
-      if (v.compareTo(Rational.ofBigInteger(maxValue)) == 1
-          || v.compareTo(Rational.ofBigInteger(minValue)) == -1) {
-        logger.log(Level.FINE, "Bound too high, ignoring",
-            v);
-        return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -780,7 +752,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             boolean unsignedAndLower = template.isUnsigned() &&
                 (template.getKind() == Kind.NEG_LOWER_BOUND ||
                 template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
-            if (bound.isPresent() && !isOverflowing(template, bound.get())
+            if (bound.isPresent() &&
+                      !templateManager.isOverflowing(template, bound.get())
                     || unsignedAndLower) {
               Rational boundValue;
               if (bound.isPresent() && unsignedAndLower) {
@@ -844,24 +817,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         );
   }
 
-  private CSimpleType getTemplateType(Template t) {
-    CExpression sum = null;
-
-    // also note: there is an overall _expression_ type.
-    // Wonder how that one is computed --- it actually depends on the order of
-    // the operands.
-    for (Entry<CIdExpression, Rational> e: t.getLinearExpression()) {
-      CIdExpression expr = e.getKey();
-      if (sum == null) {
-        sum = expr;
-      } else {
-        sum = expressionBuilder.buildBinaryExpressionUnchecked(
-            sum, expr, BinaryOperator.PLUS);
-      }
-    }
-    assert sum != null;
-    return (CSimpleType) sum.getExpressionType();
-  }
 
 
   /**
@@ -1141,8 +1096,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
     if (!(aState1.getExtraInvariant().equals(aState2.getExtraInvariant()))
-      &&
-        !solver.isUnsat(bfmgr.and(aState1.getExtraInvariant(),
+      && !solver.isUnsat(bfmgr.and(aState1.getExtraInvariant(),
         bfmgr.not(aState2.getExtraInvariant())))) {
       return false;
     }
