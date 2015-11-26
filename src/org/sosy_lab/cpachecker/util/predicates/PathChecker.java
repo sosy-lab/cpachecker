@@ -104,8 +104,8 @@ public class PathChecker {
       } else {
         RichModel model = getModel(thmProver);
 
-        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(
-            pPath.getInnerEdges(), ssaMaps, model);
+        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms
+            = extractVariableAssignment(pPath, ssaMaps, model);
 
         CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 
@@ -155,7 +155,7 @@ public class PathChecker {
     return createPrecisePathFormula(pPath).getSecond();
   }
 
-  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(ARGPath pPath,
       List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
     return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);

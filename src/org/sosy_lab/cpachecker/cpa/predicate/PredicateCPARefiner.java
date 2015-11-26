@@ -520,7 +520,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     RichModel model = counterexample.getModel();
 
     Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
-        pathChecker.extractVariableAssignment(targetPath.getInnerEdges(), ssamaps, model);
+        pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 
