@@ -111,7 +111,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<SMGState> {
       SMGState next = new SMGState(pStartingPoint);
       CFAEdge edge = null;
 
-      PathIterator iterator = pPath.pathIterator();
+      PathIterator iterator = pPath.fullPathIterator();
 
       if(!iterator.hasNext()) {
         return ReachabilityResult.isReachable(pStartingPoint, null);
