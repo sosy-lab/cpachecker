@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -64,10 +63,10 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPAException,
+  public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException,
       InterruptedException {
     try {
-      return patchChecher.checkPath(pPath);
+      return patchChecher.checkPath(pPath.getInnerEdges());
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     }

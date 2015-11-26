@@ -40,9 +40,9 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
  */
 public interface PathValidator {
 
-  public CounterexampleTraceInfo validatePathCandidate(ARGState pCurrentState, List<CFAEdge> pNewPath)throws CPAException, InterruptedException;
+  public CounterexampleTraceInfo validatePathCandidate(ARGState pCurrentState, ARGPath pNewPath)throws CPAException, InterruptedException;
 
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pAsEdgesList) throws CPAException, InterruptedException;
+  public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException, InterruptedException;
 
   /**
    * checks if the given node is a possible candidate for a new path branching point.
