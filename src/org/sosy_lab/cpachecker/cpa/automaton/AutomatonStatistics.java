@@ -48,6 +48,7 @@ class AutomatonStatistics extends AbstractStatistics {
     AutomatonTransferRelation trans = mCpa.getTransferRelation();
 
     put(out, 0, "Number of states", mCpa.getAutomaton().getNumberOfStates());
+    put(out, 0, "Number of matches", trans.statNumberOfMatches);
     put(out, 0, "Total time for successor computation", trans.totalPostTime);
 
     if (trans.totalPostTime.getSumTime().compareTo(TimeSpan.ofMillis(500)) >= 0) {

@@ -92,6 +92,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private @Nullable CounterexamplesSummary cexSummary;
 
+  int statNumberOfMatches = 0;
   Timer totalPostTime = new Timer();
   Timer matchTime = new Timer();
   Timer inactivityCheckTime = new Timer();
@@ -282,6 +283,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
       } else {
         if (match.getValue()) {
+          statNumberOfMatches++;
           edgeMatched = true;
 
           // Check if the ASSERTION holds
