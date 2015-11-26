@@ -515,14 +515,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
       final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
 
-    List<CFAEdge> edges = targetPath.getInnerEdges();
-
-    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
+    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(targetPath);
 
     RichModel model = counterexample.getModel();
 
     Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
-        pathChecker.extractVariableAssignment(edges, ssamaps, model);
+        pathChecker.extractVariableAssignment(targetPath.getInnerEdges(), ssamaps, model);
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 

@@ -89,7 +89,7 @@ public class PathChecker {
   public CounterexampleTraceInfo checkPath(ARGPath pPath)
       throws SolverException, CPATransferException, InterruptedException {
 
-    Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath.getInnerEdges());
+    Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
 
     List<SSAMap> ssaMaps = result.getSecond();
 
@@ -116,14 +116,14 @@ public class PathChecker {
     }
   }
 
-  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(List<CFAEdge> pPath)
+  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
 
-    for (CFAEdge edge : from(pPath).filter(notNull())) {
+    for (CFAEdge edge : from(pPath.getInnerEdges()).filter(notNull())) {
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : (MultiEdge) edge) {
@@ -149,7 +149,7 @@ public class PathChecker {
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  public List<SSAMap> calculatePreciseSSAMaps(List<CFAEdge> pPath)
+  public List<SSAMap> calculatePreciseSSAMaps(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     return createPrecisePathFormula(pPath).getSecond();
