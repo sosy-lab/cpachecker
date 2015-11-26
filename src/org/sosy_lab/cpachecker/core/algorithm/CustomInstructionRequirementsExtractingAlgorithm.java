@@ -347,7 +347,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       visitedNodes.add(tmp);
 
       if (pCustomIA.isStartState(tmp)) {
-        set.add(tmp);
+        set.add(uncover(tmp));
       }
 
       // breadth-first-search
