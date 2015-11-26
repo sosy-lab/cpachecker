@@ -141,13 +141,16 @@ public class AutomatonState
   }
 
   private transient ControlAutomatonCPA automatonCPA;
+
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<Pair<AStatement, Boolean>> assumptions;
+
+  private final Map<? extends Property, ResultValue<?>> violatedPropertyInstance;
+
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
-  private final Map<? extends Property, ResultValue<?>> violatedPropertyInstance;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
