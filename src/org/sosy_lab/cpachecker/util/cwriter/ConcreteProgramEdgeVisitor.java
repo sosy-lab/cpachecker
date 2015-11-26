@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
-public class RealCEdgeVisitor extends DefaultEdgeVisitor {
+public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
   private CFAPathWithAssumptions exactValuePath;
 
-  public RealCEdgeVisitor(PathTranslator t, CFAPathWithAssumptions exactValues) {
+  public ConcreteProgramEdgeVisitor(PathTranslator t, CFAPathWithAssumptions exactValues) {
     super(t);
     exactValuePath = exactValues;
   }
