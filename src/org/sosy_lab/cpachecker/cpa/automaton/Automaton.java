@@ -231,8 +231,19 @@ public class Automaton {
     return ImmutableSet.copyOf(states);
   }
 
+  /**
+   * @return  The set of safety properties that are encoded in the automaton.
+   */
   public ImmutableSet<? extends SafetyProperty> getEncodedProperties() {
     return ImmutableSet.copyOf(encodedProperties);
+  }
+
+  public ImmutableSet<? extends SafetyProperty> getIsRelevantForProperties(AutomatonTransition pTrans) {
+    if (encodedProperties.size() == 1) {
+      return getEncodedProperties();
+    } else {
+      throw new RuntimeException("More than one property encoded in the automaton. Implement this case for 'getIsRelevantForProperties'!");
+    }
   }
 
 }
