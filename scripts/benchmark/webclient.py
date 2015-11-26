@@ -186,13 +186,14 @@ try:
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
         
         def _should_reconnect(self, error):
-            print(error)
             if self._new_runs:
                 return False
             elif type(error) == HTTPError and error.response is not None \
                     and error.response.status >= 400 and error.response.status < 500 :
+                logging.debug("Exception in SSE connection {}", error)
                 return False
             else:
+                
                 return True
                 
         def _start_sse_connection(self):      
@@ -221,7 +222,9 @@ try:
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
-                except:
+                
+                except Exception as e:
+                    logging.warn("Creating SSE connection failed: {}", e)
                     self._fall_back()
                     return
                 
@@ -265,19 +268,21 @@ try:
             logging.info("Fall back to polling.")
             self._web_interface._result_downloader = PollingResultDownloader(self._web_interface, self._result_poll_interval)
             self._web_interface._result_downloader.start()
-            self.shutdown()
+            self.shutdown(wait=False)
                    
         def start(self):
             self._new_runs = True
             if self._sse_client:
-                self._sseclient.resp.close()
+                self._sse_client.resp.close()
             else:
                 future = self._state_receive_executor.submit(self._start_sse_connection)
                 future.add_done_callback(_log_future_exception)
         
-        def shutdown(self):
+        def shutdown(self, wait=True):
             self._shutdown = True
-            self._state_receive_executor.shutdown(wait=True)
+            if self._sse_client:
+                self._sse_client.resp.close()
+            self._state_receive_executor.shutdown(wait=wait)
 
 except:
     pass
