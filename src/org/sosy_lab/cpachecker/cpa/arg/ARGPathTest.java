@@ -48,6 +48,7 @@ public class ARGPathTest {
 
   // for the full path and path iterator tests
   private List<CFAEdge> edges;
+  private List<CFAEdge> innerEdges;
   private final static int STATE_POS_1 = 0; // position of first ARGState in ARGPath
   private final static int STATE_POS_2 = 1; // position of second ARGState in ARGPath
   private final static int STATE_POS_3 = 4; // position of third ARGState in ARGPath
@@ -92,11 +93,15 @@ public class ARGPathTest {
 
     // build argPath
     ARGPathBuilder builder = ARGPath.builder();
+    innerEdges = new ArrayList<>();
     firstARGState = new ARGState(firstState, null);
     builder.add(firstARGState, edges.get(STATE_POS_1)); // edge connects to next ARGState directly
+    innerEdges.add(edges.get(STATE_POS_1));
     secondARGState = new ARGState(secondState, null);
+    innerEdges.add(null);
     builder.add(secondARGState, null);
     thirdARGState = new ARGState(thirdState, null);
+    innerEdges.add(null);
     builder.add(thirdARGState, null);
     lastARGState = new ARGState(lastState, null);
     path = builder.build(lastARGState);
@@ -168,6 +173,19 @@ public class ARGPathTest {
     assertThat(builder.size()).isEqualTo(1);
     builder.add(state, edge);
     assertThat(builder.size()).isEqualTo(2);
+  }
+
+  @Test
+  public void testGetFullPath() {
+    List<CFAEdge> fullPath = path.getFullPath();
+    assertThat(fullPath).isEqualTo(edges);
+  }
+
+  @Test
+  public void testGetInnerEdges() {
+    List<CFAEdge> innerEdges = path.getInnerEdges();
+    assertThat(innerEdges).isEqualTo(this.innerEdges);
+
   }
 
   @Test
