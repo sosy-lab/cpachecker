@@ -260,7 +260,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       try {
         PathChecker pathChecker = new PathChecker(logger, pmgr, solver, assignmentToPathAllocator);
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.getInnerEdges());
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath);
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");

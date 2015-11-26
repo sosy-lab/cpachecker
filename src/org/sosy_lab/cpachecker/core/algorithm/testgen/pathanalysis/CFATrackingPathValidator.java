@@ -54,7 +54,7 @@ public class CFATrackingPathValidator extends AbstractPathValidator{
   public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException,
       InterruptedException {
     try {
-      return pathChecker.checkPath(pPath.getInnerEdges());
+      return pathChecker.checkPath(pPath);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     }

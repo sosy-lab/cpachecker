@@ -66,7 +66,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
   public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException,
       InterruptedException {
     try {
-      return patchChecher.checkPath(pPath.getInnerEdges());
+      return patchChecher.checkPath(pPath);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
     }
