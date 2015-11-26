@@ -291,10 +291,7 @@ public class ARGPathTest {
               + " in the middle of a whole in the path");
         } catch (Exception e) { /*do nothing we want to continue testing*/}
 
-        if (i < STATE_POS_2) {
-          assertThat(pathIt.getPreviousAbstractState()).isEqualTo(firstARGState);
-          assertThat(pathIt.getNextAbstractState()).isEqualTo(secondARGState);
-        } else if (i < STATE_POS_3) {
+        if (i < STATE_POS_3) {
           assertThat(pathIt.getPreviousAbstractState()).isEqualTo(secondARGState);
           assertThat(pathIt.getNextAbstractState()).isEqualTo(thirdARGState);
         } else if (i < edges.size() -1) {
