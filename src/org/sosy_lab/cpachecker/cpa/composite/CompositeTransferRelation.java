@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -112,7 +112,7 @@ public final class CompositeTransferRelation implements TransferRelation {
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeState> results;
 
-    AbstractStateWithLocation locState = extractStateByType(compositeState, AbstractStateWithLocation.class);
+    AbstractStateWithLocations locState = extractStateByType(compositeState, AbstractStateWithLocations.class);
     if (locState == null) {
       throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
     }
