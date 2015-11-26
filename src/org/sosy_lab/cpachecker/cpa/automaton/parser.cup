@@ -271,11 +271,11 @@ Transition   ::= Bool:trigger  ARROW Split:a GOTO IDENTIFIER:follow NEGATION GOT
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM, null)); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM)); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts INACTIVE SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.INACTIVE, null)); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.INACTIVE)); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BREAK, null)); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BREAK)); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}

@@ -103,8 +103,22 @@ class AutomatonTransition {
     this(pTrigger, ImmutableList.<AutomatonBoolExpr>of(),
         pAssumption, pAssumeTruth, pActions,
         pFollowState.getName(), pFollowState,
+        Preconditions.checkNotNull(pViolatedWhenEnteringTarget),
+        ImmutableSet.<SafetyProperty>of());
+  }
+
+  public AutomatonTransition(AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<AStatement> pAssumption,
+      boolean pAssumeTruth,
+      List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState) {
+
+    this(pTrigger, pAssertions,
+        pAssumption, pAssumeTruth, pActions,
+        pFollowState.getName(), pFollowState,
         ImmutableSet.<SafetyProperty>of(),
-        Preconditions.checkNotNull(pViolatedWhenEnteringTarget));
+        ImmutableSet.<SafetyProperty>of());
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
@@ -118,7 +132,7 @@ class AutomatonTransition {
     this(pTrigger, pAssertions,
         pAssumption, pAssumeTruth, pActions,
         pFollowState.getName(), pFollowState,
-        pViolatedWhenEnteringTarget,
+        Preconditions.checkNotNull(pViolatedWhenEnteringTarget),
         ImmutableSet.<SafetyProperty>of());
   }
 
