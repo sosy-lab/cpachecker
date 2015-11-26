@@ -875,6 +875,14 @@ cpa.composite.merge = "AGREE"
 # analysis!
 cpa.composite.splitMultiEdges = false
 
+# Instead of introducing MultiEdges in the CFA the Composite CPA can handle
+# all paths in the CFA where MultiEdges could be if they were there. This has
+# the big advantage, that we can have error locations in the middle of multi
+# edges, which is not possible withstatic MultiEdges.
+#  Note that while this option is set to true, cfa.useMultiEdges has to be
+# set to false.
+cpa.composite.useDynamicMultiEdges = false
+
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
 cpa.conditions.global.memory.heap = -1
@@ -1397,7 +1405,7 @@ cpa.predicate.refinement.atomicInterpolants = true
 cpa.predicate.refinement.atomicInvariants = false
 
 # configuration file for bmc generation
-cpa.predicate.refinement.bmcConfig = no default value
+cpa.predicate.refinement.bmcConfig = "config/bmc.properties"
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -1581,6 +1589,9 @@ cpa.predicate.satCheck = 0
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
 
+# Call 'simplify' on generated formulas.
+cpa.predicate.simplifyGeneratedPathFormulas = false
+
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 
@@ -1688,9 +1699,6 @@ cpa.slicing.destructiveIterationLimit = -1
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
-
-# Whether to join states on merge (leads to cycles in ARG)
-cpa.slicing.joinOnMerge = true
 
 # Use formula slicing based on counterexamples.
 cpa.slicing.runCounterexampleBasedSlicing = false
@@ -1887,12 +1895,11 @@ cpa.stator.policy.generateTemplatesUsingConvexHull = false
 cpa.stator.policy.generateUpperBound = true
 
 # Any intermediate state with formula length bigger than specified will be
-# checked for reachability.
+# checked for reachability. Set to -1 for no limit.
 cpa.stator.policy.lengthLimitForSATCheck = 300
 
-# Remove UFs and ITEs from policies. NOTE: Currently seems to decrease
-# performance.
-cpa.stator.policy.linearizePolicy = false
+# Remove UFs and ITEs from policies.
+cpa.stator.policy.linearizePolicy = true
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
@@ -1905,9 +1912,6 @@ cpa.stator.policy.runHopefulValueDetermination = true
 
 # Use syntactic check to short-circuit val. det. and abstraction operations.
 cpa.stator.policy.shortCircuitSyntactic = true
-
-# Call [simplify] on the formulas resulting from the C code
-cpa.stator.policy.simplifyFormulas = true
 
 # Use unguided template refinement, progressively brute-forcing the possible
 # template space.
