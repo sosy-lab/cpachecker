@@ -594,8 +594,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         return true;
       }
     }
-
-    // todo: floats overflow.
     return false;
   }
 
@@ -990,8 +988,6 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     }
     return Optional.of(Optional.of(
         PolicyBound.of(
-            // todo: whether the policy should contain the extra attached
-            // invariant.
             stateFormulaConversionManager
                 .getPathFormula(generatingState, fmgr, true)
                 .updateFormula(bfmgr.makeBoolean(true)),
