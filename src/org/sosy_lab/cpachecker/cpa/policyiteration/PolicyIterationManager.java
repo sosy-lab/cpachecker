@@ -359,7 +359,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       }
     }
 
-    latestSibling.setNewVersion(out);
+    latestSibling.setLatestVersion(out);
 
     return out;
   }
