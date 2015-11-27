@@ -71,7 +71,6 @@ public class PolicyIterationTest {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.stator.policy.joinOnMerge", "false",
             "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
@@ -82,7 +81,6 @@ public class PolicyIterationTest {
         , ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.runCongruence", "false",
-            "cpa.stator.policy.joinOnMerge", "false",
             "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
@@ -93,7 +91,6 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.stator.policy.joinOnMerge", "false",
             "cpa.slicing.useSyntacticFormulaSlicing", "true"
         ));
   }
@@ -168,19 +165,8 @@ public class PolicyIterationTest {
     check("boolean_true_assert.c",
         ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
             "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
-            "cpa.stator.policy.joinOnMerge", "false",
             "precision.trackIntAddVariables", "false",
             "precision.trackVariablesBesidesEqAddBool", "false"));
-  }
-
-  @Test public void cex_check() throws Exception {
-    check("test/programs/benchmarks/loops/terminator_01_false-unreach-call_false-termination.i",
-        ImmutableMap.of(
-            "analysis.checkCounterexamples", "true",
-            "counterexample.checker", "CPACHECKER",
-            "counterexample.checker.config",
-              "config/cex-checks/predicateAnalysis-as-bitprecise-cex-check.properties"
-        ));
   }
 
   private void check(String filename) throws Exception {
@@ -222,20 +208,20 @@ public class PolicyIterationTest {
         .put("solver.z3.requireProofs", "false")
 
         .put("solver.solver", "z3")
-//        .put("solver.solver", "mathsat5")
-//        .put("solver.mathsat5.loadOptimathsat5", "true")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "true")
         .put("cpa.predicate.maxArrayLength", "1000")
         .put("cpa.predicate.defaultArrayLength", "3")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
-        .put("analysis.traversal.order", "bfs")
-        .put("analysis.traversal.useCallstack", "true")
 
-        // todo: does it affect the speed?
-//        .put("analysis.traversal.useReverseLoopstack", "true")
+        .put("cpa.stator.policy.linearizePolicy", "true")
+
+        // Traversal options.
+        .put("analysis.traversal.order", "dfs")
+        .put("analysis.traversal.useCallstack", "true")
         .put("analysis.traversal.useReversePostorder", "true")
+        .put("analysis.traversal.useLoopstack", "true")
 
         .put("log.consoleLevel", "INFO")
     .build());

@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.collect.Iterables;
 
-@Options(prefix="cpa.callstack")
 public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, ProofChecker, ReachedSetAdjustingCPA {
 
   private final Reducer reducer;
@@ -71,7 +70,6 @@ public class CallstackCPA extends AbstractCPA implements ConfigurableProgramAnal
     super("sep", "sep",
         new DomainInitializer(config).initializeDomain(),
         new TransferInitializer(config).initializeTransfer(config, pLogger));
-    config.inject(this);
     this.cfa = pCFA;
     this.reducer = new CallstackReducer();
   }

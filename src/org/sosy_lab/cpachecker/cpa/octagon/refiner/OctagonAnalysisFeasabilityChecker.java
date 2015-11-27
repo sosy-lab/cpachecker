@@ -23,28 +23,32 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
+import static org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision.createStaticPrecision;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
-import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
-import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
-import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
-import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
@@ -52,27 +56,24 @@ import com.google.common.collect.Multimap;
 
 public class OctagonAnalysisFeasabilityChecker {
 
-  private final OctagonTransferRelation transfer;
+  private final TransferRelation transfer;
 
-  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final MutableARGPath checkedPath;
-  private final MutableARGPath foundPath;
-  private final CFA cfa;
+  private final ARGPath checkedPath;
+  private final ARGPath foundPath;
 
-  public OctagonAnalysisFeasabilityChecker(CFA pCfa, LogManager pLog, ShutdownNotifier pShutdownNotifier, MutableARGPath pPath, OctagonCPA pCpa) throws InvalidConfigurationException, CPAException, InterruptedException {
-    logger = pLog;
+  public OctagonAnalysisFeasabilityChecker(Configuration pConfig, ShutdownNotifier pShutdownNotifier,
+      ARGPath pPath, Class<? extends ConfigurableProgramAnalysis> pClass, Optional<VariableClassification> pVarClass, TransferRelation pTransfer,
+      AbstractState pInitialState) throws InvalidConfigurationException, CPAException, InterruptedException {
+
     shutdownNotifier = pShutdownNotifier;
-    cfa = pCfa;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = new OctagonTransferRelation(logger, cfa.getLoopStructure().get());
+    transfer  = pTransfer;
     checkedPath = pPath;
 
-    foundPath = getInfeasiblePrefix(VariableTrackingPrecision.createStaticPrecision(pCpa.getConfiguration(),
-                                                                                    cfa.getVarClassification(),
-                                                                                    OctagonCPA.class),
-                                    new OctagonState(logger, pCpa.getManager()));
+    foundPath = getInfeasiblePrefix(createStaticPrecision(pConfig, pVarClass, pClass),
+                                    pInitialState);
   }
 
   /**
@@ -106,7 +107,7 @@ public class OctagonAnalysisFeasabilityChecker {
    * of the last (failing) assume edge in the found error path.
    */
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
-    UseDefRelation useDefRelation = new UseDefRelation(foundPath.immutableCopy(), Collections.<String>emptySet());
+    UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet());
 
     return FluentIterable.from(useDefRelation.getUsesAsQualifiedName()).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
   }
@@ -122,40 +123,56 @@ public class OctagonAnalysisFeasabilityChecker {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private MutableARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final OctagonState pInitial)
+  private ARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final AbstractState pInitial)
       throws CPAException, InterruptedException {
     try {
-      Collection<OctagonState> next = Lists.newArrayList(pInitial);
+      Collection<AbstractState> next = Lists.newArrayList(pInitial);
 
-      MutableARGPath prefix = new MutableARGPath();
+      Collection<AbstractState> successors = new HashSet<>();
 
-      Collection<OctagonState> successors = new HashSet<>();
+      PathIterator pathIt = checkedPath.pathIterator();
+      List<CFAEdge> fullEdgePath = checkedPath.getFullPath();
 
-      for (Pair<ARGState, CFAEdge> pathElement : checkedPath) {
+      for (CFAEdge edge : fullEdgePath) {
         successors.clear();
-        for (OctagonState st : next) {
+
+        for (AbstractState st : next) {
           successors.addAll(transfer.getAbstractSuccessorsForEdge(
               st,
               pPrecision,
-              pathElement.getSecond()));
+              edge));
 
           // computing the feasibility check takes sometimes much time with octagons
           // so we let the shutdownNotifer cancel the computation if necessary
           shutdownNotifier.shutdownIfNecessary();
         }
 
-        prefix.addLast(pathElement);
-
         // no successors => path is infeasible
         if (successors.isEmpty()) {
+          // we found an infeasible prefix, if we are currently in a whole
+          // of the path we need to advance the iterator by one position
+          // so that we have the real infeasible path for later usage
+          if (!edge.getPredecessor().equals(extractLocation(pathIt.getAbstractState()))
+              && pathIt.hasNext()) {
+            pathIt.advance();
+          }
           break;
+        }
+
+        // update path iterator position if we encounter the next location for
+        // which we have an ARGState
+        if (edge.getPredecessor().equals(extractLocation(pathIt.getAbstractState()))
+            && pathIt.hasNext()) {
+          pathIt.advance();
         }
 
         // get matching successor state and apply precision
         next.clear();
         next.addAll(successors);
       }
-      return prefix;
+
+      return pathIt.getPrefixInclusive();
+
     } catch (CPATransferException e) {
       throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
     }

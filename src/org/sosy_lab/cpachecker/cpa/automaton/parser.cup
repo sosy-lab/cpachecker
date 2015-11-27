@@ -41,8 +41,8 @@ import java_cup.runtime.SymbolFactory;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.FileSystemPath;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
@@ -125,7 +125,7 @@ parser code {:
   */
   public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    Scanner scanner = new AutomatonScanner(reader, pInputFile.or(new FileSystemPath(null)), pLogger, sf);
+    Scanner scanner = new AutomatonScanner(reader, pInputFile.or(Paths.get("")), pLogger, sf);
 
     AutomatonParser automatonParser;
 

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
@@ -43,7 +44,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -274,7 +277,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
               && ((CStatementEdge) edge).getStatement() instanceof CExpressionAssignmentStatement) {
             stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
             if (stmt.getRightHandSide() instanceof CBinaryExpression
-                && ((CBinaryExpression) stmt.getRightHandSide()).getOperator().equals(pOp)) {
+                && ((CBinaryExpression) stmt.getRightHandSide()).getOperator().equals(pOp) &&
+                stmt.getLeftHandSide().getExpressionType().equals(type)) {
               // application of custom instruction found, add to definition file
               aciDef.write(node.getNodeNumber()+"\n");
             }
@@ -282,6 +286,14 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         }
       }
     }
+
+    try (Writer br = Files.openOutputFile(Paths.get("output" + File.separator + "ci_spec.txt"))) {
+      // write signature
+      br.write(ci.getSignature() + "\n");
+      String ciString = ci.getFakeSMTDescription().getSecond();
+      br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
+    }
+
     return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa).
         parse(ci, appliedCustomInstructionsDefinition);
   }
@@ -336,7 +348,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       visitedNodes.add(tmp);
 
       if (pCustomIA.isStartState(tmp)) {
-        set.add(tmp);
+        set.add(uncover(tmp));
       }
 
       // breadth-first-search

@@ -55,7 +55,7 @@ public class CFAUtils {
 
   /**
    * Return an {@link Iterable} that contains all entering edges of a given CFANode,
-   * including the summary edge if the node as one.
+   * including the summary edge if the node has one.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);

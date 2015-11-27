@@ -160,11 +160,14 @@ public class AutomatonControlledIterationStrategy extends AbstractIterationStrat
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void generateAutomatonFileForNextIteration(PredicatePathAnalysisResult pResult, Path pFilePath) {
     stats.beforeAutomationFileGeneration();
     try (Writer w = Files.openOutputFile(pFilePath.toAbsolutePath(), Charset.forName("UTF8"))) {
 
       ARGPath argPath = pResult.getPath();
+      // we use the imprecise version of the CounterexampleInfo, due to the possible
+      // merges which are done in the used analysis
       CounterexampleInfo ci = CounterexampleInfo.feasible(argPath, pResult.getTrace().getModel());
 
       ARGUtils.produceTestGenPathAutomaton(w, argPath.getFirstState(), argPath.getStateSet(),

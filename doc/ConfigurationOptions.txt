@@ -649,10 +649,12 @@ cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
-# which model checker to use for verifying counterexamples as a second check
-# Currently CBMC or CPAchecker with a different config can be used.
-counterexample.checker = "CBMC"
-  allowed values: [CBMC, CPACHECKER, REALC]
+# Which model checker to use for verifying counterexamples as a second check.
+# Currently CBMC or CPAchecker with a different config or the concrete
+# execution 
+# checker can be used.
+counterexample.checker = CBMC
+  enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
@@ -661,6 +663,19 @@ counterexample.checker.config = "config/valueAnalysis-no-cbmc.properties"
 # for the counterexample check. A temporary file is used if this is
 # unspecified.
 counterexample.checker.path.file = no default value
+
+# The file in which the generated C code is saved.
+counterexample.concrete.dumpFile = no default value
+
+# Path to the compiler. Can be absolute or only the name of the program if it
+# is in the PATH
+counterexample.concrete.pathToCompiler = "/usr/bin/gcc"
+
+# Maximum time limit for the concrete execution checker.
+# This limit is used for compilation as well as execution so overall, twice
+# the time of this limit may be consumed.
+# (use milliseconds or specify a unit; 0 for infinite)
+counterexample.concrete.timelimit = 0ms
 
 # continue analysis after an counterexample was found that was denied by the
 # second check
@@ -762,8 +777,9 @@ cpa.arg.errorPath.assignment = "ErrorPath.%d.assignment.txt"
 # export error path as automaton
 cpa.arg.errorPath.automaton = "ErrorPath.%d.spc"
 
-# use either CMBC or real C
-cpa.arg.errorPath.codeStyle = "CMBC"
+# exports either CMBC format or a concrete path program
+cpa.arg.errorPath.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
 
 # export error path core as text file
 cpa.arg.errorPath.core = "ErrorPath.%d.core.txt"
@@ -812,6 +828,9 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# export a proof as .graphml file
+cpa.arg.proofWitness = "ARG.graphml"
 
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
@@ -1017,6 +1036,14 @@ cpa.composite.merge = "AGREE"
 # strengthen calls after each single edge. Does not work with backwards
 # analysis!
 cpa.composite.splitMultiEdges = false
+
+# Instead of introducing MultiEdges in the CFA the Composite CPA can handle
+# all paths in the CFA where MultiEdges could be if they were there. This has
+# the big advantage, that we can have error locations in the middle of multi
+# edges, which is not possible withstatic MultiEdges.
+#  Note that while this option is set to true, cfa.useMultiEdges has to be
+# set to false.
+cpa.composite.useDynamicMultiEdges = false
 
 # Limit for Java heap memory used by CPAchecker (in MB, not MiB!; -1 for
 # infinite)
@@ -1506,7 +1533,7 @@ cpa.predicate.nondetFunctionsRegexp = "^(__VERIFIER_)?nondet_[a-zA-Z0-9_]*"
 
 # Where to apply the found predicates to?
 cpa.predicate.precision.sharing = LOCATION
-  enum:     [GLOBAL, FUNCTION, LOCATION, LOCATION_INSTANCE]
+  enum:     [GLOBAL, SCOPE, FUNCTION, LOCATION, LOCATION_INSTANCE]
 
 # generate statistics about precisions (may be slow)
 cpa.predicate.precisionStatistics = true
@@ -1531,9 +1558,16 @@ cpa.predicate.predmap.predicateFormat = SMTLIB2
 # as input, not the concrete block.
 cpa.predicate.refinement.abstractInterpolantOnly = false
 
-# use only the atoms from the interpolants as predicates, and not the whole
+# use only the atoms from the interpolantsas predicates, and not the whole
 # interpolant
-cpa.predicate.refinement.atomicPredicates = true
+cpa.predicate.refinement.atomicInterpolants = true
+
+# use only atoms from generated invariantsas predicates, and not the whole
+# invariant
+cpa.predicate.refinement.atomicInvariants = false
+
+# configuration file for bmc generation
+cpa.predicate.refinement.bmcConfig = "config/bmc.properties"
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
@@ -1556,6 +1590,13 @@ cpa.predicate.refinement.dumpCounterexampleFile = "ErrorPath.%d.smt2"
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
+
+# Should the automata used for invariant generation be dumped to files?
+cpa.predicate.refinement.dumpInvariantGenerationAutomata = false
+
+# Where to dump the automata that are used to narrow the analysis used for
+# invariant generation.
+cpa.predicate.refinement.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
 
 # After each refinement, dump the newly found predicates.
 cpa.predicate.refinement.dumpPredicates = false
@@ -1665,6 +1706,11 @@ cpa.predicate.refinement.useBddInterpolantSimplification = false
 # interpolation.
 cpa.predicate.refinement.useInvariantRefinement = false
 
+# Try to generate inductive invariants, by using sliced prefixs and check if
+# they are invariants. If this failes invariant generation via other CPAs
+# will be done if possible.
+cpa.predicate.refinement.useKInduction = true
+
 # Invariants that are not strong enough to refute the counterexample can be
 # ignored with this option. (Weak invariants will lead to repeated
 # counterexamples, thus taking time which could be used for the rest of the
@@ -1704,6 +1750,9 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
+
+# Call 'simplify' on generated formulas.
+cpa.predicate.simplifyGeneratedPathFormulas = false
 
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
@@ -1809,15 +1858,9 @@ cpa.slicing.checkTargetStates = true
 # -1 for no limit.
 cpa.slicing.destructiveIterationLimit = -1
 
-# Check abstract state subsumption using SMT
-cpa.slicing.expensiveSubsumptionCheck = true
-
 # Instead of considering the entire SCC, ignore the function nested in the
 # loop. UNSOUND!
 cpa.slicing.ignoreFunctionCallsInLoop = false
-
-# Whether to join states on merge (leads to cycles in ARG)
-cpa.slicing.joinOnMerge = true
 
 # Use formula slicing based on counterexamples.
 cpa.slicing.runCounterexampleBasedSlicing = false
@@ -2013,16 +2056,12 @@ cpa.stator.policy.generateTemplatesUsingConvexHull = false
 # Generate templates for the upper bounds of each variable
 cpa.stator.policy.generateUpperBound = true
 
-# Whether to join states on merge (leads to cycles in ARG)
-cpa.stator.policy.joinOnMerge = true
-
 # Any intermediate state with formula length bigger than specified will be
-# checked for reachability.
+# checked for reachability. Set to -1 for no limit.
 cpa.stator.policy.lengthLimitForSATCheck = 300
 
-# Remove UFs and ITEs from policies. NOTE: Currently seems to decrease
-# performance.
-cpa.stator.policy.linearizePolicy = false
+# Remove UFs and ITEs from policies.
+cpa.stator.policy.linearizePolicy = true
 
 # Perform abstraction only at the nodes from the cut-set.
 cpa.stator.policy.pathFocusing = true
@@ -2035,9 +2074,6 @@ cpa.stator.policy.runHopefulValueDetermination = true
 
 # Use syntactic check to short-circuit val. det. and abstraction operations.
 cpa.stator.policy.shortCircuitSyntactic = true
-
-# Call [simplify] on the formulas resulting from the C code
-cpa.stator.policy.simplifyFormulas = true
 
 # Use unguided template refinement, progressively brute-forcing the possible
 # template space.
@@ -2279,14 +2315,10 @@ custominstructions.requirementsStateClassName = no default value
 
 # Option to change the behaviour of the loop detection for generating the
 # Counterexample-C-Code that will probably be used to generate invariants.
-# All loops will probably make no sense, as this will most likely be a huge
-# part of the program and we do only want to create invariants for as small
-# parts as possible. Also due to the incremental finding of counterexamples
-# former loops may have been handled before. Thus only recreating the last
-# loop is the default. Note that last loop means the first loop encountered
-# when backwards traversing the given ARGPath, thus, the last loop may
-# contain other loops, which are in turn also counted to the last loop.
-cwriter.withLoops.loopDetectionStrategy = ONLY_LAST_LOOP
+# Note that last loop means the first loop encountered when backwards
+# traversing the given ARGPath, thus, the last loop may contain other loops,
+# which are in turn also counted to the last loop.
+cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
 # Enable to use lazy refinement in current analysis instead of restarting
@@ -2407,6 +2439,9 @@ parser.usePreprocessor = false
 # and checked property is violated for a set iff an element in this set
 # exists for which violates the property
 pcc.arg.checkPropertyPerElement = false
+
+# Enable to store ARG states instead of abstract states wrapped by ARG state
+pcc.backwardtargets.certificateStatesAsARGStates = false
 
 # List of files with configurations to use. 
 pcc.cmc.configFiles = no default value
@@ -2529,17 +2564,6 @@ reachedSet.dot = "reached.dot"
 reachedSet.export = false
 reachedSet.file = "reached.txt"
 
-# File name where to put the path program that is generated as input for a
-# common c compiler. A temporary file is used if this is unspecified. 
-realC.dumpRealCfile = no default value
-
-# Path to the compiler. Can be absolute or on PATH
-realC.pathToCompiler = no default value
-
-# maximum time limit for realC (use milliseconds or specify a unit; 0 for
-# infinite)
-realC.timelimit = 0ms
-
 # List of files with configurations to use. A filename can be suffixed with
 # :if-interrupted, :if-failed, and :if-terminated which means that this
 # configuration will only be used if the previous configuration ended with a
@@ -2551,6 +2575,41 @@ restartAlgorithmWithARGReplay.configFiles = no default value
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in Smtlib format into a file.
+solver.logAllQueries = false
+solver.logfile = no default value
+
+# List of further options which will be passed to Mathsat in addition to the
+# default options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# List of further options which will be set to true for SMTInterpol in
+# addition to the default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # log some solver actions, this may be slow!
 solver.useLogger = false
@@ -2639,8 +2698,7 @@ testgen.automatonExportPaths = "automaton/next_automaton%s_%s.spc"
 
 # The path selector for TestGenAlgorithm
 testgen.pathSelector = CUTE_PATH_SELECTOR
-  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR,
-             CUTE_LIKE]
+  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR]
 
 # Set this to true to get the automaton files for exploring new Paths. You
 # also get the ARG as dot file and the local reached set for every algoritm

@@ -57,8 +57,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Joiner;
@@ -75,8 +75,7 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
   public enum AnalysisStrategySelector {
     LOCATION_AND_VALUE_STATE_TRACKING,
     CFA_TRACKING,
-    CUTE_PATH_SELECTOR,
-    CUTE_LIKE
+    CUTE_PATH_SELECTOR
   }
 
   @Option(secure=true, name = "simulationStrategy", description = "Selects the simulation Strategy for TestGenAlgorithm")
@@ -229,6 +228,10 @@ public class TestGenAlgorithm implements Algorithm, StatisticsProvider {
 
     String automatonName = String.format("Testcase%s", testCaseCounter);
     ARGState rootState = pExecutedPath.getFirstState();
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done during the analysis. It is also not important here
+    // as the ceInfo object is only used for generating an automaton and not for
+    // creating a C-file with CEXExporter
     CounterexampleInfo ceInfo = CounterexampleInfo.feasible(pExecutedPath, pTraceInfo.getModel());
 
     try (Writer w = Files.openOutputFile(filePath)) {

@@ -359,11 +359,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
       int multiEdgeID = 0;
 
-      final CFANode loc = AbstractStates.extractLocation(s);
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
-        CFAEdge edge = loc.getEdgeTo(extractLocation(child));
+        CFAEdge edge = s.getEdgeToChild(child);
 
         if (edge instanceof MultiEdge) {
           assert (((MultiEdge) edge).getEdges().size() > 1);

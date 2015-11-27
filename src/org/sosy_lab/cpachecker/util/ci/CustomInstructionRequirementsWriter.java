@@ -83,6 +83,11 @@ public class CustomInstructionRequirementsWriter {
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements
       = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars());
 
+    if(convertedRequirements.getSecond().getSecond().matches("\\(define-fun post \\(\\) Bool(\\s)+true\\)")) {
+      // post condition true, do not need to consider this requirement
+      return;
+    }
+
     Pair<List<String>, String> fakeSMTDesc = pACI.getFakeSMTDescription();
     List<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
     fileID++;

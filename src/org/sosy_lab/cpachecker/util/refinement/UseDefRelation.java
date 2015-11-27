@@ -133,9 +133,16 @@ public class UseDefRelation {
     Map<ARGState, Collection<ASimpleDeclaration>> expandedUses = new LinkedHashMap<>();
     Collection<ASimpleDeclaration> unresolvedUses = new HashSet<>();
 
-    PathIterator it = path.reversePathIterator();
-    while(it.hasNext()) {
-      ARGState currentState = it.getAbstractState();
+    PathIterator it = path.reverseFullPathIterator();
+
+    while (it.hasNext()) {
+      it.advance();
+      ARGState currentState;
+      if (it.isPositionWithState()) {
+        currentState = it.getAbstractState();
+      } else {
+        currentState = it.getPreviousAbstractState();
+      }
       CFAEdge currentEdge   = it.getOutgoingEdge();
 
       if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
@@ -143,16 +150,13 @@ public class UseDefRelation {
           unresolvedUses.removeAll(getDef(currentState, singleEdge));
           unresolvedUses.addAll(getUses(currentState, singleEdge));
         }
-      }
 
-      else {
+      } else {
         unresolvedUses.removeAll(getDef(currentState, currentEdge));
         unresolvedUses.addAll(getUses(currentState, currentEdge));
       }
 
       expandedUses.put(currentState, new HashSet<>(unresolvedUses));
-
-      it.advance();
     }
 
     return expandedUses;
@@ -174,25 +178,30 @@ public class UseDefRelation {
   }
 
   private void buildRelation(ARGPath path) {
-    PathIterator iterator = path.reversePathIterator();
+    PathIterator iterator = path.reverseFullPathIterator();
+
     while (iterator.hasNext()) {
+      iterator.advance();
       CFAEdge edge = iterator.getOutgoingEdge();
+      ARGState state;
+      if (iterator.isPositionWithState()) {
+        state = iterator.getAbstractState();
+      } else {
+        state = iterator.getPreviousAbstractState();
+      }
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)edge).getEdges())) {
-          updateUseDefRelation(iterator.getAbstractState(), singleEdge);
+          updateUseDefRelation(state, singleEdge);
         }
-      }
-      else {
-        updateUseDefRelation(iterator.getAbstractState(), edge);
+      } else {
+        updateUseDefRelation(state, edge);
       }
 
       // stop the traversal once a fix-point is reached
       if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
         break;
       }
-
-      iterator.advance();
     }
   }
 

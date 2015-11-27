@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,8 +33,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -83,6 +80,10 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
 
   public CFAPathWithAssumptions() {
     pathWithAssignments = ImmutableList.of();
+  }
+
+  public ImmutableList<CFAEdgeWithAssumptions> asList() {
+    return ImmutableList.copyOf(pathWithAssignments);
   }
 
   @Nullable
@@ -276,49 +277,6 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
   @Override
   public Iterator<CFAEdgeWithAssumptions> iterator() {
     return pathWithAssignments.iterator();
-  }
-
-  public void toJSON(Appendable sb, ARGPath argPath) throws IOException {
-    List<Map<?, ?>> path = new ArrayList<>(this.size());
-
-    if (argPath.getInnerEdges().size() != pathWithAssignments.size()) {
-      argPath.toJSON(sb);
-      return;
-    }
-
-    int index = 0;
-
-    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(argPath.asStatesList(), argPath.asEdgesList())) {
-
-      Map<String, Object> elem = new HashMap<>();
-
-      ARGState argelem = pair.getFirst();
-      CFAEdge edge = pair.getSecond();
-
-      if (edge == null) {
-        continue; // in this case we do not need the edge
-      }
-
-      elem.put("argelem", argelem.getStateId());
-      elem.put("source", edge.getPredecessor().getNodeNumber());
-      elem.put("target", edge.getSuccessor().getNodeNumber());
-      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
-      elem.put("line", edge.getFileLocation().getStartingLineNumber());
-      elem.put("file", edge.getFileLocation().getFileName());
-
-      // cfa path with assignments has no padding (only inner edges of argpath).
-      if (index == pathWithAssignments.size()) {
-        elem.put("val", "");
-      } else {
-        CFAEdgeWithAssumptions edgeWithAssignment = pathWithAssignments.get(index);
-        elem.put("val", edgeWithAssignment.printForHTML());
-      }
-
-      path.add(elem);
-      index++;
-    }
-
-    JSON.writeJSONString(path, sb);
   }
 
   public CFAPathWithAssumptions mergePaths(CFAPathWithAssumptions pOtherPath) {

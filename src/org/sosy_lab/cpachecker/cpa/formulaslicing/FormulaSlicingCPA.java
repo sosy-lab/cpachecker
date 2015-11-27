@@ -52,15 +52,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     ConfigurableProgramAnalysis,
     AbstractDomain,
     PrecisionAdjustment,
-    StatisticsProvider {
+    StatisticsProvider, MergeOperator {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
-
-  @Option(secure=true,
-      description="Whether to join states on merge (leads to cycles in ARG)")
-  private boolean joinOnMerge = true;
 
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
@@ -106,7 +102,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         pInductiveWeakeningManager, solver,
         statistics);
     stopOperator = new StopSepOperator(this);
-    mergeOperator = new SlicingMergeOperator(manager, joinOnMerge);
+    mergeOperator = this;
   }
 
   public static CPAFactory factory() {
@@ -191,5 +187,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(statistics);
+  }
+
+  @Override
+  public AbstractState merge(AbstractState state1, AbstractState state2,
+      Precision precision) throws CPAException, InterruptedException {
+    return manager.merge((SlicingState) state1, (SlicingState) state2);
   }
 }

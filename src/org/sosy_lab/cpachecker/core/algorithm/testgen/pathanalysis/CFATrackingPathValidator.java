@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -52,7 +51,7 @@ public class CFATrackingPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPAException,
+  public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException,
       InterruptedException {
     try {
       return pathChecker.checkPath(pPath);
@@ -62,7 +61,7 @@ public class CFATrackingPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public boolean isVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
+  public boolean isVisitedBranching(ARGPath pNewARGPath, ARGState pCurrentState, CFANode pNode,
       CFAEdge pOtherEdge) {
     return handledDecisions.contains(pNode);
   }

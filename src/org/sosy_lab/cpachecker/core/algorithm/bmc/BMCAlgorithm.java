@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -40,7 +39,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -56,19 +54,19 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -136,9 +134,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  protected CandidateGenerator getCandidateInvariants(CFA cfa,
-      Collection<CFANode> targetLocations) {
-    if (targetLocations.isEmpty()) {
+  protected CandidateGenerator getCandidateInvariants() {
+    if (getTargetLocations().isEmpty()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
       return new StaticCandidateProvider(Sets.<CandidateInvariant>newHashSet(TargetLocationCandidateInvariant.INSTANCE));
@@ -263,7 +260,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       try {
         PathChecker pathChecker = new PathChecker(logger, pmgr, solver, assignmentToPathAllocator);
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.getInnerEdges());
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath);
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");

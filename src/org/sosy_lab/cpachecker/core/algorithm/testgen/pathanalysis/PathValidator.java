@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.iteration.PredicatePathAnalysisResult;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSelector.PathInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
@@ -42,21 +40,21 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
  */
 public interface PathValidator {
 
-  public CounterexampleTraceInfo validatePathCandidate(Pair<ARGState, CFAEdge> pCurrentElement, List<CFAEdge> pNewPath)throws CPAException, InterruptedException;
+  public CounterexampleTraceInfo validatePathCandidate(ARGState pCurrentState, ARGPath pNewPath)throws CPAException, InterruptedException;
 
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pAsEdgesList) throws CPAException, InterruptedException;
+  public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException, InterruptedException;
 
   /**
    * checks if the given node is a possible candidate for a new path branching point.
    * Should not modify internal state and never the given path.
-   * If modification is required use {@link #handleVisitedBranching(MutableARGPath, Pair)}.
+   * If modification is required use {@link #handleVisitedBranching(ARGPath, ARGState)}.
    * @param pNewARGPath
-   * @param pCurrentElement
+   * @param pCurrentState
    * @param pNode
    * @param pOtherEdge
    * @return
    */
-  public boolean isVisitedBranching(final MutableARGPath pNewARGPath,final Pair<ARGState, CFAEdge> pCurrentElement,final CFANode pNode,
+  public boolean isVisitedBranching(final ARGPath pNewARGPath,final ARGState pCurrentState,final CFANode pNode,
       final CFAEdge pOtherEdge);
 
   // the following methods are hooks to trigger an action of this validator when the defined event occurs in the PathSelector.
@@ -90,16 +88,16 @@ public interface PathValidator {
 
   /**
    *
-   * @param pCurrentElement
+   * @param pCurrentState
    */
-  public void handleSinglePathElement(Pair<ARGState, CFAEdge> pCurrentElement);
+  public void handleSinglePathElement(ARGState pCurrentState);
 
   /**
-   * triggered on {@link #isVisitedBranching(MutableARGPath, Pair, CFANode, CFAEdge)} == true.
+   * triggered on {@link #isVisitedBranching(ARGPath, ARGState, CFANode, CFAEdge)} == true.
    *
    * @param pNewARGPath
-   * @param pCurrentElement
+   * @param pCurrentState
    */
-  public void handleVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement);
+  public void handleVisitedBranching(ARGPath pNewARGPath, ARGState pCurrentState);
 
 }

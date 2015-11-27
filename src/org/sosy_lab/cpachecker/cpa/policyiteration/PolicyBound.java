@@ -103,7 +103,9 @@ public class PolicyBound {
 
   @Override
   public String toString() {
-    return String.format("%s (from: %s)", bound, predecessor);
+
+    // Converting the predecessor to string is very costly.
+    return bound.toString();
   }
 
   @Override

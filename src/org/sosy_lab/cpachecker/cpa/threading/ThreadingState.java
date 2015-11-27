@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -35,18 +33,18 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.FluentIterable;
 
 /** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocation, Graphable, Partitionable {
+public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable {
 
   final static int MIN_THREAD_NUM = 0;
 
@@ -100,8 +98,12 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     return states.keySet();
   }
 
-  public Pair<AbstractState, AbstractState> getThreadLocation(String id) {
-    return Preconditions.checkNotNull(states.get(id));
+  public AbstractState getThreadCallstack(String id) {
+    return Preconditions.checkNotNull(states.get(id).getFirst());
+  }
+
+  public LocationState getThreadLocation(String id) {
+    return (LocationState) Preconditions.checkNotNull(states.get(id).getSecond());
   }
 
   Set<Integer> getThreadNums() {
@@ -175,23 +177,40 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocation,
     return Objects.hash(states, locks, threadNums);
   }
 
+  private FluentIterable<AbstractStateWithLocations> getLocations() {
+    return FluentIterable.from(states.values()).transform(
+        new Function<Pair<AbstractState, AbstractState>, AbstractStateWithLocations>() {
+          @Override
+          public AbstractStateWithLocations apply(Pair<AbstractState, AbstractState> p) {
+            return ((AbstractStateWithLocations) p.getSecond());
+          }
+        });
+  }
+
+  private final static Function<AbstractStateWithLocations, Iterable<CFANode>> LOCATION_NODES =
+      new Function<AbstractStateWithLocations, Iterable<CFANode>>() {
+        @Override
+        public Iterable<CFANode> apply(AbstractStateWithLocations loc) {
+          return loc.getLocationNodes();
+        }
+      };
+
+  private final static Function<AbstractStateWithLocations, Iterable<CFAEdge>> OUTGOING_EDGES =
+      new Function<AbstractStateWithLocations, Iterable<CFAEdge>>() {
+        @Override
+        public Iterable<CFAEdge> apply(AbstractStateWithLocations loc) {
+          return loc.getOutgoingEdges();
+        }
+      };
+
   @Override
-  public CFANode getLocationNode() {
-    Preconditions.checkState(!states.isEmpty());
-    // return node of first thread
-    // TODO correct? maybe we can improve this??
-    return ((AbstractStateWithLocation)states.values().iterator().next().getSecond()).getLocationNode();
+  public Iterable<CFANode> getLocationNodes() {
+    return getLocations().transformAndConcat(LOCATION_NODES);
   }
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-    return Iterables.concat(Collections2.transform(states.values(),
-        new Function<Pair<AbstractState, AbstractState>,Iterable<CFAEdge>>() {
-      @Override
-      public Iterable<CFAEdge> apply(Pair<AbstractState, AbstractState> p) {
-        return leavingEdges(((AbstractStateWithLocation)p.getSecond()).getLocationNode());
-      }
-    }));
+    return getLocations().transformAndConcat(OUTGOING_EDGES);
   }
 
   @Override

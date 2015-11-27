@@ -177,24 +177,24 @@ public class CustomInstructionTest {
   @Test
   public void testGetSignature() {
     ci = new CustomInstruction(null, null, Collections.<String> emptyList(), Collections.<String> emptyList(), ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("( -> )");
+    Truth.assertThat(ci.getSignature()).isEqualTo("() -> ()");
 
     List<String> inputVars = new ArrayList<>();
     inputVars.add("var");
     List<String> outputVars = new ArrayList<>();
     outputVars.add("var0");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|var| -> |var0@1|)");
+    Truth.assertThat(ci.getSignature()).isEqualTo("(var) -> (var0@1)");
 
     inputVars = new ArrayList<>();
-    inputVars.add("var1");
+    inputVars.add("f::var1");
     inputVars.add("var2");
     outputVars = new ArrayList<>();
     outputVars.add("var3");
-    outputVars.add("var4");
+    outputVars.add("f::var4");
     outputVars.add("var5");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|var1|, |var2| -> |var3@1|, |var4@1|, |var5@1|)");
+    Truth.assertThat(ci.getSignature()).isEqualTo("(|f::var1|, var2) -> (var3@1, |f::var4@1|, var5@1)");
   }
 
   @Test
@@ -209,16 +209,16 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, Collections.<String> emptyList(), ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= |var| 0))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= var 0))");
 
     List<String> outputVars = new ArrayList<>();
-    outputVars.add("var1");
+    outputVars.add("f::var1");
     ci = new CustomInstruction(null, null, Collections.<String> emptyList(), outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var1@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= |var1@1| 0))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |f::var1@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= |f::var1@1| 0))");
 
     inputVars = new ArrayList<>();
     inputVars.add("var1");
@@ -227,26 +227,26 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(2);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var1| () Int)");
-    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |var2@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |var1| 0) (= |var2@1| 0)))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1 () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun var2@1 () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
 
     inputVars = new ArrayList<>();
     inputVars.add("var");
-    inputVars.add("var1");
+    inputVars.add("f::var1");
     inputVars.add("var2");
     outputVars = new ArrayList<>();
     outputVars.add("var3");
-    outputVars.add("var4");
+    outputVars.add("f::var4");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(5);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var| () Int)");
-    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |var1| () Int)");
-    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |var2| () Int)");
-    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |var3@1| () Int)");
-    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |var4@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |var| 0)(and (= |var1| 0)(and (= |var2| 0)(and (= |var3@1| 0) (= |var4@1| 0))))))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |f::var1| () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun var2 () Int)");
+    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun var3@1 () Int)");
+    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |f::var4@1| () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var 0)(and (= |f::var1| 0)(and (= var2 0)(and (= var3@1 0) (= |f::var4@1| 0))))))");
   }
 
   @Test
@@ -332,11 +332,10 @@ public class CustomInstructionTest {
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
     Pair<List<String>, String> pair = aci.getFakeSMTDescription();
-    Truth.assertThat(pair.getFirst()).hasSize(4);// TODO size 3
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun 7 () Int)"); // TODO 7 auch hier drin?
-    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::b| () Int)");
-    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::a@1| () Int)");
-    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |main::b@1| () Int)");
+    Truth.assertThat(pair.getFirst()).hasSize(3);
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |main::a@1| () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |main::b@1| () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= 7 0)(and (= |main::b| 0)(and (= |main::a@1| 0) (= |main::b@1| 0)))))");
 
     SSAMap ssaMap = aci.getIndicesForReturnVars();

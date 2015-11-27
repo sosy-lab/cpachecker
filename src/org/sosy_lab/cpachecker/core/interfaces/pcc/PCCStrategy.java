@@ -24,8 +24,10 @@
 package org.sosy_lab.cpachecker.core.interfaces.pcc;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -80,4 +82,10 @@ public interface PCCStrategy {
    */
   public boolean checkCertificate(final ReachedSet reachedSet) throws CPAException, InterruptedException;
 
+  /**
+   * Ask strategy for additional statistics information which should be displayed with statistics of proof generation.
+   *
+   * @return additional statistics which should be displayed with proof generation statistics
+   */
+  public Collection<Statistics> getAdditionalProofGenerationStatistics();
 }

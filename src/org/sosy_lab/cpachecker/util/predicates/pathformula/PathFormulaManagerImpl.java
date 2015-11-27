@@ -104,6 +104,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle arrays using the theory of arrays.")
   private boolean handleArrays = false;
 
+  @Option(secure=true, description="Call 'simplify' on generated formulas.")
+  private boolean simplifyGeneratedPathFormulas = false;
+
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
       "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
@@ -229,6 +232,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
       }
     }
+    if (simplifyGeneratedPathFormulas) {
+      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+    }
     return pf;
   }
 
@@ -288,7 +294,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    return new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    if (simplifyGeneratedPathFormulas) {
+      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+    }
+    return out;
   }
 
   @Override

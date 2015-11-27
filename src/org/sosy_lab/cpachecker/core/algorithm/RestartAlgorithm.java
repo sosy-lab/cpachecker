@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
@@ -182,8 +184,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
-    CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstState());
-    assert mainFunction != null : "Location information needed";
+    Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
+    assert initialNodes != null : "Location information needed";
+    CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
 
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 

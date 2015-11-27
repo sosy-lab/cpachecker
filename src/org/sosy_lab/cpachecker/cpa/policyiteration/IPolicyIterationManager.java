@@ -1,9 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -13,19 +10,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
 
 /**
- * Interface for the processing functions for policy iteration.
+ * Interface for policy iteration.
  */
 public interface IPolicyIterationManager {
-  PolicyState join(
-      PolicyState oldState,
-      PolicyState newState,
-      PolicyPrecision pPrecision) throws CPAException, SolverException,
-      InterruptedException;
 
   Collection<? extends PolicyState> getAbstractSuccessors(
       PolicyState state,
@@ -34,7 +25,7 @@ public interface IPolicyIterationManager {
 
   PolicyState getInitialState(CFANode node);
 
-  Optional<PrecisionAdjustmentResult> prec(
+  Optional<PrecisionAdjustmentResult> precisionAdjustment(
       PolicyState state,
       PolicyPrecision precision,
       UnmodifiableReachedSet states,
@@ -44,5 +35,10 @@ public interface IPolicyIterationManager {
 
   void adjustReachedSet(ReachedSet pReachedSet);
 
-  boolean isLessOrEqual(PolicyState pState1, PolicyState pState2);
+  boolean isLessOrEqual(PolicyState pState1, PolicyState pState2) throws CPAException;
+
+  PolicyState merge(
+      PolicyState state1, PolicyState state2,
+      PolicyPrecision precision)
+      throws CPAException, InterruptedException;
 }

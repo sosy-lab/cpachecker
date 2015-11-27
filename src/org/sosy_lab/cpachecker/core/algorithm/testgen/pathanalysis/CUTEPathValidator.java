@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -37,16 +36,11 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis.BasicPathSele
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 
@@ -69,7 +63,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public CounterexampleTraceInfo validatePath(List<CFAEdge> pPath) throws CPAException,
+  public CounterexampleTraceInfo validatePath(ARGPath pPath) throws CPAException,
       InterruptedException {
     try {
       return patchChecher.checkPath(pPath);
@@ -79,13 +73,13 @@ public class CUTEPathValidator extends AbstractPathValidator{
   }
 
   @Override
-  public boolean isVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement, CFANode pNode,
+  public boolean isVisitedBranching(ARGPath pNewARGPath, ARGState pCurrentState, CFANode pNode,
       CFAEdge pOtherEdge) {
-    return isVisited(pCurrentElement, pOtherEdge);
+    return isVisited(pCurrentState, pOtherEdge);
   }
 
   @Override
-  public void handleVisitedBranching(MutableARGPath pNewARGPath, Pair<ARGState, CFAEdge> pCurrentElement) {
+  public void handleVisitedBranching(ARGPath pNewARGPath, ARGState pCurrentState) {
     // nothing to to
 
   }
@@ -103,7 +97,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
     branchingHistory.resetTo(result.getPath());
   }
 
-  private boolean isVisited(Pair<ARGState, CFAEdge> currentElement, CFAEdge otherEdge) {
+  private boolean isVisited(ARGState currentElement, CFAEdge otherEdge) {
     if (oldElement != null) {
       logger.log(Level.FINER, "Matching path length. Possibly handled this branch earlier");
       if (branchingHistory.isVisited(otherEdge, oldElement)) {
@@ -158,6 +152,11 @@ public class CUTEPathValidator extends AbstractPathValidator{
     }
 
     public void resetTo(ARGPath argPath) {
+      throw new AssertionError("UNIMPLEMENTED");
+      /*
+       * TODO: asEdgesList() contains one edge that is beyond the last state in the path.
+       * The new ARGPath does not contain this edge anymore.
+       * It is unclear whether this code actually needs to have that edge in the path.
       Iterator<CFAEdge> descendingEdgePath = Lists.reverse(argPath.asEdgesList()).iterator();
       edgeHistory = Iterators.transform(descendingEdgePath, new Function<CFAEdge, Pair<CFAEdge, Boolean>>() {
 
@@ -170,6 +169,7 @@ public class CUTEPathValidator extends AbstractPathValidator{
       pathDepths = argPath.size();
       currentDepths = pathDepths;
       visitedEdges.put(Iterables.getLast(argPath.asEdgesList()), true);
+      */
     }
 
 

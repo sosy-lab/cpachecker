@@ -74,6 +74,7 @@ public class PartitioningIOHelper {
   private int savedReachedSetSize;
   private int numPartitions;
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
+  private Statistics currentGraphStatistics;
 
   public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
@@ -132,7 +133,7 @@ public class PartitioningIOHelper {
     }
 
     PartialReachedSetDirectedGraph graph = new PartialReachedSetDirectedGraph(argNodes);
-
+    currentGraphStatistics = graph;
 
     if (useGraphSizeToComputePartitionNumber) {
       return Pair.of(graph,
@@ -233,6 +234,24 @@ public class PartitioningIOHelper {
     return new PartitioningStatistics();
   }
 
+  public Statistics getGraphStatistic() {
+    if(currentGraphStatistics == null){
+      return new Statistics() {
+
+        @Override
+        public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        }
+
+        @Override
+        public @Nullable
+        String getName() {
+          return null;
+        }
+      };
+    }
+    return currentGraphStatistics;
+  }
+
   private class PartitioningStatistics implements Statistics {
 
     @Override
@@ -241,6 +260,11 @@ public class PartitioningIOHelper {
         pOut.format("Number of partitions: %d%n", numPartitions);
         pOut.format("The following numbers are given in number of states.%n");
         computeAndPrintDetailedPartitioningStats(pOut);
+      }
+
+      if(currentGraphStatistics!= null) {
+        pOut.println("\nStatistics for partial reached set directed graph used in proof construction");
+        currentGraphStatistics.printStatistics(pOut, pResult, pReached);
       }
     }
 

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +40,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
-import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 
 enum GraphBuilder {
@@ -67,7 +64,7 @@ enum GraphBuilder {
     @Override
     public void buildGraph(ARGState pRootState,
         Predicate<? super ARGState> pPathStates,
-        Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
+        Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
@@ -75,18 +72,13 @@ enum GraphBuilder {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
-
-        // Location of the state
-        CFANode loc = AbstractStates.extractLocation(s);
-
         String sourceStateNodeId = getId(s);
 
         // Process child states
         for (ARGState child : argEdges.getSecond()) {
 
           String childStateId = getId(child);
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edgeToNextState = loc.getEdgeTo(childLoc);
+          CFAEdge edgeToNextState = s.getEdgeToChild(child);
           String prevStateId = sourceStateNodeId;
 
           if (edgeToNextState instanceof MultiEdge) {
@@ -116,7 +108,7 @@ enum GraphBuilder {
           }
 
           // Only proceed with this state if the path states contain the child
-          if (pPathStates.apply(child) && pIsTargetPathEdge.apply(Pair.of(s, child))) {
+          if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(pDocument, prevStateId, childStateId, edgeToNextState, s, pValueMap);
           } else {
@@ -132,43 +124,32 @@ enum GraphBuilder {
 
     @Override
     public String getId(ARGState pState) {
-      return AbstractStates.extractLocation(pState).toString();
+      return Joiner.on(",").join(AbstractStates.extractLocations(pState));
     }
 
     @Override
     public void buildGraph(ARGState pRootState,
         final Predicate<? super ARGState> pPathStates,
-        final Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
+        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
         Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
 
-      final CFANode rootNode = AbstractStates.extractLocation(pRootState);
-      Set<CFANode> subProgramNodes = FluentIterable.from(
-          Iterables.concat(Collections.singleton(rootNode),
-          Iterables.concat(FluentIterable.from(pARGEdges).transform(new Function<Pair<ARGState, Iterable<ARGState>>, Iterable<CFANode>>() {
+      // normally there is only one node per state, thus we assume that there is only one root-node
+      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
 
-            @Override
-            public Iterable<CFANode> apply(final Pair<ARGState, Iterable<ARGState>> pEdges) {
-              // Get all successor nodes of edges...
-              return FluentIterable
-                  .from(pEdges.getSecond())
-                  .filter(Predicates.and(
-                      // where the successor ARG node is in the set of target path states
-                      pPathStates,
-                      // and the edge is on the target path
-                      Predicates.compose(pIsTargetPathEdge, new Function<ARGState, Pair<ARGState, ARGState>>() {
-
-                        @Override
-                        public Pair<ARGState, ARGState> apply(ARGState pTarget) {
-                          return Pair.of(pEdges.getFirst(), pTarget);
-                        }
-
-                  }))).transform(AbstractStates.EXTRACT_LOCATION);
-            }
-
-          })))).toSet();
+      // Get all successor nodes of edges
+      final Set<CFANode> subProgramNodes = new HashSet<>();
+      subProgramNodes.add(rootNode);
+      for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
+        for (ARGState target : edge.getSecond()) {
+          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
+            Iterables.addAll(subProgramNodes, AbstractStates.extractLocations(target));
+          }
+        }
+      }
 
       Queue<CFANode> waitlist = new ArrayDeque<>();
       Set<CFANode> visited = new HashSet<>();
@@ -209,7 +190,7 @@ enum GraphBuilder {
 
   public abstract void buildGraph(ARGState pRootState,
       Predicate<? super ARGState> pPathStates,
-      Predicate<Pair<ARGState, ARGState>> pIsTargetPathEdge,
+      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
       GraphMlBuilder pDocument,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,

@@ -44,30 +44,32 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExport;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
-import org.sosy_lab.cpachecker.util.cwriter.PathToRealCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
 
+  enum CounterexampleExportType {
+    CBMC, CONCRETE_EXECUTION;
+  }
 
   @Option(secure=true, name="export",
       description="export error path to file, if one is found")
@@ -118,17 +120,17 @@ public class CEXExporter {
   private PathTemplate errorPathAutomatonGraphmlFile = null;
 
   @Option(secure=true, name="codeStyle",
-          description="use either CMBC or real C")
-  private String codeStyle = "CMBC";
+          description="exports either CMBC format or a concrete path program")
+  private CounterexampleExportType codeStyle = CounterexampleExportType.CBMC;
 
   private final LogManager logger;
-  private final ARGPathExport witnessExporter;
+  private final ARGPathExporter witnessExporter;
 
 
-  public CEXExporter(Configuration config, LogManager logger, MachineModel pMachineModel, Language pLanguage) throws InvalidConfigurationException {
+  public CEXExporter(Configuration config, LogManager logger, ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
-    this.witnessExporter = new ARGPathExport(config, logger, pMachineModel, pLanguage);
+    this.witnessExporter = pARGPathExporter;
 
     if (!exportSource) {
       errorPathSourceFile = null;
@@ -190,25 +192,28 @@ public class CEXExporter {
 
         if (counterexample.getTargetPathModel() != null
             && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
-          counterexample.getTargetPathModel().getCFAPathWithAssignments().toJSON(pAppendable, targetPath);
+          targetPath.toJSON(pAppendable, counterexample.getTargetPathModel().getCFAPathWithAssignments().asList());
         } else {
-          targetPath.toJSON(pAppendable);
+          targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
         }
       }
     });
 
     final Set<ARGState> pathElements;
     Appender pathProgram = null;
-    if (counterexample.getTargetPath() != null) {
-      // TODO: This can no longer be distinguished by checking for null, the path is always non-null
-      // precise error path
+    if (counterexample.isPreciseCounterExample()) {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {
-        if (codeStyle.equals("REALC")) {
-          pathProgram = PathToRealCTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
-        } else {
+        switch(codeStyle) {
+        case CONCRETE_EXECUTION:
+          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
+          break;
+        case CBMC:
           pathProgram = PathToCTranslator.translateSinglePath(targetPath);
+          break;
+        default:
+          throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
 
@@ -220,10 +225,15 @@ public class CEXExporter {
       pathElements = ARGUtils.getAllStatesOnPathsTo(lastState);
 
       if (errorPathSourceFile != null) {
-        if (codeStyle.equals("REALC")) {
-          pathProgram = PathToRealCTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
-        } else {
+        switch(codeStyle) {
+        case CONCRETE_EXECUTION:
+          pathProgram = PathToConcreteProgramTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
+          break;
+        case CBMC:
           pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
+          break;
+        default:
+          throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
     }
@@ -264,8 +274,7 @@ public class CEXExporter {
     writeErrorPathFile(errorPathAutomatonGraphmlFile, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-        witnessExporter.writePath(pAppendable, rootState,
-                ARGUtils.CHILDREN_OF_STATE,
+        witnessExporter.writeErrorWitness(pAppendable, rootState,
                 Predicates.in(pathElements),
                 isTargetPathEdge,
                 counterexample);
