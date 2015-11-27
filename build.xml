@@ -169,7 +169,7 @@
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
             <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
-            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
         </zip>
     </target>
