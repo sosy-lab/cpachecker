@@ -763,6 +763,35 @@ public class ARGPath implements Appender {
         return path.states.get(pos);
       }
     }
+
+    /**
+     * {@inheritDoc}
+     * While in the hole of a path prefix inclusive returns the prefix inclusive
+     * the state following the hole of this path.
+     */
+    @Override
+    public ARGPath getPrefixInclusive() {
+      if (currentPositionHasState) {
+        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+      } else {
+        return new ARGPath(path.states.subList(0, pos+2), path.edges.subList(0, pos+1));
+      }
+    }
+
+    /**
+     * {@inheritDoc}
+     * While in the hole of a path prefix exclusive returns the prefix exclusive
+     * the state following the hole of this path. (But inclusive the last found
+     * state)
+     */
+    @Override
+    public ARGPath getPrefixExclusive() {
+      if (currentPositionHasState) {
+        return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos-1));
+      } else {
+        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+      }
+    }
   }
 
   private static class DefaultFullPathIterator extends FullPathIterator {

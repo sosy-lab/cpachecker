@@ -207,16 +207,29 @@ public class ARGPathTest {
 
         assertThat(pathIt.getAbstractState()).isEqualTo(firstARGState);
         assertThat(pathIt.getNextAbstractState()).isEqualTo(secondARGState);
+        assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState);
+
+        try {
+          ExpectedException thrown = ExpectedException.none();
+          thrown.expect(IllegalStateException.class);
+          pathIt.getPrefixExclusive();
+          thrown.reportMissingExceptionWithMessage("Calling getPrefixExclusive does not work while not having advanced"
+              + " the iterator by one position.");
+        } catch (Exception e) { /*do nothing we want to continue testing*/}
 
       } else if (i == STATE_POS_2) {
         assertThat(pathIt.getPreviousAbstractState()).isEqualTo(firstARGState);
         assertThat(pathIt.getAbstractState()).isEqualTo(secondARGState);
         assertThat(pathIt.getNextAbstractState()).isEqualTo(thirdARGState);
+        assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState, secondARGState);
+        assertThat(pathIt.getPrefixExclusive().asStatesList()).containsExactly(firstARGState);
 
       } else if (i == STATE_POS_3) {
         assertThat(pathIt.getPreviousAbstractState()).isEqualTo(secondARGState);
         assertThat(pathIt.getAbstractState()).isEqualTo(thirdARGState);
         assertThat(pathIt.getNextAbstractState()).isEqualTo(lastARGState);
+        assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState);
+        assertThat(pathIt.getPrefixExclusive().asStatesList()).containsExactly(firstARGState, secondARGState);
 
       } else {
         try {
@@ -227,15 +240,16 @@ public class ARGPathTest {
               + " in the middle of a whole in the path");
         } catch (Exception e) { /*do nothing we want to continue testing*/}
 
-        if (i < STATE_POS_2) {
-          assertThat(pathIt.getPreviousAbstractState()).isEqualTo(firstARGState);
-          assertThat(pathIt.getNextAbstractState()).isEqualTo(secondARGState);
-        } else if (i < STATE_POS_3) {
+        if (i < STATE_POS_3) {
           assertThat(pathIt.getPreviousAbstractState()).isEqualTo(secondARGState);
           assertThat(pathIt.getNextAbstractState()).isEqualTo(thirdARGState);
+          assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState);
+          assertThat(pathIt.getPrefixExclusive().asStatesList()).containsExactly(firstARGState, secondARGState);
         } else if (i < edges.size() -1) {
           assertThat(pathIt.getPreviousAbstractState()).isEqualTo(thirdARGState);
           assertThat(pathIt.getNextAbstractState()).isEqualTo(lastARGState);
+          assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState, lastARGState);
+          assertThat(pathIt.getPrefixExclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState);
         } else {
           try {
             ExpectedException thrown = ExpectedException.none();
@@ -244,6 +258,8 @@ public class ARGPathTest {
             thrown.reportMissingExceptionWithMessage("Calling getNextAbstractState should throw an exception"
                 + " if the iterator is on its last element.");
           } catch (Exception e) { /*do nothing we want to continue testing*/}
+          assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState, lastARGState);
+          assertThat(pathIt.getPrefixExclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState);
         }
       }
 
