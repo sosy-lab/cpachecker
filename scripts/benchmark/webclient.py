@@ -54,7 +54,7 @@ from concurrent.futures import Future
 
 try:
     import sseclient
-    import requests.exceptions.HTTPError as HTTPError
+    from requests import HTTPError
 except:
     pass
     
@@ -186,13 +186,14 @@ try:
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
         
         def _should_reconnect(self, error):
-            print(error)
             if self._new_runs:
                 return False
             elif type(error) == HTTPError and error.response is not None \
                     and error.response.status >= 400 and error.response.status < 500 :
+                logging.debug("Exception in SSE connection {}", error)
                 return False
             else:
+                
                 return True
                 
         def _start_sse_connection(self):      
@@ -221,7 +222,9 @@ try:
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
-                except:
+                
+                except Exception as e:
+                    logging.warn("Creating SSE connection failed: {}", e)
                     self._fall_back()
                     return
                 
@@ -265,18 +268,21 @@ try:
             logging.info("Fall back to polling.")
             self._web_interface._result_downloader = PollingResultDownloader(self._web_interface, self._result_poll_interval)
             self._web_interface._result_downloader.start()
-            self.shutdown()
+            self.shutdown(wait=False)
                    
         def start(self):
             self._new_runs = True
             if self._sse_client:
-                self._sseclient.resp.close()
+                self._sse_client.resp.close()
             else:
-                self._state_receive_executor.submit(self._start_sse_connection)
+                future = self._state_receive_executor.submit(self._start_sse_connection)
+                future.add_done_callback(_log_future_exception)
         
-        def shutdown(self):
+        def shutdown(self, wait=True):
             self._shutdown = True
-            self._state_receive_executor.shutdown(wait=True)
+            if self._sse_client:
+                self._sse_client.resp.close()
+            self._state_receive_executor.shutdown(wait=wait)
 
 except:
     pass
@@ -345,6 +351,7 @@ class WebInterface:
         self._group_id = str(random.randint(0, 1000000))
         self._read_hash_code_cache()
         self._resolved_tool_revision(svn_branch, svn_revision)
+        self._tool_name = self._request_tool_name()
         
         try:
             self._result_downloader = SseResultDownloader(self, web_interface_url, result_poll_interval)
@@ -382,9 +389,17 @@ class WebInterface:
         (resolved_svn_revision, _) = self._request("GET", path)
         self._svn_branch = svn_branch
         self._svn_revision = resolved_svn_revision.decode("UTF-8")
+        
+    def _request_tool_name(self):
+        path = self._webclient.path + "tool/name"
+        (tool_name, _) = self._request("GET", path)
+        return tool_name.decode("UTF-8")
 
     def tool_revision(self):
         return self._svn_branch + ':' + self._svn_revision
+    
+    def tool_name(self):
+        return self._tool_name
 
     def _get_sha1_hash(self, path):
         path = os.path.abspath(path)
@@ -532,20 +547,33 @@ class WebInterface:
     def _handle_options(self, run, params, rlimits):
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
         # instead of doing it here manually, too
-        options = ["statistics.print=true"]
-        if 'softtimelimit' in rlimits and not '-timelimit' in options:
-            options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
+        options = []
+        if self._tool_name == "CPAchecker":
+            options.append("statistics.print=true")
+            
+            if 'softtimelimit' in rlimits and not '-timelimit' in options:
+                options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
 
         if run.options:
             i = iter(run.options)
             while True:
                 try:
                     option = next(i)
+                    if len(option) == 0:
+                        continue
+                    
                     if option == "-heap":
                         params['heap'] = next(i)
 
                     elif option == "-noout":
                         options.append("output.disable=true")
+                    elif option == "-outputpath":
+                        options.append("output.path=" + next(i))
+                    elif option == "-logfile":
+                        options.append("log.file=" + next(i))
+                    elif option == "-nolog":
+                        options.append("log.level=OFF")
+                        options.append("log.consoleLevel=OFF")
                     elif option == "-stats":
                         # ignore, is always set by this script
                         pass
@@ -564,6 +592,13 @@ class WebInterface:
                     elif option == "-skipRecursion":
                         options.append("cpa.callstack.skipRecursion=true")
                         options.append("analysis.summaryEdges=true")
+                    elif option == "-cbmc":
+                        options.append("analysis.checkCounterexamples=true")
+                        options.append("counterexample.checker=CBMC")
+                    elif option == "-preprocess":
+                        options.append("parser.usePreprocessor=true")
+                    elif option == "-generateReport":
+                        params['generateReport'] = 'true'
 
                     elif option == "-spec":
                         spec_path = next(i)
@@ -646,18 +681,17 @@ class WebInterface:
     def _download_result_async(self, run_id):
         
         def callback(downloaded_result):
-            run_id = self._downloading_result_futures[downloaded_result]
+            run_id = self._downloading_result_futures.pop(downloaded_result)
             if not downloaded_result.exception():
                 with self._unfinished_runs_lock:
                     result_future = self._unfinished_runs.pop(run_id, None)
                 if result_future:
                     result_future.set_result(downloaded_result.result())
-                del self._downloading_result_futures[downloaded_result]
 
             else:
                 logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
                 # retry it
-                self._download_results(run_id)
+                self._download_result_async(run_id)
         
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
@@ -895,3 +929,7 @@ def _parse_cloud_file(file):
         values[key] = value
 
     return values
+
+def _log_future_exception(result):
+    if result.exception() is not None:
+        logging.warning('Error during result processing.', exc_info=True)

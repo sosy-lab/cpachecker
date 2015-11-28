@@ -277,7 +277,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
               && ((CStatementEdge) edge).getStatement() instanceof CExpressionAssignmentStatement) {
             stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
             if (stmt.getRightHandSide() instanceof CBinaryExpression
-                && ((CBinaryExpression) stmt.getRightHandSide()).getOperator().equals(pOp)) {
+                && ((CBinaryExpression) stmt.getRightHandSide()).getOperator().equals(pOp) &&
+                stmt.getLeftHandSide().getExpressionType().equals(type)) {
               // application of custom instruction found, add to definition file
               aciDef.write(node.getNodeNumber()+"\n");
             }
@@ -347,7 +348,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       visitedNodes.add(tmp);
 
       if (pCustomIA.isStartState(tmp)) {
-        set.add(tmp);
+        set.add(uncover(tmp));
       }
 
       // breadth-first-search

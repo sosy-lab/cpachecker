@@ -57,6 +57,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
+import org.sosy_lab.cpachecker.cpa.octagon.OctagonTransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
@@ -127,6 +129,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
 
   public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -163,6 +166,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
     final Configuration config = pOctagonCPA.getConfiguration();
     config.inject(this);
+    this.config = config;
 
     cfa                   = pOctagonCPA.getCFA();
     logger                = pOctagonCPA.getLogger();
@@ -201,6 +205,8 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
       }
     }
 
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the OctagonCPA
     return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 
@@ -343,7 +349,9 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
 
       // no specific timelimit set for octagon feasibility check
       if (timeForOctagonFeasibilityCheck.isEmpty()) {
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, octagonCPA);
+        checker = new OctagonAnalysisFeasabilityChecker(config, shutdownNotifier, path, octagonCPA.getClass(),
+            cfa.getVarClassification(), new OctagonTransferRelation(logger, cfa.getLoopStructure().get()),
+            new OctagonState(logger, octagonCPA.getManager()));
 
       } else {
         ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
@@ -351,7 +359,9 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
         ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(cfa, logger, notifier, path, octagonCPA);
+        checker = new OctagonAnalysisFeasabilityChecker(config, notifier, path, octagonCPA.getClass(),
+            cfa.getVarClassification(), new OctagonTransferRelation(logger, cfa.getLoopStructure().get()),
+            new OctagonState(logger, octagonCPA.getManager()));
         limits.cancel();
       }
 

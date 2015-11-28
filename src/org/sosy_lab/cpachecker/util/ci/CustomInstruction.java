@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
@@ -179,19 +180,13 @@ public class CustomInstruction{
 
     sb.append("(");
     if (inputVariables.size() > 0) {
-      sb.append("|");
-      Joiner.on("|, |").appendTo(sb, inputVariables);
-      sb.append("|");
+      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
     }
 
     sb.append(") -> (");
 
     if (outputVariables.size() > 0) {
-      sb.append("|");
-      Joiner.on("@1|, |").appendTo(sb, outputVariables);
-      if (outputVariables.size() > 0) {
-        sb.append("@1|");
-      }
+      Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
 
@@ -257,11 +252,11 @@ public class CustomInstruction{
       try {
         Integer.parseInt(var);
       } catch (NumberFormatException e) {
-        outputVariableList.add("(declare-fun |" + var + "| () Int)");
+        outputVariableList.add("(declare-fun " + CIUtils.getSMTName(var) + " () Int)");
       }
     }
     for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun |" + var + "@1| () Int)");
+      outputVariableList.add("(declare-fun " + CIUtils.getSMTName(var+"@1") + " () Int)");
     }
     return Pair.of(outputVariableList, sb.toString());
   }
@@ -284,15 +279,15 @@ public class CustomInstruction{
 
     sb.append("(= ");
     if (!isNumber) {
-      sb.append("|");
+      if(isOutputVariable) {
+        sb.append(CIUtils.getSMTName(var+"@1"));
+      } else {
+        sb.append(CIUtils.getSMTName(var));
+      }
+    } else{
+      sb.append(var);
     }
-    sb.append(var);
-    if (isOutputVariable) {
-      sb.append("@1");
-    }
-    if (!isNumber) {
-      sb.append("|");
-    }
+
     sb.append(" 0)");
     return sb.toString();
   }
@@ -426,11 +421,11 @@ public class CustomInstruction{
       try {
         Integer.parseInt(map.get(var));
       } catch (NumberFormatException e) {
-        outputVariableList.add("(declare-fun |" + map.get(var) + "| () Int)");
+        outputVariableList.add("(declare-fun " + CIUtils.getSMTName(map.get(var))+ " () Int)");
       }
     }
     for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun |" + map.get(var) + "@1| () Int)");
+      outputVariableList.add("(declare-fun " + CIUtils.getSMTName(map.get(var)+"@1") + " () Int)");
     }
 
     return Pair.of(outputVariableList, sb.toString());

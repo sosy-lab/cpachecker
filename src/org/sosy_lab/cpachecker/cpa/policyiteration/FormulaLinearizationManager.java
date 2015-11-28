@@ -13,6 +13,7 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
@@ -26,6 +27,7 @@ public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
+  private final PolicyIterationStatistics statistics;
 
   // Opt environment cached to perform evaluation queries on the model.
   private OptEnvironment environment;
@@ -35,11 +37,13 @@ public class FormulaLinearizationManager {
 
   public FormulaLinearizationManager(UnsafeFormulaManager pUfmgr,
       BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr) {
+      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr,
+      PolicyIterationStatistics pStatistics) {
     ufmgr = pUfmgr;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     ifmgr = pIfmgr;
+    statistics = pStatistics;
   }
 
   /**
@@ -64,6 +68,7 @@ public class FormulaLinearizationManager {
   }
 
   private class LinearizationManager extends BooleanFormulaTransformationVisitor {
+    // todo: shouldn't we just convert to NNF instead?
 
     protected LinearizationManager(
         FormulaManagerView pFmgr, Map<BooleanFormula, BooleanFormula> pCache) {
@@ -144,11 +149,17 @@ public class FormulaLinearizationManager {
 
     environment = optEnvironment;
 
+    statistics.ackermannizationTimer.start();
+    f = bfmgr.applyTactic(f, Tactic.NNF);
+
     // Get rid of UFs.
     BooleanFormula noUFs = processUFs(f);
 
     // Get rid of ite-expressions.
-    return replaceITE(noUFs);
+    BooleanFormula out = replaceITE(noUFs);
+    statistics.ackermannizationTimer.stop();
+
+    return out;
   }
 
   private BooleanFormula replaceITE(BooleanFormula f) {
@@ -184,6 +195,11 @@ public class FormulaLinearizationManager {
     return out;
   }
 
+  /**
+   * Ackermannization:
+   * Requires a fixpoint computation as UFs can take other UFs as arguments.
+   * First removes UFs with no arguments, etc.
+   */
   private BooleanFormula processUFs(BooleanFormula f) {
     List<Formula> UFs = new ArrayList<>(findUFs(f));
 
@@ -204,6 +220,10 @@ public class FormulaLinearizationManager {
         Formula otherFreshVar = fmgr.makeVariable(fmgr.getFormulaType(otherUF),
             freshUFName(idx2));
 
+        /**
+         * If UFs are equal _under_given_model_, make them equal in the
+         * resulting policy bound.
+         */
         if (evaluate(uf).equals(evaluate(otherUF))) {
           extraConstraints.add(fmgr.makeEqual(freshVar, otherFreshVar));
         }

@@ -201,9 +201,7 @@ public class CEXExporter {
 
     final Set<ARGState> pathElements;
     Appender pathProgram = null;
-    if (counterexample.getTargetPath() != null) {
-      // TODO: This can no longer be distinguished by checking for null, the path is always non-null
-      // precise error path
+    if (counterexample.isPreciseCounterExample()) {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {

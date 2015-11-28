@@ -74,8 +74,8 @@ def init(config, benchmark):
                               user_agent='BenchExec', version=benchexec.__version__)
 
     benchmark.tool_version = _webclient.tool_revision()
-    logging.info('Using CPAchecker version {0}.'.format(benchmark.tool_version))
     benchmark.executable = 'scripts/cpa.sh'
+    logging.info('Using {0} version {1}.'.format(benchmark.tool_name, benchmark.tool_version))
 
 def get_system_info():
     return None
@@ -83,8 +83,8 @@ def get_system_info():
 def execute_benchmark(benchmark, output_handler):
     global _webclient
 
-    if (benchmark.tool_name != 'CPAchecker'):
-        logging.warning("The web client does only support the CPAchecker.")
+    if (benchmark.tool_name != _webclient.tool_name()):
+        logging.warning("The web client does only support {}.".format(_webclient.tool_name()))
         return
 
     if not _webclient:
@@ -165,13 +165,20 @@ def _submitRunsParallel(runSet, benchmark):
     logging.info("Run submission finished.")
     return result_futures
 
+
+def _log_future_exception(result):
+    if result.exception() is not None:
+        logging.warning('Error during result processing.', exc_info=True)
+
 def _handle_results(result_futures, output_handler, benchmark):
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]
         result = result_future.result()
-        executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+        f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+        f.add_done_callback(_log_future_exception)
+    executor.shutdown(wait=True)
 
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """

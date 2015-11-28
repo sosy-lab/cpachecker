@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -140,6 +142,22 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
    * Updates the loop information in loopStack of a given edge
    */
   private void handleLoopStack(CFAEdge edge, ARGState state) {
+    // if the edge is null we can just add the ARGState to the current topmost
+    // loop if there is one, the loopstack won't change in such situations
+    if (edge == null) {
+      if (!loopStack.isEmpty()) {
+        List<Loop> loops = getLoopsOfNode(loopStructure, extractLocation(state));
+        // ArrayDeque and List can unfortunately not be compared completely with
+        // equals, therefore we check at least the size
+        assert loops.size() == loopStack.size();
+
+        for (Loop loop : loops) {
+          relevantLoops.get(loop).add(state);
+        }
+      }
+      return;
+    }
+
     CFANode predecessor = edge.getPredecessor();
 
     // remove all loops which we are not in currently

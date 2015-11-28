@@ -32,17 +32,17 @@ import os
 import platform
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
-for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
     sys.path.insert(0, egg)
 
-import benchexec
+import benchexec.benchexec
 
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
 import benchexec.tools
 benchexec.tools.__path__ = [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')] + benchexec.tools.__path__
 
-class Benchmark(benchexec.BenchExec):
+class Benchmark(benchexec.benchexec.BenchExec):
     """
     An extension of BenchExec for use with CPAchecker
     that supports executor modules for executing the benchmarks
@@ -163,4 +163,4 @@ if __name__ == "__main__":
         bin_dir = os.path.join(os.path.dirname(__file__), os.pardir, bin_dir)
         os.environ['PATH'] += os.pathsep + bin_dir
 
-    benchexec.main(Benchmark())
+    benchexec.benchexec.main(Benchmark())

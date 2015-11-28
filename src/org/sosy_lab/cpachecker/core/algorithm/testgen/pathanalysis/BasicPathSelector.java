@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -143,11 +145,20 @@ public class BasicPathSelector implements PathSelector {
           pathInfo.getNodeCount());
       newPath = Lists.newArrayList(descendingPathIterator.getPrefixInclusive().getInnerEdges());
       newPath.add(otherEdge.get());
+
+      ARGPathBuilder builder = ARGPath.builder();
+      PathIterator tmpIt = pExecutedPath.pathIterator();
+      Iterator<CFAEdge> newEdgeIt = newPath.iterator();
+      while (newEdgeIt.hasNext()) {
+        builder.add(tmpIt.getAbstractState(), newEdgeIt.next());
+        tmpIt.advance();
+        newEdgeIt.next();
+      }
       /*
        * evaluate path candidate symbolically using SMT-solving
        */
       stats.beforePathCheck();
-      CounterexampleTraceInfo traceInfo = pathValidator.validatePathCandidate(currentState, newPath);
+      CounterexampleTraceInfo traceInfo = pathValidator.validatePathCandidate(currentState, builder.build(tmpIt.getAbstractState()));
       stats.afterPathCheck();
       /*
        * check if path is feasible. If it's not continue to identify another decision node
@@ -176,8 +187,7 @@ public class BasicPathSelector implements PathSelector {
   @Override
   public CounterexampleTraceInfo computePredicateCheck(ARGPath pExecutedPath) throws CPAException,
       InterruptedException {
-    return pathValidator.validatePath(pExecutedPath.getInnerEdges()
-        );
+    return pathValidator.validatePath(pExecutedPath);
   }
 
 

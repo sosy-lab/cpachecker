@@ -41,15 +41,16 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -85,7 +86,7 @@ public class PathChecker {
     this.assignmentToPathAllocator = pAssignmentToPathAllocator;
   }
 
-  public CounterexampleTraceInfo checkPath(List<CFAEdge> pPath)
+  public CounterexampleTraceInfo checkPath(ARGPath pPath)
       throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
@@ -103,8 +104,8 @@ public class PathChecker {
       } else {
         RichModel model = getModel(thmProver);
 
-        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms = extractVariableAssignment(
-            pPath, ssaMaps, model);
+        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms
+            = extractVariableAssignment(pPath, ssaMaps, model);
 
         CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 
@@ -115,14 +116,14 @@ public class PathChecker {
     }
   }
 
-  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(List<CFAEdge> pPath)
+  private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssaMaps = new ArrayList<>(pPath.size());
 
     PathFormula pathFormula = pmgr.makeEmptyPathFormula();
 
-    for (CFAEdge edge : from(pPath).filter(notNull())) {
+    for (CFAEdge edge : from(pPath.getInnerEdges()).filter(notNull())) {
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : (MultiEdge) edge) {
@@ -148,13 +149,13 @@ public class PathChecker {
    * @throws CPATransferException
    * @throws InterruptedException
    */
-  public List<SSAMap> calculatePreciseSSAMaps(List<CFAEdge> pPath)
+  public List<SSAMap> calculatePreciseSSAMaps(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
     return createPrecisePathFormula(pPath).getSecond();
   }
 
-  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(ARGPath pPath,
       List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
     return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);

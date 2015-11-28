@@ -29,6 +29,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.CFAUtils.*;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -120,7 +121,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
   }
 
-  private static class BackwardsLocationState extends LocationState implements AbstractQueryableState, Targetable {
+  private static class BackwardsLocationState extends LocationState implements Targetable {
 
     private static final long serialVersionUID = 6825257572921009531L;
 
@@ -180,6 +181,11 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   @Override
   public CFANode getLocationNode() {
       return locationNode;
+  }
+
+  @Override
+  public Iterable<CFANode> getLocationNodes() {
+      return Collections.singleton(locationNode);
   }
 
   @Override

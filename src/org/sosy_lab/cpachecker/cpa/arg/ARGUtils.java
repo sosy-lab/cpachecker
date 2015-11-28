@@ -304,16 +304,25 @@ public class ARGUtils {
         }
       };
 
+  private static final Predicate<CFANode> IS_RELEVANT_LOCATION = new Predicate<CFANode>() {
+    @Override
+    public boolean apply(CFANode pInput) {
+      return pInput.isLoopStart()
+          || pInput instanceof FunctionEntryNode
+          || pInput instanceof FunctionExitNode;
+    }
+  };
+
+  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION = new Predicate<Iterable<CFANode>>() {
+    @Override
+    public boolean apply(Iterable<CFANode> nodes) {
+      return Iterables.any(nodes, IS_RELEVANT_LOCATION);
+    }
+  };
+
   public static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
-      new Predicate<CFANode>() {
-        @Override
-        public boolean apply(CFANode pInput) {
-          return pInput.isLoopStart()
-              || pInput instanceof FunctionEntryNode
-              || pInput instanceof FunctionExitNode;
-        }
-      },
-      AbstractStates.EXTRACT_LOCATION);
+      CONTAINS_RELEVANT_LOCATION,
+      AbstractStates.EXTRACT_LOCATIONS);
 
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(

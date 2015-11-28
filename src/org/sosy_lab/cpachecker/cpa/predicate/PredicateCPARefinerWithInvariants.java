@@ -57,6 +57,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathCounterTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -167,7 +168,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
   @Option(secure=true, description="configuration file for bmc generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path bmcConfig = null;
+  private Path bmcConfig = Paths.get("config/bmc.properties");
 
   private Map<Loop, Integer> loopOccurrences = new HashMap<>();
   private boolean wereInvariantsGenerated = false;
@@ -554,7 +555,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
           limits.start();
         }
 
-        CPAInvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
+        InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
 
         if (!timeForInvariantGeneration.isEmpty()) {
           limits.cancel();

@@ -153,7 +153,7 @@ public class StateFormulaConversionManager {
       try {
         invariants = invariantGenerator.get();
       } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+        return fmgr.getBooleanFormulaManager().makeBoolean(true);
       }
     }
     return invariants.getInvariantFor(node, fmgr, pfmgr);

@@ -44,7 +44,7 @@ public abstract class AbstractPathValidator implements PathValidator {
   }
 
   @Override
-  public CounterexampleTraceInfo validatePathCandidate(ARGState pCurrentState, List<CFAEdge> pNewPath)
+  public CounterexampleTraceInfo validatePathCandidate(ARGState pCurrentState, ARGPath pNewPath)
       throws CPAException, InterruptedException {
     return validatePath(pNewPath);
   }

@@ -14,11 +14,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import com.google.common.base.Optional;
 
 public interface IFormulaSlicingManager {
-  SlicingState join(
-      SlicingState oldState,
-      SlicingState newState
-  ) throws CPAException, InterruptedException;
-
   Collection<? extends SlicingState> getAbstractSuccessors(
       SlicingState state,
       CFAEdge edge
@@ -37,4 +32,6 @@ public interface IFormulaSlicingManager {
 
   Optional<PrecisionAdjustmentResult> prec(SlicingState pState, UnmodifiableReachedSet pStates,
       AbstractState pFullState);
+
+  SlicingState merge(SlicingState pState1, SlicingState pState2) throws InterruptedException;
 }

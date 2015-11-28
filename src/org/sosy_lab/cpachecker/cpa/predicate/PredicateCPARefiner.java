@@ -298,6 +298,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final CounterexampleTraceInfo preciseCounterexample;
 
     preciseCouterexampleTime.start();
+    boolean isPreciseErrorPath = true;
     if (branchingOccurred) {
       Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
 
@@ -313,6 +314,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
         targetPath = allStatesTrace;
         preciseCounterexample = counterexample;
+        isPreciseErrorPath = false;
       }
     } else {
       targetPath = allStatesTrace;
@@ -320,7 +322,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
     preciseCouterexampleTime.stop();
 
-    CounterexampleInfo cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+    CounterexampleInfo cex;
+    if (isPreciseErrorPath) {
+      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel());
+    } else {
+      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+    }
     cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
         dumpCounterexampleFile);
     return cex;
@@ -485,7 +492,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       // try to create a better satisfying assignment by replaying this single path
       CounterexampleTraceInfo info2;
       try {
-        info2 = pathChecker.checkPath(targetPath.getInnerEdges());
+        info2 = pathChecker.checkPath(targetPath);
 
       } catch (SolverException | CPATransferException e) {
         // path is now suddenly a problem
@@ -508,14 +515,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
       final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
 
-    List<CFAEdge> edges = targetPath.getInnerEdges();
-
-    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(edges);
+    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(targetPath);
 
     RichModel model = counterexample.getModel();
 
     Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
-        pathChecker.extractVariableAssignment(edges, ssamaps, model);
+        pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 

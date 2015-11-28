@@ -40,7 +40,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 
 enum GraphBuilder {
 
@@ -122,7 +124,7 @@ enum GraphBuilder {
 
     @Override
     public String getId(ARGState pState) {
-      return AbstractStates.extractLocation(pState).toString();
+      return Joiner.on(",").join(AbstractStates.extractLocations(pState));
     }
 
     @Override
@@ -134,7 +136,8 @@ enum GraphBuilder {
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
 
-      final CFANode rootNode = AbstractStates.extractLocation(pRootState);
+      // normally there is only one node per state, thus we assume that there is only one root-node
+      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
 
       // Get all successor nodes of edges
       final Set<CFANode> subProgramNodes = new HashSet<>();
@@ -143,7 +146,7 @@ enum GraphBuilder {
         for (ARGState target : edge.getSecond()) {
           // where the successor ARG node is in the set of target path states AND the edge is relevant
           if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
-            subProgramNodes.add(AbstractStates.extractLocation(target));
+            Iterables.addAll(subProgramNodes, AbstractStates.extractLocations(target));
           }
         }
       }

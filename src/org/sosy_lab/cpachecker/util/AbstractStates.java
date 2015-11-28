@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -121,10 +122,23 @@ public final class AbstractStates {
     return e == null ? null : e.getLocationNode();
   }
 
+  public static Iterable<CFANode> extractLocations(AbstractState pState) {
+    AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
+    return e == null ? null : e.getLocationNodes();
+  }
+
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION = new Function<AbstractState, CFANode>() {
     @Override
     public CFANode apply(AbstractState pArg0) {
       return extractLocation(pArg0);
+    }
+  };
+
+  public static final Function<AbstractState, Iterable<CFANode>> EXTRACT_LOCATIONS =
+      new Function<AbstractState, Iterable<CFANode>>() {
+    @Override
+    public Iterable<CFANode> apply(AbstractState pArg0) {
+      return extractLocations(pArg0);
     }
   };
 
