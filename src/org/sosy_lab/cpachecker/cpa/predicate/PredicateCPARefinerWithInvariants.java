@@ -163,8 +163,14 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
   @Option(secure=true, description="Try to generate inductive invariants, by using"
       + " sliced prefixs and check if they are invariants. If this failes invariant"
-      + " generation via other CPAs will be done if possible.")
+      + " generation via other CPAs will be done or interpolation, depending"
+      + " on the option 'fallbackToInvGen'.")
   private boolean useKInduction = true;
+
+  @Option(secure=true, description="If k-induction fails to generate invariants"
+      + " we fall back to the usual invariant generation with this option toggled,"
+      + " otherwise interpolation is used")
+  private boolean fallbackToInvGen = true;
 
   @Option(secure=true, description="configuration file for bmc generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
@@ -180,7 +186,9 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   // statistics
   private final StatTimer totalInvariantGeneration = new StatTimer("Time for invariant generation");
   private final StatInt totalInvariantRefinements = new StatInt(StatKind.COUNT, "Number of invariants refinements");
+  private final StatInt succInvariantRefinements = new StatInt(StatKind.COUNT, "Number of successful invariants refinements");
   private final StatInt totalInductiveRefinements = new StatInt(StatKind.COUNT, "Number of invariant refinements with k-induction");
+  private final StatInt succInductiveRefinements = new StatInt(StatKind.COUNT, "Number of successful refinements with k-induction");
   private final StatInt totalRepeatedCounterexamples = new StatInt(StatKind.COUNT, "Number of repeated counterexamples");
 
   class Stats extends AbstractStatistics {
@@ -193,8 +201,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       if (numberOfRefinements > 0) {
         w0.put(totalRepeatedCounterexamples);
         w0.put(totalInvariantRefinements);
+        w0.beginLevel().put(succInvariantRefinements);
         w0.beginLevel().put(totalInvariantGeneration);
         w0.beginLevel().put(totalInductiveRefinements);
+        w0.beginLevel().beginLevel().put(succInductiveRefinements);
       }
     }
 
@@ -337,7 +347,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     // start refinement here, in the previous cases the time gets counted
     // in the super method
-    totalRefinement.start();
+    totalInvariantGeneration.start();
     logger.log(Level.FINEST, "Starting invariant-generation-based refinement");
 
     Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
@@ -369,22 +379,28 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     if (counterexample.isSpurious()) {
       logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
 
+      totalInvariantRefinements.setNextValue(1);
+
       List<BooleanFormula> precisionIncrement = null;
       if (useKInduction) {
         precisionIncrement = generateInductiveInvariants(allStatesTrace, abstractionStatesTrace);
+        totalInductiveRefinements.setNextValue(1);
       }
 
-      if (!useKInduction || precisionIncrement.isEmpty()) {
+      if (!useKInduction || (precisionIncrement.isEmpty() && fallbackToInvGen)) {
         precisionIncrement = generateInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
 
         // successful invariant generation with k-induction
-      } else {
-        totalInductiveRefinements.setNextValue(1);
+      } else if (useKInduction) {
+        succInductiveRefinements.setNextValue(1);
       }
 
       // fall-back to interpolation
       if (precisionIncrement.isEmpty()) {
-        return interpolationRefinement(pReached, abstractionStatesTrace, formulas, elementsOnPath);
+        precisionIncrement = generateInterpolants(abstractionStatesTrace, formulas, elementsOnPath);
+      } else {
+        succInvariantRefinements.setNextValue(1);
+        wereInvariantsGenerated = true;
       }
 
       if (strategy instanceof PredicateAbstractionRefinementStrategy) {
@@ -393,9 +409,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       strategy.performRefinement(pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
 
-      totalInvariantRefinements.setNextValue(1);
-      wereInvariantsGenerated = true;
-      totalRefinement.stop();
+      totalInvariantGeneration.stop();
       return CounterexampleInfo.spurious();
 
     } else {
@@ -408,30 +422,20 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
           true);
       CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
 
-      totalRefinement.stop();
+      totalInvariantGeneration.stop();
       return cex;
     }
   }
 
-  private CounterexampleInfo interpolationRefinement(final ARGReachedSet pReached,
-      final List<ARGState> abstractionStatesTrace, final List<BooleanFormula> formulas,
-      final Set<ARGState> elementsOnPath)
-          throws CPAException, InterruptedException {
-
-    if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-      ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(atomicInterpolants);
-    }
+  private List<BooleanFormula> generateInterpolants(final List<ARGState> abstractionStatesTrace,
+      final List<BooleanFormula> formulas, final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas,
         Lists.<AbstractState>newArrayList(abstractionStatesTrace),
         elementsOnPath,
         true);
 
-    strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), false);
-
-    wereInvariantsGenerated = false;
-    totalRefinement.stop();
-    return CounterexampleInfo.spurious();
+    return counterexample.getInterpolants();
   }
 
   /**
@@ -518,7 +522,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       return invariants;
 
     } catch (InvalidConfigurationException | CPAException | InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Could not compute invariants");
+      logger.logUserException(Level.WARNING, e, "Could not compute inductive invariants");
       return Collections.emptyList();
     }
 
@@ -561,11 +565,13 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
         InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
 
+        List<BooleanFormula> invariants = generateInvariants0(abstractionStatesTrace, invGen);
+
         if (!timeForInvariantGeneration.isEmpty()) {
           limits.cancel();
         }
 
-        return generateInvariants0(abstractionStatesTrace, invGen);
+        return invariants;
 
       } catch (InvalidConfigurationException | IOException | CPAException | InterruptedException e) {
         logger.logUserException(Level.WARNING, e, "Could not compute invariants");

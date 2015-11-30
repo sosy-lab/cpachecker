@@ -1604,6 +1604,11 @@ cpa.predicate.refinement.dumpPredicates = false
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 
+# If k-induction fails to generate invariants we fall back to the usual
+# invariant generation with this option toggled, otherwise interpolation is
+# used
+cpa.predicate.refinement.fallbackToInvGen = true
+
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
@@ -1708,7 +1713,7 @@ cpa.predicate.refinement.useInvariantRefinement = false
 
 # Try to generate inductive invariants, by using sliced prefixs and check if
 # they are invariants. If this failes invariant generation via other CPAs
-# will be done if possible.
+# will be done or interpolation, depending on the option 'fallbackToInvGen'.
 cpa.predicate.refinement.useKInduction = true
 
 # Invariants that are not strong enough to refute the counterexample can be
