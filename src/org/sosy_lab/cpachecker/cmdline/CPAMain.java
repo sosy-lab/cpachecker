@@ -321,6 +321,7 @@ public class CPAMain {
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
+    @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
     Closer closer = Closer.create();
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {

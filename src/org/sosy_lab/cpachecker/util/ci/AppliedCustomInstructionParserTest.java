@@ -236,23 +236,22 @@ public class AppliedCustomInstructionParserTest {
     aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), new BasicLogManager(TestDataTools
             .configurationForTest().build()), cfa);
     Path p = Paths.createTempPath("test_acis", null);
-    Writer file = Files.openOutputFile(p);
-    file.append("main\n");
-    CFANode node;
-    Deque<CFANode> toVisit = new ArrayDeque<>();
-    toVisit.add(cfa.getMainFunction());
-    while(!toVisit.isEmpty()) {
-      node = toVisit.pop();
+    try (Writer file = Files.openOutputFile(p)) {
+      file.append("main\n");
+      CFANode node;
+      Deque<CFANode> toVisit = new ArrayDeque<>();
+      toVisit.add(cfa.getMainFunction());
+      while (!toVisit.isEmpty()) {
+        node = toVisit.pop();
 
-      for(CFANode succ: CFAUtils.allSuccessorsOf(node)) {
-        toVisit.add(succ);
-        if(node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
-          file.append(node.getNodeNumber()+"\n");
+        for (CFANode succ : CFAUtils.allSuccessorsOf(node)) {
+          toVisit.add(succ);
+          if (node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+            file.append(node.getNodeNumber() + "\n");
+          }
         }
       }
     }
-    file.flush();
-    file.close();
 
     CFANode expectedStart = null;
     for(CLabelNode n: getLabelNodes(cfa)){

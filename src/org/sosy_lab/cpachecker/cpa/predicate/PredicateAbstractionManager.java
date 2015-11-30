@@ -287,8 +287,7 @@ public class PredicateAbstractionManager {
     if (reuseAbstractionsFrom != null
         && !abstractionReuseDisabledBecauseOfAmbiguity) {
       stats.abstractionReuseTime.start();
-      ProverEnvironment reuseEnv = solver.newProverEnvironment();
-      try {
+      try (ProverEnvironment reuseEnv = solver.newProverEnvironment()) {
         reuseEnv.push(f);
 
         Deque<Pair<Integer, Integer>> tryReuseBasedOnPredecessors = new ArrayDeque<>();
@@ -367,7 +366,6 @@ public class PredicateAbstractionManager {
           }
         }
       } finally {
-        reuseEnv.close();
         stats.abstractionReuseTime.stop();
       }
     }
