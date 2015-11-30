@@ -33,7 +33,7 @@ import org.sosy_lab.solver.test.SolverFormulaWithAssumptionsTest;
 public class InterpolatingProverWithAssumptionsWrapperTest extends SolverFormulaWithAssumptionsTest {
 
   @Override
-  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
+  protected ConfigurationBuilder createTestConfigBuilder() {
     return super.createTestConfigBuilder()
                 .setOption("cpa.predicate.encodeFloatAs", "INTEGER");
   }
