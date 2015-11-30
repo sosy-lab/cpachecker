@@ -179,8 +179,9 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
   // statistics
   private final StatTimer totalInvariantGeneration = new StatTimer("Time for invariant generation");
-  private final StatInt totalSuccessfulInvariantRefinements = new StatInt(StatKind.COUNT, "Number of successful invariant refinements");
-  private final StatInt totalInvariantRefinementTries = new StatInt(StatKind.COUNT, "Number of invariants refinements");
+  private final StatInt totalInvariantRefinements = new StatInt(StatKind.COUNT, "Number of invariants refinements");
+  private final StatInt totalInductiveRefinements = new StatInt(StatKind.COUNT, "Number of invariant refinements with k-induction");
+  private final StatInt totalRepeatedCounterexamples = new StatInt(StatKind.COUNT, "Number of repeated counterexamples");
 
   class Stats extends AbstractStatistics {
 
@@ -190,9 +191,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       int numberOfRefinements = totalRefinement.getUpdateCount();
       if (numberOfRefinements > 0) {
-        w0.put(totalInvariantRefinementTries);
-        w0.put(totalSuccessfulInvariantRefinements);
+        w0.put(totalRepeatedCounterexamples);
+        w0.put(totalInvariantRefinements);
         w0.beginLevel().put(totalInvariantGeneration);
+        w0.beginLevel().put(totalInductiveRefinements);
       }
     }
 
@@ -300,6 +302,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
     lastErrorPath = errorPath;
 
+    if (repeatedCounterexample) {
+      totalRepeatedCounterexamples.setNextValue(1);
+    }
+
     // nothing was computed up to now, so just call refinement of
     // our super class if we have a repeated counter example
     // or we don't even need a precision increment
@@ -316,12 +322,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       }
       wereInvariantsGenerated = false;
       return super.performRefinement(pReached, allStatesTrace);
-    }
-
-    // TODO this statistic gets updated only if there is a refinement following
-    // the current one, therefore it is not completely accurate
-    if (wereInvariantsGenerated) {
-      totalSuccessfulInvariantRefinements.setNextValue(1);
     }
 
     // get the relevant loops in the ARGPath and the number of occurrences of
@@ -376,6 +376,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       if (!useKInduction || precisionIncrement.isEmpty()) {
         precisionIncrement = generateInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
+
+        // successful invariant generation with k-induction
+      } else {
+        totalInductiveRefinements.setNextValue(1);
       }
 
       // fall-back to interpolation
@@ -389,7 +393,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       strategy.performRefinement(pReached, abstractionStatesTrace, precisionIncrement, repeatedCounterexample);
 
-      totalInvariantRefinementTries.setNextValue(1);
+      totalInvariantRefinements.setNextValue(1);
       wereInvariantsGenerated = true;
       totalRefinement.stop();
       return CounterexampleInfo.spurious();
