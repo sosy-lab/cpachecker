@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;

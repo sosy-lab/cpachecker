@@ -31,8 +31,8 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 

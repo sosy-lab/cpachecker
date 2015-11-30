@@ -29,7 +29,7 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 import org.junit.Before;
 import org.mockito.Mockito;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;

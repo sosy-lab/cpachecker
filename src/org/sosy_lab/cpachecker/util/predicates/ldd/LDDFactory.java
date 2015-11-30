@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.ldd;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import edu.cmu.sei.rtss.jldd.swig.CIntArray;
 import edu.cmu.sei.rtss.jldd.swig.JLDD;

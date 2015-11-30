@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
