@@ -219,28 +219,26 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     private boolean produced = false;
     private List<CandidateInvariant> candidates = new ArrayList<>();
 
-    private ARGPath argPath;
-    private List<CFANode> abstractionNodes;
+    private final ARGPath argPath;
+    private final List<CFANode> abstractionNodes;
+    private final Set<ARGState> elementsOnPath;
+    private final List<ARGState> abstractionStatesTrace;
+    private final List<InfeasiblePrefix> infeasiblePrefixes;
 
-    private InvCandidateGenerator(ARGPath pPath, List<CFANode> pAbstractionNodes) {
+    private InvCandidateGenerator(ARGPath pPath, List<CFANode> pAbstractionNodes) throws CPAException, InterruptedException {
       argPath = pPath;
       abstractionNodes = pAbstractionNodes;
+      elementsOnPath = extractElementsOnPath(argPath);
+      abstractionStatesTrace = transformPath(argPath);
+
+      prefixExtractionTime.start();
+      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(argPath);
+      prefixExtractionTime.stop();
     }
 
     @Override
     public boolean produceMoreCandidates() {
       if (produced) {
-        return false;
-      }
-
-      List<InfeasiblePrefix> infeasiblePrefixes = Collections.emptyList();
-
-      try {
-        prefixExtractionTime.start();
-        infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(argPath);
-        prefixExtractionTime.stop();
-      } catch (CPAException | InterruptedException e) {
-        logger.logUserException(Level.WARNING, e, "Could not create infeasible prefixes for invariant generation.");
         return false;
       }
 
@@ -258,8 +256,16 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         = new Function<InfeasiblePrefix, List<CandidateInvariant>>() {
             @Override
             public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
+              List<BooleanFormula> interpolants;
+              try {
+                interpolants = generateInterpolants(abstractionStatesTrace, pInput.getPathFormulae(), elementsOnPath);
+              } catch (CPAException | InterruptedException e) {
+                logger.logUserException(Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
+                return Collections.emptyList();
+              }
+
               List<CandidateInvariant> invCandidates = new ArrayList<>();
-              for (Pair<CFANode, BooleanFormula> nodeAndFormula : Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, pInput.getPathFormulae())) {
+              for (Pair<CFANode, BooleanFormula> nodeAndFormula : Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
                 invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(), nodeAndFormula.getSecond()));
               }
               return invCandidates;
@@ -486,7 +492,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     return loopFinder.getRelevantLoops().keySet();
   }
 
-  private List<BooleanFormula> generateInductiveInvariants(ARGPath pPath, List<ARGState> pAbstractionStatesTrace) {
+  private List<BooleanFormula> generateInductiveInvariants(ARGPath pPath, List<ARGState> pAbstractionStatesTrace) throws CPAException, InterruptedException {
     InvCandidateGenerator candidateGenerator = new InvCandidateGenerator(pPath, from(pAbstractionStatesTrace)
                                                                                 .transform(EXTRACT_LOCATION)
                                                                                 .toList());
