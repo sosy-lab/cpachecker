@@ -5,7 +5,7 @@
 
     <!-- Targets for running JUnit. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker and VerifierCloud. -->
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
 
     <!-- Can be overridden from including file. -->
     <property name="junit.dir" value="junit"/>

@@ -22,6 +22,7 @@
     <import file="build/build-compile.xml"/>
     <import file="build/build-jar.xml"/>
     <import file="build/build-junit.xml"/>
+    <import file="build/build-format-source.xml"/>
     <import file="build/build-findbugs.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
