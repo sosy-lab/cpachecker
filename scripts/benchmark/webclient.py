@@ -344,6 +344,7 @@ class WebInterface:
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
         self._downloading_result_futures = {}
+        self._download_attempts = {}
         self.thread_count = thread_count
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
@@ -682,7 +683,9 @@ class WebInterface:
         
         def callback(downloaded_result):
             run_id = self._downloading_result_futures.pop(downloaded_result)
-            if not downloaded_result.exception():
+            exception = downloaded_result.exception()
+            
+            if not exception:
                 with self._unfinished_runs_lock:
                     result_future = self._unfinished_runs.pop(run_id, None)
                 if result_future:
@@ -690,8 +693,19 @@ class WebInterface:
 
             else:
                 logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
-                # retry it
-                self._download_result_async(run_id)
+                
+                # client error
+                if type(exception) is urllib2.HTTPError and 400 <= exception.code and exception.code <= 499:
+                    attempts = self._download_attempts.pop(run_id, 1);
+                    if attempts < 10:
+                        self._download_attempts[run_id] = attempts + 1;
+                        self._download_result_async(run_id)
+                    else:
+                        self._run_failed(run_id)
+                        
+                else:
+                    # retry it
+                    self._download_result_async(run_id)
         
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
