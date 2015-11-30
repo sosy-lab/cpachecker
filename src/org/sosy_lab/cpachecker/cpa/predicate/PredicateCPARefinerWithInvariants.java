@@ -397,7 +397,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         precisionIncrement = generateInvariants(allStatesTrace, abstractionStatesTrace, loopsInPath);
 
         // successful invariant generation with k-induction
-      } else if (useKInduction) {
+      } else if (useKInduction && !precisionIncrement.isEmpty()) {
         succInductiveRefinements.setNextValue(1);
       }
 
