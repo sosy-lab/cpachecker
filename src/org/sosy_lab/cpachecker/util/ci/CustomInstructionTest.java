@@ -39,7 +39,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -185,7 +185,7 @@ public class CustomInstructionTest {
     List<String> outputVars = new ArrayList<>();
     outputVars.add("var0");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|var|) -> (|var0@1|)");
+    Truth.assertThat(ci.getSignature()).isEqualTo("(var) -> (var0@1)"); //TODO
 
     inputVars = new ArrayList<>();
     inputVars.add("var1");
@@ -195,7 +195,7 @@ public class CustomInstructionTest {
     outputVars.add("var4");
     outputVars.add("var5");
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
-    Truth.assertThat(ci.getSignature()).isEqualTo("(|var1|, |var2|) -> (|var3@1|, |var4@1|, |var5@1|)");
+    Truth.assertThat(ci.getSignature()).isEqualTo("(var1, var2) -> (var3@1, var4@1, var5@1)"); // TODO
   }
 
   @Test
@@ -210,16 +210,16 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, Collections.<String> emptyList(), ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= |var| 0))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)"); // TODO
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= var 0))");
 
     List<String> outputVars = new ArrayList<>();
     outputVars.add("var1");
     ci = new CustomInstruction(null, null, Collections.<String> emptyList(), outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var1@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= |var1@1| 0))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1@1 () Int)"); // TODO
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= var1@1 0))");
 
     inputVars = new ArrayList<>();
     inputVars.add("var1");
@@ -228,9 +228,9 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(2);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var1| () Int)");
-    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |var2@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |var1| 0) (= |var2@1| 0)))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1 () Int)"); // TODO
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun var2@1 () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var1 0) (= var2@1 0)))");
 
     inputVars = new ArrayList<>();
     inputVars.add("var");
@@ -242,12 +242,12 @@ public class CustomInstructionTest {
     ci = new CustomInstruction(null, null, inputVars, outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(5);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |var| () Int)");
-    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |var1| () Int)");
-    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun |var2| () Int)");
-    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun |var3@1| () Int)");
-    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |var4@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= |var| 0)(and (= |var1| 0)(and (= |var2| 0)(and (= |var3@1| 0) (= |var4@1| 0))))))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var () Int)"); // TODO
+    Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun var1 () Int)");
+    Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun var2 () Int)");
+    Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun var3@1 () Int)");
+    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun var4@1 () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var 0)(and (= var1 0)(and (= var2 0)(and (= var3@1 0) (= var4@1 0))))))");
   }
 
   @Test

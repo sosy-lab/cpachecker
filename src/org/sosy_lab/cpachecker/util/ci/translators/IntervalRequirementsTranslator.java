@@ -79,6 +79,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
       sb.append(" ");
       sb.append(interval.getHigh());
       sb.append("))");
+//      sb.append(TranslatorsUtils.getVarInBoundsRequirement(var, interval.getLow(), interval.getHigh()));
 
     } else if (!isMin) {
       sb.append("(>= ");
@@ -86,6 +87,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
       sb.append(" ");
       sb.append(interval.getLow());
       sb.append(")");
+//      sb.append(TranslatorsUtils.getVarGreaterOrEqualValRequirement(var, interval.getLow()));
 
     } else if (!isMax) {
       sb.append("(<= ");
@@ -93,6 +95,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
       sb.append(" ");
       sb.append(interval.getHigh());
       sb.append(")");
+//      sb.append(TranslatorsUtils.getVarLessOrEqualValRequirement(var, interval.getLow()));
     }
 
     return sb.toString();

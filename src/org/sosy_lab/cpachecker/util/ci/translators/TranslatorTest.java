@@ -34,7 +34,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -62,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
@@ -163,8 +163,8 @@ public class TranslatorTest {
     requiredVars.add("fun::varC");
     listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, requiredVars);
     content = new ArrayList<>();
-    content.add("(> |var1@1| 0)");
-    content.add("(= |var3@1| 0)");
+    content.add("(> var1@1 0)");
+    content.add("(= var3@1 0)");
     content.add("(<= |fun::varC| 0)");
     Truth.assertThat(listOfIndepententReq).containsExactlyElementsIn(content);
   }
@@ -206,8 +206,8 @@ public class TranslatorTest {
     requiredVars.add("fun::varB");
     listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, requiredVars);
     content = new ArrayList<>();
-    content.add("(<= |var1@1| 5)");
-    content.add("(<= |var3@1| -2)");
+    content.add("(<= var1@1 5)"); // TODO
+    content.add("(<= var3@1 -2)"); // TODO
     content.add("(>= |fun::varB@1| 8)");
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
@@ -230,8 +230,8 @@ public class TranslatorTest {
 
     varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, requiredVars);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1| () Int)");
-    content.add("(declare-fun |var3@1| () Int)");
+    content.add("(declare-fun var1@1 () Int)"); // TODO
+    content.add("(declare-fun var3@1 () Int)");
     content.add("(declare-fun |fun::varB@1| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
@@ -243,7 +243,7 @@ public class TranslatorTest {
 
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
-    s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= |var1@1| 5)(<= |var3@1| -2))))";
+    s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))"; // TODO
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with empty IntervalAnalysisState
