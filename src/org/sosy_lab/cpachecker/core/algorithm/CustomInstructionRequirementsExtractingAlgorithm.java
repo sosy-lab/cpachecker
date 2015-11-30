@@ -112,6 +112,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
           "NOT_EQUALS", ""})
   private String binaryOperatorForSimpleCustomInstruction = "";
 
+  @Option(secure=true, description="Try to remove informations from requirements which is irrelevant for custom instruction behavior")
+  private boolean enableRequirementSlicing = false;
+
   private Class<? extends AbstractState> requirementsStateClass;
 
   private CFA cfa;
@@ -308,7 +311,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
     CustomInstructionRequirementsWriter writer = new CustomInstructionRequirementsWriter(ciFilePrefix,
-        requirementsStateClass, config, shutdownNotifier, logger, cpa);
+        requirementsStateClass, config, shutdownNotifier, logger, cpa, enableRequirementSlicing);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
     for (ARGState node : ciStartNodes) {

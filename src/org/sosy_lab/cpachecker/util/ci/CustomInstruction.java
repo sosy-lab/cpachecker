@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 
@@ -363,7 +364,26 @@ public class CustomInstruction{
       ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
     }
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+    Collection<String> inVars = new ArrayList<>();
+    Collection<String> outVars = new ArrayList<>();
+    for (Entry<String, String> entry : mapping.entrySet()) {
+      if (inputVariables.contains(entry.getKey())) {
+        try {
+          Integer.parseInt(entry.getValue());
+        } catch (NumberFormatException ex) {
+          inVars.add(entry.getValue());
+        }
+      }
+      if (outputVariables.contains(entry.getKey())) {
+        try {
+          Integer.parseInt(entry.getValue());
+        } catch (NumberFormatException ex) {
+          outVars.add(entry.getValue());
+        }
+      }
+    }
+
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
   }
 
   /**

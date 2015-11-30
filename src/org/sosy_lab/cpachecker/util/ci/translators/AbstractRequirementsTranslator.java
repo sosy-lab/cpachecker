@@ -28,6 +28,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -55,14 +57,15 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     return requirements;
   }
 
-  protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices)
+  protected abstract Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars)
       throws CPAException;
 
   public Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertRequirements(
-      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices)
+      final AbstractState pre, final Collection<? extends AbstractState> post, final SSAMap postIndices,
+      final @Nullable Collection<String> pInputVariables, final @Nullable Collection<String> pOutputVariables)
           throws CPAException {
 
-    Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap());
+    Pair<List<String>, String> formulaPre = convertToFormula(extractRequirement(pre), SSAMap.emptySSAMap(), pInputVariables);
     formulaPre = Pair.of(formulaPre.getFirst(), renameDefine(formulaPre.getSecond(), "pre"));
 
     if (post.isEmpty()) {
@@ -80,7 +83,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
     sb.append("(define-fun post () Bool ");
 
     for (AbstractState state : post){
-      formula = convertToFormula(extractRequirement(state), postIndices);
+      formula = convertToFormula(extractRequirement(state), postIndices, pOutputVariables);
       list.addAll(formula.getFirst());
 
       if (BracketCounter != amount-1) {

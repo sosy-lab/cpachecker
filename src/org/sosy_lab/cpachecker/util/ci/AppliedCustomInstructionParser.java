@@ -40,7 +40,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
@@ -92,6 +91,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
@@ -432,8 +432,6 @@ public class AppliedCustomInstructionParser {
         return pPredOutputVars;
       }
     } else if (pLeavingEdge instanceof CDeclarationEdge) {
-      // TODO: so?
-      // if pLeavingedge  CDeclarationEdge --> getQualifiedVariablename --> edgeOutputVariables variable
       edgeOutputVariables = new HashSet<>();
       edgeOutputVariables.add(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
