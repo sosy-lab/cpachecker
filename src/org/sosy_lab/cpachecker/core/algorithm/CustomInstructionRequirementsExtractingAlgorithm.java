@@ -85,6 +85,7 @@ import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParsingFailedExce
 import org.sosy_lab.cpachecker.util.ci.CustomInstruction;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsWriter;
+import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
@@ -317,10 +318,20 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         requirementsStateClass, config, shutdownNotifier, logger, cpa, enableRequirementSlicing);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
-    Collection<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());
+    List<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());
+    List<Pair<List<String>, List<String>>> signatures = new ArrayList<>(ciStartNodes.size());
     for (ARGState start : ciStartNodes) {
       shutdownNotifier.shutdownIfNecessary();
       requirements.add(Pair.of(start, findEndStatesFor(start, cia)));
+      signatures.add(Pair.of(cia.getAppliedCustomInstructionFor(start)
+          .getInputVariablesAndConstants(), cia.getAppliedCustomInstructionFor(start)
+          .getOutputVariables()));
+    }
+
+    if (enableRequirementSlicing) {
+      requirements =
+          RedundantRequirementsRemover.removeRedundantRequirements(requirements, signatures,
+              requirementsStateClass);
     }
 
     for (Pair<ARGState, Collection<ARGState>> requirement : requirements) {
