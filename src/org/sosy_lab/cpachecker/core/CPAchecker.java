@@ -281,20 +281,16 @@ public class CPAchecker {
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      violatedPropertyDescription = null;
       Set<Property> violatedProperties = findViolatedProperties(algorithm, reached);
       if (!violatedProperties.isEmpty()) {
         violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
-      }
 
-      if (violatedPropertyDescription != null) {
         if (!status.isPrecise()) {
           result = Result.UNKNOWN;
         } else {
           result = Result.FALSE;
         }
       } else {
-        violatedPropertyDescription = "";
         result = analyzeResult(reached, status.isSound());
         if (unknownAsTrue && result == Result.UNKNOWN) {
           result = Result.TRUE;
@@ -416,7 +412,7 @@ public class CPAchecker {
 
     final Set<Property> result = Sets.newHashSet();
 
-    for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
+    for (AbstractState e : from(reached).filter(IS_TARGET_STATE)) {
       Targetable t = (Targetable) e;
       result.addAll(t.getViolatedProperties());
     }
