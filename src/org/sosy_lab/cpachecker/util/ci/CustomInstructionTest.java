@@ -365,7 +365,7 @@ public class CustomInstructionTest {
   public void testGetInputVariables() throws IOException, ParserException, InterruptedException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     Truth.assertThat(aci.getInputVariables()).isEmpty();
 
-    Collection<String> inputVariables = new ArrayList<>();
+    List<String> inputVariables = new ArrayList<>(1);
     inputVariables.add("main::a");
     aci = new AppliedCustomInstruction(startNode, endNodes, inputVariables, Collections.<String>emptyList(),
         Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
@@ -376,7 +376,7 @@ public class CustomInstructionTest {
   public void testGetOutputVariables() {
     Truth.assertThat(aci.getOutputVariables()).isEmpty();
 
-    Collection<String> outputVariables = new ArrayList<>();
+    List<String> outputVariables = new ArrayList<>(1);
     outputVariables.add("main::a");
     aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(), outputVariables,
         Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());

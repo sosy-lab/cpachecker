@@ -31,11 +31,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -82,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
@@ -364,26 +363,28 @@ public class CustomInstruction{
       ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
     }
 
-    Collection<String> inVars = new ArrayList<>();
-    Collection<String> outVars = new ArrayList<>();
-    for (Entry<String, String> entry : mapping.entrySet()) {
-      if (inputVariables.contains(entry.getKey())) {
-        try {
-          Integer.parseInt(entry.getValue());
-        } catch (NumberFormatException ex) {
-          inVars.add(entry.getValue());
-        }
-      }
-      if (outputVariables.contains(entry.getKey())) {
-        try {
-          Integer.parseInt(entry.getValue());
-        } catch (NumberFormatException ex) {
-          outVars.add(entry.getValue());
-        }
+    List<String> inVars = getVariablesOrdered(mapping, inputVariables);
+    List<String> outVars = getVariablesOrdered(mapping, outputVariables);
+
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+  }
+
+  private List<String> getVariablesOrdered(final Map<String, String> pMapping,
+      final List<String> pVariables) {
+    List<String> result = new ArrayList<>(pVariables.size());
+
+    String aciVar;
+    for (String ciVar : pVariables) {
+      assert (pMapping.containsKey(ciVar));
+      aciVar = pMapping.get(ciVar);
+      try {
+        Integer.parseInt(aciVar);
+      } catch (NumberFormatException ex) {
+        result.add(aciVar);
       }
     }
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+    return result;
   }
 
   /**

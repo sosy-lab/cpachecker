@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.util.ci;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.ImmutableSet;
@@ -41,8 +41,8 @@ public class AppliedCustomInstruction {
 
   private final CFANode ciStartNode;
   private final Collection<CFANode> ciEndNodes;
-  private final Collection<String> inputVariables;
-  private final Collection<String> outputVariables;
+  private final List<String> inputVariables;
+  private final List<String> outputVariables;
   private final Pair<List<String>, String> fakeDescription;
   private final SSAMap indicesForReturnVars;
 
@@ -53,7 +53,7 @@ public class AppliedCustomInstruction {
    * @param pCiEndNodes ImmutableSet
    */
   public AppliedCustomInstruction (final CFANode pCiStartNode, final Collection<CFANode> pCiEndNodes,
-      final Collection<String> pInputVariables, final Collection<String> pOutputVariables,
+      final List<String> pInputVariables, final List<String> pOutputVariables,
       final Pair<List<String>, String> pFakeDescription, final SSAMap pIndicesForReturnVars){
 
     ciStartNode = pCiStartNode;
