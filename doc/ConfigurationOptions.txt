@@ -1527,6 +1527,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
+# Call buildCounterexampleTrace() n times to produce different interpolants
+# with the solver
+cpa.predicate.refinement.checkCounterexampleNTimes = 1
+
 # Conjunct the formulas that were computed as preconditions to get
 # (infeasible) interpolation problems!
 cpa.predicate.refinement.conjunctPreconditionFormulas = false
@@ -1567,6 +1571,10 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
+
+# How often should generating invariants from sliced prefixes with
+# k-induction be tried?
+cpa.predicate.refinement.kInductionTries = 3
 
 # For differing errorpaths, the loop for which invariants should be generated
 # may still be the same, with this option you can set the maximal amount of
@@ -2268,6 +2276,10 @@ custominstructions.ciFilePrefix = "ci"
 
 # File to be parsed
 custominstructions.definitionFile = no default value
+
+# Try to remove informations from requirements which is irrelevant for custom
+# instruction behavior
+custominstructions.enableRequirementSlicing = false
 
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.

@@ -128,6 +128,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
                                  + "as predicates, and not the whole interpolant")
   protected boolean atomicInterpolants = true;
 
+  @Option(secure=true, description="Call buildCounterexampleTrace() n times to produce"
+      + " different interpolants with the solver")
+  private int checkCounterexampleNTimes = 1;
+
   // statistics
   protected final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
   protected final StatTimer totalRefinement = new StatTimer("Time for refinement");
@@ -255,9 +259,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
     lastErrorPath = errorPath;
 
-    CounterexampleTraceInfo counterexample =formulaManager.buildCounterexampleTrace(formulas,
-        Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-        elementsOnPath, strategy.needsInterpolants());
+    CounterexampleTraceInfo counterexample = buildCounterexampleTrace(elementsOnPath,
+        abstractionStatesTrace, formulas, strategy.needsInterpolants());
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -280,6 +283,25 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       totalRefinement.stop();
       return cex;
     }
+  }
+
+  /**
+   * This method just calls buildCounterexampleTrace, however it reflects the
+   * amount of calls to buildCounterexampleTrace that should be done according
+   * to the configuration option.
+   */
+  protected CounterexampleTraceInfo buildCounterexampleTrace(Set<ARGState> elementsOnPath,
+      final List<ARGState> abstractionStatesTrace, final List<BooleanFormula> formulas,
+      boolean needsInterpolants) throws CPAException, InterruptedException {
+
+    CounterexampleTraceInfo cex = null;
+    for (int i = 0; i < checkCounterexampleNTimes; i++) {
+      cex = formulaManager.buildCounterexampleTrace(formulas,
+          Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+          elementsOnPath, needsInterpolants);
+    }
+
+    return cex;
   }
 
   /**

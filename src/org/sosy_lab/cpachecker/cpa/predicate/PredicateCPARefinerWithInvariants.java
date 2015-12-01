@@ -263,7 +263,9 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
               List<BooleanFormula> interpolants;
               try {
-                interpolants = generateInterpolants(abstractionStatesTrace, pInput.getPathFormulae(), elementsOnPath);
+                interpolants = buildCounterexampleTrace(elementsOnPath, abstractionStatesTrace,
+                    pInput.getPathFormulae(), true).getInterpolants();
+
               } catch (CPAException | InterruptedException e) {
                 logger.logUserException(Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
                 return Collections.emptyList();
@@ -381,10 +383,8 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     // create list of formulas on path
     final List<BooleanFormula> formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
 
-    CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas,
-        Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-        elementsOnPath,
-        false);
+    CounterexampleTraceInfo counterexample = buildCounterexampleTrace(elementsOnPath,
+        abstractionStatesTrace, formulas, false);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -408,7 +408,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       // fall-back to interpolation
       if (precisionIncrement.isEmpty()) {
-        precisionIncrement = generateInterpolants(abstractionStatesTrace, formulas, elementsOnPath);
+        precisionIncrement = buildCounterexampleTrace(elementsOnPath, abstractionStatesTrace, formulas, true).getInterpolants();
       } else {
         succInvariantRefinements.setNextValue(1);
         wereInvariantsGenerated = true;
@@ -436,17 +436,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       totalInvariantGeneration.stop();
       return cex;
     }
-  }
-
-  private List<BooleanFormula> generateInterpolants(final List<ARGState> abstractionStatesTrace,
-      final List<BooleanFormula> formulas, final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
-
-    CounterexampleTraceInfo counterexample = formulaManager.buildCounterexampleTrace(formulas,
-        Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-        elementsOnPath,
-        true);
-
-    return counterexample.getInterpolants();
   }
 
   /**
