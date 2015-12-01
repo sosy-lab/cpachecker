@@ -57,7 +57,6 @@ public class PowersetAutomatonDomainTest {
     final AutomatonInternalState q1 = new AutomatonInternalState("q1", AutomatonBoolExpr.TRUE);
     final AutomatonInternalState q2 = new AutomatonInternalState("q2", AutomatonBoolExpr.TRUE);
     final AutomatonInternalState q3 = new AutomatonInternalState("q3", AutomatonBoolExpr.TRUE);
-    final AutomatonInternalState q4 = new AutomatonInternalState("q4", AutomatonBoolExpr.TRUE);
 
     dom = new PowersetAutomatonDomain(PowersetAutomatonState.TOP);
 
