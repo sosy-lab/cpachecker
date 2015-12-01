@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstruction;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParsingFailedException;
@@ -87,6 +88,7 @@ import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsWriter;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+
 
 @Options(prefix="custominstructions")
 public class CustomInstructionRequirementsExtractingAlgorithm implements Algorithm {
@@ -315,12 +317,20 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         requirementsStateClass, config, shutdownNotifier, logger, cpa, enableRequirementSlicing);
     Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
 
-    for (ARGState node : ciStartNodes) {
-   shutdownNotifier.shutdownIfNecessary();
+    Collection<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());
+    for (ARGState start : ciStartNodes) {
+      shutdownNotifier.shutdownIfNecessary();
+      requirements.add(Pair.of(start, findEndStatesFor(start, cia)));
+    }
+
+    for (Pair<ARGState, Collection<ARGState>> requirement : requirements) {
+      shutdownNotifier.shutdownIfNecessary();
       try {
-        writer.writeCIRequirement(node, findEndStatesFor(node, cia), cia.getAppliedCustomInstructionFor(node));
+        writer.writeCIRequirement(requirement.getFirst(), requirement.getSecond(),
+            cia.getAppliedCustomInstructionFor(requirement.getFirst()));
       } catch (IOException e) {
-        logger.log(Level.SEVERE, "Writing  the CIRequirement failed at node " + node + ".", e);
+        logger.log(Level.SEVERE,
+            "Writing  the CIRequirement failed at node " + requirement.getFirst() + ".", e);
       }
     }
   }
