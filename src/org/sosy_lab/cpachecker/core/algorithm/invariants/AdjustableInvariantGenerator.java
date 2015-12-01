@@ -107,7 +107,7 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> implemen
 
   @Override
   public boolean isProgramSafe() {
-    return isProgramSafe.get();
+    return isProgramSafe.get() || invariantGenerator.get().isProgramSafe();
   }
 
   @Override
