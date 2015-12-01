@@ -169,7 +169,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
     }
 
-    // TODO to be continued: CFA integration
     this.cfa = cfa;
   }
 
@@ -187,6 +186,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       } else {
         logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
         cia = findSimpleCustomInstructionApplications(BinaryOperator.valueOf(binaryOperatorForSimpleCustomInstruction));
+
       }
     } catch (IllegalArgumentException ie) {
       logger.log(Level.SEVERE, "Unknown binary operator ", binaryOperatorForSimpleCustomInstruction,
