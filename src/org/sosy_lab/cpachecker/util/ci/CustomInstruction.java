@@ -365,8 +365,13 @@ public class CustomInstruction{
 
     List<String> inVars = getVariablesOrdered(mapping, inputVariables);
     List<String> outVars = getVariablesOrdered(mapping, outputVariables);
+    List<String> inVarsConst = new ArrayList<>(inputVariables.size());
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+    for(String ciVar: inputVariables) {
+      inVarsConst.add(mapping.get(ciVar));
+    }
+
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, inVarsConst, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
   }
 
   private List<String> getVariablesOrdered(final Map<String, String> pMapping,

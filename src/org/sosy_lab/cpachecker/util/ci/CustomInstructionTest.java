@@ -97,7 +97,7 @@ public class CustomInstructionTest {
 
     cis = new HashMap<>();
     aci = new AppliedCustomInstruction(startNode, endNodes,
-        Collections.<String>emptyList(), Collections.<String>emptyList(),
+        Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
         Pair.of(Collections.<String> emptyList(), ""),
         SSAMap.emptySSAMap());
 
@@ -367,7 +367,7 @@ public class CustomInstructionTest {
 
     List<String> inputVariables = new ArrayList<>(1);
     inputVariables.add("main::a");
-    aci = new AppliedCustomInstruction(startNode, endNodes, inputVariables, Collections.<String>emptyList(),
+    aci = new AppliedCustomInstruction(startNode, endNodes, inputVariables, Collections.<String>emptyList(), inputVariables,
         Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
     Truth.assertThat(aci.getInputVariables()).containsExactly("main::a");
   }
@@ -378,8 +378,20 @@ public class CustomInstructionTest {
 
     List<String> outputVariables = new ArrayList<>(1);
     outputVariables.add("main::a");
-    aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(), outputVariables,
+    aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(), Collections.<String>emptyList(), outputVariables,
         Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
     Truth.assertThat(aci.getOutputVariables()).containsExactly("main::a");
+  }
+
+  @Test
+  public void testGetInputVariablesAndConstants() {
+    Truth.assertThat(aci.getOutputVariables()).isEmpty();
+
+    List<String> inputVarsAndConstants = new ArrayList<>(2);
+    inputVarsAndConstants.add("main::a");
+    inputVarsAndConstants.add("1");
+    aci = new AppliedCustomInstruction(startNode, endNodes,  Collections.singletonList("main::a"), Collections.<String>emptyList(),
+        inputVarsAndConstants, Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    Truth.assertThat(aci.getInputVariablesAndConstants()).containsExactlyElementsIn(inputVarsAndConstants).inOrder();
   }
 }

@@ -43,6 +43,7 @@ public class AppliedCustomInstruction {
   private final Collection<CFANode> ciEndNodes;
   private final List<String> inputVariables;
   private final List<String> outputVariables;
+  private final List<String> inputVariablesAndConstants;
   private final Pair<List<String>, String> fakeDescription;
   private final SSAMap indicesForReturnVars;
 
@@ -53,13 +54,14 @@ public class AppliedCustomInstruction {
    * @param pCiEndNodes ImmutableSet
    */
   public AppliedCustomInstruction (final CFANode pCiStartNode, final Collection<CFANode> pCiEndNodes,
-      final List<String> pInputVariables, final List<String> pOutputVariables,
+      final List<String> pInputVariables, final List<String> pOutputVariables, final List<String> inputVarsAndConstants,
       final Pair<List<String>, String> pFakeDescription, final SSAMap pIndicesForReturnVars){
 
     ciStartNode = pCiStartNode;
     ciEndNodes = pCiEndNodes;
     inputVariables = pInputVariables;
     outputVariables = pOutputVariables;
+    inputVariablesAndConstants = inputVarsAndConstants;
     fakeDescription = pFakeDescription;
     indicesForReturnVars = pIndicesForReturnVars;
   }
@@ -106,11 +108,15 @@ public class AppliedCustomInstruction {
     return ImmutableSet.<CFANode> builder().add(ciStartNode).addAll(ciEndNodes).build();
   }
 
-  public Collection<String> getInputVariables() {
+  public List<String> getInputVariables() {
     return inputVariables;
   }
 
-  public Collection<String> getOutputVariables() {
+  public List<String> getOutputVariables() {
     return outputVariables;
+  }
+
+  public List<String> getInputVariablesAndConstants() {
+    return inputVariablesAndConstants;
   }
 }
