@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -97,9 +99,14 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
     Collection<Collection<AutomatonState>> componentSuccessors = Lists.newArrayList();
 
     for (AutomatonState comp: state) {
-      Collection<AutomatonState> strengthenedComp = componentTransfer.strengthen(
+      @Nullable Collection<AutomatonState> strengthenedComp = componentTransfer.strengthen(
           comp, pOtherStates, pCfaEdge, pPrecision);
-      componentSuccessors.add(strengthenedComp);
+
+      if (strengthenedComp == null) { // no change
+        componentSuccessors.add(ImmutableSet.of(comp));
+      } else {
+        componentSuccessors.add(strengthenedComp);
+      }
     }
 
     return buildCartesianProduct(componentSuccessors);
@@ -107,6 +114,8 @@ public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferR
 
   private Collection<PowersetAutomatonState> buildCartesianProduct(
       Collection<Collection<AutomatonState>> componentSuccessors) {
+
+    Preconditions.checkNotNull(componentSuccessors);
 
     Builder<PowersetAutomatonState> result = ImmutableSet.<PowersetAutomatonState>builder();
 

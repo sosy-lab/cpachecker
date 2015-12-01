@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -72,7 +71,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   private transient Object partitionKey; // lazily initialized
   private final Set<AutomatonState> states;
 
-  public PowersetAutomatonState(Collection<AutomatonState> elements) {
+  public PowersetAutomatonState(Iterable<AutomatonState> elements) {
     this.states = ImmutableSet.copyOf(elements);
   }
 

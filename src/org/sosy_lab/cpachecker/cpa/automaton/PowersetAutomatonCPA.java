@@ -70,7 +70,7 @@ public class PowersetAutomatonCPA implements ConfigurableProgramAnalysis, Statis
   private final MergeOperator merge;
   private final StopSepOperator stop;
 
-  protected PowersetAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
+  public PowersetAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
     throws InvalidConfigurationException {
 
