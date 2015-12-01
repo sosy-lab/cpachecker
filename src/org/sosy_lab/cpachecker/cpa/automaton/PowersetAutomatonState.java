@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -34,17 +33,15 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class PowersetAutomatonState implements AbstractWrapperState,
-    Targetable, Partitionable, Serializable, Graphable, Iterable<AutomatonState> {
+    Targetable, Serializable, Graphable, Iterable<AutomatonState> {
 
   private static class TopPowersetAutomatonState extends PowersetAutomatonState {
 
@@ -68,7 +65,6 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   final static TopPowersetAutomatonState TOP = new TopPowersetAutomatonState();
 
   private static final long serialVersionUID = -8033111447137153782L;
-  private transient Object partitionKey; // lazily initialized
   private final Set<AutomatonState> states;
 
   public PowersetAutomatonState(Iterable<AutomatonState> elements) {
@@ -153,58 +149,6 @@ public class PowersetAutomatonState implements AbstractWrapperState,
 
   public Set<AutomatonState> getAutomataStates() {
     return states;
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    if (partitionKey == null) {
-      Object[] keys = new Object[states.size()];
-
-      int i = 0;
-      for (AbstractState element : states) {
-        if (element instanceof Partitionable) {
-          keys[i] = ((Partitionable)element).getPartitionKey();
-        }
-        i++;
-      }
-
-      // wrap array of keys in object to enable overriding of equals and hashCode
-      partitionKey = new CompositePartitionKey(keys);
-    }
-
-    return partitionKey;
-  }
-
-  private static final class CompositePartitionKey {
-
-    private final Object[] keys;
-
-    private CompositePartitionKey(Object[] pElements) {
-      keys = pElements;
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-
-      if (!(pObj instanceof CompositePartitionKey)) {
-        return false;
-      }
-
-      return Arrays.equals(this.keys, ((CompositePartitionKey)pObj).keys);
-    }
-
-    @Override
-    public int hashCode() {
-      return Arrays.hashCode(keys);
-    }
-
-    @Override
-    public String toString() {
-      return "[" + Joiner.on(", ").skipNulls().join(keys) + "]";
-    }
   }
 
   @Override
