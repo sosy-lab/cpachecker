@@ -114,6 +114,8 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     }
   };
 
+  private final ShutdownRequestListener propagateSafetyInterrupt;
+
   public static KInductionInvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCFA, final ReachedSetFactory pReachedSetFactory)
@@ -151,15 +153,17 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
           throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
-    shutdownNotifier.register(new ShutdownRequestListener() {
+    propagateSafetyInterrupt =
+        new ShutdownRequestListener() {
 
-      @Override
-      public void shutdownRequested(String pArg0) {
-        if (isProgramSafe()) {
-          pShutdownNotifier.requestShutdown(pArg0);
-        }
-      }
-    });
+          @Override
+          public void shutdownRequested(String pArg0) {
+            if (isProgramSafe()) {
+              pShutdownNotifier.requestShutdown(pArg0);
+            }
+          }
+        };
+    shutdownNotifier.register(propagateSafetyInterrupt);
 
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
