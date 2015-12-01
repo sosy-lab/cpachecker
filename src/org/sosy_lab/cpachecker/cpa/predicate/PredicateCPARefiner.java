@@ -36,14 +36,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -68,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -128,12 +127,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Option(secure=true, description="use only the atoms from the interpolants"
                                  + "as predicates, and not the whole interpolant")
   protected boolean atomicInterpolants = true;
-
-  @Option(secure=true,
-      description="Where to dump the automata that are used to narrow the"
-                + " analysis used for invariant generation.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathCounterTemplate dumpInvariantGenerationAutomataFile = PathCounterTemplate.ofFormatString("invgen.%d.spc");
 
   // statistics
   protected final StatInt totalPathLength = new StatInt(StatKind.AVG, "Avg. length of target path (in blocks)"); // measured in blocks
