@@ -112,7 +112,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+  public Collection<AutomatonState> getAbstractSuccessorsForEdge(
                       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
 
@@ -126,7 +126,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (!(pCfaEdge instanceof MultiEdge)) {
-      Collection<? extends AbstractState> result = getAbstractSuccessors0((AutomatonState)pElement, pPrecision, pCfaEdge);
+      Collection<AutomatonState> result = getAbstractSuccessors0((AutomatonState)pElement, pPrecision, pCfaEdge);
       automatonSuccessors.setNextValue(result.size());
       return result;
     }
@@ -416,7 +416,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
    * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
+  public Collection<AutomatonState> strengthen(AbstractState pElement,
                                     List<AbstractState> pOtherElements,
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
@@ -533,7 +533,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       }
 
       // For each list of other states, do the strengthening
-      Collection<AbstractState> successors = new HashSet<>();
+      Collection<AutomatonState> successors = new HashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         successors.addAll(getFollowStates(lUnknownState.getPreviousState(), otherStates, pCfaEdge, true));
       }
