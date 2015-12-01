@@ -72,14 +72,17 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> implemen
 
   public boolean adjustAndContinue(CFANode pInitialLocation) throws CPAException, InterruptedException {
     final T current = invariantGenerator.get();
-    setSupplier(current.get());
+    try {
+      setSupplier(current.get());
+    } finally {
+      if (current.isProgramSafe()) {
+        isProgramSafe.set(true);
+      }
+    }
     final T next = adjust.apply(current);
     boolean adjustable = next != current && next != null;
     if (adjustable) {
       next.start(pInitialLocation);
-      if (current.isProgramSafe()) {
-        isProgramSafe.set(true);
-      }
       invariantGenerator.set(next);
     }
     return adjustable;
