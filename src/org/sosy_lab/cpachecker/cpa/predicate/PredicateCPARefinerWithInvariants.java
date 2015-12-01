@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -89,6 +88,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
@@ -176,6 +176,10 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path bmcConfig = Paths.get("config/bmc.properties");
 
+  @Option(secure=true, description="How often should generating invariants from"
+      + " sliced prefixes with k-induction be tried?")
+  private int kInductionTries = 3;
+
   private Map<Loop, Integer> loopOccurrences = new HashMap<>();
   private boolean wereInvariantsGenerated = false;
   private Configuration config;
@@ -216,7 +220,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
   class InvCandidateGenerator implements CandidateGenerator {
 
-    private boolean produced = false;
+    private int trieNum = 0;
     private List<CandidateInvariant> candidates = new ArrayList<>();
 
     private final ARGPath argPath;
@@ -238,7 +242,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     @Override
     public boolean produceMoreCandidates() {
-      if (produced) {
+      if (trieNum >= kInductionTries) {
         return false;
       }
 
@@ -248,6 +252,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       }
 
       candidates = newArrayList(concat(from(infeasiblePrefixes).transform(TO_LOCATION_CANDIDATE_INVARIANT)));
+      trieNum++;
 
       return true;
     }
@@ -285,7 +290,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
     @Override
     public Iterator<CandidateInvariant> iterator() {
-      if (!produced) {
+      if (trieNum == 0) {
         return Collections.<CandidateInvariant>emptyIterator();
       }
       return candidates.iterator();
