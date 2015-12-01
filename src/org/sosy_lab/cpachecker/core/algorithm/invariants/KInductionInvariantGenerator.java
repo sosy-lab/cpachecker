@@ -122,7 +122,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     return new KInductionInvariantGenerator(
             pConfig,
             pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
             true,
@@ -137,7 +137,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     return new KInductionInvariantGenerator(
             pConfig,
             pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
             true,
@@ -150,16 +150,26 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
       final Optional<CandidateGenerator> pCandidateGenerator)
           throws InvalidConfigurationException, CPAException {
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
+    shutdownNotifier.register(new ShutdownRequestListener() {
+
+      @Override
+      public void shutdownRequested(String pArg0) {
+        if (isProgramSafe()) {
+          pShutdownNotifier.requestShutdown(pArg0);
+        }
+      }
+    });
+
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    CPABuilder invGenBMCBuilder = new CPABuilder(config, logger, pShutdownNotifier, pReachedSetFactory);
+    CPABuilder invGenBMCBuilder = new CPABuilder(config, logger, shutdownNotifier, pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, pShutdownNotifier);
+    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
     algorithm = new BMCAlgorithmForInvariantGeneration(
         cpaAlgorithm, cpa, config, logger, pReachedSetFactory,
-        pShutdownNotifier, cfa, stats, pCandidateGenerator);
+        shutdownNotifier, cfa, stats, pCandidateGenerator);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {
