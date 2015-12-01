@@ -186,7 +186,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       } else {
         logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
         cia = findSimpleCustomInstructionApplications(BinaryOperator.valueOf(binaryOperatorForSimpleCustomInstruction));
-
+        logger.log(Level.INFO, "Found ", cia.getMapping().size(), " applications of binary operatior",
+            binaryOperatorForSimpleCustomInstruction, " in code.");
       }
     } catch (IllegalArgumentException ie) {
       logger.log(Level.SEVERE, "Unknown binary operator ", binaryOperatorForSimpleCustomInstruction,
