@@ -44,6 +44,7 @@ public class PowersetAutomatonDomainTest {
 
   private PowersetAutomatonState e_q1_q2;
   private PowersetAutomatonState e_q2_q3;
+  private PowersetAutomatonState e_q2_q3_copy;
 
   private PowersetAutomatonDomain dom;
 
@@ -93,6 +94,23 @@ public class PowersetAutomatonDomainTest {
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
+
+    e_q2_q3_copy = new PowersetAutomatonState(ImmutableSet.copyOf(
+        new AutomatonState[]{
+            AutomatonState.automatonStateFactory(
+                ImmutableMap.<String, AutomatonVariable>of(),
+                q2,
+                cpa,
+                ImmutableList.<Pair<AStatement, Boolean>>of(),
+                0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
+
+            AutomatonState.automatonStateFactory(
+                ImmutableMap.<String, AutomatonVariable>of(),
+                q3,
+                cpa,
+                ImmutableList.<Pair<AStatement, Boolean>>of(),
+                0, 0, ImmutableMap.<Property, ResultValue<?>>of())
+    }));
   }
 
   @Test
@@ -123,6 +141,12 @@ public class PowersetAutomatonDomainTest {
     assertThat(dom.isLessOrEqual(e_q1_q2, PowersetAutomatonState.TOP));
     assertThat(!dom.isLessOrEqual(PowersetAutomatonState.TOP, e_q1_q2));
     assertThat(!dom.isLessOrEqual(e_q2_q3, e_q1_q2));
+  }
+
+  @Test
+  public void testIsLessOrEqual2() throws CPAException {
+
+    assertThat(dom.isLessOrEqual(e_q1_q2, e_q2_q3_copy));
   }
 
 }
