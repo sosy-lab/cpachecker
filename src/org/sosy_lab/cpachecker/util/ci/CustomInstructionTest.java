@@ -246,7 +246,7 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getFirst().get(1)).isEqualTo("(declare-fun |f::var1| () Int)");
     Truth.assertThat(pair.getFirst().get(2)).isEqualTo("(declare-fun var2 () Int)");
     Truth.assertThat(pair.getFirst().get(3)).isEqualTo("(declare-fun var3@1 () Int)");
-    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |f::var4@1> () Int)");
+    Truth.assertThat(pair.getFirst().get(4)).isEqualTo("(declare-fun |f::var4@1| () Int)");
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(and (= var 0)(and (= |f::var1| 0)(and (= var2 0)(and (= var3@1 0) (= |f::var4@1| 0))))))");
   }
 
@@ -378,7 +378,7 @@ public class CustomInstructionTest {
 
     List<String> outputVariables = new ArrayList<>(1);
     outputVariables.add("main::a");
-    aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(), Collections.<String>emptyList(), outputVariables,
+    aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(),  outputVariables, Collections.<String>emptyList(),
         Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
     Truth.assertThat(aci.getOutputVariables()).containsExactly("main::a");
   }

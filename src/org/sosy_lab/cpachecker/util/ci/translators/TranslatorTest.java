@@ -235,11 +235,11 @@ public class TranslatorTest {
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
     varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, requiredVars);
-    content = new ArrayList<>();
-    content.add("(declare-fun var1@1 () Int)");
-    content.add("(declare-fun var3@1 () Int)");
-    content.add("(declare-fun |fun::varB@1| () Int)");
-    Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
+    List<String> content2 = new ArrayList<>();
+    content2.add("(declare-fun var1@1 () Int)");
+    content2.add("(declare-fun var3@1 () Int)");
+    content2.add("(declare-fun |fun::varB@1| () Int)");
+    Truth.assertThat(varDefinition).containsExactlyElementsIn(content2);
 
     // Test method convertToFormula()
     Pair<List<String>, String> convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.<String>emptyList());
@@ -253,7 +253,7 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);
-    Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
+    Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content2);
     s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 

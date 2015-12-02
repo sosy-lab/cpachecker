@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import java.io.IOException;
 
 import org.junit.Test;
-import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -36,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -157,8 +155,7 @@ public class RedundancyRemoverTest {
   }
 
   @Test
-  public void testGetAbstractValueValueAnalysisState(
-      PersistentMap<MemoryLocation, Value> pConstantsMap) {
+  public void testGetAbstractValueValueAnalysisState() {
     ValueAnalysisState valState = new ValueAnalysisState();
     valState.assignConstant(MemoryLocation.valueOf("x"), new NumericValue(7), new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
