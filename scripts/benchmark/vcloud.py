@@ -256,7 +256,8 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             dataFile = run.log_file + ".data"
             if os.path.exists(dataFile):
                 try:
-                    (run.cputime, run.walltime, return_value, values) = parseCloudRunResultFile(dataFile)
+                    (run.cputime, run.walltime, return_value, termination_reason, values) =\
+                        parseCloudRunResultFile(dataFile)
                     run.values.update(values)
                     if return_value is not None and not benchmark.config.debug:
                         # Do not delete .data file if there was some problem
@@ -278,7 +279,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             if return_value is not None:
                 output_handler.output_before_run(run)
 
-                run.after_execution(return_value)
+                run.after_execution(return_value, termination_reason=termination_reason)
                 output_handler.output_after_run(run)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
@@ -322,6 +323,7 @@ def parseCloudRunResultFile(filePath):
     cputime = None
     walltime = None
     return_value = None
+    termination_reason = None
 
     def parseTimeValue(s):
         if s[-1] != 's':
@@ -345,6 +347,8 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 return_value = int(value)
                 values['@exitcode'] = value
+            elif key == 'terminationreason':
+                termination_reason = value
             elif key == "host" or key.startswith("energy-"):
                 values[key] = value
             else:
@@ -356,4 +360,4 @@ def parseCloudRunResultFile(filePath):
     values.pop("@vcloud-timeLimit", None)
     values.pop("@vcloud-coreLimit", None)
 
-    return (cputime, walltime, return_value, values)
+    return (cputime, walltime, return_value, termination_reason, values)

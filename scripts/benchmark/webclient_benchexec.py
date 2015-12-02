@@ -198,6 +198,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         run.walltime = float(values["walltime"].strip('s'))
         run.cputime = float(values["cputime"].strip('s'))
         return_value = int(values["exitcode"])
+        termination_reason = values.pop("terminationreason", None)
 
         # remove irrelevant columns
         values.pop("command", None)
@@ -211,7 +212,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
                 values['@vcloud-'+key] = values.pop(key)
 
         run.values.update(values)
-        return return_value
+        return return_value, termination_reason
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
@@ -233,12 +234,12 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             shutil.move(os.path.join(output_path, RESULT_FILE_STDERR), run.log_file + ".stdError")
             os.rmdir(output_path)
 
-    return_value = handle_result(
+    (return_value, termination_reason) = handle_result(
         zip_content, run.log_file + ".output", run.identifier, benchmark.result_files_pattern,
         _open_output_log, _handle_run_info, _handle_host_info, _handle_stderr_file)
 
     if return_value is not None:
-        run.after_execution(return_value)
+        run.after_execution(return_value, termination_reason=termination_reason)
 
         with _print_lock:
             output_handler.output_before_run(run)
