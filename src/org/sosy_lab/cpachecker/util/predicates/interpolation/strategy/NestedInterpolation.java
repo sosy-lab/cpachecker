@@ -164,7 +164,6 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
           // get interpolant of A and B, for B we use the complementary set of A
           BooleanFormula itp2 = itpProver2.getInterpolant(A2);
-          itpProver2.close();
 
           BooleanFormula rebuildItp = rebuildInterpolant(itp, itp2);
           if (!bfmgr.isTrue(scopingItp.getFirst())) {
