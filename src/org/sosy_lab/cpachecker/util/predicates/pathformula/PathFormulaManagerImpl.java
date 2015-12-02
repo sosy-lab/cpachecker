@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;

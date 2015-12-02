@@ -40,7 +40,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;

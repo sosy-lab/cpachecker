@@ -39,7 +39,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
@@ -97,6 +97,7 @@ public class CustomInstructionTest {
 
     cis = new HashMap<>();
     aci = new AppliedCustomInstruction(startNode, endNodes,
+        Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList(),
         Pair.of(Collections.<String> emptyList(), ""),
         SSAMap.emptySSAMap());
 
@@ -213,12 +214,12 @@ public class CustomInstructionTest {
     Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool(= var 0))");
 
     List<String> outputVars = new ArrayList<>();
-    outputVars.add("f::var1");
+    outputVars.add("var1");
     ci = new CustomInstruction(null, null, Collections.<String> emptyList(), outputVars, ShutdownNotifier.create());
     pair = ci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(1);
-    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |f::var1@1| () Int)");
-    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= |f::var1@1| 0))");
+    Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun var1@1 () Int)");
+    Truth.assertThat(pair.getSecond()).isEqualTo("(define-fun ci() Bool (= var1@1 0))");
 
     inputVars = new ArrayList<>();
     inputVars.add("var1");
@@ -331,6 +332,14 @@ public class CustomInstructionTest {
 
     aci = ci.inspectAppliedCustomInstruction(aciStartNode);
 
+    Collection<String> inputVars = new ArrayList<>();
+    inputVars.add("main::b");
+    Truth.assertThat(aci.getInputVariables()).containsExactlyElementsIn(inputVars);
+    Collection<String> outputVars = new ArrayList<>();
+    outputVars.add("main::a");
+    outputVars.add("main::b");
+    Truth.assertThat(aci.getOutputVariables()).containsExactlyElementsIn(outputVars);
+
     Pair<List<String>, String> pair = aci.getFakeSMTDescription();
     Truth.assertThat(pair.getFirst()).hasSize(3);
     Truth.assertThat(pair.getFirst().get(0)).isEqualTo("(declare-fun |main::b| () Int)");
@@ -350,5 +359,39 @@ public class CustomInstructionTest {
     aciNodes.add(aciStartNode);
     aciNodes.add(aciEndNode);
     Truth.assertThat(aci.getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
+  }
+
+  @Test
+  public void testGetInputVariables() throws IOException, ParserException, InterruptedException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    Truth.assertThat(aci.getInputVariables()).isEmpty();
+
+    List<String> inputVariables = new ArrayList<>(1);
+    inputVariables.add("main::a");
+    aci = new AppliedCustomInstruction(startNode, endNodes, inputVariables, Collections.<String>emptyList(), inputVariables,
+        Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    Truth.assertThat(aci.getInputVariables()).containsExactly("main::a");
+  }
+
+  @Test
+  public void testGetOutputVariables() {
+    Truth.assertThat(aci.getOutputVariables()).isEmpty();
+
+    List<String> outputVariables = new ArrayList<>(1);
+    outputVariables.add("main::a");
+    aci = new AppliedCustomInstruction(startNode, endNodes, Collections.<String>emptyList(),  outputVariables, Collections.<String>emptyList(),
+        Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    Truth.assertThat(aci.getOutputVariables()).containsExactly("main::a");
+  }
+
+  @Test
+  public void testGetInputVariablesAndConstants() {
+    Truth.assertThat(aci.getOutputVariables()).isEmpty();
+
+    List<String> inputVarsAndConstants = new ArrayList<>(2);
+    inputVarsAndConstants.add("main::a");
+    inputVarsAndConstants.add("1");
+    aci = new AppliedCustomInstruction(startNode, endNodes,  Collections.singletonList("main::a"), Collections.<String>emptyList(),
+        inputVarsAndConstants, Pair.of(Collections.<String> emptyList(), ""), SSAMap.emptySSAMap());
+    Truth.assertThat(aci.getInputVariablesAndConstants()).containsExactlyElementsIn(inputVarsAndConstants).inOrder();
   }
 }

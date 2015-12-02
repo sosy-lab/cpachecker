@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.Appenders;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.solver.api.BooleanFormula;

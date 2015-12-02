@@ -97,54 +97,6 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = []
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = []
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
 
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
@@ -155,12 +107,16 @@ solver.interpolationSolver = no default value
 solver.logAllQueries = false
 solver.logfile = no default value
 
-# List of further options which will be passed to Mathsat in addition to the
-# default options. Format is 'key1=value1,key2=value2'
+# Further options that will be passed to Mathsat in addition to the default
+# options. Format is 'key1=value1,key2=value2'
 solver.mathsat5.furtherOptions = ""
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
 
 # Random seed for SMT solver.
 solver.randomSeed = 42
@@ -169,8 +125,8 @@ solver.randomSeed = 42
 # are correct
 solver.smtinterpol.checkResults = false
 
-# List of further options which will be set to true for SMTInterpol in
-# addition to the default options. Format is 'option1,option2,option3'
+# Further options that will be set to true for SMTInterpol in addition to the
+# default options. Format is 'option1,option2,option3'
 solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
@@ -188,11 +144,6 @@ solver.useNonLinearRationalArithmetic = false
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
-
-# Export solver queries in Smtlib2 format, there are small differences for
-# different solvers, choose target-solver.
-solver.z3.logger.target = Z3
-  allowed values: [Z3, MATHSAT5]
 
 # Ordering for objectives in the optimization context
 solver.z3.objectivePrioritizationMode = "box"
@@ -243,9 +194,6 @@ analysis.algorithm.proofCheck = false
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
-
-# use the TestGen Algorithm
-analysis.algorithm.testGen = false
 
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
@@ -1576,6 +1524,10 @@ cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
+# Call buildCounterexampleTrace() n times to produce different interpolants
+# with the solver
+cpa.predicate.refinement.checkCounterexampleNTimes = 1
+
 # Conjunct the formulas that were computed as preconditions to get
 # (infeasible) interpolation problems!
 cpa.predicate.refinement.conjunctPreconditionFormulas = false
@@ -1604,6 +1556,11 @@ cpa.predicate.refinement.dumpPredicates = false
 # File name for the predicates dumped after refinements.
 cpa.predicate.refinement.dumpPredicatesFile = "refinement%04d-predicates.prec"
 
+# If k-induction fails to generate invariants we fall back to the usual
+# invariant generation with this option toggled, otherwise interpolation is
+# used
+cpa.predicate.refinement.fallbackToInvGen = true
+
 # apply deletion-filter to the abstract counterexample, to get a minimal set
 # of blocks, before applying interpolation-based refinement
 cpa.predicate.refinement.getUsefulBlocks = false
@@ -1611,6 +1568,10 @@ cpa.predicate.refinement.getUsefulBlocks = false
 # use incremental search in counterexample analysis, to find the minimal
 # infeasible prefix
 cpa.predicate.refinement.incrementalCexTraceCheck = false
+
+# How often should generating invariants from sliced prefixes with
+# k-induction be tried?
+cpa.predicate.refinement.kInductionTries = 3
 
 # For differing errorpaths, the loop for which invariants should be generated
 # may still be the same, with this option you can set the maximal amount of
@@ -1708,7 +1669,7 @@ cpa.predicate.refinement.useInvariantRefinement = false
 
 # Try to generate inductive invariants, by using sliced prefixs and check if
 # they are invariants. If this failes invariant generation via other CPAs
-# will be done if possible.
+# will be done or interpolation, depending on the option 'fallbackToInvGen'.
 cpa.predicate.refinement.useKInduction = true
 
 # Invariants that are not strong enough to refute the counterexample can be
@@ -2316,6 +2277,10 @@ custominstructions.ciFilePrefix = "ci"
 # File to be parsed
 custominstructions.definitionFile = no default value
 
+# Try to remove informations from requirements which is irrelevant for custom
+# instruction behavior
+custominstructions.enableRequirementSlicing = false
+
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.
 custominstructions.requirementsStateClassName = no default value
@@ -2661,34 +2626,3 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# Where to write the ARGS to.
-testgen.argExportPaths = "args/arg%d.dot"
-
-# Where to write the automata to.
-testgen.automatonExportPaths = "automaton/next_automaton%s_%s.spc"
-
-# The path selector for TestGenAlgorithm
-testgen.pathSelector = CUTE_PATH_SELECTOR
-  enum:     [LOCATION_AND_VALUE_STATE_TRACKING, CFA_TRACKING, CUTE_PATH_SELECTOR]
-
-# Set this to true to get the automaton files for exploring new Paths. You
-# also get the ARG as dot file and the local reached set for every algoritm
-# iteration in subdirs under output.
-testgen.produceDebugFiles = false
-
-# Where to write the reached sets to.
-testgen.reachedSetExportPaths = "reachedsets/reached%d.txt"
-
-# Selects the simulation Strategy for TestGenAlgorithm
-testgen.simulationStrategy = AUTOMATON_CONTROLLED
-  enum:     [AUTOMATON_CONTROLLED, SAME_ALGORITHM_RESTART,
-             SAME_ALGORITHM_FILTER_WAITLIST]
-
-# algorithm stops on first found error path. Otherwise the algorithms tries
-# to reach 100% coverage
-testgen.stopOnError = false
-
-# Output file Template under which the testcase automatons will be stored.
-# Must include one %s somewhere.
-testgen.testcaseOutputFile = "testcase%s.spc"

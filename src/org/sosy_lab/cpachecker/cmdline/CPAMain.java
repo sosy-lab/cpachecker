@@ -31,7 +31,7 @@ import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
@@ -321,6 +321,7 @@ public class CPAMain {
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
+    @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
     Closer closer = Closer.create();
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {

@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;

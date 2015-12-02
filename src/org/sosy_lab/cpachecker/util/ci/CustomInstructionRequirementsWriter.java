@@ -31,7 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.Files;
@@ -65,24 +65,29 @@ public class CustomInstructionRequirementsWriter {
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
+  private final boolean enableRequirementSlicing;
 
   public CustomInstructionRequirementsWriter(final String pFilePrefix, final Class<?> reqirementsState,
       final Configuration config, final ShutdownNotifier shutdownNotifier, final LogManager log,
-      final ConfigurableProgramAnalysis cpa) throws CPAException {
+      final ConfigurableProgramAnalysis cpa, boolean enableRequirementSlicing) throws CPAException {
    filePrefix = pFilePrefix;
     fileID = 0;
     this.requirementsState = reqirementsState;
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     logger = log;
+    this.enableRequirementSlicing = enableRequirementSlicing;
     createRequirementTranslator(cpa);
   }
 
   public void writeCIRequirement(final ARGState pState, final Collection<ARGState> pSet,
       final AppliedCustomInstruction pACI) throws IOException, CPAException {
-    Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements
-      = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars());
-
+    Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements;
+    if (enableRequirementSlicing) {
+      convertedRequirements = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars(), pACI.getInputVariables(), pACI.getOutputVariables());
+    } else {
+      convertedRequirements = abstractReqTranslator.convertRequirements(pState, pSet, pACI.getIndicesForReturnVars(), null, null);
+    }
     if(convertedRequirements.getSecond().getSecond().matches("\\(define-fun post \\(\\) Bool(\\s)+true\\)")) {
       // post condition true, do not need to consider this requirement
       return;

@@ -36,11 +36,11 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.apron.ApronState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -77,7 +77,7 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(ApronState pRequirement, SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(ApronState pRequirement, SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> result = new ArrayList<>();
     List<String> varNames = getAllVarNames(pRequirement);
     Collection<String> requiredVarNames = null;

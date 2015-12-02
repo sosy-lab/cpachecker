@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
@@ -281,25 +280,23 @@ public class CPAchecker {
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
-      violatedPropertyDescription = null;
+      stats.resultAnalysisTime.start();
       Set<Property> violatedProperties = findViolatedProperties(algorithm, reached);
       if (!violatedProperties.isEmpty()) {
         violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
-      }
 
-      if (violatedPropertyDescription != null) {
         if (!status.isPrecise()) {
           result = Result.UNKNOWN;
         } else {
           result = Result.FALSE;
         }
       } else {
-        violatedPropertyDescription = "";
         result = analyzeResult(reached, status.isSound());
         if (unknownAsTrue && result == Result.UNKNOWN) {
           result = Result.TRUE;
         }
       }
+      stats.resultAnalysisTime.stop();
 
     } catch (IOException e) {
       logger.logUserException(Level.SEVERE, e, "Could not read file");
@@ -321,9 +318,7 @@ public class CPAchecker {
       // CPAchecker must exit because it was asked to
       // we return normally instead of propagating the exception
       // so we can return the partial result we have so far
-      if (!Strings.isNullOrEmpty(e.getMessage())) {
-        logger.logUserException(Level.WARNING, e, "Analysis stopped");
-      }
+      logger.logUserException(Level.WARNING, e, "Analysis interrupted");
 
     } catch (CPAException e) {
       logger.logUserException(Level.SEVERE, e, null);
@@ -416,7 +411,7 @@ public class CPAchecker {
 
     final Set<Property> result = Sets.newHashSet();
 
-    for (AbstractState e : from(reached).filter(IS_TARGET_STATE).toList()) {
+    for (AbstractState e : from(reached).filter(IS_TARGET_STATE)) {
       Targetable t = (Targetable) e;
       result.addAll(t.getViolatedProperties());
     }

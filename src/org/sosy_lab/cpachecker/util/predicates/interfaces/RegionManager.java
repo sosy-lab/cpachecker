@@ -27,7 +27,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Set;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;

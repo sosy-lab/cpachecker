@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -81,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
@@ -363,7 +363,33 @@ public class CustomInstruction{
       ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
     }
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+    List<String> inVars = getVariablesOrdered(mapping, inputVariables);
+    List<String> outVars = getVariablesOrdered(mapping, outputVariables);
+    List<String> inVarsConst = new ArrayList<>(inputVariables.size());
+
+    for(String ciVar: inputVariables) {
+      inVarsConst.add(mapping.get(ciVar));
+    }
+
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, inVarsConst, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+  }
+
+  private List<String> getVariablesOrdered(final Map<String, String> pMapping,
+      final List<String> pVariables) {
+    List<String> result = new ArrayList<>(pVariables.size());
+
+    String aciVar;
+    for (String ciVar : pVariables) {
+      assert (pMapping.containsKey(ciVar));
+      aciVar = pMapping.get(ciVar);
+      try {
+        Integer.parseInt(aciVar);
+      } catch (NumberFormatException ex) {
+        result.add(aciVar);
+      }
+    }
+
+    return result;
   }
 
   /**

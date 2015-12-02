@@ -22,6 +22,7 @@
     <import file="build/build-compile.xml"/>
     <import file="build/build-jar.xml"/>
     <import file="build/build-junit.xml"/>
+    <import file="build/build-format-source.xml"/>
     <import file="build/build-findbugs.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
@@ -50,7 +51,6 @@
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
-            <fileset dir="src/org/sosy_lab/solver/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
         </delete>
 
         <!-- Clean subprojects -->

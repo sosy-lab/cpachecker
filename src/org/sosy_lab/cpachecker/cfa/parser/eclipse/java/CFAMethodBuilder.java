@@ -66,7 +66,7 @@ import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;

@@ -34,7 +34,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -53,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -74,6 +72,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.precondition.segkro.ExtractNewPreds;
 import org.sosy_lab.cpachecker.util.precondition.segkro.MinCorePrio;
 import org.sosy_lab.cpachecker.util.precondition.segkro.Refine;
@@ -286,8 +285,10 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     try {
       // Copy the initial set of reached states
       final ReachedSet initialReachedSet = reachedSetFactory.create();
-      ReachedSetUtils
-          .addReachedStatesToOtherReached(pReachedSet, initialReachedSet);
+      for (AbstractState state : pReachedSet) {
+        initialReachedSet.add(state, pReachedSet.getPrecision(state));
+        initialReachedSet.removeOnlyFromWaitlist(state);
+      }
 
       final CFANode wpLoc = getFirstNodeInEntryFunctionBody();
 

@@ -120,6 +120,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   final Timer creationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
+  final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
@@ -239,6 +240,9 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       memStatsThread.interrupt(); // stop memory statistics collection
     }
 
+    final Timer statisticsTime = new Timer();
+    statisticsTime.start();
+
     if (result != Result.NOT_YET_STARTED) {
       dumpReachedSet(reached);
 
@@ -265,7 +269,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
     out.println();
 
-    printTimeStatistics(out, result, reached);
+    printTimeStatistics(out, result, reached, statisticsTime);
 
     out.println();
 
@@ -451,7 +455,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
   }
 
-  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached) {
+  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
+      Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
@@ -459,8 +464,12 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
+    if (resultAnalysisTime.getNumberOfIntervals() > 0) {
+      out.println("Time for analyzing result:    " + resultAnalysisTime);
+    }
     out.println("Total time for CPAchecker:    " + programTime);
     out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println("Time for statistics:          " + statisticsTime);
   }
 
   private void printMemoryStatistics(PrintStream out) {

@@ -21,5 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(justification="unmaintained")
-package org.sosy_lab.cpachecker.core.algorithm.testgen.pathanalysis;
+/**
+ * Package to remove some extracted requirements which are covered by others.
+ * Assume that for coverage it is sufficient to look at the part of the requirement
+ * which is associated with the variables of the applied custom instructions signature
+ */
+package org.sosy_lab.cpachecker.util.ci.redundancyremover;

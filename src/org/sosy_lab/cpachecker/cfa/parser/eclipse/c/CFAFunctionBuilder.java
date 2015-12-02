@@ -73,7 +73,7 @@ import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;

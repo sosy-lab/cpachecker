@@ -24,8 +24,11 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,17 +57,20 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
 
   @Override
   protected List<String> getListOfIndependentRequirements(final ValueAnalysisState pRequirement,
-      final SSAMap pIndices) {
+      final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
-      Value integerValue = pRequirement.getConstantsMapView().get(memLoc);
-      if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
-        logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
-      } else {
-        list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " "
-            + integerValue.asNumericValue().getNumber() + ")");
-      }
+        Value integerValue = pRequirement.getConstantsMapView().get(memLoc);
+        if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
+          logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
+        } else {
+          if (pRequiredVars == null || pRequiredVars.contains(memLoc.getAsSimpleString())) {
+            list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " "
+                + integerValue.asNumericValue().getNumber() + ")");
+          }
+        }
     }
+    // TODO getRequirement(..) hinzufuegen
     return list;
   }
 }

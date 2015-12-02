@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,10 +52,12 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
 
   @Override
   protected List<String> getListOfIndependentRequirements(final IntervalAnalysisState pRequirement,
-      final SSAMap pIndices) {
+      final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getIntervalMapView().keySet()) {
-      list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getIntervalMapView().get(var)));
+      if (pRequiredVars == null || pRequiredVars.contains(var)) {
+        list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getIntervalMapView().get(var)));
+      }
     }
     return list;
   }
@@ -74,6 +79,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
       sb.append(" ");
       sb.append(interval.getHigh());
       sb.append("))");
+//      sb.append(TranslatorsUtils.getVarInBoundsRequirement(var, interval.getLow(), interval.getHigh()));
 
     } else if (!isMin) {
       sb.append("(>= ");
@@ -81,6 +87,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
       sb.append(" ");
       sb.append(interval.getLow());
       sb.append(")");
+//      sb.append(TranslatorsUtils.getVarGreaterOrEqualValRequirement(var, interval.getLow()));
 
     } else if (!isMax) {
       sb.append("(<= ");
@@ -88,6 +95,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
       sb.append(" ");
       sb.append(interval.getHigh());
       sb.append(")");
+//      sb.append(TranslatorsUtils.getVarLessOrEqualValRequirement(var, interval.getLow()));
     }
 
     return sb.toString();

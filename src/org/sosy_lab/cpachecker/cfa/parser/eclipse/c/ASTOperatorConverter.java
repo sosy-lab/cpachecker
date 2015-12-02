@@ -28,7 +28,7 @@ import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;

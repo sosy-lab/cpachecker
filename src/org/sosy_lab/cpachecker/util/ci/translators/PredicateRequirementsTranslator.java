@@ -24,9 +24,12 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils;
@@ -49,7 +52,7 @@ public class PredicateRequirementsTranslator extends AbstractRequirementsTransla
 
   @Override
   protected Pair<List<String>, String> convertToFormula(final PredicateAbstractState pRequirement,
-      final SSAMap pIndices) throws CPAException {
+      final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) throws CPAException {
 
     if (!pRequirement.isAbstractionState()) {
       throw new CPAException("The PredicateAbstractState " + pRequirement + " is not an abstractionState. Ensure that property cpa.predicate.blk.alwaysAtExplicitNodes is set to true");

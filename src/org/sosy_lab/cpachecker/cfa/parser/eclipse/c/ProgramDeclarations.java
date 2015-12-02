@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
