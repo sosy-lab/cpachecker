@@ -116,7 +116,10 @@ public class TranslatorTest {
     Truth.assertThat(varsInRequirements).containsExactly("var1", "var3", "fun::var1", "fun::varC");
 
     // Test of method getListOfIndependentRequirements()
-    List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, Collections.<String>emptyList());
+    List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, null);
+    Truth.assertThat(listOfIndependentRequirements).containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
+
+    listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, Collections.<String>emptyList());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -200,14 +203,17 @@ public class TranslatorTest {
     content.add("(and (>= |fun::varC| -15) (<= |fun::varC| -3))");
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
+    listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, Collections.<String>emptyList());
+    Truth.assertThat(listOfIndependentRequirements).isEmpty();
+
     Collection<String> requiredVars = new ArrayList<>();
     requiredVars.add("var1");
     requiredVars.add("var3");
     requiredVars.add("fun::varB");
     listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, requiredVars);
     content = new ArrayList<>();
-    content.add("(<= var1@1 5)"); // TODO
-    content.add("(<= var3@1 -2)"); // TODO
+    content.add("(<= var1@1 5)");
+    content.add("(<= var3@1 -2)");
     content.add("(>= |fun::varB@1| 8)");
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
@@ -230,7 +236,7 @@ public class TranslatorTest {
 
     varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, requiredVars);
     content = new ArrayList<>();
-    content.add("(declare-fun var1@1 () Int)"); // TODO
+    content.add("(declare-fun var1@1 () Int)");
     content.add("(declare-fun var3@1 () Int)");
     content.add("(declare-fun |fun::varB@1| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
@@ -241,9 +247,14 @@ public class TranslatorTest {
     String s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
+    convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, null);
+    Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
+    s = "(define-fun req () Bool (and (and (>= |fun::var1| 0) (<= |fun::var1| 10))(and (>= |fun::varB@1| 8)(and (and (>= |fun::varC| -15) (<= |fun::varC| -3))(and (<= var1@1 5)(and (>= var2 -7)(<= var3@1 -2)))))))";
+    Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
+
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
-    s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))"; // TODO
+    s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with empty IntervalAnalysisState
