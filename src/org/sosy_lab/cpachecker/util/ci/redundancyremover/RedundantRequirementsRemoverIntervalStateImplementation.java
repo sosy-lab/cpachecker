@@ -46,6 +46,12 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
   }
 
   @Override
+  protected boolean covers(Interval pCovering, Interval pCovered) {
+    // TODO return pCovering contains pCovered
+    return false;
+  }
+
+  @Override
   protected Interval getAbstractValue(IntervalAnalysisState pAbstractState, String pVarOrConst) {
     // TODO
     // if pVarOrConst number, return interval [pVarOrConst,pVarOrConst]

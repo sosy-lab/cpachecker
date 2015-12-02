@@ -45,6 +45,14 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
   }
 
   @Override
+  protected boolean covers(Value pCovering, Value pCovered) {
+    // TODO
+    // return true if pCovering UnknownValue, pCovering equals pCovered
+    // otherwise false
+    return false;
+  }
+
+  @Override
   protected Value getAbstractValue(ValueAnalysisState pAbstractState, String pVarOrConst) {
     // TODO
     // if pVarOrConst number, return NumericValue

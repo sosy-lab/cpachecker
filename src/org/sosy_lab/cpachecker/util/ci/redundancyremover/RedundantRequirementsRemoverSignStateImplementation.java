@@ -48,6 +48,12 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
   }
 
   @Override
+  protected boolean covers(SIGN pCovering, SIGN pCovered) {
+    // TODO return pCovering.covers(pCovered)
+    return false;
+  }
+
+  @Override
   protected SIGN getAbstractValue(SignState pAbstractState, String pVarOrConst) {
     // TODO
     // if pVarOrConst number, number<0 MINUS, number=0 ZERO, number>0 PLUS

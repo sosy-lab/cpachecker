@@ -68,6 +68,8 @@ public class RedundantRequirementsRemover {
 
     private SortingArrayHelper sortHelper = new SortingArrayHelper();
 
+    protected abstract boolean covers(final V covering, final V covered);
+
     protected abstract V getAbstractValue(final S abstractState, final String varOrConst);
 
     protected abstract V[] emptyArrayOfSize(final int size);
@@ -116,7 +118,7 @@ public class RedundantRequirementsRemover {
     private boolean covers(final V[] covering, final V[] covered) {
       if (covering.length == covered.length) {
         for (int i = 0; i < covering.length; i++) {
-          if (compare(covering[i], covered[i]) < 0) { return false; }
+          if (covers(covering[i], covered[i])) { return false; }
         }
         return true;
       }
@@ -231,8 +233,8 @@ public class RedundantRequirementsRemover {
 
         for (int i = 1; i < firstArg.length; i++) {
           r = sortHelper.compare(firstArg[i], secondArg[2]);
-          if (r != 0) { return r;
-
+          if (r != 0) {
+            return r;
           }
         }
 
