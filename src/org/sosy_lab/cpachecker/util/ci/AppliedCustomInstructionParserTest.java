@@ -35,7 +35,6 @@ import java.util.Map.Entry;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.Files;
@@ -49,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -232,23 +232,23 @@ public class AppliedCustomInstructionParserTest {
     aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), new BasicLogManager(TestDataTools
             .configurationForTest().build()), cfa);
     Path p = Paths.createTempPath("test_acis", null);
-    Writer file = Files.openOutputFile(p);
-    file.append("main\n");
-    CFANode node;
-    Deque<CFANode> toVisit = new ArrayDeque<>();
-    toVisit.add(cfa.getMainFunction());
-    while(!toVisit.isEmpty()) {
-      node = toVisit.pop();
+    try (Writer file = Files.openOutputFile(p)) {
+      file.append("main\n");
+      CFANode node;
+      Deque<CFANode> toVisit = new ArrayDeque<>();
+      toVisit.add(cfa.getMainFunction());
+      while (!toVisit.isEmpty()) {
+        node = toVisit.pop();
 
-      for(CFANode succ: CFAUtils.allSuccessorsOf(node)) {
-        toVisit.add(succ);
-        if(node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
-          file.append(node.getNodeNumber()+"\n");
+        for (CFANode succ : CFAUtils.allSuccessorsOf(node)) {
+          toVisit.add(succ);
+          if (node.getEdgeTo(succ).getEdgeType().equals(CFAEdgeType.StatementEdge)) {
+            file.append(node.getNodeNumber() + "\n");
+          }
         }
       }
+      file.flush();
     }
-    file.flush();
-    file.close();
 
     CFANode expectedStart = null;
     for(CLabelNode n: getLabelNodes(cfa)){
