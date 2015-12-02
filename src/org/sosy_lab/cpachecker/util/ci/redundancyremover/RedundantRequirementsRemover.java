@@ -47,7 +47,7 @@ public class RedundantRequirementsRemover {
   public static List<Pair<ARGState, Collection<ARGState>>> removeRedundantRequirements(
       final List<Pair<ARGState, Collection<ARGState>>> requirements,
       final List<Pair<List<String>, List<String>>> inputOutputSignatures,
-      final Class<? extends AbstractState> reqStateClass) throws CPAException {
+      final Class<? extends AbstractState> reqStateClass) {
 
     RedundantRequirementsRemoverImplementation<? extends AbstractState, ? extends Object> remover;
 
