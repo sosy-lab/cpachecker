@@ -618,7 +618,7 @@ class WebInterface:
                         if not (tokens[0] == "config" and len(tokens) == 2):
                             logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
                             return configPath
-                        config = next(i).split('/')[2].split('.')[0]
+                        config = tokens[1].split('.')[0]
                         params['configuration'] = config
 
                     elif option == "-setprop":
