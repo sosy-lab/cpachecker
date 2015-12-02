@@ -42,7 +42,7 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
     // -1 if p01=MINUS p02=ZERO,PLUS,PLUS0
     // -1 if p01=ZERO p02=PLUS,PLUSMINUS
     // -1 if p01=PLUSMINUS p02=PLUS0
- // -1 if p01=MINUS0 p02=PLUS,PLUS0,PLUSMINUS
+   // -1 if p01=MINUS0 p02=PLUS,PLUS0,PLUSMINUS
     // otherwise 1
     return 0;
   }
