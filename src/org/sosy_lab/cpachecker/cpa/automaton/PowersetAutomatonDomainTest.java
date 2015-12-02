@@ -52,6 +52,7 @@ public class PowersetAutomatonDomainTest {
   public void setUp() throws Exception {
     final ControlAutomatonCPA cpa = Mockito.mock(ControlAutomatonCPA.class);
     final Automaton a = Mockito.mock(Automaton.class);
+
     Mockito.when(a.getName()).thenReturn("Automaton");
     Mockito.when(cpa.getAutomaton()).thenReturn(a);
 
@@ -117,36 +118,36 @@ public class PowersetAutomatonDomainTest {
   public void testJoin1() throws CPAException {
     AbstractState result = dom.join(e_q1_q2, e_q2_q3);
 
-    assertThat(result instanceof PowersetAutomatonState);
-    assertThat(((PowersetAutomatonState) result).getNumberOfStates() == 3);
+    assertThat(result).isInstanceOf(PowersetAutomatonState.class);
+    assertThat(((PowersetAutomatonState) result).getNumberOfStates()).isEqualTo(3);
   }
 
   @Test
   public void testJoinWithTop() throws CPAException {
     AbstractState result = dom.join(e_q1_q2, PowersetAutomatonState.TOP);
 
-    assertThat(result instanceof PowersetAutomatonState);
-    assertThat(result.equals(PowersetAutomatonState.TOP));
+    assertThat(result).isInstanceOf(PowersetAutomatonState.class);
+    assertThat(result).isEqualTo(PowersetAutomatonState.TOP);
 
     result = dom.join(PowersetAutomatonState.TOP, e_q1_q2);
 
-    assertThat(result instanceof PowersetAutomatonState);
-    assertThat(result.equals(PowersetAutomatonState.TOP));
-
+    assertThat(result).isInstanceOf(PowersetAutomatonState.class);
+    assertThat(result).isEqualTo(PowersetAutomatonState.TOP);
   }
 
   @Test
   public void testIsLessOrEqual1() throws CPAException {
 
-    assertThat(dom.isLessOrEqual(e_q1_q2, PowersetAutomatonState.TOP));
-    assertThat(!dom.isLessOrEqual(PowersetAutomatonState.TOP, e_q1_q2));
-    assertThat(!dom.isLessOrEqual(e_q2_q3, e_q1_q2));
+    assertThat(dom.isLessOrEqual(e_q1_q2, PowersetAutomatonState.TOP)).isTrue();
+    assertThat(dom.isLessOrEqual(PowersetAutomatonState.TOP, e_q1_q2)).isFalse();
+    assertThat(dom.isLessOrEqual(e_q2_q3, e_q1_q2)).isFalse();
   }
 
   @Test
   public void testIsLessOrEqual2() throws CPAException {
 
-    assertThat(dom.isLessOrEqual(e_q1_q2, e_q2_q3_copy));
+    assertThat(dom.isLessOrEqual(e_q1_q2, e_q2_q3_copy)).isFalse();
+    assertThat(dom.isLessOrEqual(e_q2_q3, e_q2_q3_copy)).isTrue();
   }
 
 }
