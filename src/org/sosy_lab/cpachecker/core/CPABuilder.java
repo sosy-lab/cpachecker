@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -90,6 +91,10 @@ public class CPABuilder {
         + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = null;
+
+  @Option(secure=true, name="spec.usepowerset",
+      description="Use a powerset domain for representing the current states of the specification automata.")
+  private boolean powersetDomainForSpec = false;
 
   public static enum SpecificationComposition { SEPARATE, UNION }
   @Option(secure=true, name="specificationComposition",
@@ -197,7 +202,10 @@ public class CPABuilder {
           throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
         }
 
-        CPAFactory factory = ControlAutomatonCPA.factory();
+        final CPAFactory factory = powersetDomainForSpec
+            ? PowersetAutomatonCPA.factory()
+                : ControlAutomatonCPA.factory();
+
         factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
         factory.setLogger(logger.withComponentName(cpaAlias));
         factory.set(cfa, CFA.class);

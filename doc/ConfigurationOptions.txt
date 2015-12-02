@@ -2419,6 +2419,10 @@ spec.strictMatching = false
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
 
+# Use a powerset domain for representing the current states of the
+# specification automata.
+spec.usepowerset = false
+
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
