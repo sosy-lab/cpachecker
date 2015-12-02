@@ -128,10 +128,10 @@ public class RedundantRequirementsRemover {
     private boolean covers(V[][] covering, final V[][] covered) {
       if (covers(covering[0], covered[0])) {
         boolean isCovered;
-        for (int i = 1; i < covered.length; i++) {
+        for (int i = 1; i < covering.length; i++) {
           isCovered = false;
 
-          for (int j = 1; j < covering.length; j++) {
+          for (int j = 1; j < covered.length; j++) {
             if (covers(covered[j], covering[i])) {
               isCovered = true;
               break;
