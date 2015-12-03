@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -122,6 +123,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
   @SuppressWarnings("hiding")
   final FunctionFormulaManagerView ffmgr = super.ffmgr;
+  final ArrayFormulaManagerView afmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
   @SuppressWarnings("hiding")
@@ -173,6 +175,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     ptsMgr = new PointerTargetSetManager(options, formulaManager, typeHandler,
         shutdownNotifier);
 
+    afmgr = pFormulaManager.getArrayFormulaManager();
+
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(
         CPointerType.POINTER_TO_VOID);
     nullPointer = formulaManager.makeNumber(voidPointerFormulaType, 0);
@@ -212,7 +216,9 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @return The base address for the formula.
    */
   Formula makeBaseAddressOfTerm(final Formula pAddress) {
-    return ffmgr.declareAndCallUninterpretedFunction("__BASE_ADDRESS_OF__",
+//    return ffmgr.declareAndCallUninterpretedFunction("__BASE_ADDRESS_OF__",
+//        voidPointerFormulaType, pAddress);
+    return afmgr.declareAndCallArray("__BASE_ADDRESS_OF__",
         voidPointerFormulaType, pAddress);
   }
 
@@ -325,8 +331,9 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final String ufName = getUFName(pType);
     final int index = getIndex(ufName, pType, pSSAMapBuilder);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
-    return ffmgr.declareAndCallUninterpretedFunction(
-        ufName, index, returnType, pAddress);
+//    return ffmgr.declareAndCallUninterpretedFunction(
+//        ufName, index, returnType, pAddress);
+    return afmgr.declareAndCallArray(ufName, index, returnType, pAddress);
   }
 
   /**

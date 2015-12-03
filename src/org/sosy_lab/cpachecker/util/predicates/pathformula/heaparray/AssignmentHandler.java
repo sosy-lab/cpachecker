@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -82,6 +83,7 @@ class AssignmentHandler {
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
+  private final ArrayFormulaManagerView afmgr;
 
   private final CToFormulaConverterWithHeapArray converter;
   private final CFAEdge edge;
@@ -115,6 +117,7 @@ class AssignmentHandler {
     formulaManager = this.converter.formulaManager;
     bfmgr = this.converter.bfmgr;
     ffmgr = this.converter.ffmgr;
+    afmgr = converter.afmgr;
 
     edge = pCFAEdge;
     function = pFunction;
@@ -567,8 +570,10 @@ class AssignmentHandler {
         pUpdatedVariables.add(Variable.create(targetName, pLvalueType));
       }
     } else { // Aliased LHS
-      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
-          newIndex, targetType, pLvalue.asAliased().getAddress());
+//      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
+//          newIndex, targetType, pLvalue.asAliased().getAddress());
+      final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
+          targetType, pLvalue.asAliased().getAddress());
       if (rhs != null) {
         result = formulaManager.assignment(lhs, rhs);
       } else {
@@ -677,11 +682,16 @@ class AssignmentHandler {
         final BooleanFormula updateCondition = formulaManager.makeEqual(
             targetAddress, pLvalue);
 
+//        final BooleanFormula retention = formulaManager.makeEqual(
+//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex,
+//                pReturnType, targetAddress),
+//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex,
+//                pReturnType, targetAddress));
         final BooleanFormula retention = formulaManager.makeEqual(
-            ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex,
-                pReturnType, targetAddress),
-            ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex,
-                pReturnType, targetAddress));
+            afmgr.declareAndCallArray(pUfName, pNewIndex, pReturnType,
+                targetAddress),
+            afmgr.declareAndCallArray(pUfName, pOldIndex, pReturnType,
+                targetAddress));
 
         constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
@@ -698,11 +708,16 @@ class AssignmentHandler {
           formulaManager.makeNumber(converter.voidPointerFormulaType,
               target.getOffset()), IS_POINTER_SIGNED);
 
+//      constraints.addConstraint(formulaManager.makeEqual(
+//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex,
+//              pReturnType, targetAddress),
+//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex,
+//              pReturnType, targetAddress)));
       constraints.addConstraint(formulaManager.makeEqual(
-          ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex,
-              pReturnType, targetAddress),
-          ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex,
-              pReturnType, targetAddress)));
+          afmgr.declareAndCallArray(pUfName, pNewIndex, pReturnType,
+              targetAddress),
+          afmgr.declareAndCallArray(pUfName, pOldIndex, pReturnType,
+              targetAddress)));
     }
   }
 
@@ -749,11 +764,16 @@ class AssignmentHandler {
                   spurious.getBaseName()),
               formulaManager.makeNumber(converter.voidPointerFormulaType,
                   spurious.getOffset()), IS_POINTER_SIGNED);
+//          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
+//              ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex,
+//                  returnType, targetAddress),
+//              ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex,
+//                  returnType, targetAddress)));
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-              ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex,
-                  returnType, targetAddress),
-              ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex,
-                  returnType, targetAddress)));
+              afmgr.declareAndCallArray(ufName, newIndex, returnType,
+                  targetAddress),
+              afmgr.declareAndCallArray(ufName, oldIndex, returnType,
+                  targetAddress)));
         }
       }
 
@@ -792,14 +812,22 @@ class AssignmentHandler {
             formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1),
             IS_POINTER_SIGNED);
 
+//        constraints.addConstraint(bfmgr.or(bfmgr.and(
+//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
+//            formulaManager.makeLessOrEqual(targetAddress, endAddress,false)),
+//            formulaManager.makeEqual(
+//                ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex,
+//                    returnType, targetAddress),
+//                ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex,
+//                    returnType, targetAddress))));
         constraints.addConstraint(bfmgr.or(bfmgr.and(
             formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-            formulaManager.makeLessOrEqual(targetAddress, endAddress,false)),
+            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
             formulaManager.makeEqual(
-                ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex,
-                    returnType, targetAddress),
-                ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex,
-                    returnType, targetAddress))));
+                afmgr.declareAndCallArray(ufName, newIndex, returnType,
+                    targetAddress),
+                afmgr.declareAndCallArray(ufName, oldIndex, returnType,
+                    targetAddress))));
       }
     }
   }
