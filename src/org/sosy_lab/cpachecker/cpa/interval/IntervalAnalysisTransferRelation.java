@@ -28,11 +28,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -89,8 +91,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
   private int threshold = -1;
 
-  public IntervalAnalysisTransferRelation(Configuration config) throws InvalidConfigurationException {
+  private final LogManager logger;
+
+  public IntervalAnalysisTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
+    logger = pLogger;
   }
 
   @Override
@@ -171,6 +176,8 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
     if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       assert parameters.size() <= arguments.size();
+      logger.log(Level.WARNING, "Ignoring parameters passed as varargs to function",
+          callEdge.getSuccessor().getFunctionDefinition().toASTString());
     } else {
       assert parameters.size() == arguments.size();
     }
