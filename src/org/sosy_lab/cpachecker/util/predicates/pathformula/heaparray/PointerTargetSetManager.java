@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -129,7 +128,6 @@ public class PointerTargetSetManager {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
-  private final FunctionFormulaManagerView ffmgr;
   private final ArrayFormulaManagerView afmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
 
@@ -150,7 +148,6 @@ public class PointerTargetSetManager {
     options = pOptions;
     formulaManager = pFormulaManagerView;
     bfmgr = formulaManager.getBooleanFormulaManager();
-    ffmgr = formulaManager.getFunctionFormulaManager();
     afmgr = formulaManager.getArrayFormulaManager();
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
@@ -581,9 +578,6 @@ public class PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithHeapArray.getUFName(pType);
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
-    // Todo: Change this for array formula manager
-//    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType,
-//        pAddress);
     return afmgr.declareAndCallArray(ufName, index, returnType, pAddress);
   }
 

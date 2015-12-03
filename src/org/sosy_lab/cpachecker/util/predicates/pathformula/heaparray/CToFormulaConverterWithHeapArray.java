@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -96,7 +95,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -121,8 +120,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   final FormulaManagerView formulaManager = super.fmgr;
   @SuppressWarnings("hiding")
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
-  @SuppressWarnings("hiding")
-  final FunctionFormulaManagerView ffmgr = super.ffmgr;
+
   final ArrayFormulaManagerView afmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
@@ -216,8 +214,6 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @return The base address for the formula.
    */
   Formula makeBaseAddressOfTerm(final Formula pAddress) {
-//    return ffmgr.declareAndCallUninterpretedFunction("__BASE_ADDRESS_OF__",
-//        voidPointerFormulaType, pAddress);
     return afmgr.declareAndCallArray("__BASE_ADDRESS_OF__",
         voidPointerFormulaType, pAddress);
   }
@@ -331,8 +327,6 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final String ufName = getUFName(pType);
     final int index = getIndex(ufName, pType, pSSAMapBuilder);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
-//    return ffmgr.declareAndCallUninterpretedFunction(
-//        ufName, index, returnType, pAddress);
     return afmgr.declareAndCallArray(ufName, index, returnType, pAddress);
   }
 

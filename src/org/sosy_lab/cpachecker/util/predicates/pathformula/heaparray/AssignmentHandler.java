@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -63,7 +62,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -82,7 +81,6 @@ class AssignmentHandler {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
-  private final FunctionFormulaManagerView ffmgr;
   private final ArrayFormulaManagerView afmgr;
 
   private final CToFormulaConverterWithHeapArray converter;
@@ -116,7 +114,6 @@ class AssignmentHandler {
     options = this.converter.options;
     formulaManager = this.converter.formulaManager;
     bfmgr = this.converter.bfmgr;
-    ffmgr = this.converter.ffmgr;
     afmgr = converter.afmgr;
 
     edge = pCFAEdge;
@@ -570,8 +567,6 @@ class AssignmentHandler {
         pUpdatedVariables.add(Variable.create(targetName, pLvalueType));
       }
     } else { // Aliased LHS
-//      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName,
-//          newIndex, targetType, pLvalue.asAliased().getAddress());
       final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
           targetType, pLvalue.asAliased().getAddress());
       if (rhs != null) {
@@ -682,11 +677,6 @@ class AssignmentHandler {
         final BooleanFormula updateCondition = formulaManager.makeEqual(
             targetAddress, pLvalue);
 
-//        final BooleanFormula retention = formulaManager.makeEqual(
-//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex,
-//                pReturnType, targetAddress),
-//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex,
-//                pReturnType, targetAddress));
         final BooleanFormula retention = formulaManager.makeEqual(
             afmgr.declareAndCallArray(pUfName, pNewIndex, pReturnType,
                 targetAddress),
@@ -708,11 +698,6 @@ class AssignmentHandler {
           formulaManager.makeNumber(converter.voidPointerFormulaType,
               target.getOffset()), IS_POINTER_SIGNED);
 
-//      constraints.addConstraint(formulaManager.makeEqual(
-//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex,
-//              pReturnType, targetAddress),
-//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex,
-//              pReturnType, targetAddress)));
       constraints.addConstraint(formulaManager.makeEqual(
           afmgr.declareAndCallArray(pUfName, pNewIndex, pReturnType,
               targetAddress),
@@ -764,11 +749,6 @@ class AssignmentHandler {
                   spurious.getBaseName()),
               formulaManager.makeNumber(converter.voidPointerFormulaType,
                   spurious.getOffset()), IS_POINTER_SIGNED);
-//          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-//              ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex,
-//                  returnType, targetAddress),
-//              ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex,
-//                  returnType, targetAddress)));
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(
               afmgr.declareAndCallArray(ufName, newIndex, returnType,
                   targetAddress),
@@ -812,14 +792,6 @@ class AssignmentHandler {
             formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1),
             IS_POINTER_SIGNED);
 
-//        constraints.addConstraint(bfmgr.or(bfmgr.and(
-//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-//            formulaManager.makeLessOrEqual(targetAddress, endAddress,false)),
-//            formulaManager.makeEqual(
-//                ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex,
-//                    returnType, targetAddress),
-//                ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex,
-//                    returnType, targetAddress))));
         constraints.addConstraint(bfmgr.or(bfmgr.and(
             formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
             formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
