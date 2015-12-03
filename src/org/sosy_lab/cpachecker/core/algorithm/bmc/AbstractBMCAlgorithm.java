@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -134,12 +135,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final TargetLocationProvider targetLocationProvider;
 
+  private final ShutdownRequestListener propagateSafetyInterrupt;
+
   private Collection<CFANode> targetLocations;
 
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCFA,
+                      final ShutdownNotifier pShutdownNotifier, CFA pCFA,
                       BMCStatistics pBMCStatistics,
                       boolean pIsInvariantGenerator)
                       throws InvalidConfigurationException, CPAException {
@@ -166,15 +169,31 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       stepCaseAlgorithm = null;
     }
 
+    ShutdownNotifier invariantGeneratorNotifier = pShutdownNotifier;
+    if (addInvariantsByAI || addInvariantsByInduction) {
+      invariantGeneratorNotifier = ShutdownNotifier.createWithParent(pShutdownNotifier);
+      propagateSafetyInterrupt = new ShutdownRequestListener() {
+
+        @Override
+        public void shutdownRequested(String pReason) {
+          if (invariantGenerator.isProgramSafe()) {
+            pShutdownNotifier.requestShutdown(pReason);
+          }
+        }
+      };
+      invariantGeneratorNotifier.register(propagateSafetyInterrupt);
+    } else {
+      propagateSafetyInterrupt = null;
+    }
+
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          pShutdownNotifier, pCFA, pReachedSetFactory);
-
+          invariantGeneratorNotifier, pCFA, pReachedSetFactory);
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, Optional.of(pShutdownNotifier), cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
