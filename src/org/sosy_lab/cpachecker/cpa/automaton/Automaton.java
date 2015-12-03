@@ -33,6 +33,7 @@ import java.util.regex.Matcher;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -53,12 +54,15 @@ public class Automaton {
   private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
   private final Set<SafetyProperty> encodedProperties = Sets.newHashSet();
+  private final AutomatonSafetyPropertyFactory propertyFactory ;
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
 
-  public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
+  public Automaton(AutomatonSafetyPropertyFactory pPropFact,
+      String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInitialStateName) throws InvalidAutomatonException {
 
+    this.propertyFactory = Preconditions.checkNotNull(pPropFact);
     this.name = pName;
     this.initVars = pVars;
 
@@ -117,6 +121,10 @@ public class Automaton {
     }
 
     return result.size();
+  }
+
+  public AutomatonSafetyPropertyFactory getPropertyFactory() {
+    return propertyFactory;
   }
 
   public Set<AutomatonInternalState> getTargetStates() {

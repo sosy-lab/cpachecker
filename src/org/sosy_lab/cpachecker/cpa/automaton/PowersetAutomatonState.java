@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -60,6 +61,11 @@ public class PowersetAutomatonState implements AbstractWrapperState,
     public boolean equals(Object pObj) {
       return (pObj instanceof TopPowersetAutomatonState);
     }
+
+    @Override
+    public boolean containsAtLeast(int pNumberOfStates) {
+      return true;
+    }
   }
 
   final static TopPowersetAutomatonState TOP = new TopPowersetAutomatonState();
@@ -67,12 +73,12 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   private static final long serialVersionUID = -8033111447137153782L;
   private final Set<AutomatonState> states;
 
-  public PowersetAutomatonState(Iterable<AutomatonState> elements) {
+  public PowersetAutomatonState(Collection<AutomatonState> elements) {
     this.states = ImmutableSet.copyOf(elements);
   }
 
-  public int getNumberOfStates() {
-    return states.size();
+  public boolean containsAtLeast(int pNumberOfStates) {
+    return states.size() >= pNumberOfStates ;
   }
 
   @Override
@@ -101,11 +107,15 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append('(');
-    for (AbstractState element : states) {
-      builder.append(element.getClass().getSimpleName());
-      builder.append(": ");
-      builder.append(element.toString());
-      builder.append("\n ");
+    if (states.size() > 10) {
+      builder.append(String.format("%d different automata states!", states.size()));
+    } else {
+      for (AbstractState element : states) {
+        builder.append(element.getClass().getSimpleName());
+        builder.append(": ");
+        builder.append(element.toString());
+        builder.append("\n ");
+      }
     }
     builder.replace(builder.length() - 1, builder.length(), ")");
 

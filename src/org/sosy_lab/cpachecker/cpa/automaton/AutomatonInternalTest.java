@@ -101,7 +101,7 @@ public class AutomatonInternalTest {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     try (Reader input = defaultSpec.openBufferedStream()) {
       AutomatonScanner scanner = new AutomatonScanner(input, defaultSpecPath, logger, sf);
-      AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config);
+      AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config, "");
       Symbol symbol = new AutomatonParser(scanner, sf, logger, propFactory, parser, CProgramScope.empty()).parse();
       @SuppressWarnings("unchecked")
       List<Automaton> as = (List<Automaton>) symbol.value;

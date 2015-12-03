@@ -87,7 +87,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Stop in the automata transfer relation if the analysis identified one feasible path for each target state.")
   private boolean stopAfterOneFeasiblePathPerProperty = false;
 
-  private final AutomatonSafetyPropertyFactory propertyFactory;
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private @Nullable CounterexamplesSummary cexSummary;
@@ -102,12 +101,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
-      LogManager pLogger, AutomatonSafetyPropertyFactory pAspf) throws InvalidConfigurationException {
+      LogManager pLogger) throws InvalidConfigurationException {
 
     config.inject(this);
 
     this.cpa = pCpa;
-    this.propertyFactory = pAspf;
     this.logger = pLogger;
   }
 
@@ -253,6 +251,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(pState);
     }
 
+    final Automaton automaton = pState.getOwningAutomaton();
+
     Collection<AutomatonState> result = Sets.newLinkedHashSetWithExpectedSize(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(pState, pState.getVars(), pOtherElements, pEdge, logger);
 
@@ -322,7 +322,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             assertionProperties.addAll(t.getViolatedWhenAssertionFailed());
 
             if (assertionProperties.isEmpty()) {
-              assertionProperties.addAll(propertyFactory.createAssertionProperty(t.getAssertion()));
+              assertionProperties.addAll(automaton.getPropertyFactory().createAssertionProperty(t.getAssertion()));
             }
 
             Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();

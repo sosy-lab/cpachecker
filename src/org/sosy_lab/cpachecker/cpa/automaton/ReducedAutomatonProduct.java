@@ -344,7 +344,7 @@ public final class ReducedAutomatonProduct {
       //    The split might (should?) already be part of the input automata!!
     }
 
-    return new Automaton(pProductAutomataName,
+    return new Automaton(null, pProductAutomataName,
         Maps.<String, AutomatonVariable>newHashMap(),
         automatonStates, initialStateName);
   }

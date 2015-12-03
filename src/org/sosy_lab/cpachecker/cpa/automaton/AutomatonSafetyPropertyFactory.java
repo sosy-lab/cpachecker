@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -35,13 +37,18 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 @Options(prefix="automata.properties")
 class AutomatonSafetyPropertyFactory {
 
   public static enum PropertyGranularity {
+    /** One automata definition file encodes one property. */
+    BASENAME,
+
     /** One automaton encodes exactly one property. */
     AUTOMATON,
 
@@ -52,67 +59,118 @@ class AutomatonSafetyPropertyFactory {
   @Option(description="Granularity of safety properties that are encoded in automata.")
   private PropertyGranularity granularity = PropertyGranularity.AUTOMATON;
 
-  public AutomatonSafetyPropertyFactory(Configuration pConfig) throws InvalidConfigurationException {
+  private final String propertyBasename;
+
+  public AutomatonSafetyPropertyFactory(Configuration pConfig, String pPropertyBaseName) throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    this.propertyBasename = pPropertyBaseName;
   }
 
   public Set<SafetyProperty> createSingleProperty() {
 
-    return ImmutableSet.<SafetyProperty>of(new AutomatonSafetyProperty());
+    Optional<Automaton> automaton;
+    if (granularity == PropertyGranularity.AUTOMATON) {
+      automaton = null; // Will be set delayed!
+    } else {
+      automaton = Optional.<Automaton>absent();
+    }
+
+    StringExpression expression = StringExpression.empty();
+
+    return ImmutableSet.<SafetyProperty>of(
+        new AutomatonSafetyProperty(propertyBasename,
+            automaton,
+            expression));
   }
 
   public Set<SafetyProperty> createSingleProperty(StringExpression pViolationExpr) {
-    if (granularity == PropertyGranularity.VIOLATING_EXPRESSION) {
-      return ImmutableSet.<SafetyProperty>of(new AutomatonSafetyProperty(pViolationExpr));
+
+    Optional<Automaton> automaton;
+    if (granularity == PropertyGranularity.AUTOMATON) {
+      automaton = null; // Will be set delayed!
+    } else {
+      automaton = Optional.<Automaton>absent();
     }
 
-    return ImmutableSet.<SafetyProperty>of(new AutomatonSafetyProperty());
+    StringExpression expression;
+    if (granularity == PropertyGranularity.VIOLATING_EXPRESSION) {
+      expression = Preconditions.checkNotNull(pViolationExpr);
+    } else {
+      expression = StringExpression.empty();
+    }
+
+    return ImmutableSet.<SafetyProperty>of(
+        new AutomatonSafetyProperty(propertyBasename,
+            automaton,
+            expression));
+  }
+
+  public Set<SafetyProperty> createAssertionProperties(
+      @Nullable Collection<AutomatonBoolExpr> pAssertion) {
+
+    HashSet<SafetyProperty> result = Sets.newHashSet();
+
+    if (pAssertion != null) {
+      for (AutomatonBoolExpr expr: pAssertion) {
+        result.addAll(createAssertionProperty(expr));
+      }
+    }
+
+    return result;
   }
 
   public Set<SafetyProperty> createAssertionProperty(AutomatonBoolExpr pAssertion) {
-    if (granularity == PropertyGranularity.VIOLATING_EXPRESSION) {
-      return ImmutableSet.<SafetyProperty>of(new AutomatonAssertionProperty(pAssertion));
+    Optional<Automaton> automaton;
+    if (granularity == PropertyGranularity.AUTOMATON) {
+      automaton = null; // Will be set delayed!
+    } else {
+      automaton = Optional.<Automaton>absent();
     }
 
-    return ImmutableSet.<SafetyProperty>of(new AutomatonAssertionProperty());
+    AutomatonBoolExpr expression;
+    if (granularity == PropertyGranularity.VIOLATING_EXPRESSION) {
+      expression = Preconditions.checkNotNull(pAssertion);
+    } else {
+      expression = AutomatonBoolExpr.TRUE;
+    }
+
+    return ImmutableSet.<SafetyProperty>of(
+        new AutomatonAssertionProperty(propertyBasename,
+            automaton,
+            expression));
   }
 
   private abstract static class AbstractSafetyProperty<E> implements SafetyProperty {
 
-    @Nullable protected Automaton automaton; // Has to be set delayed because of the parsing process!
+    @Nullable protected Optional<Automaton> automaton = null; // Has to be set delayed because of the parsing process!
+
+    @Nonnull protected final String basename;
+
     @Nonnull protected final E violationDescriptionExpression;
 
-    public AbstractSafetyProperty(E pViolationExpr) {
-      this.automaton = null;
-      this.violationDescriptionExpression = Preconditions.checkNotNull(pViolationExpr);
+    public AbstractSafetyProperty(String pPropertyBasename, Optional<Automaton> pAutomaton, E pViolationExpr) {
+      this.basename = Preconditions.checkNotNull(pPropertyBasename);
+      this.violationDescriptionExpression = pViolationExpr;
+      this.automaton = pAutomaton;
     }
 
     protected abstract E createEmptyExpression();
 
-    public AbstractSafetyProperty(Automaton pAutomaton) {
-      this.automaton = pAutomaton;
-      this.violationDescriptionExpression = createEmptyExpression();
-    }
-
-    public AbstractSafetyProperty() {
-      this.automaton = null;
-      this.violationDescriptionExpression = createEmptyExpression();
-    }
-
     @Override
     public void setAutomaton(Automaton pAutomaton) {
-      automaton = Preconditions.checkNotNull(pAutomaton);
-    }
+      Preconditions.checkNotNull(pAutomaton);
 
-    public E getViolationDescriptionExpression() {
-      return violationDescriptionExpression;
+      if (automaton == null) {
+        automaton = Optional.of(pAutomaton);
+      }
     }
 
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + (automaton == null ? 0 : automaton.hashCode());
+      result = prime * result + basename.hashCode();
       result = prime * result + violationDescriptionExpression.hashCode();
       return result;
     }
@@ -134,7 +192,11 @@ class AutomatonSafetyPropertyFactory {
         return false;
       }
 
-      if (automaton == null) {
+      if (!basename.equals(other.basename)) {
+        return false;
+      }
+
+      if (this.automaton == null) {
         if (other.automaton != null) {
           return false;
         }
@@ -148,28 +210,25 @@ class AutomatonSafetyPropertyFactory {
 
   public static class AutomatonSafetyProperty extends AbstractSafetyProperty<StringExpression> {
 
+    public AutomatonSafetyProperty(String pPropertyBasename, Optional<Automaton> pAutomaton,
+        StringExpression pViolationExpr) {
+      super(pPropertyBasename, pAutomaton, pViolationExpr);
+    }
+
     @Override
     public ResultValue<?> instantiate(AutomatonExpressionArguments pArgs) {
       return violationDescriptionExpression.eval(pArgs);
-    }
-
-    public AutomatonSafetyProperty() {
-      super();
-    }
-
-    public AutomatonSafetyProperty(Automaton pAutomaton) {
-      super(pAutomaton);
-    }
-
-    public AutomatonSafetyProperty(StringExpression pViolationExpr) {
-      super(pViolationExpr);
     }
 
     @Override
     public String toString() {
       final StringBuilder result = new StringBuilder();
 
-      result.append(automaton.getName());
+      result.append(basename.toString());
+      if (automaton.isPresent()) {
+        result.append(" / ");
+        result.append(automaton.get().getName());
+      }
 
       if (violationDescriptionExpression.getRawExpression().length() > 0) {
         result.append(" / ");
@@ -188,16 +247,9 @@ class AutomatonSafetyPropertyFactory {
 
   public static class AutomatonAssertionProperty extends AbstractSafetyProperty<AutomatonBoolExpr> {
 
-    public AutomatonAssertionProperty() {
-      super();
-    }
-
-    public AutomatonAssertionProperty(Automaton pAutomaton) {
-      super(pAutomaton);
-    }
-
-    public AutomatonAssertionProperty(AutomatonBoolExpr pViolationExpr) {
-      super(pViolationExpr);
+    public AutomatonAssertionProperty(String pPropertyBasename, Optional<Automaton> pAutomaton,
+        AutomatonBoolExpr pViolationExpr) {
+      super(pPropertyBasename, pAutomaton, pViolationExpr);
     }
 
     @Override
@@ -216,7 +268,11 @@ class AutomatonSafetyPropertyFactory {
     public String toString() {
       final StringBuilder result = new StringBuilder();
 
-      result.append(automaton.getName());
+      result.append(basename.toString());
+      if (automaton.isPresent()) {
+        result.append(" / ");
+        result.append(automaton.get().getName());
+      }
 
       if (!violationDescriptionExpression.equals(AutomatonBoolExpr.TRUE)) {
         result.append(" / ");

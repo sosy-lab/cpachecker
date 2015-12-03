@@ -32,6 +32,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct.ProductState;
 
@@ -54,6 +56,7 @@ public class ReducedAutomatonProductTest {
   private Automaton a_seq2;
   private Automaton a_seq3;
   private Automaton a_seq100;
+  private AutomatonSafetyPropertyFactory pf;
 
   private AutomatonTransition newTrans (AutomatonBoolExpr pTrigger, String pTarget) {
     return new AutomatonTransition(
@@ -84,7 +87,7 @@ public class ReducedAutomatonProductTest {
             newTrans(AutomatonBoolExpr.TRUE, "q2")
         ), false, false));
 
-    Automaton a = new Automaton(automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
+    Automaton a = new Automaton(pf, automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
 
     try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
       a.writeDotFile(w);
@@ -109,7 +112,7 @@ public class ReducedAutomatonProductTest {
         ImmutableList.<AutomatonTransition>of(),
         true, false));
 
-    Automaton a = new Automaton(automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
+    Automaton a = new Automaton(pf, automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
 
     try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
       a.writeDotFile(w);
@@ -141,7 +144,7 @@ public class ReducedAutomatonProductTest {
         ImmutableList.<AutomatonTransition>of(),
         true, false));
 
-    Automaton a = new Automaton(automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
+    Automaton a = new Automaton(pf, automataName, Maps.<String, AutomatonVariable>newHashMap(), automatonStates, initialStateName);
 
     try(BufferedWriter w = Files.newWriter(Paths.createTempPath(automataName + "_", ".dot").toFile(), Charset.defaultCharset())) {
       a.writeDotFile(w);
@@ -165,6 +168,9 @@ public class ReducedAutomatonProductTest {
     a_seq2 = similarPrefixMatchingAutomaton(2);
     a_seq3 = similarPrefixMatchingAutomaton(3);
     a_seq100 = similarPrefixMatchingAutomaton(100);
+
+    Configuration config = Mockito.mock(Configuration.class);
+    pf = new AutomatonSafetyPropertyFactory(config, "");
   }
 
   @Test

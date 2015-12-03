@@ -119,7 +119,7 @@ public class PowersetAutomatonDomainTest {
     AbstractState result = dom.join(e_q1_q2, e_q2_q3);
 
     assertThat(result).isInstanceOf(PowersetAutomatonState.class);
-    assertThat(((PowersetAutomatonState) result).getNumberOfStates()).isEqualTo(3);
+    assertThat(((PowersetAutomatonState) result).containsAtLeast(3)).isTrue();
   }
 
   @Test

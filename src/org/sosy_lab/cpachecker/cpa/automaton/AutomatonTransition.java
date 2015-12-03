@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory.AutomatonAssertionProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Joiner;
@@ -180,11 +179,7 @@ class AutomatonTransition {
 
     } else {
 
-      if (pViolatedWhenAssertionFailed.isEmpty()) {
-        this.violatedWhenAssertionFailed = ImmutableSet.of(new AutomatonAssertionProperty());
-      } else {
-        this.violatedWhenAssertionFailed = ImmutableSet.copyOf(pViolatedWhenAssertionFailed);
-      }
+      this.violatedWhenAssertionFailed = ImmutableSet.copyOf(pViolatedWhenAssertionFailed);
 
       AutomatonBoolExpr lAssertion = null;
       for (AutomatonBoolExpr nextAssertion : pAssertions) {
