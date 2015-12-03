@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.matheclipse.core.expression.F;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -110,6 +114,36 @@ public class ArrayFormulaManagerView
 
     BooleanFormula result = manager.equivalence(declaredArray1, declaredArray2);
     return wrap(FormulaType.BooleanType, result);
+  }
+
+  public <T extends Formula> T declareAndCallArray(String pName,
+      FormulaType<T> pReturnType,
+      Formula... pArgs) {
+    return declareAndCallArray(pName, pReturnType, Arrays.asList(pArgs));
+  }
+
+  public <T extends Formula> T declareAndCallArray(String pName,
+      int pIdx,
+      FormulaType<T> pReturnType,
+      Formula... pArgs) {
+    return declareAndCallArray(pName, pIdx, pReturnType, Arrays.asList(pArgs));
+  }
+
+  private <T extends Formula> T declareAndCallArray(String pName,
+      int pIdx,
+      FormulaType<T> pReturnType,
+      List<Formula> pArgs) {
+    String name = FormulaManagerView.makeName(pName, pIdx);
+    return declareAndCallArray(name, pReturnType, pArgs);
+  }
+
+  private <T extends Formula> T declareAndCallArray(String pName,
+      FormulaType<T> pReturnType,
+      List<Formula> pArgs) {
+    // todo does the magic
+    throw new UnsupportedOperationException("ArrayFormulaManagerView"
+        + ".declareAndCallArray(String, FormulaType<T>, List<Formula> not "
+        + "implemented yet! Implement me!");
   }
 
 }
