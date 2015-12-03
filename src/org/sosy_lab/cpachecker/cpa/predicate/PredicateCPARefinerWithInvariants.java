@@ -48,7 +48,6 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -505,9 +504,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       Configuration invariantConfig;
       try {
-        ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
-        configBuilder.loadFromFile(bmcConfig);
-        invariantConfig = configBuilder.build();
+        invariantConfig = Configuration.builder().loadFromFile(bmcConfig).build();
       } catch (IOException e) {
         throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
       }
