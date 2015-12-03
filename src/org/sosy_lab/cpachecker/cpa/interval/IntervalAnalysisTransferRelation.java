@@ -168,11 +168,17 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCCodeException {
-    assert (parameters.size() == arguments.size());
+
+    if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+      assert parameters.size() <= arguments.size();
+    } else {
+      assert parameters.size() == arguments.size();
+    }
+
     IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
-    for (int i = 0; i < arguments.size(); i++) {
+    for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
       Interval interval = evaluateInterval(state, arguments.get(i));
       String formalParameterName = parameters.get(i).getQualifiedName();
