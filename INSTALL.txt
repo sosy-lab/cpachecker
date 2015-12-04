@@ -38,7 +38,7 @@ Install CPAchecker -- Source
 
 4. Checkout CPAchecker from SVN repository.
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
-   URL (read-only GIT mirror): https://github.com/dbeyer/cpachecker
+   URL (read-only GIT mirror): https://github.com/sosy-lab/cpachecker
 
 5. Run "ant" in CPAchecker directory to build CPAchecker.
    When building CPAchecker for the first time, this will automatically
