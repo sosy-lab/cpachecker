@@ -242,9 +242,9 @@ def _execute():
         return handle_result(run_result, config.output_path, cpachecker_args)
 
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
+        logging.warning(str(e))
 
     finally:
         webclient.shutdown()

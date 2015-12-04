@@ -224,7 +224,7 @@ try:
                     self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
                 
                 except Exception as e:
-                    logging.warn("Creating SSE connection failed: %s", e)
+                    logging.warning("Creating SSE connection failed: %s", e)
                     self._fall_back()
                     return
                 
@@ -249,14 +249,14 @@ try:
                             self._web_interface._run_failed(run_id)
                             
                         else:
-                            logging.warn('Received unknown run state %s for run %s.', state, run_id)
+                            logging.warning('Received unknown run state %s for run %s.', state, run_id)
                             
                         run_ids.discard(run_id)
                         if self._shutdown or self._new_runs or len(run_ids) == 0:
                             break;
                         
                     else:
-                        logging.warn("Received invalid message %s", data)
+                        logging.warning("Received invalid message %s", data)
             
             self._sse_client = None
             
@@ -300,7 +300,7 @@ class RunResultFuture(Future):
             try:
                 self._web_interface._stop_run(self._run_id)
             except:
-                logging.warn("Stopping of run %s failed", self._run_id)
+                logging.warning("Stopping of run %s failed", self._run_id)
             
         return canceled
 
@@ -716,7 +716,7 @@ class WebInterface:
     def _run_failed(self, run_id):
         run_result_future = self._unfinished_runs.pop(run_id, None)
         if run_result_future:
-            logging.warn('Execution of run %s failed.', run_id)
+            logging.warning('Execution of run %s failed.', run_id)
             run_result_future.set_exception(WebClientError("Execution failed."))
 
     def shutdown(self):
@@ -798,7 +798,7 @@ class WebInterface:
                     sleep(60)
                 else:
                     message += response.read().decode('UTF-8')
-                logging.warn(message)
+                logging.warning(message)
                 raise urllib2.HTTPError(path, response.getcode(), message , response.getheaders(), None)
 
     def _get_connection(self):

@@ -153,9 +153,9 @@ def _execute():
                              handle_host_info=lambda x : None)
 
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
+        logging.warning(str(e))
 
     finally:
         webclient.shutdown()
