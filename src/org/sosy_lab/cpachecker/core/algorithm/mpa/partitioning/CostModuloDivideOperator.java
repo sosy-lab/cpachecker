@@ -37,7 +37,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 
-public class CostBasedDivideOperator extends AbstractPartitioningOperator {
+public class CostModuloDivideOperator extends AbstractPartitioningOperator {
 
   @Override
   public Partitioning partition(Partitioning pLastCheckedPartitioning, Set<Property> pToCheck,
