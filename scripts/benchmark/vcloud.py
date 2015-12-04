@@ -236,7 +236,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         # outputDir does not exist or is empty
-        logging.warning("Cloud produced no results. Output-directory is missing or empty: {0}".format(outputDir))
+        logging.warning("Cloud produced no results. Output-directory is missing or empty: %s", outputDir)
 
     # Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
@@ -263,13 +263,13 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                         # Do not delete .data file if there was some problem
                         os.remove(dataFile)
                 except IOError as e:
-                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    run.identifier, e))
+                    logging.warning("Cannot extract measured values from output for file %s: %s",
+                                    run.identifier, e)
                     output_handler.all_created_files.append(dataFile)
                     executedAllRuns = False
                     return_value = None
             else:
-                logging.warning("No results exist for file {0}.".format(run.identifier))
+                logging.warning("No results exist for file %s.", run.identifier)
                 executedAllRuns = False
                 return_value = None
 
@@ -289,8 +289,8 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     if not executedAllRuns:
         logging.warning("Some expected result files could not be found!")
     if runsProducedErrorOutput and not benchmark.config.debug:
-        logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
-                        .format(os.path.join(outputDir, '*.stdError')))
+        logging.warning("Some runs produced unexpected warnings on stderr, please check the %s files!",
+                        os.path.join(outputDir, '*.stdError'))
 
 
 def parseAndSetCloudWorkerHostInformation(filePath, output_handler):

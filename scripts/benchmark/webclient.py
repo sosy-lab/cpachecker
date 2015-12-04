@@ -190,7 +190,7 @@ try:
                 return False
             elif type(error) == HTTPError and error.response is not None \
                     and error.response.status >= 400 and error.response.status < 500 :
-                logging.debug("Exception in SSE connection {}", error)
+                logging.debug("Exception in SSE connection: %s", error)
                 return False
             else:
                 
@@ -224,7 +224,7 @@ try:
                     self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
                 
                 except Exception as e:
-                    logging.warn("Creating SSE connection failed: {}", e)
+                    logging.warn("Creating SSE connection failed: %s", e)
                     self._fall_back()
                     return
                 
@@ -237,26 +237,26 @@ try:
                         
                         if state == "FINISHED":
                             if run_id in run_ids:
-                                logging.debug('Run {0} finished.'.format(run_id))
+                                logging.debug('Run %s finished.', run_id)
                                 self._web_interface._download_result_async(run_id)
                             
         
                         elif state == "UNKNOWN":
-                            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(run_id))
+                            logging.debug('Run %s is not known by the webclient, trying to get the result.', run_id)
                             self._web_interface._download_async(run_id)
                             
                         elif state == "ERROR":
                             self._web_interface._run_failed(run_id)
                             
                         else:
-                            logging.warn('Received unknown run state {0} for run {1}.'.format(state, run_id))
+                            logging.warn('Received unknown run state %s for run %s.', state, run_id)
                             
                         run_ids.discard(run_id)
                         if self._shutdown or self._new_runs or len(run_ids) == 0:
                             break;
                         
                     else:
-                        logging.warn("Received invalid message " + data)
+                        logging.warn("Received invalid message %s", data)
             
             self._sse_client = None
             
@@ -300,7 +300,7 @@ class RunResultFuture(Future):
             try:
                 self._web_interface._stop_run(self._run_id)
             except:
-                logging.warn("Stopping of run {} failed", self._run_id)
+                logging.warn("Stopping of run %s failed", self._run_id)
             
         return canceled
 
@@ -334,7 +334,7 @@ class WebInterface:
                 '{}/{} (Python/{} {}/{})'.format(user_agent, version, platform.python_version(), platform.system(), platform.release())
 
         self._webclient = urllib.urlparse(web_interface_url)
-        logging.info('Using VerifierCloud at {0}'.format(web_interface_url))
+        logging.info('Using VerifierCloud at %s', web_interface_url)
 
         if user_pwd:
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
@@ -380,7 +380,7 @@ class WebInterface:
 
                 os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
         except OSError as e:
-            logging.warning("Could not write hash-code cache file to {}: {}".format(HASH_CODE_CACHE_PATH, e.strerror))
+            logging.warning("Could not write hash-code cache file to %s: %s", HASH_CODE_CACHE_PATH, e.strerror)
 
     def _resolved_tool_revision(self, svn_branch, svn_revision):
 
@@ -453,7 +453,7 @@ class WebInterface:
         (run_id, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
 
         run_id = run_id.decode("UTF-8")
-        logging.debug('Submitted witness validation run with id {0}'.format(run_id))
+        logging.debug('Submitted witness validation run with id %s', run_id)
 
         return self._create_and_add_run_future(run_id)
 
@@ -542,7 +542,7 @@ class WebInterface:
 
         else:
             run_id = run_id.decode("UTF-8")
-            logging.debug('Submitted run with id {0}'.format(run_id))
+            logging.debug('Submitted run with id %s', run_id)
             return self._create_and_add_run_future(run_id) 
 
     def _handle_options(self, run, params, rlimits):
@@ -616,7 +616,8 @@ class WebInterface:
                         configPath = next(i)
                         tokens = configPath.split('/')
                         if not (tokens[0] == "config" and len(tokens) == 2):
-                            logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
+                            logging.warning('Configuration %s of run %s is not from the default config directory.',
+                                            configPath, run.identifier)
                             return configPath
                         config = tokens[1].split('.')[0]
                         params['configuration'] = config
@@ -661,15 +662,15 @@ class WebInterface:
 
             state = state.decode('utf-8')
             if state == "FINISHED":
-                logging.debug('Run {0} finished.'.format(run_id))
+                logging.debug('Run %s finished.', run_id)
 
             if state == "UNKNOWN":
-                logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(run_id))
+                logging.debug('Run %s is not known by the webclient, trying to get the result.', run_id)
 
             return state
 
         except urllib2.HTTPError as e:
-            logging.warning('Could not get run state {0}: {1}'.format(run_id, e.reason))
+            logging.warning('Could not get run state %s: %s', run_id, e.reason)
             return False
 
     def _download_result(self, run_id):
@@ -692,7 +693,7 @@ class WebInterface:
                     result_future.set_result(downloaded_result.result())
 
             else:
-                logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
+                logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
                 
                 # client error
                 if type(exception) is urllib2.HTTPError and 400 <= exception.code and exception.code <= 499:
@@ -715,7 +716,7 @@ class WebInterface:
     def _run_failed(self, run_id):
         run_result_future = self._unfinished_runs.pop(run_id, None)
         if run_result_future:
-            logging.warn('Execution of run {0} failed.'.format(run_id))
+            logging.warn('Execution of run %s failed.', run_id)
             run_result_future.set_exception(WebClientError("Execution failed."))
 
     def shutdown(self):
@@ -750,7 +751,7 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except urllib2.HTTPError as e:
-            logging.info("Stopping of run {0} failed: {1}".format(run_id, e.reason))
+            logging.info("Stopping of run %s failed: %s", run_id, e.reason)
         
 
     def _request(self, method, path, body={}, headers={}, expectedStatusCodes=[200], user_pwd=None):
@@ -775,7 +776,7 @@ class WebInterface:
                 response = connection.getresponse()
             except Exception as e:
                 if (counter < 5):
-                    logging.debug("Exception during {} request to {}: {}".format(method, path, e))
+                    logging.debug("Exception during %s request to %s: %s", method, path, e)
                     # create new TCP connection and try to send the request
                     connection.close()
                     sleep(1)
@@ -849,7 +850,7 @@ def _handle_host_info(values):
         print ('\t' + str(key) + ": " + str(values[key]))
 
 def _handle_special_files(result_zip_file, files, output_path):
-    logging.info("Results are written to {0}".format(output_path))
+    logging.info("Results are written to %s", output_path)
     for file in SPECIAL_RESULT_FILES:
         if file in files and file != RESULT_FILE_LOG:
             result_zip_file.extract(file, output_path)
@@ -878,13 +879,13 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
                     result_files_pattern, run_identifier)
 
         except zipfile.BadZipfile:
-            logging.warning('Server returned illegal zip file with results of run {}.'.format(run_identifier))
+            logging.warning('Server returned illegal zip file with results of run %s.', run_identifier)
             # Dump ZIP to disk for debugging
             with open(output_path + '.zip', 'wb') as zip_file:
                 zip_file.write(zip_content)
 
     except IOError as e:
-        logging.warning('Error while writing results of run {}: {}'.format(run_identifier, e))
+        logging.warning('Error while writing results of run %s: %s', run_identifier, e)
 
     return return_value
 
@@ -901,14 +902,14 @@ def _handle_result(resultZipFile, output_path,
             return_value = handle_run_info(_parse_cloud_file(runInformation))
     else:
         return_value = None
-        logging.warning('Missing result for run {}.'.format(run_identifier))
+        logging.warning('Missing result for run %s.', run_identifier)
 
     # extract host info
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
             handle_host_info(_parse_cloud_file(hostInformation))
     else:
-        logging.warning('Missing host information for run {}.'.format(run_identifier))
+        logging.warning('Missing host information for run %s.', run_identifier)
 
     # extract log file
     if RESULT_FILE_LOG in files:
@@ -917,7 +918,7 @@ def _handle_result(resultZipFile, output_path,
                 for line in result_log_file:
                     log_file.write(line)
     else:
-        logging.warning('Missing log file for run {}.'.format(run_identifier))
+        logging.warning('Missing log file for run %s.', run_identifier)
 
     handle_special_files(resultZipFile, files, output_path)
 

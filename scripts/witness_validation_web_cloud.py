@@ -123,7 +123,7 @@ def _init(config):
     webclient = WebInterface(config.cloud_master, config.cloud_user,
                              user_agent='witness_validation_web_cloud.py', version=__version__)
 
-    logging.info('Using {0} version {1}.'.format(webclient.tool_name(), webclient.tool_revision()))
+    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
     return webclient
 
 def _submit_run(webclient, config):
