@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -92,6 +94,14 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
       final ImmutableList<ImmutableSet<Property>> pPartitions) {
 
     return Partitions.partitions(pStatus, pPartitions);
+  }
+
+  protected ImmutableList<ImmutableSet<Property>> immutable(List<Set<Property>> pInput) {
+    Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
+    for (Set<Property> partition: pInput) {
+      result.add(ImmutableSet.copyOf(partition));
+    }
+    return result.build();
   }
 
 }
