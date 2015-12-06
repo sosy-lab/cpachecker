@@ -97,6 +97,8 @@ public class BlockOperator {
   @Option(secure=true, description="abstraction always and only on explicitly computed abstraction nodes.")
   private boolean alwaysAndOnlyAtExplicitNodes = false;
 
+  @Option(secure=true, description="abstraction always at explicitly computed abstraction nodes.")
+  private boolean alwaysAtExplicitNodes = false;
 
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
@@ -131,6 +133,16 @@ public class BlockOperator {
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);
       return explicitAbstractionNodes.contains(predLoc);
+    }
+
+    if (alwaysAtExplicitNodes && explicitAbstractionNodes != null
+        && explicitAbstractionNodes.contains(predLoc)) {
+      return true;
+    }
+
+    if (threshold == 1) {
+      // check SBE case here to avoid need for loop-structure information
+      return true;
     }
 
     if (alwaysAtFunctions && isFunctionCall(succLoc)) {
@@ -172,10 +184,6 @@ public class BlockOperator {
     }
 
     if (threshold > 0) {
-      if (threshold == 1) {
-        return true;
-      }
-
       if (isThresholdFulfilled(pf)) {
 
         if (alwaysAfterThreshold) {
@@ -234,6 +242,7 @@ public class BlockOperator {
         && !alwaysAtLoops
         && !alwaysAtJoin
         && !alwaysAtBranch
+        && (!alwaysAtExplicitNodes || explicitAbstractionNodes == null || explicitAbstractionNodes.isEmpty())
         && (threshold == 0)
         && !absOnFunction
         && !absOnLoop

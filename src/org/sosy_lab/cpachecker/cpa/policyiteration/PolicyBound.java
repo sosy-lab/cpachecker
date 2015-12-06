@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
-import org.sosy_lab.cpachecker.util.UniqueIdGenerator;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
@@ -92,10 +92,6 @@ public class PolicyBound {
     return bound;
   }
 
-  public PathFormula getStartPathFormula() {
-    return getPredecessor().getPathFormula();
-  }
-
   public ImmutableSet<Template> getDependencies() {
     return dependencies;
   }
@@ -107,7 +103,9 @@ public class PolicyBound {
 
   @Override
   public String toString() {
-    return String.format("%s (from: %s)", bound, predecessor);
+
+    // Converting the predecessor to string is very costly.
+    return bound.toString();
   }
 
   @Override

@@ -160,7 +160,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                                    returnType,
                                    parameterTypes != null ? parameterTypes : t.getParameters(),
                                    t.takesVarArgs());
-        result.setName(t.getName());
+        if (t.getName() != null) {
+          result.setName(t.getName());
+        }
       }
 
       return result;

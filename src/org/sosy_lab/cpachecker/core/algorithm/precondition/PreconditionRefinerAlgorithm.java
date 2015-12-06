@@ -34,7 +34,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,10 +50,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.util.ReachedSetUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -70,11 +68,11 @@ import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.precondition.segkro.ExtractNewPreds;
 import org.sosy_lab.cpachecker.util.precondition.segkro.MinCorePrio;
 import org.sosy_lab.cpachecker.util.precondition.segkro.Refine;
@@ -83,9 +81,10 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionR
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -192,7 +191,7 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     refiner = createRefiner(pConfig, pShutdownNotifier);
 
     writer = exportPreciditionsAs == PreconditionExportType.SMTLIB
-        ? Optional.<PreconditionWriter>of(new PreconditionToSmtlibWriter(pCfa, pConfig, pLogger, mgrv))
+        ? Optional.<PreconditionWriter>of(new PreconditionToSmtlibWriter(mgrv))
         : Optional.<PreconditionWriter>absent();
   }
 
@@ -281,135 +280,157 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      PredicatedAnalysisPropertyViolationException {
+      CPAEnabledAnalysisPropertyViolationException {
 
-    // Copy the initial set of reached states
-    final ReachedSet initialReachedSet = reachedSetFactory.create();
-    ReachedSetUtils.addReachedStatesToOtherReached(pReachedSet, initialReachedSet);
-
-    final CFANode wpLoc = getFirstNodeInEntryFunctionBody();
-
-    boolean precisionFixpointReached = false;
-    boolean preconditionFixpointReached = false;
-
-    BooleanFormula lastIterationPcViolation = null;
-    BooleanFormula lastIterationPcValid = null;
-    PredicatePrecision lastPrecision = null;
-
-    Multimap<ARGPath, ARGPath> coveredTracePairs = HashMultimap.create();
-
-    PredicatePrecision newPrecision = null;
-
-    do {
-      // Run the CPA algorithm
-      wrappedAlgorithm.run(pReachedSet);
-
-      // We use one set of reached states
-      //    ... and separate the state space using an automaton!
-      final BooleanFormula pcViolation = getPreconditionForViolation(pReachedSet, wpLoc);
-      final BooleanFormula pcValid = getPreconditionForValidity(pReachedSet, wpLoc);
-
-      if (lastIterationPcViolation != null
-          && lastIterationPcViolation.equals(pcViolation)
-          && lastIterationPcValid.equals(pcValid)) {
-            preconditionFixpointReached = true;
+    try {
+      // Copy the initial set of reached states
+      final ReachedSet initialReachedSet = reachedSetFactory.create();
+      for (AbstractState state : pReachedSet) {
+        initialReachedSet.add(state, pReachedSet.getPrecision(state));
+        initialReachedSet.removeOnlyFromWaitlist(state);
       }
-      lastIterationPcViolation = pcViolation;
-      lastIterationPcValid = pcValid;
 
-      // We might have found a necessary and sufficient precondition...
-      if (isDisjoint(pcViolation, pcValid)) {
-        logger.log(Level.INFO, "Necessary and sufficient precondition found!");
+      final CFANode wpLoc = getFirstNodeInEntryFunctionBody();
 
-        // We have found a valid, weakest, precondition
-        // -- > write the precondition.
-        if (writer.isPresent()) {
-          try {
-            final BooleanFormula weakestPrecondition = pcValid;
-            writer.get().writePrecondition(exportPreciditionsTo, weakestPrecondition);
-          } catch (IOException e) {
-            logger.log(Level.WARNING, "Writing the precondition failed!", e);
-          }
+      boolean precisionFixpointReached = false;
+      boolean preconditionFixpointReached = false;
+
+      BooleanFormula lastIterationPcViolation = null;
+      BooleanFormula lastIterationPcValid = null;
+      PredicatePrecision lastPrecision = null;
+
+      Multimap<ARGPath, ARGPath> coveredTracePairs = HashMultimap.create();
+
+      PredicatePrecision newPrecision = null;
+
+      do {
+        // Run the CPA algorithm
+        wrappedAlgorithm.run(pReachedSet);
+
+        // We use one set of reached states
+        //    ... and separate the state space using an automaton!
+        final BooleanFormula pcViolation =
+            getPreconditionForViolation(pReachedSet, wpLoc);
+        final BooleanFormula pcValid =
+            getPreconditionForValidity(pReachedSet, wpLoc);
+
+        if (lastIterationPcViolation != null
+            && lastIterationPcViolation.equals(pcViolation)
+            && lastIterationPcValid.equals(pcValid)) {
+          preconditionFixpointReached = true;
         }
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      }
+        lastIterationPcViolation = pcViolation;
+        lastIterationPcValid = pcValid;
 
-      try {
-        // Get arbitrary traces...(without disjunctions)
-        // ... to the location that violates the specification
-        // ... to the location that represents the exit location
-        Pair<ARGPath, ARGPath> tracesWithIntersectInAbstr = getTracesWithIntersectInAbstr(pReachedSet, wpLoc, coveredTracePairs);
+        // We might have found a necessary and sufficient precondition...
+        if (isDisjoint(pcViolation, pcValid)) {
+          logger
+              .log(Level.INFO, "Necessary and sufficient precondition found!");
 
-        final ARGPath traceFromViolation = tracesWithIntersectInAbstr.getFirst();
-        final ARGPath traceFromValid = tracesWithIntersectInAbstr.getSecond();
-
-        coveredTracePairs.put(traceFromViolation, traceFromValid);
-
-        final PathPosition traceVioWpPos = traceFromViolation.reversePathIterator().getPosition();
-        final PathPosition traceValWpPos = traceFromValid.reversePathIterator().getPosition();
-
-        stats.tracesToError += 1;
-        stats.tracesToExit += 1;
-
-        // Check the disjointness of the WP for the two traces...
-        final BooleanFormula pcViolatingTrace = helper.getPreconditionOfPath(traceFromViolation, traceVioWpPos);
-        final BooleanFormula pcValidTrace = helper.getPreconditionOfPath(traceFromValid, traceValWpPos);
-
-        if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
-          logger.log(Level.WARNING, "Non-determinism in the program!");
+          // We have found a valid, weakest, precondition
+          // -- > write the precondition.
+          if (writer.isPresent()) {
+            try {
+              final BooleanFormula weakestPrecondition = pcValid;
+              writer.get()
+                  .writePrecondition(exportPreciditionsTo, weakestPrecondition);
+            } catch (IOException e) {
+              logger.log(Level.WARNING, "Writing the precondition failed!", e);
+            }
+          }
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
-        if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)) {
-          stats.infeasibleTracesToError++;
-        }
+        try {
+          // Get arbitrary traces...(without disjunctions)
+          // ... to the location that violates the specification
+          // ... to the location that represents the exit location
+          Pair<ARGPath, ARGPath> tracesWithIntersectInAbstr =
+              getTracesWithIntersectInAbstr(pReachedSet, wpLoc,
+                  coveredTracePairs);
 
-        if (mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
-          stats.infeasibleTracesToExit++;
-        }
+          final ARGPath traceFromViolation =
+              tracesWithIntersectInAbstr.getFirst();
+          final ARGPath traceFromValid = tracesWithIntersectInAbstr.getSecond();
 
-        if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)
-         && mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
-          logger.log(Level.WARNING, "Infeasible traces during the precondition refinement! CEGAR applicable!");
-        }
+          coveredTracePairs.put(traceFromViolation, traceFromValid);
 
-        // Refine the precision so that the
-        // abstraction on the two traces is disjoint
-        PredicatePrecision newPrecFromTracePair = refiner.refine(traceVioWpPos, traceValWpPos);
+          final PathPosition traceVioWpPos =
+              traceFromViolation.reversePathIterator().getPosition();
+          final PathPosition traceValWpPos =
+              traceFromValid.reversePathIterator().getPosition();
 
-        if (newPrecision == null) {
-          newPrecision = newPrecFromTracePair;
-        } else {
-          newPrecision = newPrecision.mergeWith(newPrecFromTracePair);
-        }
+          stats.tracesToError += 1;
+          stats.tracesToExit += 1;
 
-        // TODO: Location-specific precision?
+          // Check the disjointness of the WP for the two traces...
+          final BooleanFormula pcViolatingTrace =
+              helper.getPreconditionOfPath(traceFromViolation, traceVioWpPos);
+          final BooleanFormula pcValidTrace =
+              helper.getPreconditionOfPath(traceFromValid, traceValWpPos);
 
-        stats.refinements++;
-
-        if (lastPrecision != null) {
-          if (lastPrecision.equals(newPrecision)) {
-            precisionFixpointReached = true;
+          if (!isDisjoint(pcViolatingTrace, pcValidTrace)) {
+            logger.log(Level.WARNING, "Non-determinism in the program!");
+            return AlgorithmStatus.SOUND_AND_PRECISE;
           }
-        }
-        lastPrecision = newPrecision;
 
-        if (precisionFixpointReached && preconditionFixpointReached) {
-          logger.log(Level.WARNING, "Terminated because of a fixpoint in the set of predicates and the precondition!");
+          if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)) {
+            stats.infeasibleTracesToError++;
+          }
+
+          if (mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
+            stats.infeasibleTracesToExit++;
+          }
+
+          if (mgrv.getBooleanFormulaManager().isFalse(pcViolatingTrace)
+              && mgrv.getBooleanFormulaManager().isFalse(pcValidTrace)) {
+            logger.log(Level.WARNING,
+                "Infeasible traces during the precondition refinement! CEGAR applicable!");
+          }
+
+          // Refine the precision so that the
+          // abstraction on the two traces is disjoint
+          PredicatePrecision newPrecFromTracePair =
+              refiner.refine(traceVioWpPos, traceValWpPos);
+
+          if (newPrecision == null) {
+            newPrecision = newPrecFromTracePair;
+          } else {
+            newPrecision = newPrecision.mergeWith(newPrecFromTracePair);
+          }
+
+          // TODO: Location-specific precision?
+
+          stats.refinements++;
+
+          if (lastPrecision != null) {
+            if (lastPrecision.equals(newPrecision)) {
+              precisionFixpointReached = true;
+            }
+          }
+          lastPrecision = newPrecision;
+
+          if (precisionFixpointReached && preconditionFixpointReached) {
+            logger.log(Level.WARNING,
+                "Terminated because of a fixpoint in the set of predicates and the precondition!");
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
+
+          // Restart with the initial set of reached states
+          // with the new precision!
+          Verify.verify(newPrecision != null);
+          refinePrecisionForNextIteration(initialReachedSet, pReachedSet,
+              newPrecision);
+
+        } catch (NoTraceFoundException e) {
+          logger.log(Level.WARNING, e.getMessage());
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
-        // Restart with the initial set of reached states
-        // with the new precision!
-        Verify.verify(newPrecision != null);
-        refinePrecisionForNextIteration(initialReachedSet, pReachedSet, newPrecision);
-
-      } catch (NoTraceFoundException e) {
-        logger.log(Level.WARNING, e.getMessage());
-        return AlgorithmStatus.SOUND_AND_PRECISE;
-      }
-
-    } while (true);
+      } while (true);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
   }
 
   private Pair<ARGPath, ARGPath> getTracesWithIntersectInAbstr(
@@ -457,7 +478,9 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
 
             handledValidTraces.add(validTrace.get());
 
-            if (!(pCoveredPairs.containsEntry(violatingTrace, validTrace))) {
+            if (violatingTrace.isPresent()
+                && validTrace.isPresent()
+                && !(pCoveredPairs.containsEntry(violatingTrace.get(), validTrace.get()))) {
               return Pair.of(violatingTrace.get(), validTrace.get());
             }
 

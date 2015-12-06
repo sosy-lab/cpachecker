@@ -1,14 +1,13 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.io.Reader;
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.configuration.Configuration;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -17,29 +16,26 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "unchecked", "fallthrough", "SelfAssignment" })
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE", "DM_DEFAULT_ENCODING", "SA_FIELD_SELF_ASSIGNMENT"})
+@SuppressWarnings(value = { "all" })
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
 %cup
 %class AutomatonScanner
-%implements AutomatonSym
 %line
 %column
 
 %{
   private StringBuilder string = new StringBuilder();
   private ComplexSymbolFactory sf;
-  private Configuration config;
   private LogManager logger;
-  private final List<Path> scannedFiles = new ArrayList<Path>();
-  private final Deque<Path> filesStack = new ArrayDeque<Path>();
+  private final List<Path> scannedFiles = new ArrayList<>();
+  private final Deque<Path> filesStack = new ArrayDeque<>();
 
-  public AutomatonScanner(java.io.InputStream r, Path file, Configuration config, LogManager logger, ComplexSymbolFactory sf) {
+  public AutomatonScanner(java.io.Reader r, Path file, LogManager logger, ComplexSymbolFactory sf) {
     this(r);
     filesStack.push(file);
     this.sf = sf;
-    this.config = config;
     this.logger = logger;
   }
    
@@ -80,17 +76,30 @@ import java.util.logging.Level;
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), val);
   }
   
-  private void error(String message) {
-    logger.log(Level.WARNING, message + " near " + getStartLocation() + " - " + getEndLocation());
-    throw new RuntimeException("Syntax error");
+  private void error() throws IOException {
+    Location start = getStartLocation();
+    StringBuilder msg = new StringBuilder();
+    msg.append(filesStack.getLast().getPath());
+    msg.append(" (Illegal character <");
+    msg.append(yytext());
+    msg.append("> at column ");
+    msg.append(start.getColumn());
+    msg.append(" in line ");
+    msg.append(start.getLine());
+    if (filesStack.size() != 1) {
+      msg.append(" of ");
+      msg.append(start.getUnit());
+    }
+    msg.append(")");
+    throw new IOException(msg.toString());
   }
 %}
 %eofval{
     return symbol("EOF", AutomatonSym.EOF);
 %eofval}
 
-LineTerminator = \r|\n|\r\n
-InputCharacter = [^\r\n] | .
+LineTerminator = \R
+InputCharacter = .
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
 /* comments */
@@ -220,4 +229,4 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 }
 <<EOF>> {if (yymoreStreams()) { yypopStream(); filesStack.pop(); } else return symbol("EOF", AutomatonSym.EOF); }
 /* error fallback */
-.|\n                             { error("Illegal character <"+yytext()+">"); }
+[^]                              { error(); }

@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -242,7 +242,7 @@ public class ARGToDotWriter {
 
     final StringBuilder builder = new StringBuilder();
 
-    if (hintLabel != "") {
+    if (!hintLabel.isEmpty()) {
       builder.append(" {");
       builder.append(" rank=same;\n");
 
@@ -289,20 +289,24 @@ public class ARGToDotWriter {
 
     builder.append(currentElement.getStateId());
 
-    CFANode loc = AbstractStates.extractLocation(currentElement);
-    if (loc != null) {
-      builder.append(" @ ");
-      builder.append(loc.toString());
-      builder.append("\\n");
-      builder.append(loc.getFunctionName());
-      if (loc instanceof FunctionEntryNode) {
-        builder.append(" entry");
-      } else if (loc instanceof FunctionExitNode) {
-        builder.append(" exit");
+    Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
+    if (locs != null) {
+      for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
+        builder.append(" @ ");
+        builder.append(loc.toString());
+        builder.append("\\n");
+        builder.append(loc.getFunctionName());
+        if (loc instanceof FunctionEntryNode) {
+          builder.append(" entry");
+        } else if (loc instanceof FunctionExitNode) {
+          builder.append(" exit");
+        }
+        builder.append("\\n");
       }
+    } else {
+      builder.append("\\n");
     }
 
-    builder.append("\\n");
     builder.append(
         DOTBuilder.escapeGraphvizLabel(currentElement.toDOTLabel(), "\\\\n"));
 

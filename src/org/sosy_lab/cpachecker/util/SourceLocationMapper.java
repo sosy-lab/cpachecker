@@ -389,6 +389,11 @@ public class SourceLocationMapper {
       case StatementEdge:
         result.add(((CStatementEdge) edge).getStatement());
       break;
+      case BlankEdge:
+        // do nothing
+        break;
+      default:
+        throw new AssertionError("Unhandled edge type in switch statement: " + edge.getEdgeType());
       }
     }
 
@@ -514,6 +519,11 @@ public class SourceLocationMapper {
       case StatementEdge:
         result.addAll(collectTokensFrom(((CStatementEdge) edge).getStatement(), overApproximateTokens));
       break;
+      case BlankEdge:
+        // do nothing
+        break;
+      default:
+        throw new AssertionError("Unhandled edge type in switch statement: " + edge.getEdgeType());
       }
 
       while (!astNodes.isEmpty()) {
@@ -604,6 +614,11 @@ public class SourceLocationMapper {
       case StatementEdge:
         idExs.addAll(((CStatementEdge) edge).getStatement().accept(visitor));
       break;
+      case BlankEdge:
+        // do nothing
+        break;
+      default:
+        throw new AssertionError("Unhandled edge type in switch statement: " + edge.getEdgeType());
       }
     }
 

@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.ldd;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
+import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class LDDRegionManager {

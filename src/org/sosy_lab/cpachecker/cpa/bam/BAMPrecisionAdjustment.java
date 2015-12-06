@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
@@ -41,21 +40,17 @@ import com.google.common.base.Optional;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
-  private Map<AbstractState, Precision> forwardPrecisionToExpandedPrecision;
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
   private final BAMTransferRelation trans;
+  private final BAMDataManager data;
   private final LogManager logger;
 
   public BAMPrecisionAdjustment(PrecisionAdjustment pWrappedPrecisionAdjustment,
-                                BAMTransferRelation pTransfer, LogManager pLogger) {
+      BAMDataManager pData, BAMTransferRelation pTransfer, LogManager pLogger) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
+    this.data = pData;
     this.trans = pTransfer;
     this.logger = pLogger;
-  }
-
-  void setForwardPrecisionToExpandedPrecision(
-      Map<AbstractState, Precision> pForwardPrecisionToExpandedPrecision) {
-    forwardPrecisionToExpandedPrecision = pForwardPrecisionToExpandedPrecision;
   }
 
   @Override
@@ -70,10 +65,10 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     // precision might be outdated, if comes from a block-start and the inner part was refined.
     // so lets use the (expanded) inner precision.
     final Precision validPrecision;
-    if (forwardPrecisionToExpandedPrecision.containsKey(pElement)) {
+    if (data.expandedStateToExpandedPrecision.containsKey(pElement)) {
       assert AbstractStates.isTargetState(pElement)
           || trans.getBlockPartitioning().isReturnNode(AbstractStates.extractLocation(pElement));
-      validPrecision = forwardPrecisionToExpandedPrecision.get(pElement);
+      validPrecision = data.expandedStateToExpandedPrecision.get(pElement);
     } else {
       validPrecision = pPrecision;
     }
@@ -94,7 +89,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     if (pElement != updatedResult.abstractState()) {
       logger.log(Level.ALL, "before PREC:", pElement);
       logger.log(Level.ALL, "after PREC:", updatedResult.abstractState());
-      trans.replaceStateInCaches(pElement, updatedResult.abstractState(), false);
+      data.replaceStateInCaches(pElement, updatedResult.abstractState(), false);
     }
 
     return Optional.of(updatedResult);

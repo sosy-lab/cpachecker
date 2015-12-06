@@ -26,17 +26,18 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Triple;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UnsafeFormulaManager;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.UnsafeFormulaManager;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -67,7 +68,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula and(List<BooleanFormula> pBits) {
+  public BooleanFormula and(Collection<BooleanFormula> pBits) {
     return manager.and(pBits);
   }
 
@@ -77,7 +78,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula or(List<BooleanFormula> pBits) {
+  public BooleanFormula or(Collection<BooleanFormula> pBits) {
     return manager.or(pBits);
   }
 
@@ -104,6 +105,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public boolean isXor(BooleanFormula pBits) {
     return manager.isXor(pBits);
+  }
+
+  @Override
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
+    return manager.applyTactic(input, tactic);
   }
 
   @Override
@@ -157,16 +163,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
 
     FormulaType<T> targetType = getFormulaType(pF);
-    return Triple.of(cond, wrap(targetType, thenBranch), wrap(targetType, elseBranch));
+    return Triple.of(cond, wrap(targetType, thenBranch),
+        wrap(targetType, elseBranch));
   }
 
   @Override
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(pFormula);
-  }
-
-  public BooleanFormula implication(BooleanFormula p, BooleanFormula q) {
-    return or(not(p), q);
   }
 
   @Override
@@ -177,6 +180,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
     return manager.equivalence(pFormula1, pFormula2);
+  }
+
+  @Override
+  public BooleanFormula implication(BooleanFormula formula1, BooleanFormula formula2) {
+    return manager.implication(formula1, formula2);
   }
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
@@ -216,11 +224,20 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       }
 
       if (bfmgr.isAnd(f)) {
-        assert unsafe.getArity(f) >= 2;
+        if (unsafe.getArity(f) == 0) {
+          return visitTrue();
+        } else if (unsafe.getArity(f) == 1) {
+          return visit(getArg(f, 0));
+        }
         return visitAnd(getAllArgs(f));
       }
+
       if (bfmgr.isOr(f)) {
-        assert unsafe.getArity(f) >= 2;
+        if (unsafe.getArity(f) == 0) {
+          return visitFalse();
+        } else if (unsafe.getArity(f) == 1) {
+          return visit(getArg(f, 0));
+        }
         return visitOr(getAllArgs(f));
       }
 

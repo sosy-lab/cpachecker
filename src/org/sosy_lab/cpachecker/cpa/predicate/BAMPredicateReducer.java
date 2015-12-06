@@ -26,14 +26,12 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter.PARAM_VARIABLE_NAME;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -41,10 +39,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -58,22 +55,18 @@ import com.google.common.collect.ImmutableSetMultimap;
 
 public class BAMPredicateReducer implements Reducer {
 
-  final Timer reduceTimer = new Timer();
-  final Timer expandTimer = new Timer();
-  final Timer extractTimer = new Timer();
-
   private final PathFormulaManager pmgr;
   private final PredicateAbstractionManager pamgr;
-  private final RelevantPredicatesComputer relevantComputer;
+  private final BAMPredicateCPA cpa;
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
 
-  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, RelevantPredicatesComputer pRelevantPredicatesComputer) {
+  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa) {
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
-    this.relevantComputer = pRelevantPredicatesComputer;
+    this.cpa = cpa;
   }
 
   @Override
@@ -85,15 +78,13 @@ public class BAMPredicateReducer implements Reducer {
 
     if (!predicateElement.isAbstractionState()) { return predicateElement; }
 
-    reduceTimer.start();
-    try {
       AbstractionFormula oldAbstraction = predicateElement.getAbstractionFormula();
 
       Region oldRegion = oldAbstraction.asRegion();
 
-      Collection<AbstractionPredicate> predicates = extractPredicates(oldRegion);
+      Collection<AbstractionPredicate> predicates = pamgr.extractPredicates(oldRegion);
       Collection<AbstractionPredicate> removePredicates =
-          relevantComputer.getIrrelevantPredicates(pContext, predicates);
+          cpa.getRelevantPredicatesComputer().getIrrelevantPredicates(pContext, predicates);
 
       PathFormula pathFormula = predicateElement.getPathFormula();
 
@@ -106,9 +97,6 @@ public class BAMPredicateReducer implements Reducer {
 
       return PredicateAbstractState.mkAbstractionState(pathFormula,
           newAbstraction, abstractionLocations);
-    } finally {
-      reduceTimer.stop();
-    }
   }
 
   @Override
@@ -121,15 +109,13 @@ public class BAMPredicateReducer implements Reducer {
 
     if (!reducedState.isAbstractionState()) { return reducedState; }
     //Note: BAM might introduce some additional abstraction if root region is not a cube
-    expandTimer.start();
-    try {
 
       AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
       AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
 
-      Collection<AbstractionPredicate> rootPredicates = extractPredicates(rootAbstraction.asRegion());
+      Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asRegion());
       Collection<AbstractionPredicate> relevantRootPredicates =
-          relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
+          cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
       //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
       PathFormula oldPathFormula = reducedState.getPathFormula();
@@ -151,24 +137,13 @@ public class BAMPredicateReducer implements Reducer {
       PathFormula newPathFormula = pmgr.makeNewPathFormula(oldPathFormula, newSSA);
 
       AbstractionFormula newAbstractionFormula =
-          pamgr.expand(reducedAbstraction, rootAbstraction, relevantRootPredicates, newSSA);
+          pamgr.expand(reducedAbstraction.asRegion(), rootAbstraction.asRegion(),
+              relevantRootPredicates, newSSA, reducedAbstraction.getBlockFormula());
 
       PersistentMap<CFANode, Integer> abstractionLocations = reducedState.getAbstractionLocationsOnPath();
 
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           newAbstractionFormula, abstractionLocations);
-    } finally {
-      expandTimer.stop();
-    }
-  }
-
-  private Collection<AbstractionPredicate> extractPredicates(Region pRegion) {
-    extractTimer.start();
-    try {
-      return pamgr.extractPredicates(pRegion);
-    } finally {
-      extractTimer.stop();
-    }
   }
 
   @Override
@@ -177,48 +152,44 @@ public class BAMPredicateReducer implements Reducer {
     PredicateAbstractState element = (PredicateAbstractState) pElementKey;
     PredicatePrecision precision = (PredicatePrecision) pPrecisionKey;
 
-    return Pair.of(element.getAbstractionFormula().asRegion(), precision);
-  }
+    /*
+    Normally a getHashCodeForState is just the pair of state and precision.
+    For PredicateAnalysis, we need to refine the RelevantPredicatesComputer (in some cases),
+    thus the reduce-operator changes and we should clear the cache completely after such a refinement.
+    Instead of doing this, we use the RelevantPredicatesComputer as (third) part of the cache-key,
+    such that after refining the RelevantPredicatesComputer, each new access results in a cache-miss.
+    The benefit is that we keep existing ARGs for statistics or other usage.
+    The drawback is the memory-usage through some cached states,
+    that will never be visited again, because the reduce-operator has changed.
+    */
+    // TODO is Object-equality for RelevantPredicatesComputer enough or should we implement RelevantPredicatesComputer.equals()?
 
-  private Map<Pair<Integer, Block>, Precision> reduceCache = new HashMap<>();
-
-  public void clearCaches() {
-    reduceCache.clear();
-  }
-
-  @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision,
-      Block pContext) {
-    PredicatePrecision precision = (PredicatePrecision) pPrecision;
-    Pair<Integer, Block> key = Pair.of(precision.getId(), pContext);
-    Precision result = reduceCache.get(key);
-    if (result != null) { return result; }
-
-    result = reducePrecision(precision, pContext);
-    reduceCache.put(key, result);
-    return result;
+    return Triple.of(element.getAbstractionFormula().asRegion(), precision, cpa.getRelevantPredicatesComputer());
   }
 
   @Override
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
     PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
-    PredicatePrecision toplevelPrecision = rootPrecision;
+    PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
+
     if (rootPrecision instanceof ReducedPredicatePrecision) {
-      toplevelPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+      rootPrecision = ((ReducedPredicatePrecision) rootPrecision).getRootPredicatePrecision();
+    }
+    if (reducedPrecision instanceof ReducedPredicatePrecision) {
+      reducedPrecision = ((ReducedPredicatePrecision) reducedPrecision).getRootPredicatePrecision();
     }
 
-    PredicatePrecision derivedToplevelPrecision =
-        ((ReducedPredicatePrecision) pReducedPrecision).getRootPredicatePrecision();
+    if (rootPrecision == reducedPrecision) { return pRootPrecision; }
 
-    if (derivedToplevelPrecision == toplevelPrecision) { return pRootPrecision; }
+    PredicatePrecision mergedPrecision = rootPrecision.mergeWith(reducedPrecision);
 
-    PredicatePrecision mergedToplevelPrecision = toplevelPrecision.mergeWith(derivedToplevelPrecision);
-
-    return getVariableReducedPrecision(mergedToplevelPrecision, pRootContext);
+    return getVariableReducedPrecision(mergedPrecision, pRootContext);
   }
 
-  private PredicatePrecision reducePrecision(PredicatePrecision expandedPredicatePrecision, Block context) {
+  @Override
+  public Precision getVariableReducedPrecision(Precision pPrecision, Block context) {
+    PredicatePrecision expandedPredicatePrecision = (PredicatePrecision) pPrecision;
 
     assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
       "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
@@ -231,14 +202,14 @@ public class BAMPredicateReducer implements Reducer {
     // create reduced precision
 
     // we only need global predicates with used variables
-    final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(relevantComputer.getRelevantPredicates(
+    final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(cpa.getRelevantPredicatesComputer().getRelevantPredicates(
         context, expandedPredicatePrecision.getGlobalPredicates()));
 
     // we only need function predicates with used variables
     final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
     for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
       // TODO only add vars if functionname is used in block?
-      functionPredicatesBuilder.putAll(functionname, relevantComputer.getRelevantPredicates(
+      functionPredicatesBuilder.putAll(functionname, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
           context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
     }
     final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
@@ -249,7 +220,7 @@ public class BAMPredicateReducer implements Reducer {
       if (context.getNodes().contains(node)) {
         // TODO handle location-instance-specific predicates
         // Without support for them, we can just pass 0 as locInstance parameter
-        localPredicatesBuilder.putAll(node, relevantComputer.getRelevantPredicates(
+        localPredicatesBuilder.putAll(node, cpa.getRelevantPredicatesComputer().getRelevantPredicates(
             context, expandedPredicatePrecision.getPredicates(node, 0)));
       }
     }
@@ -292,6 +263,11 @@ public class BAMPredicateReducer implements Reducer {
           && pObj instanceof ReducedPredicatePrecision
           && rootPredicatePrecision.equals(((ReducedPredicatePrecision)pObj).getRootPredicatePrecision());
     }
+
+    @Override
+    public int hashCode() {
+      return super.hashCode() + 17 * rootPredicatePrecision.hashCode();
+    }
   }
 
   @Override
@@ -325,7 +301,7 @@ public class BAMPredicateReducer implements Reducer {
 
     Collection<AbstractionPredicate> rootPredicates = pamgr.extractPredicates(rootAbstraction.asInstantiatedFormula());
     Collection<AbstractionPredicate> relevantRootPredicates =
-        relevantComputer.getRelevantPredicates(pReducedContext, rootPredicates);
+        cpa.getRelevantPredicatesComputer().getRelevantPredicates(pReducedContext, rootPredicates);
     //for each removed predicate, we have to lookup the old (expanded) value and insert it to the reducedStates region
 
     PathFormula oldPathFormula = reducedState.getPathFormula();

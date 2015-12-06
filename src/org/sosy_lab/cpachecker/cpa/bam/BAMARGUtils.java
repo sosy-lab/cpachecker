@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,9 +32,11 @@ import java.util.LinkedList;
 import java.util.Set;
 import java.util.Stack;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -76,7 +80,7 @@ class BAMARGUtils {
         CFAEdge edge = currentElement.getEdgeToChild(child);
         if (edge == null) {
           //this is a summary edge
-          Pair<Block, ReachedSet> pair = cpa.getTransferRelation().getCachedReachedSet(currentElement, reachedSet.getPrecision(currentElement));
+          Pair<Block, ReachedSet> pair = getCachedReachedSet(cpa, currentElement, reachedSet.getPrecision(currentElement));
           gatherReachedSets(cpa, pair.getFirst(), pair.getSecond(), blockToReachedSet);
         }
         if (!worklist.contains(child)) {
@@ -86,6 +90,15 @@ class BAMARGUtils {
         }
       }
     }
+  }
+
+  private static Pair<Block, ReachedSet> getCachedReachedSet(BAMCPA cpa, ARGState root, Precision rootPrecision) {
+    CFANode rootNode = extractLocation(root);
+    Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);
+
+    ReachedSet reachSet = cpa.getData().initialStateToReachedSet.get(root);
+    assert reachSet != null;
+    return Pair.of(rootSubtree, reachSet);
   }
 
   public static ARGState copyARG(ARGState pRoot) {

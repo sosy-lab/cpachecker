@@ -33,10 +33,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -118,15 +120,64 @@ public class CPABuilder {
     return buildCPAs(cfa, backwardSpecificationFiles);
   }
 
+  public ConfigurableProgramAnalysis buildsCPAWithWitnessAutomataAndSpecification(final CFA cfa,
+                                                                                  @Nonnull List<Automaton> automata) throws InvalidConfigurationException, CPAException {
+    Set<String> usedAliases = new HashSet<>();
+
+    List<ConfigurableProgramAnalysis> cpas = null;
+
+    if (specificationFiles != null) {
+      cpas = createSpecificationCPAs(cfa, specificationFiles, usedAliases);
+    }
+
+    if (!automata.isEmpty()) {
+      if (cpas == null){
+        cpas = new ArrayList<>();
+      }
+
+      for (Automaton automaton : automata) {
+        String cpaAlias = automaton.getName();
+
+        if (!usedAliases.add(cpaAlias)) {
+          throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
+        }
+
+        CPAFactory factory = ControlAutomatonCPA.factory();
+        factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+        factory.setLogger(logger.withComponentName(cpaAlias));
+        factory.set(cfa, CFA.class);
+        factory.set(automaton, Automaton.class);
+
+        cpas.add(factory.createInstance());
+
+        logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
+      }
+    }
+
+    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
+  }
+
   public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, @Nullable final List<Path> specAutomatonFiles)
       throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<>();
 
     List<ConfigurableProgramAnalysis> cpas = null;
 
-    // create automata cpas for the specification files given as argument
     if (specAutomatonFiles != null) {
-      cpas = new ArrayList<>();
+      cpas = createSpecificationCPAs(cfa, specAutomatonFiles, usedAliases);
+    }
+
+    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
+  }
+
+  /**
+   * create automata cpas for the specification files given as argument
+   */
+  private List<ConfigurableProgramAnalysis> createSpecificationCPAs(final CFA cfa, final List<Path> specAutomatonFiles,
+      Set<String> usedAliases)
+          throws InvalidConfigurationException, CPAException {
+
+    List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();
 
       for (Path specFile : specAutomatonFiles) {
         List<Automaton> automata = Collections.emptyList();
@@ -158,9 +209,8 @@ public class CPABuilder {
           logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
         }
       }
-    }
 
-    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
+    return cpas;
   }
 
   private Scope createScope(CFA cfa) {

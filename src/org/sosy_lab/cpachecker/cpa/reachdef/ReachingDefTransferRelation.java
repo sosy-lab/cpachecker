@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -46,11 +47,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 
@@ -89,17 +90,15 @@ public class ReachingDefTransferRelation implements TransferRelation {
     }
     Vector<AbstractState> successors = new Vector<>();
     Vector<CFAEdge> definitions = new Vector<>();
-    CFAEdge cfaedge;
     for (CFANode node : nodes) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      for (CFAEdge cfaedge : CFAUtils.leavingEdges(node)) {
         shutdownNotifier.shutdownIfNecessary();
 
-        cfaedge = node.getLeavingEdge(i);
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
           if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-            definitions.add(node.getLeavingEdge(i));
+            definitions.add(cfaedge);
           } else {
-            successors.addAll(getAbstractSuccessors0(pState, pPrecision, node.getLeavingEdge(i)));
+            successors.addAll(getAbstractSuccessors0(pState, pPrecision, cfaedge));
           }
         }
       }

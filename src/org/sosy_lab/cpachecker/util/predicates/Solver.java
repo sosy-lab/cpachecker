@@ -23,34 +23,42 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.OptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingOptEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.logging.LoggingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcherImpl;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
+import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.logging.LoggingInterpolatingProverEnvironment;
+import org.sosy_lab.solver.logging.LoggingOptEnvironment;
+import org.sosy_lab.solver.logging.LoggingProverEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Verify;
 import com.google.common.collect.Maps;
 
 /**
@@ -64,12 +72,17 @@ import com.google.common.collect.Maps;
  * replacing one SMT theory transparently with another,
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
-@Options(prefix="cpa.predicate")
+@Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
 public final class Solver implements AutoCloseable {
 
-  @Option(secure=true, name="solver.useLogger",
+  @Option(secure=true, name="useLogger",
       description="log some solver actions, this may be slow!")
   private boolean useLogger = false;
+
+  @Option(secure=true, name="checkUFs",
+      description="improve sat-checks with additional constraints for UFs")
+  private boolean checkUFs = false;
+  private final UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -103,6 +116,12 @@ public final class Solver implements AutoCloseable {
     logger = pLogger;
     solvingFormulaManager = pFactory.getFormulaManager();
     interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
+
+    if (checkUFs) {
+      ufCheckingProverOptions = new UFCheckingProverOptions(config);
+    } else {
+      ufCheckingProverOptions = null;
+    }
   }
 
   /**
@@ -163,10 +182,14 @@ public final class Solver implements AutoCloseable {
     ProverEnvironment pe = solvingFormulaManager.newProverEnvironment(generateModels, generateUnsatCore);
 
     if (useLogger) {
-      return new LoggingProverEnvironment(logger, pe);
-    } else {
-      return pe;
+      pe = new LoggingProverEnvironment(logger, pe);
     }
+
+    if (checkUFs) {
+      pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
+    }
+
+    return pe;
   }
 
   /**
@@ -176,7 +199,8 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(false);
+    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(
+        false);
 
     // in the case we do not already have a prover environment with assumptions
     // we add a wrapper to it
@@ -195,10 +219,14 @@ public final class Solver implements AutoCloseable {
     }
 
     if (useLogger) {
-      return new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
-    } else {
-      return ipeA;
+      ipeA = new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
     }
+
+    if (checkUFs) {
+      ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr, ufCheckingProverOptions);
+    }
+
+    return ipeA;
   }
 
   /**
@@ -247,6 +275,46 @@ public final class Solver implements AutoCloseable {
 
     } finally {
       solverTime.stop();
+    }
+  }
+
+  /**
+   * Helper function for UNSAT core generation.
+   * Takes a single API call to perform.
+   *
+   * Additionally, tries to give a "better" UNSAT core, by breaking up AND-
+   * nodes into multiple constraints (thus an UNSAT core can contain only a
+   * subset of some AND node).
+   */
+  public List<BooleanFormula> unsatCore(Iterable<BooleanFormula> constraints)
+      throws SolverException, InterruptedException {
+
+    try (ProverEnvironment prover = newProverEnvironmentWithUnsatCoreGeneration()) {
+      for (BooleanFormula constraint : constraints) {
+        addConstraint(constraint, prover,
+            solvingFormulaManager.getUnsafeFormulaManager());
+      }
+      Verify.verify(prover.isUnsat());
+      return prover.getUnsatCore();
+    }
+  }
+
+  /**
+   * Helper function: add the constraint, OR, if the constraint is an AND-node,
+   * add children one by one. Keep going recursively.
+   */
+  private void addConstraint(BooleanFormula constraint,
+      ProverEnvironment prover, UnsafeFormulaManager ufmgr) {
+
+    if (bfmgr.isAnd(constraint)) {
+      for (int k = 0; k < ufmgr.getArity(constraint); k++) {
+        addConstraint((BooleanFormula)ufmgr.getArg(constraint, k),
+            prover, ufmgr);
+      }
+    } else {
+
+      //noinspection ResultOfMethodCallIgnored
+      prover.push(constraint);
     }
   }
 
@@ -335,7 +403,11 @@ public final class Solver implements AutoCloseable {
   }
 
   public SmtAstMatcher getSmtAstMatcher() {
-    return solvingFormulaManager.getSmtAstMatcher();
+    return new SmtAstMatcherImpl(
+        solvingFormulaManager.getUnsafeFormulaManager(),
+        solvingFormulaManager.getBooleanFormulaManager(),
+        solvingFormulaManager.getQuantifiedFormulaManager(),
+        solvingFormulaManager
+    );
   }
-
 }

@@ -37,7 +37,8 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -52,8 +53,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -70,6 +72,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
@@ -181,8 +184,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
     ForwardingReachedSet reached = (ForwardingReachedSet)pReached;
 
-    CFANode mainFunction = AbstractStates.extractLocation(pReached.getFirstState());
-    assert mainFunction != null : "Location information needed";
+    Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
+    assert initialNodes != null : "Location information needed";
+    CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
 
     PeekingIterator<Path> configFilesIterator = Iterators.peekingIterator(configFiles.iterator());
 
@@ -197,6 +201,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       boolean lastAnalysisFailed = false;
       boolean lastAnalysisTerminated = false;
       boolean recursionFound = false;
+      boolean concurrencyFound = false;
 
       try {
         Path singleConfigFileName = configFilesIterator.next();
@@ -216,6 +221,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
           continue;
         }
 
+        if (reached instanceof HistoryForwardingReachedSet) {
+          ((HistoryForwardingReachedSet) reached).saveCPA(currentCpa);
+        }
         reached.setDelegate(currentReached);
 
         if (currentAlgorithm instanceof StatisticsProvider) {
@@ -253,10 +261,16 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
 
         } catch (CPAException e) {
           lastAnalysisFailed = true;
+          if (e.getMessage().contains("Counterexample could not be analyzed")) {
+            status = status.withPrecise(false);
+          }
           if (configFilesIterator.hasNext()) {
             logger.logUserException(Level.WARNING, e, "Analysis not completed");
             if (e.getMessage().contains("recursion")) {
               recursionFound = true;
+            }
+            if (e.getMessage().contains("pthread_create")) {
+              concurrencyFound = true;
             }
           } else {
             throw e;
@@ -295,6 +309,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
               break;
             case "if-recursive":
               foundConfig = recursionFound;
+              break;
+            case "if-concurrent":
+              foundConfig = concurrencyFound;
               break;
             default:
               logger.logf(Level.WARNING, "Ignoring invalid restart condition '%s'.", condition);

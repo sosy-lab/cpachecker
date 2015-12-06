@@ -29,10 +29,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -168,20 +168,4 @@ public class PartitionChecker {
       mustBeInCertificate.add(element);
     }
   }
-
-  public static boolean areElementsCoveredByPartitionElement(final Collection<AbstractState> pInOtherPartitions,
-      Multimap<CFANode, AbstractState> pInPartition, final StopOperator pStop, final Precision pPrec)
-      throws CPAException, InterruptedException {
-    HashSet<AbstractState> partitionNodes = new HashSet<>(pInPartition.values());
-
-    for (AbstractState outState : pInOtherPartitions) {
-      if (!partitionNodes.contains(outState)
-          && !pStop.stop(outState, pInPartition.get(AbstractStates.extractLocation(outState)), pPrec)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
 }

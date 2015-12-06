@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
@@ -47,6 +49,7 @@ public final class CCompositeType implements CComplexType, Serializable {
   public CCompositeType(final boolean pConst, final boolean pVolatile,
       final CComplexType.ComplexTypeKind pKind, final List<CCompositeTypeMemberDeclaration> pMembers, final String pName, final String pOrigName) {
 
+    checkNotNull(pKind);
     checkArgument(pKind == ComplexTypeKind.STRUCT || pKind == ComplexTypeKind.UNION);
     isConst= pConst;
     isVolatile=pVolatile;
@@ -105,6 +108,7 @@ public final class CCompositeType implements CComplexType, Serializable {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -160,7 +164,7 @@ public final class CCompositeType implements CComplexType, Serializable {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(@Nullable Object obj) {
       if (this == obj) {
         return true;
       }
@@ -228,7 +232,7 @@ public final class CCompositeType implements CComplexType, Serializable {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -244,7 +248,7 @@ public final class CCompositeType implements CComplexType, Serializable {
   }
 
   @Override
-  public boolean equalsWithOrigName(Object obj) {
+  public boolean equalsWithOrigName(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

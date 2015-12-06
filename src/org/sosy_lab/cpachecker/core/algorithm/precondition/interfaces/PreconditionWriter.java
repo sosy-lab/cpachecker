@@ -27,7 +27,7 @@ import java.io.IOException;
 
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 public interface PreconditionWriter {
 

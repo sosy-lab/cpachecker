@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.interfaces;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 
 public interface Concluding {

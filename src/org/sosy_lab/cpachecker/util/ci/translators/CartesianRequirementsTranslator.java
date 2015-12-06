@@ -23,47 +23,53 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import javax.annotation.Nullable;
+
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
 
-  private final Configuration config;
-  private final ShutdownNotifier shutdownNotifier;
-  private final LogManager logger;
-  protected final FormulaManagerView fmgr;
+  protected final LogManager logger;
 
   public CartesianRequirementsTranslator(final Class<T> pAbstractStateClass, final Configuration config,
       final ShutdownNotifier shutdownNotifier, final LogManager log) {
     super(pAbstractStateClass);
-    this.config = config;
-    this.shutdownNotifier = shutdownNotifier;
     logger = log;
-    fmgr = GlobalInfo.getInstance().getFormulaManagerView();
   }
 
-  private List<String> writeVarDefinition(List<String> vars, SSAMap ssaMap) {
-    // TODO
-    return null;
+  private List<String> writeVarDefinition(final List<String> vars, final SSAMap ssaMap,
+      final @Nullable Collection<String> pRequiredVars) {
+    List<String> list = new ArrayList<>();
+    String def;
+    for (String var : vars) {
+      if (pRequiredVars == null || pRequiredVars.contains(var)) {
+        def = "(declare-fun " + getVarWithIndex(var, ssaMap);
+        def += " () Int)";
+        list.add(def);
+      }
+    }
+    return list;
   }
 
-  protected abstract List<String> getVarsInRequirements(T requirement);
+  protected abstract List<String> getVarsInRequirements(final T requirement);
 
   @Override
-  protected Pair<List<String>, String> convertToFormula(T requirement, SSAMap indices) {
-    List<String> firstReturn = writeVarDefinition(getVarsInRequirements(requirement), indices);
+  protected Pair<List<String>, String> convertToFormula(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars) {
+    List<String> firstReturn = writeVarDefinition(getVarsInRequirements(requirement), indices, pRequiredVars);
 
     String secReturn;
-    List<String> listOfIndependentRequirements = getListOfIndependentRequirements(requirement, indices);
+    List<String> listOfIndependentRequirements = getListOfIndependentRequirements(requirement, indices, pRequiredVars);
     if (listOfIndependentRequirements.isEmpty()) {
       secReturn = "true";
     } else if (listOfIndependentRequirements.size() == 1) {
@@ -72,13 +78,17 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
       secReturn = computeConjunction(listOfIndependentRequirements);
     }
 
-    secReturn = "(define_fun req Bool() " + secReturn + ")";
+    secReturn = "(define-fun req () Bool " + secReturn + ")";
     return Pair.of(firstReturn, secReturn);
   }
 
-  private String computeConjunction(List<String> list) {
+  private String computeConjunction(final List<String> list) {
     StringBuilder sb = new StringBuilder();
     int BracketCounter = 0;
+
+    if (list.isEmpty()) {
+      return "true";
+    }
 
     String last = list.get(list.size()-1);
     for (String var : list) {
@@ -97,13 +107,18 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
     return sb.toString();
   }
 
-  protected abstract List<String> getListOfIndependentRequirements(T requirement, SSAMap indices);
+  protected abstract List<String> getListOfIndependentRequirements(final T requirement, final SSAMap indices, final @Nullable Collection<String> pRequiredVars);
 
-  public static String getVarWithIndex(String var, SSAMap indices) {
-    if (indices.getIndex(var) == 0){
-      return var;
+  public static String getVarWithIndex(final String var, final SSAMap indices) {
+    assert (indices != null);
+    assert (var != null);
+
+    int index = indices.getIndex(var);
+
+    if (index == -1){
+      return CIUtils.getSMTName(var);
     } else {
-      return var + "@" + indices.getIndex(var);
+      return CIUtils.getSMTName(var + "@" + index);
     }
   }
 

@@ -548,7 +548,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
    * @return an OctState or null
    */
   private Set<ApronState> handleLiteralBooleanExpression(long value, boolean truthAssumption, ApronState state) {
-    if ((value == 0) == truthAssumption) {
+    if ((value != 0) == truthAssumption) {
       return Collections.singleton(state);
     } else {
       return Collections.emptySet();

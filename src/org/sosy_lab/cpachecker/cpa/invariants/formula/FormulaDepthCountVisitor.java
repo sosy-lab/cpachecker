@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 
-public class FormulaDepthCountVisitor<ConstantType> implements InvariantsFormulaVisitor<ConstantType, Integer> {
+public class FormulaDepthCountVisitor<ConstantType> implements NumeralFormulaVisitor<ConstantType, Integer>, BooleanFormulaVisitor<ConstantType, Integer> {
 
   @Override
   public Integer visit(Add<ConstantType> pAdd) {
@@ -114,6 +114,31 @@ public class FormulaDepthCountVisitor<ConstantType> implements InvariantsFormula
   @Override
   public Integer visit(Variable<ConstantType> pVariable) {
     return 1;
+  }
+
+  @Override
+  public Integer visitFalse() {
+    return 1;
+  }
+
+  @Override
+  public Integer visitTrue() {
+    return 1;
+  }
+
+  @Override
+  public Integer visit(IfThenElse<ConstantType> pIfThenElse) {
+    return Math.max(
+        pIfThenElse.getCondition().accept(this),
+        Math.max(
+            pIfThenElse.getPositiveCase().accept(this),
+            pIfThenElse.getNegativeCase().accept(this))
+        ) + 1;
+  }
+
+  @Override
+  public Integer visit(Cast<ConstantType> pCast) {
+    return pCast.getCasted().accept(this) + 1;
   }
 
 }

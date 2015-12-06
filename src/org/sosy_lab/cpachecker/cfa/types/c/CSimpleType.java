@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -53,7 +57,7 @@ public final class CSimpleType implements CType, Serializable {
       final boolean pIsLongLong) {
     isConst = pConst;
     isVolatile = pVolatile;
-    type = pType;
+    type = checkNotNull(pType);
     isLong = pIsLong;
     isShort = pIsShort;
     isSigned = pIsSigned;
@@ -128,7 +132,7 @@ public final class CSimpleType implements CType, Serializable {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (obj == this) {
       return true;
     }
@@ -158,6 +162,7 @@ public final class CSimpleType implements CType, Serializable {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     List<String> parts = new ArrayList<>();
 
     if (isConst()) {

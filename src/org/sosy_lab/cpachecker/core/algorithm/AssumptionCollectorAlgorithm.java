@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -54,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -69,12 +69,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -292,7 +292,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    writeAutomaton(output, (ARGState)firstState, relevantStates, falseAssumptionStates);
+    automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
+            automatonBranchingThreshold, automatonIgnoreAssumptions);
   }
 
   /**
@@ -301,15 +302,20 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param initialState The initial state of the automaton.
    * @param relevantStates A set with all states with non-trivial assumptions (all others will have assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
+   * @param branchingThreshold After branchingThreshold many branches on a path the automaton will be ignored (0 to disable)")
+   * @param If set to true, the automaton does not add assumption which is considered to continue path with corresponding this edge.
+   * @return the number of states contained in the written automaton
    * @throws IOException
    */
-  private void writeAutomaton(Appendable sb, ARGState initialState,
-      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) throws IOException {
+  public static int writeAutomaton(Appendable sb, ARGState initialState,
+      Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates, int branchingThreshold,
+      boolean ignoreAssumptions) throws IOException {
+   int numProducedStates = 0;
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
 
     String actionOnFinalEdges = "";
-    if (automatonBranchingThreshold > 0) {
-      sb.append("LOCAL int branchingThreshold = " + automatonBranchingThreshold + ";\n");
+    if (branchingThreshold > 0) {
+      sb.append("LOCAL int branchingThreshold = " + branchingThreshold + ";\n");
       sb.append("LOCAL int branchingCount = 0;\n\n");
 
       // Reset automaton variable on all edges like "GOTO __FALSE"
@@ -319,7 +325,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     sb.append("INITIAL STATE ARG" + initialState.getStateId() + ";\n\n");
     sb.append("STATE __TRUE :\n");
-    if (automatonIgnoreAssumptions) {
+    if (ignoreAssumptions) {
       sb.append("    TRUE -> GOTO __TRUE;\n\n");
     } else {
       sb.append("    TRUE -> ASSUME {true} GOTO __TRUE;\n\n");
@@ -327,7 +333,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     if (!falseAssumptionStates.isEmpty()) {
       sb.append("STATE __FALSE :\n");
-      if (automatonIgnoreAssumptions) {
+      if (ignoreAssumptions) {
         sb.append("    TRUE -> GOTO __FALSE;\n\n");
       } else {
         sb.append("    TRUE -> ASSUME {false} GOTO __FALSE;\n\n");
@@ -342,10 +348,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
 
       sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-      automatonStates++;
+      numProducedStates++;
 
       boolean branching = false;
-      if ((automatonBranchingThreshold > 0) && (s.getChildren().size() > 1)) {
+      if ((branchingThreshold > 0) && (s.getChildren().size() > 1)) {
         branching = true;
         sb.append("    branchingCount == branchingThreshold -> " + actionOnFinalEdges + "GOTO __FALSE;\n");
       }
@@ -353,11 +359,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
       int multiEdgeID = 0;
 
-      final CFANode loc = AbstractStates.extractLocation(s);
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
-        CFAEdge edge = loc.getEdgeTo(extractLocation(child));
+        CFAEdge edge = s.getEdgeToChild(child);
 
         if (edge instanceof MultiEdge) {
           assert (((MultiEdge) edge).getEdges().size() > 1);
@@ -379,14 +384,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             }
 
             descriptionForInnerMultiEdges.append("STATE USEFIRST ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
-            automatonStates++;
+            numProducedStates++;
             descriptionForInnerMultiEdges.append("    MATCH \"");
             escape(innerEdge.getRawStatement(), descriptionForInnerMultiEdges);
             descriptionForInnerMultiEdges.append("\" -> ");
           }
 
           AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          addAssumption(descriptionForInnerMultiEdges, assumptionChild);
+          addAssumption(descriptionForInnerMultiEdges, assumptionChild, ignoreAssumptions);
           finishTransition(descriptionForInnerMultiEdges, child, relevantStates, falseAssumptionStates,
               actionOnFinalEdges, branching);
           descriptionForInnerMultiEdges.append(";\n");
@@ -399,7 +404,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           sb.append("\" -> ");
 
           AssumptionStorageState assumptionChild = AbstractStates.extractStateByType(child, AssumptionStorageState.class);
-          addAssumption(sb, assumptionChild);
+          addAssumption(sb, assumptionChild, ignoreAssumptions);
           finishTransition(sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
 
         }
@@ -411,18 +416,21 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
     }
     sb.append("END AUTOMATON\n");
+    return numProducedStates;
   }
 
-  private void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState) throws IOException {
-    if (!automatonIgnoreAssumptions) {
-      BooleanFormula assumption = bfmgr.and(assumptionState.getAssumption(), assumptionState.getStopFormula());
+  private static void addAssumption(final Appendable writer, final AssumptionStorageState assumptionState,
+      boolean ignoreAssumptions) throws IOException {
+   if (!ignoreAssumptions) {
+      BooleanFormula assumption = assumptionState.getFormulaManager().getBooleanFormulaManager()
+              .and(assumptionState.getAssumption(), assumptionState.getStopFormula());
       writer.append("ASSUME {");
       escape(assumption.toString(), writer);
       writer.append("} ");
     }
   }
 
-  private void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
+  private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
       final Set<AbstractState> falseAssumptionStates, final String actionOnFinalEdges, final boolean branching)
       throws IOException {
     if (falseAssumptionStates.contains(child)) {
@@ -446,7 +454,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param s
    * @param parentSet
    */
-  private void findAllParents(ARGState s, Set<ARGState> parentSet) {
+  private static void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<>();
     toAdd.add(s);
     while (!toAdd.isEmpty()) {
@@ -519,7 +527,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
         if (assumptionAutomatonFile != null) {
           try (Writer w = Files.openOutputFile(assumptionAutomatonFile)) {
-            produceAssumptionAutomaton(w, pReached);
+           produceAssumptionAutomaton(w, pReached);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions;
 import java.math.BigInteger;
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;

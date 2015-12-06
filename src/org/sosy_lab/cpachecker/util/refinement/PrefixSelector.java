@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
@@ -40,7 +40,7 @@ public class PrefixSelector {
   private final Optional<VariableClassification> classification;
   private final Optional<LoopStructure> loopStructure;
 
-  public static enum PrefixPreference {
+  public enum PrefixPreference {
     // returns the original error path
     NONE(),
 
@@ -93,9 +93,9 @@ public class PrefixSelector {
     ASSUMPTIONS_MOST_SHORT(FIRST_HIGHEST_SCORE),
     ASSUMPTIONS_MOST_LONG(LAST_HIGHEST_SCORE);
 
-    private PrefixPreference () {}
+    PrefixPreference () {}
 
-    private PrefixPreference (Function<Pair<Integer, Integer>, Boolean> scorer) {
+    PrefixPreference (Function<Pair<Integer, Integer>, Boolean> scorer) {
       this.scorer = scorer;
     }
 
@@ -126,10 +126,6 @@ public class PrefixSelector {
     case DOMAIN_GOOD_LONG:
     case DOMAIN_BAD_SHORT:
     case DOMAIN_BAD_LONG:
-    case DOMAIN_PRECISE_GOOD_SHORT:
-    case DOMAIN_PRECISE_GOOD_LONG:
-    case DOMAIN_PRECISE_BAD_SHORT:
-    case DOMAIN_PRECISE_BAD_LONG:
     //
     // scoring based on domain-types and width of precision
     case DOMAIN_GOOD_WIDTH_NARROW_SHORT:
@@ -199,12 +195,6 @@ public class PrefixSelector {
     case DOMAIN_GOOD_WIDTH_NARROW_SHORT:
       return obtainDomainTypeScoreAndWidthForPath(pPrefix);
 
-    case DOMAIN_PRECISE_GOOD_SHORT:
-    case DOMAIN_PRECISE_GOOD_LONG:
-    case DOMAIN_PRECISE_BAD_SHORT:
-    case DOMAIN_PRECISE_BAD_LONG:
-      return obtainPreciseDomainTypeScoreForPath(pPrefix);
-
     case WIDTH_NARROW_SHORT:
     case WIDTH_NARROW_LONG:
     case WIDTH_WIDE_SHORT:
@@ -258,22 +248,6 @@ public class PrefixSelector {
     }
 
     return score + width;
-  }
-
-  private int obtainPreciseDomainTypeScoreForPath(final InfeasiblePrefix pPrefix) {
-    int score = 0;
-    for (Set<String> variables : pPrefix.extractListOfVariables()) {
-      int temp = classification.get().obtainDomainTypeScoreForVariables2(variables, loopStructure);
-
-      // check for overflow
-      if(score + temp < score) {
-        score = Integer.MAX_VALUE;
-        break;
-      }
-
-      score = score + temp;
-    }
-    return score;
   }
 
   private int obtainWidthOfPrecisionForPath(final InfeasiblePrefix pPrefix) {

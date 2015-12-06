@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Divide<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The numerator of the fraction.
-   */
-  private final InvariantsFormula<ConstantType> numerator;
-
-  /**
-   * The denominator of the fraction.
-   */
-  private final InvariantsFormula<ConstantType> denominator;
+public class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new fraction invariants formula for the given numerator and
@@ -48,9 +38,8 @@ public class Divide<ConstantType> extends AbstractFormula<ConstantType> implemen
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
    */
-  private Divide(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
-    this.numerator = pNumerator;
-    this.denominator = pDenominator;
+  private Divide(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
+    super("/", false, pNumerator, pDenominator);
   }
 
   /**
@@ -58,8 +47,8 @@ public class Divide<ConstantType> extends AbstractFormula<ConstantType> implemen
    *
    * @return the numerator of the fraction.
    */
-  public InvariantsFormula<ConstantType> getNumerator() {
-    return this.numerator;
+  public NumeralFormula<ConstantType> getNumerator() {
+    return super.getOperand1();
   }
 
   /**
@@ -67,40 +56,18 @@ public class Divide<ConstantType> extends AbstractFormula<ConstantType> implemen
    *
    * @return the denominator of the fraction.
    */
-  public InvariantsFormula<ConstantType> getDenominator() {
-    return this.denominator;
+  public NumeralFormula<ConstantType> getDenominator() {
+    return super.getOperand2();
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof Divide) {
-      Divide<?> other = (Divide<?>) o;
-      return getNumerator().equals(other.getNumerator()) && getDenominator().equals(other.getDenominator());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getNumerator().hashCode() / getDenominator().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s / %s)", getNumerator(), getDenominator());
-  }
-
-  @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -114,7 +81,7 @@ public class Divide<ConstantType> extends AbstractFormula<ConstantType> implemen
    * @return an invariants formula representing the division of the given
    * numerator formula by the given denominator formula.
    */
-  static <ConstantType> Divide<ConstantType> of(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
+  static <ConstantType> Divide<ConstantType> of(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     return new Divide<>(pNumerator, pDenominator);
   }
 

@@ -52,13 +52,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 import com.google.common.collect.HashMultimap;
@@ -181,6 +181,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
       return true;
 
+    } catch (SolverException e) {
+      throw new CPAException("Solver Exception", e);
     } finally {
       totalTime.stop();
     }
@@ -194,7 +196,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * {@link #performRefinementOnSubgraph(ARGState, List, SetMultimap, Map, ReachedSet, List)}
    * on the root state of the ARG.
    */
-  private boolean performRefinement0(ReachedSet pReached, List <AbstractState> targets) throws CPAException, InterruptedException {
+  private boolean performRefinement0(ReachedSet pReached, List <AbstractState> targets)
+      throws CPAException, InterruptedException, SolverException {
     logger.log(Level.FINE, "Starting refinement for", targets.size(), "elements.");
 
     Map<ARGState, ARGState> predecessors = Maps.newHashMap();
@@ -239,7 +242,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   // (The arguments of the list and the prover need to match.)
   private <T> boolean performRefinement0(ARGState current, SetMultimap<ARGState, ARGState> successors,
       Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets,
-      InterpolatingProverEnvironment<T> itpProver) throws InterruptedException, CPAException {
+      InterpolatingProverEnvironment<T> itpProver)
+      throws InterruptedException, SolverException, CPAException {
     List<T> itpStack = new ArrayList<>();
     boolean successful = step(current, itpStack, successors, predecessors, pReached, targets, itpProver);
     assert itpStack.isEmpty();
@@ -273,7 +277,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private <T> boolean step(ARGState current, List<T> itpStack, SetMultimap<ARGState, ARGState> successors,
       Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets,
       InterpolatingProverEnvironment<T> itpProver)
-      throws InterruptedException, CPAException {
+      throws InterruptedException, SolverException, CPAException {
 
     for (ARGState succ : successors.get(current)) {
       assert succ.getChildren().isEmpty() == targets.contains(succ);
@@ -336,7 +340,8 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    */
   private <T> void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
       Map<ARGState, ARGState> predecessors, ReachedSet reached,
-      InterpolatingProverEnvironment<T> itpProver) throws CPAException, InterruptedException {
+      InterpolatingProverEnvironment<T> itpProver) throws CPAException,
+      SolverException, InterruptedException {
     assert !itpStack.isEmpty();
     assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
 

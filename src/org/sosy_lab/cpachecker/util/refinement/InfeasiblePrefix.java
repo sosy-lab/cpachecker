@@ -27,13 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -44,23 +42,44 @@ public class InfeasiblePrefix {
 
   private final ARGPath prefix;
 
-  private final List<Pair<ARGState, Set<String>>> interpolantSequence;
+  private final List<Set<String>> interpolantSequence;
 
-  public InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
-      final List<Pair<ARGState, Set<String>>> pInterpolantSequence) {
+  private final List<BooleanFormula> pathFormulas;
+
+  private InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
+      final List<Set<String>> pSimpleInterpolantSequence) {
+
     prefix = pInfeasiblePrefix;
-    interpolantSequence = pInterpolantSequence;
+    interpolantSequence = pSimpleInterpolantSequence;
+
+    pathFormulas = null;
+  }
+
+  private InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
+      final List<Set<String>> pSimpleInterpolantSequence,
+      final List<BooleanFormula> pItpSequence,
+      final List<BooleanFormula> pPathFormulas) {
+
+    prefix = pInfeasiblePrefix;
+    interpolantSequence = pSimpleInterpolantSequence;
+
+    pathFormulas = pPathFormulas;
   }
 
   public static InfeasiblePrefix buildForPredicateDomain(final ARGPath pInfeasiblePrefix,
-      final List<BooleanFormula> pInterpolantSequence, final FormulaManagerView pFmgr) {
+      final List<BooleanFormula> pInterpolantSequence,
+      final List<BooleanFormula> pPathFormulas,
+      final FormulaManagerView pFmgr) {
 
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
     for (BooleanFormula itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(pFmgr.extractVariableNames(pFmgr.uninstantiate(itp)));
     }
 
-    return new InfeasiblePrefix(pInfeasiblePrefix, Pair.zipList(pInfeasiblePrefix.asStatesList().subList(1, pInfeasiblePrefix.asStatesList().size() - 1), simpleInterpolantSequence));
+    return new InfeasiblePrefix(pInfeasiblePrefix,
+        simpleInterpolantSequence,
+        pInterpolantSequence,
+        pPathFormulas);
   }
 
   public static InfeasiblePrefix buildForValueDomain(final ARGPath pInfeasiblePrefix,
@@ -71,34 +90,34 @@ public class InfeasiblePrefix {
       simpleInterpolantSequence.add(FluentIterable.from(itp.getMemoryLocations()).transform(MemoryLocation.FROM_MEMORYLOCATION_TO_STRING).toSet());
     }
 
-    return new InfeasiblePrefix(pInfeasiblePrefix, Pair.zipList(pInfeasiblePrefix.asStatesList().subList(1, pInfeasiblePrefix.asStatesList().size()), simpleInterpolantSequence));
+    return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
   }
 
   public Set<String> extractSetOfVariables() {
-    return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Pair<ARGState, Set<String>>, Iterable<String>>() {
+    return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Set<String>, Iterable<String>>() {
       @Override
-      public Iterable<String> apply(Pair<ARGState, Set<String>> itp) {
-        return itp.getSecond();
+      public Iterable<String> apply(Set<String> itp) {
+        return itp;
       }}).toSet();
   }
 
   public List<Set<String>> extractListOfVariables() {
-    return FluentIterable.from(interpolantSequence).transform(Pair.<Set<String>>getProjectionToSecond()).toList();
+    return FluentIterable.from(interpolantSequence).toList();
   }
 
   public int getNonTrivialLength() {
-    return FluentIterable.from(interpolantSequence).filter(new Predicate<Pair<ARGState, Set<String>>>() {
+    return FluentIterable.from(interpolantSequence).filter(new Predicate<Set<String>>() {
       @Override
-      public boolean apply(Pair<ARGState, Set<String>> pInput) {
-        return !pInput.getSecond().isEmpty();
+      public boolean apply(Set<String> pInput) {
+        return !pInput.isEmpty();
       }}).size();
   }
 
   public int getDepthOfPivotState() {
     int depth = 0;
 
-    for (Pair<ARGState, Set<String>> itp : interpolantSequence) {
-      if(!itp.getSecond().isEmpty()) {
+    for (Set<String> itp : interpolantSequence) {
+      if(!itp.isEmpty()) {
         return depth;
       }
 
@@ -111,5 +130,9 @@ public class InfeasiblePrefix {
 
   public ARGPath getPath() {
     return prefix;
+  }
+
+  public List<BooleanFormula> getPathFormulae() {
+    return pathFormulas;
   }
 }

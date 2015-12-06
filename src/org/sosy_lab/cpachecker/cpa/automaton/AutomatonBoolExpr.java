@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -74,6 +75,23 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       } else {
         return CONST_FALSE;
       }
+    }
+
+  }
+
+  static enum MatchProgramEntry implements AutomatonBoolExpr {
+
+    INSTANCE;
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      CFANode predecessor = edge.getPredecessor();
+      if (predecessor instanceof FunctionEntryNode
+          && predecessor.getNumEnteringEdges() == 0) {
+        return AutomatonBoolExpr.CONST_TRUE;
+      }
+      return AutomatonBoolExpr.CONST_FALSE;
     }
 
   }

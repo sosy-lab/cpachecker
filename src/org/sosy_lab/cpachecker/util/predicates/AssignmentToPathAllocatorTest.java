@@ -29,13 +29,16 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.counterexample.Model.TermType;
-import org.sosy_lab.cpachecker.core.counterexample.Model.Variable;
+import org.sosy_lab.solver.AssignableTerm.Variable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.solver.TermType;
 
 import com.google.common.collect.Lists;
 
@@ -45,17 +48,19 @@ public class AssignmentToPathAllocatorTest {
   private AssignmentToPathAllocator allocator;
 
   @Before
-  public void setUp() {
+  public void setUp() throws InvalidConfigurationException {
     this.allocator = new AssignmentToPathAllocator(
+        Configuration.defaultConfiguration(),
+        ShutdownNotifier.create(),
         TestLogManager.getInstance(),
-        ShutdownNotifier.create());
+        MachineModel.LINUX32);
   }
 
   @Test
   public void testFindFirstOccurrenceOfVariable() {
-    Variable varX = new Variable("x", 4, TermType.Integer);
-    Variable varY = new Variable("y", 5, TermType.Integer);
-    Variable varZ = new Variable("z", 6, TermType.Integer);
+    Variable varX = new Variable("x@4", TermType.Integer);
+    Variable varY = new Variable("y@5", TermType.Integer);
+    Variable varZ = new Variable("z@6", TermType.Integer);
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     List<SSAMap> ssaMaps = Lists.newArrayList();

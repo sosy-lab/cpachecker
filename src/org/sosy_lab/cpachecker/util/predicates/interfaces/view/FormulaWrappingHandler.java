@@ -27,13 +27,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.ArrayFormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingBitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingFloatingPointFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.solver.api.FormulaType.BitvectorType;
+import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -77,7 +80,11 @@ final class FormulaWrappingHandler {
 
   @SuppressWarnings("unchecked")
   <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
-    assert !(toWrap instanceof WrappingFormula<?, ?>);
+    if (toWrap instanceof WrappingFormula<?, ?>) {
+      throw new IllegalArgumentException(String.format(
+          "Cannot double-wrap a formula %s, which has already been wrapped as %s, as %s.",
+          toWrap, ((WrappingFormula<?, ?>)toWrap).getType(), targetType));
+    }
 
     if (targetType.isBitvectorType() && (encodeBitvectorAs != Theory.BITVECTOR)) {
       return (T1) new WrappingBitvectorFormula<>((BitvectorType)targetType, toWrap);
@@ -95,7 +102,8 @@ final class FormulaWrappingHandler {
       return (T1) toWrap;
 
     } else {
-      throw new IllegalArgumentException("invalid wrap call");
+      throw new IllegalArgumentException(String.format(
+          "Cannot wrap formula %s as %s", toWrap, targetType));
     }
   }
 

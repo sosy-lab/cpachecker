@@ -28,6 +28,8 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -35,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.collect.ImmutableMap;
@@ -236,24 +239,28 @@ public class AssumptionToEdgeAllocatorTest {
   }
 
   @Test
-  public void testAllocateAssignmentsToEdge() {
+  public void testAllocateAssignmentsToEdge() throws InvalidConfigurationException {
 
     for (CFANode node : cfa.getAllNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        testWithEdge(node.getLeavingEdge(i));
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        testWithEdge(edge);
       }
     }
   }
 
-  private void testWithEdge(CFAEdge pEdge) {
+  private void testWithEdge(CFAEdge pEdge) throws InvalidConfigurationException {
 
-    AssumptionToEdgeAllocator fullStateAllocator = new AssumptionToEdgeAllocator(logger, pEdge, full, machineModel);
-    AssumptionToEdgeAllocator emptyStateAllocator = new AssumptionToEdgeAllocator(logger, pEdge, empty, machineModel);
-    AssumptionToEdgeAllocator symbolicStateAllocator = new AssumptionToEdgeAllocator(logger, pEdge, symbolic, machineModel);
+    Configuration testConfig = Configuration
+        .builder()
+        .copyFrom(Configuration.defaultConfiguration())
+        .setOption("counterexample.export.assumptions.includeConstantsForPointers", "true")
+        .build();
 
-    CFAEdgeWithAssumptions assignmentEdgeFull = fullStateAllocator.allocateAssumptionsToEdge();
-    CFAEdgeWithAssumptions assignmentEdgeSymbolic = symbolicStateAllocator.allocateAssumptionsToEdge();
-    CFAEdgeWithAssumptions assignmentEdgeEmpty = emptyStateAllocator.allocateAssumptionsToEdge();
+    AssumptionToEdgeAllocator allocator = new AssumptionToEdgeAllocator(testConfig, logger, machineModel);
+
+    CFAEdgeWithAssumptions assignmentEdgeFull = allocator.allocateAssumptionsToEdge(pEdge, full);
+    CFAEdgeWithAssumptions assignmentEdgeSymbolic = allocator.allocateAssumptionsToEdge(pEdge, symbolic);
+    CFAEdgeWithAssumptions assignmentEdgeEmpty = allocator.allocateAssumptionsToEdge(pEdge, empty);
     Truth.assertThat(assignmentEdgeEmpty.getExpStmts()).isEmpty();
 
     switch (pEdge.getRawStatement()) {

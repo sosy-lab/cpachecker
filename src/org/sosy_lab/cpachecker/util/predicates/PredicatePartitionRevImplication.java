@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 /**

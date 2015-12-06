@@ -36,16 +36,15 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.BalancedGraphPartitioner;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
@@ -75,15 +74,20 @@ public class PartitioningIOHelper {
   private int savedReachedSetSize;
   private int numPartitions;
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
+  private Statistics currentGraphStatistics;
 
   public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+      final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    this(pConfig, pLogger, pShutdownNotifier, false);
+  }
+
+  protected PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier, final boolean withCMC) throws InvalidConfigurationException {
     pConfig.inject(this, PartitioningIOHelper.class);
     logger = pLogger;
 
-    partialConstructor = new PartialCertificateTypeProvider(pConfig, false).getCertificateConstructor();
-    partitioner = GraphPartitionerFactory.createPartitioner(logger, partitioningStrategy, pShutdownNotifier);
+    partialConstructor = new PartialCertificateTypeProvider(pConfig, false, withCMC).getCertificateConstructor();
+    partitioner = GraphPartitionerFactory.createPartitioner(logger, partitioningStrategy, pShutdownNotifier, pConfig);
   }
 
   public int getSavedReachedSetSize() {
@@ -103,16 +107,18 @@ public class PartitioningIOHelper {
 
   public void constructInternalProofRepresentation(final UnmodifiableReachedSet pReached)
       throws InvalidConfigurationException, InterruptedException {
-    savedReachedSetSize = pReached.size();
+    saveInternalProof(pReached.size(), computePartialReachedSetAndPartition(pReached));
+  }
 
-    Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitionDescription =
-        computePartialReachedSetAndPartition(pReached);
+  protected void saveInternalProof(final int size,
+      final Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> pPartitionDescription) {
+    savedReachedSetSize = size;
 
-    numPartitions = partitionDescription.getSecond().size();
+    numPartitions = pPartitionDescription.getSecond().size();
     partitions = new ArrayList<>(numPartitions);
 
-    for (Set<Integer> partition : partitionDescription.getSecond()) {
-      partitions.add(Pair.of(partitionDescription.getFirst().getSetNodes(partition, false), partitionDescription
+    for (Set<Integer> partition : pPartitionDescription.getSecond()) {
+      partitions.add(Pair.of(pPartitionDescription.getFirst().getSetNodes(partition, false), pPartitionDescription
           .getFirst()
           .getSuccessorNodesOutsideSet(partition, false)));
     }
@@ -127,7 +133,7 @@ public class PartitioningIOHelper {
     }
 
     PartialReachedSetDirectedGraph graph = new PartialReachedSetDirectedGraph(argNodes);
-
+    currentGraphStatistics = graph;
 
     if (useGraphSizeToComputePartitionNumber) {
       return Pair.of(graph,
@@ -228,6 +234,24 @@ public class PartitioningIOHelper {
     return new PartitioningStatistics();
   }
 
+  public Statistics getGraphStatistic() {
+    if(currentGraphStatistics == null){
+      return new Statistics() {
+
+        @Override
+        public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        }
+
+        @Override
+        public @Nullable
+        String getName() {
+          return null;
+        }
+      };
+    }
+    return currentGraphStatistics;
+  }
+
   private class PartitioningStatistics implements Statistics {
 
     @Override
@@ -236,6 +260,11 @@ public class PartitioningIOHelper {
         pOut.format("Number of partitions: %d%n", numPartitions);
         pOut.format("The following numbers are given in number of states.%n");
         computeAndPrintDetailedPartitioningStats(pOut);
+      }
+
+      if(currentGraphStatistics!= null) {
+        pOut.println("\nStatistics for partial reached set directed graph used in proof construction");
+        currentGraphStatistics.printStatistics(pOut, pResult, pReached);
       }
     }
 

@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The numerator of the fraction.
-   */
-  private final InvariantsFormula<ConstantType> numerator;
-
-  /**
-   * The denominator of the fraction.
-   */
-  private final InvariantsFormula<ConstantType> denominator;
+public class Modulo<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new modulo formula over the given numerator and denominator
@@ -48,10 +38,9 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    * @param pNumerator the numerator of the fraction.
    * @param pDenominator the denominator of the fraction.
    */
-  private Modulo(InvariantsFormula<ConstantType> pNumerator,
-      InvariantsFormula<ConstantType> pDenominator) {
-    this.numerator = pNumerator;
-    this.denominator = pDenominator;
+  private Modulo(NumeralFormula<ConstantType> pNumerator,
+      NumeralFormula<ConstantType> pDenominator) {
+    super("%", false, pNumerator, pDenominator);
   }
 
   /**
@@ -59,8 +48,8 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    *
    * @return the numerator of the fraction.
    */
-  public InvariantsFormula<ConstantType> getNumerator() {
-    return this.numerator;
+  public NumeralFormula<ConstantType> getNumerator() {
+    return super.getOperand1();
   }
 
   /**
@@ -68,40 +57,18 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    *
    * @return the denominator of the fraction.
    */
-  public InvariantsFormula<ConstantType> getDenominator() {
-    return this.denominator;
+  public NumeralFormula<ConstantType> getDenominator() {
+    return super.getOperand2();
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof Modulo) {
-      Modulo<?> other = (Modulo<?>) o;
-      return getNumerator().equals(other.getNumerator()) && getDenominator().equals(other.getDenominator());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getNumerator().hashCode() % getDenominator().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s %% %s)", getNumerator(), getDenominator());
-  }
-
-  @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -114,7 +81,7 @@ public class Modulo<ConstantType> extends AbstractFormula<ConstantType> implemen
    * @return an invariants formula representing the modulo operation over the
    * given operands.
    */
-  static <ConstantType> Modulo<ConstantType> of(InvariantsFormula<ConstantType> pNumerator, InvariantsFormula<ConstantType> pDenominator) {
+  static <ConstantType> Modulo<ConstantType> of(NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     return new Modulo<>(pNumerator, pDenominator);
   }
 

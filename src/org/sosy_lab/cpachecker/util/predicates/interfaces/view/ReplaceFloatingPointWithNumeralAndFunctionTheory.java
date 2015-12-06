@@ -23,20 +23,22 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigDecimal;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FunctionFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.UninterpretedFunctionDeclaration;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.FloatingPointFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
+import org.sosy_lab.solver.api.FunctionFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
@@ -82,29 +84,33 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
 
   @Override
   public <T2 extends Formula> T2 castTo(FloatingPointFormula pNumber, FormulaType<T2> pTargetType) {
-    return genericCast(pNumber, pTargetType);
+    // This method needs to handle only wrapping of FloatingPointFormulas,
+    // wrapping of other types is handled by FloatingPointFormulaManagerView.
+    return genericCast(unwrap(pNumber), pTargetType);
   }
 
   @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    return genericCast(pNumber, pTargetType);
+    // This method needs to handle only wrapping of FloatingPointFormulas,
+    // wrapping of other types is handled by FloatingPointFormulaManagerView.
+    return wrap(pTargetType, genericCast(pNumber, unwrapType(pTargetType)));
   }
 
   private <T2 extends Formula> T2 genericCast(Formula pNumber, FormulaType<T2> pTargetType) {
-    Formula number = unwrap(pNumber);
-    FormulaType<?> type = getFormulaType(number);
-    FormulaType<?> targetType = unwrapType(pTargetType);
+    // This method does not handle wrapping, it needs to be done by callers.
+    checkArgument(!(pNumber instanceof WrappingFormula<?, ?>));
+    FormulaType<?> type = getFormulaType(pNumber);
 
-    if (type.equals(targetType)) {
-      // both theories are represented with same type, so we can use the exact same formula,
-      // just wrapped differently
-      return wrap(pTargetType, number);
+    if (type.equals(pTargetType)) {
+      // both theories are represented with same type, so we can use the exact same formula
+      @SuppressWarnings("unchecked")
+      T2 result = (T2)pNumber;
+      return result;
     } else {
-      UninterpretedFunctionDeclaration<?> castFunction = functionManager.declareUninterpretedFunction(
+      UninterpretedFunctionDeclaration<T2> castFunction = functionManager.declareUninterpretedFunction(
           "__cast_" + type + "_to_" + pTargetType + "__",
-          targetType, type);
-      return wrap(pTargetType,
-          functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(number)));
+          pTargetType, type);
+      return functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(pNumber));
     }
   }
 

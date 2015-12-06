@@ -35,7 +35,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -58,8 +60,8 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -68,13 +70,13 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
+import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -84,12 +86,7 @@ import com.google.common.collect.Multimap;
 
 public class ValueAnalysisConcreteErrorPathAllocator {
 
-  @SuppressWarnings("unused")
-  private final LogManager logger;
-  @SuppressWarnings("unused")
-  private final ShutdownNotifier shutdownNotifier;
-
-  private final MachineModel machineModel;
+  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private MemoryName memoryName = new MemoryName() {
 
@@ -99,12 +96,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
   };
 
-  public ValueAnalysisConcreteErrorPathAllocator(LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel) {
-    logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    machineModel = pMachineModel;
+  public ValueAnalysisConcreteErrorPathAllocator(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
+    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
@@ -128,16 +121,16 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public Model allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  public RichModel allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
 
     CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, logger, machineModel);
+        CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
 
-    Model model = Model.empty();
+    RichModel model = RichModel.empty();
 
     return model.withAssignmentInformation(pathWithAssignments);
   }
@@ -185,7 +178,12 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
     Set<CLeftHandSide> alreadyAssigned = new HashSet<>();
 
-    int index = size - 1;
+    // we have the state for the last edge
+    iterator.previous();
+    singleConcreteStates[size - 1] = createConcreteState(pValueState, pVariableAddresses);
+
+    int index = size - 2;
+
     while (iterator.hasPrevious()) {
       CFAEdge cfaEdge = iterator.previous();
 
@@ -239,7 +237,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
     }
 
-    return false;
+    // If the statement is not an assignment, the lvalue does not exist
+    return true;
   }
 
   private boolean isLeftHandSideValueKnown(CLeftHandSide pLHS, Set<CLeftHandSide> pAlreadyAssigned) {
@@ -316,7 +315,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       return isLeftHandSideValueKnown(idExp, pAlreadyAssigned);
     }
 
-    return false;
+    // only variable declaration matter for value analysis
+    return true;
   }
 
   private Map<LeftHandSide, Address> generateVariableAddresses(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {

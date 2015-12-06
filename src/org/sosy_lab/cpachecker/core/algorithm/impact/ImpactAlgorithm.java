@@ -35,7 +35,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -59,7 +59,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
@@ -154,7 +155,11 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    unwind(pReachedSet);
+    try {
+      unwind(pReachedSet);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
+    }
     pReachedSet.popFromWaitlist();
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
@@ -188,7 +193,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private List<Vertex> refine(final Vertex v) throws CPAException, InterruptedException {
+  private List<Vertex> refine(final Vertex v)
+      throws CPAException, SolverException, InterruptedException {
     refinementTime.start();
     try {
       assert (v.isTarget() && ! bfmgr.isFalse(v.getStateFormula()));
@@ -259,7 +265,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
         && cpa.getStopOperator().stop(v.getWrappedState(), Collections.singleton(w.getWrappedState()), prec);
   }
 
-  private boolean cover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
+  private boolean cover(Vertex v, Vertex w, Precision prec)
+      throws CPAException, InterruptedException, SolverException {
     coverTime.start();
     try {
       assert !v.isCovered();
@@ -292,7 +299,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
    * @throws CPAException
    * @throws InterruptedException
    */
-  private boolean forceCover(Vertex v, Vertex w, Precision prec) throws CPAException, InterruptedException {
+  private boolean forceCover(Vertex v, Vertex w, Precision prec)
+      throws CPAException, InterruptedException, SolverException {
     List<Vertex> path = new ArrayList<>();
     Vertex x = v;
     {
@@ -368,7 +376,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean close(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
+  private boolean close(Vertex v, ReachedSet reached)
+      throws CPAException, InterruptedException, SolverException {
     closeTime.start();
     try {
       if (v.isCovered()) {
@@ -391,7 +400,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private boolean dfs(Vertex v, ReachedSet reached) throws CPAException, InterruptedException {
+  private boolean dfs(Vertex v, ReachedSet reached)
+      throws CPAException, InterruptedException, SolverException {
     if (close(v, reached)) {
       return true; // no need to expand
     }
@@ -446,7 +456,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private void unwind(ReachedSet reached) throws CPAException, InterruptedException {
+  private void unwind(ReachedSet reached) throws CPAException, InterruptedException, SolverException {
 
     outer:
     while (true) {

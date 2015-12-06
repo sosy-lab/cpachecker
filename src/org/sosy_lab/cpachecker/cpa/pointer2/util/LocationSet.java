@@ -23,16 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
 
 public interface LocationSet {
 
-  boolean mayPointTo(String pLocation);
+  boolean mayPointTo(MemoryLocation pLocation);
 
-  LocationSet addElement(String pLocation);
+  LocationSet addElement(MemoryLocation pLocation);
 
-  LocationSet removeElement(String pLocation);
+  LocationSet removeElement(MemoryLocation pLocation);
 
-  LocationSet addElements(Iterable<String> pLocations);
+  LocationSet addElements(Iterable<MemoryLocation> pLocations);
 
   LocationSet addElements(LocationSet pLocations);
 

@@ -16,17 +16,18 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.Template;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.TemplateManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BitvectorFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.ProverEnvironment;
+import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.stator.congruence")
@@ -73,6 +74,18 @@ public class CongruenceManager {
     return new CongruenceState(abstraction);
   }
 
+  public boolean isLessOrEqual(CongruenceState a, CongruenceState b) {
+    for (Entry<Template, Congruence> e : b) {
+      Template template = e.getKey();
+      Congruence congruence = e.getValue();
+      Optional<Congruence> smallerCongruence = a.get(template);
+      if (!smallerCongruence.isPresent()
+          || smallerCongruence.get() != congruence) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   public CongruenceState performAbstraction(
       CFANode node,
@@ -141,11 +154,11 @@ public class CongruenceManager {
 
     for (Entry<Template, Congruence> entry : abstraction.entrySet()) {
       Template template = entry.getKey();
-      Congruence congr = entry.getValue();
+      Congruence congruence = entry.getValue();
 
       Formula formula = templateManager.toFormula(pfmgr, fmgr, template, ref);
       Formula remainder;
-      switch (congr) {
+      switch (congruence) {
         case ODD:
           remainder = makeBv(fmgr.getBitvectorFormulaManager(), formula, 1);
           break;
@@ -163,10 +176,10 @@ public class CongruenceManager {
   }
 
   private boolean shouldUseTemplate(Template template) {
-    return
-        template.getType().getType().isIntegerType()
-            && ((template.getKind() == Kind.UPPER_BOUND)
-            || (trackCongruenceSum && template.getKind() == Kind.SUM));
+    return template.isIntegral() && (
+        (template.getKind() == Kind.UPPER_BOUND)
+        || (trackCongruenceSum && template.getKind() == Kind.SUM)
+    );
   }
 
   private Formula makeBv(BitvectorFormulaManager bvfmgr, Formula other, int value) {

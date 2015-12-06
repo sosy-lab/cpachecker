@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -71,6 +72,9 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
       if (pCfaEdge.getDescription().equals("Function start dummy edge") && !(pCfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
         validVariables = validVariables.extendLocalVarsFunctionCall(pCfaEdge.getSuccessor().getFunctionName(),
             ImmutableSet.<String> of());
+      }
+      if(pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
+        validVariables = validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
       }
       break;
     case FunctionCallEdge:

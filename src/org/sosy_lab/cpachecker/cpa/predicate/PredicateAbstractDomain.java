@@ -31,6 +31,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.solver.SolverException;
 
 @Options(prefix="cpa.predicate")
 public class PredicateAbstractDomain implements AbstractDomain {
@@ -101,6 +102,8 @@ public class PredicateAbstractDomain implements AbstractDomain {
       return e1.getMergedInto() == e2;
     }
 
+    } catch (SolverException e) {
+      throw new CPAException("Solver Exception", e);
     } finally {
       coverageCheckTimer.stop();
     }

@@ -31,12 +31,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.exceptions.SolverException;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Canonicalizer;
 import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 
 import com.google.common.base.Preconditions;
@@ -45,7 +45,7 @@ import com.google.common.collect.Lists;
 
 public class DefaultCanonicalizer implements Canonicalizer {
 
-  private class TransformDoubleNegations extends PatternBasedRule {
+  private static class TransformDoubleNegations extends PatternBasedRule {
 
     // not not a
     // ====>
@@ -74,7 +74,7 @@ public class DefaultCanonicalizer implements Canonicalizer {
 
   }
 
-  private class TransformNotLessOrEq extends PatternBasedRule {
+  private static class TransformNotLessOrEq extends PatternBasedRule {
 
     // not a <= b
     // a, b: Integers
@@ -106,14 +106,14 @@ public class DefaultCanonicalizer implements Canonicalizer {
 
   }
 
-  private class TranswformNotGreaterThan extends PatternBasedRule {
+  private static class TransformNotGreaterThan extends PatternBasedRule {
 
     // not a > b
     // a, b: Integers
     // ====>
     // a <= b
 
-    public TranswformNotGreaterThan(Solver pSolver, SmtAstMatcher pMatcher) {
+    public TransformNotGreaterThan(Solver pSolver, SmtAstMatcher pMatcher) {
       super(pSolver, pMatcher);
     }
 
@@ -144,7 +144,7 @@ public class DefaultCanonicalizer implements Canonicalizer {
     this.axioms = Lists.<PatternBasedRule>newArrayList();
 
     axioms.add(new TransformDoubleNegations(pSolver, pSmtAstMatcher));
-    axioms.add(new TranswformNotGreaterThan(pSolver, pSmtAstMatcher));
+    axioms.add(new TransformNotGreaterThan(pSolver, pSmtAstMatcher));
     axioms.add(new TransformNotLessOrEq(pSolver, pSmtAstMatcher));
   }
 

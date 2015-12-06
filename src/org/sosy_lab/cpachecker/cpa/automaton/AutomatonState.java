@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -56,13 +56,14 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
  * Instances of this class are passed to the CPAchecker as AbstractState.
  */
-public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, Partitionable, AbstractStateWithAssumptions, Graphable {
+public class AutomatonState implements AbstractQueryableState, Targetable, Serializable, AbstractStateWithAssumptions, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -116,12 +117,12 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private int matches = 0;
   private int failedMatches = 0;
   private Set<Integer> tokensSinceLastMatch = null;
-  private final String violatedPropertyDescription;
+  private final AutomatonSafetyProperty violatedPropertyDescription;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<AStatement> pAssumptions, int successfulMatches, int failedMatches,
-      String violatedPropertyDescription) {
+      AutomatonSafetyProperty violatedPropertyDescription) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
@@ -134,7 +135,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      int successfulMatches, int failedMatches, String violatedPropertyDescription) {
+      int successfulMatches, int failedMatches, AutomatonSafetyProperty violatedPropertyDescription) {
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
         ImmutableList.<AStatement>of(), successfulMatches, failedMatches,
         violatedPropertyDescription);
@@ -146,17 +147,20 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       ImmutableList<AStatement> pAssumptions,
       int successfulMatches,
       int failedMatches,
-      String pViolatedPropertyDescription) {
+      AutomatonSafetyProperty pViolatedPropertyDescription) {
 
     this.vars = checkNotNull(pVars);
     this.internalState = checkNotNull(pInternalState);
     this.automatonCPA = checkNotNull(pAutomatonCPA);
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
-    assumptions = pAssumptions;
-    violatedPropertyDescription = pViolatedPropertyDescription;
+    this.assumptions = pAssumptions;
+
     if (isTarget()) {
-      checkNotNull(violatedPropertyDescription);
+      checkNotNull(pViolatedPropertyDescription);
+      violatedPropertyDescription = pViolatedPropertyDescription;
+    } else {
+      violatedPropertyDescription = null;
     }
   }
 
@@ -166,18 +170,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
-  public String getViolatedPropertyDescription() throws IllegalStateException {
+  public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return checkNotNull(violatedPropertyDescription);
+    return ImmutableSet.<Property>of(violatedPropertyDescription);
   }
 
-  Optional<String> getOptionalViolatedPropertyDescription() {
-    return Optional.fromNullable(violatedPropertyDescription);
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    return internalState;
+  Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
+    return Optional.<AutomatonSafetyProperty>fromNullable(violatedPropertyDescription);
   }
 
   @Override
@@ -274,6 +273,10 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
    */
   public String getOwningAutomatonName() {
     return automatonCPA.getAutomaton().getName();
+  }
+
+  public Automaton getOwningAutomaton() {
+    return automatonCPA.getAutomaton();
   }
 
   @Override

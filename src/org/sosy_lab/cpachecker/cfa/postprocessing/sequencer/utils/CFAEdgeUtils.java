@@ -7,7 +7,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection.Builder;
@@ -44,7 +44,7 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * The CFAEdge utilities are able to make useful edge manipulations.
- * 
+ *
  * <p>
  * Caveat: Due to the immortality of CFAEdges the use of this utilities can
  * cause a replacement of an CFAEdge by a new created one. This is especially the case if change of
@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableSet;
  */
 public class CFAEdgeUtils {
   public final static CFANode DUMMY_NODE = CFASequenceBuilder.DUMMY_NODE;
-  
+
   /**
    * This collection is for assertion purpose only. Edges which get new
    * successor or predecessor nodes have to be new created due to immortality
@@ -63,7 +63,7 @@ public class CFAEdgeUtils {
    * will be stored in this list;
    */
   public static Collection<CFAEdge> trashCan = new HashSet<CFAEdge>();
-  
+
   /**
    * <p>
    * This method bypasses the predecessor and successor nodes of the given edge.
@@ -71,21 +71,21 @@ public class CFAEdgeUtils {
    * predecessor and successor will be created. The old edge will be erased from
    * the connected nodes.
    * </p>
-   * 
+   *
    * <p>
    * Similar to {@link #copyCEdge} but removes the successor and predecessor
    * CFANodes from original CFAEdge instead.
    * </p>
-   * 
+   *
    * <p>
    * Caveat: The given edge is no edge of the cfa anymore. It was replaced by a
    * new one. Attention should be paid if the edge is stored in any object aside
    * from the cfa.
-   * 
+   *
    * Use asserts with {@link #isEdgeForbiddenEdge} to verify your edge
    * consistency.
    * </p>
-   * 
+   *
    * @param edge
    *          the edge which will be bypassed
    * @param predecessor
@@ -97,26 +97,26 @@ public class CFAEdgeUtils {
    */
   public static CFAEdge bypassCEdgeNodes(CFAEdge edge, CFANode predecessor, CFANode successor) {
     CFAEdge newEdge = buildNewCEdges(edge, predecessor, successor);
-    
+
     // remove original nodes
     CFANode originalPredecessor = edge.getPredecessor();
     CFANode originalSuccessor = edge.getSuccessor();
-    
+
     if(CFAUtils.leavingEdges(originalPredecessor).contains(edge)) {
       originalPredecessor.removeLeavingEdge(edge);
     }
-    
+
     if(CFAUtils.enteringEdges(originalSuccessor).contains(edge)) {
       originalSuccessor.removeEnteringEdge(edge);
     }
-    
+
     CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
-    
+
     trashCan.add(edge);
     return newEdge;
   }
-  
-  
+
+
   /**
    * <p>
    * This method copies an edge to an edge with the given predecessor and
@@ -124,7 +124,7 @@ public class CFAEdgeUtils {
    * predecessor and successor node mustn't match with the predecessor and
    * successor of the original edge.
    * </p>
-   * 
+   *
    * <p>
    * Similar to {@link #bypassCEdgeNodes} but does not affect the original edge.
    * </p>
@@ -142,12 +142,12 @@ public class CFAEdgeUtils {
     CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
     return newEdge;
   }
-  
-  
+
+
   private static boolean areEdgesNewEdges(CFAEdge edge, CFANode predecessor, CFANode successor) {
     CFANode originalPredecessor = edge.getPredecessor();
     CFANode originalSuccessor = edge.getSuccessor();
-    
+
     if(originalPredecessor.equals(DUMMY_NODE) && originalSuccessor.equals(DUMMY_NODE)) {
       return true;
     } else if(originalPredecessor.equals(DUMMY_NODE)) {
@@ -158,10 +158,10 @@ public class CFAEdgeUtils {
       return !originalSuccessor.equals(successor) && !originalPredecessor.equals(predecessor);
     }
   }
-  
+
   /**
    * Gets an new instance of a AssumeEdge with an inverted AssumeExpression.
-   * 
+   *
    * @param assumeEdge
    *          - the edge prototype
    * @return a new instance of the given assumeEdge with inverted
@@ -183,7 +183,7 @@ public class CFAEdgeUtils {
    * Replaces an edge by an new edge. The new edge will be a copied and placed
    * between the predecessor and successor node of the original edge.
    * </p>
-   * 
+   *
    * <p>
    * The replaced edge will be removed from cfa and its nodes.
    * Use asserts with {@link #isEdgeForbiddenEdge} to verify your edge
@@ -207,19 +207,19 @@ public class CFAEdgeUtils {
     CFAEdge newEdge = bypassCEdgeNodes(newEdgeExemplar, predecessor, successor);
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(newEdgeExemplar);
-    
+
     trashCan.add(originalEdge);
     return newEdge;
   }
-  
+
   /**
    * This will inject a cfa sequence between the given node and its successor
    * edges. The edges will be wired directly to the assigned successors and the
    * original association at inject location will be drained. This means the
    * wiring will not be done with an Blank/Glue edge. SummaryEdges will be
    * ignored.
-   * 
-   * 
+   *
+   *
    * <p>
    * The sequence have to fulfill the following restrictions
    * <ul>
@@ -228,7 +228,7 @@ public class CFAEdgeUtils {
    * node</li>
    * </ul>
    * </p>
-   * 
+   *
    * <p>
    * Caveat: Due to immortality of CFAEdges some edges must be replaced to map
    * the new successor and predecessor nodes. Note that the original edges will
@@ -236,14 +236,14 @@ public class CFAEdgeUtils {
    * stored in them.<br />
    * The successor edges of the node injectBeforeNode and the successor edges of
    * the cfa sequence will be replaced by new edges.
-   * 
+   *
    * Use asserts with {@link #isEdgeForbiddenEdge} to verify your edge
    * consistency.
    * </p>
    *
    * Note: the nodes of the new sequence will not be added to the cfa. However
    * the cfa is needed to delete replaced nodes from the cfa.
-   * 
+   *
    * @param injectBeforeNode
    *          - this node determines location in the cfa where the new cfa
    *          sequence will be injected. The location will be between the given
@@ -265,50 +265,50 @@ public class CFAEdgeUtils {
     assert injectedSequenceEnd.getNumLeavingEdges() == 0;
     HashSet<CFAEdge> newStartEdge = new HashSet<CFAEdge>();
     HashSet<CFAEdge> newEndEdge = new HashSet<CFAEdge>();
-    
+
     for(CFAEdge originalEnteringEdges : CFAUtils.enteringEdges(injectBeforeNode)) {
       CFAEdge newEdge = bypassCEdgeNodes(originalEnteringEdges, originalEnteringEdges.getPredecessor(), injectedSequenceStart);
       newStartEdge.add(newEdge);
     }
-    
+
     for(CFAEdge sequenceEnteringEdges : CFAUtils.enteringEdges(injectedSequenceEnd)) {
       CFAEdge newEdge = bypassCEdgeNodes(sequenceEnteringEdges, sequenceEnteringEdges.getPredecessor(), injectBeforeNode);
       newEndEdge.add(newEdge);
     }
-    
+
     cfa.removeNode(injectedSequenceEnd);
-    
+
     return Pair.<Set<CFAEdge>, Set<CFAEdge>>of(newStartEdge, newEndEdge);
   }
-  
+
   public static boolean isNodeReachableByNode(CFANode node, CFANode reachableBy) {
     NodeReachable reachableChecker = new NodeReachable(node);
     CFATraversal.dfs().traverseOnce(reachableBy, reachableChecker);
     return reachableChecker.isReachable();
   }
-  
+
 
   public static CFAEdge bypassJavaEdgeNodes(CFAEdge edge, CFANode predecessor, CFANode successor) {
     // TODO implement
     throw new RuntimeException("java functions are not implemented yet!");
   }
-  
-  
+
+
   public static void removeLeavingEdges(CFANode node) {
     checkNotNull(node);
     for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
       node.removeLeavingEdge(edge);
     }
   }
-  
+
   public static void removeEnteringEdges(CFANode node) {
     checkNotNull(node);
     for (CFAEdge edge : CFAUtils.enteringEdges(node)) {
       node.removeEnteringEdge(edge);
     }
   }
-  
-  
+
+
   public static class NodeReachable extends CFATraversal.DefaultCFAVisitor {
 
     private boolean isReachable = false;
@@ -332,7 +332,7 @@ public class CFAEdgeUtils {
       return isReachable;
     }
   }
-  
+
   /**
    * <p>
    * Checks if any edge given in the collection will match to a forbidden edge.
@@ -340,7 +340,7 @@ public class CFAEdgeUtils {
    * another to change its entity. This edge is most likely no valid edge in the
    * cfa
    * </p>
-   * 
+   *
    * @see CFAEdgeUtils#bypassCEdgeNodes
    * @see CFAEdgeUtils#injectInBetween
    * @see CFAEdgeUtils#replaceCEdgeWith
@@ -371,7 +371,7 @@ public class CFAEdgeUtils {
     }
     return builder.build();
   }
-  
+
   /**
    * Return an {@link java.lang.Iterable} that contains all leaving edges of a given
    * CFANode, including the summary edge if the node as one. Similar to
@@ -387,7 +387,7 @@ public class CFAEdgeUtils {
     builder.addAll(getLeavingEdges(node));
     return builder.build();
   }
-  
+
   /**
    * Return an {@link java.lang.Iterable} that contains the entering edges of a given CFANode,
    * excluding the summary edge. Similar to
@@ -418,21 +418,21 @@ public class CFAEdgeUtils {
     builder.addAll(getEnteringEdges(node));
     return builder.build();
   }
-  
-  
+
+
   public static CStatementEdge getDummyAssignementEdge(CLeftHandSide left, CExpression right) {
     CStatement assignStatement = new CExpressionAssignmentStatement(FileLocation.DUMMY, left, right);
     return new CStatementEdge("", assignStatement, FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
   }
-  
+
   public static CIntegerLiteralExpression getThreadAsNumberExpression(AThread thread) {
     return new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(thread.getThreadNumber()));
   }
-  
-  
+
+
   private static CFAEdge buildNewCEdges(CFAEdge edge, CFANode predecessor, CFANode successor) {
     Preconditions.checkNotNull(edge);
-    
+
     CFAEdge newEdge;
     switch (edge.getEdgeType()) {
     case AssumeEdge:
@@ -479,7 +479,7 @@ public class CFAEdgeUtils {
       Preconditions.checkArgument(edge instanceof CStatementEdge);
       CStatementEdge oldCStatementEdge = (CStatementEdge) edge;
       return new CStatementEdge(oldCStatementEdge.getRawStatement(), oldCStatementEdge.getStatement(), oldCStatementEdge.getFileLocation(),
-          predecessor, successor);  
+          predecessor, successor);
   }
 
   private static CFAEdge buildCReturnStatementEdge(CFAEdge edge, CFANode predecessor, CFANode successor) {
@@ -505,7 +505,7 @@ public class CFAEdgeUtils {
     Preconditions.checkArgument(edge.getRawAST().isPresent());
     FunctionExitNode functionExitNode = (FunctionExitNode) successor;
     CReturnStatementEdge originalEdge = (CReturnStatementEdge) edge;
-    
+
     return new CReturnStatementEdge(edge.getRawStatement(), originalEdge.getRawAST().get(), edge.getFileLocation(), predecessor, functionExitNode);
   }
 
@@ -554,22 +554,22 @@ public class CFAEdgeUtils {
     return new CAssumeEdge(oldAssumeEdge.getRawStatement(), oldAssumeEdge.getFileLocation(), predecessor, successor,
         (CExpression) oldAssumeEdge.getExpression(), oldAssumeEdge.getTruthAssumption());
   }
-  
+
   private static ContextSwitchEdge buildAContextSwitchEdge(CFAEdge edge, CFANode predecessor, CFANode successor) {
     Preconditions.checkArgument(edge instanceof ContextSwitchEdge);
     ContextSwitchEdge oldContextSwitchEdge = (ContextSwitchEdge) edge;
-    
+
     Preconditions.checkNotNull(oldContextSwitchEdge.getContextSwitch());
-    
+
     return new ContextSwitchEdge(oldContextSwitchEdge.getContextSwitch(), edge.getRawStatement(), edge.getFileLocation(), predecessor, successor, oldContextSwitchEdge.isToScheduler());
   }
-  
+
   private static CFAEdge buildThreadScheduleEdge(CFAEdge edge, CFANode predecessor, CFANode successor) {
     Preconditions.checkArgument(edge instanceof ThreadScheduleEdge);
     ThreadScheduleEdge oldThreadScheduleEdge = (ThreadScheduleEdge) edge;
     AThread thread = oldThreadScheduleEdge.getThreadContext();
-    
+
     return new ThreadScheduleEdge(predecessor, successor, thread);
   }
-  
+
 }

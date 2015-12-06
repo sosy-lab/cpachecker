@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.coverage.CoverageInformation;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
@@ -104,15 +104,6 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reachedSetGraphDumpPath = Paths.get("reached.dot");
 
-  @Option(secure=true, name="coverage.export",
-      description="print coverage info to file")
-  private boolean exportCoverage = true;
-
-  @Option(secure=true, name="coverage.file",
-      description="print coverage info to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
-
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
@@ -120,6 +111,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final MemoryStatistics memStats;
+  private final CoverageReport coverageReport;
   private Thread memStatsThread;
 
   private Collection<IterationStatistics> iterationStats;
@@ -128,6 +120,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   final Timer creationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
+  final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
@@ -167,6 +160,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
       programCpuTime = -1;
     }
+
+    coverageReport = new CoverageReport(config, pLogger);
   }
 
   public Collection<Statistics> getSubStatistics() {
@@ -245,13 +240,16 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       memStatsThread.interrupt(); // stop memory statistics collection
     }
 
+    final Timer statisticsTime = new Timer();
+    statisticsTime.start();
+
     if (result != Result.NOT_YET_STARTED) {
       dumpReachedSet(reached);
 
       printSubStatistics(out, result, reached);
 
-      if (exportCoverage && outputCoverageFile != null && cfa != null) {
-        CoverageInformation.writeCoverageInfo(outputCoverageFile, reached, cfa, logger);
+      if (coverageReport != null && cfa != null) {
+        coverageReport.writeCoverageReport(out, result, reached, cfa);
       }
     }
 
@@ -271,7 +269,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
     out.println();
 
-    printTimeStatistics(out, result, reached);
+    printTimeStatistics(out, result, reached, statisticsTime);
 
     out.println();
 
@@ -457,7 +455,8 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
   }
 
-  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached) {
+  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
+      Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);
     if (cfaCreatorStatistics != null) {
@@ -465,8 +464,12 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
+    if (resultAnalysisTime.getNumberOfIntervals() > 0) {
+      out.println("Time for analyzing result:    " + resultAnalysisTime);
+    }
     out.println("Total time for CPAchecker:    " + programTime);
     out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
+    out.println("Time for statistics:          " + statisticsTime);
   }
 
   private void printMemoryStatistics(PrintStream out) {

@@ -27,7 +27,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -40,7 +40,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * the left hand side expressions in the assignments along the path.
  *
  * CPAs have to create an object of this class for every CFA Edge {@link CFAEdge}
- * along an Error Path {@link MutableARGPath} to create an object of
+ * along an Error Path {@link ARGPath} to create an object of
  * the concrete state path {@link ConcreteStatePath}. The allocator class
  * {@link AssumptionToEdgeAllocator} uses this object to create
  * an error path {@link CFAPathWithAssumptions} where every assignment,

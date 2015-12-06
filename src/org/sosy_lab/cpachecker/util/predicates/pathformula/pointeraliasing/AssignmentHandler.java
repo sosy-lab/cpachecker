@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.*;
 
 import java.util.Collections;
@@ -35,11 +36,9 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,9 +50,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
@@ -66,8 +65,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 
 
 class AssignmentHandler {
@@ -118,40 +115,30 @@ class AssignmentHandler {
                                         CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final List<Pair<CCompositeType, String>> rhsUsedFields;
-    final List<Pair<CCompositeType, String>> rhsAddressedFields;
-    final Map<String, CType> rhsUsedDeferredAllocationPointers;
-    final Expression rhsExpression;
-    // RHS is neither null nor a nondet() function call
-    if (rhs != null &&
-        (!(rhs instanceof CFunctionCallExpression) ||
-         !(((CFunctionCallExpression) rhs).getFunctionNameExpression() instanceof CIdExpression) ||
-         !conv.options.isNondetFunction(((CIdExpression)((CFunctionCallExpression) rhs).getFunctionNameExpression()).getName()))) {
-      final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
 
+    final Expression rhsExpression;
+    if (rhs == null) {
+      rhsExpression = Value.nondetValue();
+    } else {
       CRightHandSide r = rhs;
       if (r instanceof CExpression) {
         r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
       }
-
       rhsExpression = r.accept(rhsVisitor);
-      pts.addEssentialFields(rhsVisitor.getInitializedFields());
-      rhsUsedFields = rhsVisitor.getUsedFields();
-      rhsAddressedFields = rhsVisitor.getAddressedFields();
-      rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
-    } else { // RHS is nondet
-      rhsExpression = Value.nondetValue();
-      rhsUsedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsAddressedFields = ImmutableList.<Pair<CCompositeType,String>>of();
-      rhsUsedDeferredAllocationPointers = ImmutableMap.<String, CType>of();
     }
+
+    pts.addEssentialFields(rhsVisitor.getInitializedFields());
+    pts.addEssentialFields(rhsVisitor.getUsedFields());
+    final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
+    final Map<String, CType> rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
 
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    final List<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
         ? null
@@ -173,8 +160,6 @@ class AssignmentHandler {
                           batchMode,
                           destroyedTypes);
 
-    pts.addEssentialFields(lhsUsedFields);
-    pts.addEssentialFields(rhsUsedFields);
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
     }
@@ -526,7 +511,8 @@ class AssignmentHandler {
       for (final PointerTarget target : pts.getMatchingTargets(lvalueType, pattern)) {
         conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                                    fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+                                                    fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()),
+                                                    IS_POINTER_SIGNED);
         final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, lvalue);
         final BooleanFormula retention = fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                 newIndex,
@@ -542,7 +528,8 @@ class AssignmentHandler {
     for (final PointerTarget target : pts.getSpuriousTargets(lvalueType, pattern)) {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                                  fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+                                                  fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()),
+                                                  IS_POINTER_SIGNED);
       constraints.addConstraint(fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                        newIndex,
                                                                        returnType,
@@ -563,7 +550,8 @@ class AssignmentHandler {
     for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
       conv.shutdownNotifier.shutdownIfNecessary();
       final Formula candidateAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
+                                                     fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()),
+                                                     IS_POINTER_SIGNED);
       final BooleanFormula negAntecedent = bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
       exact.setBase(target.getBase());
       exact.setRange(target.getOffset(), size);
@@ -575,7 +563,8 @@ class AssignmentHandler {
         final FormulaType<?> returnType = conv.getFormulaTypeFromCType(type);
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
           final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, spurious.getBaseName()),
-                                                      fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()));
+                                                      fmgr.makeNumber(conv.voidPointerFormulaType, spurious.getOffset()),
+                                                      IS_POINTER_SIGNED);
           consequent = bfmgr.and(consequent, fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
                                                                                     newIndex,
                                                                                     returnType,
@@ -602,8 +591,10 @@ class AssignmentHandler {
       for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
         conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(conv.voidPointerFormulaType, target.getBaseName()),
-                                      fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()));
-        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1));
+                                      fmgr.makeNumber(conv.voidPointerFormulaType, target.getOffset()),
+                                      IS_POINTER_SIGNED);
+        final Formula endAddress = fmgr.makePlus(startAddress, fmgr.makeNumber(conv.voidPointerFormulaType, size - 1),
+                                                 IS_POINTER_SIGNED);
         constraints.addConstraint(bfmgr.or(bfmgr.and(fmgr.makeLessOrEqual(startAddress, targetAddress, false),
                                                      fmgr.makeLessOrEqual(targetAddress, endAddress,false)),
                                            fmgr.makeEqual(ffmgr.declareAndCallUninterpretedFunction(ufName,
@@ -629,7 +620,7 @@ class AssignmentHandler {
                                                         final int offset,
                                                         final CType lvalueElementType) {
     final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-    final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.getAddress(), offsetFormula));
+    final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.getAddress(), offsetFormula, IS_POINTER_SIGNED));
     return Pair.of(newLvalue, lvalueElementType);
   }
 
@@ -643,7 +634,8 @@ class AssignmentHandler {
       assert rvalueType instanceof CArrayType : "Non-array rvalue in array assignment";
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
-                                                           offsetFormula));
+                                                           offsetFormula,
+                                                           IS_POINTER_SIGNED));
       final CType newRvalueType = CTypeUtils.simplifyType(((CArrayType) rvalueType).getType());
       return Pair.of(newRvalue, newRvalueType);
     }
@@ -669,7 +661,8 @@ class AssignmentHandler {
     if (lvalue.isAliased()) {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
-                                                                         offsetFormula));
+                                                                         offsetFormula,
+                                                                         IS_POINTER_SIGNED));
       return Pair.of(newLvalue, newLvalueType);
 
     } else {
@@ -691,7 +684,8 @@ class AssignmentHandler {
     case ALIASED_LOCATION: {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
       final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
-                                                                         offsetFormula));
+                                                                         offsetFormula,
+                                                                         IS_POINTER_SIGNED));
       return Pair.of(newRvalue, newLvalueType);
     }
     case UNALIASED_LOCATION: {

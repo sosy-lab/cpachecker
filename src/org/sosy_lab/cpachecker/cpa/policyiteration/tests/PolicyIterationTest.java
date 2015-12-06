@@ -4,7 +4,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -68,22 +67,32 @@ public class PolicyIterationTest {
     check("loop_nested_false_assert.c");
   }
 
-  @Ignore
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
-    // todo: requires re-enabling formula slicing.
-    check("pointers/pointer_past_abstraction_true_assert.c");
+    check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+        )
+    );
   }
 
   @Test public void pointer_past_abstraction_false_assert() throws Exception {
-    check("pointers/pointer_past_abstraction_false_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+    check("pointers/pointer_past_abstraction_false_assert.c"
+        , ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.runCongruence", "false",
+            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+        )
+    );
   }
 
-  @Ignore
   @Test public void pointers_loop_true_assert() throws Exception {
-    // todo: requires re-enabling formula slicing.
     check("pointers/pointers_loop_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of(
+            "CompositeCPA.cpas", CPAS_W_SLICING,
+            "cpa.stator.policy.generateOctagons", "true",
+            "cpa.slicing.useSyntacticFormulaSlicing", "true"
+        ));
   }
 
   @Test public void octagons_loop_true_assert() throws Exception {
@@ -118,14 +127,16 @@ public class PolicyIterationTest {
 
   @Test public void valdet_prefixing_true_assert() throws Exception {
     check("valdet_prefixing_true_assert.c",
-        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true"));
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+
+            // Enabling two options below make non-prefixing variation of
+            // val.det. work.
+            "cpa.stator.policy.shortCircuitSyntactic", "false",
+            "cpa.stator.policy.checkPolicyInitialCondition", "false"));
   }
 
   @Test public void array_false_assert() throws Exception {
-    check("array_false_assert.c",
-        ImmutableMap.of(
-            "cpa.stator.policy.formulaSlicing", "true"
-        ));
+    check("array_false_assert.c");
   }
 
   @Test public void classcast_fail_true_assert() throws Exception {
@@ -149,16 +160,30 @@ public class PolicyIterationTest {
     check("timeout_true_assert.c");
   }
 
+  @Test public void boolean_true_assert() throws Exception {
+    // Use explicit value analysis to track boolean variables.
+    check("boolean_true_assert.c",
+        ImmutableMap.of("cpa.stator.policy.generateOctagons", "true",
+            "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
+            "precision.trackIntAddVariables", "false",
+            "precision.trackVariablesBesidesEqAddBool", "false"));
+  }
+
   private void check(String filename) throws Exception {
     check(filename, new HashMap<String, String>());
   }
 
   private void check(String filename, Map<String, String> extra) throws Exception {
+    String fullPath;
+    if (filename.contains("test/programs/benchmarks")) {
+      fullPath = filename;
+    } else {
+      fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
+    }
+
     TestResults results = CPATestRunner.runAndLogToSTDOUT(
-        getProperties(extra),
-        Paths.get(TEST_DIR_PATH, filename).toString()
-    );
-    if (filename.contains("_true_assert")) {
+        getProperties(extra), fullPath);
+    if (filename.contains("_true_assert") || filename.contains("_true-unreach")) {
       results.assertIsSafe();
     } else if (filename.contains("_false_assert") || filename.contains("_false-unreach")) {
       results.assertIsUnsafe();
@@ -173,24 +198,45 @@ public class PolicyIterationTest {
             Joiner.on(", ").join(ImmutableList.<String>builder()
                 .add("cpa.location.LocationCPA")
                 .add("cpa.callstack.CallstackCPA")
+                .add("cpa.functionpointer.FunctionPointerCPA")
                 .add("cpa.loopstack.LoopstackCPA")
                 .add("cpa.policyiteration.PolicyCPA")
                 .build()
             ))
         )
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
-        .put("cpa.predicate.solver", "Z3")
+        .put("solver.z3.requireProofs", "false")
+
+        .put("solver.solver", "z3")
         .put("specification", "config/specification/default.spc")
         .put("cpa.predicate.ignoreIrrelevantVariables", "true")
-        .put("cpa.predicate.maxArrayLength", "3")
+        .put("cpa.predicate.maxArrayLength", "1000")
         .put("cpa.predicate.defaultArrayLength", "3")
         .put("parser.usePreprocessor", "true")
         .put("cfa.findLiveVariables", "true")
-        .put("analysis.traversal.order", "bfs")
+
+        .put("cpa.stator.policy.linearizePolicy", "true")
+
+        // Traversal options.
+        .put("analysis.traversal.order", "dfs")
+        .put("analysis.traversal.useCallstack", "true")
+        .put("analysis.traversal.useReversePostorder", "true")
+        .put("analysis.traversal.useLoopstack", "true")
 
         .put("log.consoleLevel", "INFO")
     .build());
     props.putAll(extra);
     return props;
   }
+
+  private static final String CPAS_W_SLICING = Joiner.on(", ").join(ImmutableList.<String>builder()
+          .add("cpa.location.LocationCPA")
+          .add("cpa.callstack.CallstackCPA")
+          .add("cpa.functionpointer.FunctionPointerCPA")
+          .add("cpa.loopstack.LoopstackCPA")
+          .add("cpa.formulaslicing.FormulaSlicingCPA")
+          .add("cpa.policyiteration.PolicyCPA")
+          .build()
+  );
+
 }

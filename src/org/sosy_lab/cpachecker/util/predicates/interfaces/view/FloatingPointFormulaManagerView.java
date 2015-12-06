@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigDecimal;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FloatingPointFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.FloatingPointType;
-import org.sosy_lab.cpachecker.util.rationals.Rational;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.FloatingPointFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 
 
 public class FloatingPointFormulaManagerView
@@ -48,14 +48,16 @@ public class FloatingPointFormulaManagerView
 
   @Override
   public <T extends Formula> T castTo(FloatingPointFormula pNumber, FormulaType<T> pTargetType) {
-    // no wrapping/unwrapping, done inside ReplaceFloatingPointWithNumeralAndFunctionTheory
-    return manager.castTo(pNumber, pTargetType);
+    // This method needs to unwrap/wrap pTargetType and the return value,
+    // in case they are replaced with other formula types.
+    return wrap(pTargetType, manager.castTo(pNumber, unwrapType(pTargetType)));
   }
 
   @Override
   public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
-    // no wrapping/unwrapping, done inside ReplaceFloatingPointWithNumeralAndFunctionTheory
-    return manager.castFrom(pNumber, pSigned, pTargetType);
+    // This method needs to unwrap pNumber,
+    // in case it is replaced with another formula type.
+    return manager.castFrom(unwrap(pNumber), pSigned, pTargetType);
   }
 
   @Override

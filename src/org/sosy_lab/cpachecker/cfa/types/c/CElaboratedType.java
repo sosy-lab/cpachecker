@@ -28,6 +28,8 @@ import static com.google.common.base.Preconditions.*;
 import java.io.Serializable;
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 
 public final class CElaboratedType implements CComplexType, Serializable {
 
@@ -42,10 +44,10 @@ public final class CElaboratedType implements CComplexType, Serializable {
 
   public CElaboratedType(boolean pConst, final boolean pVolatile,
       final ComplexTypeKind pKind, final String pName, final String pOrigName,
-      final CComplexType pRealType) {
+      final @Nullable CComplexType pRealType) {
     isConst = pConst;
     isVolatile = pVolatile;
-    kind = pKind;
+    kind = checkNotNull(pKind);
     name = pName.intern();
     origName = pOrigName.intern();
     realType = pRealType;
@@ -81,7 +83,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
    * Get the real type which this type references
    * (either a CCompositeType or a CEnumType, or null if unknown).
    */
-  public CComplexType getRealType() {
+  public @Nullable CComplexType getRealType() {
     if (realType instanceof CElaboratedType) {
       // resolve chains of elaborated types
       return ((CElaboratedType)realType).getRealType();
@@ -108,6 +110,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
 
   @Override
   public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
     StringBuilder lASTString = new StringBuilder();
 
     if (isConst()) {
@@ -163,7 +166,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
    * typedefs in it use #getCanonicalType().equals()
    */
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }
@@ -180,7 +183,7 @@ public final class CElaboratedType implements CComplexType, Serializable {
   }
 
   @Override
-  public boolean equalsWithOrigName(Object obj) {
+  public boolean equalsWithOrigName(@Nullable Object obj) {
     if (this == obj) {
       return true;
     }

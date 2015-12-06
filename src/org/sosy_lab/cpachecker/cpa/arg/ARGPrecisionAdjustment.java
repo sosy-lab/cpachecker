@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.PredicatedAnalysisPropertyViolationException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -44,12 +44,12 @@ import com.google.common.collect.Iterables;
 public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecAdjustment;
-  protected final boolean inPredicatedAnalysis;
+  protected final boolean inCPAEnabledAnalysis;
 
 
-  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInPredicatedAnalysis) {
+  public ARGPrecisionAdjustment(PrecisionAdjustment pWrappedPrecAdjustment, boolean pInCPAEnabledAnalysis) {
     wrappedPrecAdjustment = pWrappedPrecAdjustment;
-    inPredicatedAnalysis = pInPredicatedAnalysis;
+    inCPAEnabledAnalysis = pInCPAEnabledAnalysis;
   }
 
   @Override
@@ -63,10 +63,13 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     //noinspection ConstantConditions
     ARGState element = (ARGState)pElement;
 
-    if (inPredicatedAnalysis && element.isTarget()) {
+    if (inCPAEnabledAnalysis && element.isTarget()) {
+      if (elementHasSiblings(element)) {
+        removeUnreachedSiblingsFromARG(element, pElements);
+      }
       // strengthening of PredicateCPA already proved if path is infeasible and removed infeasible element
       // thus path is feasible here
-      throw new PredicatedAnalysisPropertyViolationException("Property violated during successor computation", element, false);
+      throw new CPAEnabledAnalysisPropertyViolationException("Property violated during successor computation", element, false);
     }
 
     AbstractState oldElement = element.getWrappedState();

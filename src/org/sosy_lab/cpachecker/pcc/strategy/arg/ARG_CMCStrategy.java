@@ -23,49 +23,29 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Writer;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.Files;
-import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -74,36 +54,22 @@ import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
+import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
+import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 
-@Options(prefix = "pcc.arg.cmc")
 public class ARG_CMCStrategy extends AbstractStrategy {
 
   private final Configuration globalConfig;
   private final ShutdownNotifier shutdown;
-  private final CFA cfa;
+  private final PartialCPABuilder cpaBuilder;
+  private final AssumptionAutomatonGenerator automatonWriter;
 
   private ARGState[] roots;
   private boolean proofKnown = false;
-
-
-  @Option(secure = true, name = "file", description = "write collected assumptions to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path assumptionsFile = Paths.get("assumptions.txt");
-  @Option(secure = true, description = "List of files with configurations to use. ")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private List<Path> configFiles;
-  // TODO proof checker strategy since it does not account for strengthening which is required to check assumption guiding automaton
-  @Option(secure = true,
-      description = "Which ARG strategy to use for each partial ARG, strategy based on CPA (true) or on proof checker interface (false)")
-  private boolean useArgCpaStrategy = true;
-  /* as long as formulae are read require that same manager is used for both, cannot create CPA twice, must wait until assumption automaton ready
-   * @Option(secure = true,
-      description = "Enable if partial ARGs can be read based using different CPA object than checker")*/
-  private boolean interleavedMode = true;
 
   public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa) throws InvalidConfigurationException {
@@ -111,7 +77,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
-    cfa = pCfa;
+    cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa);
+    automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
   }
 
   @Override
@@ -125,12 +92,20 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
     roots = new ARGState[partialReachedSets.size()];
 
+    if (roots.length <= 0) {
+      logger.log(Level.SEVERE, "No proof parts available. Proof cannot be generated.");
+      return;
+    }
+
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
       if (partialReached.getFirstState() == null
           || !(partialReached.getFirstState() instanceof ARGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+        roots = null;
+        proofKnown = false;
+        return;
       } else {
         stats.increaseProofSize(1);
         roots[index++] = (ARGState) partialReached.getFirstState();
@@ -144,26 +119,32 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
       InvalidConfigurationException, InterruptedException {
     constructInternalProofRepresentation(pReached);
-    pOut.writeInt(roots.length);
-    for (ARGState root : roots) {
-      pOut.writeObject(root);
+    if (proofKnown) {
+      HistoryForwardingReachedSet historyReached = (HistoryForwardingReachedSet) pReached;
+      if (historyReached.getAllReachedSetsUsedAsDelegates().size() != historyReached.getCPAs().size()) {
+        logger.log(Level.SEVERE,
+                "Proof cannot be generated, inconsistency in number of analyses, contradicting number of CPAs and reached sets.");
+      }
+      // proof construction succeeded
+      pOut.writeInt(roots.length);
+
+      for (int i=0; i<historyReached.getCPAs().size();i++) {
+        GlobalInfo.getInstance().setUpInfoFromCPA(historyReached.getCPAs().get(i));
+        pOut.writeObject(roots[i]);
+      }
     }
   }
 
   @Override
   protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
-    roots = new ARGState[pIn.readInt()];
+      roots = new ARGState[Math.max(pIn.readInt(),0)];
   }
 
   @Override
   public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Start checking partial ARGs");
     pReachedSet.popFromWaitlist();
-
-    if(interleavedMode) {
-      return checkAndReadInterleaved();
-    }
 
     return checkAndReadSequentially();
   }
@@ -172,6 +153,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
+      ConfigurableProgramAnalysis cpa;
 
       Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
       try {
@@ -182,7 +164,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         Object readARG;
         for (int i = 0; i < roots.length; i++) {
           logger.log(Level.FINEST, "Build CPA for reading and checking partial ARG", i);
-          GlobalInfo.getInstance().storeCPA(buildPartialCPA(i, factory, true));
+          cpa = cpaBuilder.buildPartialCPA(i, factory);
+          GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
           readARG = o.readObject();
           if (!(readARG instanceof ARGState)) { return false; }
 
@@ -194,7 +177,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, factory)) {
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpa)) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -204,7 +187,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
             // write automaton for next partial ARG
             logger.log(Level.FINE,
                     "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
-            writeAutomaton(roots[i], incompleteStates);
+            automatonWriter.writeAutomaton(roots[i], incompleteStates);
             shutdown.shutdownIfNecessary();
           }
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
@@ -240,11 +223,11 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
   }
 
+  @SuppressWarnings("unused")
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
+    final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
-
-
       final AtomicBoolean checkResult = new AtomicBoolean(true);
       final Semaphore partitionsAvailable = new Semaphore(0);
 
@@ -261,7 +244,8 @@ public class ARG_CMCStrategy extends AbstractStrategy {
             Object readARG;
             for (int i = 0; i < roots.length && checkResult.get(); i++) {
               logger.log(Level.FINEST, "Build CPA for correctly reading ", i);
-              GlobalInfo.getInstance().storeCPA(buildPartialCPA(i, factory, false));
+              cpas[i] = cpaBuilder.buildPartialCPA(i, factory);
+              GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
               readARG = o.readObject();
               if (!(readARG instanceof ARGState)) {
                 abortPreparation();
@@ -300,7 +284,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       });
 
       try {
-
         if (proofKnown) {
           partitionsAvailable.release(roots.length);
         } else {
@@ -319,7 +302,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           // check current partial ARG
           logger.log(Level.INFO, "Start checking partial ARG ", i);
           if (!checkResult.get() || roots[i] == null
-              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, factory)) {
+              || !checkPartialARG(factory.create(), roots[i], incompleteStates, i, cpas[i])) {
             logger.log(Level.FINE, "Checking of partial ARG ", i, " failed.");
             return false;
           }
@@ -328,13 +311,12 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           if (i + 1 != roots.length) {
             // write automaton for next partial ARG
             logger.log(Level.FINE,
-               "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
-            writeAutomaton(roots[i], incompleteStates);
+                    "Write down report of non-checked states which is provided to next partial ARG check. Report is given by assumption automaton.");
+            automatonWriter.writeAutomaton(roots[i], incompleteStates);
             shutdown.shutdownIfNecessary();
           }
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
         }
-
 
         return checkResult.get() && incompleteStates.size() == 0 && roots.length > 0;
 
@@ -353,19 +335,10 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     return false;
   }
 
-  private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
-      int iterationNumber, ReachedSetFactory reachedSetFactory) throws CPAException, InterruptedException,
+   private boolean checkPartialARG(ReachedSet pReachedSet, ARGState pRoot, List<ARGState> pIncompleteStates,
+      int iterationNumber, ConfigurableProgramAnalysis cpa) throws CPAException, InterruptedException,
       InvalidConfigurationException {
-   // set up proof checking configuration for next parital ARG
-    ConfigurableProgramAnalysis cpa;
     logger.log(Level.FINER, "Set up proof checking for partial ARG ", iterationNumber);
-    logger.log(Level.FINEST, "Build CPA for next proof checking iteration");
-    if (interleavedMode) {
-      cpa = buildPartialCPA(iterationNumber, reachedSetFactory, true);
-    } else {
-      cpa = GlobalInfo.getInstance().getCPA().get();
-    }
-
     // set up proof checker
     logger.log(Level.FINEST, "Initialize reached set");
     CFANode mainFun = AbstractStates.extractLocation(pRoot);
@@ -376,204 +349,14 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     AbstractARGStrategy partialProofChecker;
     logger.log(Level.FINEST, "Build checking instance");
-    if (useArgCpaStrategy) {
-      Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
-              "Conflicting configuration: Partial ARGs should be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
-      partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, (PropertyCheckerCPA) cpa);
-    } else {
-      Preconditions.checkState(cpa instanceof ProofChecker,
-              "Conflicting configuration: Partial ARGs should be checked with Proof Checker based strategy but CPA does not implmenet ProofChecker interface");
-      partialProofChecker = new ARGProofCheckerStrategy(globalConfig, logger, shutdown, (ProofChecker) cpa);
-    }
+    // require ARG_CPA strategy because the other ARG based strategy does not take strengthening into account
+    // strengthening is required for assumption guiding CPA
+    Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
+            "Conflicting configuration: Partial ARGs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
+    partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, (PropertyCheckerCPA) cpa);
 
     logger.log(Level.FINER, "Start checking algorithm for partial ARG ", iterationNumber);
     return partialProofChecker.checkCertificate(pReachedSet, pRoot, pIncompleteStates);
   }
 
-  private ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber, ReachedSetFactory pFactory, boolean withSpecification)
-      throws InvalidConfigurationException, CPAException {
-    // create configuration for current partial ARG checking
-    logger.log(Level.FINEST, "Build CPA configuration");
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.copyFrom(globalConfig);
-    try {
-      if (configFiles == null) {
-        throw new InvalidConfigurationException(
-          "Require that option pcc.arg.configFiles is set for proof checking");
-      }
-      singleConfigBuilder.loadFromFile(configFiles.get(iterationNumber));
-    } catch (IOException e) {
-      throw new InvalidConfigurationException("Cannot read configuration for current partial ARG checking.");
-    }
-    if (globalConfig.hasProperty("specification")) {
-      singleConfigBuilder.copyOptionFrom(globalConfig, "specification");
-    }
-    Configuration singleConfig = singleConfigBuilder.build();
-
-    // create CPA to check current partial ARG
-    logger.log(Level.FINEST, "Create CPA instance");
-    if (withSpecification) {
-      return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAWithSpecAutomatas(cfa);
-    } else {
-      return new CPABuilder(singleConfig, logger, shutdown, pFactory).buildCPAs(cfa, null);
-    }
-  }
-
-  private void writeAutomaton(ARGState root, List<ARGState> incompleteNodes) throws CPAException {
-    assert(notCovered(incompleteNodes));
-    logger.log(Level.FINEST, "Identify states for assumption automaton");
-
-    TreeSet<ARGState> automatonStates = new TreeSet<>(incompleteNodes);
-    Deque<ARGState> toAdd = new ArrayDeque<>(incompleteNodes);
-
-    while (!toAdd.isEmpty()) {
-      ARGState current = toAdd.pop();
-      assert !current.isCovered();
-
-      if (automatonStates.add(current)) {
-        // current was not yet contained in parentSet,
-        // so we need to handle its parents
-
-        toAdd.addAll(current.getParents());
-
-        for (ARGState coveredByCurrent : current.getCoveredByThis()) {
-          toAdd.addAll(coveredByCurrent.getParents());
-        }
-      }
-    }
-
-    try (Writer w = Files.openOutputFile(assumptionsFile)) {
-      logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
-      PCCAssumptionAutomatonWriter.writeAutomaton(w, root.getStateId(), automatonStates , new HashSet<AbstractState>(incompleteNodes));
-    } catch (IOException e) {
-      logger.log(Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
-      throw new CPAException("Assumption automaton writing failed", e);
-    }
-  }
-
-  private boolean notCovered(List<ARGState> nodes){
-    for(ARGState state: nodes) {
-      if(state.isCovered()){
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private static class PCCAssumptionAutomatonWriter {
-
-    private static void writeAutomaton(Appendable sb, int initialStateId,
-        Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates) throws IOException {
-      sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
-
-      sb.append("INITIAL STATE ARG" + initialStateId + ";\n\n");
-      sb.append("STATE __TRUE :\n");
-      sb.append("    TRUE ->  GOTO __TRUE;\n\n");
-
-      if (!falseAssumptionStates.isEmpty()) {
-        sb.append("STATE __FALSE :\n");
-        sb.append("    TRUE ->  GOTO __FALSE;\n\n");
-      }
-
-      for (final ARGState s : relevantStates) {
-        assert !s.isCovered();
-
-        if (falseAssumptionStates.contains(s)) {
-          continue;
-        }
-
-        sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-
-        final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
-        int multiEdgeID = 0;
-
-        final CFANode loc = AbstractStates.extractLocation(s);
-        for (final ARGState child : getUncoveredChildrenView(s)) {
-          assert !child.isCovered();
-
-          CFAEdge edge = loc.getEdgeTo(extractLocation(child));
-
-          if (edge instanceof MultiEdge) {
-            assert (((MultiEdge) edge).getEdges().size() > 1);
-
-            sb.append("    MATCH \"");
-            escape(((MultiEdge) edge).getEdges().get(0).getRawStatement(), sb);
-            sb.append("\" -> ");
-            sb.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID);
-
-            boolean first = true;
-            for (CFAEdge innerEdge : from(((MultiEdge) edge).getEdges()).skip(1)) {
-
-              if (!first) {
-                multiEdgeID++;
-                descriptionForInnerMultiEdges.append("GOTO ARG" + s.getStateId() + "M" + multiEdgeID + ";\n");
-                descriptionForInnerMultiEdges.append("    TRUE -> GOTO __TRUE;\n\n");
-              } else {
-                first = false;
-              }
-
-              descriptionForInnerMultiEdges.append("STATE USEFIRST ARG" + s.getStateId() + "M" + multiEdgeID + " :\n");
-
-              descriptionForInnerMultiEdges.append("    MATCH \"");
-              escape(innerEdge.getRawStatement(), descriptionForInnerMultiEdges);
-              descriptionForInnerMultiEdges.append("\" -> ");
-            }
-
-            finishTransition(descriptionForInnerMultiEdges, child, relevantStates, falseAssumptionStates);
-            descriptionForInnerMultiEdges.append(";\n");
-            descriptionForInnerMultiEdges.append("    TRUE -> GOTO __TRUE;\n\n");
-
-          } else {
-
-            sb.append("    MATCH \"");
-            escape(edge.getRawStatement(), sb);
-            sb.append("\" -> ");
-
-            finishTransition(sb, child, relevantStates, falseAssumptionStates);
-
-          }
-
-          sb.append(";\n");
-        }
-        sb.append("    TRUE -> GOTO __TRUE;\n\n");
-        sb.append(descriptionForInnerMultiEdges);
-
-      }
-      sb.append("END AUTOMATON\n");
-    }
-
-    private static void finishTransition(final Appendable writer, final ARGState child, final Set<ARGState> relevantStates,
-        final Set<AbstractState> falseAssumptionStates)
-        throws IOException {
-      if (falseAssumptionStates.contains(child)) {
-        writer.append("GOTO __FALSE");
-      } else if (relevantStates.contains(child)) {
-        writer.append("GOTO ARG" + child.getStateId());
-      } else {
-        writer.append("GOTO __TRUE");
-      }
-    }
-
-    private static void escape(String s, Appendable appendTo) throws IOException {
-      for (int i = 0; i < s.length(); i++) {
-        char c = s.charAt(i);
-        switch (c) {
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        case '`':
-          break;
-        default:
-          appendTo.append(c);
-          break;
-        }
-      }
-    }
-  }
 }

@@ -202,5 +202,9 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     public Iterator<SingleConcreteState> iterator() {
       return concreteStates.iterator();
     }
+
+    public SingleConcreteState getLastConcreteState() {
+      return concreteStates.get(concreteStates.size() - 1);
+    }
   }
 }

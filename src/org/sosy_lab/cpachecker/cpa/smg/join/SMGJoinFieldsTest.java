@@ -32,12 +32,12 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import com.google.common.collect.Iterables;
@@ -332,8 +332,7 @@ public class SMGJoinFieldsTest {
     smg1.addObject(obj1);
     smg2.addObject(obj2);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
   @Test
@@ -476,8 +475,7 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg2.addObject(obj2);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 
   @Test(expected=IllegalArgumentException.class)
@@ -489,7 +487,6 @@ public class SMGJoinFieldsTest {
     SMGRegion obj2 = new SMGRegion(32, "Object 2");
     smg1.addObject(obj1);
 
-    SMGJoinFields jf = new SMGJoinFields(smg1, smg2, obj1, obj2);
-    jf.getStatus(); // Avoid dead store warning
+    new SMGJoinFields(smg1, smg2, obj1, obj2);
   }
 }

@@ -29,71 +29,21 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryXor<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
-  /**
-   * The first operand.
-   */
-  private final InvariantsFormula<ConstantType> operand1;
+  private BinaryXor(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+    super("^", true, pOperand1, pOperand2);
 
-  /**
-   * The second operand.
-   */
-  private final InvariantsFormula<ConstantType> operand2;
-
-  private BinaryXor(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
-  }
-
-  /**
-   * Gets the first operand.
-   *
-   * @return the first operand.
-   */
-  public InvariantsFormula<ConstantType> getOperand1() {
-    return this.operand1;
-  }
-
-  /**
-   * Gets the second operand.
-   *
-   * @return the second operand.
-   */
-  public InvariantsFormula<ConstantType> getOperand2() {
-    return this.operand2;
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof BinaryXor) {
-      BinaryXor<?> other = (BinaryXor<?>) o;
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2()) || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getOperand1().hashCode() & getOperand2().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s ^ %s)", getOperand1(), getOperand2());
-  }
-
-  @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -107,7 +57,7 @@ public class BinaryXor<ConstantType> extends AbstractFormula<ConstantType> imple
    * @return an invariants formula representing the binary exclusive or operation
    * over the given operands.
    */
-  static <ConstantType> BinaryXor<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  static <ConstantType> BinaryXor<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryXor<>(pOperand1, pOperand2);
   }
 

@@ -36,6 +36,8 @@ import java.util.concurrent.Future;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,12 +48,11 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,7 +64,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.solver.SolverException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 
 /**
@@ -119,27 +122,45 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     return new KInductionInvariantGenerator(
             pConfig,
             pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
-            true);
+            true,
+            Optional.<CandidateGenerator>absent());
+  }
+
+  public static KInductionInvariantGenerator create(final Configuration pConfig,
+      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator)
+          throws InvalidConfigurationException, CPAException {
+
+    return new KInductionInvariantGenerator(
+            pConfig,
+            pLogger.withComponentName("KInductionInvariantGenerator"),
+            pShutdownNotifier,
+            pCFA,
+            pReachedSetFactory,
+            true,
+            Optional.of(candidateGenerator));
   }
 
   private KInductionInvariantGenerator(final Configuration config, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA cfa,
-      final ReachedSetFactory pReachedSetFactory, final boolean pAsync)
+      final ReachedSetFactory pReachedSetFactory, final boolean pAsync,
+      final Optional<CandidateGenerator> pCandidateGenerator)
           throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    CPABuilder invGenBMCBuilder = new CPABuilder(config, logger, pShutdownNotifier, pReachedSetFactory);
+    CPABuilder invGenBMCBuilder = new CPABuilder(config, logger, shutdownNotifier, pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, pShutdownNotifier);
+    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
     algorithm = new BMCAlgorithmForInvariantGeneration(
         cpaAlgorithm, cpa, config, logger, pReachedSetFactory,
-        pShutdownNotifier, cfa, stats);
+        shutdownNotifier, cfa, stats, pCandidateGenerator);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {
@@ -234,6 +255,8 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         algorithm.run(reachedSet);
         return algorithm.getCurrentInvariants();
 
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
       } finally {
         stats.invariantGeneration.stop();
         CPAs.closeCpaIfPossible(cpa, logger);

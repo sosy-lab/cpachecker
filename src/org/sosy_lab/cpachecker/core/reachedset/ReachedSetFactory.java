@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.waitlist.PostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ReversePostorderSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -50,13 +51,17 @@ public class ReachedSetFactory {
   Waitlist.TraversalMethod traversalMethod = Waitlist.TraversalMethod.DFS;
 
   @Option(secure=true, name = "traversal.useCallstack",
-      description = "handle states with a deeper callstack first?"
+      description = "handle states with a deeper callstack first"
       + "\nThis needs the CallstackCPA instance to have any effect.")
   boolean useCallstack = false;
 
   @Option(secure=true, name="traversal.useLoopstack",
-    description= "handle states with a deeper loopstack first?")
+    description= "handle states with a deeper loopstack first.")
   boolean useLoopstack = false;
+
+  @Option(secure=true, name="traversal.useReverseLoopstack",
+      description= "handle states with a more shallow loopstack first.")
+  boolean useReverseLoopstack = false;
 
   @Option(secure=true, name = "traversal.useReversePostorder",
       description = "Use an implementation of reverse postorder strategy that allows to select "
@@ -77,6 +82,10 @@ public class ReachedSetFactory {
   @Option(secure=true, name = "traversal.useAutomatonInformation",
       description = "handle abstract states with more automaton matches first? (only if AutomatonCPA enabled)")
   boolean useAutomatonInformation = false;
+
+  @Option(secure=true, name = "traversal.byAutomatonVariable",
+      description = "traverse in the order defined by the values of an automaton variable")
+  String byAutomatonVariable = null;
 
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
@@ -106,11 +115,17 @@ public class ReachedSetFactory {
     if (useLoopstack) {
       waitlistFactory = LoopstackSortedWaitlist.factory(waitlistFactory);
     }
+    if (useReverseLoopstack) {
+      waitlistFactory = LoopstackSortedWaitlist.reversedFactory(waitlistFactory);
+    }
     if (useCallstack) {
       waitlistFactory = CallstackSortedWaitlist.factory(waitlistFactory);
     }
     if (useExplicitInformation) {
       waitlistFactory = ExplicitSortedWaitlist.factory(waitlistFactory);
+    }
+    if (byAutomatonVariable != null) {
+      waitlistFactory = AutomatonVariableWaitlist.factory(waitlistFactory, byAutomatonVariable);
     }
 
     switch (reachedSet) {

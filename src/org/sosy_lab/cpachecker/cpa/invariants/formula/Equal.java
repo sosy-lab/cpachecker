@@ -23,22 +23,24 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Instances of this class represent equations over invariants formulae.
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class Equal<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
+public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
 
   /**
-   * The first operand of the equation.
+   * The first operand.
    */
-  private final InvariantsFormula<ConstantType> operand1;
+  private final NumeralFormula<ConstantType> operand1;
 
   /**
-   * The second operand of the equation.
+   * The second operand.
    */
-  private final InvariantsFormula<ConstantType> operand2;
+  private final NumeralFormula<ConstantType> operand2;
 
   /**
    * Creates a new equation over the given operands.
@@ -46,28 +48,19 @@ public class Equal<ConstantType> extends AbstractFormula<ConstantType> implement
    * @param pOperand1 the first operand of the equation.
    * @param pOperand2 the first operand of the equation.
    */
-  private Equal(InvariantsFormula<ConstantType> pOperand1,
-      InvariantsFormula<ConstantType> pOperand2) {
+  private Equal(NumeralFormula<ConstantType> pOperand1,
+      NumeralFormula<ConstantType> pOperand2) {
+    Preconditions.checkArgument(pOperand1.getBitVectorInfo().equals(pOperand2.getBitVectorInfo()));
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
 
-  /**
-   * Gets the first operand of the equation.
-   *
-   * @return the first operand of the equation.
-   */
-  public InvariantsFormula<ConstantType> getOperand1() {
-    return this.operand1;
+  public NumeralFormula<ConstantType> getOperand1() {
+    return operand1;
   }
 
-  /**
-   * Gets the second operand of the equation.
-   *
-   * @return the second operand of the equation.
-   */
-  public InvariantsFormula<ConstantType> getOperand2() {
-    return this.operand2;
+  public NumeralFormula<ConstantType> getOperand2() {
+    return operand2;
   }
 
   @Override
@@ -77,14 +70,15 @@ public class Equal<ConstantType> extends AbstractFormula<ConstantType> implement
     }
     if (o instanceof Equal) {
       Equal<?> other = (Equal<?>) o;
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2()) || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
+      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2())
+          || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return getOperand1().hashCode() + getOperand2().hashCode();
+    return 31 * getOperand1().hashCode() + getOperand2().hashCode();
   }
 
   @Override
@@ -93,13 +87,13 @@ public class Equal<ConstantType> extends AbstractFormula<ConstantType> implement
   }
 
   @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(BooleanFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -113,7 +107,7 @@ public class Equal<ConstantType> extends AbstractFormula<ConstantType> implement
    * @return an invariants formula representing the equation of the given
    * operands.
    */
-  static <ConstantType> Equal<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  static <ConstantType> Equal<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new Equal<>(pOperand1, pOperand2);
   }
 

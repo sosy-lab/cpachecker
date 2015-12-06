@@ -30,6 +30,8 @@ import com.google.common.base.Equivalence;
  */
 public final class CTypes {
 
+  private CTypes() { }
+
   private static class CanonicalCTypeEquivalence extends Equivalence<CType> {
     private static final CanonicalCTypeEquivalence INSTANCE = new CanonicalCTypeEquivalence();
 

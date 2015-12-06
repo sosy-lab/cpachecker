@@ -34,7 +34,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -80,6 +80,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
@@ -300,7 +301,17 @@ public class LiveVariables {
    * without duplicates and with deterministic iteration order.
    */
   public FluentIterable<ASimpleDeclaration> getLiveVariablesForNode(CFANode pNode) {
-    return from(liveVariables.get(pNode)).append(globalVariables).transform(FROM_EQUIV_WRAPPER);
+    return from(liveVariables.get(pNode)).append(globalVariables).transform(
+        FROM_EQUIV_WRAPPER);
+  }
+
+  /**
+   * @return iterable of all variables which are alive at at least one node.
+   */
+  public FluentIterable<ASimpleDeclaration> getAllLiveVariables() {
+    return from(ImmutableSet.copyOf(liveVariables.values())).append(globalVariables)
+        .transform(FROM_EQUIV_WRAPPER);
+
   }
 
   /**

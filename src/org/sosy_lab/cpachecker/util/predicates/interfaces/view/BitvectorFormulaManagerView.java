@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.FormulaType.BitvectorType;
+import org.sosy_lab.solver.api.BitvectorFormula;
+import org.sosy_lab.solver.api.BitvectorFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.BitvectorType;
 
 
 public class BitvectorFormulaManagerView extends BaseManagerView implements BitvectorFormulaManager {
@@ -58,36 +58,41 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return makeBitvector(t.getSize(), pI);
   }
 
-  public BitvectorFormula makeVariable(int pLength, String pVar, int idx) {
-    return makeVariable(pLength, FormulaManagerView.makeName(pVar, idx));
-  }
-
-  public BitvectorFormula makeVariable(FormulaType<BitvectorFormula> pType, String name) {
-    BitvectorType t = (BitvectorType)pType;
-    return makeVariable(t.getSize(), name);
-  }
-  public BitvectorFormula makeVariable(FormulaType<BitvectorFormula> pType, String name, int idx) {
-    BitvectorType t = (BitvectorType)pType;
-    return makeVariable(t.getSize(), name, idx);
+  @Override
+  public BitvectorFormula negate(BitvectorFormula pNumber, boolean signed) {
+    return manager.negate(pNumber, signed);
   }
 
   @Override
-  public BitvectorFormula negate(BitvectorFormula pNumber) {
-    return manager.negate(pNumber);
+  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.add(pNumber1, pNumbe2, signed);
+  }
+  @Override
+  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.subtract(pNumber1, pNumbe2, signed);
   }
 
-  @Override
-  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return manager.add(pNumber1, pNumbe2);
-  }
-  @Override
-  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return manager.subtract(pNumber1, pNumbe2);
-  }
+  /**
+   * This method returns the formula for the C99-conform DIVIDE-operator, which is rounded towards zero.
+   * SMTlib2 rounds towards positive or negative infinity, depending on both operands.
+   *
+   * Example:
+   * SMTlib2: 10/3==3, 10/(-3)==(-3), (-10)/3==(-4), (-10)/(-3)==4 (4 different values!)
+   * C99:     10/3==3, 10/(-3)==(-3), (-10)/3==(-3), (-10)/(-3)==3
+   */
   @Override
   public BitvectorFormula divide(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
     return manager.divide(pNumber1, pNumbe2, signed);
   }
+
+  /**
+   * This method returns the formula for the C99-conform MODULO-operator, which is rounded towards zero.
+   * SMTlib2 rounds towards positive or negative infinity, depending on both operands.
+   *
+   * Example:
+   * SMTlib2: 10%3==1, 10%(-3)==1, (-10)%3==2,    (-10)%(-3)==2
+   * C99:     10%3==1, 10%(-3)==1, (-10)%3==(-1), (-10)%(-3)==(-1)
+   */
   @Override
   public BitvectorFormula modulo(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
     return manager.modulo(pNumber1, pNumbe2, signed);
@@ -97,8 +102,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return manager.modularCongruence(pNumber1, pNumber2, pModulo);
   }
   @Override
-  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
-    return manager.multiply(pNumber1, pNumbe2);
+  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
+    return manager.multiply(pNumber1, pNumbe2, signed);
   }
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
@@ -176,8 +181,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return manager.concat(pNumber, pAppend);
   }
   @Override
-  public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
-    return manager.extract(pNumber, pMsb, pLsb);
+  public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb, boolean signed) {
+    return manager.extract(pNumber, pMsb, pLsb, signed);
   }
   @Override
   public BitvectorFormula extend(BitvectorFormula pNumber, int pExtensionBits, boolean pSigned) {

@@ -92,8 +92,8 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -172,7 +172,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -182,6 +181,11 @@ import com.google.common.collect.Lists;
 
 @Options(prefix="cfa")
 class ASTConverter {
+
+  // Calls to this functions are handled by this class and replaced with regular C code.
+  private static final String FUNC_CONSTANT = "__builtin_constant_p";
+  private static final String FUNC_EXPECT = "__builtin_expect";
+  private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
   @Option(secure=true,
       description="simplify pointer expressions like s->f to (*s).f with this option " +
@@ -738,6 +742,11 @@ class ASTConverter {
      */
      final CType castType = convert(e.getTypeId());
 
+    if (castType.equals(CVoidType.VOID)) {
+      // ignore casts to void as in "(void) f();"
+      return convertExpressionWithSideEffects(e.getOperand());
+    }
+
     // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g. sizeof(struct s)*/);
     if (e.getOperand() instanceof CASTFunctionCallExpression &&
         castType.getCanonicalType() instanceof CPointerType &&
@@ -970,7 +979,7 @@ class ASTConverter {
     CFunctionDeclaration declaration = null;
 
     if (functionName instanceof CIdExpression) {
-      if (BuiltinFunctions.isTypesCompatible(((CIdExpression) functionName).getName())) {
+      if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionName).getName())) {
         sideAssignmentStack.enterBlock();
         List<CExpression> params = new ArrayList<>();
         for (IASTInitializerClause i : e.getArguments()) {
@@ -1000,9 +1009,9 @@ class ASTConverter {
       // a constant value. We can easily provide this functionality by checking
       // if the parameter is a literal expression.
       // We only do check it if the function is not declared.
-      if (((CIdExpression) functionName).getName().equals(BuiltinFunctions.CONSTANT_AT_COMPILE_TIME)
+      if (((CIdExpression) functionName).getName().equals(FUNC_CONSTANT)
           && params.size() == 1
-          && scope.lookupFunction(BuiltinFunctions.CONSTANT_AT_COMPILE_TIME) == null) {
+          && scope.lookupFunction(FUNC_CONSTANT) == null) {
         if (params.get(0) instanceof CLiteralExpression) {
           return CIntegerLiteralExpression.ONE;
         } else {
@@ -1016,7 +1025,7 @@ class ASTConverter {
       }
 
       if ((declaration == null)
-          && BuiltinFunctions.isExpect(((CIdExpression) functionName).getName())
+          && FUNC_EXPECT.equals(((CIdExpression) functionName).getName())
           && params.size() == 2) {
 
         // This is the GCC built-in function __builtin_expect(exp, c)
@@ -1595,6 +1604,12 @@ class ASTConverter {
         cStorageClass = CStorageClass.AUTO;
       }
 
+      if (!isGlobal && cStorageClass == CStorageClass.EXTERN) {
+        // TODO: implement this, it "imports" the externally declared variable
+        // into the scope of this block.
+        throw new CFAGenerationRuntimeException("Local variable declared extern is unsupported", d, niceFileNameFunction);
+      }
+
       if (!isGlobal && scope.variableNameInUse(name)) {
         String sep = "__";
         int index = 1;
@@ -1967,18 +1982,13 @@ class ASTConverter {
 
     String name = convert(d.getName());
     String origName = name;
-    if (Strings.isNullOrEmpty(name)) {
+    if (name.isEmpty()) {
       name = "__anon_type_";
       if (d.getStorageClass() == IASTDeclSpecifier.sc_typedef) {
         name += ((IASTSimpleDeclaration)d.getParent()).getDeclarators()[0].getName().getRawSignature();
       } else {
         name += anonTypeCounter++;
       }
-    }
-
-    // if the origName is null we want it to be empty
-    if (origName == null) {
-      origName = "";
     }
 
     CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name, origName);

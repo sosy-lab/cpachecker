@@ -23,21 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -91,16 +92,16 @@ class BAMCPAStatistics implements Statistics {
   };
 
   private final BAMCPA cpa;
-  private final BAMCache cache;
-  private AbstractBAMBasedRefiner refiner = null;
+  private final BAMDataManager data;
+  private List<AbstractBAMBasedRefiner> refiners = new ArrayList<>();
   private final LogManager logger;
 
-  public BAMCPAStatistics(BAMCPA cpa, BAMCache cache, Configuration config, LogManager logger)
+  public BAMCPAStatistics(BAMCPA cpa, BAMDataManager pData, Configuration config, LogManager logger)
           throws InvalidConfigurationException {
     config.inject(this);
 
     this.cpa = cpa;
-    this.cache = cache;
+    this.data = pData;
     this.logger = logger;
   }
 
@@ -110,8 +111,7 @@ class BAMCPAStatistics implements Statistics {
   }
 
   public void addRefiner(AbstractBAMBasedRefiner pRefiner) {
-    checkState(refiner == null);
-    refiner = pRefiner;
+    refiners.add(pRefiner);
   }
 
   @Override
@@ -120,7 +120,7 @@ class BAMCPAStatistics implements Statistics {
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
-    int sumCalls = cache.cacheMisses + cache.partialCacheHits + cache.fullCacheHits;
+    int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
 
     int sumARTElemets = 0;
     for (ReachedSet subreached : BAMARGUtils.gatherReachedSets(cpa, reached).values()) {
@@ -130,33 +130,35 @@ class BAMCPAStatistics implements Statistics {
     out.println("Total size of all ARGs:                                         " + sumARTElemets);
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
     out.println("Total number of recursive CPA calls:                            " + sumCalls);
-    out.println("  Number of cache misses:                                       " + cache.cacheMisses + " (" + toPercent(cache.cacheMisses, sumCalls) + " of all calls)");
-    out.println("  Number of partial cache hits:                                 " + cache.partialCacheHits + " (" + toPercent(cache.partialCacheHits, sumCalls) + " of all calls)");
-    out.println("  Number of full cache hits:                                    " + cache.fullCacheHits + " (" + toPercent(cache.fullCacheHits, sumCalls) + " of all calls)");
-    if (cache.gatherCacheMissStatistics) {
+    out.println("  Number of cache misses:                                       " + data.bamCache.cacheMisses + " (" + toPercent(data.bamCache.cacheMisses, sumCalls) + " of all calls)");
+    out.println("  Number of partial cache hits:                                 " + data.bamCache.partialCacheHits + " (" + toPercent(data.bamCache.partialCacheHits, sumCalls) + " of all calls)");
+    out.println("  Number of full cache hits:                                    " + data.bamCache.fullCacheHits + " (" + toPercent(data.bamCache.fullCacheHits, sumCalls) + " of all calls)");
+    if (data.bamCache.gatherCacheMissStatistics) {
       out.println("Cause for cache misses:                                         ");
-      out.println("  Number of abstraction caused misses:                          " + cache.abstractionCausedMisses + " (" + toPercent(cache.abstractionCausedMisses, cache.cacheMisses) + " of all misses)");
-      out.println("  Number of precision caused misses:                            " + cache.precisionCausedMisses + " (" + toPercent(cache.precisionCausedMisses, cache.cacheMisses) + " of all misses)");
-      out.println("  Number of misses with no similar elements:                    " + cache.noSimilarCausedMisses + " (" + toPercent(cache.noSimilarCausedMisses, cache.cacheMisses) + " of all misses)");
+      out.println("  Number of abstraction caused misses:                          " + data.bamCache.abstractionCausedMisses + " (" + toPercent(data.bamCache.abstractionCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
+      out.println("  Number of precision caused misses:                            " + data.bamCache.precisionCausedMisses + " (" + toPercent(data.bamCache.precisionCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
+      out.println("  Number of misses with no similar elements:                    " + data.bamCache.noSimilarCausedMisses + " (" + toPercent(data.bamCache.noSimilarCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
     }
     out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
-    out.println("Time for checking equality of abstract states:                " + cache.equalsTimer + " (Calls: " + cache.equalsTimer.getNumberOfIntervals() + ")");
-    out.println("Time for computing the hashCode of abstract states:           " + cache.hashingTimer + " (Calls: " + cache.hashingTimer.getNumberOfIntervals() + ")");
-    out.println("Time for searching for similar cache entries:                   " + cache.searchingTimer + " (Calls: " + cache.searchingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for checking equality of abstract states:                " + data.bamCache.equalsTimer + " (Calls: " + data.bamCache.equalsTimer.getNumberOfIntervals() + ")");
+    out.println("Time for computing the hashCode of abstract states:           " + data.bamCache.hashingTimer + " (Calls: " + data.bamCache.hashingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for searching for similar cache entries:                   " + data.bamCache.searchingTimer + " (Calls: " + data.bamCache.searchingTimer.getNumberOfIntervals() + ")");
     out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
-    out.println("Time for removing cached subtrees for refinement:               " + transferRelation.removeCachedSubtreeTimer);
-    out.println("Time for recomputing ARGs during counterexample analysis:       " + transferRelation.recomputeARTTimer);
-    if (refiner != null) {
-      out.println("Compute path for refinement:                                    " + refiner.computePathTimer);
+
+    for (AbstractBAMBasedRefiner refiner : refiners) {
+      // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?
+      out.println("\n" + refiner.getClass().getSimpleName() + ":");
+      out.println("  Compute path for refinement:                                  " + refiner.computePathTimer);
       out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
       out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
+      out.println("  Removing cached subtrees:                                     " + refiner.removeCachedSubtreeTimer);
     }
 
     //Add to reached set all states from BAM cache
-    Collection<ReachedSet> cachedStates = cache.getAllCachedReachedStates();
+    Collection<ReachedSet> cachedStates = data.bamCache.getAllCachedReachedStates();
     for (ReachedSet set : cachedStates) {
       for (AbstractState state : set.asCollection()) {
         /* Method 'add' add state not only in list of reached states, but also in waitlist,
@@ -177,7 +179,7 @@ class BAMCPAStatistics implements Statistics {
     if (superArgFile != null) {
 
       final Set<UnmodifiableReachedSet> allReachedSets = new HashSet<>();
-      allReachedSets.addAll(cache.getAllCachedReachedStates());
+      allReachedSets.addAll(data.bamCache.getAllCachedReachedStates());
       allReachedSets.add(mainReachedSet);
 
       final Set<ARGState> rootStates = new HashSet<>();
@@ -265,14 +267,14 @@ class BAMCPAStatistics implements Statistics {
       if (!finished.add(state)) {
         continue;
       }
-      if (cpa.getTransferRelation().abstractStateToReachedSet.containsKey(state)) {
-        ReachedSet target = cpa.getTransferRelation().abstractStateToReachedSet.get(state);
+      if (data.initialStateToReachedSet.containsKey(state)) {
+        ReachedSet target = data.initialStateToReachedSet.get(state);
         referencedReachedSets.add(target);
         ARGState targetState = (ARGState) target.getFirstState();
         connections.put(state, targetState);
       }
-      if (cpa.getTransferRelation().expandedToReducedCache.containsKey(state)) {
-        AbstractState sourceState = cpa.getTransferRelation().expandedToReducedCache.get(state);
+      if (data.expandedStateToReducedState.containsKey(state)) {
+        AbstractState sourceState = data.expandedStateToReducedState.get(state);
         connections.put((ARGState) sourceState, state);
       }
       waitlist.addAll(state.getChildren());

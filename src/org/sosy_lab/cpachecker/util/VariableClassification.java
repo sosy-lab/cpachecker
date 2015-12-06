@@ -32,12 +32,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -84,6 +84,8 @@ public class VariableClassification {
 
   private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
 
+  private final LogManager logger;
+
   VariableClassification(boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
       Set<String> pIntEqualVars,
@@ -97,7 +99,8 @@ public class VariableClassification {
       Set<Partition> pIntAddPartitions,
       Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions,
       Multiset<String> pAssumedVariables,
-      Multiset<String> pAssignedVariables) {
+      Multiset<String> pAssignedVariables,
+    LogManager pLogger) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -112,10 +115,11 @@ public class VariableClassification {
     edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
+    logger = pLogger;
   }
 
   @VisibleForTesting
-  public static VariableClassification empty() {
+  public static VariableClassification empty(LogManager pLogger) {
     return new VariableClassification(false,
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
@@ -129,7 +133,8 @@ public class VariableClassification {
         ImmutableSet.<Partition>of(),
         ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of(),
         ImmutableMultiset.<String>of(),
-        ImmutableMultiset.<String>of());
+        ImmutableMultiset.<String>of(),
+        pLogger);
   }
 
   public boolean hasRelevantNonIntAddVars() {
@@ -319,66 +324,19 @@ public class VariableClassification {
 
       // check for overflow
       if(newScore < oldScore) {
+        logger.log(Level.WARNING,
+            "Highest possible value reached in score computation."
+                + " Error path prefix preference may not be applied reliably.");
+        logger.logf(Level.FINE,
+            "Overflow in score computation happened for variables %s.",
+            variableNames.toString());
+
         return Integer.MAX_VALUE - 1;
       }
       oldScore = newScore;
     }
 
     return newScore;
-  }
-
-  public int obtainDomainTypeScoreForVariables2(Collection<String> variableNames,
-      Optional<LoopStructure> loopStructure) {
-    final int BOOLEAN_VAR   = 1;
-    final int INTEQUAL_VAR  = 100;
-    final int INTADD_VAR    = 1000;
-    final int UNKNOWN_VAR   = 10000;
-    final int LOOP_VAR      = 1000000000;
-
-    if(variableNames.isEmpty()) {
-      return 0;
-    }
-
-    int newScore = 0;
-    int oldScore = newScore;
-    for (String variableName : variableNames) {
-      int summand = UNKNOWN_VAR;
-
-      if (getIntBoolVars().contains(variableName)) {
-        summand = BOOLEAN_VAR;
-
-      } else if (getIntEqualVars().contains(variableName)) {
-        summand = INTEQUAL_VAR;
-      }
-
-      else if (getIntAddVars().contains(variableName)) {
-        summand = INTADD_VAR;
-      }
-
-      if (loopStructure.isPresent()
-          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
-        summand = LOOP_VAR;
-      }
-
-      newScore = newScore + summand;
-
-      // check for overflow
-      if(newScore < oldScore) {
-        return Integer.MAX_VALUE - 1;
-      }
-      oldScore = newScore;
-    }
-
-    return newScore;
-  }
-
-  /**
-   * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link AReturnStatement#asAssignment()} instead.
-   */
-  @Deprecated
-  public static String createFunctionReturnVariable(final String function) {
-    return VariableClassificationBuilder.createFunctionReturnVariable(function);
   }
 
   @Override

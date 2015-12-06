@@ -27,6 +27,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -34,23 +35,23 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.PredicatedAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -111,10 +112,10 @@ public class CoreComponentsFactory {
       description="combine (partial) ARGs obtained by restarts of the analysis after an unknown result with a different configuration")
   private boolean useARGCombiningAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.predicatedAnalysis",
-      description="use a predicated analysis which proves if the program satisfies a specified property"
-          + " with the help of a PredicateCPA to separate differnt program paths")
-  private boolean usePredicatedAnalysisAlgorithm = false;
+  @Option(secure=true, name="algorithm.analysisWithEnabler",
+      description="use a analysis which proves if the program satisfies a specified property"
+          + " with the help of an enabler CPA to separate differnt program paths")
+  private boolean useAnalysisWithEnablerCPAAlgorithm = false;
 
   @Option(secure=true, name="algorithm.proofCheck",
       description="use a proof check algorithm to validate a previously generated proof")
@@ -124,10 +125,6 @@ public class CoreComponentsFactory {
       description = "do analysis and then check "
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
-
-  @Option(secure=true, name="algorithm.testGen",
-      description = "use the TestGen Algorithm")
-  private boolean useTestGenAlgorithm = false;
 
   @Option(secure=true, name="checkProof",
       description = "do analysis and then check analysis result")
@@ -139,6 +136,10 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="refinePreconditions",
       description = "Refine the preconditions until the set of unsafe and safe states are disjoint.")
   private boolean usePreconditionRefinementAlgorithm = false;
+
+  @Option(secure=true, name="restartAlgorithmWithARGReplay",
+      description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
+  private boolean useRestartAlgorithmWithARGReplay = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -178,11 +179,14 @@ public class CoreComponentsFactory {
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
 
+    } else if (useRestartAlgorithmWithARGReplay) {
+      algorithm = new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa);
+
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier, stats);
 
-      if (usePredicatedAnalysisAlgorithm) {
-        algorithm = new PredicatedAnalysisAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
+      if (useAnalysisWithEnablerCPAAlgorithm) {
+        algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
       }
 
       if (useCEGAR) {
@@ -207,10 +211,6 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
-      }
-
-      if (useTestGenAlgorithm) {
-        algorithm = new TestGenAlgorithm(algorithm, cpa, shutdownNotifier, cfa, config, logger);
       }
 
       if (usePropertyCheckingAlgorithm) {
@@ -248,7 +248,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {

@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 
@@ -38,14 +39,17 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.cbmctools.CBMCExecutor;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CBMCExecutor;
+
+import com.google.common.collect.ImmutableSet;
 
 @Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -174,7 +178,17 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  private static class CbmcReachabilityProperty implements Property {
+
+    @Override
+    public String toString() {
+      return "Target location reachabable with CBMC!";
+    }
+  }
+
   private static class DummyErrorState implements AbstractState, Targetable {
+
+    private final Property prop = new CbmcReachabilityProperty();
 
     @Override
     public boolean isTarget() {
@@ -182,8 +196,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public String getViolatedPropertyDescription() throws IllegalStateException {
-      return "";
+    public Set<Property> getViolatedProperties() throws IllegalStateException {
+      return ImmutableSet.of(prop);
     }
   }
 }

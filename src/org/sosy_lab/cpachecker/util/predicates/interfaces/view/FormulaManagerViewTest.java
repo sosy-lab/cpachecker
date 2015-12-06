@@ -37,13 +37,13 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.cpachecker.exceptions.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.FormulaManagerFactory.Solvers;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BitvectorFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.test.SolverBasedTest0;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.api.BitvectorFormulaManager;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -151,7 +151,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
     atoms.removeAll(expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
-    assert_().about(BooleanFormula()).that(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
+    assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
   }
 
   private <T extends NumeralFormula> void testExtractAtoms_SplitEqualities_numeral(

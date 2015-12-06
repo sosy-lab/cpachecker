@@ -30,15 +30,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -91,10 +90,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @SuppressFBWarnings(value="OS_OPEN_STREAM", justification="Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
   public void writeProof(UnmodifiableReachedSet pReached) {
 
-    OutputStream fos = null;
-    try {
-      fos = file.asByteSink().openStream();
-      ZipOutputStream zos = new ZipOutputStream(fos);
+    try (final OutputStream fos = file.asByteSink().openStream();
+        final ZipOutputStream zos = new ZipOutputStream(fos)) {
       zos.setLevel(9);
 
       ZipEntry ze = new ZipEntry("Proof");
@@ -119,19 +116,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         index++;
       }while (continueWriting);
 
-      ze = new ZipEntry("Helper");
-      zos.putNextEntry(ze);
-      //write helper storages
-      o = new ObjectOutputStream(zos);
-      int numberOfStorages = GlobalInfo.getInstance().getNumberOfHelperStorages();
-      o.writeInt(numberOfStorages);
-      for (int i = 0; i < numberOfStorages; ++i) {
-        o.writeObject(GlobalInfo.getInstance().getHelperStorage(i));
-      }
-
-      o.flush();
-      zos.closeEntry();
-      zos.close();
     } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
     } catch (IOException e) {
@@ -140,11 +124,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.", e.getMessage());
     } catch (InterruptedException e) {
       logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
-    } finally {
-      try {
-        fos.close();
-      } catch (Exception e) {
-      }
     }
   }
 
@@ -154,45 +133,11 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Override
   public void readProof() throws IOException, ClassNotFoundException, InvalidConfigurationException {
-
-    InputStream fis = null;
-    try {
-
-      fis = file.asByteSource().openStream();
-      ZipInputStream zis = new ZipInputStream(fis);
-
-      ZipEntry entry = zis.getNextEntry();
-      assert entry.getName().equals("Proof");
-
-      do {
-        zis.closeEntry();
-        entry = zis.getNextEntry();
-      } while (entry.getName().startsWith("Additional "));
-
-      assert entry.getName().equals("Helper");
-      ObjectInputStream o = new ObjectInputStream(zis);
-      //read helper storages
-      int numberOfStorages = o.readInt();
-      for (int i = 0; i < numberOfStorages; ++i) {
-        Serializable storage = (Serializable) o.readObject();
-        GlobalInfo.getInstance().addHelperStorage(storage);
-      }
-      zis.closeEntry();
-
-      o.close();
-      zis.close();
-      fis.close();
-
-      Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
-      readProofFromStream(proofStream.getThird());
-      proofStream.getThird().close();
-      proofStream.getSecond().close();
-      proofStream.getFirst().close();
-    } finally {
-      if (fis != null) {
-        fis.close();
-      }
-    }
+    Triple<InputStream, ZipInputStream, ObjectInputStream> proofStream = openProofStream();
+    readProofFromStream(proofStream.getThird());
+    proofStream.getThird().close();
+    proofStream.getSecond().close();
+    proofStream.getFirst().close();
   }
 
   protected boolean writeAdditionalProofStream(final ObjectOutputStream pOut) throws IOException {
@@ -230,6 +175,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.addAll(pccStats);
+  }
+
+  @Override
+  public Collection<Statistics> getAdditionalProofGenerationStatistics(){
+    // by default do nothing and return the empty set
+    return Collections.emptySet();
   }
 
   public static class PCStrategyStatistics implements Statistics {

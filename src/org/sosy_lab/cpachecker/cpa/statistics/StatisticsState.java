@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -153,6 +154,11 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
   @Override
   public CFANode getLocationNode() {
       return locationNode;
+  }
+
+  @Override
+  public Iterable<CFANode> getLocationNodes() {
+    return Collections.singleton(locationNode);
   }
 
   @Override

@@ -29,17 +29,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryOr<ConstantType> extends AbstractFormula<ConstantType> implements InvariantsFormula<ConstantType> {
-
-  /**
-   * The first operand.
-   */
-  private final InvariantsFormula<ConstantType> operand1;
-
-  /**
-   * The second operand.
-   */
-  private final InvariantsFormula<ConstantType> operand2;
+public class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new binary or operation over the given operands.
@@ -47,59 +37,18 @@ public class BinaryOr<ConstantType> extends AbstractFormula<ConstantType> implem
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
    */
-  private BinaryOr(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
-    this.operand1 = pOperand1;
-    this.operand2 = pOperand2;
-  }
-
-  /**
-   * Gets the first operand.
-   *
-   * @return the first operand.
-   */
-  public InvariantsFormula<ConstantType> getOperand1() {
-    return this.operand1;
-  }
-
-  /**
-   * Gets the second operand.
-   *
-   * @return the second operand.
-   */
-  public InvariantsFormula<ConstantType> getOperand2() {
-    return this.operand2;
+  private BinaryOr(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+    super("|", true, pOperand1, pOperand2);
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o instanceof BinaryOr) {
-      BinaryOr<?> other = (BinaryOr<?>) o;
-      return getOperand1().equals(other.getOperand1()) && getOperand2().equals(other.getOperand2()) || getOperand1().equals(other.getOperand2()) && getOperand2().equals(other.getOperand1());
-    }
-    return false;
-  }
-
-  @Override
-  public int hashCode() {
-    return getOperand1().hashCode() & getOperand2().hashCode();
-  }
-
-  @Override
-  public String toString() {
-    return String.format("(%s | %s)", getOperand1(), getOperand2());
-  }
-
-  @Override
-  public <ReturnType> ReturnType accept(InvariantsFormulaVisitor<ConstantType, ReturnType> pVisitor) {
+  public <ReturnType> ReturnType accept(NumeralFormulaVisitor<ConstantType, ReturnType> pVisitor) {
     return pVisitor.visit(this);
   }
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedInvariantsFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -113,7 +62,7 @@ public class BinaryOr<ConstantType> extends AbstractFormula<ConstantType> implem
    * @return an invariants formula representing the binary or operation over the
    * given operands.
    */
-  static <ConstantType> BinaryOr<ConstantType> of(InvariantsFormula<ConstantType> pOperand1, InvariantsFormula<ConstantType> pOperand2) {
+  static <ConstantType> BinaryOr<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryOr<>(pOperand1, pOperand2);
   }
 
