@@ -21,25 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
-
-
 /**
- * A CFANode that marks the end of a path.
+ * This package contains the data classes of concurrency model
  */
-public class CFATerminationNode extends CFANode {
-
-  public CFATerminationNode(String pFunctionName) {
-    super(pFunctionName);
-  }
-
-  @Override
-  public void addLeavingEdge(CFAEdge pNewLeavingEdge) {
-    throw new AssertionError(pNewLeavingEdge);
-  }
-
-  @Override
-  public void addLeavingSummaryEdge(SummaryEdge pEdge) {
-    throw new AssertionError(pEdge);
-  }
-}
+package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context;

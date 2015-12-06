@@ -59,11 +59,14 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchEdge;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadScheduleEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -111,7 +114,11 @@ import com.google.common.base.Preconditions;
  *     -- handleStatementEdge -> C,J
  *     -- handleReturnStatementEdge -> C,J
  *     -- handleBlankEdge
+ *     -- handleContextSwitchEdge
+ *     -- handleThreadScheduleEdge 
  *     -- handleFunctionSummaryEdge
+ *     -- handleContextSwitchSummaryEdge
+ *     
  *
  * 4. postProcessing
  * 5. resetInfo
@@ -253,9 +260,18 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
 
     case BlankEdge:
       return handleBlankEdge((BlankEdge) cfaEdge);
-
+      
+    case ContextSwtichEdge:
+      return handleContextSwitchEdge((ContextSwitchEdge) cfaEdge);
+      
+    case ThreadScheduleEdge:
+      return handleThreadScheduleEdge((ThreadScheduleEdge) cfaEdge);
+      
     case CallToReturnEdge:
       return handleFunctionSummaryEdge((FunctionSummaryEdge) cfaEdge);
+      
+    case ContextSwitchSummaryEdge:
+      return handleContextSwitchSummaryEdge((ContextSwitchSummaryEdge) cfaEdge);
 
     default:
       throw new UnrecognizedCFAEdgeException(cfaEdge);
@@ -494,6 +510,16 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
   protected S handleBlankEdge(BlankEdge cfaEdge) {
     return (S)state;
   }
+  
+  @SuppressWarnings("unchecked")
+  protected S handleContextSwitchEdge(ContextSwitchEdge cfaEdge) {
+    return (S)state;
+  }
+
+  @SuppressWarnings("unchecked")
+  private S handleThreadScheduleEdge(ThreadScheduleEdge cfaEdge) {
+    return (S)state;
+  }
 
   protected S handleFunctionSummaryEdge(FunctionSummaryEdge cfaEdge) throws CPATransferException {
     if (cfaEdge instanceof CFunctionSummaryEdge) {
@@ -503,6 +529,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
     } else {
       throw new AssertionError("unkown error");
     }
+  }
+  
+  private S handleContextSwitchSummaryEdge(ContextSwitchSummaryEdge cfaEdge) {
+    throw new AssertionError(NOT_IMPLEMENTED);
   }
 
   protected S handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {

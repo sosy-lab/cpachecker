@@ -32,5 +32,8 @@ public enum CFAEdgeType {
     FunctionCallEdge,
     FunctionReturnEdge,
     MultiEdge,
-    CallToReturnEdge
+    CallToReturnEdge,
+    ContextSwtichEdge,
+    ContextSwitchSummaryEdge,
+    ThreadScheduleEdge
 }

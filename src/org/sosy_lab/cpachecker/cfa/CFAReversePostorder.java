@@ -31,7 +31,11 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 public class CFAReversePostorder {
 
@@ -55,7 +59,10 @@ public class CFAReversePostorder {
       return true;
     }
 
-    for (CFANode successor : CFAUtils.successorsOf(node)) {
+    Predicate<Object> notAContextSwitchEdge = Predicates.not(Predicates.instanceOf(ContextSwitchEdge.class));
+    
+    for (CFANode successor : CFAUtils.allLeavingEdges(node)
+        .filter(notAContextSwitchEdge).transform(CFAUtils.TO_SUCCESSOR)) {
       checkIds(successor);
     }
 
@@ -99,8 +106,11 @@ public class CFAReversePostorder {
           continue;
         }
 
+        Predicate<Object> notAContextSwitchEdge = Predicates.not(Predicates.instanceOf(ContextSwitchEdge.class));
+        
         // enter the for loop
-        successors = CFAUtils.successorsOf(node).iterator();
+        successors = CFAUtils.allLeavingEdges(node)
+            .filter(notAContextSwitchEdge).transform(CFAUtils.TO_SUCCESSOR).iterator();
         iteratorStack.pop();
         iteratorStack.push(successors);
       }
@@ -130,6 +140,6 @@ public class CFAReversePostorder {
 
     // Disabled because the recursive algorithm throws StackOverflowError
     // for large files.
-    //assert checkIds(start);
+//    assert checkIds(start);
   }
 }

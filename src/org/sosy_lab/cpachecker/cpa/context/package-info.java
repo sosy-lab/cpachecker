@@ -21,25 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
-
-
 /**
- * A CFANode that marks the end of a path.
+ * This cpa ensures a correct context switching within a 
+ * sequenced cfa and stops context switching after a given 
+ * (modifiable) bound is reached.
  */
-public class CFATerminationNode extends CFANode {
-
-  public CFATerminationNode(String pFunctionName) {
-    super(pFunctionName);
-  }
-
-  @Override
-  public void addLeavingEdge(CFAEdge pNewLeavingEdge) {
-    throw new AssertionError(pNewLeavingEdge);
-  }
-
-  @Override
-  public void addLeavingSummaryEdge(SummaryEdge pEdge) {
-    throw new AssertionError(pEdge);
-  }
-}
+package org.sosy_lab.cpachecker.cpa.context;

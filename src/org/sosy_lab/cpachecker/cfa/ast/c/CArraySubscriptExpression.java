@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CLeftHandSide {
@@ -36,6 +38,30 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
                                       final CExpression pArrayExpression,
                                       final CExpression pSubscriptExpression) {
     super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
+
+    assert checkTypeConsistency(pType, pArrayExpression) : "subscript return type doens't match the array type";
+  }
+  
+  private boolean checkTypeConsistency(final CType pType, final CExpression pArrayExpression) {
+    CType declaredType = pArrayExpression.getExpressionType();
+    CType checkType;
+    if(declaredType instanceof CArrayType) {
+      checkType = ((CArrayType) declaredType).getType();
+    } else if(declaredType instanceof CPointerType) {
+      // it is legal to use array names as constant pointers.
+      /*
+       * double *p;
+       * double array[10];
+       * p = array;
+       */ 
+       // Such that *(p + 3) is a legitimate way to access data of array[3]
+      checkType = ((CPointerType) declaredType).getType();
+    } else {
+      checkType = null;
+      assert false;
+    }
+    
+    return checkType.getCanonicalType().equals(pType.getCanonicalType());
   }
 
   @Override

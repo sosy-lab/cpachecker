@@ -322,7 +322,10 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
 
       // nothing to do.
       case BlankEdge:
-      case CallToReturnEdge: {
+      case CallToReturnEdge:
+      case ContextSwtichEdge:
+      case ThreadScheduleEdge:
+      case ContextSwitchSummaryEdge: {
         break;
       }
 

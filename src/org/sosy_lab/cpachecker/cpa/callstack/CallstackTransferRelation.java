@@ -345,7 +345,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         return false;
       }
 
-      FunctionSummaryEdge summaryEdge = element.getCallNode().getLeavingSummaryEdge();
+      FunctionSummaryEdge summaryEdge = (FunctionSummaryEdge) element.getCallNode().getLeavingSummaryEdge();
       if (summaryEdge.getExpression() instanceof AFunctionCallStatement) {
         return true;
       }

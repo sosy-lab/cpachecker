@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThreadContainer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -55,6 +57,7 @@ class ImmutableCFA implements CFA {
   private final Optional<VariableClassification> varClassification;
   private final Optional<LiveVariables> liveVariables;
   private final Language language;
+  private final Optional<AThreadContainer> threads;
 
   ImmutableCFA(
       MachineModel pMachineModel,
@@ -64,7 +67,8 @@ class ImmutableCFA implements CFA {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
-      Language pLanguage) {
+      Language pLanguage, 
+      Optional<AThreadContainer> pThreads) {
 
     machineModel = pMachineModel;
     functions = ImmutableSortedMap.copyOf(pFunctions);
@@ -74,6 +78,7 @@ class ImmutableCFA implements CFA {
     varClassification = pVarClassification;
     liveVariables = pLiveVariables;
     language = pLanguage;
+    threads = pThreads;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
   }
@@ -87,6 +92,7 @@ class ImmutableCFA implements CFA {
     varClassification = Optional.absent();
     liveVariables = Optional.absent();
     language = pLanguage;
+    threads = Optional.absent();
   }
 
   static ImmutableCFA empty(MachineModel pMachineModel, Language pLanguage) {
@@ -164,6 +170,11 @@ class ImmutableCFA implements CFA {
   @Override
   public Language getLanguage() {
     return language;
+  }
+
+  @Override
+  public Optional<AThreadContainer> getThreads() {
+    return threads;
   }
 
 }

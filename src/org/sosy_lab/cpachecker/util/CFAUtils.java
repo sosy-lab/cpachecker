@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 
 import java.util.ArrayDeque;
@@ -333,7 +334,15 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
+        boolean hasBackwardsEdge = false;
+        for(CFAEdge edge : CFAUtils.allLeavingEdges(pNode)) {
+          hasBackwardsEdge |= edge.getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId(); 
+        }
+        if(hasBackwardsEdge) {
+          hasBackwardsEdges = true;
+          return TraversalProcess.ABORT;
+        }
+        return TraversalProcess.CONTINUE;
       } else {
         return TraversalProcess.CONTINUE;
       }

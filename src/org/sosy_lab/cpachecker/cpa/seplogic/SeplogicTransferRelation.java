@@ -139,7 +139,8 @@ public class SeplogicTransferRelation extends SingleEdgeTransferRelation {
       case FunctionReturnEdge:
         // now handle the complete a = func(x) statement in the CallToReturnEdge
         FunctionReturnEdge returnEdge = (FunctionReturnEdge) cfaEdge;
-        FunctionSummaryEdge ctrEdge = returnEdge.getSuccessor().getEnteringSummaryEdge();
+        assert returnEdge.getSuccessor().getEnteringSummaryEdge() instanceof FunctionSummaryEdge;
+        FunctionSummaryEdge ctrEdge = (FunctionSummaryEdge) returnEdge.getSuccessor().getEnteringSummaryEdge();
         successor = handleReturnFromFunction(currentElement, (CFunctionCall) ctrEdge.getExpression(), ctrEdge);
         break;
 

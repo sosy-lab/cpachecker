@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThreadContainer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -66,4 +67,6 @@ public interface CFA {
   Optional<LiveVariables> getLiveVariables();
 
   Language getLanguage();
+  
+  Optional<AThreadContainer> getThreads();
 }

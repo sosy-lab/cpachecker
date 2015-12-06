@@ -781,7 +781,10 @@ public class CtoFormulaConverter {
       // after each edge for some SMT solvers.
       return bfmgr.and(multiEdgeFormulas);
     }
-
+    case ContextSwtichEdge:
+    case ThreadScheduleEdge:
+    case ContextSwitchSummaryEdge:
+      return bfmgr.makeBoolean(true);
     default:
       throw new UnrecognizedCFAEdgeException(edge);
     }

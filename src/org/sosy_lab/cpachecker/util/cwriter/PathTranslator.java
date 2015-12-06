@@ -354,6 +354,9 @@ public abstract class PathTranslator {
 
     case BlankEdge:
     case StatementEdge:
+    case ContextSwtichEdge:
+    case ThreadScheduleEdge:
+    case ContextSwitchSummaryEdge:
     case ReturnStatementEdge:
       return pCFAEdge.getCode();
 

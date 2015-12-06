@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFAReduction;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.Sequencer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -218,6 +219,14 @@ public class CFACreator {
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
 
+  @Option(secure=false, name="cfa.sequencing",
+      description="This option modifies the cfa of a concurrent programm to "
+          + "a cfa with a seqeuntial course. This is achived by the simulation "
+          + "of the context switches among the threads. The resulting "
+          + "sequential cfa can be use to run cpa's on the programm to verify "
+          + "the original programm via the generated sequential programm.")
+  private boolean useCfaSequencing = false;
+
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
 
@@ -234,6 +243,7 @@ private boolean classifyNodes = false;
     private Timer conversionTime;
     private final Timer checkTime = new Timer();
     private final Timer processingTime = new Timer();
+    private final Timer sequencingTime = new Timer();
     private final Timer pruningTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
@@ -251,6 +261,9 @@ private boolean classifyNodes = false;
       out.println("    Time for AST to CFA:      " + conversionTime);
       out.println("    Time for CFA sanity check:" + checkTime);
       out.println("    Time for post-processing: " + processingTime);
+      if (sequencingTime.getNumberOfIntervals() > 0) {
+        out.println("      Time for sequencing:    " + sequencingTime);
+      }
       if (pruningTime.getNumberOfIntervals() > 0) {
         out.println("      Time for CFA pruning:   " + pruningTime);
       }
@@ -653,6 +666,15 @@ private boolean classifyNodes = false;
 
     if (useMultiEdges) {
       MultiEdgeCreator.createMultiEdges(cfa);
+    }
+
+    if (useCfaSequencing) {
+      stats.sequencingTime.start();
+      
+      Sequencer seq = new Sequencer(cfa, logger);
+      seq.sequenceCFA();
+      
+      stats.sequencingTime.stop();
     }
 
     return cfa;

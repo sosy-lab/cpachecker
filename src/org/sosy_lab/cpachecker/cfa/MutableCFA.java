@@ -34,6 +34,7 @@ import java.util.SortedSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThreadContainer;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -52,6 +53,7 @@ public class MutableCFA implements CFA {
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.absent();
   private Optional<LiveVariables> liveVariables = Optional.absent();
+  private Optional<AThreadContainer> threads = Optional.absent();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -73,6 +75,22 @@ public class MutableCFA implements CFA {
   public void addNode(CFANode pNode) {
     assert functions.containsKey(pNode.getFunctionName());
     allNodes.put(pNode.getFunctionName(), pNode);
+  }
+  
+  public void addFunction(FunctionEntryNode pNode) {
+    String functionName = pNode.getFunctionName();
+
+    assert !functions.containsKey(functionName);
+    assert !functions.containsValue(pNode);
+    assert !functionName.isEmpty();
+    assert pNode.getFunctionParameters() != null;
+    assert pNode.getFunctionDefinition() != null;
+    assert pNode.getExitNode() != null;
+    assert pNode.getExitNode().getEntryNode().equals(pNode);
+    assert pNode.getFunctionName().equals(pNode.getExitNode().getFunctionName());
+    
+    functions.put(functionName, pNode);
+    addNode(pNode.getExitNode());
   }
 
   public void clear() {
@@ -158,7 +176,7 @@ public class MutableCFA implements CFA {
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
-        loopStructure, pVarClassification, liveVariables, language);
+        loopStructure, pVarClassification, liveVariables, language, threads);
   }
 
   @Override
@@ -179,5 +197,17 @@ public class MutableCFA implements CFA {
   public Language getLanguage() {
       return language;
   }
+
+  public void setThreads(AThreadContainer pThreads) {
+    assert threads != null;
+    threads = Optional.of(pThreads);
+  }
+  
+  @Override
+  public Optional<AThreadContainer> getThreads() {
+    return threads;
+  }
+  
+  
 
 }

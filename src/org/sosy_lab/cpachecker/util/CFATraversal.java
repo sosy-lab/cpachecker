@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -161,6 +162,27 @@ public class CFATraversal {
             ignoreEdge,
             Predicates.instanceOf(FunctionCallEdge.class),
             Predicates.instanceOf(FunctionReturnEdge.class)
+            ));
+  }
+
+  /*
+   * TODO check if the ContextSwitchEdge ignore can be applied to
+   * ignoreFunctionCalls, because the desired behavior mainly stay always inside
+   * the current function will be only ensured with this additional constraint.
+  */
+  /** 
+   * Returns a new instance of this class which behaves exactly like the current
+   * instance, except it ignores context switch edges. It will not call the
+   * visitor for them, and it will not follow this edge during traversing. If
+   * summary edges aren't ignored then it will always stay inside the current
+   * function.
+   */
+  public CFATraversal ignoreContextSwitchEdges() {
+    return new CFATraversal(edgeSupplier,
+        successorSupplier,
+        Predicates.<CFAEdge>or(
+            ignoreEdge,
+            Predicates.instanceOf(ContextSwitchEdge.class)
             ));
   }
 

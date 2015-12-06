@@ -21,25 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.model;
-
-
 /**
- * A CFANode that marks the end of a path.
+ * This package contains implementations which provides a cfa sequencing
+ * {@link org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.Sequencer}.
+ * 
+ * <p>
+ * Post-processings for the CFA that change the CFA structure,
+ * executed (optionally) between parsing and returning the finished CFA.
+ * The post-processings in this package all work on the full CFA,
+ * potentially adds context switch edges between functions. Adds new 
+ * functions and potentially clones them which follows a naming convention
+ * (original name + count).
+ * </p> 
  */
-public class CFATerminationNode extends CFANode {
-
-  public CFATerminationNode(String pFunctionName) {
-    super(pFunctionName);
-  }
-
-  @Override
-  public void addLeavingEdge(CFAEdge pNewLeavingEdge) {
-    throw new AssertionError(pNewLeavingEdge);
-  }
-
-  @Override
-  public void addLeavingSummaryEdge(SummaryEdge pEdge) {
-    throw new AssertionError(pEdge);
-  }
-}
+package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;

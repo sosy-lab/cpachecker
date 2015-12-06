@@ -48,8 +48,8 @@ public class CFANode implements Comparable<CFANode> {
   private final String functionName;
 
   // list of summary edges
-  private FunctionSummaryEdge leavingSummaryEdge = null;
-  private FunctionSummaryEdge enteringSummaryEdge = null;
+  private SummaryEdge leavingSummaryEdge = null;
+  private SummaryEdge enteringSummaryEdge = null;
 
   // reverse postorder sort id, smaller if it appears later in sorting
   private int reversePostorderId = 0;
@@ -147,33 +147,33 @@ public class CFANode implements Comparable<CFANode> {
     return functionName;
   }
 
-  public void addEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
+  public void addEnteringSummaryEdge(SummaryEdge pEdge) {
     checkState(enteringSummaryEdge == null,
         "Cannot add two entering summary edges to node %s", this);
     enteringSummaryEdge = pEdge;
   }
 
-  public void addLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
+  public void addLeavingSummaryEdge(SummaryEdge pEdge) {
     checkState(leavingSummaryEdge == null,
         "Cannot add two leaving summary edges to node %s", this);
     leavingSummaryEdge = pEdge;
   }
 
-  public FunctionSummaryEdge getEnteringSummaryEdge() {
+  public SummaryEdge getEnteringSummaryEdge() {
     return enteringSummaryEdge;
   }
 
-  public FunctionSummaryEdge getLeavingSummaryEdge() {
+  public SummaryEdge getLeavingSummaryEdge() {
     return leavingSummaryEdge;
   }
 
-  public void removeEnteringSummaryEdge(FunctionSummaryEdge pEdge) {
+  public void removeEnteringSummaryEdge(SummaryEdge pEdge) {
     checkArgument(enteringSummaryEdge == pEdge,
         "Cannot remove non-existing entering summary edge \"%s\" from node \"%s\"", pEdge, this);
     enteringSummaryEdge = null;
   }
 
-  public void removeLeavingSummaryEdge(FunctionSummaryEdge pEdge) {
+  public void removeLeavingSummaryEdge(SummaryEdge pEdge) {
     checkArgument(leavingSummaryEdge == pEdge,
         "Cannot remove non-existing leaving summary edge \"%s\" from node \"%s\"", pEdge, this);
     leavingSummaryEdge = null;

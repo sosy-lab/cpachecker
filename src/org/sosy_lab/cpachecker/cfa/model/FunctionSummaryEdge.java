@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public  class FunctionSummaryEdge extends AbstractCFAEdge {
+public  class FunctionSummaryEdge extends SummaryEdge {
 
   private final AFunctionCall expression;
   private final FunctionEntryNode functionEntry;

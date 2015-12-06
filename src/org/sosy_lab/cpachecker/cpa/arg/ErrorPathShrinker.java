@@ -198,8 +198,12 @@ public final class ErrorPathShrinker {
         break;
 
       case CallToReturnEdge:
+      case ContextSwitchSummaryEdge:
         throw new AssertionError("function summaries not supported");
 
+      case ContextSwtichEdge:
+      case ThreadScheduleEdge:
+        break;
       default:
         throw new AssertionError("unknown edge type");
     }

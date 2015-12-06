@@ -27,7 +27,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
+import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpressionCollectorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -614,6 +617,10 @@ public final class LoopStructure {
       nodesArray[i] = n;
 
       for (CFAEdge edge : leavingEdges(n)) {
+        if(edge instanceof ContextSwitchEdge) {
+          assert !edge.getSuccessor().getFunctionName().equals(edge.getPredecessor().getFunctionName()) : "Illegal use of ContextSwitchEdge. This edge can cause a loop structure in the cfa!";
+          continue;
+        }
         CFANode succ = edge.getSuccessor();
         int j = arrayIndexForNode.apply(succ);
         edges[i][j] = new Edge();

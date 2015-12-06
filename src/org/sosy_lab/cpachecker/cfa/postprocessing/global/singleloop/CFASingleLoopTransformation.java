@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.SummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -387,7 +388,7 @@ public class CFASingleLoopTransformation {
     for (FunctionCallEdge fce : findEdges(FunctionCallEdge.class, pStartNode)) {
       FunctionEntryNode entryNode = fce.getSuccessor();
       FunctionExitNode exitNode = entryNode.getExitNode();
-      FunctionSummaryEdge oldSummaryEdge = fce.getSummaryEdge();
+      SummaryEdge oldSummaryEdge = fce.getSummaryEdge();
       CFANode oldSummarySuccessor = fce.getSummaryEdge().getSuccessor();
       Integer pcValue = pNewSuccessorsToPC.inverse().get(oldSummarySuccessor);
       if (pcValue != null) {
@@ -877,7 +878,7 @@ public class CFASingleLoopTransformation {
    *
    * @param pEdge the edge to remove.
    */
-  private static void removeSummaryEdgeFromNodes(FunctionSummaryEdge pEdge) {
+  private static void removeSummaryEdgeFromNodes(SummaryEdge pEdge) {
     CFANode predecessor = pEdge.getPredecessor();
     if (predecessor.getLeavingSummaryEdge() == pEdge) {
       predecessor.removeLeavingSummaryEdge(pEdge);
@@ -896,9 +897,9 @@ public class CFASingleLoopTransformation {
    */
   private static void addToNodes(CFAEdge pEdge) {
     CFANode predecessor = pEdge.getPredecessor();
-    if (pEdge instanceof FunctionSummaryEdge) {
-      FunctionSummaryEdge summaryEdge = (FunctionSummaryEdge) pEdge;
-      FunctionSummaryEdge oldSummaryEdge = pEdge.getPredecessor().getLeavingSummaryEdge();
+    if (pEdge instanceof SummaryEdge) {
+      SummaryEdge summaryEdge = (FunctionSummaryEdge) pEdge;
+      SummaryEdge oldSummaryEdge = pEdge.getPredecessor().getLeavingSummaryEdge();
       if (oldSummaryEdge != null) {
         removeSummaryEdgeFromNodes(oldSummaryEdge);
       }

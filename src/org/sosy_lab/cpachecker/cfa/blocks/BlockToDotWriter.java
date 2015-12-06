@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.SummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.HashMultimap;
@@ -148,7 +149,7 @@ public class BlockToDotWriter {
       if (finished.add(node)) {
         app.append(formatNode(node));
         Iterables.addAll(edges, CFAUtils.leavingEdges(node));
-        FunctionSummaryEdge func = node.getEnteringSummaryEdge();
+        SummaryEdge func = node.getEnteringSummaryEdge();
         if (func != null) {
           edges.add(func);
         }

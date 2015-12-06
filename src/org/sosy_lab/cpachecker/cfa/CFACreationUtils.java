@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.SummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 
 /**
@@ -143,7 +144,7 @@ public class CFACreationUtils {
     e.getSuccessor().removeEnteringEdge(e);
   }
 
-  public static void removeSummaryEdgeFromNodes(FunctionSummaryEdge e) {
+  public static void removeSummaryEdgeFromNodes(SummaryEdge e) {
     e.getPredecessor().removeLeavingSummaryEdge(e);
     e.getSuccessor().removeEnteringSummaryEdge(e);
   }

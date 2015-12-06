@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -117,7 +118,8 @@ public final class DOTBuilder {
     public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
       List<String> graph;
-      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge
+          || edge.getEdgeType() == CFAEdgeType.ContextSwtichEdge) {
         graph = edges.get(MAIN_GRAPH);
       } else {
         graph = edges.get(predecessor.getFunctionName());
@@ -148,6 +150,8 @@ public final class DOTBuilder {
       sb.append("\"");
       if (edge instanceof FunctionSummaryEdge) {
         sb.append(" style=\"dotted\" arrowhead=\"empty\"");
+      } else if(edge instanceof ContextSwitchSummaryEdge) { 
+        sb.append("style=\"dashed\" arrowhead=\"empty\"");
       }
       sb.append("]");
       return sb.toString();

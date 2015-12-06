@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.*;
+import static org.sosy_lab.cpachecker.util.CFAUtils.TO_PREDECESSOR;
+import static org.sosy_lab.cpachecker.util.CFAUtils.TO_SUCCESSOR;
+import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
+import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -32,21 +35,39 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.ContextSwitchEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.ThreadScheduleEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 public class CFACheck {
+  
+  private static final Predicate<Object> IS_NOT_CS_NEITHER_FS_EDGE = new Predicate<Object>() {
+
+    @Override
+    public boolean apply(Object arg0) {
+      Predicate<Object> isSummary = Predicates.instanceOf(FunctionSummaryEdge.class);
+      Predicate<Object> isContextSwitch = Predicates.instanceOf(ContextSwitchEdge.class);
+      Predicate<Object> isNotCSNeitherFSEdge = Predicates.not(Predicates.or(isSummary, isContextSwitch));
+      return isNotCSNeitherFSEdge.apply(arg0);
+    }
+  };
 
   /**
    * Traverse the CFA and run a series of checks at each node
@@ -65,8 +86,16 @@ public class CFACheck {
       CFANode node = waitingNodeList.poll();
 
       if (visitedNodes.add(node)) {
-        Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
-        Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
+        
+        // ContextSwitchEdges must be ignored however the ContextSwitchSummary
+        // edge must be followed
+        Iterable<CFANode> successorNodes = CFAUtils.allLeavingEdges(node)
+            .filter(IS_NOT_CS_NEITHER_FS_EDGE).transform(TO_SUCCESSOR);
+        Iterable<CFANode> predecessorNodes = CFAUtils.allEnteringEdges(node)
+            .filter(IS_NOT_CS_NEITHER_FS_EDGE).transform(TO_PREDECESSOR); 
+        
+        Iterables.addAll(waitingNodeList, successorNodes);
+        Iterables.addAll(waitingNodeList, predecessorNodes); // just to be sure to get ALL nodes.
 
         // The actual checks
         isConsistent(node);
@@ -116,14 +145,15 @@ public class CFACheck {
     // check leaving edges
     if (!(pNode instanceof FunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
-      case 0:
+      case 0: {
         if (!pruned) {
           // not possible to check this when CFA was pruned
           assert pNode instanceof CFATerminationNode : "Dead end at node " + DEBUG_FORMAT.apply(pNode);
         }
         break;
+      }
 
-      case 1:
+      case 1: {
         CFAEdge edge = pNode.getLeavingEdge(0);
         if (!pruned) {
           // not possible to check this when CFA was pruned
@@ -131,8 +161,9 @@ public class CFACheck {
         }
         assert !(edge instanceof CFunctionSummaryStatementEdge) : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
         break;
+      }
 
-      case 2:
+      case 2: {
         CFAEdge edge1 = pNode.getLeavingEdge(0);
         CFAEdge edge2 = pNode.getLeavingEdge(1);
         //relax this assumption for summary edges
@@ -141,18 +172,44 @@ public class CFACheck {
         } else if (edge2 instanceof CFunctionSummaryStatementEdge) {
           assert edge1 instanceof CFunctionCallEdge : "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node " + DEBUG_FORMAT.apply(pNode);
         } else {
-          assert (edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge) : "Branching without conditions at node " + DEBUG_FORMAT.apply(pNode);  // TODO Ask for permission
-
-          AssumeEdge ae1 = (AssumeEdge)edge1;
-          AssumeEdge ae2 = (AssumeEdge)edge2;
-          assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
+          if((edge1 instanceof AssumeEdge) && (edge2 instanceof AssumeEdge)) {
+            AssumeEdge ae1 = (AssumeEdge)edge1;
+            AssumeEdge ae2 = (AssumeEdge)edge2;
+            assert ae1.getTruthAssumption() != ae2.getTruthAssumption() : "Inconsistent branching at node " + DEBUG_FORMAT.apply(pNode);
+          } else {
+            assert pNode.getFunctionName().equals("__schedulerSimulation") : "Branching without conditions can only appear in thread schedule simulation";
+            assert isThreadCreation(pNode) || areThreadEdges(pNode) : "Error in scheduler generation";
+          }
+          
         }
         break;
+      }
 
-      default:
-        assert false : "Too much branching at node " + DEBUG_FORMAT.apply(pNode);
+      default: {
+        assert areThreadEdges(pNode) : "Too much branching at node " +
+            DEBUG_FORMAT.apply(pNode);
+      }
       }
     }
+  }
+  
+  private static boolean isThreadCreation(CFANode pNode) {
+    for (CFAEdge edge : CFAUtils.leavingEdges(pNode)) {
+      if (!(edge instanceof BlankEdge) && !(edge instanceof AStatementEdge)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean areThreadEdges(CFANode pNode) {
+    for (CFAEdge edge : CFAUtils.leavingEdges(pNode)) {
+      if (!(edge instanceof ContextSwitchEdge)
+          && !(edge instanceof ThreadScheduleEdge)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -197,4 +254,5 @@ public class CFACheck {
           + ", but pNode " + DEBUG_FORMAT.apply(pNode) + " does not have this edge as leaving edge!";
     }
   }
+  
 }
