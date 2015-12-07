@@ -32,17 +32,17 @@ import os
 import platform
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
-for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.egg')):
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
     sys.path.insert(0, egg)
 
-import benchexec
+import benchexec.benchexec
 
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
 import benchexec.tools
-benchexec.tools.__path__ += [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')]
+benchexec.tools.__path__ = [os.path.join(os.path.dirname(__file__), 'benchmark', 'tools')] + benchexec.tools.__path__
 
-class Benchmark(benchexec.BenchExec):
+class Benchmark(benchexec.benchexec.BenchExec):
     """
     An extension of BenchExec for use with CPAchecker
     that supports executor modules for executing the benchmarks
@@ -82,12 +82,32 @@ class Benchmark(benchexec.BenchExec):
         vcloud_args.add_argument("--revision",
                           dest="revision",
                           metavar="BRANCH:REVISION",
-                          help="The svn revision of CPAchecker to use  (if using the web interface of the VerifierCloud).")
+                          help="The svn revision of CPAchecker to use (if using the web interface of the VerifierCloud).")
 
         vcloud_args.add_argument("--justReprocessResults",
                           dest="reprocessResults",
                           action="store_true",
                           help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored (use --startTime to point the script to the results).")
+
+        vcloud_args.add_argument("--cloudClientHeap",
+                          dest="cloudClientHeap",
+                          metavar="MB",
+                          default=100,
+                          type=int,
+                          help="The heap-size (in MB) used by the VerifierCloud client. A too small heap-size may terminate the client without any results.")
+
+        vcloud_args.add_argument("--cloudSubmissionThreads",
+                          dest="cloud_threads",
+                          default=5,
+                          type=int,
+                          help="The number of threads used for parallel run submission (if using the web interface of the VerifierCloud).")
+
+        vcloud_args.add_argument("--cloudPollInterval",
+                          dest="cloud_poll_interval",
+                          metavar="SECONDS",
+                          default=5,
+                          type=int,
+                          help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).")
 
         appengine_args = parser.add_argument_group('Options for using CPAchecker in the AppEngine')
         appengine_args.add_argument("--appengine",
@@ -120,7 +140,7 @@ class Benchmark(benchexec.BenchExec):
     def load_executor(self):
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
-                import benchmark.webclient as executor
+                import benchmark.webclient_benchexec as executor
             else:
                 import benchmark.vcloud as executor
         elif self.config.appengine:
@@ -143,4 +163,4 @@ if __name__ == "__main__":
         bin_dir = os.path.join(os.path.dirname(__file__), os.pardir, bin_dir)
         os.environ['PATH'] += os.pathsep + bin_dir
 
-    benchexec.main(Benchmark())
+    benchexec.benchexec.main(Benchmark())

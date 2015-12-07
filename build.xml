@@ -22,6 +22,7 @@
     <import file="build/build-compile.xml"/>
     <import file="build/build-jar.xml"/>
     <import file="build/build-junit.xml"/>
+    <import file="build/build-format-source.xml"/>
     <import file="build/build-findbugs.xml"/>
 
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
@@ -50,11 +51,11 @@
     <target name="clean">
         <delete includeEmptyDirs="true">
             <fileset dir="." includes="${class.dir}/** war/WEB-INF/classes/** war/WEB-INF/configurations/** war/WEB-INF/lib/** war/WEB-INF/specifications/** cpachecker.jar CPAchecker-*.zip CPAchecker-*.tar.*"/>
-            <fileset dir="src/org/sosy_lab/cpachecker/util/predicates/smtInterpol" includes="Parser.java Lexer.java LexerSymbols.java"/>
         </delete>
 
         <!-- Clean subprojects -->
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
     </target>
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
@@ -106,6 +107,8 @@
     <target name="build-subprojects">
             <echo message="Generate automaton parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" inheritAll="false"/>
+            <echo message="Generate precision-rewriting parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
@@ -166,7 +169,7 @@
         <property name="namez" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namez}.zip" whenempty="fail">
             <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.txt" prefix="${namez}/"/>
-            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*" excludes="lib/ivy*" prefix="${namez}/"/>
+            <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namez}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namez}/"/>
         </zip>
     </target>
@@ -176,11 +179,11 @@
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2">
             <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/*"
+                includes="config/** doc/** cpachecker.jar *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
-                includes="*.* tempita/** benchmark/* benchmark/tools/cpachecker.py benchmark/tools/template.py benchmark/tools/__init__.py"
+                includes="*.* benchmark/**"
                 excludes="*.bat *.sh *.py"
                 prefix="${namet}/scripts/"/>
             <tarfileset dir="." filemode="755"
@@ -232,8 +235,29 @@
 		includes="*.*"
 		prefix="bin"/>
             <tarfileset dir="." filemode="755"
-                includes="lib/native/**"
-                excludes="lib/native/source/** lib/native/*win*/** lib/native/x86-linux/**"/>
+                includes="lib/native/x86_64-linux/**"/>
         </tar>
+    </target>
+
+    <target name="build-witness-script" description="Build the script for witness validation as single file">
+        <property name="witness-script" value="scripts/witness_validation_web_cloud"/>
+        <fileset dir="." includes="lib/python-benchmark/sseclient-*.whl" id="sseclient.file"/>
+        <fileset dir="." includes="lib/python-benchmark/requests-*.whl" id="requests.file"/>
+        <fileset dir="." includes="lib/python-benchmark/six-*.whl" id="six.file"/>
+        <!-- Write ZIP archive to witness.zip, write script header to witness.sh, and concatenate. -->
+        <zip destfile="${witness-script}.zip" whenempty="fail" duplicate="fail">
+            <zipfileset dir="scripts" includes="witness_validation_web_cloud.py" fullpath="__main__.py" />
+            <zipfileset dir="scripts" includes="benchmark/__init__.py benchmark/webclient.py" />
+            <zipfileset src="${toString:sseclient.file}" />
+            <zipfileset src="${toString:requests.file}" />
+            <zipfileset src="${toString:six.file}" />
+        </zip>
+        <echo file="${witness-script}.sh">#!/usr/bin/python3${line.separator}</echo>
+        <concat binary="true" destfile="${witness-script}.pyz">
+            <fileset dir="." includes="${witness-script}.sh ${witness-script}.zip"/>
+        </concat>
+        <delete quiet="true"><fileset dir="." includes="${witness-script}.sh ${witness-script}.zip"/></delete>
+        <chmod file="${witness-script}.pyz" perm="+x"/>
+        <echo>Wrote script for witness validation to ${witness-script}.pyz</echo>
     </target>
 </project>

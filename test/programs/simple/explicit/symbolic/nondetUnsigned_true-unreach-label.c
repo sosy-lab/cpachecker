@@ -4,7 +4,10 @@ int main() {
   signed char a = __VERIFIER_nondet_char();
 
   if (a < 0) {
-    a = -a;
+    a++;
+    if (a < 0) {
+      a = -a;
+    }
   }
 
   unsigned char b = a;

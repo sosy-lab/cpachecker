@@ -10,7 +10,7 @@ DEFAULT_HEAP_SIZE="1200M"
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
-java_version="`$JAVA -Xmx5m -version 2>&1`"
+java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
   echo "Java not found, please install Java 1.7 or newer." 1>&2
@@ -25,7 +25,7 @@ if [ $result -ne 0 ]; then
   echo "Please make sure you are able to execute Java processes by running \"$JAVA\"."
   exit 1
 fi
-java_version="`echo "$java_version" | grep "^java version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
+java_version="`echo "$java_version" | grep -e "^\(java\|openjdk\) version" | cut -f2 -d\\\" | sed 's/\.//g' | cut -b1-2`"
 if [ -z "$java_version" ] || [ "$java_version" -lt 17 ] ; then
   echo "Your Java version is too old, please install Java 1.7 or newer." 1>&2
   echo "For Ubuntu: sudo apt-get install openjdk-7-jre" 1>&2
@@ -60,6 +60,7 @@ export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachec
 # loop over all input parameters and parse them
 declare -a OPTIONS
 JAVA_ASSERTIONS=-ea
+EXEC=exec
 while [ $# -gt 0 ]; do
 
   case $1 in
@@ -72,6 +73,10 @@ while [ $# -gt 0 ]; do
        ;;
    "-disable-java-assertions")
        JAVA_ASSERTIONS=-da
+       ;;
+   "-generateReport")
+       EXEC=
+       POST_PROCESSING=scripts/report-generator.py
        ;;
    *) # other params are only for CPAchecker
        OPTIONS+=("$1")
@@ -110,6 +115,22 @@ case "$platform" in
     ;;
 esac
 
-# run CPAchecker
-# stack size is set because on some systems it is too small for recursive algorithms and very large programs
-exec "$JAVA" $JAVA_VM_ARGUMENTS -Xmx${JAVA_HEAP_SIZE} -Xss1024k $JAVA_ASSERTIONS org.sosy_lab.cpachecker.cmdline.CPAMain "${OPTIONS[@]}" $CPACHECKER_ARGUMENTS
+# Run CPAchecker.
+# Order of arguments for JVM:
+# - options hard-coded in this script (to allow overriding them)
+# - options specified in environment variable
+# - options specified on command-line to this script
+# - CPAchecker class and options
+# Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
+# PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
+$EXEC "$JAVA" \
+	-Xss1024k \
+	-XX:+PerfDisableSharedMem \
+	$JAVA_VM_ARGUMENTS \
+	-Xmx${JAVA_HEAP_SIZE} \
+	$JAVA_ASSERTIONS \
+	org.sosy_lab.cpachecker.cmdline.CPAMain \
+	"${OPTIONS[@]}" \
+	$CPACHECKER_ARGUMENTS
+
+$POST_PROCESSING

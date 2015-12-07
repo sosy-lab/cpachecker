@@ -26,15 +26,13 @@
     </configurations>
 
     <dependencies>
+
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.510" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.621" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
         <dependency org="com.google.guava" name="guava" rev="18.0" conf="runtime->default; contrib->sources"/>
-
-        <!-- Annotations from JSR 305 (e.g., @Nullable) and FindBugs (e.g., @SuppressFBWarnings) -->
-        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.0" conf="build->default"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -50,11 +48,11 @@
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
-        <dependency org="de.jflex" name="jflex" rev="1.4.3" conf="build->default"/>
+        <dependency org="de.jflex" name="jflex" rev="1.6.1" conf="build->default" transitive="false"/>
 
         <!-- CUP LALR Parser Generator for Java
              Used for generating automaton and FQL parsers. -->
-        <dependency org="edu.tum.cs" name="java-cup" rev="11a" conf="build->build; runtime->runtime"/>
+        <dependency org="edu.tum.cs" name="java-cup" rev="11b-20150326" conf="build->build; runtime->runtime"/>
 
         <!-- JUnit
              Testing framework. -->
@@ -66,38 +64,55 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="1.10.14" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="1.10.19" conf="test->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
-        <dependency org="com.google.truth" name="truth" rev="0.26" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.truth" name="truth" rev="0.27" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
         <dependency org="com.google.guava" name="guava-testlib" rev="18.0" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.8.0.201409172108" conf="runtime->default; contrib->sources"/>
-        <dependency org="org.eclipse.jdt" name="core" rev="3.9.2.v20140114-1555" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201509131935" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
 
         <!-- SmtInterpol -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1-183-g4d3bb9f" conf="runtime->runtime; contrib->sources">
+        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1-224-gfd408f2" conf="runtime->runtime; contrib->sources">
           <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
           <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
         </dependency>
 
         <!-- Princess -->
-        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-03-13-r2180" conf="runtime->default"/>
+        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-11-23-r2554" conf="runtime->runtime; contrib->sources">
+          <artifact name="princess" e:classifier="assertionless" conf="runtime"/>
+          <artifact name="princess" e:classifier="sources-assertionless" conf="contrib" ext="zip"/>
+        </dependency>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.2" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.2" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.5" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.5" conf="build->default; contrib->sources" />
+
+        <!-- google-java-format
+             A source-code formatter for Java -->
+        <dependency org="com.google.google-java-format" name="google-java-format" rev="0.1-SNAPSHOT-104-g79b7f0f" conf="build->runtime"/>
 
         <!-- FindBugs -->
         <dependency org="com.google.code.findbugs" name="findbugs" rev="3.0.1" conf="findbugs->default"/>
+        <dependency org="com.google.code.findbugs" name="annotations" rev="3.0.0" conf="build->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
+
+        <!-- JavaSMT -->
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.1-56-g2c791f0" conf="runtime->runtime; contrib->sources" />
+
+        <!-- Solver Binaries -->
+        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="z3-4.4.1-87-gad58226" conf="runtime->solver-z3" />
+        <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.3.7" conf="runtime->solver-mathsat" />
+        <dependency org="org.sosy_lab" name="javasmt-solver-optimathsat" rev="1.3.5" conf="runtime->solver-optimathsat" />
+
     </dependencies>
 </ivy-module>

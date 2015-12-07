@@ -46,9 +46,12 @@ DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
 STOPPED_BY_INTERRUPT = False
 
+_ROOT_DIR=os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+
 _justReprocessResults = False
 
 def init(config, benchmark):
+    global _justReprocessResults
     _justReprocessResults = config.reprocessResults
     benchmark.executable = benchmark.tool.executable()
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
@@ -65,7 +68,9 @@ def execute_benchmark(benchmark, output_handler):
         output_handler.all_created_files.append(cloudInputFile)
 
         # install cloud and dependencies
-        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"], shell=util.is_windows())
+        ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"],
+                               cwd=_ROOT_DIR,
+                               shell=util.is_windows())
         ant.communicate()
         ant.wait()
 
@@ -75,16 +80,16 @@ def execute_benchmark(benchmark, output_handler):
             logLevel =  "FINER"
         else:
             logLevel = "INFO"
-        heapSize = 100 + numberOfRuns//10 # 100 MB and 100 kB per run
-        libDir = os.path.abspath(os.path.join(os.path.curdir, "lib", "java-benchmark"))
-        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", os.path.join(libDir, "vcloud.jar"), "benchmark", "--loglevel", logLevel]
+        heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10 # 100 MB and 100 kB per run
+        lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
+        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
-            
+
         walltime_before = time.time()
-            
+
         cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=util.is_windows())
         try:
             (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
@@ -103,7 +108,8 @@ def execute_benchmark(benchmark, output_handler):
                 logging.warning(errorMsg)
                 output_handler.set_error(errorMsg)
     else:
-        returnCode = 0    
+        returnCode = 0
+        usedWallTime = None
 
     handleCloudResults(benchmark, output_handler, usedWallTime)
 
@@ -230,7 +236,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         # outputDir does not exist or is empty
-        logging.warning("Cloud produced no results. Output-directory is missing or empty: {0}".format(outputDir))
+        logging.warning("Cloud produced no results. Output-directory is missing or empty: %s", outputDir)
 
     # Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
@@ -250,19 +256,20 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             dataFile = run.log_file + ".data"
             if os.path.exists(dataFile):
                 try:
-                    (run.cputime, run.walltime, return_value, values) = parseCloudRunResultFile(dataFile)
+                    (run.cputime, run.walltime, return_value, termination_reason, values) =\
+                        parseCloudRunResultFile(dataFile)
                     run.values.update(values)
                     if return_value is not None and not benchmark.config.debug:
                         # Do not delete .data file if there was some problem
                         os.remove(dataFile)
                 except IOError as e:
-                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    run.identifier, e))
+                    logging.warning("Cannot extract measured values from output for file %s: %s",
+                                    run.identifier, e)
                     output_handler.all_created_files.append(dataFile)
                     executedAllRuns = False
                     return_value = None
             else:
-                logging.warning("No results exist for file {0}.".format(run.identifier))
+                logging.warning("No results exist for file %s.", run.identifier)
                 executedAllRuns = False
                 return_value = None
 
@@ -272,7 +279,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             if return_value is not None:
                 output_handler.output_before_run(run)
 
-                run.after_execution(return_value)
+                run.after_execution(return_value, termination_reason=termination_reason)
                 output_handler.output_after_run(run)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
@@ -282,8 +289,8 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     if not executedAllRuns:
         logging.warning("Some expected result files could not be found!")
     if runsProducedErrorOutput and not benchmark.config.debug:
-        logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
-                        .format(os.path.join(outputDir, '*.stdError')))
+        logging.warning("Some runs produced unexpected warnings on stderr, please check the %s files!",
+                        os.path.join(outputDir, '*.stdError'))
 
 
 def parseAndSetCloudWorkerHostInformation(filePath, output_handler):
@@ -316,6 +323,7 @@ def parseCloudRunResultFile(filePath):
     cputime = None
     walltime = None
     return_value = None
+    termination_reason = None
 
     def parseTimeValue(s):
         if s[-1] != 's':
@@ -339,16 +347,17 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 return_value = int(value)
                 values['@exitcode'] = value
+            elif key == 'terminationreason':
+                termination_reason = value
             elif key == "host" or key.startswith("energy-"):
                 values[key] = value
             else:
                 # "@" means value is hidden normally
                 values["@vcloud-" + key] = value
-                
+
     # remove irrelevant columns
     values.pop("@vcloud-command", None)
     values.pop("@vcloud-timeLimit", None)
     values.pop("@vcloud-coreLimit", None)
-    values.pop("@vcloud-memoryLimit", None) 
 
-    return (cputime, walltime, return_value, values)
+    return (cputime, walltime, return_value, termination_reason, values)
