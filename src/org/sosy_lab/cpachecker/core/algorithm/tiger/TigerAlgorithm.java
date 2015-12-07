@@ -150,6 +150,9 @@ public class TigerAlgorithm
   @Option(secure = true, name = "printARGperGoal", description = "Print the ARG for each test goal")
   private boolean printARGperGoal = false;
 
+  @Option(secure = true, name = "useAutomataCrossProduct", description = "Compute the cross product of the goal automata?")
+  private boolean useAutomataCrossProduct = false;
+
   @Option(
       secure = true,
       name = "checkCoverage",
@@ -1167,38 +1170,53 @@ public class TigerAlgorithm
 
   private ARGCPA composeCPA(Set<Goal> pGoalsToBeProcessed) throws CPAException, InvalidConfigurationException {
 
-    Automaton productAutomaton;
-    {
-      List<Automaton> goalAutomatons = Lists.newArrayList();
-      for (Goal goal : pGoalsToBeProcessed) {
-        final Automaton a = goal.createControlAutomaton();
-        goalAutomatons.add(a);
-        dumpAutomaton(a);
-      }
-
-      try {
-        productAutomaton = ReducedAutomatonProduct.productOf(goalAutomatons, "GOAL_PRODUCT");
-        dumpAutomaton(productAutomaton);
-
-      } catch (InvalidAutomatonException e) {
-        throw new CPAException("One of the automata is invalid!", e);
-      }
-    }
-
     Preconditions.checkArgument(cpa instanceof ARGCPA,
         "Tiger: Only support for ARGCPA implemented for CPA composition!");
     ARGCPA oldArgCPA = (ARGCPA) cpa;
 
-    CPAFactory automataFactory = ControlAutomatonCPA.factory();
-    automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, productAutomaton.getName()));
-    automataFactory.setLogger(logger.withComponentName(productAutomaton.getName()));
-    automataFactory.set(cfa, CFA.class);
-    automataFactory.set(productAutomaton, Automaton.class);
+    List<Automaton> componentAutomata = Lists.newArrayList();
+    {
+      List<Automaton> goalAutomata = Lists.newArrayList();
 
-    // Add one automata for each goal
-    //  TODO: Implement support for more than one (parallel) goal!
+      for (Goal goal : pGoalsToBeProcessed) {
+        final Automaton a = goal.createControlAutomaton();
+        goalAutomata.add(a);
+        dumpAutomaton(a);
+      }
+
+      if (useAutomataCrossProduct) {
+        final Automaton productAutomaton;
+        try {
+          productAutomaton = ReducedAutomatonProduct.productOf(goalAutomata, "GOAL_PRODUCT");
+        } catch (InvalidAutomatonException e) {
+          throw new CPAException("One of the automata is invalid!", e);
+        }
+
+        dumpAutomaton(productAutomaton);
+        componentAutomata.add(productAutomaton);
+      } else {
+        componentAutomata.addAll(goalAutomata);
+      }
+    }
+
+    logger.logf(Level.INFO, "Analyzing %d test goals with %d observer automata.", pGoalsToBeProcessed.size(), componentAutomata.size());
+
+    Collection<ConfigurableProgramAnalysis> automataCPAs = Lists.newArrayList();
+
+    for (Automaton componentAutomaton: componentAutomata) {
+
+      CPAFactory automataFactory = ControlAutomatonCPA.factory();
+      automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, componentAutomaton.getName()));
+      automataFactory.setLogger(logger.withComponentName(componentAutomaton.getName()));
+      automataFactory.set(cfa, CFA.class);
+      automataFactory.set(componentAutomaton, Automaton.class);
+
+      automataCPAs.add(automataFactory.createInstance());
+    }
+
+    // Add one automata CPA for each goal
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-    lComponentAnalyses.add(automataFactory.createInstance());
+    lComponentAnalyses.addAll(automataCPAs);
     lComponentAnalyses.addAll(oldArgCPA.getWrappedCPAs());
 
     final ARGCPA result;
