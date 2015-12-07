@@ -59,6 +59,10 @@ public abstract class LocationFormulaInvariant implements CandidateInvariant {
     this.locations = ImmutableSet.copyOf(pLocations);
   }
 
+  public Set<CFANode> getLocations() {
+    return locations;
+  }
+
   @Override
   public BooleanFormula getAssertion(Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR,
       PathFormulaManager pPFMGR) throws CPATransferException, InterruptedException {
