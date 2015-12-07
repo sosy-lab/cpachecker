@@ -177,7 +177,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
   @Option(secure=true, description="configuration file for bmc generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path bmcConfig = Paths.get("config/bmc.properties");
+  private Path bmcConfig = Paths.get("config/bmc-invgen.properties");
 
   @Option(secure=true, description="How often should generating invariants from"
       + " sliced prefixes with k-induction be tried?")
