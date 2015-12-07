@@ -170,7 +170,8 @@ try:
                 raise StopIteration()
 
         def __del__(self):
-            self.resp.close()
+            if hasattr(self, 'resp'):
+                self.resp.close()
 
     class SseResultDownloader:
 
