@@ -21,32 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
+package org.sosy_lab.cpachecker.util.expressions;
 
-import java.util.Collection;
-import java.util.Map;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
+public interface ExpressionTreeVisitor<T> {
 
-import com.google.common.base.Optional;
+  T visit(And pAnd);
 
-interface EdgeAppender {
+  T visit(Or pOr);
 
-  void appendNewEdge(
-      final GraphMlBuilder pDoc,
-      String pFrom,
-      String pTo,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pFromState,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
-
-  void appendNewEdgeToSink(
-      final GraphMlBuilder pDoc,
-      String pFrom,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pFromState,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
+  T visit(LeafExpression pLeafExpression);
 
 }

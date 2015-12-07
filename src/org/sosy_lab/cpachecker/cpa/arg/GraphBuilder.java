@@ -24,13 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,11 +40,16 @@ import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 
 enum GraphBuilder {
 
@@ -107,20 +114,29 @@ enum GraphBuilder {
             edgeToNextState = edges.get(edges.size()-1);
           }
 
+          Optional<Collection<ARGState>> state =
+              Optional.<Collection<ARGState>>of(Collections.singleton(s));
+
           // Only proceed with this state if the path states contain the child
           if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
-            pEdgeAppender.appendNewEdge(pDocument, prevStateId, childStateId, edgeToNextState, s, pValueMap);
+            pEdgeAppender.appendNewEdge(
+                pDocument, prevStateId, childStateId, edgeToNextState, state, pValueMap);
           } else {
             // Child does not belong to the path --> add a branch to the SINK node!
-            pEdgeAppender.appendNewEdgeToSink(pDocument, prevStateId, edgeToNextState, s, pValueMap);
+            pEdgeAppender.appendNewEdgeToSink(
+                pDocument, prevStateId, edgeToNextState, state, pValueMap);
           }
         }
       }
     }
-  },
 
-  SUB_PROGRAM {
+    @Override
+    public GraphType getGraphType() {
+      return GraphType.ERROR_WITNESS;
+    }
+  },
+  PROOF {
 
     @Override
     public String getId(ARGState pState) {
@@ -141,12 +157,17 @@ enum GraphBuilder {
 
       // Get all successor nodes of edges
       final Set<CFANode> subProgramNodes = new HashSet<>();
+      final Multimap<CFANode, ARGState> states = HashMultimap.create();
+
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
           // where the successor ARG node is in the set of target path states AND the edge is relevant
           if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
-            Iterables.addAll(subProgramNodes, AbstractStates.extractLocations(target));
+            for (CFANode location : AbstractStates.extractLocations(target)) {
+              subProgramNodes.add(location);
+              states.put(location, target);
+            }
           }
         }
       }
@@ -160,31 +181,60 @@ enum GraphBuilder {
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
           if (subProgramNodes.contains(successor)) {
-            appendEdge(pDocument, pEdgeAppender, leavingEdge);
+            appendEdge(
+                pDocument,
+                pEdgeAppender,
+                leavingEdge,
+                Optional.of(states.get(successor)),
+                pValueMap);
             if (visited.add(successor)) {
               waitlist.offer(successor);
             }
           } else {
             String sourceId = current.toString();
-            pEdgeAppender.appendNewEdgeToSink(pDocument, sourceId, leavingEdge);
+            pEdgeAppender.appendNewEdgeToSink(
+                pDocument,
+                sourceId,
+                leavingEdge,
+                Optional.<Collection<ARGState>>absent(),
+                pValueMap);
           }
         }
       }
     }
 
-    private void appendEdge(GraphMlBuilder pDocument, EdgeAppender pEdgeAppender, CFAEdge pEdge) {
+    private void appendEdge(
+        GraphMlBuilder pDocument,
+        EdgeAppender pEdgeAppender,
+        CFAEdge pEdge,
+        Optional<Collection<ARGState>> pStates,
+        Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
       if (pEdge instanceof MultiEdge) {
-        for (CFAEdge edge : (MultiEdge) pEdge) {
-          appendEdge(pDocument, pEdgeAppender, edge);
+        Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
+        while (edgeIterator.hasNext()) {
+          CFAEdge edge = edgeIterator.next();
+          appendEdge(
+              pDocument,
+              pEdgeAppender,
+              edge,
+              edgeIterator.hasNext() ? Optional.<Collection<ARGState>>absent() : pStates,
+              pValueMap);
         }
       } else {
         String sourceId = pEdge.getPredecessor().toString();
         String targetId = pEdge.getSuccessor().toString();
-        pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge);
+        pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
       }
     }
 
+    @Override
+    public GraphType getGraphType() {
+      return GraphType.PROOF_WITNESS;
+    }
+
   };
+
+  public abstract GraphType getGraphType();
 
   public abstract String getId(ARGState pState);
 

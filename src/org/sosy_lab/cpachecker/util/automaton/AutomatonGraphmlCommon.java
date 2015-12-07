@@ -86,23 +86,20 @@ public class AutomatonGraphmlCommon {
 
   public static enum KeyDef {
     INVARIANT("invariant", "node", "invariant", "string"),
+    INVARIANTSCOPE("invariant.scope", "node", "invariant.scope", "string"),
     NAMED("named", "node", "namedValue", "string"),
-
     NODETYPE("nodetype", "node", "nodeType", "string"),
-
-    ISFRONTIERNODE("frontier","node","isFrontierNode","boolean"),
-    ISVIOLATIONNODE("violation","node","isViolationNode","boolean"),
-    ISENTRYNODE("entry","node","isEntryNode","boolean"),
-    ISSINKNODE("sink","node","isSinkNode","boolean"),
+    ISFRONTIERNODE("frontier", "node", "isFrontierNode", "boolean"),
+    ISVIOLATIONNODE("violation", "node", "isViolationNode", "boolean"),
+    ISENTRYNODE("entry", "node", "isEntryNode", "boolean"),
+    ISSINKNODE("sink", "node", "isSinkNode", "boolean"),
     VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
-
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", "graph", "programFile", "string"),
     SPECIFICATION("specification", "graph", "specification", "string"),
     MEMORYMODEL("memorymodel", "graph", "memoryModel", "string"),
     ARCHITECTURE("architecture", "graph", "architecture", "string"),
     PRODUCER("producer", "graph", "producer", "string"),
-
     SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
     ORIGINLINE("startline", "edge", "startline", "int"),
     OFFSET("startoffset", "edge", "startoffset", "int"),
@@ -111,12 +108,11 @@ public class AutomatonGraphmlCommon {
     CONTROLCASE("control", "edge", "control", "string"),
     ASSUMPTION("assumption", "edge", "assumption", "string"),
     ASSUMPTIONSCOPE("assumption.scope", "edge", "assumption.scope", "string"),
-
     FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
-
     CFAPREDECESSORNODE("predecessor", "edge", "predecessor", "string"),
-    CFASUCCESSORNODE("successor", "edge", "successor", "string");
+    CFASUCCESSORNODE("successor", "edge", "successor", "string"),
+    GRAPH_TYPE("type", "graph", "graphtype", "string");
 
     public final String id;
     public final String keyFor;
@@ -163,8 +159,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    PROGRAMPATH("traces automaton"),
-    CONDITION("assumptions automaton");
+    ERROR_WITNESS("traces automaton"),
+    PROOF_WITNESS("assumptions automaton");
 
     public final String text;
 
@@ -319,6 +315,7 @@ public class AutomatonGraphmlCommon {
         String pMemoryModel,
         MachineModel pMachineModel) throws IOException {
       target.append("<graph edgedefault=\"directed\">");
+      appendDataElement(KeyDef.GRAPH_TYPE, pGraphType.toString());
       appendDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString());
       appendDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion());
       for (String specification : pSpecifications) {
