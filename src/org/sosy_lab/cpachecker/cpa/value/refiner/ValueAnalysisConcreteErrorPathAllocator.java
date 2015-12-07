@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -76,8 +75,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -143,7 +144,9 @@ public class ValueAnalysisConcreteErrorPathAllocator {
      * This avoids needing to get the CDeclaration
      * representing each memory location, which would be necessary if we
      * wanted to exactly map each memory location to a LeftHandSide.*/
-    Map<LeftHandSide, Address> variableAddresses = generateVariableAddresses(pPath);
+    Map<LeftHandSide, Address> variableAddresses =
+        generateVariableAddresses(
+            FluentIterable.from(pPath).transform(Pair.<ValueAnalysisState>getProjectionToFirst()));
 
     for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
 
@@ -319,10 +322,11 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return true;
   }
 
-  private Map<LeftHandSide, Address> generateVariableAddresses(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  private Map<LeftHandSide, Address> generateVariableAddresses(Iterable<ValueAnalysisState> pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
-    Multimap<IDExpression, MemoryLocation> memoryLocationsInPath = getAllMemoryLocationInPath(pPath);
+    Multimap<IDExpression, MemoryLocation> memoryLocationsInPath =
+        getAllMemoryLocationsInPath(pPath);
 
     // Generate consistent Addresses, with non overlapping fields.
     return generateVariableAddresses(memoryLocationsInPath);
@@ -365,23 +369,29 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return pNextAddressToBeAssigned.addOffset(offset);
   }
 
-  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationInPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  private Multimap<IDExpression, MemoryLocation> getAllMemoryLocationsInPath(
+      Iterable<ValueAnalysisState> pPath) {
 
     Multimap<IDExpression, MemoryLocation> result = HashMultimap.create();
 
-    for (Pair<ValueAnalysisState, CFAEdge> edgeStatePair : pPath) {
+    for (ValueAnalysisState valueState : pPath) {
 
-      ValueAnalysisState valueState = edgeStatePair.getFirst();
-
-      for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
-        IDExpression idExp = createBaseIdExpresssion(loc);
-
-        if (!result.containsEntry(idExp, loc)) {
-          result.put(idExp, loc);
-        }
-      }
+      putIfNotExists(valueState, result);
     }
     return result;
+  }
+
+  private void putIfNotExists(
+      ValueAnalysisState pState, Multimap<IDExpression, MemoryLocation> memoryLocationMap) {
+    ValueAnalysisState valueState = pState;
+
+    for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
+      IDExpression idExp = createBaseIdExpresssion(loc);
+
+      if (!memoryLocationMap.containsEntry(idExp, loc)) {
+        memoryLocationMap.put(idExp, loc);
+      }
+    }
   }
 
   private IDExpression createBaseIdExpresssion(MemoryLocation pLoc) {
