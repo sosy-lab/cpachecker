@@ -241,7 +241,7 @@ public class TigerAlgorithm
   @Option(
       secure = true,
       name = "numberOfTestGoalsPerRun",
-      description = "The number of test goals processed per CPAchecker run (0: all test cases in one run).")
+      description = "The number of test goals processed per CPAchecker run (0: all test goals in one run).")
   private int numberOfTestGoalsPerRun = 1;
 
   @Option(
@@ -453,8 +453,13 @@ public class TigerAlgorithm
 
       while (!pGoalsToCover.isEmpty()) {
         Set<Goal> goalsToBeProcessed = new HashSet<>();
-        int testGoalSetSize =
-            (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
+        int testGoalSetSize;
+        if (numberOfTestGoals <= 0) {
+          testGoalSetSize = pGoalsToCover.size();
+        } else {
+          testGoalSetSize =
+              (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
+        }
         for (int i = 0; i < testGoalSetSize; i++) {
           statistics_numberOfProcessedTestGoals++;
           goalsToBeProcessed.add(pGoalsToCover.poll());
@@ -1091,6 +1096,7 @@ public class TigerAlgorithm
       logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s !", pGoal.getIndex(),
           bddCpaNamedRegionManager.dumpRegion(pGoal.getRemainingPresenceCondition()));
     } else {
+      logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
       testsuite.addInfeasibleGoal(pGoal, null, lGoalPrediction);
     }
 
