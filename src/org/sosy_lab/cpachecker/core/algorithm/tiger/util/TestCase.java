@@ -34,18 +34,29 @@ import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class TestCase {
 
+  private int id;
   private List<BigInteger> inputs;
   private ARGPath argPath;
   private List<CFAEdge> errorPath;
   private NamedRegionManager bddCpaNamedRegionManager;
   private Region presenceCondition;
+  private long generationTime;
+  private int numberOfNewlyCoveredGoals;
+  private int numberOfNewlyPartiallyCoveredGoals;
 
-  public TestCase(List<BigInteger> pInputs, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager) {
+  public TestCase(int pId, List<BigInteger> pInputs, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition,
+      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime) {
+    id = pId;
     inputs = pInputs;
     argPath = pArgPath;
     errorPath = pList;
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     presenceCondition = pPresenceCondition;
+    generationTime = pGenerationTime;
+  }
+
+  public int getId() {
+    return id;
   }
 
   public ARGPath getArgPath() {
@@ -62,6 +73,26 @@ public class TestCase {
 
   public Region getPresenceCondition() {
     return presenceCondition;
+  }
+
+  public long getGenerationTime() {
+    return generationTime;
+  }
+
+  public int getNumberOfNewlyCoveredGoals() {
+    return numberOfNewlyCoveredGoals;
+  }
+
+  public void incrementNumberOfNewlyCoveredGoals() {
+    numberOfNewlyCoveredGoals++;
+  }
+
+  public int getNumberOfNewlyPartiallyCoveredGoals() {
+    return numberOfNewlyPartiallyCoveredGoals;
+  }
+
+  public void incrementNumberOfNewlyPartiallyCoveredGoals() {
+    numberOfNewlyPartiallyCoveredGoals++;
   }
 
   public String toCode() {
@@ -92,8 +123,9 @@ public class TestCase {
   @Override
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
-      TestCase other = (TestCase)o;
-      return (inputs.equals(other.inputs) && errorPath.equals(other.errorPath) && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
+      TestCase other = (TestCase) o;
+      return (inputs.equals(other.inputs) && errorPath.equals(other.errorPath)
+          && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
     }
 
     return false;
@@ -101,7 +133,8 @@ public class TestCase {
 
   @Override
   public int hashCode() {
-    return 38495 + 33 * inputs.hashCode() + 13 * errorPath.hashCode() + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
+    return 38495 + 33 * inputs.hashCode() + 13 * errorPath.hashCode()
+        + (presenceCondition != null ? 25 * presenceCondition.hashCode() : 0);
   }
 
 }

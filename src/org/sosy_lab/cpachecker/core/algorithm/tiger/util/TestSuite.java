@@ -50,6 +50,7 @@ public class TestSuite {
   private NamedRegionManager bddCpaNamedRegionManager;
   private boolean printLabels;
   boolean useTigerAlgorithm_with_pc;
+  private long generationStartTime = 0;
 
   public TestSuite(NamedRegionManager pBddCpaNamedRegionManager, boolean pPrintLabels,
       boolean pUseTigerAlgorithm_with_pc) {
@@ -159,6 +160,14 @@ public class TestSuite {
     return mapping.get(testcase);
   }
 
+  public long getGenerationStartTime() {
+    return generationStartTime;
+  }
+
+  public void setGenerationStartTime(long pGenerationStartTime) {
+    generationStartTime = pGenerationStartTime;
+  }
+
   @Override
   public String toString() {
     StringBuffer str = new StringBuffer();
@@ -166,6 +175,9 @@ public class TestSuite {
     for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
       str.append(entry.getKey().toString() + "\n");
       List<CFAEdge> errorPath = entry.getKey().getErrorPath();
+      if (entry.getKey().getGenerationTime() != -1) {
+        str.append("Generation Time: " + (entry.getKey().getGenerationTime() - getGenerationStartTime()) + "\n");
+      }
       if (errorPath != null) {
         str.append("Errorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
       }

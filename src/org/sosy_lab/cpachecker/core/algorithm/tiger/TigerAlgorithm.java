@@ -44,6 +44,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import javax.annotation.Nullable;
+import javax.management.JMException;
 
 import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -129,6 +130,9 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Preconditions;
@@ -172,6 +176,10 @@ public class TigerAlgorithm
   @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testsuiteFile = Paths.get("testsuite.txt");
+
+  @Option(secure = true, name = "testcaseGeneartionTimesFile", description = "Filename for output of geneartion times of test cases")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path testcaseGenerationTimesFile = Paths.get("generationTimes.csv");
 
   @Option(secure=true,
       description="File for saving processed goal automata in DOT format (%s will be replaced with automaton name)")
@@ -279,11 +287,13 @@ public class TigerAlgorithm
 
   private int statistics_numberOfTestGoals;
   private int statistics_numberOfProcessedTestGoals = 0;
+  private StatCpuTime statCpuTime = null;
 
   private Prediction[] lGoalPrediction;
 
   private String programDenotation;
   private MainCPAStatistics stats;
+  private int testCaseId = 0;
 
   NamedRegionManager bddCpaNamedRegionManager = null;
 
@@ -295,6 +305,7 @@ public class TigerAlgorithm
 
     this.programDenotation = programDenotation;
     this.stats = stats;
+    this.statCpuTime = new StatCpuTime();
     this.config = pConfig;
 
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
@@ -342,6 +353,20 @@ public class TigerAlgorithm
     return reusedPrecision;
   }
 
+  public long getCpuTime() {
+    long cpuTime = -1;
+    try {
+      long currentCpuTime = (long) (ProcessCpuTime.read() / 1e6);
+      long currentWallTime = System.currentTimeMillis();
+      statCpuTime.onMeasurementResult(currentCpuTime - statCpuTime.getCpuTimeSumMilliSecs(), currentWallTime - statCpuTime.getWallTimeSumMsec());
+      cpuTime = statCpuTime.getCpuTimeSumMilliSecs();
+    } catch (NoTimeMeasurement | JMException e) {
+      logger.logUserException(Level.WARNING, e, "Could not get CPU time for statistics.");
+    }
+
+    return cpuTime;
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // we empty pReachedSet to stop complaints of an incomplete analysis
@@ -351,6 +376,9 @@ public class TigerAlgorithm
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
     outsideReachedSet = pReachedSet;
     outsideReachedSet.clear();
+
+    statCpuTime.start();
+    testsuite.setGenerationStartTime(getCpuTime());
 
     // Optimization: Infeasibility propagation
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
@@ -979,8 +1007,9 @@ public class TigerAlgorithm
                   + bddCpaNamedRegionManager.dumpRegion((testCaseFinalRegion == null
                       ? testCaseFinalRegion : testCaseFinalRegion)));
 
-          TestCase testcase = new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().getInnerEdges(),
-              (testCaseFinalRegion == null ? testCaseFinalRegion : testCaseFinalRegion), bddCpaNamedRegionManager);
+          TestCase testcase = new TestCase(testCaseId++, inputValues, cex.getTargetPath(), cex.getTargetPath().getInnerEdges(),
+              (testCaseFinalRegion == null ? testCaseFinalRegion : testCaseFinalRegion), bddCpaNamedRegionManager,
+              getCpuTime());
 
           PathIterator pathIterator = cex.getTargetPath().pathIterator();
           while (pathIterator.hasNext()) {
@@ -1010,8 +1039,9 @@ public class TigerAlgorithm
                   pGoal.getIndex(), testsuite.getTestGoalLabel(pGoal));
 
               logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
-              TestCase testcase =
-                  new TestCase(inputValues, cex.getTargetPath(), cex.getTargetPath().getInnerEdges(), null, null);
+
+              TestCase testcase = new TestCase(testCaseId++, inputValues, cex.getTargetPath(), cex.getTargetPath().getInnerEdges(),
+                  null, null, getCpuTime());
               testsuite.addTestCase(testcase, pGoal, null);
 
               if (lGoalPrediction != null) {
@@ -1080,8 +1110,8 @@ public class TigerAlgorithm
     }
 
     TestCase testcase =
-        new TestCase(inputValues, path, trace, (testCaseCriticalStateRegion == null
-            ? testCaseFinalRegion : testCaseCriticalStateRegion), bddCpaNamedRegionManager);
+        new TestCase(testCaseId++, inputValues, path, trace, (testCaseCriticalStateRegion == null
+            ? testCaseFinalRegion : testCaseCriticalStateRegion), bddCpaNamedRegionManager, getCpuTime());
     testsuite.addTestCase(testcase, pGoal, testCaseCriticalStateRegion);
   }
 
@@ -1282,16 +1312,24 @@ public class TigerAlgorithm
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
 
+    pOut.println("Number of test cases:                              " + testsuite.getNumberOfTestCases());
     pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
     pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
 
+    Set<Goal> feasibleGoals = null;
+    Set<Goal> partiallyFeasibleGoals = null;
+    Set<Goal> infeasibleGoals = null;
+    Set<Goal> partiallyInfeasibleGoals = null;
+    Set<Goal> timedoutGoals = null;
+    Set<Goal> partiallyTimedoutGoals = null;
+
     if (useTigerAlgorithm_with_pc) {
-      int feasibleGoals = 0;
-      int partiallyFeasibleGoals = 0;
-      int infeasibleGoals = 0;
-      int partiallyInfeasibleGoals = 0;
-      int timedoutGoals = 0;
-      int partiallyTimedoutGoals = 0;
+      feasibleGoals = new HashSet<>();
+      partiallyFeasibleGoals = new HashSet<>();
+      infeasibleGoals = new HashSet<>();
+      partiallyInfeasibleGoals = new HashSet<>();
+      timedoutGoals = new HashSet<>();
+      partiallyTimedoutGoals = new HashSet<>();
 
       for (Goal goal : testsuite.getGoals()) {
         if (goal.getCoveringTestCases().size() > 0) {
@@ -1299,45 +1337,45 @@ public class TigerAlgorithm
           boolean partiallyFeasible = false;
           if (testsuite.isGoalInfeasible(goal)) {
             // goal is partially feasible
-            partiallyInfeasibleGoals++;
+            partiallyInfeasibleGoals.add(goal);
             partiallyFeasible = true;
           }
           if (testsuite.isGoalTimedout(goal)) {
             // goal is partially timedout
-            partiallyTimedoutGoals++;
+            partiallyTimedoutGoals.add(goal);
             partiallyFeasible = true;
           }
           if (partiallyFeasible) {
             // goal is partially feasible
-            partiallyFeasibleGoals++;
+            partiallyFeasibleGoals.add(goal);
           } else {
             // goal feasible
-            feasibleGoals++;
+            feasibleGoals.add(goal);
           }
         } else if (testsuite.isGoalInfeasible(goal)) {
           // goal is infeasible
           if (testsuite.isGoalTimedout(goal)) {
             // goal is partially timed out
-            partiallyTimedoutGoals++;
-            partiallyInfeasibleGoals++;
+            partiallyInfeasibleGoals.add(goal);
+            partiallyInfeasibleGoals.add(goal);;
           } else {
             // goal is infeasible
-            infeasibleGoals++;
+            infeasibleGoals.add(goal);
           }
         } else {
           // goal is timedout
-          timedoutGoals++;
+          timedoutGoals.add(goal);
         }
       }
 
-      pOut.println("Number of feasible test goals:                     " + feasibleGoals);
-      pOut.println("Number of partially feasible test goals:           " + partiallyFeasibleGoals);
-      pOut.println("Number of infeasible test goals:                   " + infeasibleGoals);
-      pOut.println("Number of partially infeasible test goals:         " + partiallyInfeasibleGoals);
-      pOut.println("Number of timedout test goals:                     " + timedoutGoals);
-      pOut.println("Number of partially timedout test goals:           " + partiallyTimedoutGoals);
+      pOut.println("Number of feasible test goals:                     " + feasibleGoals.size());
+      pOut.println("Number of partially feasible test goals:           " + partiallyFeasibleGoals.size());
+      pOut.println("Number of infeasible test goals:                   " + infeasibleGoals.size());
+      pOut.println("Number of partially infeasible test goals:         " + partiallyInfeasibleGoals.size());
+      pOut.println("Number of timedout test goals:                     " + timedoutGoals.size());
+      pOut.println("Number of partially timedout test goals:           " + partiallyTimedoutGoals.size());
 
-      if (timedoutGoals > 0 || partiallyTimedoutGoals > 0) {
+      if (timedoutGoals.size() > 0 || partiallyTimedoutGoals.size() > 0) {
         pOut.println("Timeout occured during processing of a test goal!");
       }
     } else {
@@ -1359,6 +1397,77 @@ public class TigerAlgorithm
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
+    // write test case generation times to file system
+    try (Writer writer = new BufferedWriter(
+        new OutputStreamWriter(new FileOutputStream(testcaseGenerationTimesFile.getAbsolutePath()), "utf-8"))) {
+
+      List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
+      testcases.sort(new Comparator<TestCase>() {
+
+        @Override
+        public int compare(TestCase pTestCase1, TestCase pTestCase2) {
+          if (pTestCase1.getGenerationTime() > pTestCase2.getGenerationTime()) {
+            return 1;
+          } else if (pTestCase1.getGenerationTime() < pTestCase2.getGenerationTime()) { return -1; }
+          return 0;
+        }
+      });
+
+      if (useTigerAlgorithm_with_pc) {
+        Set<Goal> feasible = new HashSet<>();
+        feasible.addAll(feasibleGoals);
+        feasible.addAll(partiallyFeasibleGoals);
+        feasible.removeAll(partiallyTimedoutGoals);
+        for (Goal goal : feasible) {
+          Map<TestCase, Region> tests = goal.getCoveringTestCases();
+          TestCase lastTestCase = getLastTestCase(tests.keySet());
+          lastTestCase.incrementNumberOfNewlyCoveredGoals();
+        }
+        Set<Goal> partially = new HashSet<>();
+        partially.addAll(feasibleGoals);
+        partially.addAll(partiallyFeasibleGoals);
+        partially.removeAll(partiallyInfeasibleGoals);
+        for (Goal goal : partially) {
+          Map<TestCase, Region> tests = goal.getCoveringTestCases();
+          TestCase lastTestCase = getLastTestCase(tests.keySet());
+          lastTestCase.incrementNumberOfNewlyPartiallyCoveredGoals();
+        }
+
+        writer.write("Test Case;Generation Time;Covered Goals After Generation;Completely Covered Goals After Generation;Partially Covered Goals After Generation\n");
+        int completelyCoveredGoals = 0;
+        int partiallyCoveredGoals = 0;
+        for (TestCase testCase : testcases) {
+          int newCoveredGoals = testCase.getNumberOfNewlyCoveredGoals();
+          int newPartiallyCoveredGoals = testCase.getNumberOfNewlyPartiallyCoveredGoals();
+          completelyCoveredGoals += newCoveredGoals;
+          partiallyCoveredGoals += newPartiallyCoveredGoals;
+
+          writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
+              + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals + ";"
+              + partiallyCoveredGoals + "\n");
+        }
+      } else {
+        Set<Goal> coveredGoals = new HashSet<>();
+        writer.write("Test Case;Generation Time;Covered Goals After Generation\n");
+        for (TestCase testCase : testcases) {
+          coveredGoals.addAll(testsuite.getTestGoalsCoveredByTestCase(testCase));
+          writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";" + coveredGoals.size() + "\n");
+        }
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private TestCase getLastTestCase(Set<TestCase> pTestCases) {
+    TestCase lastTestCase = null;
+    for (TestCase testCase : pTestCases) {
+      if (lastTestCase == null || testCase.getGenerationTime() < lastTestCase.getGenerationTime()) {
+        lastTestCase = testCase;
+      }
+    }
+    return lastTestCase;
   }
 
 }
