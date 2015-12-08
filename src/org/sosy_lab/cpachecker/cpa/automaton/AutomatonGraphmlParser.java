@@ -529,7 +529,8 @@ public class AutomatonGraphmlParser {
       distanceVariable.setValue(-distances.get(initialStateName));
       Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
-      Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
+      AutomatonSafetyPropertyFactory propFact = new AutomatonSafetyPropertyFactory(config, pInputFile.getName());
+      Automaton automaton = new Automaton(propFact, automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
       if (automatonDumpFile != null) {

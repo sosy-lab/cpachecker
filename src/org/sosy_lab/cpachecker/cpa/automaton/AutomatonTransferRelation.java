@@ -80,6 +80,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
 
+  int statNumberOfMatches = 0;
   Timer totalPostTime = new Timer();
   Timer matchTime = new Timer();
   Timer inactivityCheckTime = new Timer();
@@ -90,6 +91,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
       LogManager pLogger) throws InvalidConfigurationException {
+
     config.inject(this);
 
     this.cpa = pCpa;
@@ -97,7 +99,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+  public Collection<AutomatonState> getAbstractSuccessorsForEdge(
                       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
 
@@ -111,7 +113,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (!(pCfaEdge instanceof MultiEdge)) {
-      Collection<? extends AbstractState> result = getAbstractSuccessors0((AutomatonState)pElement, pPrecision, pCfaEdge);
+      Collection<AutomatonState> result = getAbstractSuccessors0((AutomatonState)pElement, pPrecision, pCfaEdge);
       automatonSuccessors.setNextValue(result.size());
       return result;
     }
@@ -238,6 +240,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(pState);
     }
 
+    final Automaton automaton = pState.getOwningAutomaton();
+
     Collection<AutomatonState> result = Sets.newLinkedHashSetWithExpectedSize(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(pState, pState.getVars(), pOtherElements, pEdge, logger);
 
@@ -268,6 +272,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
       } else {
         if (match.getValue()) {
+          statNumberOfMatches++;
           edgeMatched = true;
 
           // Check if the ASSERTION holds
@@ -302,16 +307,16 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           } else {
             // matching transitions, but unfulfilled assertions: goto error state
 
-            Set<SafetyProperty> assertionProperties = Sets.newHashSet(t.getViolatedWhenAssertionFailed());
+            Set<SafetyProperty> assertionProperties = Sets.newHashSet();
+            assertionProperties.addAll(t.getViolatedWhenAssertionFailed());
+
             if (assertionProperties.isEmpty()) {
-              assertionProperties.add(new AutomatonSafetyProperty(pState.getOwningAutomaton()));
+              assertionProperties.addAll(automaton.getPropertyFactory().createAssertionProperty(t.getAssertion()));
             }
 
             Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
-            if (t.getFollowState().isTarget()) {
-              for (SafetyProperty p : assertionProperties) {
-                violatedProperties.put(p, p.instantiate(exprArgs));
-              }
+            for (SafetyProperty p : assertionProperties) {
+              violatedProperties.put(p, p.instantiate(exprArgs));
             }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
@@ -400,7 +405,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
    * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.List, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
    */
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
+  public Collection<AutomatonState> strengthen(AbstractState pElement,
                                     List<AbstractState> pOtherElements,
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
@@ -501,7 +506,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       }
 
       // For each list of other states, do the strengthening
-      Collection<AbstractState> successors = new HashSet<>();
+      Collection<AutomatonState> successors = new HashSet<>();
       for (List<AbstractState> otherStates : strengtheningCombinations) {
         successors.addAll(getFollowStates(lUnknownState.getPreviousState(), otherStates, pCfaEdge, true));
       }

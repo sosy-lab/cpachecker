@@ -119,6 +119,7 @@ public class AutomatonTest {
       assertThat(results.getLog()).contains("Illegal character");
   }
 
+
   @Test
   public void matchEndOfProgramTest() throws Exception {
     Map<String, String> prop = ImmutableMap.of(
@@ -133,6 +134,7 @@ public class AutomatonTest {
       assertThat(results.getLog()).contains("Last statement is \"return (-1);\"");
       results.assertIsSafe();
   }
+
   @Test
   public void failIfNoAutomatonGiven() throws Exception {
     Map<String, String> prop = ImmutableMap.of(

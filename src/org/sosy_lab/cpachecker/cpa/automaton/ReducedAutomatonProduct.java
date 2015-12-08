@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition.PlainAutomatonTransition;
 import org.sosy_lab.cpachecker.util.Cartesian;
@@ -297,7 +299,12 @@ public final class ReducedAutomatonProduct {
       }
     }
 
-    return createAutomaton(initialState, productStates, pProductAutomataName);
+    try {
+      return createAutomaton(initialState, productStates, pProductAutomataName);
+
+    } catch (InvalidConfigurationException e) {
+      throw new InvalidAutomatonException(e.getMessage());
+    }
   }
 
   private static boolean isBottom(ProductState pN) {
@@ -311,7 +318,7 @@ public final class ReducedAutomatonProduct {
 
   private static Automaton createAutomaton(
       ProductState pInitialState, Set<ProductState> pProductStates, String pProductAutomataName)
-          throws InvalidAutomatonException {
+          throws InvalidAutomatonException, InvalidConfigurationException {
 
     final String initialStateName = pInitialState.getStateName();
 
@@ -344,7 +351,8 @@ public final class ReducedAutomatonProduct {
       //    The split might (should?) already be part of the input automata!!
     }
 
-    return new Automaton(pProductAutomataName,
+    return new Automaton(new AutomatonSafetyPropertyFactory(Configuration.defaultConfiguration(), ""),
+        pProductAutomataName,
         Maps.<String, AutomatonVariable>newHashMap(),
         automatonStates, initialStateName);
   }

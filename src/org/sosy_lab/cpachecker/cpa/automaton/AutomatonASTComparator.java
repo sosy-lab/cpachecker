@@ -256,6 +256,10 @@ class AutomatonASTComparator {
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Code in assumption: <"
       + statement.toASTString() + "> is not a valid assumption.");
+      } else if (statement.toString().contains("__CPAchecker_TMP_")) {
+        throw new InvalidAutomatonException("Invalid assumptions. Disjunctions "
+            + "are not allowed. Conjunctions need to split into separate "
+            + "statements, separated by a semi-colon.");
       }
     }
 

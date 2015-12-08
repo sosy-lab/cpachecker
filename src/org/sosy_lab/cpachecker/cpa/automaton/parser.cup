@@ -53,9 +53,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyProperty.AutomatonSafetyPropertyFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.base.Optional;
 
@@ -114,7 +115,7 @@ parser code {:
         "OK");
     AutomatonInternalState okState = new AutomatonInternalState("OK", 
         Collections.singletonList(trans));
-    Automaton ret = new Automaton("AnonymousAutomaton" + anonymousCounter++,
+    Automaton ret = new Automaton(propFact, "AnonymousAutomaton" + anonymousCounter++,
                                   Collections.<String, AutomatonVariable>emptyMap(), 
                                   Collections.singletonList(okState), "OK");
     return ret;
@@ -138,11 +139,12 @@ parser code {:
   */
   public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
-    Scanner scanner = new AutomatonScanner(reader, pInputFile.or(Paths.get("")), pLogger, sf);
+    final Path p = pInputFile.or(Paths.get(""));
+    Scanner scanner = new AutomatonScanner(reader, p, pLogger, sf);
 
     AutomatonParser automatonParser;
     
-    AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config);
+    AutomatonSafetyPropertyFactory propFactory = new AutomatonSafetyPropertyFactory(config, p.getName());
 
     switch (pLanguage) {
     case C:
@@ -162,7 +164,9 @@ parser code {:
             + " (" + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()) + ")", e);
     }
 
-    return ((List<Automaton>) symbol.value);
+    final List<Automaton> result = ((List<Automaton>) symbol.value);
+
+    return result;
   }
 
   AutomatonASTComparator.ASTMatcherProvider generateASTPattern(String pattern) throws InvalidAutomatonException, InvalidConfigurationException {
@@ -227,7 +231,7 @@ Automaton ::= OBSERVER Body:b
             ;
 
 Body      ::= AUTOMATON IDENTIFIER:id LocalDefs:vars InitDef:init StateDefs:states END AUTOMATON
-              {: RESULT = new Automaton(id.toString(), vars, states, init); :}
+              {: RESULT = new Automaton(propFact, id.toString(), vars, states, init); :}
             ;
 
 InitDef    ::= INITIAL STATE IDENTIFIER:id SEMICOLON {: RESULT = id.toString(); :};
@@ -265,17 +269,17 @@ Transitions   ::= Transition:t Transitions:lst {: lst.addAll(0, t); RESULT = lst
 Transition   ::= Bool:trigger  ARROW Split:a GOTO IDENTIFIER:follow NEGATION GOTO IDENTIFIER:followneg SEMICOLON
               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ImmutableList.<AutomatonAction>of(), follow.toString()), new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AutomatonAction>of(), followneg.toString())); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, follow.toString())); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, follow.toString(), null, ImmutableSet.<SafetyProperty>of(), propFact.createAssertionProperties(ass))); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM, null)); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM)); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts INACTIVE SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.INACTIVE, null)); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.INACTIVE)); :}
                | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BREAK, null)); :}
+              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BREAK)); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}

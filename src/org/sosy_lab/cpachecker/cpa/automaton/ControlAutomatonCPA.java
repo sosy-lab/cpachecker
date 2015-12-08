@@ -76,6 +76,10 @@ import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 @Options(prefix="cpa.automaton")
 public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
+  }
+
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
   private boolean export = false;
@@ -84,10 +88,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       description="file for saving the automaton in DOT format (%s will be replaced with automaton name)")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportFile = PathTemplate.ofFormatString("%s.dot");
-
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
-  }
 
   @Option(secure=true, required=false,
       description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
@@ -203,7 +203,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AutomatonState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
   }
 
