@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.OptEnvironment;
@@ -36,10 +36,11 @@ import com.google.common.base.Optional;
  * Wrapper for {@link OptEnvironment} which unwraps the objective formula.
  */
 public class OptEnvironmentView implements OptEnvironment {
+
   private final OptEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
-  public OptEnvironmentView(
+  OptEnvironmentView(
       OptEnvironment pDelegate,
       FormulaManagerView pFormulaManager
   ) {

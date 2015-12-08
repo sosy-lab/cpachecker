@@ -40,7 +40,7 @@ public class FloatingPointFormulaManagerView
 
   private final FloatingPointFormulaManager manager;
 
-  public FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FloatingPointFormulaManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;

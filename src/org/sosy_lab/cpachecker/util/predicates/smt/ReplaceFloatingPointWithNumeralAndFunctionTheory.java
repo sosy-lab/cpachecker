@@ -42,8 +42,7 @@ import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
-
-public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
+class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         extends BaseManagerView
         implements FloatingPointFormulaManager {
 
@@ -58,7 +57,7 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
   private final T plusInfinityVariable;
   private final T minusInfinityVariable;
 
-  public ReplaceFloatingPointWithNumeralAndFunctionTheory(
+  ReplaceFloatingPointWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<? super T, T> pReplacementManager,
       FunctionFormulaManager rawFunctionManager,

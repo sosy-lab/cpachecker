@@ -38,7 +38,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   private final BitvectorFormulaManager manager;
   private final BooleanFormulaManager bmgr;
 
-  public BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr) {
     super(pWrappingHandler);
     this.manager = pManager;

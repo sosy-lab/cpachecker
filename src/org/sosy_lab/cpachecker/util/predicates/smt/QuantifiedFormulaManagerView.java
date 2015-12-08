@@ -36,7 +36,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-
 public class QuantifiedFormulaManagerView
   extends BaseManagerView
   implements QuantifiedFormulaManager {
@@ -45,7 +44,7 @@ public class QuantifiedFormulaManagerView
   private final BooleanFormulaManagerView bfm;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
 
-  public QuantifiedFormulaManagerView(
+  QuantifiedFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
       QuantifiedFormulaManager pManager,
       BooleanFormulaManagerView pBmgr,

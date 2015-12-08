@@ -45,7 +45,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   private final BooleanFormulaManager manager;
   private final UnsafeFormulaManager unsafe;
 
-  public BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pManager,
       UnsafeFormulaManager pUnsafe) {
     super(pWrappingHandler);

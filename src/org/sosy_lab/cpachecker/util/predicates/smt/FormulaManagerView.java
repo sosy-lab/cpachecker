@@ -41,7 +41,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -53,6 +52,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
@@ -71,6 +71,7 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -101,7 +102,7 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.predicate")
 public class FormulaManagerView {
 
-  public enum Theory {
+  enum Theory {
     INTEGER,
     RATIONAL,
     BITVECTOR,
@@ -150,6 +151,7 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.RATIONAL;
 
+  @VisibleForTesting
   public FormulaManagerView(FormulaManager pFormulaManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
     logger = pLogger;

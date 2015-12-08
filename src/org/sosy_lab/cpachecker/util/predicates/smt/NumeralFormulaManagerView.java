@@ -33,7 +33,6 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 
-
 public class NumeralFormulaManagerView
         <ParamFormulaType extends NumeralFormula, ResultFormulaType extends NumeralFormula>
         extends BaseManagerView
@@ -41,7 +40,7 @@ public class NumeralFormulaManagerView
 
   private final NumeralFormulaManager<ParamFormulaType, ResultFormulaType> manager;
 
-  public NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  NumeralFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> pManager) {
     super(pWrappingHandler);
     this.manager = pManager;
