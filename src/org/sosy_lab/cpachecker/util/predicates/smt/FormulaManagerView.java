@@ -793,7 +793,7 @@ public class FormulaManagerView {
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
     if (quantifiedFormulaManager == null) {
-      quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, integerFormulaManager);
+      quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, getIntegerFormulaManager());
     }
     return quantifiedFormulaManager;
   }
