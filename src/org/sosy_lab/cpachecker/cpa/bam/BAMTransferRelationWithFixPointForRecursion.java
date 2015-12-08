@@ -60,7 +60,7 @@ import com.google.common.collect.Iterables;
 @Options(prefix="cpa.bam")
 public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRelation {
 
-  @Option(secure=true, description="if we connot determine a repeating/covering call-state, "
+  @Option(secure=true, description="if we cannot determine a repeating/covering call-state, "
       + "we will run into CallStackOverflowException. Thus we bound the stack size (unsound!). "
       + "This option only limits non-covered recursion, but not a recursion "
       + "where we find a coverage and re-use the cached block several times. "
