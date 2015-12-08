@@ -47,8 +47,8 @@ import com.google.common.collect.Lists;
  */
 final class FormulaWrappingHandler {
 
-  private Theory encodeBitvectorAs;
-  private Theory encodeFloatAs;
+  private final Theory encodeBitvectorAs;
+  private final Theory encodeFloatAs;
 
   private final FormulaManager manager;
 
@@ -140,6 +140,8 @@ final class FormulaWrappingHandler {
         return FormulaType.IntegerType;
       case RATIONAL:
         return FormulaType.RationalType;
+      default:
+        throw new AssertionError();
       }
     }
 
@@ -151,6 +153,8 @@ final class FormulaWrappingHandler {
         return FormulaType.IntegerType;
       case RATIONAL:
         return FormulaType.RationalType;
+      default:
+        throw new AssertionError();
       }
     }
 
