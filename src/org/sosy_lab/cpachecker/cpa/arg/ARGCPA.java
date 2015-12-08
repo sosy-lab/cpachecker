@@ -266,6 +266,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     // it may be a memory leak.
     // Thus this method.
 
+    logger.log(Level.INFO, "Clearing counterexamples!");
     counterexamples.keySet().removeAll(toRemove);
   }
 

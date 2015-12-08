@@ -126,6 +126,11 @@ public class Goal implements SafetyProperty {
     mInfeasiblePresenceCondition = pInfeasiblePresenceCondition;
   }
 
+  @Override
+  public String toString() {
+    return getName();
+  }
+
   public String getName() {
     CFAEdge ce = getCriticalEdge();
     CFANode pred = ce.getPredecessor();
