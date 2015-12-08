@@ -103,7 +103,7 @@ import com.google.common.collect.Sets;
  * The method {@link #parseName(String)} is also related to this, but should not be used!
  */
 @Options(prefix="cpa.predicate")
-public class FormulaManagerView implements StatisticsProvider {
+public class FormulaManagerView {
 
   public static enum Theory {
     INTEGER,
@@ -1551,10 +1551,5 @@ public class FormulaManagerView implements StatisticsProvider {
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // nothing to do here
   }
 }

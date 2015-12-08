@@ -304,7 +304,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
     }
-    solver.getFormulaManager().collectStatistics(pStatsCollection);
   }
 
   @Override
