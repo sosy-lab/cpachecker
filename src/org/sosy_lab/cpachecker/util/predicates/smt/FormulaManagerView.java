@@ -1451,6 +1451,11 @@ public class FormulaManagerView {
     return unsafeManager.simplify(input);
   }
 
+  public BooleanFormula substitute(
+      BooleanFormula f, Map<BooleanFormula, BooleanFormula> replacements) {
+    return unsafeManager.substitute(f, replacements);
+  }
+
   /**
    * Use a SSA map to conclude what variables of an
    * [instantiated] formula can be considered 'dead'.
