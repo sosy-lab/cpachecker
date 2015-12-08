@@ -126,13 +126,14 @@ public final class Solver implements AutoCloseable {
 
   /**
    * Load and instantiate an SMT solver.
-   * The returned instance should be closed by calling {@link close}
+   * The returned instance should be closed by calling {@link #close}
    * when it is not used anymore.
    */
   public static Solver create(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, shutdownNotifier);
-    FormulaManagerView fmgr = new FormulaManagerView(factory, config, logger);
+    FormulaManagerView fmgr = new FormulaManagerView(factory.getFormulaManager(),
+        config, logger);
     return new Solver(fmgr, factory, config, logger);
   }
 

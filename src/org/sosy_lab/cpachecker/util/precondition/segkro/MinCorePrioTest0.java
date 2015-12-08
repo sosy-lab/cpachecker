@@ -75,7 +75,8 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
     solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
 
     afm = mgrv.getArrayFormulaManager();

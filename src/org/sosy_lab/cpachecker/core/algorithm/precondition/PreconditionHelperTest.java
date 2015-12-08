@@ -95,7 +95,8 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
     when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
     when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
 
-    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
     helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier
         .create(), cfa);
 

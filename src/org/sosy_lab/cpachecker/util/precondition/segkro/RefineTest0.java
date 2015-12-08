@@ -124,7 +124,8 @@ public class RefineTest0 extends SolverBasedTest0 {
     when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
     when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
 
-    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
     Solver solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
 
     RuleEngine ruleEngine = new RuleEngine(logger, solver);

@@ -83,7 +83,8 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     requireArrays();
     requireQuantifiers();
 
-    this.mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    this.mgrv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
     this.solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
     this.afm = mgrv.getArrayFormulaManager();
     this.bfm = mgrv.getBooleanFormulaManager();

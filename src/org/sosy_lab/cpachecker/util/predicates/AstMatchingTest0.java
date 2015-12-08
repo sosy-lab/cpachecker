@@ -112,7 +112,8 @@ public class AstMatchingTest0 extends SolverBasedTest0 {
 
   public void setupMatcher() throws InvalidConfigurationException {
 
-    FormulaManagerView fmv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    FormulaManagerView fmv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
     solver = new Solver(fmv, factory, config, TestLogManager.getInstance());
     Z3FormulaManager zfm =(Z3FormulaManager) mgr;
 

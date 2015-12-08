@@ -77,7 +77,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
     FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory, pConfiguration, pLogger);
+        formulaManagerFactory.getFormulaManager(), pConfiguration, pLogger);
     Solver solver = new Solver(formulaManager, formulaManagerFactory,
         pConfiguration, pLogger);
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(

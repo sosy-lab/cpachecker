@@ -79,7 +79,8 @@ public class FormulaManagerViewTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    mv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    mv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
 
     imv = mv.getIntegerFormulaManager();
     amv = mv.getArrayFormulaManager();

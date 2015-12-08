@@ -53,7 +53,8 @@ public class InductiveWeakeningManagerTest {
         new StreamHandler(System.out, new SimpleFormatter()));
     creator = new CFACreator(config, logger, notifier);
     FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, notifier);
-    fmgr = new FormulaManagerView(factory, config, logger);
+    fmgr = new FormulaManagerView(factory.getFormulaManager(),
+        config, logger);
     // todo: non-deprecated constructor.
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
         MachineModel.LINUX32, AnalysisDirection.FORWARD);
