@@ -745,45 +745,18 @@ public class TigerAlgorithm
     return algorithmStatus;
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed,
-      ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation, Region pRemainingPresenceCondition,
-      ShutdownNotifier algNotifier, Algorithm algorithm)
+  private ReachabilityAnalysisResult runReachabilityAnalysis(
+      final Set<Goal> pTestGoalsToBeProcessed,
+      final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
+      final Region pRemainingPresenceCondition,
+      final ShutdownNotifier pShutdownNotifier,
+      final Algorithm pAlgorithm)
           throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+
     ReachabilityAnalysisResult algorithmStatus;
 
     do {
-      if (cpuTimelimitPerGoal < 0) {
-        // run algorithm without time limit
-        if (algorithm.run(reachedSet).isSound()) {
-          algorithmStatus = ReachabilityAnalysisResult.SOUND;
-        } else {
-          algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
-        }
-      } else {
-        // run algorithm with time limit
-        WorkerRunnable workerRunnable = new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
-
-        Thread workerThread = new Thread(workerRunnable);
-
-        workerThread.start();
-        workerThread.join();
-
-        if (workerRunnable.throwableWasCaught()) {
-          // TODO: handle exception
-          algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
-          //        throw new RuntimeException(workerRunnable.getCaughtThrowable());
-        } else {
-          if (workerRunnable.analysisWasSound()) {
-            algorithmStatus = ReachabilityAnalysisResult.SOUND;
-          } else {
-            algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
-          }
-
-          if (workerRunnable.hasTimeout()) {
-            algorithmStatus = ReachabilityAnalysisResult.TIMEDOUT;
-          }
-        }
-      }
+      algorithmStatus = runAlgorithm(pShutdownNotifier, pAlgorithm);
 
       if (algorithmStatus != ReachabilityAnalysisResult.TIMEDOUT) {
         // TODO: enable tiger techniques for multi-goal generation in one run
@@ -826,6 +799,47 @@ public class TigerAlgorithm
       }
     }
 
+    return algorithmStatus;
+  }
+
+  private ReachabilityAnalysisResult runAlgorithm(
+      final ShutdownNotifier algNotifier,
+      final Algorithm algorithm)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+
+    ReachabilityAnalysisResult algorithmStatus;
+    if (cpuTimelimitPerGoal < 0) {
+      // run algorithm without time limit
+      if (algorithm.run(reachedSet).isSound()) {
+        algorithmStatus = ReachabilityAnalysisResult.SOUND;
+      } else {
+        algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
+      }
+    } else {
+      // run algorithm with time limit
+      WorkerRunnable workerRunnable = new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
+
+      Thread workerThread = new Thread(workerRunnable);
+
+      workerThread.start();
+      workerThread.join();
+
+      if (workerRunnable.throwableWasCaught()) {
+        // TODO: handle exception
+        algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
+        //        throw new RuntimeException(workerRunnable.getCaughtThrowable());
+      } else {
+        if (workerRunnable.analysisWasSound()) {
+          algorithmStatus = ReachabilityAnalysisResult.SOUND;
+        } else {
+          algorithmStatus = ReachabilityAnalysisResult.UNSOUND;
+        }
+
+        if (workerRunnable.hasTimeout()) {
+          algorithmStatus = ReachabilityAnalysisResult.TIMEDOUT;
+        }
+      }
+    }
     return algorithmStatus;
   }
 
@@ -937,6 +951,7 @@ public class TigerAlgorithm
       }
     }
   }
+
 
   private void handleCounterexample(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition,
       ARGCPA lARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
@@ -1169,22 +1184,33 @@ public class TigerAlgorithm
     }
   }
 
+  private Pair<String, Integer> extractSsaComponents(final String pIndexedName) {
+    String[] comps = pIndexedName.split("@");
+
+    Preconditions.checkArgument(comps.length == 2);
+
+    String variableName = comps[0];
+    Integer ssaIndex = Integer.parseInt(comps[1]);
+
+    return Pair.of(variableName, ssaIndex);
+  }
+
   private List<BigInteger> calculateInputValues(RichModel model) {
     Comparator<Map.Entry<AssignableTerm, Object>> comp =
         new Comparator<Map.Entry<AssignableTerm, Object>>() {
 
           @Override
           public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-            assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
+
             assert pArg0.getKey() instanceof AssignableTerm.Variable;
             assert pArg1.getKey() instanceof AssignableTerm.Variable;
 
-            AssignableTerm.Variable v0 = (AssignableTerm.Variable) pArg0.getKey();
-            AssignableTerm.Variable v1 = (AssignableTerm.Variable) pArg1.getKey();
+            Pair<String, Integer> argOneSsaComps = extractSsaComponents(pArg0.getKey().getName());
+            Pair<String, Integer> argTwoSsaComps = extractSsaComponents(pArg1.getKey().getName());
 
-            int v0ssa = new Integer((v0.getName().substring(v0.getName().indexOf("@") + 1)));
-            int v1ssa = new Integer((v1.getName().substring(v1.getName().indexOf("@") + 1)));
-            return v0ssa - v1ssa;
+            assert argOneSsaComps.getFirst().equals(argTwoSsaComps.getFirst());
+
+            return argOneSsaComps.getSecond() - argTwoSsaComps.getSecond();
           }
 
         };
