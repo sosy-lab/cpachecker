@@ -87,7 +87,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CType
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Variable;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -101,7 +100,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 
 import com.google.common.base.Optional;
 
@@ -135,7 +133,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
   final TypeHandlerWithPointerAliasing typeHandler;
-  final PointerTargetSetManager ptsMgr;
+  final PointerTargetSetManagerHeapArray ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
@@ -170,8 +168,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
-    ptsMgr = new PointerTargetSetManager(options, formulaManager, typeHandler,
-        shutdownNotifier);
+    ptsMgr = new PointerTargetSetManagerHeapArray(options, formulaManager,
+        typeHandler, shutdownNotifier);
 
     afmgr = pFormulaManager.getArrayFormulaManager();
 

@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -80,7 +81,7 @@ import com.google.common.collect.ImmutableList;
 /**
  * A manager for pointer target sets.
  */
-public class PointerTargetSetManager {
+public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -140,11 +141,13 @@ public class PointerTargetSetManager {
    * @param pShutdownNotifier A notifier for external shutdowns to stop
    *                         long-running algorithms.
    */
-  public PointerTargetSetManager(
+  public PointerTargetSetManagerHeapArray(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView pFormulaManagerView,
       final TypeHandlerWithPointerAliasing pTypeHandler,
       final ShutdownNotifier pShutdownNotifier) {
+    super(pOptions, pFormulaManagerView, pTypeHandler, pShutdownNotifier);
+
     options = pOptions;
     formulaManager = pFormulaManagerView;
     bfmgr = formulaManager.getBooleanFormulaManager();
@@ -164,6 +167,7 @@ public class PointerTargetSetManager {
    * @throws InterruptedException If the algorithms gets interrupted by an
    *                              external shutdown.
    */
+  @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
       final PointerTargetSet pPts1,
       final PointerTargetSet pPts2,
@@ -236,7 +240,7 @@ public class PointerTargetSetManager {
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
         merge(pPts1.getTargets(), pPts2.getTargets(),
-            PointerTargetSetManager.<String, PointerTarget>mergeOnConflict());
+            PointerTargetSetManagerHeapArray.<String, PointerTarget>mergeOnConflict());
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -601,6 +605,7 @@ public class PointerTargetSetManager {
    * @param pMemberName The name of the member of the composite type.
    * @return The offset of the member in the composite type.
    */
+  @Override
   public int getOffset(final CCompositeType pCompositeType,
       final String pMemberName) {
     return typeHandler.getOffset(pCompositeType, pMemberName);

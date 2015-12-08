@@ -74,7 +74,7 @@ import com.google.common.base.Predicate;
 public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
   private final FormulaManagerView formulaManager;
-  private final PointerTargetSetManager ptsMgs;
+  private final PointerTargetSetManagerHeapArray ptsMgs;
   private final FormulaEncodingWithPointerAliasingOptions options;
 
   // These fields all exist in PointerTargetSet and are documented there.
@@ -140,7 +140,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    */
   public RealPointerTargetSetBuilder(final PointerTargetSet pPointerTargetSet,
       final FormulaManagerView pFormulaManagerView,
-      final PointerTargetSetManager pPointerTargetSetManager,
+      final PointerTargetSetManagerHeapArray pPointerTargetSetManager,
       final FormulaEncodingWithPointerAliasingOptions pOptions) {
     bases = pPointerTargetSet.getBases();
     lastBase = pPointerTargetSet.getLastBase();
@@ -182,7 +182,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     bases = bases.putAndCopy(pName, pType); // To get proper inequalities
     final BooleanFormula nextInequality = ptsMgs.getNextBaseAddressInequality(
         pName, bases, lastBase);
-    bases = bases.putAndCopy(pName, PointerTargetSetManager.getFakeBaseType(
+    bases = bases.putAndCopy(pName, PointerTargetSetManagerHeapArray.getFakeBaseType(
         ptsMgs.getSize(pType))); // To prevent adding spurious targets when merging
     lastBase = pName;
     return nextInequality;
@@ -583,7 +583,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   @Override
   public boolean isActualBase(final String pName) {
     return bases.containsKey(pName)
-        && !PointerTargetSetManager.isFakeBaseType(bases.get(pName));
+        && !PointerTargetSetManagerHeapArray.isFakeBaseType(bases.get(pName));
   }
 
   /**
