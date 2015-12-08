@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces;
+package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
