@@ -755,22 +755,26 @@ public class TigerAlgorithm
         // TODO: enable tiger techniques for multi-goal generation in one run
         handleCounterexample(pTestGoalsToBeProcessed, pRemainingPresenceCondition, pARTCPA, pInfeasibilityPropagation);
 
-        // TODO Andreas: exclude covered and infeasible test goals from further exploration
-        if (useTigerAlgorithm_with_pc) {
-          Region remainingPC =
-              BDDUtils.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, bddCpaNamedRegionManager);
-          restrictBdd(remainingPC);
-          // TODO: exclude goals in combination with the presence condition corresponding to the already covered test cases from further exploration
-        } else {
-          // Exclude covered goals from further exploration
-          Set<Property> toBlacklist = Sets.newHashSet();
-          for (Goal goal : pTestGoalsToBeProcessed) {
-            if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-              toBlacklist.add(goal);
-            }
-          }
+        if (reachedSet.hasWaitingState()) {
 
-          Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist);
+          if (useTigerAlgorithm_with_pc) {
+            Region remainingPC =
+                BDDUtils.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, bddCpaNamedRegionManager);
+            restrictBdd(remainingPC);
+
+            // TODO: exclude goals in combination with the presence condition corresponding to the already covered test cases from further exploration
+
+          } else {
+            // Exclude covered goals from further exploration
+            Set<Property> toBlacklist = Sets.newHashSet();
+            for (Goal goal : pTestGoalsToBeProcessed) {
+              if (testsuite.isGoalCoveredOrInfeasible(goal)) {
+                toBlacklist.add(goal);
+              }
+            }
+
+            Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist);
+          }
         }
       }
     } while ((reachedSet.hasWaitingState() && !testsuite.areGoalsCoveredOrInfeasible(pTestGoalsToBeProcessed))
@@ -902,6 +906,13 @@ public class TigerAlgorithm
 
   private void handleCounterexample(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition,
       ARGCPA lARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+
+    if (!reachedSet.hasWaitingState() || reachedSet.getLastState() == null) {
+      return;
+      // TODO: Infeasible goal
+      //  lastState might be null if a new iteration with the same set reached added found no new states
+    }
+
     for (Goal goal : pTestGoalsToBeProcessed) {
       if (testsuite.isGoalCovered(goal) || testsuite.isGoalInfeasible(goal)) {
         continue;
