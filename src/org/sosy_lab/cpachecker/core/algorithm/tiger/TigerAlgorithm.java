@@ -974,7 +974,7 @@ public class TigerAlgorithm
           * Now we can't because cex */
           Region testCaseFinalRegion = BDDUtils.getRegionFromWrappedBDDstate(reachedSet.getLastState());
           logger.logf(Level.INFO,
-              "generated test case with " + (testCaseFinalRegion == null ? "(final)" : "(critical)")
+              "New test case (goal: " + pGoal.getIndex() + ") with " + (testCaseFinalRegion == null ? "(final)" : "(critical)")
                   + " PC "
                   + bddCpaNamedRegionManager.dumpRegion((testCaseFinalRegion == null
                       ? testCaseFinalRegion : testCaseFinalRegion)));
@@ -1281,14 +1281,6 @@ public class TigerAlgorithm
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    // write generated test suite and mapping to file system
-    try (Writer writer =
-        new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
-      writer.write(testsuite.toString());
-      writer.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
 
     pOut.println("Number of test goals:                              " + statistics_numberOfTestGoals);
     pOut.println("Number of processed test goals:                    " + statistics_numberOfProcessedTestGoals);
@@ -1358,6 +1350,15 @@ public class TigerAlgorithm
       }
     }
 
+    // write generated test suite and mapping to file system
+    try (Writer writer = new BufferedWriter(
+        new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
+
+      writer.write(testsuite.toString());
+
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }
