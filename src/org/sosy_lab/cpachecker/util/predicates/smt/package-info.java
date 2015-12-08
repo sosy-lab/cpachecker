@@ -34,4 +34,4 @@
  * even if the solver does not support the theory of bitvectors.
  * Bitvectors will then be approximated with rationals or integers.
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;

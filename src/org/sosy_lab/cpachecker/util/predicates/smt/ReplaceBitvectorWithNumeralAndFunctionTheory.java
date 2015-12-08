@@ -21,9 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.*;
+import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.*;
 import static org.sosy_lab.solver.api.FormulaType.getBitvectorTypeWithSize;
 
 import java.math.BigInteger;

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 
 public interface InvariantSupplier {

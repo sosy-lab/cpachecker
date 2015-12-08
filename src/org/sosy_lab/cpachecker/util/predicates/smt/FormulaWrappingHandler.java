@@ -21,16 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingBitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingFloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingBitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingFloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
