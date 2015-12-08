@@ -1000,11 +1000,12 @@ public class TigerAlgorithm
   }
 
   private void handleFeasibleTestGoalWithCounterExample(Goal pGoal,
-      Map<ARGState, CounterexampleInfo> counterexamples,
+      Map<ARGState, CounterexampleInfo> pCounterexamples,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+
     logger.logf(Level.INFO, "Counterexample is available.");
 
-    for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+    for (Map.Entry<ARGState, CounterexampleInfo> lEntry : pCounterexamples.entrySet()) {
       CounterexampleInfo cex = lEntry.getValue();
 
       if (cex.isSpurious()) {
