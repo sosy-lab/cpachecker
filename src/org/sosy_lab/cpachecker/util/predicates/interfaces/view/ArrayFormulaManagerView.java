@@ -26,13 +26,13 @@ package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
 import java.util.Arrays;
 import java.util.List;
 
-import org.matheclipse.core.expression.F;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
 
 public class ArrayFormulaManagerView
   extends BaseManagerView
@@ -117,33 +117,47 @@ public class ArrayFormulaManagerView
   }
 
   public <T extends Formula> T declareAndCallArray(String pName,
+      NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       FormulaType<T> pReturnType,
       Formula... pArgs) {
-    return declareAndCallArray(pName, pReturnType, Arrays.asList(pArgs));
+    return declareAndCallArray(pName, pIntegerFormulaManager, pReturnType,
+        Arrays.asList(pArgs));
   }
 
   public <T extends Formula> T declareAndCallArray(String pName,
       int pIdx,
+      NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       FormulaType<T> pReturnType,
       Formula... pArgs) {
-    return declareAndCallArray(pName, pIdx, pReturnType, Arrays.asList(pArgs));
+    return declareAndCallArray(pName, pIdx, pIntegerFormulaManager, pReturnType,
+        Arrays.asList(pArgs));
   }
 
   private <T extends Formula> T declareAndCallArray(String pName,
       int pIdx,
+      NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       FormulaType<T> pReturnType,
       List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, pIdx);
-    return declareAndCallArray(name, pReturnType, pArgs);
+    return declareAndCallArray(name, pIntegerFormulaManager, pReturnType, pArgs);
   }
 
   private <T extends Formula> T declareAndCallArray(String pName,
+      NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       FormulaType<T> pReturnType,
       List<Formula> pArgs) {
-    // todo does the magic
-    throw new UnsupportedOperationException("ArrayFormulaManagerView"
-        + ".declareAndCallArray(String, FormulaType<T>, List<Formula> not "
-        + "implemented yet! Implement me!");
+    // todo does the magic...
+    ArrayFormula<?, ?> arrayFormula = makeArray(pName,
+        FormulaType.IntegerType, pReturnType);
+
+    int i;
+    for (i = 0; i < pArgs.size(); ++i) {
+      Formula index = pIntegerFormulaManager.makeNumber(i);
+      arrayFormula = store(arrayFormula, index, pArgs.get(i));
+    }
+
+    return wrap(pReturnType,
+        select(arrayFormula, pIntegerFormulaManager.makeNumber(i)));
   }
 
 }

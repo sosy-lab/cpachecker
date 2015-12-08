@@ -578,7 +578,8 @@ public class PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithHeapArray.getUFName(pType);
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
-    return afmgr.declareAndCallArray(ufName, index, returnType, pAddress);
+    return afmgr.declareAndCallArray(ufName, index,
+        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
   }
 
   /**

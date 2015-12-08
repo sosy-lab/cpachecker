@@ -568,7 +568,8 @@ class AssignmentHandler {
       }
     } else { // Aliased LHS
       final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
-          targetType, pLvalue.asAliased().getAddress());
+          formulaManager.getIntegerFormulaManager(), targetType,
+          pLvalue.asAliased().getAddress());
       if (rhs != null) {
         result = formulaManager.assignment(lhs, rhs);
       } else {
@@ -678,9 +679,11 @@ class AssignmentHandler {
             targetAddress, pLvalue);
 
         final BooleanFormula retention = formulaManager.makeEqual(
-            afmgr.declareAndCallArray(pUfName, pNewIndex, pReturnType,
+            afmgr.declareAndCallArray(pUfName, pNewIndex,
+                formulaManager.getIntegerFormulaManager(), pReturnType,
                 targetAddress),
-            afmgr.declareAndCallArray(pUfName, pOldIndex, pReturnType,
+            afmgr.declareAndCallArray(pUfName, pOldIndex,
+                formulaManager.getIntegerFormulaManager(), pReturnType,
                 targetAddress));
 
         constraints.addConstraint(bfmgr.or(updateCondition, retention));
@@ -699,9 +702,11 @@ class AssignmentHandler {
               target.getOffset()), IS_POINTER_SIGNED);
 
       constraints.addConstraint(formulaManager.makeEqual(
-          afmgr.declareAndCallArray(pUfName, pNewIndex, pReturnType,
+          afmgr.declareAndCallArray(pUfName, pNewIndex,
+              formulaManager.getIntegerFormulaManager(), pReturnType,
               targetAddress),
-          afmgr.declareAndCallArray(pUfName, pOldIndex, pReturnType,
+          afmgr.declareAndCallArray(pUfName, pOldIndex,
+              formulaManager.getIntegerFormulaManager(), pReturnType,
               targetAddress)));
     }
   }
@@ -750,9 +755,11 @@ class AssignmentHandler {
               formulaManager.makeNumber(converter.voidPointerFormulaType,
                   spurious.getOffset()), IS_POINTER_SIGNED);
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-              afmgr.declareAndCallArray(ufName, newIndex, returnType,
+              afmgr.declareAndCallArray(ufName, newIndex,
+                  formulaManager.getIntegerFormulaManager(), returnType,
                   targetAddress),
-              afmgr.declareAndCallArray(ufName, oldIndex, returnType,
+              afmgr.declareAndCallArray(ufName, oldIndex,
+                  formulaManager.getIntegerFormulaManager(), returnType,
                   targetAddress)));
         }
       }
@@ -796,9 +803,11 @@ class AssignmentHandler {
             formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
             formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
             formulaManager.makeEqual(
-                afmgr.declareAndCallArray(ufName, newIndex, returnType,
+                afmgr.declareAndCallArray(ufName, newIndex,
+                    formulaManager.getIntegerFormulaManager(), returnType,
                     targetAddress),
-                afmgr.declareAndCallArray(ufName, oldIndex, returnType,
+                afmgr.declareAndCallArray(ufName, oldIndex,
+                    formulaManager.getIntegerFormulaManager(), returnType,
                     targetAddress))));
       }
     }
