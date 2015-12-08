@@ -33,14 +33,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
-import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
@@ -75,9 +75,8 @@ public class MinCorePrioTest0 extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
-    mgrv = new FormulaManagerView(factory.getFormulaManager(),
-        config, TestLogManager.getInstance());
-    solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
+    solver = new Solver(factory, config, TestLogManager.getInstance());
+    mgrv = solver.getFormulaManager();
 
     afm = mgrv.getArrayFormulaManager();
     bfm = mgrv.getBooleanFormulaManager();

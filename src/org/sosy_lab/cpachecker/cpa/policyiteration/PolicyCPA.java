@@ -99,9 +99,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         pConfig, pLogger, shutdownNotifier);
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory.getFormulaManager(), pConfig, pLogger);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory, pConfig, pLogger);
+    Solver solver = new Solver(formulaManagerFactory, pConfig, pLogger);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);

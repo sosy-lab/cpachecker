@@ -34,13 +34,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.FormulaManagerFactory;
-import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.api.FormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -76,10 +76,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         pConfiguration, pLogger, shutdownNotifier);
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory.getFormulaManager(), pConfiguration, pLogger);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory,
-        pConfiguration, pLogger);
+    Solver solver = new Solver(formulaManagerFactory, pConfiguration, pLogger);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfiguration, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);

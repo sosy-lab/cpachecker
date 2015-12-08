@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 import org.junit.Before;
 import org.mockito.Mockito;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -53,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
@@ -124,9 +124,8 @@ public class RefineTest0 extends SolverBasedTest0 {
     when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
     when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
 
-    mgrv = new FormulaManagerView(factory.getFormulaManager(),
-        config, TestLogManager.getInstance());
-    Solver solver = new Solver(mgrv, factory, config, TestLogManager.getInstance());
+    Solver solver = new Solver(factory, config, TestLogManager.getInstance());
+    mgrv = solver.getFormulaManager();
 
     RuleEngine ruleEngine = new RuleEngine(logger, solver);
     ExtractNewPreds enp = new ExtractNewPreds(solver, ruleEngine);

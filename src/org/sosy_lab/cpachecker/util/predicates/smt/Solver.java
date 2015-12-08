@@ -105,14 +105,14 @@ public final class Solver implements AutoCloseable {
    * will also close the formula managers created by the passed {@link FormulaManagerFactory}.
    */
   @VisibleForTesting
-  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
+  public Solver(FormulaManagerFactory pFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
-    fmgr = pFmgr;
-    bfmgr = fmgr.getBooleanFormulaManager();
-    logger = pLogger;
     solvingFormulaManager = pFactory.getFormulaManager();
     interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
+    fmgr = new FormulaManagerView(solvingFormulaManager, config, pLogger);
+    bfmgr = fmgr.getBooleanFormulaManager();
+    logger = pLogger;
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
@@ -129,9 +129,7 @@ public final class Solver implements AutoCloseable {
   public static Solver create(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, shutdownNotifier);
-    FormulaManagerView fmgr = new FormulaManagerView(factory.getFormulaManager(),
-        config, logger);
-    return new Solver(fmgr, factory, config, logger);
+    return new Solver(factory, config, logger);
   }
 
   /**
