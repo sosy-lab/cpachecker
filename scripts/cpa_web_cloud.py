@@ -150,7 +150,7 @@ def _init(config):
     webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision,
                              user_agent='cpa_web_cloud.py', version=__version__)
 
-    logging.info('Using {0} version {1}.'.format(webclient.tool_name(), webclient.tool_revision()))
+    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
     return webclient
 
 def _get_revision(config):
@@ -210,7 +210,7 @@ def _parse_cpachecker_args(cpachecker_args):
             option=next(i)
             if len(option) == 0:
                 continue # ignore empty arguments
-            
+
             if option in ["-heap", "-timelimit", "-entryfunction", "-spec", "-config", "-setprop"]:
                 run.options.append(option)
                 run.options.append(next(i))
@@ -242,9 +242,9 @@ def _execute():
         return handle_result(run_result, config.output_path, cpachecker_args)
 
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
+        logging.warning(str(e))
 
     finally:
         webclient.shutdown()

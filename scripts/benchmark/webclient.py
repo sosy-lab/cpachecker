@@ -57,7 +57,7 @@ try:
     from requests import HTTPError
 except:
     pass
-    
+
 """
 This module provides helpers for accessing the web interface of the VerifierCloud.
 """
@@ -90,21 +90,21 @@ class WebClientError(Exception):
         self.value = value
     def _str_(self):
         return repr(self.value)
-    
+
 class AutoCloseHTTPConnection(HTTPConnection):
-    
+
     def __del__(self):
         self.close()
         logging.debug("Closed connection")
-        
+
 class AutoCloseHTTPSConnection(HTTPSConnection):
-    
+
     def __del__(self):
         self.close()
         logging.debug("Closed connection")
 
 class PollingResultDownloader:
-    
+
     def __init__(self, web_interface, result_poll_interval, unfinished_runs={}):
         self._unfinished_runs = set()
         self._unfinished_runs_lock = threading.Lock()
@@ -113,8 +113,8 @@ class PollingResultDownloader:
         self._state_poll_executor = ThreadPoolExecutor(max_workers=web_interface.thread_count)
         self._state_poll_thread = threading.Thread(target=self._poll_run_states, name='web_interface_state_poll_thread')
         self._shutdown = threading.Event()
-    
-    def _poll_run_states(self):       
+
+    def _poll_run_states(self):
 
         # in every iteration the states of all unfinished runs are requested once
         while not self._shutdown.is_set() :
@@ -142,12 +142,12 @@ class PollingResultDownloader:
             duration = end - start
             if duration < self._result_poll_interval and not self._shutdown.is_set():
                 self._shutdown.wait(self._result_poll_interval - duration)
-    
-    def start(self):        
+
+    def start(self):
         if (not self._shutdown.is_set()) and (not self._state_poll_thread.isAlive()):
             logging.info("Starting polling of run states.")
             self._state_poll_thread.start()
-        
+
     def shutdown(self):
         self._shutdown.set()
         if self._state_poll_thread.is_alive():
@@ -156,27 +156,28 @@ class PollingResultDownloader:
 
 try:
     class ShouldReconnectSeeClient(sseclient.SSEClient):
-        
+
         def __init__(self, url, should_reconnect, last_id=None, retry=3000, session=None, **kwargs):
             super().__init__(url, last_id, retry, session, **kwargs)
             self._should_reconnect = should_reconnect
-        
+
         def _connect(self):
             (_, value, _) = sys.exc_info()
             if (value is None or self._should_reconnect(value)):
                 super()._connect()
-                
+
             else:
                 raise StopIteration()
-        
+
         def __del__(self):
-            self.resp.close()
+            if hasattr(self, 'resp'):
+                self.resp.close()
 
     class SseResultDownloader:
-        
+
         def __init__(self, web_interface, web_interface_url, result_poll_interval):
             logging.debug("Server-Send Events are used to get state of runs.")
-            
+
             self._web_interface = web_interface
             self._run_finished_url = web_interface_url + "runs/finished"
             self._result_poll_interval = result_poll_interval
@@ -184,92 +185,92 @@ try:
             self._shutdown = False
             self._new_runs = False
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
-        
+
         def _should_reconnect(self, error):
             if self._new_runs:
                 return False
             elif type(error) == HTTPError and error.response is not None \
                     and error.response.status >= 400 and error.response.status < 500 :
-                logging.debug("Exception in SSE connection {}", error)
+                logging.debug("Exception in SSE connection: %s", error)
                 return False
             else:
-                
+
                 return True
-                
-        def _start_sse_connection(self):      
-            
+
+        def _start_sse_connection(self):
+
             while(self._new_runs):
                 run_ids = set(self._web_interface._unfinished_runs.keys())
                 self._new_runs = False
-                
+
                 # nothing to do
                 if len(run_ids) == 0:
-                    return 
-                
+                    return
+
                 params = []
                 for run_id in run_ids:
                     params.append(("run", run_id))
-                            
+
                 headers = {}
                 headers["Accept-Encoding"] = "UTF-8"
                 if self._web_interface._base64_user_pwd:
                     headers["Authorization"] = "Basic " + self._web_interface._base64_user_pwd
-        
+
                 for k, v in self._web_interface.default_headers.items():
                     if k not in headers:
                         headers[k] = v
-                
+
                 logging.debug("Creating Server-Send Event connection.")
                 try:
                     self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
-                
+
                 except Exception as e:
-                    logging.warn("Creating SSE connection failed: {}", e)
+                    logging.warning("Creating SSE connection failed: %s", e)
                     self._fall_back()
                     return
-                
+
                 for message in self._sse_client:
                     data = message.data
                     tokens = data.split(" ")
                     if len(tokens) == 2:
                         run_id = tokens[0]
                         state = tokens[1]
-                        
+
                         if state == "FINISHED":
                             if run_id in run_ids:
-                                logging.debug('Run {0} finished.'.format(run_id))
+                                logging.debug('Run %s finished.', run_id)
                                 self._web_interface._download_result_async(run_id)
-                            
-        
+
+
                         elif state == "UNKNOWN":
-                            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(run_id))
+                            logging.debug('Run %s is not known by the webclient, trying to get the result.', run_id)
                             self._web_interface._download_async(run_id)
-                            
+
                         elif state == "ERROR":
                             self._web_interface._run_failed(run_id)
-                            
+
                         else:
-                            logging.warn('Received unknown run state {0} for run {1}.'.format(state, run_id))
-                            
+                            logging.warning('Received unknown run state %s for run %s.', state, run_id)
+
                         run_ids.discard(run_id)
                         if self._shutdown or self._new_runs or len(run_ids) == 0:
                             break;
-                        
+
                     else:
-                        logging.warn("Received invalid message " + data)
-            
+                        logging.warning("Received invalid message %s", data)
+
             self._sse_client = None
-            
+
             # fall back to polling if Server-Send Event based approach failed
             if len(run_ids) != 0 and not self._shutdown:
                 self._fall_back()
-        
+
         def _fall_back(self):
             logging.info("Fall back to polling.")
             self._web_interface._result_downloader = PollingResultDownloader(self._web_interface, self._result_poll_interval)
             self._web_interface._result_downloader.start()
             self.shutdown(wait=False)
-                   
+
         def start(self):
             self._new_runs = True
             if self._sse_client:
@@ -277,7 +278,7 @@ try:
             else:
                 future = self._state_receive_executor.submit(self._start_sse_connection)
                 future.add_done_callback(_log_future_exception)
-        
+
         def shutdown(self, wait=True):
             self._shutdown = True
             if self._sse_client:
@@ -288,20 +289,20 @@ except:
     pass
 
 class RunResultFuture(Future):
-    
+
     def __init__(self, web_interface, run_id):
         super().__init__()
         self._web_interface = web_interface
         self._run_id = run_id
-        
+
     def cancel(self):
         canceled = super().cancel()
         if canceled:
             try:
                 self._web_interface._stop_run(self._run_id)
             except:
-                logging.warn("Stopping of run {} failed", self._run_id)
-            
+                logging.warning("Stopping of run %s failed", self._run_id)
+
         return canceled
 
 class WebInterface:
@@ -334,7 +335,7 @@ class WebInterface:
                 '{}/{} (Python/{} {}/{})'.format(user_agent, version, platform.python_version(), platform.system(), platform.release())
 
         self._webclient = urllib.urlparse(web_interface_url)
-        logging.info('Using VerifierCloud at {0}'.format(web_interface_url))
+        logging.info('Using VerifierCloud at %s', web_interface_url)
 
         if user_pwd:
             self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode("utf-8")
@@ -353,12 +354,12 @@ class WebInterface:
         self._read_hash_code_cache()
         self._resolved_tool_revision(svn_branch, svn_revision)
         self._tool_name = self._request_tool_name()
-        
+
         try:
             self._result_downloader = SseResultDownloader(self, web_interface_url, result_poll_interval)
         except:
             self._result_downloader = PollingResultDownloader(self, result_poll_interval)
-        
+
     def _read_hash_code_cache(self):
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
             return
@@ -380,7 +381,7 @@ class WebInterface:
 
                 os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
         except OSError as e:
-            logging.warning("Could not write hash-code cache file to {}: {}".format(HASH_CODE_CACHE_PATH, e.strerror))
+            logging.warning("Could not write hash-code cache file to %s: %s", HASH_CODE_CACHE_PATH, e.strerror)
 
     def _resolved_tool_revision(self, svn_branch, svn_revision):
 
@@ -390,7 +391,7 @@ class WebInterface:
         (resolved_svn_revision, _) = self._request("GET", path)
         self._svn_branch = svn_branch
         self._svn_revision = resolved_svn_revision.decode("UTF-8")
-        
+
     def _request_tool_name(self):
         path = self._webclient.path + "tool/name"
         (tool_name, _) = self._request("GET", path)
@@ -398,7 +399,7 @@ class WebInterface:
 
     def tool_revision(self):
         return self._svn_branch + ':' + self._svn_revision
-    
+
     def tool_name(self):
         return self._tool_name
 
@@ -413,12 +414,12 @@ class WebInterface:
                 hashValue = hashlib.sha1(file.read()).hexdigest()
                 self._hash_code_cache[(path, mTime)] = hashValue
                 return hashValue
-            
+
     def _create_and_add_run_future(self, run_id):
         result = RunResultFuture(self, run_id)
         with self._unfinished_runs_lock:
             self._unfinished_runs[run_id] = result
-        return result  
+        return result
 
     def submit_witness_validation(self, witness_path, program_path, configuration=None, user_pwd=None):
         """
@@ -453,7 +454,7 @@ class WebInterface:
         (run_id, _) = self._request("POST", path, paramsCompressed, headers, user_pwd=user_pwd)
 
         run_id = run_id.decode("UTF-8")
-        logging.debug('Submitted witness validation run with id {0}'.format(run_id))
+        logging.debug('Submitted witness validation run with id %s', run_id)
 
         return self._create_and_add_run_future(run_id)
 
@@ -542,8 +543,8 @@ class WebInterface:
 
         else:
             run_id = run_id.decode("UTF-8")
-            logging.debug('Submitted run with id {0}'.format(run_id))
-            return self._create_and_add_run_future(run_id) 
+            logging.debug('Submitted run with id %s', run_id)
+            return self._create_and_add_run_future(run_id)
 
     def _handle_options(self, run, params, rlimits):
         # TODO use code from CPAchecker module, it add -stats and sets -timelimit,
@@ -551,7 +552,7 @@ class WebInterface:
         options = []
         if self._tool_name == "CPAchecker":
             options.append("statistics.print=true")
-            
+
             if 'softtimelimit' in rlimits and not '-timelimit' in options:
                 options.append("limits.time.cpu=" + str(rlimits['softtimelimit']) + "s")
 
@@ -562,7 +563,7 @@ class WebInterface:
                     option = next(i)
                     if len(option) == 0:
                         continue
-                    
+
                     if option == "-heap":
                         params['heap'] = next(i)
 
@@ -616,7 +617,8 @@ class WebInterface:
                         configPath = next(i)
                         tokens = configPath.split('/')
                         if not (tokens[0] == "config" and len(tokens) == 2):
-                            logging.warning('Configuration {0} of run {1} is not from the default config directory.'.format(configPath, run.identifier))
+                            logging.warning('Configuration %s of run %s is not from the default config directory.',
+                                            configPath, run.identifier)
                             return configPath
                         config = tokens[1].split('.')[0]
                         params['configuration'] = config
@@ -640,7 +642,7 @@ class WebInterface:
         Starts the execution of all previous submitted runs in the VerifierCloud.
         The web interface groups runs and submits them to the VerifierCloud only from time to time.
         This method forces the web interface to do this immediately and starts downloading of results.
-        """        
+        """
         headers = {"Content-Type": "application/x-www-form-urlencoded",
                    "Content-Encoding": "deflate",
                    "Connection": "Keep-Alive"}
@@ -649,7 +651,7 @@ class WebInterface:
         paramsCompressed = zlib.compress(urllib.urlencode(params, doseq=True).encode('utf-8'))
         path = self._webclient.path + "runs/flush"
         self._request("POST", path, paramsCompressed, headers, expectedStatusCodes=[200, 204])
-        
+
         self._result_downloader.start()
 
     def _is_finished(self, run_id):
@@ -661,15 +663,15 @@ class WebInterface:
 
             state = state.decode('utf-8')
             if state == "FINISHED":
-                logging.debug('Run {0} finished.'.format(run_id))
+                logging.debug('Run %s finished.', run_id)
 
             if state == "UNKNOWN":
-                logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(run_id))
+                logging.debug('Run %s is not known by the webclient, trying to get the result.', run_id)
 
             return state
 
         except urllib2.HTTPError as e:
-            logging.warning('Could not get run state {0}: {1}'.format(run_id, e.reason))
+            logging.warning('Could not get run state %s: %s', run_id, e.reason)
             return False
 
     def _download_result(self, run_id):
@@ -678,13 +680,13 @@ class WebInterface:
         path = self._webclient.path + "runs/" + run_id + "/result"
         (zip_content, _) = self._request("GET", path, {}, headers)
         return zip_content
-    
+
     def _download_result_async(self, run_id):
-        
+
         def callback(downloaded_result):
             run_id = self._downloading_result_futures.pop(downloaded_result)
             exception = downloaded_result.exception()
-            
+
             if not exception:
                 with self._unfinished_runs_lock:
                     result_future = self._unfinished_runs.pop(run_id, None)
@@ -692,8 +694,8 @@ class WebInterface:
                     result_future.set_result(downloaded_result.result())
 
             else:
-                logging.info('Could not get result of run {0}: {1}'.format(run_id, downloaded_result.exception()))
-                
+                logging.info('Could not get result of run %s: %s', run_id, downloaded_result.exception())
+
                 # client error
                 if type(exception) is urllib2.HTTPError and 400 <= exception.code and exception.code <= 499:
                     attempts = self._download_attempts.pop(run_id, 1);
@@ -702,28 +704,28 @@ class WebInterface:
                         self._download_result_async(run_id)
                     else:
                         self._run_failed(run_id)
-                        
+
                 else:
                     # retry it
                     self._download_result_async(run_id)
-        
+
         if run_id not in self._downloading_result_futures.values():  # result is not downloaded
             future = self._executor.submit(self._download_result, run_id)
             self._downloading_result_futures[future] = run_id
-            future.add_done_callback(callback)    
-            
+            future.add_done_callback(callback)
+
     def _run_failed(self, run_id):
         run_result_future = self._unfinished_runs.pop(run_id, None)
         if run_result_future:
-            logging.warn('Execution of run {0} failed.'.format(run_id))
+            logging.warning('Execution of run %s failed.', run_id)
             run_result_future.set_exception(WebClientError("Execution failed."))
 
     def shutdown(self):
         """
         Cancels all unfinished runs and stops all internal threads.
-        """ 
+        """
         self._result_downloader.shutdown()
-              
+
         if len(self._unfinished_runs) > 0:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
@@ -745,13 +747,13 @@ class WebInterface:
     def _stop_run(self, run_id):
         with self._unfinished_runs_lock:
             self._unfinished_runs.pop(run_id, None)
-            
+
         path = self._webclient.path + "runs/" + run_id
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except urllib2.HTTPError as e:
-            logging.info("Stopping of run {0} failed: {1}".format(run_id, e.reason))
-        
+            logging.info("Stopping of run %s failed: %s", run_id, e.reason)
+
 
     def _request(self, method, path, body={}, headers={}, expectedStatusCodes=[200], user_pwd=None):
         connection = self._get_connection()
@@ -775,7 +777,7 @@ class WebInterface:
                 response = connection.getresponse()
             except Exception as e:
                 if (counter < 5):
-                    logging.debug("Exception during {} request to {}: {}".format(method, path, e))
+                    logging.debug("Exception during %s request to %s: %s", method, path, e)
                     # create new TCP connection and try to send the request
                     connection.close()
                     sleep(1)
@@ -797,7 +799,7 @@ class WebInterface:
                     sleep(60)
                 else:
                     message += response.read().decode('UTF-8')
-                logging.warn(message)
+                logging.warning(message)
                 raise urllib2.HTTPError(path, response.getcode(), message , response.getheaders(), None)
 
     def _get_connection(self):
@@ -849,7 +851,7 @@ def _handle_host_info(values):
         print ('\t' + str(key) + ": " + str(values[key]))
 
 def _handle_special_files(result_zip_file, files, output_path):
-    logging.info("Results are written to {0}".format(output_path))
+    logging.info("Results are written to %s", output_path)
     for file in SPECIAL_RESULT_FILES:
         if file in files and file != RESULT_FILE_LOG:
             result_zip_file.extract(file, output_path)
@@ -878,13 +880,13 @@ def handle_result(zip_content, output_path, run_identifier, result_files_pattern
                     result_files_pattern, run_identifier)
 
         except zipfile.BadZipfile:
-            logging.warning('Server returned illegal zip file with results of run {}.'.format(run_identifier))
+            logging.warning('Server returned illegal zip file with results of run %s.', run_identifier)
             # Dump ZIP to disk for debugging
             with open(output_path + '.zip', 'wb') as zip_file:
                 zip_file.write(zip_content)
 
     except IOError as e:
-        logging.warning('Error while writing results of run {}: {}'.format(run_identifier, e))
+        logging.warning('Error while writing results of run %s: %s', run_identifier, e)
 
     return return_value
 
@@ -901,14 +903,14 @@ def _handle_result(resultZipFile, output_path,
             return_value = handle_run_info(_parse_cloud_file(runInformation))
     else:
         return_value = None
-        logging.warning('Missing result for run {}.'.format(run_identifier))
+        logging.warning('Missing result for run %s.', run_identifier)
 
     # extract host info
     if RESULT_FILE_HOST_INFO in files:
         with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
             handle_host_info(_parse_cloud_file(hostInformation))
     else:
-        logging.warning('Missing host information for run {}.'.format(run_identifier))
+        logging.warning('Missing host information for run %s.', run_identifier)
 
     # extract log file
     if RESULT_FILE_LOG in files:
@@ -917,7 +919,7 @@ def _handle_result(resultZipFile, output_path,
                 for line in result_log_file:
                     log_file.write(line)
     else:
-        logging.warning('Missing log file for run {}.'.format(run_identifier))
+        logging.warning('Missing log file for run %s.', run_identifier)
 
     handle_special_files(resultZipFile, files, output_path)
 

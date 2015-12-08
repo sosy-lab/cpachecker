@@ -75,7 +75,7 @@ def init(config, benchmark):
 
     benchmark.tool_version = _webclient.tool_revision()
     benchmark.executable = 'scripts/cpa.sh'
-    logging.info('Using {0} version {1}.'.format(benchmark.tool_name, benchmark.tool_version))
+    logging.info('Using %s version %s.', benchmark.tool_name, benchmark.tool_version)
 
 def get_system_info():
     return None
@@ -84,7 +84,7 @@ def execute_benchmark(benchmark, output_handler):
     global _webclient
 
     if (benchmark.tool_name != _webclient.tool_name()):
-        logging.warning("The web client does only support {}.".format(_webclient.tool_name()))
+        logging.warning("The web client does only support %s.", _webclient.tool_name())
         return
 
     if not _webclient:
@@ -148,13 +148,11 @@ def _submitRunsParallel(runSet, benchmark):
                 result_futures[future.result()] = run
 
                 if submissonCounter % 50 == 0:
-                    logging.info('Submitted run {0}/{1}'.\
-                                format(submissonCounter, len(runSet.runs)))
+                    logging.info('Submitted run %s/%s', submissonCounter, len(runSet.runs))
 
 
             except (urllib2.URLError, WebClientError) as e:
-                logging.warning('Could not submit run {0}: {1}.'.\
-                    format(run.identifier, e))
+                logging.warning('Could not submit run %s: %s.', run.identifier, e)
             finally:
                 submissonCounter += 1
     finally:

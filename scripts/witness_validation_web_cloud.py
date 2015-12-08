@@ -123,7 +123,7 @@ def _init(config):
     webclient = WebInterface(config.cloud_master, config.cloud_user,
                              user_agent='witness_validation_web_cloud.py', version=__version__)
 
-    logging.info('Using {0} version {1}.'.format(webclient.tool_name(), webclient.tool_revision()))
+    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
     return webclient
 
 def _submit_run(webclient, config):
@@ -153,9 +153,9 @@ def _execute():
                              handle_host_info=lambda x : None)
 
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
+        logging.warning(str(e))
 
     finally:
         webclient.shutdown()
