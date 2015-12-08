@@ -1187,7 +1187,9 @@ public class TigerAlgorithm
       if (useAutomataCrossProduct) {
         final Automaton productAutomaton;
         try {
+          logger.logf(Level.INFO, "Computing the cross product of %d automata.", pGoalsToBeProcessed.size());
           productAutomaton = ReducedAutomatonProduct.productOf(goalAutomata, "GOAL_PRODUCT");
+          logger.logf(Level.INFO, "Cross product with %d states.", productAutomaton.getStates().size());
         } catch (InvalidAutomatonException e) {
           throw new CPAException("One of the automata is invalid!", e);
         }
