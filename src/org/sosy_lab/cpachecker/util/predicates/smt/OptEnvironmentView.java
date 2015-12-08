@@ -73,12 +73,21 @@ public class OptEnvironmentView implements OptEnvironment {
   @Override
   public void push() {
     delegate.push();
+  }
 
+  @Override
+  public Void push(BooleanFormula f) {
+    return delegate.push(f);
   }
 
   @Override
   public void pop() {
     delegate.pop();
+  }
+
+  @Override
+  public boolean isUnsat() throws SolverException, InterruptedException {
+    return delegate.isUnsat();
   }
 
   @Override
@@ -101,13 +110,9 @@ public class OptEnvironmentView implements OptEnvironment {
     delegate.close();
   }
 
-  /**
-   * Note: the return value is not wrapped as we expect it to be a simple
-   * expression.
-   */
   @Override
-  public Formula evaluate(Formula f) {
-    return  delegate.evaluate(wrappingHandler.unwrap(f));
+  public <T extends Formula> T evaluate(T f) {
+    return wrappingHandler.wrap(wrappingHandler.getFormulaType(f), delegate.evaluate(wrappingHandler.unwrap(f)));
   }
 
   /**

@@ -103,7 +103,7 @@ rootDirectory = "."
 solver.interpolationSolver = no default value
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
-# Export solver queries in Smtlib format into a file.
+# Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
 
@@ -155,9 +155,6 @@ solver.z3.optimizationEngine = "basic"
 
 # Require proofs from SMT solver
 solver.z3.requireProofs = true
-
-# simplify formulas when they are asserted in a solver.
-solver.z3.simplifyFormulas = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
@@ -872,7 +869,7 @@ cpa.bam.handleRecursiveProcedures = false
 # export single blocked ARG as .dot files, should contain '%d'
 cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 
-# if we connot determine a repeating/covering call-state, we will run into
+# if we cannot determine a repeating/covering call-state, we will run into
 # CallStackOverflowException. Thus we bound the stack size (unsound!). This
 # option only limits non-covered recursion, but not a recursion where we find
 # a coverage and re-use the cached block several times. The value '-1'
@@ -1515,7 +1512,7 @@ cpa.predicate.refinement.atomicInterpolants = true
 cpa.predicate.refinement.atomicInvariants = false
 
 # configuration file for bmc generation
-cpa.predicate.refinement.bmcConfig = "config/bmc.properties"
+cpa.predicate.refinement.bmcConfig = "config/bmc-invgen.properties"
 
 # Direction for doing counterexample analysis: from start of trace, from end
 # of trace, or alternatingly from start and end of the trace towards the
