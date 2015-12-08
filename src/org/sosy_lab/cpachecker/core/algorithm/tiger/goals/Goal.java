@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -390,11 +393,11 @@ public class Goal implements SafetyProperty {
     }
 
     try {
-      return new Automaton(automatonName,
-          Maps.<String, AutomatonVariable> newHashMap(),
+      return new Automaton(new AutomatonSafetyPropertyFactory(Configuration.defaultConfiguration(), ""),
+          automatonName, Maps.<String, AutomatonVariable> newHashMap(),
           automatonStates, initialStateName);
 
-    } catch (InvalidAutomatonException e) {
+    } catch (InvalidConfigurationException| InvalidAutomatonException e) {
       throw new RuntimeException("Conversion failed!", e);
     }
   }

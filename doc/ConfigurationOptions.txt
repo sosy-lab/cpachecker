@@ -235,7 +235,7 @@ assumptions.file = "assumptions.txt"
 
 # Granularity of safety properties that are encoded in automata.
 automata.properties.granularity = AUTOMATON
-  enum:     [AUTOMATON, VIOLATING_EXPRESSION]
+  enum:     [BASENAME, AUTOMATON, VIOLATING_EXPRESSION]
 
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the full analysis consists of a forward
@@ -2672,4 +2672,7 @@ tiger.useInfeasibilityPropagation = false
 # Enforce the original order each time a new round of re-processing of
 # timed-out goals begins.
 tiger.useOrder = true
+
+# Construct the powerset of automata states.
+tiger.usePowerset = true
 

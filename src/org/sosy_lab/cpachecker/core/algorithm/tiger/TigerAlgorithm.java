@@ -112,6 +112,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDTransferRelation;
@@ -164,6 +165,9 @@ public class TigerAlgorithm
 
   @Option(secure = true, name = "reusePredicates", description = "Reuse predicates across modifications of an ARG.")
   private boolean reusePredicates = true;
+
+  @Option(secure = true, name = "usePowerset", description = "Construct the powerset of automata states.")
+  private boolean usePowerset = true;
 
   @Option(secure = true, name = "testsuiteFile", description = "Filename for output of generated test suite")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -669,7 +673,8 @@ public class TigerAlgorithm
     Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
     Preconditions.checkState(
-        ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA,
+        ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA
+        || ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof PowersetAutomatonCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
 
     // TODO: enable tiger techniques for multi-goal generation in one run
@@ -1207,7 +1212,10 @@ public class TigerAlgorithm
 
     for (Automaton componentAutomaton: componentAutomata) {
 
-      CPAFactory automataFactory = ControlAutomatonCPA.factory();
+      final CPAFactory automataFactory = usePowerset
+          ? PowersetAutomatonCPA.factory()
+              : ControlAutomatonCPA.factory();
+
       automataFactory.setConfiguration(Configuration.copyWithNewPrefix(config, componentAutomaton.getName()));
       automataFactory.setLogger(logger.withComponentName(componentAutomaton.getName()));
       automataFactory.set(cfa, CFA.class);
