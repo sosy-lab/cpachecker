@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.interfaces.view.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
@@ -124,6 +125,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final FunctionFormulaManagerView ffmgr;
+  private final ArrayFormulaManagerView afmgr;
   private final CtoFormulaConverter converter;
   private final CtoFormulaTypeHandler typeHandler;
   private final LogManager logger;
@@ -171,6 +173,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     direction = pDirection;
 
     if (handleArrays) {
+      afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler =
           new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel,
@@ -184,6 +187,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
 
     } else if (useArrayHeap) {
+      afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingWithPointerAliasingOptions options =
           new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler =
@@ -195,6 +199,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           aliasingTypeHandler, direction);
 
     } else if (handlePointerAliasing) {
+      afmgr = null;
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
       typeHandler = aliasingTypeHandler;
@@ -203,6 +208,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           aliasingTypeHandler, direction);
 
     } else {
+      afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
@@ -497,14 +503,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()),
                                                   IS_POINTER_SIGNED);
 
-      final BooleanFormula retention = fmgr.assignment(ffmgr.declareAndCallUninterpretedFunction(functionName,
-                                                                              newIndex,
-                                                                              returnFormulaType,
-                                                                              targetAddress),
-                                                      ffmgr.declareAndCallUninterpretedFunction(functionName,
-                                                                              oldIndex,
-                                                                              returnFormulaType,
-                                                                              targetAddress));
+      final BooleanFormula retention;
+      if (useArrayHeap) {
+        retention = fmgr.assignment(
+            afmgr.declareAndCallArray(functionName, newIndex,
+                fmgr.getIntegerFormulaManager(), returnFormulaType,
+                targetAddress),
+            afmgr.declareAndCallArray(functionName, oldIndex,
+                fmgr.getIntegerFormulaManager(), returnFormulaType,
+                targetAddress));
+      } else {
+        retention = fmgr.assignment(
+            ffmgr.declareAndCallUninterpretedFunction(functionName,
+                newIndex,
+                returnFormulaType,
+                targetAddress),
+            ffmgr.declareAndCallUninterpretedFunction(functionName,
+                oldIndex,
+                returnFormulaType,
+                targetAddress));
+      }
       result = fmgr.makeAnd(result, retention);
     }
 
