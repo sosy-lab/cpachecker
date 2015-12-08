@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static com.google.common.truth.Truth.*;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Collection;
 import java.util.Set;
@@ -37,17 +37,24 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
-import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 @RunWith(Parameterized.class)
 public class FormulaManagerViewTest extends SolverBasedTest0 {
@@ -67,6 +74,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   private FormulaManagerView mgrv;
   private BooleanFormulaManagerView bmgrv;
+  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgrv;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -79,6 +87,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     mgrv = new FormulaManagerView(factory.getFormulaManager(),
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
+    imgrv = mgrv.getIntegerFormulaManager();
   }
 
   private BooleanFormula stripNot(BooleanFormula f) {
@@ -200,5 +209,86 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   public void testExtractAtoms_SplitEqualities_bvReplaceByInt() throws SolverException, InterruptedException {
     // BitvectorFormulaManagerView here!
     testExtractAtoms_SplitEqualities_bitvectors(mgrv.getBitvectorFormulaManager());
+  }
+
+  @Test
+  public void testUnInstanciateQuantifiersAndArrays() throws SolverException, InterruptedException {
+    requireQuantifiers();
+    requireArrays();
+
+    IntegerFormula _0 = imgrv.makeNumber(0);
+    IntegerFormula _i = imgrv.makeVariable("i");
+    IntegerFormula _i1 = imgrv.makeVariable("i@1");
+    IntegerFormula _j = imgrv.makeVariable("j");
+    IntegerFormula _j1 = imgrv.makeVariable("j@1");
+    IntegerFormula _x = imgrv.makeVariable("x");
+
+    ArrayFormulaManagerView amgrv = mgrv.getArrayFormulaManager();
+    ArrayFormula<IntegerFormula, IntegerFormula> _b =
+        amgrv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
+
+    BooleanFormula _b_at_x_NOTEQ_0 = bmgrv.not(imgrv.equal(amgrv.select(_b, _x), _0));
+
+    QuantifiedFormulaManagerView qmv = mgrv.getQuantifiedFormulaManager();
+    BooleanFormula instantiated =
+        qmv.forall(
+            Lists.newArrayList(_x),
+            bmgrv.and(
+                Lists.newArrayList(
+                    _b_at_x_NOTEQ_0, imgrv.greaterOrEquals(_x, _j1), imgrv.lessOrEquals(_x, _i1))));
+
+    BooleanFormula uninstantiated =
+        qmv.forall(
+            Lists.newArrayList(_x),
+            bmgrv.and(
+                Lists.newArrayList(
+                    _b_at_x_NOTEQ_0, imgrv.greaterOrEquals(_x, _j), imgrv.lessOrEquals(_x, _i))));
+
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    ssaBuilder.setIndex("i", CNumericTypes.INT, 1);
+    ssaBuilder.setIndex("j", CNumericTypes.INT, 1);
+
+    testUnInstantiate(instantiated, uninstantiated, ssaBuilder);
+  }
+
+  @Test
+  public void testUnInstantiate() throws SolverException, InterruptedException {
+    IntegerFormula _0 = imgrv.makeNumber(0);
+    IntegerFormula _1 = imgrv.makeNumber(1);
+    IntegerFormula _i = imgrv.makeVariable("i");
+    IntegerFormula _i1 = imgrv.makeVariable("i@1");
+    IntegerFormula _j = imgrv.makeVariable("j");
+    IntegerFormula _j1 = imgrv.makeVariable("j@1");
+    IntegerFormula _x = imgrv.makeVariable("x");
+    IntegerFormula _x1 = imgrv.makeVariable("x@1");
+
+    BooleanFormula _inst1 = imgrv.equal(imgrv.add(_1, _j1), imgrv.add(_0, _i1));
+    BooleanFormula _inst2 =
+        imgrv.equal(imgrv.add(_1, imgrv.subtract(_0, _i1)), imgrv.add(imgrv.add(_0, _x1), _i1));
+    BooleanFormula _inst3 = bmgrv.and(Lists.newArrayList(_inst1, _inst2, bmgrv.not(_inst1)));
+
+    BooleanFormula _uinst1 = imgrv.equal(imgrv.add(_1, _j), imgrv.add(_0, _i));
+    BooleanFormula _uinst2 =
+        imgrv.equal(imgrv.add(_1, imgrv.subtract(_0, _i)), imgrv.add(imgrv.add(_0, _x), _i));
+    BooleanFormula _uinst3 = bmgrv.and(Lists.newArrayList(_uinst1, _uinst2, bmgrv.not(_uinst1)));
+
+    SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
+    ssaBuilder.setIndex("i", CNumericTypes.INT, 1);
+    ssaBuilder.setIndex("j", CNumericTypes.INT, 1);
+    ssaBuilder.setIndex("x", CNumericTypes.INT, 1);
+
+    testUnInstantiate(_inst3, _uinst3, ssaBuilder);
+  }
+
+  private void testUnInstantiate(
+      BooleanFormula pInstantiated, BooleanFormula pUninstantiated, SSAMapBuilder pSsaBuilder)
+      throws SolverException, InterruptedException {
+    BooleanFormula r1 = mgrv.instantiate(pUninstantiated, pSsaBuilder.build());
+    assertThatFormula(r1).isEquivalentTo(pInstantiated);
+    assertThat(r1.toString()).isEqualTo(pInstantiated.toString());
+
+    BooleanFormula r2 = mgrv.uninstantiate(pInstantiated);
+    assertThatFormula(r2).isEquivalentTo(pUninstantiated);
+    assertThat(r2.toString()).isEqualTo(pUninstantiated.toString());
   }
 }
