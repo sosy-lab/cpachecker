@@ -1003,7 +1003,7 @@ public class TigerAlgorithm
       Map<ARGState, CounterexampleInfo> pCounterexamples,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
 
-    logger.logf(Level.INFO, "Counterexample is available.");
+    logger.logf(Level.INFO, "Counterexample for goal %d is available.", pGoal.getIndex());
 
     for (Map.Entry<ARGState, CounterexampleInfo> lEntry : pCounterexamples.entrySet()) {
       CounterexampleInfo cex = lEntry.getValue();
