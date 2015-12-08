@@ -32,6 +32,7 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -1403,7 +1404,7 @@ public class TigerAlgorithm
         new OutputStreamWriter(new FileOutputStream(testcaseGenerationTimesFile.getAbsolutePath()), "utf-8"))) {
 
       List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
-      testcases.sort(new Comparator<TestCase>() {
+      Collections.sort(testcases, new Comparator<TestCase>() {
 
         @Override
         public int compare(TestCase pTestCase1, TestCase pTestCase2) {
