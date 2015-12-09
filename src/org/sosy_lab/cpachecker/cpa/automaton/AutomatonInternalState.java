@@ -39,13 +39,13 @@ public class AutomatonInternalState {
   private final int stateId = idGenerator.getFreshId();
 
   /** State representing BOTTOM */
-  static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
+  public static final AutomatonInternalState BOTTOM = new AutomatonInternalState("_predefinedState_BOTTOM", Collections.<AutomatonTransition>emptyList());
 
   /** State representing TOP */
-  static final AutomatonInternalState TOP = new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList());
+  public static final AutomatonInternalState TOP = new AutomatonInternalState("_predefinedState_TOP", Collections.<AutomatonTransition>emptyList());
 
   /** State representing INACTIVE: an automata that is not considered any more (removed from the precision). */
-  static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE);
+  public static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE);
 
   /** Error State */
   static final AutomatonInternalState ERROR = new AutomatonInternalState(
