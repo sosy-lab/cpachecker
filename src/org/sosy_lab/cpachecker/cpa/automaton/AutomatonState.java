@@ -340,16 +340,20 @@ public class AutomatonState
 
   @Override
   public String toString() {
-    return (automatonCPA != null ? automatonCPA.getAutomaton().getName() + ": " : "") + internalState.getName() + ' '
-        + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+    final StringBuilder result = new StringBuilder();
+
+    result.append(automatonCPA == null ? "" : (automatonCPA.getAutomaton().getName() + ": "));
+    result.append(internalState.getName());
+    result.append(isTarget() ? " TARGET " : "");
+    result.append(" ");
+    result.append(Joiner.on(' ').withKeyValueSeparator("=").join(vars));
+
+    return result.toString();
   }
 
   @Override
   public String toDOTLabel() {
-    if (!internalState.getName()
-        .equals("Init")) { return (automatonCPA != null ? automatonCPA.getAutomaton().getName() + ": " : "")
-            + internalState.getName(); }
-    return "";
+    return toString();
   }
 
   @Override
