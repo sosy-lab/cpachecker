@@ -40,7 +40,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -132,7 +132,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   private final ConfigurableProgramAnalysis cpa;
   private final ReachedSetFactory reachedSetFactory;
 
-  private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
 
   private final int iteration;
 
@@ -153,15 +153,15 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
   };
 
-  private Optional<ShutdownNotifier> shutdownOnSafeNotifier;
+  private Optional<ShutdownManager> shutdownOnSafeNotifier;
 
   /**
    * Creates a new {@link CPAInvariantGenerator}.
    *
    * @param pConfig the configuration options.
    * @param pLogger the logger to be used.
-   * @param pShutdownNotifier shutdown notifier to shutdown the invariant generator.
-   * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
+   * @param pShutdownManager shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
    * @param additionalAutomata additional specification automata that should be used
@@ -174,11 +174,11 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    */
   public static InvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      final Optional<ShutdownManager> pShutdownOnSafeManager,
       final CFA pCFA)
           throws InvalidConfigurationException, CPAException {
-    return create(pConfig, pLogger, pShutdownNotifier, pShutdownOnSafeNotifier, pCFA, Collections.<Automaton>emptyList());
+    return create(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pCFA, Collections.<Automaton>emptyList());
   }
 
   /**
@@ -186,8 +186,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    *
    * @param pConfig the configuration options.
    * @param pLogger the logger to be used.
-   * @param pShutdownNotifier shutdown notifier to shutdown the invariant generator.
-   * @param pShutdownOnSafeNotifier optional shutdown notifier that will be
+   * @param pShutdownManager shutdown notifier to shutdown the invariant generator.
+   * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
    *
@@ -198,8 +198,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    */
   public static InvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      final Optional<ShutdownManager> pShutdownOnSafeManager,
       final CFA pCFA,
       final List<Automaton> additionalAutomata)
           throws InvalidConfigurationException, CPAException {
@@ -210,8 +210,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     CPAInvariantGenerator cpaInvariantGenerator = new CPAInvariantGenerator(
             pConfig,
             pLogger.withComponentName("CPAInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
-            pShutdownOnSafeNotifier,
+            ShutdownManager.createWithParent(pShutdownManager.getNotifier()),
+            pShutdownOnSafeManager,
             1,
             pCFA,
             additionalAutomata);
@@ -228,7 +228,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
           CPAInvariantGenerator result = pToAdjust;
           try {
             if (adjustConditions(logger, conditionCPAs)) {
-              result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownNotifier, pShutdownOnSafeNotifier, pToAdjust.iteration + 1, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
+              result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pToAdjust.iteration + 1, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
             }
           } catch (InvalidConfigurationException | CPAException e) {
             pLogger.logUserException(Level.WARNING, e, "Creating adjusted invariant generator failed");
@@ -272,23 +272,27 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
 
       };
     }
-    invariantGenerator = new AdjustableInvariantGenerator<>(pShutdownNotifier, cpaInvariantGenerator, adjust);
+    invariantGenerator =
+        new AdjustableInvariantGenerator<>(
+            pShutdownManager.getNotifier(), cpaInvariantGenerator, adjust);
     if (options.async) {
-      invariantGenerator = new AutoAdjustingInvariantGenerator<>(pShutdownNotifier, cpaInvariantGenerator, adjust);
+      invariantGenerator =
+          new AutoAdjustingInvariantGenerator<>(
+              pShutdownManager.getNotifier(), cpaInvariantGenerator, adjust);
     }
     return invariantGenerator;
   }
 
   private CPAInvariantGenerator(final Configuration config,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
       final CFA cfa, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    shutdownOnSafeNotifier = pShutdownOnSafeNotifier;
+    shutdownManager = pShutdownManager;
+    shutdownOnSafeNotifier = pShutdownOnSafeManager;
     iteration = pIteration;
 
     Configuration invariantConfig;
@@ -301,22 +305,24 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
-    cpa = new CPABuilder(invariantConfig, logger, shutdownNotifier, reachedSetFactory).buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
-    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownNotifier);
+    cpa =
+        new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
+            .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
+    algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 
   private CPAInvariantGenerator(final Configuration config,
       final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      Optional<ShutdownNotifier> pShutdownOnSafeNotifier,
+      final ShutdownManager pShutdownManager,
+      Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
       CPAAlgorithm pAlgorithm) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
-    shutdownOnSafeNotifier = pShutdownOnSafeNotifier;
+    shutdownManager = pShutdownManager;
+    shutdownOnSafeNotifier = pShutdownOnSafeManager;
     iteration = pIteration;
 
     reachedSetFactory = pReachedSetFactory;
@@ -332,13 +338,13 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
     // create future for lazy synchronous invariant generation
     invariantGenerationFuture = new LazyFutureTask<>(task);
 
-    shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+    shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
 
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
+    shutdownManager.requestShutdown("Invariant generation cancel requested.");
   }
 
   @Override
@@ -351,7 +357,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
       throw new UnexpectedCheckedException("invariant generation", e.getCause());
     } catch (CancellationException e) {
-      shutdownNotifier.shutdownIfNecessary();
+      shutdownManager.getNotifier().shutdownIfNecessary();
       throw e;
     }
   }
@@ -430,7 +436,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       stats.invariantGeneration.start();
       try {
 
-        shutdownNotifier.shutdownIfNecessary();
+        shutdownManager.getNotifier().shutdownIfNecessary();
         logger.log(Level.INFO, "Starting iteration", iteration, "of invariant generation with abstract interpretation.");
 
         return runInvariantGeneration(initialLocation);

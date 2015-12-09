@@ -27,6 +27,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -143,6 +144,7 @@ public class CoreComponentsFactory {
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
 
   private final ReachedSetFactory reachedSetFactory;
@@ -151,7 +153,10 @@ public class CoreComponentsFactory {
   public CoreComponentsFactory(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
     config = pConfig;
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    // new ShutdownManager, it is important for BMCAlgorithm that it gets a ShutdownManager
+    // that also affects the CPA it is used with
+    shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
+    shutdownNotifier = shutdownManager.getNotifier();
 
     config.inject(this);
 
@@ -194,7 +199,7 @@ public class CoreComponentsFactory {
       }
 
       if (useBMC) {
-        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownNotifier, cfa);
+        algorithm = new BMCAlgorithm(algorithm, cpa, config, logger, reachedSetFactory, shutdownManager, cfa);
       }
 
       if (checkCounterexamples) {

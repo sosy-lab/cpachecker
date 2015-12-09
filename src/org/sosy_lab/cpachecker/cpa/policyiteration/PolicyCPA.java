@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -113,8 +114,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
     InvariantGenerator invariantGenerator;
     if (useInvariantsForAbstraction) {
-      invariantGenerator = CPAInvariantGenerator
-          .create(config, logger, shutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+      invariantGenerator =
+          CPAInvariantGenerator.create(
+              config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
