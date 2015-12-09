@@ -21,11 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.OptEnvironment;
@@ -36,10 +36,11 @@ import com.google.common.base.Optional;
  * Wrapper for {@link OptEnvironment} which unwraps the objective formula.
  */
 public class OptEnvironmentView implements OptEnvironment {
+
   private final OptEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
-  public OptEnvironmentView(
+  OptEnvironmentView(
       OptEnvironment pDelegate,
       FormulaManagerView pFormulaManager
   ) {
@@ -72,12 +73,21 @@ public class OptEnvironmentView implements OptEnvironment {
   @Override
   public void push() {
     delegate.push();
+  }
 
+  @Override
+  public Void push(BooleanFormula f) {
+    return delegate.push(f);
   }
 
   @Override
   public void pop() {
     delegate.pop();
+  }
+
+  @Override
+  public boolean isUnsat() throws SolverException, InterruptedException {
+    return delegate.isUnsat();
   }
 
   @Override
@@ -100,13 +110,9 @@ public class OptEnvironmentView implements OptEnvironment {
     delegate.close();
   }
 
-  /**
-   * Note: the return value is not wrapped as we expect it to be a simple
-   * expression.
-   */
   @Override
-  public Formula evaluate(Formula f) {
-    return  delegate.evaluate(wrappingHandler.unwrap(f));
+  public <T extends Formula> T evaluate(T f) {
+    return wrappingHandler.wrap(wrappingHandler.getFormulaType(f), delegate.evaluate(wrappingHandler.unwrap(f)));
   }
 
   /**

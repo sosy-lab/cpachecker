@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -45,7 +45,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   private final BooleanFormulaManager manager;
   private final UnsafeFormulaManager unsafe;
 
-  public BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pManager,
       UnsafeFormulaManager pUnsafe) {
     super(pWrappingHandler);

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.math.BigInteger;
 
@@ -38,7 +38,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   private final BitvectorFormulaManager manager;
   private final BooleanFormulaManager bmgr;
 
-  public BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  BitvectorFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       BitvectorFormulaManager pManager, BooleanFormulaManager pBmgr) {
     super(pWrappingHandler);
     this.manager = pManager;

@@ -42,11 +42,11 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.api.FormulaManager;
 
@@ -99,9 +99,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         pConfig, pLogger, shutdownNotifier);
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory, pConfig, pLogger);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory, pConfig, pLogger);
+    Solver solver = new Solver(formulaManagerFactory, pConfig, pLogger);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);

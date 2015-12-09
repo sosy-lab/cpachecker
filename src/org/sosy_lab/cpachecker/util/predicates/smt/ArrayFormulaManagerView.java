@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.util.Arrays;
 import java.util.List;
@@ -115,7 +115,6 @@ public class ArrayFormulaManagerView
     BooleanFormula result = manager.equivalence(declaredArray1, declaredArray2);
     return wrap(FormulaType.BooleanType, result);
   }
-
   public <T extends Formula> T declareAndCallArray(String pName,
       NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       FormulaType<T> pReturnType,
@@ -159,5 +158,4 @@ public class ArrayFormulaManagerView
     return wrap(pReturnType,
         select(arrayFormula, pIntegerFormulaManager.makeNumber(i)));
   }
-
 }

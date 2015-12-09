@@ -21,16 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.Theory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingArrayFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingBitvectorFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.WrappingFormula.WrappingFloatingPointFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingArrayFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingBitvectorFormula;
+import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingFloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
@@ -47,8 +47,8 @@ import com.google.common.collect.Lists;
  */
 final class FormulaWrappingHandler {
 
-  private Theory encodeBitvectorAs;
-  private Theory encodeFloatAs;
+  private final Theory encodeBitvectorAs;
+  private final Theory encodeFloatAs;
 
   private final FormulaManager manager;
 
@@ -140,6 +140,8 @@ final class FormulaWrappingHandler {
         return FormulaType.IntegerType;
       case RATIONAL:
         return FormulaType.RationalType;
+      default:
+        throw new AssertionError();
       }
     }
 
@@ -151,6 +153,8 @@ final class FormulaWrappingHandler {
         return FormulaType.IntegerType;
       case RATIONAL:
         return FormulaType.RationalType;
+      default:
+        throw new AssertionError();
       }
     }
 

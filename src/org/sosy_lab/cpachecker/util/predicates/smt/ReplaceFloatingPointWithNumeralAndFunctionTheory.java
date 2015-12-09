@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -42,8 +42,7 @@ import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
-
-public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
+class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         extends BaseManagerView
         implements FloatingPointFormulaManager {
 
@@ -58,7 +57,7 @@ public class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralF
   private final T plusInfinityVariable;
   private final T minusInfinityVariable;
 
-  public ReplaceFloatingPointWithNumeralAndFunctionTheory(
+  ReplaceFloatingPointWithNumeralAndFunctionTheory(
       FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<? super T, T> pReplacementManager,
       FunctionFormulaManager rawFunctionManager,

@@ -10,6 +10,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -18,9 +21,6 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 
 public class FormulaLinearizationManager {
   private final UnsafeFormulaManager ufmgr;
@@ -156,43 +156,29 @@ public class FormulaLinearizationManager {
     BooleanFormula noUFs = processUFs(f);
 
     // Get rid of ite-expressions.
-    BooleanFormula out = replaceITE(noUFs);
+    BooleanFormula out = new ReplaceITEVisitor().visit(noUFs);
     statistics.ackermannizationTimer.stop();
 
     return out;
   }
 
-  private BooleanFormula replaceITE(BooleanFormula f) {
-    return (BooleanFormula) recReplaceITE(f, new HashMap<Formula, Formula>());
-  }
+  private class ReplaceITEVisitor extends BooleanFormulaTransformationVisitor {
 
-  private Formula recReplaceITE(Formula f,
-      Map<Formula, Formula> memoization) {
-    if (memoization.containsKey(f)) {
-      return memoization.get(f);
+    private ReplaceITEVisitor() {
+      super(fmgr, new HashMap<BooleanFormula, BooleanFormula>());
     }
-    Formula out;
 
-    if (bfmgr.isIfThenElse(f)) {
-      Formula condition = ufmgr.getArg(f, 0);
-      Formula then = ufmgr.getArg(f, 1);
-      Formula else_ = ufmgr.getArg(f, 2);
+    @Override
+    protected BooleanFormula visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
 
-      if (evaluate(condition).equals(bfmgr.makeBoolean(true))) {
-        out = recReplaceITE(then, memoization);
+      BooleanFormula cond = fmgr.simplify(environment.evaluate(pCondition));
+      if (bfmgr.isTrue(cond)) {
+        return visitIfNotSeen(pThenFormula);
       } else {
-        out = recReplaceITE(else_, memoization);
+        return visitIfNotSeen(pElseFormula);
       }
-    } else {
-      List<Formula> newChildren = new ArrayList<>(ufmgr.getArity(f));
-      for (Formula child : children(f)) {
-        newChildren.add(recReplaceITE(child, memoization));
-      }
-      out = ufmgr.replaceArgs(f, newChildren);
     }
-
-    memoization.put(f, out);
-    return out;
   }
 
   /**
@@ -215,7 +201,9 @@ public class FormulaLinearizationManager {
 
       for (int idx2=idx1+1; idx2<UFs.size(); idx2++) {
         Formula otherUF = UFs.get(idx2);
-        if (uf == otherUF) continue;
+        if (uf == otherUF) {
+          continue;
+        }
 
         Formula otherFreshVar = fmgr.makeVariable(fmgr.getFormulaType(otherUF),
             freshUFName(idx2));
@@ -244,7 +232,9 @@ public class FormulaLinearizationManager {
   }
 
   private void recFindUFs(Formula f, Set<Formula> visited, Set<Formula> UFs) {
-    if (visited.contains(f)) return;
+    if (visited.contains(f)) {
+      return;
+    }
     if (ufmgr.isUF(f)) {
       UFs.add(f);
     } else {

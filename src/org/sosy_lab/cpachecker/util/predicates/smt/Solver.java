@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.util.List;
 import java.util.Map;
@@ -33,9 +33,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.OptEnvironmentView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
@@ -108,14 +105,14 @@ public final class Solver implements AutoCloseable {
    * will also close the formula managers created by the passed {@link FormulaManagerFactory}.
    */
   @VisibleForTesting
-  public Solver(FormulaManagerView pFmgr, FormulaManagerFactory pFactory,
+  public Solver(FormulaManagerFactory pFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
-    fmgr = pFmgr;
-    bfmgr = fmgr.getBooleanFormulaManager();
-    logger = pLogger;
     solvingFormulaManager = pFactory.getFormulaManager();
     interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
+    fmgr = new FormulaManagerView(solvingFormulaManager, config, pLogger);
+    bfmgr = fmgr.getBooleanFormulaManager();
+    logger = pLogger;
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
@@ -126,14 +123,13 @@ public final class Solver implements AutoCloseable {
 
   /**
    * Load and instantiate an SMT solver.
-   * The returned instance should be closed by calling {@link close}
+   * The returned instance should be closed by calling {@link #close}
    * when it is not used anymore.
    */
   public static Solver create(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, shutdownNotifier);
-    FormulaManagerView fmgr = new FormulaManagerView(factory, config, logger);
-    return new Solver(fmgr, factory, config, logger);
+    return new Solver(factory, config, logger);
   }
 
   /**

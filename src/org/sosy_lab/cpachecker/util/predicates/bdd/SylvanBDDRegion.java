@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import jsylvan.JSylvan;
 
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 import com.google.common.primitives.Longs;
 

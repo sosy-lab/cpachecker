@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.test.SolverBasedTest0;
@@ -95,7 +95,8 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
     when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
     when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
 
-    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
     helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier
         .create(), cfa);
 

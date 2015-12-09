@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates;
+package org.sosy_lab.cpachecker.util.predicates.matching;
 
 import static com.google.common.truth.Truth.assertThat;
 import static org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternBuilder.*;
@@ -31,17 +31,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection;
-import org.sosy_lab.solver.z3.Z3FormulaManager;
 
 import com.google.common.collect.Lists;
 
@@ -111,11 +107,7 @@ public class AstMatchingTest0 extends SolverBasedTest0 {
   }
 
   public void setupMatcher() throws InvalidConfigurationException {
-
-    FormulaManagerView fmv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
-    solver = new Solver(fmv, factory, config, TestLogManager.getInstance());
-    Z3FormulaManager zfm =(Z3FormulaManager) mgr;
-
+    solver = new Solver(factory, config, TestLogManager.getInstance());
     matcher = solver.getSmtAstMatcher();
   }
 

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.math.BigDecimal;
 
@@ -40,7 +40,7 @@ public class FloatingPointFormulaManagerView
 
   private final FloatingPointFormulaManager manager;
 
-  public FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  FloatingPointFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FloatingPointFormulaManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;

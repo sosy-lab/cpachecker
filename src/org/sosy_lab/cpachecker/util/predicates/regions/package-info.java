@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,9 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Interface to the LDD (linear decision diagram) library JLDD,
- * implementing the {@link org.sosy_lab.cpachecker.util.predicates.regions.Region}
- * and {@link org.sosy_lab.cpachecker.util.predicates.regions.RegionManager}
- * interfaces.
+ * A region represents some part of the state space of a program,
+ * i.e., with a BDD or an SMT formula.
  */
-package org.sosy_lab.cpachecker.util.predicates.ldd;
+package org.sosy_lab.cpachecker.util.predicates.regions;

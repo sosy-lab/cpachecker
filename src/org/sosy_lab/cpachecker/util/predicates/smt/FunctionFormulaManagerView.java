@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces.view;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
@@ -41,8 +41,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
 
   private final FunctionFormulaManager manager;
 
-
-  public FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       FunctionFormulaManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;

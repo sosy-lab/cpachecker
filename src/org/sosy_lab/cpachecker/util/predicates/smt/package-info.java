@@ -21,24 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.interfaces;
-
 /**
- * An AbstractFormula is a representation of a data region in the
- * abstract space. For instance, in the case of predicate abstraction, it can
- * be a BDD over the predicates
+ * Extensions of the pure {@link org.sosy_lab.solver.api.FormulaManager}
+ * interface and its related interfaces
+ * that make it easier to use by client code.
+ * This package can be used regardless of which SMT solver is the backend.
+ *
+ * The most important feature of this package is to replace an SMT theory
+ * with another one, simulating the semantics of the replaced theory
+ * with other theories.
+ * This can be used to allow working with {@link org.sosy_lab.solver.api.BitvectorFormula}
+ * even if the solver does not support the theory of bitvectors.
+ * Bitvectors will then be approximated with rationals or integers.
  */
-public interface Region {
-
-  /**
-   * checks whether f represents "true"
-   * @return true if f represents logical truth, false otherwise
-   */
-  boolean isTrue();
-
-  /**
-   * checks whether f represents "false"
-   * @return true if f represents logical falsity, false otherwise
-   */
-  boolean isFalse();
-}
+package org.sosy_lab.cpachecker.util.predicates.smt;
