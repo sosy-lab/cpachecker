@@ -238,7 +238,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       final List<Formula> pArgs) {
     // todo does the magic...
     ArrayFormula<?, ?> arrayFormula =
-        makeArray(pName, FormulaType.IntegerType, FormulaType.IntegerType);
+        makeArray(pName, FormulaType.IntegerType, pReturnType);
 
     int i;
     for (i = 0; i < pArgs.size(); ++i) {
