@@ -344,14 +344,24 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     assert from(result).allMatch(new Predicate<ARGState>() {
       @Override
-      public boolean apply(ARGState pInput) {
-        boolean correct = pInput.getParents().size() <= 1;
-        assert correct : "PredicateCPARefiner expects abstraction states to have only one parent, but this state has more:" + pInput;
+      public boolean apply(ARGState pState) {
+        boolean correct = pState.getParents().size() <= 1;
+        assert correct : "PredicateCPARefiner expects abstraction states to have only one parent, but this state has more:" + pState;
         return correct;
       }
     });
 
-    assert pPath.getLastState() == result.get(result.size()-1);
+    final ARGState lastInResult = result.get(result.size()-1);
+
+    assert pPath.getLastState().isTarget();
+    assert lastInResult.isTarget();
+    assert pPath.getLastState() == lastInResult;
+
+    // In case of an assertion:
+    //  A) Have you made sure that a target state of the automata CPA is followed
+    //      by a transition that disables the target state, for example,
+    //      performs a transition to BOTTOM (as in the default state AutomataInternalState.ERRROR)?
+
     return result;
   }
 
