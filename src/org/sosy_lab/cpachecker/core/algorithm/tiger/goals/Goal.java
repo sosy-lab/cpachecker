@@ -394,6 +394,19 @@ public class Goal implements SafetyProperty {
         transitions.add(ct);
       }
 
+      if (isTarget) {
+        // Disable the automata after the goal (target state)
+        //  has been reached by transiting to BOTTOM
+        AutomatonTransition t = new AutomatonTransition(
+            AutomatonBoolExpr.TRUE,
+            null,
+            true,
+            Collections.<AutomatonAction>emptyList(),
+            AutomatonInternalState.BOTTOM, ImmutableSet.<SafetyProperty>of());
+
+        transitions.add(t);
+      }
+
       automatonStates.add(new AutomatonInternalState(stateName, transitions, isTarget, true));
     }
 
