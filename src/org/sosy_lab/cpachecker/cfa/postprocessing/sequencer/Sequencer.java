@@ -46,48 +46,48 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 public class Sequencer {
 
   private LogManager logger;
-  
+
   private MutableCFA cfa;
-  
+
   public Sequencer(MutableCFA cfa, LogManager logger) throws InvalidConfigurationException {
     this.logger = logger;
     this.cfa = cfa;
   }
-  
-  
+
+
   public void sequenceCFA() {
     SequencePreparator threadIdentificator = new SequencePreparator(cfa);
     CThreadContainer threads = threadIdentificator.traverseAndReplaceFunctions();
     ControlVariables controlVariables = new ControlVariables(threads);
     POSIXStubs posixStubs = new POSIXStubs();
-    
 
-    stubThreadCreation(threadIdentificator, controlVariables, cfa);
-    
+
+    stubThreadCreation(threadIdentificator, controlVariables, cfa, logger);
+
     // create contextswitches
     for(CThread thread : threads.getAllThreads()) {
       exploreThreadRecursivly(thread, thread.getThreadFunction(), new HashSet<FunctionEntryNode>());
     }
-    
-    // (4) build scheduler simulation function and the corresponding context switch edges
+
+    // build scheduler simulation function and the corresponding context switch edges
     ControlCodeBuilder threadControlCodeInjector = new ControlCodeBuilder(controlVariables, cfa, threads, logger);
-    
-    // (5) TODO stub mutext etc.
+
+    // TODO stub mutext etc.
     threadControlCodeInjector.buildControlVariableDeclaration();
     threadControlCodeInjector.buildPthreadCreateBody(posixStubs.getPthreadCreateStubDeclaration());
     threadControlCodeInjector.buildPThreadJoinBody(posixStubs.getPthreadJoinDeclaration());
-    
+
     threadControlCodeInjector.buildScheduleSimulationFunction();
-    
+
     cfa.setThreads(threads);
   }
-  
+
   private static void stubThreadCreation(
       SequencePreparator threadIdentificator,
-      ControlVariables controlVariables, MutableCFA cfa) {
+      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
     for (Entry<CThread, CStatementEdge> aThread : threadIdentificator.getCreationEdges().entrySet()) {
       StubPosixFunctions.replaceThreadCreationWithStub(aThread.getValue(),
-          aThread.getKey(), controlVariables, cfa);
+          aThread.getKey(), controlVariables, cfa, logger);
     }
   }
 
@@ -95,7 +95,7 @@ public class Sequencer {
       FunctionEntryNode entryNode, Collection<FunctionEntryNode> alreadyVisited) {
     assert entryNode != null;
     alreadyVisited.add(entryNode);
-    
+
     CFAVisitor contextswtichMarker = new ThreadContextSwitchMarker(thread, cfa);
     FunctionCallCollector collector = new FunctionCallCollector();
     CompositeCFAVisitor visitor = new CompositeCFAVisitor(contextswtichMarker,
@@ -113,6 +113,6 @@ public class Sequencer {
       }
     }
   }
-  
+
 
 }
