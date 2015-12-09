@@ -509,7 +509,6 @@ public class TigerAlgorithm
         pGoalsToCover.removeAll(goalsToBeProcessed);
         partitionId++;
 
-        // TODO: remove covered and infeasible test goals from set?
         // TODO: remove loop? it is not necessary anymore if we call the tiger-algorithm until the complete state space is covered for each goal
         while (!testsuite.areGoalsCoveredOrInfeasible(goalsToBeProcessed)
             && !goalsToBeProcessed.isEmpty()) {
@@ -564,6 +563,9 @@ public class TigerAlgorithm
           if (checkCoverage) {
             for (Goal goalToBeChecked : goalsToBeProcessed) {
               if (checkAndCoverGoal(goalToBeChecked)) {
+                if (useTigerAlgorithm_with_pc) {
+                  pGoalsToCover.remove(goalToBeChecked);
+                }
                 if (lGoalPrediction != null) {
                   lGoalPrediction[goalToBeChecked.getIndex() - 1] = Prediction.FEASIBLE;
                 }
@@ -612,10 +614,9 @@ public class TigerAlgorithm
     return wasSound;
   }
 
-  private boolean updateTestsuiteByCoverageOf(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
+  private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
 
-    boolean isFullyCovered = false;
-
+    Set<Goal> coveredGoals = new HashSet<>();
     Set<Goal> goalsCoveredByLastState = Sets.newHashSet();
 
     ARGState lastState = pTestcase.getArgPath().getLastState();
@@ -674,14 +675,15 @@ public class TigerAlgorithm
         logger.logf(Level.WARNING, "Covered Goal %d (%s) by existing test case!",
             goal.getIndex(),
             testsuite.getTestGoalLabel(goal));
+        coveredGoals.add(goal);
 
         if (!allCoveredGoalsPerTestCase) {
-          return true;
+          return coveredGoals;
         }
       }
     }
 
-    return isFullyCovered;
+    return coveredGoals;
   }
 
 
@@ -841,7 +843,7 @@ public class TigerAlgorithm
   }
 
   private ReachabilityAnalysisResult runAlgorithm(
-      final Set<Goal> pUncoveredGoals,
+      Set<Goal> pUncoveredGoals,
       final Set<Goal> pTestGoalsToBeProcessed,
       final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       final Region pRemainingPresenceCondition,
@@ -880,7 +882,8 @@ public class TigerAlgorithm
                         "Analysis returned a target state (%d) without a feasible counterexample for: "
                         + lastState.getViolatedProperties(), lastState.getStateId());
           } else {
-            addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi, pInfeasibilityPropagation);
+            Set<Goal> coveredGoals = addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi, pInfeasibilityPropagation);
+            pUncoveredGoals.removeAll(coveredGoals);
           }
         }
 
@@ -1089,7 +1092,7 @@ public class TigerAlgorithm
    * @param pCex
    * @param pInfeasibilityPropagation
    */
-  private void addTestToSuite(Set<Goal> pRemainingGoals,
+  private Set<Goal> addTestToSuite(Set<Goal> pRemainingGoals,
       CounterexampleInfo pCex, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
 
     Preconditions.checkNotNull(pInfeasibilityPropagation);
@@ -1105,12 +1108,12 @@ public class TigerAlgorithm
             : null;
 
     TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
-    updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
+    Set<Goal> coveredGoals = updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
 
 //        if (lGoalPrediction != null) {
 //          lGoalPrediction[pGoal.getIndex() - 1] = Prediction.FEASIBLE;
 //        }
-
+    return coveredGoals;
   }
 
 

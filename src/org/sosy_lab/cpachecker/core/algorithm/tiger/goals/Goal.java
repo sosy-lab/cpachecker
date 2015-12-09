@@ -491,12 +491,6 @@ public class Goal implements SafetyProperty {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((mAutomaton == null) ? 0 : mAutomaton.hashCode());
-    result = prime * result + ((mCheckedWithAutomaton == null) ? 0 : mCheckedWithAutomaton.hashCode());
-    result = prime * result + ((mCoveringTestCases == null) ? 0 : mCoveringTestCases.hashCode());
-    result = prime * result + mIndex;
-    result = prime * result + ((mInfeasiblePresenceCondition == null) ? 0 : mInfeasiblePresenceCondition.hashCode());
-    result = prime * result + ((mPattern == null) ? 0 : mPattern.hashCode());
-    result = prime * result + ((mRemainingPresenceCondition == null) ? 0 : mRemainingPresenceCondition.hashCode());
     return result;
   }
 
@@ -509,22 +503,6 @@ public class Goal implements SafetyProperty {
     if (mAutomaton == null) {
       if (other.mAutomaton != null) { return false; }
     } else if (!mAutomaton.equals(other.mAutomaton)) { return false; }
-    if (mCheckedWithAutomaton == null) {
-      if (other.mCheckedWithAutomaton != null) { return false; }
-    } else if (!mCheckedWithAutomaton.equals(other.mCheckedWithAutomaton)) { return false; }
-    if (mCoveringTestCases == null) {
-      if (other.mCoveringTestCases != null) { return false; }
-    } else if (!mCoveringTestCases.equals(other.mCoveringTestCases)) { return false; }
-    if (mIndex != other.mIndex) { return false; }
-    if (mInfeasiblePresenceCondition == null) {
-      if (other.mInfeasiblePresenceCondition != null) { return false; }
-    } else if (!mInfeasiblePresenceCondition.equals(other.mInfeasiblePresenceCondition)) { return false; }
-    if (mPattern == null) {
-      if (other.mPattern != null) { return false; }
-    } else if (!mPattern.equals(other.mPattern)) { return false; }
-    if (mRemainingPresenceCondition == null) {
-      if (other.mRemainingPresenceCondition != null) { return false; }
-    } else if (!mRemainingPresenceCondition.equals(other.mRemainingPresenceCondition)) { return false; }
     return true;
   }
 
