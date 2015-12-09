@@ -87,14 +87,14 @@ public class BDDUtils {
     return null;
   }
 
-  public static Region composeRemainingPresenceConditions(Set<Goal> pTestGoalsToBeProcessed, NamedRegionManager pBddCpaNamedRegionManager) {
+  public static Region composeRemainingPresenceConditions(Set<Goal> pTestGoalsToBeProcessed, TestSuite testsuite, NamedRegionManager pBddCpaNamedRegionManager) {
     if (pBddCpaNamedRegionManager == null) {
       return null;
     }
 
     Region presenceCondition = pBddCpaNamedRegionManager.makeFalse();
     for (Goal goal : pTestGoalsToBeProcessed) {
-      presenceCondition = pBddCpaNamedRegionManager.makeOr(presenceCondition, goal.getRemainingPresenceCondition());
+      presenceCondition = pBddCpaNamedRegionManager.makeOr(presenceCondition, testsuite.getRemainingPresenceCondition(goal));
     }
 
     return presenceCondition;

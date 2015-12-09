@@ -24,9 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,7 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
@@ -60,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -75,17 +71,12 @@ public class Goal implements SafetyProperty {
   private ElementaryCoveragePattern mPattern;
   private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
   private Automaton mCheckedWithAutomaton;
-  private Region mRemainingPresenceCondition;
-  private Map<TestCase, Region> mCoveringTestCases;
-  private Region mInfeasiblePresenceCondition;
 
   public Goal(int pIndex, ElementaryCoveragePattern pPattern,
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pRemainingPresenceCondition) {
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
-    setRemainingPresenceCondition(pRemainingPresenceCondition);
-    mCoveringTestCases = new HashMap<>();
   }
 
   public int getIndex() {
@@ -98,32 +89,6 @@ public class Goal implements SafetyProperty {
 
   public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
     return mAutomaton;
-  }
-
-  public Region getRemainingPresenceCondition() {
-    return mRemainingPresenceCondition;
-  }
-
-  public void setRemainingPresenceCondition(Region pRemainingPresenceCondition) {
-    mRemainingPresenceCondition = pRemainingPresenceCondition;
-  }
-
-  public Map<TestCase, Region> getCoveringTestCases() {
-    return mCoveringTestCases;
-  }
-
-  public void addCoveringTestCase(TestCase pTestCase, Region pPresenceCondition) {
-    if (!mCoveringTestCases.containsKey(pTestCase)) {
-      mCoveringTestCases.put(pTestCase, pPresenceCondition);
-    }
-  }
-
-  public Region getInfeasiblePresenceCondition() {
-    return mInfeasiblePresenceCondition;
-  }
-
-  public void setInfeasiblePresenceCondition(Region pInfeasiblePresenceCondition) {
-    mInfeasiblePresenceCondition = pInfeasiblePresenceCondition;
   }
 
   @Override
@@ -505,6 +470,5 @@ public class Goal implements SafetyProperty {
     } else if (!mAutomaton.equals(other.mAutomaton)) { return false; }
     return true;
   }
-
 
 }

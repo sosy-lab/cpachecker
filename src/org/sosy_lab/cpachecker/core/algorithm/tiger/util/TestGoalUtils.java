@@ -47,15 +47,12 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.InfeasibilityPropagation.Prediction;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.collect.Sets;
 
 public class TestGoalUtils {
 
   private final LogManager logger;
-  private boolean useTigerAlgorithm_with_pc;
-  private NamedRegionManager bddCpaNamedRegionManager;
 
   private GuardedEdgeLabel mAlphaLabel;
   private GuardedEdgeLabel mOmegaLabel;
@@ -65,8 +62,6 @@ public class TestGoalUtils {
       NamedRegionManager pBddCpaNamedRegionManager, GuardedEdgeLabel pAlphaLabel,
       InverseGuardedEdgeLabel pInverseAlphaLabel, GuardedEdgeLabel pOmegaLabel) {
     logger = pLogger;
-    useTigerAlgorithm_with_pc = pUseTigerAlgorithm_with_pc;
-    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
 
     mAlphaLabel = pAlphaLabel;
     mInverseAlphaLabel = pInverseAlphaLabel;
@@ -127,15 +122,8 @@ public class TestGoalUtils {
     Set<Goal> goalsToCover = Sets.newHashSet();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
-      Pair<ElementaryCoveragePattern, Region> patternWithPC;
-      if (useTigerAlgorithm_with_pc) {
-        patternWithPC = Pair.of(goalPatterns.get(i), bddCpaNamedRegionManager.makeTrue());
-      } else {
-        patternWithPC = Pair.of(goalPatterns.get(i), (Region) null);
-      }
-
-      Goal lGoal = constructGoal(i + 1, patternWithPC.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-          pOptimizeGoalAutomata, patternWithPC.getSecond());
+      Goal lGoal = constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+          pOptimizeGoalAutomata);
       goalsToCover.add(lGoal);
     }
 
@@ -195,14 +183,13 @@ public class TestGoalUtils {
    * @return
    */
   public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization,
-      Region pRemainingPresenceCondition) {
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
         ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
-    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton, pRemainingPresenceCondition);
+    Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
     return lGoal;
   }

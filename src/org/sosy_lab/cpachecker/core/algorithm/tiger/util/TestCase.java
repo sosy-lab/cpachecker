@@ -36,6 +36,7 @@ public class TestCase {
 
   private int id;
   private List<BigInteger> inputs;
+  private List<TestStep> testSteps;
   private ARGPath argPath;
   private List<CFAEdge> errorPath;
   private NamedRegionManager bddCpaNamedRegionManager;
@@ -44,15 +45,16 @@ public class TestCase {
   private int numberOfNewlyCoveredGoals;
   private int numberOfNewlyPartiallyCoveredGoals;
 
-  public TestCase(int pId, List<BigInteger> pInputs, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition,
-      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime) {
+  public TestCase(int pId, List<TestStep> pTestSteps, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition,
+      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime, List<BigInteger> pInputs) {
     id = pId;
-    inputs = pInputs;
+    testSteps = pTestSteps;
     argPath = pArgPath;
     errorPath = pList;
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     presenceCondition = pPresenceCondition;
     generationTime = pGenerationTime;
+    inputs = pInputs;
   }
 
   public int getId() {
@@ -67,8 +69,8 @@ public class TestCase {
     return errorPath;
   }
 
-  public List<BigInteger> getInputs() {
-    return inputs;
+  public List<TestStep> getTestSteps() {
+    return testSteps;
   }
 
   public Region getPresenceCondition() {
@@ -93,6 +95,10 @@ public class TestCase {
 
   public void incrementNumberOfNewlyPartiallyCoveredGoals() {
     numberOfNewlyPartiallyCoveredGoals++;
+  }
+
+  public List<BigInteger> getInputs() {
+    return inputs;
   }
 
   public String toCode() {
@@ -124,7 +130,7 @@ public class TestCase {
   public boolean equals(Object o) {
     if (o instanceof TestCase) {
       TestCase other = (TestCase) o;
-      return (inputs.equals(other.inputs) && errorPath.equals(other.errorPath)
+      return (id == other.getId()) && (inputs.equals(other.inputs) && errorPath.equals(other.errorPath)
           && (presenceCondition != null ? presenceCondition.equals(other.getPresenceCondition()) : true));
     }
 
