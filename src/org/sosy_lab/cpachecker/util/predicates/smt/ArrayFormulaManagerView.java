@@ -66,8 +66,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     final TE selectResult = manager.select(declaredArray, unwrap(pIndex));
     final FormulaType<TE> resultType = getElementType(pArray);
 
-    // the result of a select can also be a reference to an array!
-    // (multi-dimensional arrays)
+    // the result of a select can also be a reference to an array! (multi-dimensional arrays)
     // example: returns an array
     return wrap(resultType, selectResult);
   }
@@ -158,9 +157,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    *
    * @param pName The name of the array variable.
    * @param pIntegerFormulaManager The formula manager for integer formulae.
-   * @param pReturnType The return type of the array call, i.e. the element type
-   *                    of the array.
-   * @param pArgs A var-args list of formulae that get stored in the array.
+   * @param pReturnType The return type of the array call, i.e. the element type of the array.
+   * @param pArgs The formula for the element that gets stored in the array.
    * @param <T> The formula type of the elements of the array.
    * @return A formula for the array and the call to it.
    */
@@ -168,9 +166,14 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       final String pName,
       final NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       final FormulaType<T> pReturnType,
-      final Formula... pArgs) {
-    return declareAndCallArray(pName, pIntegerFormulaManager, pReturnType,
-        Arrays.asList(pArgs));
+      final Formula pArgs) {
+
+    // todo does the magic...
+    ArrayFormula<?, ?> arrayFormula = makeArray(pName, FormulaType.IntegerType, pReturnType);
+    final Formula index = pIntegerFormulaManager.makeNumber(0);
+    arrayFormula = store(arrayFormula, index, pArgs);
+
+    return wrap(pReturnType, select(arrayFormula, index));
   }
 
   /**
@@ -180,9 +183,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * @param pName The name of the array variable.
    * @param pIdx An additional index.
    * @param pIntegerFormulaManager The formula manager for integer formulae.
-   * @param pReturnType The return type of the array call, i.e. the element type
-   *                    of the array.
-   * @param pArgs A var-args list of formulae that get stored in the array.
+   * @param pReturnType The return type of the array call, i.e. the element type of the array.
+   * @param pArgs The formula for the element that gets stored in the array.
    * @param <T> The formula type of the elements of the array.
    * @return A formula for the array and the call to it.
    */
@@ -191,61 +193,10 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       final int pIdx,
       final NumeralFormulaManager<?, ?> pIntegerFormulaManager,
       final FormulaType<T> pReturnType,
-      final Formula... pArgs) {
-    return declareAndCallArray(pName, pIdx, pIntegerFormulaManager, pReturnType,
-        Arrays.asList(pArgs));
-  }
+      final Formula pArgs) {
 
-  /**
-   * Returns a formula representing the declaration of an SMT array and a call
-   * to it.
-   *
-   * @param pName The name of the array variable.
-   * @param pIdx An additional index.
-   * @param pIntegerFormulaManager The formula manager for integer formulae.
-   * @param pReturnType The return type of the array call, i.e. the element type
-   *                    of the array.
-   * @param pArgs A list of formulae that get stored in the array.
-   * @param <T> The formula type of the elements of the array.
-   * @return A formula for the array and the call to it.
-   */
-  private <T extends Formula> T declareAndCallArray(
-      final String pName,
-      final int pIdx,
-      final NumeralFormulaManager<?, ?> pIntegerFormulaManager,
-      final FormulaType<T> pReturnType,
-      final List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, pIdx);
     return declareAndCallArray(name, pIntegerFormulaManager, pReturnType, pArgs);
   }
 
-  /**
-   * Returns a formula representing the declaration of an SMT array and a call
-   * to it.
-   *
-   * @param pName The name of the array variable.
-   * @param pIntegerFormulaManager The formula manager for integer formulae.
-   * @param pReturnType The return type of the array call, i.e. the element type
-   *                    of the array.
-   * @param pArgs A list of formulae that get stored in the array.
-   * @param <T> The formula type of the elements of the array.
-   * @return A formula for the array and the call to it.
-   */
-  private <T extends Formula> T declareAndCallArray(
-      final String pName,
-      final NumeralFormulaManager<?, ?> pIntegerFormulaManager,
-      final FormulaType<T> pReturnType,
-      final List<Formula> pArgs) {
-    // todo does the magic...
-    ArrayFormula<?, ?> arrayFormula =
-        makeArray(pName, FormulaType.IntegerType, pReturnType);
-
-    int i;
-    for (i = 0; i < pArgs.size(); ++i) {
-      Formula index = pIntegerFormulaManager.makeNumber(i);
-      arrayFormula = store(arrayFormula, index, pArgs.get(i));
-    }
-
-    return wrap(pReturnType, select(arrayFormula, pIntegerFormulaManager.makeNumber(i - 1)));
-  }
 }
