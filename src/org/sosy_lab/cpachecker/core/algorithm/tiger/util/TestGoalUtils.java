@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Pair;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.Infeasibili
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+
+import com.google.common.collect.Sets;
 
 public class TestGoalUtils {
 
@@ -96,7 +99,7 @@ public class TestGoalUtils {
     return fqlSpecification;
   }
 
-  public LinkedList<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
+  public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       CoverageSpecificationTranslator pCoverageSpecificationTranslator, boolean pOptimizeGoalAutomata) {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
@@ -121,7 +124,7 @@ public class TestGoalUtils {
       pGoalPrediction = null;
     }
 
-    LinkedList<Goal> goalsToCover = new LinkedList<>();
+    Set<Goal> goalsToCover = Sets.newHashSet();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
       Pair<ElementaryCoveragePattern, Region> patternWithPC;

@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -137,6 +138,8 @@ import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -153,7 +156,7 @@ public class TigerAlgorithm
   private boolean optimizeGoalAutomata = true;
 
   @Option(secure = true, name = "printARGperGoal", description = "Print the ARG for each test goal")
-  private boolean printARGperGoal = false;
+  private boolean dumpARGperPartition = false;
 
   @Option(secure = true, name = "useAutomataCrossProduct", description = "Compute the cross product of the goal automata?")
   private boolean useAutomataCrossProduct = false;
@@ -294,6 +297,7 @@ public class TigerAlgorithm
   private String programDenotation;
   private MainCPAStatistics stats;
   private int testCaseId = 0;
+  private int partitionId = 0;
 
   NamedRegionManager bddCpaNamedRegionManager = null;
 
@@ -383,16 +387,16 @@ public class TigerAlgorithm
     // Optimization: Infeasibility propagation
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
 
-    LinkedList<Goal> pGoalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
+    Set<Goal> goalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
         lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata);
-    statistics_numberOfTestGoals = pGoalsToCover.size();
+    statistics_numberOfTestGoals = goalsToCover.size();
     logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
 
 
     // (iii) do test generation for test goals ...
     boolean wasSound = true;
     try {
-      if (!testGeneration(pGoalsToCover, lInfeasibilityPropagation)) {
+      if (!testGeneration(goalsToCover, lInfeasibilityPropagation)) {
         logger.logf(Level.WARNING, "Test generation contained unsound reachability analysis runs!");
         wasSound = false;
       }
@@ -400,7 +404,7 @@ public class TigerAlgorithm
       throw new CPAException("Invalid configuration!", e1);
     }
 
-    assert (pGoalsToCover.isEmpty());
+    assert (goalsToCover.isEmpty());
 
     // write generated test suite and mapping to file system
     try (Writer writer =
@@ -430,7 +434,28 @@ public class TigerAlgorithm
     return lInfeasibilityPropagation;
   }
 
-  private boolean testGeneration(LinkedList<Goal> pGoalsToCover,
+  private ImmutableSet<Goal> nextTestGoalSet(Set<Goal> pGoalsToCover, TestSuite pSuite) {
+
+    final int testGoalSetSize = (numberOfTestGoalsPerRun <= 0)
+        ? pGoalsToCover.size()
+        : (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
+
+    Builder<Goal> builder = ImmutableSet.<Goal>builder();
+
+    Iterator<Goal> it = pGoalsToCover.iterator();
+    for (int i = 0; i < testGoalSetSize; i++) {
+      if (it.hasNext()) {
+        builder.add(it.next());
+      }
+    }
+
+    ImmutableSet<Goal> result = builder.build();
+    statistics_numberOfProcessedTestGoals += result.size();
+
+    return result;
+  }
+
+  private boolean testGeneration(Set<Goal> pGoalsToCover,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
           throws CPAException, InterruptedException, InvalidConfigurationException {
     boolean wasSound = true;
@@ -480,29 +505,22 @@ public class TigerAlgorithm
       }
 
       while (!pGoalsToCover.isEmpty()) {
-        Set<Goal> goalsToBeProcessed = new HashSet<>();
-        int testGoalSetSize;
-        if (numberOfTestGoals <= 0) {
-          testGoalSetSize = pGoalsToCover.size();
-        } else {
-          testGoalSetSize =
-              (pGoalsToCover.size() > numberOfTestGoalsPerRun) ? numberOfTestGoalsPerRun : pGoalsToCover.size();
-        }
-        for (int i = 0; i < testGoalSetSize; i++) {
-          statistics_numberOfProcessedTestGoals++;
-          goalsToBeProcessed.add(pGoalsToCover.poll());
-        }
+        Set<Goal> goalsToBeProcessed = nextTestGoalSet(pGoalsToCover, null);
+        pGoalsToCover.removeAll(goalsToBeProcessed);
+        partitionId++;
 
         // TODO: remove covered and infeasible test goals from set?
         // TODO: remove loop? it is not necessary anymore if we call the tiger-algorithm until the complete state space is covered for each goal
-        while (!testsuite.areGoalsCoveredOrInfeasible(goalsToBeProcessed)) {
+        while (!testsuite.areGoalsCoveredOrInfeasible(goalsToBeProcessed)
+            && !goalsToBeProcessed.isEmpty()) {
+
           if (useTigerAlgorithm_with_pc) {
             /* force that a new reachedSet is computed when first starting on a new TestGoal with initial PC TRUE.
              * This enforces that no very constrained ARG is reused when computing a new ARG for a new testgoal with broad pc (TRUE).
              * This strategy allows us to set option tiger.reuseARG=true such that ARG is reused in testgoals (pcs get only more specific).
              * Keyword: overapproximation
              */
-            logger.log(Level.INFO, "NULLLLLLLLLLLLLLLLLLLLLLLLLL");
+            //assert false;
             reachedSet = null;
           }
 
@@ -511,6 +529,7 @@ public class TigerAlgorithm
             logString += g.getIndex() + " (" + testsuite.getTestGoalLabel(g) + "), ";
           }
           logString = logString.substring(0, logString.length() - 2);
+
           if (useTigerAlgorithm_with_pc) {
             Region remainingPresenceCondition =
                 BDDUtils.composeRemainingPresenceConditions(goalsToBeProcessed, bddCpaNamedRegionManager);
@@ -544,7 +563,7 @@ public class TigerAlgorithm
           //
           if (checkCoverage) {
             for (Goal goalToBeChecked : goalsToBeProcessed) {
-              if (isCovered(goalToBeChecked)) {
+              if (checkAndCoverGoal(goalToBeChecked)) {
                 if (lGoalPrediction != null) {
                   lGoalPrediction[goalToBeChecked.getIndex() - 1] = Prediction.FEASIBLE;
                 }
@@ -558,7 +577,7 @@ public class TigerAlgorithm
 
           // goal is uncovered so far; run CPAchecker to cover it
           ReachabilityAnalysisResult result =
-              runReachabilityAnalysis(goalsToBeProcessed, previousAutomaton, pInfeasibilityPropagation);
+              runReachabilityAnalysis(pGoalsToCover, goalsToBeProcessed, previousAutomaton, pInfeasibilityPropagation);
           if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
             logger.logf(Level.WARNING, "Analysis run was unsound!");
             wasSound = false;
@@ -586,17 +605,95 @@ public class TigerAlgorithm
 
     if (allCoveredGoalsPerTestCase) {
       for (Goal goal : testsuite.getGoals()) {
-        isCovered(goal);
+        checkAndCoverGoal(goal);
       }
     }
 
     return wasSound;
   }
 
-  private boolean isCovered(Goal pGoal) {
+  private boolean updateTestsuiteByCoverageOf(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
+
     boolean isFullyCovered = false;
+
+    Set<Goal> goalsCoveredByLastState = Sets.newHashSet();
+
+    ARGState lastState = pTestcase.getArgPath().getLastState();
+    for (Property p: lastState.getViolatedProperties()) {
+      Preconditions.checkState(p instanceof Goal);
+      goalsCoveredByLastState.add((Goal) p);
+    }
+
+    for (Goal goal : pCheckCoverageOf) {
+
+      final ThreeValuedAnswer isCovered;
+      if (goalsCoveredByLastState.contains(goal)) {
+        isCovered = ThreeValuedAnswer.ACCEPT;
+      } else {
+        isCovered = TigerAlgorithm.accepts(goal.getAutomaton(), pTestcase.getErrorPath());
+      }
+
+      if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
+        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!",
+            goal.getIndex());
+        continue;
+      } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
+        continue;
+      }
+
+      // test goal is already covered by an existing test case
+      if (useTigerAlgorithm_with_pc) {
+        boolean goalCoveredByTestCase = goal.getCoveringTestCases().containsKey(pTestcase);
+
+        if (!goalCoveredByTestCase) {
+          PathIterator pathIterator = pTestcase.getArgPath().pathIterator();
+          while (pathIterator.hasNext()) {
+            ARGState state = pathIterator.getAbstractState();
+            if (pathIterator.getIndex() != 0) { // get incoming edge is not allowed if index==0
+              if (pathIterator.getIncomingEdge().equals(goal.getCriticalEdge())) {
+                Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(state);
+                if (goalCriticalStateRegion != null) {
+                  if (allCoveredGoalsPerTestCase || !bddCpaNamedRegionManager
+                      .makeAnd(goal.getRemainingPresenceCondition(), goalCriticalStateRegion)
+                      .isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+                    testsuite.addTestCase(pTestcase, goal, goalCriticalStateRegion);
+                    logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by existing test case!",
+                        goal.getIndex(), testsuite.getTestGoalLabel(goal),
+                        bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion));
+                    logger.logf(Level.WARNING, "Remaining PC %s!",
+                        bddCpaNamedRegionManager.dumpRegion(goal.getRemainingPresenceCondition()));
+                  }
+                }
+              }
+            }
+            pathIterator.advance();
+          }
+        }
+      } else {
+        testsuite.addTestCase(pTestcase, goal, null);
+        logger.logf(Level.WARNING, "Covered Goal %d (%s) by existing test case!",
+            goal.getIndex(),
+            testsuite.getTestGoalLabel(goal));
+
+        if (!allCoveredGoalsPerTestCase) {
+          return true;
+        }
+      }
+    }
+
+    return isFullyCovered;
+  }
+
+
+  private boolean checkAndCoverGoal(Goal pGoal) {
+
+    boolean isFullyCovered = false;
+
     for (TestCase testcase : testsuite.getTestCases()) {
+
+      // Check if the goal is covered by the testcase
       ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(pGoal.getAutomaton(), testcase.getErrorPath());
+
       if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
         logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!",
             pGoal.getIndex());
@@ -635,9 +732,13 @@ public class TigerAlgorithm
         }
       } else {
         testsuite.addTestCase(testcase, pGoal, null);
-        logger.logf(Level.WARNING, "Covered Goal %d (%s) by existing test case!", pGoal.getIndex(),
+        logger.logf(Level.WARNING, "Covered Goal %d (%s) by existing test case!",
+            pGoal.getIndex(),
             testsuite.getTestGoalLabel(pGoal));
-        if (!allCoveredGoalsPerTestCase) { return true; }
+
+        if (!allCoveredGoalsPerTestCase) {
+          return true;
+        }
       }
     }
 
@@ -697,55 +798,50 @@ public class TigerAlgorithm
     TIMEOUT
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Set<Goal> pTestGoalsToBeProcessed,
+  private ReachabilityAnalysisResult runReachabilityAnalysis(
+      Set<Goal> pUncoveredGoals,
+      Set<Goal> pTestGoalsToBeProcessed,
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousGoalAutomaton,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation)
           throws CPAException, InterruptedException, InvalidConfigurationException {
 
-    ARGCPA lARTCPA = composeCPA(pTestGoalsToBeProcessed);
+    ARGCPA cpa = composeCPA(pTestGoalsToBeProcessed);
 
-    Preconditions.checkState(lARTCPA.getWrappedCPAs().get(0) instanceof CompositeCPA,
-        "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
-    Preconditions.checkState(
-        ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof ControlAutomatonCPA
-        || ((CompositeCPA) lARTCPA.getWrappedCPAs().get(0)).getWrappedCPAs().get(0) instanceof PowersetAutomatonCPA,
+    Preconditions.checkState(cpa.getWrappedCPAs().get(0) instanceof CompositeCPA,
         "CPAcheckers automata should be used! The assumption is that the first component is the automata for the current goal!");
 
     // TODO: enable tiger techniques for multi-goal generation in one run
     //    if (reuseARG && (reachedSet != null)) {
     //      reuseARG(pTestGoalsToBeProcessed, pPreviousGoalAutomaton, lARTCPA);
     //    } else {
-    initializeReachedSet(lARTCPA);
+    initializeReachedSet(cpa);
     //    }
 
-    ShutdownNotifier algNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
-    startupConfig.getConfig();
+    Region presenceConditionToCover = BDDUtils.composeRemainingPresenceConditions(
+        pTestGoalsToBeProcessed, bddCpaNamedRegionManager);
 
-    Region lRemainingPresenceCondition =
-        BDDUtils.composeRemainingPresenceConditions(pTestGoalsToBeProcessed, bddCpaNamedRegionManager);
-
-    Algorithm algorithm = initializeAlgorithm(lRemainingPresenceCondition, lARTCPA, algNotifier);
+    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
+    Algorithm algorithm = initializeAlgorithm(presenceConditionToCover, cpa, shutdownNotifier);
 
     ReachabilityAnalysisResult algorithmStatus =
-        runReachabilityAnalysis(pTestGoalsToBeProcessed, lARTCPA, pInfeasibilityPropagation,
-            lRemainingPresenceCondition, algNotifier, algorithm);
+        runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
+            presenceConditionToCover, shutdownNotifier, algorithm);
 
-    if (printARGperGoal) {
-      for (Goal goal : pTestGoalsToBeProcessed) {
-        Path argFile = Paths.get("output", "ARG_goal_" + goal.getIndex() + ".dot");
+    if (dumpARGperPartition) {
+      Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId) + ".dot");
 
-        try (Writer w = Files.openOutputFile(argFile)) {
-          ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-        }
+      try (Writer w = Files.openOutputFile(argFile)) {
+        ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
       }
     }
 
     return algorithmStatus;
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(
+  private ReachabilityAnalysisResult runAlgorithm(
+      final Set<Goal> pUncoveredGoals,
       final Set<Goal> pTestGoalsToBeProcessed,
       final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       final Region pRemainingPresenceCondition,
@@ -762,7 +858,7 @@ public class TigerAlgorithm
       Preconditions.checkState(pAlgorithm instanceof CEGARAlgorithm
           || pAlgorithm instanceof CounterexampleCheckAlgorithm);
 
-      algorithmStatus = runAlgorithm(pShutdownNotifier, pAlgorithm);
+      algorithmStatus = runAlgorithmWithLimit(pShutdownNotifier, pAlgorithm);
 
       // Cases where runAlgorithm terminates:
       //  A) TIMEOUT
@@ -771,8 +867,22 @@ public class TigerAlgorithm
 
       if (algorithmStatus != ReachabilityAnalysisResult.TIMEOUT) {
 
-        // TODO: enable tiger techniques for multi-goal generation in one run
-        handleCounterexample(pTestGoalsToBeProcessed, pRemainingPresenceCondition, pARTCPA, pInfeasibilityPropagation);
+        if (reachedSet.hasWaitingState() && reachedSet.getLastState() != null) {
+          Preconditions.checkState(reachedSet.getLastState() instanceof ARGState);
+          ARGState lastState = (ARGState) reachedSet.getLastState();
+          Preconditions.checkState(lastState.isTarget());
+
+          CounterexampleInfo cexi = pARTCPA.getCounterexamples().get(lastState);
+
+          if (cexi == null) {
+            // No feasible counterexample!
+            logger.logf(Level.WARNING,
+                        "Analysis returned a target state (%d) without a feasible counterexample for: "
+                        + lastState.getViolatedProperties(), lastState.getStateId());
+          } else {
+            addTestToSuite(Sets.union(pUncoveredGoals, pTestGoalsToBeProcessed), cexi, pInfeasibilityPropagation);
+          }
+        }
 
         if (reachedSet.hasWaitingState()) {
 
@@ -816,7 +926,7 @@ public class TigerAlgorithm
     return algorithmStatus;
   }
 
-  private ReachabilityAnalysisResult runAlgorithm(
+  private ReachabilityAnalysisResult runAlgorithmWithLimit(
       final ShutdownNotifier algNotifier,
       final Algorithm algorithm)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
@@ -966,125 +1076,57 @@ public class TigerAlgorithm
     }
   }
 
+  /**
+   * Context:
+   *  The analysis has identified a feasible counterexample, i.e., a test case.
+   *
+   * Add the test case to the test suite. This includes:
+   *  * Register the test case for the goals that it reached on its last abstract state.
+   *  * Add the test case for the goals that it would also cover;
+   *    this gets checked by running all (uncovered) goal automata on the ARG path of the test case.
+   *
+   * @param pRemainingGoals
+   * @param pCex
+   * @param pInfeasibilityPropagation
+   */
+  private void addTestToSuite(Set<Goal> pRemainingGoals,
+      CounterexampleInfo pCex, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
 
-  private void handleCounterexample(Set<Goal> pTestGoalsToBeProcessed, Region pRemainingPresenceCondition,
-      ARGCPA lARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
+    Preconditions.checkNotNull(pInfeasibilityPropagation);
+    Preconditions.checkNotNull(pRemainingGoals);
+    Preconditions.checkNotNull(pCex);
 
-    if (!reachedSet.hasWaitingState() || reachedSet.getLastState() == null) {
-      return;
-      // TODO: Infeasible goal
-      //  lastState might be null if a new iteration with the same set reached added found no new states
-    }
+    ARGState lastState = pCex.getTargetPath().getLastState();
 
-    Preconditions.checkState(reachedSet.getLastState() instanceof ARGState);
-    ARGState lastState = (ARGState) reachedSet.getLastState();
+    // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
 
-    Preconditions.checkState(lastState.isTarget());
+    Region testCasePresenceCondition = useTigerAlgorithm_with_pc
+        ? BDDUtils.getRegionFromWrappedBDDstate(lastState)
+            : null;
 
-    for (Goal goal : pTestGoalsToBeProcessed) {
-      if (testsuite.isGoalCovered(goal) || testsuite.isGoalInfeasible(goal)) {
-        continue;
-      }
+    TestCase testcase = createTestcase(pCex, testCasePresenceCondition);
+    updateTestsuiteByCoverageOf(testcase, pRemainingGoals);
 
-      // TODO check whether a last state might remain from an earlier run and a reuse of the ARG
+//        if (lGoalPrediction != null) {
+//          lGoalPrediction[pGoal.getIndex() - 1] = Prediction.FEASIBLE;
+//        }
 
-      // TODO: Last state is not the target state anymore. AbstractStates.containsTargetState(reachedSet)?????
-      //    if (AbstractStates.isTargetState(lastState)) {
-
-      // TODO add missing soundness checks!
-
-      // can we obtain a counterexample to check coverage for other test goals?
-      CounterexampleInfo cexi = lARTCPA.getCounterexamples().get(lastState);
-      if (cexi == null) {
-        // No feasible counterexample!
-        logger.log(Level.WARNING, "Analysis returned a target state without a feasible counterexample for: " + lastState.getViolatedProperties());
-        continue;
-      }
-      Set<Goal> relevantGoals = Sets.newHashSet();
-
-      for (Property p: lastState.getViolatedProperties()) {
-        Preconditions.checkState(p instanceof Goal);
-        relevantGoals.add((Goal) p);
-      }
-
-      // test goal is feasible
-      handleFeasibleTestGoalWithCounterExample(goal, cexi, lastState, pInfeasibilityPropagation);
-    }
   }
 
-  private void handleFeasibleTestGoalWithCounterExample(Goal pGoal,
-      CounterexampleInfo pCex,
-      ARGState pTargetState,
-      Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {
 
-    Preconditions.checkNotNull(pGoal);
-    Preconditions.checkNotNull(pCex);
-    Preconditions.checkNotNull(pTargetState);
-    Preconditions.checkArgument(!pCex.isSpurious());
 
-    logger.logf(Level.INFO, "Counterexample for goal %d is available.", pGoal.getIndex());
+  private TestCase createTestcase(final CounterexampleInfo pCex, final Region pPresenceCondition) {
 
-    RichModel model = pCex.getTargetPathModel();
-    List<BigInteger> inputValues = calculateInputValues(model);
+    final RichModel model = pCex.getTargetPathModel();
+    final List<BigInteger> inputValues = calculateInputValues(model);
 
-    if (useTigerAlgorithm_with_pc) {
-      /* We could determine regions for coverage goals reached earlier during execution of the test case.
-      * Now we can't because cex */
-      Region testCaseFinalRegion = BDDUtils.getRegionFromWrappedBDDstate(pTargetState);
-      logger.logf(Level.INFO,
-          "New test case (goal: " + pGoal.getIndex() + ") with " + (testCaseFinalRegion == null ? "(final)" : "(critical)")
-              + " PC "
-              + bddCpaNamedRegionManager.dumpRegion((testCaseFinalRegion == null
-                  ? testCaseFinalRegion : testCaseFinalRegion)));
-
-      final TestCase testcase = new TestCase(testCaseId++, inputValues, pCex.getTargetPath(),
-          pCex.getTargetPath().getInnerEdges(),
-          (testCaseFinalRegion == null ? testCaseFinalRegion : testCaseFinalRegion),
-          bddCpaNamedRegionManager,
-          getCpuTime());
-
-      PathIterator pathIterator = pCex.getTargetPath().pathIterator();
-      while (pathIterator.hasNext()) {
-        ARGState state = pathIterator.getAbstractState();
-        if (pathIterator.getIndex() != 0) { // get incoming edge is not allowed if index==0
-          if (pathIterator.getIncomingEdge().equals(pGoal.getCriticalEdge())) {
-            Preconditions.checkState(state.isTarget());
-            Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(state);
-            if (goalCriticalStateRegion != null) {
-              testsuite.addTestCase(testcase, pGoal, goalCriticalStateRegion);
-              logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s!",
-                  pGoal.getIndex(), testsuite.getTestGoalLabel(pGoal),
-                  bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion));
-              logger.logf(Level.WARNING, "Remaining PC %s!",
-                  bddCpaNamedRegionManager.dumpRegion(pGoal.getRemainingPresenceCondition()));
-              break;
-            }
-          }
-        }
-        pathIterator.advance();
-      }
-    } else {
-      for (CFAEdge lCFAEdge : pCex.getTargetPath().getInnerEdges()) {
-        if (lCFAEdge != null && lCFAEdge.equals(pGoal.getCriticalEdge())) {
-          // we consider the test goal as feasible
-          logger.logf(Level.INFO, "Test goal is feasible.");
-          logger.logf(Level.WARNING, "Covered Goal %d (%s)!",
-              pGoal.getIndex(), testsuite.getTestGoalLabel(pGoal));
-
-          logger.logf(Level.INFO, "*********************** extract abstract state ***********************");
-
-          TestCase testcase = new TestCase(testCaseId++, inputValues, pCex.getTargetPath(), pCex.getTargetPath().getInnerEdges(),
-              null, null, getCpuTime());
-          testsuite.addTestCase(testcase, pGoal, null);
-
-          if (lGoalPrediction != null) {
-            lGoalPrediction[pGoal.getIndex() - 1] = Prediction.FEASIBLE;
-          }
-          break;
-        }
-      }
-    }
-
+    return new TestCase(testCaseId++,
+        inputValues,
+        pCex.getTargetPath(),
+        pCex.getTargetPath().getInnerEdges(),
+        pPresenceCondition,
+        bddCpaNamedRegionManager,
+        getCpuTime());
   }
 
   private void handleInfeasibleTestGoal(Goal pGoal, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation) {

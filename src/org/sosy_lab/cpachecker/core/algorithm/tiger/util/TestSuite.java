@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -289,7 +290,7 @@ public class TestSuite {
     return infeasibleGoals.contains(goal);
   }
 
-  public void addGoals(LinkedList<Goal> pGoals) {
+  public void addGoals(Collection<Goal> pGoals) {
     testGoals.addAll(pGoals);
   }
 

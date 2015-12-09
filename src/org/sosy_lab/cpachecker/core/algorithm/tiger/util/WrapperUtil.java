@@ -126,29 +126,40 @@ public class WrapperUtil {
     return new FileToParse(f.getAbsolutePath());
   }
 
-  public static ParseResult addWrapper(CParser cParser, ParseResult tmpParseResult, CSourceOriginMapping sourceOriginMapping) throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
-    // create wrapper code
-    CFunctionEntryNode entryNode = (CFunctionEntryNode)tmpParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
+  /**
+   * Create the wrapper code for the test generation.
+   */
+  public static ParseResult addWrapper(
+      final CParser pParser,
+      final ParseResult pParseResult,
+      final CSourceOriginMapping pOriginMapping)
+    throws IOException, CParserException, InvalidConfigurationException, InterruptedException {
+
+    CFunctionEntryNode entryNode = (CFunctionEntryNode)pParseResult.getFunctions().get(TigerAlgorithm.originalMainFunction);
+    if (entryNode == null) {
+      throw new CParserException(String.format(
+          "The entry function with the name '%s' was not found!", TigerAlgorithm.originalMainFunction));
+    }
 
     List<FileToParse> tmpList = new ArrayList<>();
     tmpList.add(WrapperUtil.getWrapperCFunction(entryNode));
 
-    ParseResult wrapperParseResult = cParser.parseFile(tmpList, sourceOriginMapping);
+    ParseResult wrapperParseResult = pParser.parseFile(tmpList, pOriginMapping);
 
     // TODO add checks for consistency
     SortedMap<String, FunctionEntryNode> mergedFunctions = new TreeMap<>();
-    mergedFunctions.putAll(tmpParseResult.getFunctions());
+    mergedFunctions.putAll(pParseResult.getFunctions());
     mergedFunctions.putAll(wrapperParseResult.getFunctions());
 
     SortedSetMultimap<String, CFANode> mergedCFANodes = TreeMultimap.create();
-    mergedCFANodes.putAll(tmpParseResult.getCFANodes());
+    mergedCFANodes.putAll(pParseResult.getCFANodes());
     mergedCFANodes.putAll(wrapperParseResult.getCFANodes());
 
-    List<Pair<ADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (tmpParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
-    mergedGlobalDeclarations.addAll(tmpParseResult.getGlobalDeclarations());
+    List<Pair<ADeclaration, String>> mergedGlobalDeclarations = new ArrayList<> (pParseResult.getGlobalDeclarations().size() + wrapperParseResult.getGlobalDeclarations().size());
+    mergedGlobalDeclarations.addAll(pParseResult.getGlobalDeclarations());
     mergedGlobalDeclarations.addAll(wrapperParseResult.getGlobalDeclarations());
 
-    return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, tmpParseResult.getLanguage());
+    return new ParseResult(mergedFunctions, mergedCFANodes, mergedGlobalDeclarations, pParseResult.getLanguage());
   }
 
 }
