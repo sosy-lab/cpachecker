@@ -111,8 +111,6 @@ public class PowersetAutomatonState implements AbstractWrapperState,
       builder.append(String.format("%d different automata states!", states.size()));
     } else {
       for (AbstractState element : states) {
-        builder.append(element.getClass().getSimpleName());
-        builder.append(": ");
         builder.append(element.toString());
         builder.append("\n ");
       }
