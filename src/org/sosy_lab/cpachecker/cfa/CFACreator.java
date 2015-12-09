@@ -37,7 +37,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -103,6 +102,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
@@ -231,7 +231,7 @@ public class CFACreator {
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
 
-  @Option(secure=false, name="cfa.sequencing",
+  @Option(secure=true, name="cfa.sequencing",
       description="This option modifies the cfa of a concurrent programm to "
           + "a cfa with a seqeuntial course. This is achived by the simulation "
           + "of the context switches among the threads. The resulting "
@@ -690,10 +690,10 @@ private boolean classifyNodes = false;
 
     if (useCfaSequencing) {
       stats.sequencingTime.start();
-      
+
       Sequencer seq = new Sequencer(cfa, logger);
       seq.sequenceCFA();
-      
+
       stats.sequencingTime.stop();
     }
 
