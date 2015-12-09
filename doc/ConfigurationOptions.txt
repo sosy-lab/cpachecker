@@ -2632,7 +2632,7 @@ tiger.limitsPerGoal.time.cpu = -1
 # re-processed.
 tiger.limitsPerGoal.time.cpu.increment = 0
 
-# The number of test goals processed per CPAchecker run (0: all test cases in
+# The number of test goals processed per CPAchecker run (0: all test goals in
 # one run).
 tiger.numberOfTestGoalsPerRun = 1
 
@@ -2650,6 +2650,9 @@ tiger.reuseARG = true
 
 # Reuse predicates across modifications of an ARG.
 tiger.reusePredicates = true
+
+# Filename for output of geneartion times of test cases
+tiger.testcaseGeneartionTimesFile = "generationTimes.csv"
 
 # Filename for output of generated test suite
 tiger.testsuiteFile = "testsuite.txt"
