@@ -527,7 +527,7 @@ public class TigerAlgorithm
       }
 
       while (!pGoalsToCover.isEmpty()) {
-        Set<Goal> goalsToBeProcessed = nextTestGoalSet(pGoalsToCover, null);
+        Set<Goal> goalsToBeProcessed = nextTestGoalSet(pGoalsToCover, testsuite);
         pGoalsToCover.removeAll(goalsToBeProcessed);
         partitionId++;
 
@@ -1367,19 +1367,23 @@ public class TigerAlgorithm
     // Add one automata CPA for each goal
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     lComponentAnalyses.addAll(automataCPAs);
-    lComponentAnalyses.addAll(oldArgCPA.getWrappedCPAs());
+
+    // Add the old composite components
+    Preconditions.checkState(oldArgCPA.getWrappedCPAs().iterator().next() instanceof CompositeCPA);
+    CompositeCPA argCompositeCpa = (CompositeCPA) oldArgCPA.getWrappedCPAs().iterator().next();
+    lComponentAnalyses.addAll(argCompositeCpa.getWrappedCPAs());
 
     final ARGCPA result;
 
     try {
       // create composite CPA
-      CPAFactory lCPAFactory = CompositeCPA.factory();
-      lCPAFactory.setChildren(lComponentAnalyses);
-      lCPAFactory.setConfiguration(startupConfig.getConfig());
-      lCPAFactory.setLogger(logger);
-      lCPAFactory.set(cfa, CFA.class);
+      CPAFactory compositeCpaFactory = CompositeCPA.factory();
+      compositeCpaFactory.setChildren(lComponentAnalyses);
+      compositeCpaFactory.setConfiguration(startupConfig.getConfig());
+      compositeCpaFactory.setLogger(logger);
+      compositeCpaFactory.set(cfa, CFA.class);
 
-      ConfigurableProgramAnalysis lCPA = lCPAFactory.createInstance();
+      ConfigurableProgramAnalysis lCPA = compositeCpaFactory.createInstance();
 
       // create ARG CPA
       CPAFactory lARTCPAFactory = ARGCPA.factory();
