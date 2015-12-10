@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
@@ -129,17 +131,41 @@ public class CoverageReport {
       }
     }
 
+    Set<CFANode> reachedNodes = from(pReached)
+                                .transform(EXTRACT_LOCATION)
+                                .filter(notNull())
+                                .toSet();
     //Add information about visited locations
     for (AbstractState state : pReached) {
-      for (ARGState child : ((ARGState) state).getChildren()) {
-        if (!child.isCovered()) {
-          CFAEdge edge = ((ARGState) state).getEdgeToChild(child);
-          if (edge instanceof MultiEdge) {
-            for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
-              handleCoveredEdge(innerEdge, infosPerFile);
+      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+      if (argState != null ) {
+        for (ARGState child : argState.getChildren()) {
+          if (!child.isCovered()) {
+            CFAEdge edge = argState.getEdgeToChild(child);
+            if (edge instanceof MultiEdge) {
+              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+                handleCoveredEdge(innerEdge, infosPerFile);
+              }
+            } else {
+              handleCoveredEdge(edge, infosPerFile);
             }
-          } else {
-            handleCoveredEdge(edge, infosPerFile);
+          }
+        }
+      } else {
+        //Simple kind of analysis
+        //Cover all edges from reached nodes
+        //It is less precise, but without ARG it is impossible to know what path we chose
+        CFANode node = AbstractStates.extractLocation(state);
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge edge = node.getLeavingEdge(i);
+          if (reachedNodes.contains(edge.getSuccessor())) {
+            if (edge instanceof MultiEdge) {
+              for (CFAEdge innerEdge : ((MultiEdge)edge).getEdges()) {
+                handleCoveredEdge(innerEdge, infosPerFile);
+              }
+            } else {
+              handleCoveredEdge(edge, infosPerFile);
+            }
           }
         }
       }
@@ -179,6 +205,11 @@ public class CoverageReport {
   private void handleCoveredEdge(
       final CFAEdge pEdge,
       final Map<String, FileCoverageInformation> pCollectors) {
+
+    if (pEdge == null) {
+      //BAM is working
+      return;
+    }
 
     FileLocation loc = pEdge.getFileLocation();
     if (loc.getStartingLineNumber() == 0) {
