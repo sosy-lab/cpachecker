@@ -28,6 +28,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import json
 import logging
 import os
 import subprocess
@@ -66,6 +67,8 @@ def execute_benchmark(benchmark, output_handler):
         cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
         util.write_file(cloudInput, cloudInputFile)
         output_handler.all_created_files.append(cloudInputFile)
+        meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
+                                        "generator": "benchmark.vcloud.py"})
 
         # install cloud and dependencies
         ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"],
@@ -82,7 +85,8 @@ def execute_benchmark(benchmark, output_handler):
             logLevel = "INFO"
         heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10 # 100 MB and 100 kB per run
         lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
-        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel]
+        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel, \
+                   "--run-collection-meta-information", meta_information]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
