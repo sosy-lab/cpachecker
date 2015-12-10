@@ -109,7 +109,11 @@ public class TranslatorTest {
 
     ValueAnalysisState vStateTest = new ValueAnalysisState(constantsMap, locToTypeMap);
     Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
-    ValueRequirementsTranslator vReqTransTest = new ValueRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+    ValueRequirementsTranslator vReqTransTest =
+        new ValueRequirementsTranslator(
+            TestDataTools.configurationForTest().build(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance());
 
     // Test of method getVarsInRequirements()
     List<String> varsInRequirements = vReqTransTest.getVarsInRequirements(vStateTest);
@@ -139,7 +143,11 @@ public class TranslatorTest {
     sStateTest = sStateTest.assignSignToVariable("fun::var1", SIGN.PLUSMINUS);
     sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
     sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
-    SignRequirementsTranslator sReqTransTest = new SignRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+    SignRequirementsTranslator sReqTransTest =
+        new SignRequirementsTranslator(
+            TestDataTools.configurationForTest().build(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInReq = sReqTransTest.getVarsInRequirements(sStateTest);
@@ -186,7 +194,11 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("fun::varC", new Interval((long) -15, (long) -3));
 
     IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
-    IntervalRequirementsTranslator iReqTransTest = new IntervalRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+    IntervalRequirementsTranslator iReqTransTest =
+        new IntervalRequirementsTranslator(
+            TestDataTools.configurationForTest().build(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInRequirements = iReqTransTest.getVarsInRequirements(iStateTest);
@@ -282,10 +294,15 @@ public class TranslatorTest {
       UnsupportedOperationException, IOException, ParserException, InterruptedException {
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = new BasicLogManager(config);
-    PredicateCPA predicateCpa = (PredicateCPA) PredicateCPA.factory().setConfiguration(config)
-        .setLogger(logger).setShutdownNotifier(ShutdownNotifier.create())
-        .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
-        .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class).createInstance();
+    PredicateCPA predicateCpa =
+        (PredicateCPA)
+            PredicateCPA.factory()
+                .setConfiguration(config)
+                .setLogger(logger)
+                .setShutdownNotifier(ShutdownNotifier.createDummy())
+                .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
+                .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class)
+                .createInstance();
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 
     // Region used in abstractionFormula

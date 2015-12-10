@@ -34,9 +34,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -68,6 +66,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -210,8 +210,8 @@ public class TestDataTools {
   public static CFA makeCFA(String cProgram, Configuration config) throws InvalidConfigurationException, IOException,
       ParserException, InterruptedException {
 
-    CFACreator creator = new CFACreator(config, TestLogManager.getInstance(), ShutdownNotifier
-        .create());
+    CFACreator creator =
+        new CFACreator(config, TestLogManager.getInstance(), ShutdownNotifier.createDummy());
 
     return creator.parseFileAndCreateCFA(cProgram);
   }

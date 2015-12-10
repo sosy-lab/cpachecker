@@ -230,25 +230,27 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
         logger, opts, machineModel, mgrv);
     expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
 
-    ctfBwd = new CToFormulaConverterWithArraysUnderTest(
-        opts,
-        mgrv,
-        machineModel,
-        Optional.<VariableClassification>absent(),
-        logger,
-        ShutdownNotifier.create(),
-        th,
-        AnalysisDirection.BACKWARD);
+    ctfBwd =
+        new CToFormulaConverterWithArraysUnderTest(
+            opts,
+            mgrv,
+            machineModel,
+            Optional.<VariableClassification>absent(),
+            logger,
+            ShutdownNotifier.createDummy(),
+            th,
+            AnalysisDirection.BACKWARD);
 
-    ctfFwd = new CToFormulaConverterWithArraysUnderTest(
-        opts,
-        mgrv,
-        machineModel,
-        Optional.<VariableClassification>absent(),
-        logger,
-        ShutdownNotifier.create(),
-        th,
-        AnalysisDirection.FORWARD);
+    ctfFwd =
+        new CToFormulaConverterWithArraysUnderTest(
+            opts,
+            mgrv,
+            machineModel,
+            Optional.<VariableClassification>absent(),
+            logger,
+            ShutdownNotifier.createDummy(),
+            th,
+            AnalysisDirection.FORWARD);
   }
 
   @Before

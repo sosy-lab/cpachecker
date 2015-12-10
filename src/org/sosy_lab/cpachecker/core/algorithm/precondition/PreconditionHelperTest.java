@@ -29,7 +29,6 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -49,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -97,8 +97,7 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
 
     mgrv = new FormulaManagerView(factory.getFormulaManager(),
         config, TestLogManager.getInstance());
-    helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier
-        .create(), cfa);
+    helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier.createDummy(), cfa);
 
     // Test CFA elements...
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, TestLogManager.getInstance());

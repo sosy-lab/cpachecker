@@ -101,25 +101,25 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     fmgr = new FormulaManagerView(
         factory.getFormulaManager(), config, TestLogManager.getInstance());
 
-    pfmgrFwd = new PathFormulaManagerImpl(
-        fmgr,
-        config,
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        MachineModel.LINUX32,
-        Optional.<VariableClassification>absent(),
-        AnalysisDirection.FORWARD
-        );
+    pfmgrFwd =
+        new PathFormulaManagerImpl(
+            fmgr,
+            config,
+            TestLogManager.getInstance(),
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.<VariableClassification>absent(),
+            AnalysisDirection.FORWARD);
 
-    pfmgrBwd = new PathFormulaManagerImpl(
-        fmgr,
-        configBackwards,
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        MachineModel.LINUX32,
-        Optional.<VariableClassification>absent(),
-        AnalysisDirection.BACKWARD
-        );
+    pfmgrBwd =
+        new PathFormulaManagerImpl(
+            fmgr,
+            configBackwards,
+            TestLogManager.getInstance(),
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.<VariableClassification>absent(),
+            AnalysisDirection.BACKWARD);
   }
 
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
