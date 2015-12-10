@@ -540,7 +540,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
       ResourceLimitChecker limits = null;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-        limits = new ResourceLimitChecker(invariantShutdown, Lists.newArrayList((ResourceLimit)l));
+        limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
         limits.start();
       }
 
@@ -614,7 +614,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         ResourceLimitChecker limits = null;
         if (!timeForInvariantGeneration.isEmpty()) {
           WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-          limits = new ResourceLimitChecker(invariantShutdown, Lists.newArrayList((ResourceLimit)l));
+          limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
           limits.start();
         }
 
