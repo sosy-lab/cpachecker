@@ -37,5 +37,10 @@
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-actors.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/javasmt.jar" sourcepath="lib/java-contrib/javasmt-sources.jar"/>
+	<classpathentry kind="src" path=".apt-generated">
+		<attributes>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
