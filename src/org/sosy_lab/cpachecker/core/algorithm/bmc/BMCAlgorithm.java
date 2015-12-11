@@ -270,7 +270,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
 
-          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.and(info.getCounterExampleFormulas())),
+          counterexample.addFurtherInformation(
+              solver.getFormulaManager().dumpFormula(
+                  solver.getFormulaManager().getBooleanFormulaManager().and(
+                      info.getCounterExampleFormulas()
+                  )),
               dumpCounterexampleFormula);
         }
 
