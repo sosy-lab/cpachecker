@@ -32,7 +32,6 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -98,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -113,7 +113,7 @@ import com.google.common.collect.ImmutableList;
  * There should not be any functioncall- or return-edges.
  * Currently only the language C is supported.
  */
-class FunctionCloner implements CFAVisitor {
+public class FunctionCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
   private static final String SUPERGRAPH_BUILD_TOO_EARLY = "functions should be cloned before building the supergraph";
@@ -130,7 +130,7 @@ class FunctionCloner implements CFAVisitor {
   private final boolean replaceFunctionOnly; // needed to replace functioncalls, where args stay equal, but functionname changes
 
   /** FunctionCloner clones a function of the cfa and uses a new functionName. */
-  public FunctionCloner(final String oldFunctionname, final String newFunctionname, final boolean replaceFunctionOnly) {
+  FunctionCloner(final String oldFunctionname, final String newFunctionname, final boolean replaceFunctionOnly) {
     this.oldFunctionname = oldFunctionname;
     this.newFunctionname = newFunctionname;
     this.replaceFunctionOnly = replaceFunctionOnly;
