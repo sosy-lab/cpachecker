@@ -61,10 +61,10 @@ public class Sequencer {
     ControlVariables controlVariables = new ControlVariables(threads);
     POSIXStubs posixStubs = new POSIXStubs();
 
-
     stubThreadCreation(threadIdentificator, controlVariables, cfa, logger);
+    stubMutex(threadIdentificator, controlVariables, cfa, logger);
 
-    // create contextswitches
+    // create context switches
     for(CThread thread : threads.getAllThreads()) {
       exploreThreadRecursivly(thread, thread.getThreadFunction(), new HashSet<FunctionEntryNode>());
     }
@@ -80,6 +80,11 @@ public class Sequencer {
     threadControlCodeInjector.buildScheduleSimulationFunction();
 
     cfa.setThreads(threads);
+  }
+
+  private static void stubMutex(SequencePreparator threadIdentificator,
+      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
+
   }
 
   private static void stubThreadCreation(

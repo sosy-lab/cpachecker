@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +18,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThread;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThreadContainer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.ContextSwitch;
@@ -28,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunctionUti
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFASequenceBuilder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.PThreadUtils;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Lists;
@@ -38,13 +42,14 @@ public class SequencePreparator {
   private static final String THREAD_NAME_PATTERN = "thread";
   public static final String MAIN_THREAD_NAME = THREAD_NAME_PATTERN + '0';
 
-  private final Map<CThread, CStatementEdge> creationEdges = new HashMap<CThread, CStatementEdge>();
+  private final Map<CThread, CStatementEdge> creationEdges = new HashMap<>();
+  private final Map<CThread, CStatementEdge> mutexEdges = new HashMap<>();
   private final MutableCFA cfa;
 
 
-  private final List<CThread> threadsToProcess = new ArrayList<CThread>();
-  private final List<CThread> allThreads = new ArrayList<CThread>();
-  private final Multiset<String> functionUsedCounter = HashMultiset.<String> create();
+  private final List<CThread> threadsToProcess = new ArrayList<>();
+  private final List<CThread> allThreads = new ArrayList<>();
+  private final Multiset<FunctionEntryNode> functionUsedCounter = HashMultiset.<FunctionEntryNode> create();
 
   private int threadCounter = 1;
 
@@ -78,7 +83,8 @@ public class SequencePreparator {
     while (!threadsToProcess.isEmpty()) {
       CThread creatorThread = threadsToProcess.remove(0);
 
-      processThread(creatorThread);
+      ThreadPreparator threadProcessing = new ThreadPreparator(creatorThread);
+      threadProcessing.processThread();
     }
 
     assert checkContextSwitchConsistency(allThreads);
@@ -87,154 +93,8 @@ public class SequencePreparator {
   }
 
 
-
-  private void processThread(CThread creatorThread) {
-    Map<FunctionEntryNode, FunctionEntryNode> alreadyClonedFunctionsForThread = new HashMap<FunctionEntryNode, FunctionEntryNode>();
-    List<FunctionEntryNode> functionPatternsToProcress = Lists.<FunctionEntryNode> newArrayList();
-    functionPatternsToProcress.add(creatorThread.getThreadFunction());
-
-    String originalThreadStartFunction = creatorThread.getThreadFunction().getFunctionName();
-
-    FunctionEntryNode functionEntryNode = getNewFunction(originalThreadStartFunction, creatorThread);
-    FunctionEntryNode patternFunctionEntry = creatorThread.getThreadFunction();
-
-    creatorThread.setThreadFunction(functionEntryNode);
-    alreadyClonedFunctionsForThread.put(patternFunctionEntry, functionEntryNode);
-    functionUsedCounter.add(originalThreadStartFunction);
-
-    /*
-     * continue the function format for every function called from the thread
-     * start function. The function format consists of
-     *
-     * -- function cloning for every thread and
-     *
-     * -- the stubbing of POSIX functions
-     */
-    CFATraversal traversalStrategy = CFATraversal.dfs().ignoreFunctionCalls().ignoreSummaryEdges();
-    while (!functionPatternsToProcress.isEmpty()) {
-
-      // This are the already clone functions. These functions will be
-      // traversed for function calls so that the called functions can be
-      // traversed too.
-      patternFunctionEntry = functionPatternsToProcress.remove(0);
-
-      final FunctionCallCollector functionCallCollector = new FunctionCallCollector();
-
-      traversalStrategy.traverseOnce(patternFunctionEntry, functionCallCollector);
-
-      for (AStatementEdge edge : functionCallCollector.getFunctionCalls()) {
-        processFunctionCallStatement(edge, creatorThread, alreadyClonedFunctionsForThread, functionPatternsToProcress);
-
-      }
-    }
-  }
-
-  private CFunctionEntryNode getNewFunction(String originalThreadStartFunction, CThread creatingThread) {
-    // the start node for the thread which is valid now
-
-    CFunctionEntryNode functionEntryNode;
-
-    // clone function if used already
-    if(functionUsedCounter.count(originalThreadStartFunction) != 0) {
-      String newFunctionName = originalThreadStartFunction + "__" + functionUsedCounter.count(originalThreadStartFunction);
-      functionEntryNode = CFAFunctionUtils.cloneCFunction(creatingThread.getThreadFunction(),
-          newFunctionName, cfa);
-    }
-
-    // take original function if never used.
-    else {
-      assert functionUsedCounter.count(originalThreadStartFunction) == 0;
-      FunctionEntryNode patternFunctionEntry = creatingThread.getThreadFunction();
-      functionEntryNode = (CFunctionEntryNode) patternFunctionEntry;
-    }
-
-    return functionEntryNode;
-  }
-
-  private void processFunctionCallStatement(AStatementEdge edge,
-      CThread creatingThread,
-      Map<FunctionEntryNode, FunctionEntryNode> alreadyClonedFunctionsForThread, List<FunctionEntryNode> functionPatternsToProcress) {
-
-    assert edge.getStatement() instanceof AFunctionCall;
-    AFunctionCall statement = (AFunctionCall) edge.getStatement();
-
-    assert CFAFunctionUtils.isFunctionCallStatement(edge);
-    CFunctionCall functionCallStatement = (CFunctionCall) edge.getStatement();
-
-    if(!CFAFunctionUtils.isFunctionDeclared(functionCallStatement)) {
-      return;
-    }
-
-    String originalFunctionName = CFAFunctionUtils.getFunctionName(edge);
-    CFunctionEntryNode startOfCalledFunction = (CFunctionEntryNode) cfa.getFunctionHead(originalFunctionName);
-
-    switch (CFAFunctionUtils.getFunctionName(edge)) {
-    case PThreadUtils.PTHREAD_CREATE_NAME:
-      CThread thread = createCThread(threadCounter, creatingThread, functionCallStatement);
-
-      creationEdges.put(thread, (CStatementEdge) edge);
-      threadsToProcess.add(thread);
-      allThreads.add(thread);
-      threadCounter++;
-      break;
-    case PThreadUtils.PTHREAD_JOIN_NAME:
-      stubThreadJoin(edge);
-      break;
-    case PThreadUtils.PTHREAD_MUTEX_INIT_NAME:
-    case PThreadUtils.PTHREAD_MUTEX_DESTROY_NAME:
-    case PThreadUtils.PTHREAD_MUTEX_LOCK_NAME:
-    case PThreadUtils.PTHREAD_MUTEX_UNLOCK_NAME:
-      // Will be stubbed by cpa
-      break;
-    default:
-      cloneFunction(startOfCalledFunction, originalFunctionName, edge, alreadyClonedFunctionsForThread, functionPatternsToProcress);
-      break;
-    }
-  }
-
-  private void cloneFunction(CFunctionEntryNode startOfCalledFunction, String originalFunctionName, AStatementEdge edge, Map<FunctionEntryNode, FunctionEntryNode> alreadyClonedFunctionsForThread, List<FunctionEntryNode> functionPatternsToProcress) {
-
-    if(startOfCalledFunction == null) {
-      // there is a function call to a function without a body. This
-      // appears if external functions were called
-      return;
-    }
-
-    // If function has a body, then clone it (if not already done).
-    FunctionEntryNode node = null;
-    if (!alreadyClonedFunctionsForThread.containsKey(startOfCalledFunction)) {
-      String functionName;
-      FunctionEntryNode clone;
-
-      // clone function if used already
-      if (functionUsedCounter.count(originalFunctionName) != 0) {
-        functionName = originalFunctionName + "__"
-            + functionUsedCounter.count(originalFunctionName);
-        clone = cloneFunction(startOfCalledFunction, functionName,
-            (CStatementEdge) edge);
-      } else {
-        // take original function if never used.
-        assert functionUsedCounter.count(originalFunctionName) == 0;
-        functionName = originalFunctionName;
-        clone = startOfCalledFunction;
-      }
-
-      functionUsedCounter.add(originalFunctionName);
-      alreadyClonedFunctionsForThread.put(startOfCalledFunction, clone);
-      functionPatternsToProcress.add(clone);
-    }
-
-    // if clone function was created in if block above, then the node
-    // must be the same as in the map.
-    node = alreadyClonedFunctionsForThread.get(startOfCalledFunction);
-
-    CFAEdgeUtils.replaceCEdgeWith(edge, createNewStatementEdge(node, (CFunctionCall) edge.getStatement()));
-  }
-
-
-
   private CStatementEdge createNewStatementEdge(FunctionEntryNode newNode, CFunctionCall originalFunctionCallStatement) {
-
+    // TODO review
     CFunctionCallExpression originalFunctionCallExpression = originalFunctionCallStatement.getFunctionCallExpression();
     CFunctionDeclaration originalFunctionDeclaration = originalFunctionCallExpression.getDeclaration();
 
@@ -274,19 +134,12 @@ public class SequencePreparator {
     return thread;
   }
 
-  private FunctionEntryNode cloneFunction(CFunctionEntryNode originalTargetFunctionEntry, String newFunctionName, CStatementEdge edge) {
-    assert CFAFunctionUtils.isFunctionCallStatement(edge);
-    assert originalTargetFunctionEntry != null;
-    FunctionEntryNode node = null;
-
-    node = CFAFunctionUtils.cloneCFunction(originalTargetFunctionEntry, newFunctionName, cfa);
-
-    CFAEdgeUtils.replaceCEdgeWith(edge, createNewStatementEdge(node, (CFunctionCall) edge.getStatement()));
-    return node;
-  }
-
   public Map<CThread, CStatementEdge> getCreationEdges() {
     return creationEdges;
+  }
+
+  public Map<CThread, CStatementEdge> getMutexEdges() {
+     return mutexEdges;
   }
 
   /**
@@ -307,5 +160,142 @@ public class SequencePreparator {
       }
     }
     return true;
+  }
+
+
+
+  public class ThreadPreparator {
+
+    private CThread creatorThread;
+
+    private List<FunctionEntryNode> handleFunctionCallsInFunction;
+    private Map<FunctionEntryNode, FunctionEntryNode> usedRegularFunctions;
+
+    public ThreadPreparator(CThread pCreatorThread) {
+      this.creatorThread = pCreatorThread;
+    }
+
+    void processThread() {
+      {
+        usedRegularFunctions = new HashMap<>();
+        handleFunctionCallsInFunction = Lists.<FunctionEntryNode> newArrayList();
+        FunctionEntryNode regularThreadEntry = creatorThread.getThreadFunction();
+
+
+        FunctionEntryNode uniqueFunctionEntry = getUniqueFunctionCopyForThread(regularThreadEntry);
+        creatorThread.setThreadFunction(uniqueFunctionEntry);
+      }
+
+      while (!handleFunctionCallsInFunction.isEmpty()) {
+        FunctionEntryNode regularFunctionEntry = handleFunctionCallsInFunction.remove(0);
+        FunctionEntryNode clonedFunctionEntry = usedRegularFunctions.get(regularFunctionEntry);
+        assert clonedFunctionEntry != null;
+
+        for (AStatementEdge edge : getFunctionCallsOfFunction(clonedFunctionEntry)) {
+          processFunctionCallStatement(edge);
+        }
+      }
+    }
+
+    private Collection<AStatementEdge> getFunctionCallsOfFunction(
+        FunctionEntryNode regularFunctionEntry) {
+      CFATraversal traversalStrategy =
+          CFATraversal.dfs().ignoreFunctionCalls().ignoreSummaryEdges();
+      final FunctionCallCollector functionCallCollector = new FunctionCallCollector();
+
+      traversalStrategy.traverseOnce(regularFunctionEntry, functionCallCollector);
+      return functionCallCollector.getFunctionCalls();
+    }
+
+    private void processFunctionCallStatement(AStatementEdge edge) {
+      assert edge.getStatement() instanceof AFunctionCall;
+      assert CFAFunctionUtils.isFunctionCallStatement(edge);
+
+      CFunctionCall functionCallStatement = (CFunctionCall) edge.getStatement();
+
+      if (!CFAFunctionUtils.isFunctionDeclared(functionCallStatement)) { return; }
+      String regularFunctionName = CFAFunctionUtils.getFunctionName(edge);
+
+      switch (regularFunctionName) {
+        case PThreadUtils.PTHREAD_CREATE_NAME:
+          CThread thread = createCThread(threadCounter, creatorThread, functionCallStatement);
+
+          creationEdges.put(thread, (CStatementEdge) edge);
+          threadsToProcess.add(thread);
+          allThreads.add(thread);
+          threadCounter++;
+          break;
+        case PThreadUtils.PTHREAD_JOIN_NAME:
+          stubThreadJoin(edge);
+          break;
+        case PThreadUtils.PTHREAD_MUTEX_INIT_NAME:
+
+
+          break;
+        case PThreadUtils.PTHREAD_MUTEX_DESTROY_NAME:
+        case PThreadUtils.PTHREAD_MUTEX_LOCK_NAME:
+        case PThreadUtils.PTHREAD_MUTEX_UNLOCK_NAME:
+          // Will be stubbed by cpa
+          break;
+        default:
+
+          CFunctionEntryNode regularFunctionEntry =
+          (CFunctionEntryNode) cfa.getFunctionHead(regularFunctionName);
+          if (regularFunctionEntry == null) {
+            // there is a function call to a function without a body. This
+            // appears if external functions were called
+            return;
+          }
+          FunctionEntryNode node = getUniqueFunctionCopyForThread(regularFunctionEntry);
+          CFAEdgeUtils.replaceCEdgeWith(edge,
+              createNewStatementEdge(node, (CFunctionCall) edge.getStatement()));
+          break;
+      }
+    }
+
+
+    private FunctionEntryNode getUniqueFunctionCopyForThread(FunctionEntryNode regularFunction) {
+
+      // If already clone for this thread
+      if (usedRegularFunctions.containsKey(regularFunction)) {
+        return usedRegularFunctions.get(regularFunction);
+      }
+      // If not cloned for this thread
+      else {
+        FunctionEntryNode uniqueFunctionEntry;
+        // clone function if used already
+        if (functionUsedCounter.count(regularFunction) != 0) {
+          String newFunctionName = regularFunction.getFunctionName() + "__"
+              + functionUsedCounter.count(regularFunction);
+
+          uniqueFunctionEntry = cloneFunctionIntoCFA(regularFunction, newFunctionName);
+        } else {
+          // take original function if never used.
+          assert functionUsedCounter.count(regularFunction) == 0;
+          uniqueFunctionEntry = regularFunction;
+        }
+
+        functionUsedCounter.add(regularFunction);
+        usedRegularFunctions.put(regularFunction, uniqueFunctionEntry);
+        handleFunctionCallsInFunction.add(regularFunction);
+
+        return uniqueFunctionEntry;
+      }
+    }
+
+    private FunctionEntryNode cloneFunctionIntoCFA(FunctionEntryNode startOfCalledFunction, String functionName) {
+      Pair<FunctionEntryNode, Collection<CFANode>> clonedFunction = FunctionCloner.cloneCFA(startOfCalledFunction, functionName);
+      FunctionEntryNode clonedStart = clonedFunction.getFirstNotNull();
+
+      cfa.addFunction(clonedStart);
+      for(CFANode nodeOfFunction : clonedFunction.getSecondNotNull()) {
+        cfa.addNode(nodeOfFunction);
+      }
+
+      return clonedStart;
+    }
+
+
+
   }
 }

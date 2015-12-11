@@ -33,14 +33,14 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 
 public class CFAFunctionUtils {
-  
+
   public final static String INIT_GLOBAL_VARS = "INIT GLOBAL VARS";
 
   public final static String DEFAULT_RETURN = "default return";
-  
+
   public final static Predicate<FunctionEntryNode> isFunctionEntryName(
       final String... functionNames) {
-    
+
     return new Predicate<FunctionEntryNode>() {
       private final String[] filterNames = functionNames;
 
@@ -53,7 +53,7 @@ public class CFAFunctionUtils {
       }
     };
   }
-  
+
   public final static Predicate<AStatementEdge> isStatementEdgeName(
       final String... functionNames) {
 
@@ -69,11 +69,11 @@ public class CFAFunctionUtils {
         AStatement statement = arg0.getStatement();
         AFunctionDeclaration declaration = ((AFunctionCall) statement)
             .getFunctionCallExpression().getDeclaration();
-        
+
         if(declaration == null) {
           return false;
         }
-        
+
         String functionCallStatementName = declaration.getName();
 
         for (String filterName : filterNames) {
@@ -91,7 +91,7 @@ public class CFAFunctionUtils {
   public static Collection<AStatementEdge> filterFunctionCallStatementByNames(
       Collection<AStatementEdge> functionCalls, final String... functionNames) {
 
-    
+
     return Collections2.filter(functionCalls, isStatementEdgeName(functionNames));
   }
 
@@ -101,50 +101,50 @@ public class CFAFunctionUtils {
     }
     return false;
   }
-  
+
   public static Collection<AStatementEdge> getAllFunctionCallEdgesReachableBy(CFA cfa, FunctionEntryNode reachableBy, int depth) {
       Collection<AStatementEdge> statementEdge = new HashSet<AStatementEdge>();
-    
+
       FunctionCallCollector visitor = new FunctionCallCollector();
       CFATraversal.dfs().traverseOnce(reachableBy, visitor);
-      
+
       // TODO remove! debug only
       if(depth > 1000) {
         throw new UnsupportedOperationException("For debug only. pthread createstatements reached 1000. Most likely an unsupported recursive creation");
       }
-    
+
       statementEdge.addAll(PThreadUtils.filterPthreadFunctionCallStatements(visitor.getFunctionCalls()));
       for(AStatementEdge statement : visitor.getFunctionCalls()) {
         String functionName = CFAFunctionUtils.getFunctionName(statement);
         reachableBy = cfa.getFunctionHead(functionName);
-        
+
         // external function cannot be explored!
         if(reachableBy != null) {
           statementEdge.addAll(getAllFunctionCallEdgesReachableBy(cfa, reachableBy, depth+1));
         }
-        
+
       }
       return statementEdge;
   }
-  
+
   private static void stubNodeOfChain(CFANode start, CFANode end) {
     assert start.getFunctionName().equals(end.getFunctionName());
     assert start.getNumLeavingEdges() == 1;
     assert end.getNumEnteringEdges() == 1;
     assert CFAEdgeUtils.isNodeReachableByNode(end, start);
-    
+
     CFANode firstUnusedNode = start.getLeavingEdge(0).getSuccessor();
-    
+
     CFAEdgeUtils.removeLeavingEdges(start);
     CFAEdgeUtils.removeEnteringEdges(end);
-    
-    
+
+
     BlankEdge stub = new BlankEdge("stub", FileLocation.DUMMY, start, end, "");
     CFACreationUtils.addEdgeUnconditionallyToCFA(stub);
-    
+
     CFACreationUtils.removeChainOfNodesFromCFA(firstUnusedNode);
   }
-  
+
   public static void stubFunction(FunctionEntryNode start) {
     stubNodeOfChain(start, start.getExitNode());
   }
@@ -158,11 +158,11 @@ public class CFAFunctionUtils {
 
   public static boolean isExternFunction(AStatementEdge edge, CFA cfa) {
     Preconditions.checkArgument(isFunctionCallStatement(edge));
-    
+
     AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
     return isExternFunctionCall(functionCall, cfa);
   }
-  
+
   public static boolean isExternFunctionCall(AFunctionCall functionCall, CFA cfa) {
     ADeclaration declaration = functionCall.getFunctionCallExpression().getDeclaration();
     if(declaration == null) {
@@ -171,17 +171,17 @@ public class CFAFunctionUtils {
     String functionName = declaration.getName();
     return !isFunctionDeclared(functionCall) || cfa.getFunctionHead(functionName) == null;
   }
-  
+
   public static boolean isFunctionDeclared(AFunctionCall functionCall) {
     ADeclaration declaration = functionCall.getFunctionCallExpression().getDeclaration();
     return declaration != null;
   }
-  
+
   /**
    * Returns the function name form the edge if this edge is from type statement
    * edge and has a Function call statement. Returns null if it is no function
    * call edge
-   * 
+   *
    * @param functionCall
    * @return
    */
@@ -189,21 +189,21 @@ public class CFAFunctionUtils {
     assert functionCall.getFunctionCallExpression().getDeclaration() != null : "Function call " + functionCall + "has no declaration";
     return functionCall.getFunctionCallExpression().getDeclaration().getName();
   }
-  
-  
+
+
   public static CFunctionEntryNode cloneCFunction(CFunctionEntryNode startNode, String newFunctionsName, MutableCFA cfa) throws IllegalArgumentException {
     Preconditions.checkNotNull(startNode);
     Preconditions.checkNotNull(newFunctionsName);
     Preconditions.checkNotNull(cfa);
-    
+
     if(cfa.getAllFunctionNames().contains(newFunctionsName)) {
       throw new IllegalArgumentException("the function name for the new cloned function is already in the cfa!");
     }
-    
+
     CFunctionDeclaration originalDeclaration = startNode.getFunctionDefinition();
     List<CParameterDeclaration> originalParameters = originalDeclaration.getParameters();
     CFunctionType originalCType = originalDeclaration.getType();
-  
+
     FunctionExitNode cloneExit = new FunctionExitNode(newFunctionsName);
     CFunctionDeclaration cloneDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, originalCType, newFunctionsName,
         originalParameters);
@@ -211,12 +211,16 @@ public class CFAFunctionUtils {
         startNode.getFunctionParameterNames(), startNode.getReturnVariable());
     cloneExit.setEntryNode(cloneStart);
     cfa.addFunction(cloneStart);
-    
+
     FunctionCloner.CLONER.cloneFunction(startNode, cloneStart, cfa);
-  
+
     return cloneStart;
   }
-  
+
+  /**
+   * Use the function cloner instead {@link org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCloner}
+   */
+  @Deprecated
   private static class FunctionCloner {
     protected static FunctionCloner CLONER = new FunctionCloner();
     private Map<CFANode, CFANode> oldNewNodeMapping = new HashMap<CFANode, CFANode>();
@@ -230,7 +234,7 @@ public class CFAFunctionUtils {
       oldNewNodeMapping.put(startNode.getExitNode(), newFunctionEntryNode.getExitNode());
       CFASequenceBuilder builder = new CFASequenceBuilder(newFunctionEntryNode, cfa);
       startRecursiveCopying(startNode, builder);
-      
+
       // clear cloner
       oldNewNodeMapping.clear();
       newFunctionName = null;
