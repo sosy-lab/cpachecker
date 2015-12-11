@@ -1449,7 +1449,7 @@ public class FormulaManagerView {
   }
 
   public <T extends Formula> T simplify(T input) {
-    return unsafeManager.simplify(input);
+    return manager.simplify(input);
   }
 
   public BooleanFormula substitute(
