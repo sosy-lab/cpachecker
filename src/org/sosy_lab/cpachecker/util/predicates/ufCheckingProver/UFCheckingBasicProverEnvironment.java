@@ -39,6 +39,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
 
 import com.google.common.collect.Iterables;
 
@@ -116,6 +117,17 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
+  public T addConstraint(BooleanFormula constraint) {
+    return delegate.addConstraint(constraint);
+  }
+
+  @Override
+  public void push() {
+    pushedConstraintsSinceLastPush = 0;
+    delegate.push();
+  }
+
+  @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
     boolean unsat = delegate.isUnsat();
     int additionalLevels = 0;
@@ -165,5 +177,10 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public void close() {
     delegate.close();
+  }
+
+  @Override
+  public <E extends Formula> E evaluate(E f) {
+    return delegate.evaluate(f);
   }
 }

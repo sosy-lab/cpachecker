@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.Collection;
 import java.util.Set;
@@ -212,9 +213,13 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testUnInstanciateQuantifiersAndArrays() throws SolverException, InterruptedException {
+  public void testUnInstantiateQuantifiersAndArrays() throws SolverException, InterruptedException {
     requireQuantifiers();
     requireArrays();
+    assume()
+        .withFailureMessage("Arrays in Princess are not currently supported")
+        .that(solverToUse())
+        .isNotEqualTo(Solvers.PRINCESS);
 
     IntegerFormula _0 = imgrv.makeNumber(0);
     IntegerFormula _i = imgrv.makeVariable("i");

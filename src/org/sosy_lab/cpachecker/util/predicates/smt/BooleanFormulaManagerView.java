@@ -113,6 +113,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  public <R> R visit(
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor,
+      BooleanFormula formula) {
+    return null;
+  }
+
+  @Override
   public boolean isBoolean(Formula pF) {
     return pF instanceof BooleanFormula;
   }
@@ -158,9 +165,8 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     assert unsafe.getArity(f) == 3;
 
     BooleanFormula cond = (BooleanFormula)unsafe.getArg(f, 0);
-    FormulaType<Formula> innerType = getFormulaType(f);
-    Formula thenBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 1));
-    Formula elseBranch = unsafe.typeFormula(innerType, unsafe.getArg(f, 2));
+    Formula thenBranch = unsafe.getArg(f, 1);
+    Formula elseBranch = unsafe.getArg(f, 2);
 
     FormulaType<T> targetType = getFormulaType(pF);
     return Triple.of(cond, wrap(targetType, thenBranch),

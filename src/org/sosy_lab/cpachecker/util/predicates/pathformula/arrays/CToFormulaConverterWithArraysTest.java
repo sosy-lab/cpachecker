@@ -222,8 +222,10 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
 
   @Before
   public void setUp() throws Exception {
+    requireRationals();
     mgrv = new FormulaManagerView(factory.getFormulaManager(),
         config, logger);
+
     FormulaEncodingOptions opts = new FormulaEncodingOptions(
         Configuration.defaultConfiguration());
     CtoFormulaTypeHandlerWithArrays th = new CtoFormulaTypeHandlerWithArrays(

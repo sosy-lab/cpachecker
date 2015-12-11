@@ -50,8 +50,8 @@ public class OptEnvironmentView implements OptEnvironment {
 
 
   @Override
-  public void addConstraint(BooleanFormula constraint) {
-    delegate.addConstraint(constraint);
+  public Void addConstraint(BooleanFormula constraint) {
+    return delegate.addConstraint(constraint);
   }
 
   @Override

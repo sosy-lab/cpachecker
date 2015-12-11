@@ -57,7 +57,7 @@ public class UFCheckingProverEnvironment
   }
 
   @Override
-  public Formula evaluate(Formula f) {
+  public <E extends Formula> E evaluate(E f) {
     return delegate.evaluate(f);
   }
 }

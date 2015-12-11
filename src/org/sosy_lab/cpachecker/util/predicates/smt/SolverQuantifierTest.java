@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.truth.TruthJUnit.assume;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,6 +67,7 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
   public void setUp() throws Exception {
     requireArrays();
     requireQuantifiers();
+    requireRationals();
 
     FormulaManagerView mgrv = new FormulaManagerView(mgr, config, TestLogManager.getInstance());
     this.qfm = mgrv.getQuantifiedFormulaManager();
