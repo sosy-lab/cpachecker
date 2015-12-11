@@ -1448,7 +1448,7 @@ public class FormulaManagerView {
     return booleanFormulaManager.makeVariable(pName);
   }
 
-  public BooleanFormula simplify(BooleanFormula input) {
+  public <T extends Formula> T simplify(T input) {
     return unsafeManager.simplify(input);
   }
 
