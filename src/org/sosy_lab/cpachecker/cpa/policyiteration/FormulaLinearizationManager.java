@@ -256,7 +256,7 @@ public class FormulaLinearizationManager {
   }
 
   private Formula evaluate(Formula f) {
-    return ufmgr.simplify(environment.evaluate(f));
+    return fmgr.simplify(environment.evaluate(f));
   }
 
   private String freshUFName(int idx) {
