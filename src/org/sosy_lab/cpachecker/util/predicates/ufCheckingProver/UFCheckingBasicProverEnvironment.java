@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -54,8 +56,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
 
   // We count the number of pushed constraints,
   // because we keep constraints, until the last pushed formula is popped.
-  private int pushedConstraintsSinceLastPush = 0;
-  private final List<Integer> pushedConstraints = new ArrayList<>();
+  private final Deque<Integer> pushedConstraints = new ArrayDeque<>();
 
 
   @Options(prefix="cpa.predicate.solver.ufCheckingProver")
@@ -95,8 +96,8 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   @Override
   public T push(BooleanFormula f) {
 
-    pushedConstraints.add(pushedConstraintsSinceLastPush);
-    pushedConstraintsSinceLastPush = 0;
+    // add new level
+    pushedConstraints.addLast(0);
 
     return delegate.push(f);
   }
@@ -105,12 +106,12 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   public void pop() {
 
     // first pop constraints
-    for (int i = 0; i < pushedConstraintsSinceLastPush; i++) {
+    for (int i = 0; i < pushedConstraints.getLast(); i++) {
       delegate.pop();
     }
 
     // reset counter to last entry
-    pushedConstraintsSinceLastPush = pushedConstraints.remove(pushedConstraints.size() - 1);
+    pushedConstraints.removeLast();
 
     // then pop the basic formula
     delegate.pop();
@@ -123,14 +124,17 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
 
   @Override
   public void push() {
-    pushedConstraintsSinceLastPush = 0;
+
+    // add new level
+    pushedConstraints.addLast(0);
+
     delegate.push();
   }
 
   @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
     boolean unsat = delegate.isUnsat();
-    int additionalLevels = 0;
+    int additionalConstraints = 0;
     while (!unsat) {
 
       // next line only succeeds if the solver supports the generation of a model.
@@ -152,19 +156,20 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
         break;
       }
 
-      if (additionalLevels > options.maxIterationNum) {
+      if (additionalConstraints > options.maxIterationNum) {
         logger.log(Level.INFO, "aborting further sat-checks with UF-checking");
         break;
       }
 
       // push the new constraints and re-check for satisfiability
 
-      additionalLevels++;
+      additionalConstraints++;
       push(bfmgr.and(constraints));
       unsat = delegate.isUnsat();
     }
 
-    pushedConstraintsSinceLastPush += additionalLevels;
+    // update level-counter
+    pushedConstraints.addLast(pushedConstraints.removeLast() + additionalConstraints);
 
     return unsat;
   }
