@@ -106,7 +106,8 @@ enum GraphBuilder {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              pEdgeAppender.appendNewEdge(pDocument, prevStateId, pseudoStateId, innerEdge, null, pValueMap);
+              Optional<Collection<ARGState>> absentStates = Optional.absent();
+              pEdgeAppender.appendNewEdge(pDocument, prevStateId, pseudoStateId, innerEdge, absentStates, pValueMap);
               prevStateId = pseudoStateId;
             }
 
