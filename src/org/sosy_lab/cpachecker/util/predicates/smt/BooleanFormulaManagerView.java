@@ -108,11 +108,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
-    return manager.applyTactic(input, tactic);
-  }
-
-  @Override
   public <R> R visit(
       org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor,
       BooleanFormula formula) {

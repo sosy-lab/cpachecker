@@ -216,10 +216,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   public void testUnInstantiateQuantifiersAndArrays() throws SolverException, InterruptedException {
     requireQuantifiers();
     requireArrays();
-    assume()
-        .withFailureMessage("Arrays in Princess are not currently supported")
-        .that(solverToUse())
-        .isNotEqualTo(Solvers.PRINCESS);
 
     IntegerFormula _0 = imgrv.makeNumber(0);
     IntegerFormula _i = imgrv.makeVariable("i");

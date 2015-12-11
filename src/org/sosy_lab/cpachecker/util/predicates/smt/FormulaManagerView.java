@@ -64,6 +64,7 @@ import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
+import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
@@ -1554,5 +1555,13 @@ public class FormulaManagerView {
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
+  }
+
+  /**
+   * See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for
+   * documentation.
+   */
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
+    return manager.applyTactic(input, tactic);
   }
 }
