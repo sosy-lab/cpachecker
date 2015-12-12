@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 import java.util.Collections;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -153,9 +153,7 @@ public class ValueAnalysisPathInterpolator
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet());
-
-    useDefRelation.addAllAssumes(prefixPreference == PrefixPreference.NONE);
+          : Collections.<String>emptySet(), true);
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,
