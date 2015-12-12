@@ -153,7 +153,7 @@ public class ValueAnalysisPathInterpolator
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(), true);
+          : Collections.<String>emptySet(), prefixPreference == PrefixPreference.NONE);
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,
