@@ -73,6 +73,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private final int stateId;
 
+  @Nullable private Integer stateLevel;
+
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
@@ -102,6 +104,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       assert !pOtherParent.children.contains(this);
       parents.add(pOtherParent);
       pOtherParent.children.add(this);
+
+      signalStateRelationshipChange();
     } else {
       assert pOtherParent.children.contains(this);
     }
@@ -180,6 +184,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       pCoveredBy.mCoveredByThis = new LinkedHashSet<>(2);
     }
     pCoveredBy.mCoveredByThis.add(this);
+
+    signalStateRelationshipChange();
   }
 
   public void uncover() {
@@ -188,6 +194,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
     mCoveredBy.mCoveredByThis.remove(this);
     mCoveredBy = null;
+
+    signalStateRelationshipChange();
   }
 
   public boolean isCovered() {
@@ -216,11 +224,15 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   public void setNotCovering() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     mayCover = false;
+
+    signalStateRelationshipChange();
   }
 
   void setHasCoveredParent(boolean pHasCoveredParent) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
     hasCoveredParent = pHasCoveredParent;
+
+    signalStateRelationshipChange();
   }
 
   // merged-with marker so that stop can return true for merged elements
@@ -230,6 +242,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
+
+    signalStateRelationshipChange();
   }
 
   public ARGState getMergedWith() {
@@ -244,12 +258,16 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   void markExpanded() {
     wasExpanded = true;
+
+    signalStateRelationshipChange();
   }
 
   void deleteChild(ARGState child) {
     assert (children.contains(child));
     children.remove(child);
     child.parents.remove(this);
+
+    signalStateRelationshipChange();
   }
 
   // small and less important stuff
@@ -390,6 +408,23 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       mCoveredByThis.clear();
       mCoveredByThis = null;
     }
+
+    signalStateRelationshipChange();
+  }
+
+  private void signalStateRelationshipChange() {
+    stateLevel = null;
+  }
+
+  public Integer getStateLevel() {
+    if (stateLevel == null) {
+      int maxParentStateLevel = -1;
+      for (ARGState e: getParents()) {
+        maxParentStateLevel = Math.max(maxParentStateLevel, e.getStateLevel());
+      }
+      stateLevel = maxParentStateLevel + 1;
+    }
+    return stateLevel;
   }
 
   /**
@@ -412,6 +447,8 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
       parent.children.remove(this);
     }
     parents.clear();
+
+    signalStateRelationshipChange();
   }
 
   /**

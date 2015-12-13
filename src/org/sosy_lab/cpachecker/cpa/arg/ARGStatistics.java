@@ -28,7 +28,9 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -58,10 +60,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements IterationStatistics {
@@ -87,7 +92,11 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  private final ARGCPA cpa;
+  @Option(secure=true, name="argLevelStatisticsFile",
+      description="Export statistics on the number of states per level of the ARG to a .csv file.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path levelStatisticsFile = null;
+
   private final LogManager logger;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -104,7 +113,6 @@ public class ARGStatistics implements IterationStatistics {
 
     config.inject(this);
 
-    cpa = pCpa;
     logger = pLogger;
     cexSummary = pCexSummary;
     cexExporter = pCexExporter;
@@ -167,6 +175,14 @@ public class ARGStatistics implements IterationStatistics {
       int cexIndex = 0;
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue(), cexIndex++);
+      }
+    }
+
+    if (levelStatisticsFile != null) {
+      try (Writer w = Files.openOutputFile(levelStatisticsFile)) {
+        writeLevelStatisticsCsv(pReached, w);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write statistics on the ARG levels to a file");
       }
     }
 
@@ -256,5 +272,75 @@ public class ARGStatistics implements IterationStatistics {
     if (dumpArgInEachCpaIteration) {
       printStatistics(pOut, Result.UNKNOWN, pReached);
     }
+  }
+
+  /**
+   * Write a statistic on the number of ARG states per level of the ARG.
+   *
+   * Format:  Level (integer) \t number of states on this level (integer)
+   *
+   * @param pReached  The set of reached states.
+   * @param pTarget   Where to write the CSV
+   */
+  void writeLevelStatisticsCsv(ReachedSet pReached, Appendable pTarget) {
+    Preconditions.checkNotNull(pReached);
+    Preconditions.checkNotNull(pTarget);
+
+    // 1. Compute the statistics
+    List<Integer> statesPerLevel = computeNumberOfStatesPerArgLevel(pReached);
+
+    // 2. Dump the statistics to the target
+    try {
+      for (int level=0; level <statesPerLevel.size(); level++) {
+        int statesAtLevel = statesPerLevel.get(level);
+
+        pTarget.append(Integer.toString(level));
+        pTarget.append('\t');
+        pTarget.append(Integer.toString(statesAtLevel));
+        pTarget.append('\n');
+      }
+    } catch (IOException e) {
+      logger.log(Level.WARNING, "Wrinting statistics on states per level failed!", e);
+    }
+  }
+
+  /**
+   * Compute statistics on the number of states per level of the ARG.
+   *
+   * @param pReached
+   *
+   * @return  List where the index is the level, and the value is the number of states in this level.
+   */
+  private List<Integer> computeNumberOfStatesPerArgLevel(ReachedSet pReached) {
+    Preconditions.checkNotNull(pReached);
+    Preconditions.checkNotNull(pReached.getFirstState() != null);
+    Preconditions.checkArgument(pReached.getFirstState() instanceof ARGState);
+
+    List<Integer> statesPerLevel = Lists.newArrayList();
+    Deque<ARGState> worklist = Lists.newLinkedList();
+    worklist.add((ARGState) pReached.getFirstState());
+
+    Set<ARGState> visited = Sets.newHashSet();
+
+    while (!worklist.isEmpty()) {
+      ARGState e = worklist.pop();
+
+      if (!visited.add(e)) {
+        continue;
+      }
+
+      int level = e.getStateLevel();
+
+      while (statesPerLevel.size() <= level) {
+        statesPerLevel.add(Integer.valueOf(0));
+      }
+
+      int statesAtLevel = statesPerLevel.get(level);
+      statesPerLevel.set(level, statesAtLevel + 1);
+
+      worklist.addAll(e.getChildren()); // The ARG is acyclic!
+    }
+
+    return statesPerLevel;
   }
 }
