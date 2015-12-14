@@ -290,7 +290,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       lastBase = fakeName;
       mergeFormula = formulaManager.makeAnd(
           getNextBaseAddressInequality(fakeName, pPts1.getBases(),
-              pPts2.getLastBase()),
+              pPts1.getLastBase()),
           getNextBaseAddressInequality(fakeName, pPts2.getBases(),
               pPts2.getLastBase()));
     }
