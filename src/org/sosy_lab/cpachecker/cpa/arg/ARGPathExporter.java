@@ -456,14 +456,11 @@ public class ARGPathExporter {
             }
 
             if (!assignments.isEmpty()) {
-              code.add(And.of(FluentIterable.from(assignments).transform(new Function<AExpressionStatement, ExpressionTree>() {
-
-                @Override
-                public ExpressionTree apply(AExpressionStatement pArg0) {
-                  return LeafExpression.of(pArg0.getExpression());
-                }
-
-              }).toList()));
+              code.add(
+                  And.of(
+                      FluentIterable.from(assignments)
+                          .transform(LeafExpression.FROM_STATEMENT)
+                          .toList()));
             }
           }
         }
@@ -559,10 +556,11 @@ public class ARGPathExporter {
     }
 
     private void appendKeyDefinitions(GraphMlBuilder pDoc, GraphType pGraphType) {
+      pDoc.appendNewKeyDef(KeyDef.GRAPH_TYPE, null);
+      pDoc.appendNewKeyDef(KeyDef.PROGRAMFILE, null);
       if (pGraphType == GraphType.PROOF_WITNESS) {
         pDoc.appendNewKeyDef(KeyDef.INVARIANT, null);
         pDoc.appendNewKeyDef(KeyDef.INVARIANTSCOPE, null);
-        //pDoc.appendNewKeyDef(KeyDef.NAMED, null);
       } else if (pGraphType == GraphType.ERROR_WITNESS) {
         pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
         pDoc.appendNewKeyDef(KeyDef.ASSUMPTIONSCOPE, null);
@@ -571,6 +569,7 @@ public class ARGPathExporter {
       pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
       pDoc.appendNewKeyDef(KeyDef.CONTROLCASE, null);
       pDoc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
+      pDoc.appendNewKeyDef(KeyDef.OFFSET, null);
       pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
       pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
       pDoc.appendNewKeyDef(KeyDef.PRODUCER, null);
