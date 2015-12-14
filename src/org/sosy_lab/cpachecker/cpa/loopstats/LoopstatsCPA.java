@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
 @Options(prefix="cpa.loopstats")
-class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   protected final LoopStructure loopStructure;
   protected final LoopstatsStatistics stats;
@@ -83,7 +83,7 @@ class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     transfer = new LoopstatsTransferRelation(loopStructure);
     mergeop = MergeSepOperator.getInstance();
     domain = new FlatLatticeDomain();
-    stopop = new StopSepOperator(domain);
+    stopop = new StopAlwaysOperator();
     precop = StaticPrecisionAdjustment.getInstance();
 
     stats = new LoopstatsStatistics(pConfig);

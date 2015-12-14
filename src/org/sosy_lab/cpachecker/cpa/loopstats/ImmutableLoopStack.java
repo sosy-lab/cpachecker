@@ -69,7 +69,7 @@ public class ImmutableLoopStack implements ImmutableStack<Loop> {
 
   @Override
   public boolean isEmpty() {
-    return head != null;
+    return head == null;
   }
 
   @Override
@@ -84,11 +84,55 @@ public class ImmutableLoopStack implements ImmutableStack<Loop> {
 
   @Override
   public String toString() {
-    if (peekHead() == null) {
-      return "Loop stack empty";
+    if (isEmpty()) {
+      return "Stack is empty!";
     } else {
-      return String.format("Loop starting at node %s, nested in depth %d", peekHead().getLoopHeads(), size());
+      return String.format("Inner loop: %s; size: %d", peekHead().getLoopHeads(), size());
     }
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((head == null) ? 0 : head.hashCode());
+    result = prime * result + size;
+    result = prime * result + ((tail == null) ? 0 : tail.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (!(obj instanceof ImmutableLoopStack)) {
+      return false;
+    }
+    ImmutableLoopStack other = (ImmutableLoopStack) obj;
+    if (head == null) {
+      if (other.head != null) {
+        return false;
+      }
+    } else if (!head.equals(other.head)) {
+      return false;
+    }
+    if (size != other.size) {
+      return false;
+    }
+    if (tail == null) {
+      if (other.tail != null) {
+        return false;
+      }
+    } else if (!tail.equals(other.tail)) {
+      return false;
+    }
+    return true;
+  }
+
+
 
 }

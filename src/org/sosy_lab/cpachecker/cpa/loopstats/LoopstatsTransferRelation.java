@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -54,6 +55,15 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
   private final Map<CFAEdge, Loop> loopEntryEdges;
   private final Map<CFAEdge, Loop> loopExitEdges;
 
+  private static Predicate<CFAEdge> edgeLeavingLoopHead = new Predicate<CFAEdge>() {
+
+    @Override
+    public boolean apply(CFAEdge pArg0) {
+      return pArg0.getPredecessor().isLoopStart();
+    }
+
+  };
+
   public LoopstatsTransferRelation(LoopStructure pLoops) {
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
@@ -62,12 +72,11 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
     for (Loop l : pLoops.getAllLoops()) {
       // Function edges do not count as incoming/outgoing edges
       // TODO: This might be interesting/important in case we want to handle recursion!
-      Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
-                                               not(instanceOf(CFunctionReturnEdge.class)));
+      Iterable<CFAEdge> edgesToLoopBody = filter(l.getInnerLoopEdges(), edgeLeavingLoopHead);
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
                                                not(instanceOf(CFunctionCallEdge.class)));
 
-      for (CFAEdge e : incomingEdges) {
+      for (CFAEdge e : edgesToLoopBody) {
         entryEdges.put(e, l);
       }
       for (CFAEdge e : outgoingEdges) {
@@ -110,16 +119,20 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // We are entering a loop body
-    final Loop enteringLoop = loopEntryEdges.get(pCfaEdge);
-    if (enteringLoop != null) {
-      return LoopstatsState.createSuccessorForEnteringLoopBody(pPredState, enteringLoop);
+    {
+      final Loop enteringLoop = loopEntryEdges.get(pCfaEdge);
+      if (enteringLoop != null) {
+        return LoopstatsState.createSuccessorForEnteringLoopBody(pPredState, enteringLoop);
+      }
     }
 
     // We are leaving a loop
     //  (we might never have entered the loop body itself)
-    final Loop leavingLoop = loopExitEdges.get(pCfaEdge);
-    if (leavingLoop != null) {
-      return LoopstatsState.createSuccessorForLeavingLoop(pPredState, enteringLoop);
+    {
+      final Loop leavingLoop = loopExitEdges.get(pCfaEdge);
+      if (leavingLoop != null) {
+        return LoopstatsState.createSuccessorForLeavingLoop(pPredState, leavingLoop);
+      }
     }
 
     return pPredState;

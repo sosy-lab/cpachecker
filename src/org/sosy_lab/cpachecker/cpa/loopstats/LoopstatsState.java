@@ -77,7 +77,19 @@ public class LoopstatsState implements AbstractState, Partitionable {
 
   @Override
   public String toString() {
-    return activeLoops.toString();
+    StringBuilder result = new StringBuilder();
+    if (peekLoop() != null) {
+      result.append("Loop: ");
+      result.append(peekLoop().getLoopHeads());
+      result.append("; iteration: ");
+      result.append(getIteration());
+      result.append("; nesting: ");
+      result.append(getDepth());
+
+    } else {
+      result.append("No loop active.");
+    }
+    return result.toString();
   }
 
   @Override
@@ -114,7 +126,7 @@ public class LoopstatsState implements AbstractState, Partitionable {
       // Beginning a new 'instance' of a loop
       return new LoopstatsState(pPreviousState.statReceiver,
           pPreviousState.activeLoops.push(pEnteringLoopBody),
-          pPreviousState.activeIterations.push(Integer.valueOf(0)));
+          pPreviousState.activeIterations.push(Integer.valueOf(1)));
 
     } else {
 
@@ -122,7 +134,7 @@ public class LoopstatsState implements AbstractState, Partitionable {
       Integer prevIterations = pPreviousState.activeIterations.peekHead();
 
       return new LoopstatsState(pPreviousState.statReceiver,
-          pPreviousState.activeLoops.getTail(),
+          pPreviousState.activeLoops,
           pPreviousState.activeIterations.getTail().push(prevIterations + 1));
     }
   }
@@ -149,7 +161,7 @@ public class LoopstatsState implements AbstractState, Partitionable {
       //  but the loop body was not entered.
 
       pPreviousState.statReceiver.signalLoopLeftAfter(pLeavingLoop,
-          pPreviousState.getDepth(), pPreviousState.getIteration());
+          pPreviousState.getDepth(), 0);
 
       return pPreviousState;
 
