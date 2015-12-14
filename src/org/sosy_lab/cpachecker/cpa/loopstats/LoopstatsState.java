@@ -161,7 +161,7 @@ public class LoopstatsState implements AbstractState, Partitionable {
       //  but the loop body was not entered.
 
       pPreviousState.statReceiver.signalLoopLeftAfter(pLeavingLoop,
-          pPreviousState.getDepth(), 0);
+          pPreviousState.getDepth(), pPreviousState.activeLoops, pPreviousState.getIteration());
 
       return pPreviousState;
 

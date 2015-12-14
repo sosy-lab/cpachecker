@@ -70,8 +70,7 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
 
     for (Loop l : pLoops.getAllLoops()) {
-      // Function edges do not count as incoming/outgoing edges
-      // TODO: This might be interesting/important in case we want to handle recursion!
+
       Iterable<CFAEdge> edgesToLoopBody = filter(l.getInnerLoopEdges(), edgeLeavingLoopHead);
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
                                                not(instanceOf(CFunctionCallEdge.class)));
@@ -111,6 +110,15 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       return pPredState;
     }
 
+    // We are leaving a loop
+    //  (we might never have entered the loop body itself)
+    {
+      final Loop leavingLoop = loopExitEdges.get(pCfaEdge);
+      if (leavingLoop != null) {
+        return LoopstatsState.createSuccessorForLeavingLoop(pPredState, leavingLoop);
+      }
+    }
+
     if (pCfaEdge instanceof CFunctionReturnEdge) {
       // Such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges.
@@ -126,14 +134,6 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    // We are leaving a loop
-    //  (we might never have entered the loop body itself)
-    {
-      final Loop leavingLoop = loopExitEdges.get(pCfaEdge);
-      if (leavingLoop != null) {
-        return LoopstatsState.createSuccessorForLeavingLoop(pPredState, leavingLoop);
-      }
-    }
 
     return pPredState;
   }

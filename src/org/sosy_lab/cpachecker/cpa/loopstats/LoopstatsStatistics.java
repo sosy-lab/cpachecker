@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.loopstats;
 
 import java.io.PrintStream;
+import java.util.Map;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,9 +36,12 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 @Options
 class LoopstatsStatistics extends AbstractStatistics implements Statistics, LoopStatisticsReceiver {
+
+  private final Map<ImmutableLoopStack, Integer> maxIterationsPerLoopStack = Maps.newHashMap();
 
   public LoopstatsStatistics(Configuration pConfig) throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
@@ -74,9 +78,11 @@ class LoopstatsStatistics extends AbstractStatistics implements Statistics, Loop
   }
 
   @Override
-  public void signalLoopLeftAfter(Loop pLoop, int pNestedInLoops, int pNumberOfIterations) {
+  public void signalLoopLeftAfter(Loop pLoop, int pNestedInLoops, ImmutableLoopStack pActiveLoops,
+      int pNumberOfIterations) {
     // TODO Auto-generated method stub
 
   }
+
 
 }
