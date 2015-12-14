@@ -67,9 +67,6 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    */
   @Override
   public int getSizeof(CType cType) {
-    if (cType == null) {
-      return 0;
-    }
     cType = CTypeUtils.simplifyType(cType);
     if (cType instanceof CCompositeType) {
       if (sizes.contains(cType)) {
