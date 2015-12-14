@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -98,9 +98,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCFA)
+                      ShutdownManager pShutdownManager, CFA pCFA)
                       throws InvalidConfigurationException, CPAException {
-    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
+    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownManager, pCFA,
         new BMCStatistics(),
         false /* no invariant generator */);
     pConfig.inject(this);
@@ -270,7 +270,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
 
-          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.and(info.getCounterExampleFormulas())),
+          counterexample.addFurtherInformation(
+              solver.getFormulaManager().dumpFormula(
+                  solver.getFormulaManager().getBooleanFormulaManager().and(
+                      info.getCounterExampleFormulas()
+                  )),
               dumpCounterexampleFormula);
         }
 

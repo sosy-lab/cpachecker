@@ -39,6 +39,7 @@ import org.restlet.engine.header.Header;
 import org.restlet.ext.wadl.WadlServerResource;
 import org.restlet.representation.Representation;
 import org.restlet.util.Series;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
@@ -166,18 +167,19 @@ public class TaskExecutorServerResource extends WadlServerResource implements Ta
       }
     };
 
-    final ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    final ShutdownManager shutdownManager = ShutdownManager.create();
+    final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
     shutdownNotifier.register(listener);
 
     ShutdownHook shutdownHook = new ShutdownHook() {
       @Override
       public void shutdown() {
-        shutdownNotifier.requestShutdown("The backend is shutting down.");
+        shutdownManager.requestShutdown("The backend is shutting down.");
       }
     };
     LifecycleManager.getInstance().setShutdownHook(shutdownHook);
 
-    final CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownNotifier);
+    final CPAchecker cpaChecker = new CPAchecker(config, logManager, shutdownManager);
 
     /*
      * To prevent the main thread (and therefore the complete request) to go
@@ -214,7 +216,7 @@ public class TaskExecutorServerResource extends WadlServerResource implements Ta
     };
     cpaCheckerThread.setUncaughtExceptionHandler(handler);
 
-    ResourceLimitChecker limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownNotifier);
+    ResourceLimitChecker limits = ResourceLimitChecker.fromConfiguration(config, logManager, shutdownManager);
     limits.start();
 
     cpaCheckerThread.start();

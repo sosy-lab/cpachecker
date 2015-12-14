@@ -97,6 +97,102 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
 
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
@@ -1791,15 +1887,6 @@ cpa.reachdef.stop = "SEP"
 # Do not report 'False' result, return UNKNOWN instead.  Useful for
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
-
-# path to a file with abstraction rules
-cpa.seplogic.partingstar.abstractionfile = no default value
-
-# path to a file with logic rules
-cpa.seplogic.partingstar.logicsfile = no default value
-
-# path to partingstar command
-cpa.seplogic.partingstar.pspath = no default value
 
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"

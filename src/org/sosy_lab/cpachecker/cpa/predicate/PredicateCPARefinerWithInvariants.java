@@ -46,7 +46,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -536,12 +536,11 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     try {
       reached = new ReachedSetFactory(config, logger);
 
-      ShutdownNotifier notifier = shutdownNotifier;
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker limits = null;
       if (!timeForInvariantGeneration.isEmpty()) {
-        notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-        limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+        limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
         limits.start();
       }
 
@@ -552,7 +551,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
       }
 
-      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, notifier, cfa, reached, candidateGenerator);
+      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator);
 
       invGen.start(cfa.getMainFunction());
       invGen.get(); // let invariant generator do the work
@@ -611,16 +610,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                                                                   scope, cfa.getLanguage());
 
 
-        ShutdownNotifier notifier = shutdownNotifier;
+        ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
         ResourceLimitChecker limits = null;
         if (!timeForInvariantGeneration.isEmpty()) {
-          notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
           WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
-          limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+          limits = new ResourceLimitChecker(invariantShutdown, Collections.<ResourceLimit>singletonList(l));
           limits.start();
         }
 
-        InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, notifier, Optional.<ShutdownNotifier>absent(), cfa, automata);
+        InvariantGenerator invGen = CPAInvariantGenerator.create(config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa, automata);
 
         List<BooleanFormula> invariants = generateInvariants0(abstractionStatesTrace, invGen);
 

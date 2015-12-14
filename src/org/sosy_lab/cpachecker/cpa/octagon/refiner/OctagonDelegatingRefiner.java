@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.cpa.octagon.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOpera
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -74,7 +76,6 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 /**
@@ -354,12 +355,12 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
             new OctagonState(logger, octagonCPA.getManager()));
 
       } else {
-        ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+        ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForOctagonFeasibilityCheck);
-        ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+        ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
-        checker = new OctagonAnalysisFeasabilityChecker(config, notifier, path, octagonCPA.getClass(),
+        checker = new OctagonAnalysisFeasabilityChecker(config, shutdown.getNotifier(), path, octagonCPA.getClass(),
             cfa.getVarClassification(), new OctagonTransferRelation(logger, cfa.getLoopStructure().get()),
             new OctagonState(logger, octagonCPA.getManager()));
         limits.cancel();

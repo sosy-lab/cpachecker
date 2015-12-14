@@ -47,7 +47,7 @@ public class InductiveWeakeningManagerTest {
             "analysis.interprocedural", "false"
         )
     ).build();
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    ShutdownNotifier notifier = ShutdownNotifier.createDummy();
     logger = new BasicLogManager(config,
         new StreamHandler(System.out, new SimpleFormatter()));
     creator = new CFACreator(config, logger, notifier);

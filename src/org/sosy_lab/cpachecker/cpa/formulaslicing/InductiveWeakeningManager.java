@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Verify;
@@ -103,7 +103,7 @@ public class InductiveWeakeningManager {
     BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
         .of(fmgr, input.getSsa()).visit(input.getFormula()));
 
-    BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
+    BooleanFormula noIntermediateNNF = fmgr.applyTactic(noIntermediate,
         Tactic.NNF);
     if (noIntermediateNNF.equals(bfmgr.makeBoolean(false))) {
 

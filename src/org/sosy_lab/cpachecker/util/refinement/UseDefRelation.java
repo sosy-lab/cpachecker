@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -73,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
@@ -111,21 +111,19 @@ public class UseDefRelation {
   private boolean hasContradictingAssumeEdgeBeenHandled = false;
 
   /**
-   * the flag to determine, if all asumme operations should add to the use-def-relation
+   * the flag to determine if all assume operations should add to the use-def-relation
    * instead of only the final (failing, contradicting) one
    */
   private boolean addAllAssumes = false;
 
-  public UseDefRelation(ARGPath path,
-      Set<String> pBooleanVariables) {
+  public UseDefRelation(final ARGPath path,
+      final Set<String> pBooleanVariables,
+      final boolean pAddAllAssumes) {
 
     booleanVariables = pBooleanVariables;
+    addAllAssumes    = pAddAllAssumes;
 
     buildRelation(path);
-  }
-
-  public void addAllAssumes(boolean pAddAllAssumes) {
-    addAllAssumes = pAddAllAssumes;
   }
 
   public Map<ARGState, Collection<ASimpleDeclaration>> getExpandedUses(ARGPath path) {
@@ -143,7 +141,7 @@ public class UseDefRelation {
       } else {
         currentState = it.getPreviousAbstractState();
       }
-      CFAEdge currentEdge   = it.getOutgoingEdge();
+      CFAEdge currentEdge = it.getOutgoingEdge();
 
       if(currentEdge.getEdgeType() == CFAEdgeType.MultiEdge) {
         for (CFAEdge singleEdge : Lists.reverse(((MultiEdge)currentEdge).getEdges())) {
@@ -313,7 +311,7 @@ public class UseDefRelation {
         if (hasContradictingAssumeEdgeBeenHandled) {
           handleFeasibleAssumption(state, (CAssumeEdge)edge);
         } else {
-          hasContradictingAssumeEdgeBeenHandled = true && !addAllAssumes;
+          hasContradictingAssumeEdgeBeenHandled = !addAllAssumes;
           addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
         }
 

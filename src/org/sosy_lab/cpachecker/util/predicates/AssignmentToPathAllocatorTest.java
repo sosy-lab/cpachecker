@@ -49,11 +49,12 @@ public class AssignmentToPathAllocatorTest {
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    this.allocator = new AssignmentToPathAllocator(
-        Configuration.defaultConfiguration(),
-        ShutdownNotifier.create(),
-        TestLogManager.getInstance(),
-        MachineModel.LINUX32);
+    this.allocator =
+        new AssignmentToPathAllocator(
+            Configuration.defaultConfiguration(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance(),
+            MachineModel.LINUX32);
   }
 
   @Test

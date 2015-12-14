@@ -28,6 +28,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -198,7 +199,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     if (useInvariantsForAbstraction) {
-      invariantGenerator = CPAInvariantGenerator.create(config, logger, pShutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
+      invariantGenerator = CPAInvariantGenerator.create(config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }

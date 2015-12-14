@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.Collection;
 import java.util.Set;
@@ -212,7 +213,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testUnInstanciateQuantifiersAndArrays() throws SolverException, InterruptedException {
+  public void testUnInstantiateQuantifiersAndArrays() throws SolverException, InterruptedException {
     requireQuantifiers();
     requireArrays();
 

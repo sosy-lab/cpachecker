@@ -132,7 +132,8 @@ public class RefineTest0 extends SolverBasedTest0 {
     InterpolationWithCandidates ipc = new MinCorePrio(logger, Mockito.mock(CFA.class), solver);
     RegionManager regionManager = new BDDManagerFactory(config, logger).createRegionManager();
     AbstractionManager amgr = new AbstractionManager(regionManager, mgrv, config, logger, solver);
-    refine = new Refine(config, logger, ShutdownNotifier.create(), cfa, solver, amgr, enp, ipc);
+    refine =
+        new Refine(config, logger, ShutdownNotifier.createDummy(), cfa, solver, amgr, enp, ipc);
 
     // Test CFA elements...
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, TestLogManager.getInstance());

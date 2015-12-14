@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
@@ -150,7 +150,7 @@ public class FormulaLinearizationManager {
     environment = optEnvironment;
 
     statistics.ackermannizationTimer.start();
-    f = bfmgr.applyTactic(f, Tactic.NNF);
+    f = fmgr.applyTactic(f, Tactic.NNF);
 
     // Get rid of UFs.
     BooleanFormula noUFs = processUFs(f);
@@ -256,7 +256,7 @@ public class FormulaLinearizationManager {
   }
 
   private Formula evaluate(Formula f) {
-    return ufmgr.simplify(environment.evaluate(f));
+    return fmgr.simplify(environment.evaluate(f));
   }
 
   private String freshUFName(int idx) {

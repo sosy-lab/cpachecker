@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -62,11 +62,11 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   public BMCAlgorithmForInvariantGeneration(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCFA,
+                      ShutdownManager pShutdownManager, CFA pCFA,
                       BMCStatistics pBMCStatistics,
                       Optional<CandidateGenerator> pCandidateGenerator)
                       throws InvalidConfigurationException, CPAException {
-    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
+    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownManager, pCFA,
         pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));

@@ -105,7 +105,7 @@ public class OctagonAnalysisFeasabilityChecker {
    * of the last (failing) assume edge in the found error path.
    */
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
-    UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet());
+    UseDefRelation useDefRelation = new UseDefRelation(foundPath, Collections.<String>emptySet(), false);
 
     return FluentIterable.from(useDefRelation.getUsesAsQualifiedName()).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
   }

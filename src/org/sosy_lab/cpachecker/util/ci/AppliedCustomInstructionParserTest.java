@@ -104,8 +104,11 @@ public class AppliedCustomInstructionParserTest {
             + "test2(4);"
           + "}";
     cfa = TestDataTools.makeCFA(testProgram);
-    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(),
-        new BasicLogManager(TestDataTools.configurationForTest().build()), cfa);
+    aciParser =
+        new AppliedCustomInstructionParser(
+            ShutdownNotifier.createDummy(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
+            cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
     cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
     labelNodes = getLabelNodes(cfa);
@@ -229,8 +232,11 @@ public class AppliedCustomInstructionParserTest {
 
     CFA cfa = TestDataTools.makeCFA(testProgram);
     GlobalInfo.getInstance().storeCFA(cfa);
-    aciParser = new AppliedCustomInstructionParser(ShutdownNotifier.create(), new BasicLogManager(TestDataTools
-            .configurationForTest().build()), cfa);
+    aciParser =
+        new AppliedCustomInstructionParser(
+            ShutdownNotifier.createDummy(),
+            new BasicLogManager(TestDataTools.configurationForTest().build()),
+            cfa);
     Path p = Paths.createTempPath("test_acis", null);
     try (Writer file = Files.openOutputFile(p)) {
       file.append("main\n");

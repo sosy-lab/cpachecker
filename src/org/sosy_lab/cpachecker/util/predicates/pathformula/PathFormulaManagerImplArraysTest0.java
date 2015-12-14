@@ -104,23 +104,25 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
     solver = new Solver(factory, config, TestLogManager.getInstance());
     mgv = solver.getFormulaManager();
 
-    pfmgrFwd = new PathFormulaManagerImpl(
-        mgv,
-        myConfig,
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        MachineModel.LINUX32,
-        Optional.<VariableClassification>absent(),
-        AnalysisDirection.FORWARD);
+    pfmgrFwd =
+        new PathFormulaManagerImpl(
+            mgv,
+            myConfig,
+            TestLogManager.getInstance(),
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.<VariableClassification>absent(),
+            AnalysisDirection.FORWARD);
 
-    pfmgrBwd = new PathFormulaManagerImpl(
-        mgv,
-        myConfig,
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        MachineModel.LINUX32,
-        Optional.<VariableClassification>absent(),
-        AnalysisDirection.BACKWARD);
+    pfmgrBwd =
+        new PathFormulaManagerImpl(
+            mgv,
+            myConfig,
+            TestLogManager.getInstance(),
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.<VariableClassification>absent(),
+            AnalysisDirection.BACKWARD);
 
     eb = new CBinaryExpressionBuilder(MachineModel.LINUX64, logger);
 
