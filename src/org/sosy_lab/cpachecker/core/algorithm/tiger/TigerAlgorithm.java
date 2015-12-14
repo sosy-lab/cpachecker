@@ -1429,7 +1429,8 @@ public class TigerAlgorithm
       partiallyTimedoutGoals = new HashSet<>();
 
       for (Goal goal : testsuite.getGoals()) {
-        if (testsuite.getCoveringTestCases(goal).size() > 0) {
+        List<TestCase> testcases = testsuite.getCoveringTestCases(goal);
+        if (testcases != null && !testcases.isEmpty()) {
           // goal is feasible
           boolean partiallyFeasible = false;
           if (testsuite.isGoalInfeasible(goal)) {
