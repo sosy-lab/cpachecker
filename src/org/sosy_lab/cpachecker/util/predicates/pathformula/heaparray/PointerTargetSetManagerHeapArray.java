@@ -624,7 +624,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final String pLastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
     final Formula newBaseFormula = formulaManager.makeVariable(pointerType,
-        PointerTargetSet.getBaseName(pLastBase));
+        PointerTargetSet.getBaseName(pNewBase));
 
     if (pLastBase != null) {
       final int lastSize = typeHandler.getSizeof(pBases.get(pLastBase));
