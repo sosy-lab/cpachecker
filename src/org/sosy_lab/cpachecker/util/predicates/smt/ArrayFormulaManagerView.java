@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -155,6 +152,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * Returns a formula representing the declaration of an SMT array and a call
    * to it.
    *
+   * <p>The new returned formula is of the form {@code select( store (<pName> 0 <pArgs>) 0)}.</p>
+   *
    * @param pName The name of the array variable.
    * @param pIntegerFormulaManager The formula manager for integer formulae.
    * @param pReturnType The return type of the array call, i.e. the element type of the array.
@@ -168,7 +167,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
       final FormulaType<T> pReturnType,
       final Formula pArgs) {
 
-    // todo does the magic...
+    // TODO evaluate correctness of these statements. They seem to be working in most cases but
+    // not when there is a cast involved, e.g. if pReturnType is a Rational type and the formula
+    // in pArgs is of type Integer, the store fails (at least in SMTInterpol).
     ArrayFormula<?, ?> arrayFormula = makeArray(pName, FormulaType.IntegerType, pReturnType);
     final Formula index = pIntegerFormulaManager.makeNumber(0);
     arrayFormula = store(arrayFormula, index, pArgs);
@@ -187,6 +188,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * @param pArgs The formula for the element that gets stored in the array.
    * @param <T> The formula type of the elements of the array.
    * @return A formula for the array and the call to it.
+   * @see #declareAndCallArray(String, NumeralFormulaManager, FormulaType, Formula)
    */
   public <T extends Formula> T declareAndCallArray(
       final String pName,
