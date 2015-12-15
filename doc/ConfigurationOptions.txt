@@ -2639,6 +2639,9 @@ tiger.numberOfTestGoalsPerRun = 1
 # Optimize the test goal automata
 tiger.optimizeGoalAutomata = true
 
+# List of output variables: v1,v2,v3...
+tiger.outputInterface = ""
+
 # Print the ARG for each test goal
 tiger.printARGperGoal = false
 
