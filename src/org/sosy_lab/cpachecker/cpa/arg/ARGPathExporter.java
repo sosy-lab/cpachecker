@@ -556,29 +556,18 @@ public class ARGPathExporter {
     }
 
     private void appendKeyDefinitions(GraphMlBuilder pDoc, GraphType pGraphType) {
-      pDoc.appendNewKeyDef(KeyDef.GRAPH_TYPE, null);
-      pDoc.appendNewKeyDef(KeyDef.PROGRAMFILE, null);
-      pDoc.appendNewKeyDef(KeyDef.INVARIANT, null);
-      pDoc.appendNewKeyDef(KeyDef.INVARIANTSCOPE, null);
-      pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
-      pDoc.appendNewKeyDef(KeyDef.ASSUMPTIONSCOPE, null);
-      pDoc.appendNewKeyDef(KeyDef.SOURCECODE, null);
-      pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
-      pDoc.appendNewKeyDef(KeyDef.CONTROLCASE, null);
-      pDoc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
-      pDoc.appendNewKeyDef(KeyDef.OFFSET, null);
-      pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
+      EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
       pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
-      pDoc.appendNewKeyDef(KeyDef.PRODUCER, null);
-      pDoc.appendNewKeyDef(KeyDef.SPECIFICATION, null);
-      pDoc.appendNewKeyDef(KeyDef.MEMORYMODEL, null);
-      pDoc.appendNewKeyDef(KeyDef.ARCHITECTURE, null);
+      keyDefs.remove(KeyDef.NODETYPE);
+      pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
+      keyDefs.remove(KeyDef.ORIGINFILE);
       for (NodeFlag f : NodeFlag.values()) {
+        keyDefs.remove(f.key);
         pDoc.appendNewKeyDef(f.key, "false");
       }
-
-      pDoc.appendNewKeyDef(KeyDef.FUNCTIONENTRY, null);
-      pDoc.appendNewKeyDef(KeyDef.FUNCTIONEXIT, null);
+      for (KeyDef keyDef : keyDefs) {
+        pDoc.appendNewKeyDef(keyDef, null);
+      }
     }
 
     /**
