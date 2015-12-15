@@ -193,7 +193,6 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
@@ -229,14 +228,6 @@ solver.smtinterpol.furtherOptions = []
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
-# Use non-linear arithmetic when encoding formulas in corresponding theory.
-# This effects the operations DIV, MOD, and MULT with two non-numeral
-# operands, which are encoded with uninterpreted functions otherwise. If a
-# solver does not support non-linear arithmetic, and this option is set, an
-# exception is thrown.
-solver.useNonLinearIntegerArithmetic = false
-solver.useNonLinearRationalArithmetic = false
-
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
@@ -254,7 +245,6 @@ solver.z3.requireProofs = true
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
-
 
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1

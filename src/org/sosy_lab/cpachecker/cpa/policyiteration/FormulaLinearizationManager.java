@@ -17,10 +17,10 @@ import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 public class FormulaLinearizationManager {
   private final UnsafeFormulaManager ufmgr;

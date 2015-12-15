@@ -27,8 +27,8 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;

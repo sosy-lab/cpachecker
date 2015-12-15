@@ -64,13 +64,13 @@ import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
