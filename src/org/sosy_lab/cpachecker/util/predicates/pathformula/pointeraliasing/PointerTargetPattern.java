@@ -38,11 +38,11 @@ import com.google.common.base.Predicate;
 
 public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
-  private PointerTargetPattern() {
+  protected PointerTargetPattern() {
     this.matchRange = false;
   }
 
-  private PointerTargetPattern(final String base) {
+  protected PointerTargetPattern(final String base) {
     this.base = base;
     this.containerOffset = 0;
     this.properOffset = 0;
