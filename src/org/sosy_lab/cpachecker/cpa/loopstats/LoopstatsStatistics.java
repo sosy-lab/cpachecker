@@ -98,7 +98,7 @@ class LoopstatsStatistics extends AbstractStatistics implements Statistics, Loop
       }
     }
 
-    put(pOut, 0, "Number of loops considered", loops.size());
+    put(pOut, 0, "Number of loops entered", loops.size());
     put(pOut, 0, "Max. completed unrollings of a loop", maxFinishedLoopUnrollings);
     put(pOut, 0, "Max. unrollings of a loop", maxLoopUnrollings);
     if (loopWithMaxUnrollings != null) {
@@ -124,7 +124,7 @@ class LoopstatsStatistics extends AbstractStatistics implements Statistics, Loop
 
   @Override
   public String getName() {
-    return "Loop statistics";
+    return "Loop";
   }
 
 
