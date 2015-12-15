@@ -1845,6 +1845,10 @@ cpa.predicate.useParameterVariables = false
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
 
+# Enable fallback to UFs if a solver does not support non-linear arithmetics.
+# This option only effects MULT, MOD and DIV.
+cpa.predicate.useUFsForNonLinearArithmetic = true
+
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
 cpa.propertychecker.className = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"

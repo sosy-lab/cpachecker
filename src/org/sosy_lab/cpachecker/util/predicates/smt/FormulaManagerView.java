@@ -152,6 +152,10 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.RATIONAL;
 
+  @Option(secure=true, description="Enable fallback to UFs if a solver does not "
+      + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")
+  private boolean useUFsForNonLinearArithmetic = false;
+
   @VisibleForTesting
   public FormulaManagerView(FormulaManager pFormulaManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
@@ -159,11 +163,11 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
-    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
-    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
-
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
+
+    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
+    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
@@ -188,14 +192,14 @@ public class FormulaManagerView {
     case INTEGER:
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
-          manager.getIntegerFormulaManager(),
+          getIntegerFormulaManager0(),
           manager.getFunctionFormulaManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
       try {
-        rmgr = manager.getRationalFormulaManager();
+        rmgr = getRationalFormulaManager0();
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
             + "please choose another SMT solver "
@@ -236,13 +240,13 @@ public class FormulaManagerView {
       break;
     case INTEGER:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
+          wrappingHandler, getIntegerFormulaManager0(), manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
       try {
-        rmgr = manager.getRationalFormulaManager();
+        rmgr = getRationalFormulaManager0();
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
             + "please choose another SMT solver "
@@ -260,6 +264,24 @@ public class FormulaManagerView {
       throw new AssertionError();
     }
     return rawFloatingPointFormulaManager;
+  }
+
+  private NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager0() {
+    NumeralFormulaManager<IntegerFormula, IntegerFormula> ifmgr = manager.getIntegerFormulaManager();
+    if (useUFsForNonLinearArithmetic) {
+      ifmgr = new NonLinearUFNumeralFormulaManager<>(
+          wrappingHandler, booleanFormulaManager, ifmgr, functionFormulaManager);
+    }
+    return ifmgr;
+  }
+
+  private NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager0() {
+    NumeralFormulaManager<NumeralFormula, RationalFormula> rfmgr = manager.getRationalFormulaManager();
+    if (useUFsForNonLinearArithmetic) {
+      rfmgr = new NonLinearUFNumeralFormulaManager<>(
+          wrappingHandler, booleanFormulaManager, rfmgr, functionFormulaManager);
+    }
+    return rfmgr;
   }
 
   FormulaWrappingHandler getFormulaWrappingHandler() {
@@ -764,14 +786,14 @@ public class FormulaManagerView {
 
   public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     if (integerFormulaManager == null) {
-      integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
+      integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getIntegerFormulaManager0());
     }
     return integerFormulaManager;
   }
 
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getRationalFormulaManager());
+      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getRationalFormulaManager0());
     }
     return rationalFormulaManager;
   }
