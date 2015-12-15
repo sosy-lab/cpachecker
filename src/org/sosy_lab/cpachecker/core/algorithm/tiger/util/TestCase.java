@@ -28,8 +28,8 @@ import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
 public class TestCase {

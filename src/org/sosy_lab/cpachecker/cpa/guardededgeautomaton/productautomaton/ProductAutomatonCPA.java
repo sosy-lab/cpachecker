@@ -27,6 +27,7 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -50,7 +51,8 @@ public class ProductAutomatonCPA extends CompositeCPA {
   public static ProductAutomatonCPA create(
       Collection<ConfigurableProgramAnalysis> pAutomatonCPAs,
       boolean pUseProgressPrecisionAdjustment,
-      Configuration pConfig) throws InvalidConfigurationException {
+      Configuration pConfig,
+      CFA pCfa) throws InvalidConfigurationException {
 
     Preconditions.checkNotNull(pAutomatonCPAs);
     Preconditions.checkArgument(pAutomatonCPAs.size() > 0);
@@ -68,7 +70,7 @@ public class ProductAutomatonCPA extends CompositeCPA {
     }
 
     CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-    CompositeTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build(), pConfig);
+    CompositeTransferRelation compositeTransfer = new ProductAutomatonTransferRelation(transferRelations.build(), pConfig, pCfa);
     CompositeStopOperator compositeStop = new ProductAutomatonStopOperator(stopOperators.build());
 
     return new ProductAutomatonCPA(compositeDomain, compositeTransfer, compositeStop,

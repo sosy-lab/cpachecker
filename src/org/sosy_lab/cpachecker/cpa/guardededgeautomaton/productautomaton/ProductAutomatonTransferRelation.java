@@ -32,6 +32,7 @@ import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,12 +49,9 @@ import com.google.common.collect.ImmutableList;
 @Options
 public class ProductAutomatonTransferRelation extends CompositeTransferRelation {
 
-  public ProductAutomatonTransferRelation(
-      ImmutableList<TransferRelation> pTransferRelations,
-      Configuration pConfig)
-          throws InvalidConfigurationException {
-
-    super(pTransferRelations, pConfig); // TODO is true correct here?
+  public ProductAutomatonTransferRelation(ImmutableList<TransferRelation> pTransferRelations,
+      Configuration pConfig, CFA pCFA) throws InvalidConfigurationException {
+    super (pTransferRelations, pConfig, pCFA);
   }
 
   @Override

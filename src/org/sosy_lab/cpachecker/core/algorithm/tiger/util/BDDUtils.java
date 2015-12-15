@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDCPA;
 import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 public class BDDUtils {
 

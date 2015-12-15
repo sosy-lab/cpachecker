@@ -48,8 +48,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import javax.management.JMException;
 
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -69,7 +68,6 @@ import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -114,7 +112,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -130,10 +127,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.NamedRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
@@ -285,9 +283,9 @@ public class TigerAlgorithm
 
   private final Configuration config;
   private final LogManager logger;
+  final private ShutdownManager mainShutdownManager;
   private final CFA cfa;
 
-  private StartupConfig startupConfig;
   private ConfigurableProgramAnalysis cpa;
 
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
@@ -320,19 +318,18 @@ public class TigerAlgorithm
 
   private TestGoalUtils testGoalUtils = null;
 
-  public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa, Configuration pConfig, LogManager pLogger, String programDenotation,
-      @Nullable final MainCPAStatistics stats) throws InvalidConfigurationException {
+  public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownManager pShutdownManager,
+      CFA pCfa, Configuration pConfig, LogManager pLogger, String pProgramDenotation,
+      @Nullable final MainCPAStatistics pStatistics) throws InvalidConfigurationException {
 
-    this.programDenotation = programDenotation;
-    this.stats = stats;
-    this.statCpuTime = new StatCpuTime();
-    this.config = pConfig;
+    programDenotation = pProgramDenotation;
+    stats = pStatistics;
+    statCpuTime = new StatCpuTime();
 
-    startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
-    startupConfig.getConfig().inject(this);
-
+    mainShutdownManager = pShutdownManager;
     logger = pLogger;
+    config = pConfig;
+    config.inject(this);
 
     cpa = pCpa;
     cfa = pCfa;
@@ -831,22 +828,22 @@ public class TigerAlgorithm
     Region presenceConditionToCover = BDDUtils.composeRemainingPresenceConditions(
         pTestGoalsToBeProcessed, testsuite, bddCpaNamedRegionManager);
 
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
-    Algorithm algorithm = initializeAlgorithm(presenceConditionToCover, cpa, shutdownNotifier);
+    ShutdownManager shutdownManager = ShutdownManager.createWithParent(mainShutdownManager.getNotifier());
+    Algorithm algorithm = initializeAlgorithm(presenceConditionToCover, cpa, shutdownManager);
 
     ReachabilityAnalysisResult algorithmStatus =
         runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
-            presenceConditionToCover, shutdownNotifier, algorithm);
+            presenceConditionToCover, shutdownManager, algorithm);
 
-    if (dumpARGperPartition) {
-      Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId) + ".dot");
-
-      try (Writer w = Files.openOutputFile(argFile)) {
-        ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-      }
-    }
+//    if (dumpARGperPartition) {
+//      Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId) + ".dot");
+//
+//      try (Writer w = Files.openOutputFile(argFile)) {
+//        ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
+//      } catch (IOException e) {
+//        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+//      }
+//    }
 
     return algorithmStatus;
   }
@@ -856,7 +853,7 @@ public class TigerAlgorithm
       final Set<Goal> pTestGoalsToBeProcessed,
       final ARGCPA pARTCPA, Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
       final Region pRemainingPresenceCondition,
-      final ShutdownNotifier pShutdownNotifier,
+      final ShutdownManager pShutdownNotifier,
       final Algorithm pAlgorithm)
           throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
@@ -945,7 +942,7 @@ public class TigerAlgorithm
   }
 
   private ReachabilityAnalysisResult runAlgorithmWithLimit(
-      final ShutdownNotifier algNotifier,
+      final ShutdownManager algNotifier,
       final Algorithm algorithm)
           throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
@@ -1002,12 +999,13 @@ public class TigerAlgorithm
   }
 
   private Algorithm initializeAlgorithm(Region pRemainingPresenceCondition, ARGCPA lARTCPA,
-      ShutdownNotifier algNotifier) throws CPAException {
+      ShutdownManager algNotifier) throws CPAException {
+
     Algorithm algorithm;
     try {
       Configuration internalConfiguration = Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
 
-      CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
+      CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier.getNotifier());
 
       ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
 
@@ -1379,7 +1377,7 @@ public class TigerAlgorithm
       // create composite CPA
       CPAFactory compositeCpaFactory = CompositeCPA.factory();
       compositeCpaFactory.setChildren(lComponentAnalyses);
-      compositeCpaFactory.setConfiguration(startupConfig.getConfig());
+      compositeCpaFactory.setConfiguration(config);
       compositeCpaFactory.setLogger(logger);
       compositeCpaFactory.set(cfa, CFA.class);
 
@@ -1389,7 +1387,7 @@ public class TigerAlgorithm
       CPAFactory lARTCPAFactory = ARGCPA.factory();
       lARTCPAFactory.set(cfa, CFA.class);
       lARTCPAFactory.setChild(lCPA);
-      lARTCPAFactory.setConfiguration(startupConfig.getConfig());
+      lARTCPAFactory.setConfiguration(config);
       lARTCPAFactory.setLogger(logger);
 
       result = (ARGCPA) lARTCPAFactory.createInstance();

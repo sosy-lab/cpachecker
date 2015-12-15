@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.List;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 

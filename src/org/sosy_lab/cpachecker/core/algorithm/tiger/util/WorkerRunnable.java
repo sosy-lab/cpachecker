@@ -28,7 +28,7 @@ import java.util.List;
 
 import javax.management.JMException;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -46,7 +46,7 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
   private ResourceLimitChecker limitChecker;
   private boolean timeoutOccured = false;
 
-  public WorkerRunnable(Algorithm pAlgorithm, ReachedSet pReachedSet, long pTimelimitInSeconds, ShutdownNotifier pShutdownNotifier) {
+  public WorkerRunnable(Algorithm pAlgorithm, ReachedSet pReachedSet, long pTimelimitInSeconds, ShutdownManager pShutdownManager) {
     algorithm = pAlgorithm;
     localReachedSet = pReachedSet;
 
@@ -59,9 +59,9 @@ public class WorkerRunnable implements Runnable, ShutdownRequestListener {
     }
     limits.add(limit);
 
-    pShutdownNotifier.register(this);
+    pShutdownManager.getNotifier().register(this);
 
-    limitChecker = new ResourceLimitChecker(pShutdownNotifier, limits);
+    limitChecker = new ResourceLimitChecker(pShutdownManager, limits);
   }
 
   @Override

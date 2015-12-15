@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Edges;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.coveragespecificatio
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.filter.Identity;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.PathPatternVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.pathpattern.Repetition;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class InfeasibilityPropagation {
 

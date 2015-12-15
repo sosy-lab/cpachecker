@@ -63,7 +63,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
 @Options(prefix="cpa.composite")
-public final class CompositeTransferRelation implements TransferRelation {
+public class CompositeTransferRelation implements TransferRelation {
 
   @Option(secure=true,
       description="Split MultiEdges and pass each inner edge to the component CPAs"
@@ -79,9 +79,9 @@ public final class CompositeTransferRelation implements TransferRelation {
       + " cfa.useMultiEdges has to be set to false.")
   private boolean useDynamicMultiEdges = false;
 
-  private final ImmutableList<TransferRelation> transferRelations;
+  protected final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
-  private final int size;
+  protected final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
 

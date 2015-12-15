@@ -30,7 +30,6 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import org.jgrapht.graph.MaskFunctor;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.Predicate;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.TargetGraph.Builder;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.targetgraph.mask.FunctionNameMaskFunctor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class TargetGraphUtil {
 
