@@ -558,13 +558,10 @@ public class ARGPathExporter {
     private void appendKeyDefinitions(GraphMlBuilder pDoc, GraphType pGraphType) {
       pDoc.appendNewKeyDef(KeyDef.GRAPH_TYPE, null);
       pDoc.appendNewKeyDef(KeyDef.PROGRAMFILE, null);
-      if (pGraphType == GraphType.PROOF_WITNESS) {
-        pDoc.appendNewKeyDef(KeyDef.INVARIANT, null);
-        pDoc.appendNewKeyDef(KeyDef.INVARIANTSCOPE, null);
-      } else if (pGraphType == GraphType.ERROR_WITNESS) {
-        pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
-        pDoc.appendNewKeyDef(KeyDef.ASSUMPTIONSCOPE, null);
-      }
+      pDoc.appendNewKeyDef(KeyDef.INVARIANT, null);
+      pDoc.appendNewKeyDef(KeyDef.INVARIANTSCOPE, null);
+      pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
+      pDoc.appendNewKeyDef(KeyDef.ASSUMPTIONSCOPE, null);
       pDoc.appendNewKeyDef(KeyDef.SOURCECODE, null);
       pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
       pDoc.appendNewKeyDef(KeyDef.CONTROLCASE, null);
