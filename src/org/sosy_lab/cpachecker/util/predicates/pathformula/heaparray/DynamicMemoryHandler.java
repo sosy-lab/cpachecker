@@ -372,11 +372,17 @@ class DynamicMemoryHandler {
     if (pIsZeroing) {
       AssignmentHandler assignmentHandler = new AssignmentHandler(converter,
           edge, pBase, ssa, pts, constraints, errorConditions);
-      final BooleanFormula initialization = assignmentHandler.makeAssignment(
-        pType, CNumericTypes.SIGNED_CHAR, AliasedLocation.ofAddress(result),
-        Value.ofValue(converter.formulaManager.makeNumber(
-            converter.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-          PointerTargetPattern.forBase(pBase), true, null);
+      final BooleanFormula initialization =
+          assignmentHandler.makeAssignment(
+              pType,
+              CNumericTypes.SIGNED_CHAR,
+              AliasedLocation.ofAddress(result),
+              Value.ofValue(
+                  converter.formulaManager.makeNumber(
+                      converter.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
+              PointerTargetPatternHeapArray.forBase(pBase),
+              true,
+              null);
       constraints.addConstraint(initialization);
     }
     converter.addPreFilledBase(pBase, pType, false, pIsZeroing, constraints, pts);

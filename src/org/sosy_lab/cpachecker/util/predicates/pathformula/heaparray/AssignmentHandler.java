@@ -186,10 +186,11 @@ class AssignmentHandler {
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
-    final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
-        ? null
-        : PointerTargetPattern.forLeftHandSide(pLhs, converter.typeHandler,
-            converter.ptsMgr, edge, pts);
+    final PointerTargetPattern pattern =
+        lhsLocation.isUnaliasedLocation()
+            ? null
+            : PointerTargetPatternHeapArray.forLeftHandSide(
+                pLhs, converter.typeHandler, converter.ptsMgr, edge, pts);
 
     if (converter.options.revealAllocationTypeFromLHS()
         || converter.options.deferUntypedAllocations()) {
@@ -240,8 +241,10 @@ class AssignmentHandler {
     }
 
     if (lhsLocation.isAliased()) {
-      finishAssignments(CTypeUtils.simplifyType(pVariable.getExpressionType()),
-          lhsLocation.asAliased(), PointerTargetPattern.forLeftHandSide(
+      finishAssignments(
+          CTypeUtils.simplifyType(pVariable.getExpressionType()),
+          lhsLocation.asAliased(),
+          PointerTargetPatternHeapArray.forLeftHandSide(
               pVariable, converter.typeHandler, converter.ptsMgr, edge, pts),
           updatedTypes);
     }
@@ -728,7 +731,7 @@ class AssignmentHandler {
       final int pSize,
       final Set<CType> pTypes) throws InterruptedException {
 
-    final PointerTargetPattern exact = PointerTargetPattern.any();
+    final PointerTargetPattern exact = PointerTargetPatternHeapArray.any();
     for (final PointerTarget target
         : pts.getMatchingTargets(pFirstElementType, pPattern)) {
       converter.shutdownNotifier.shutdownIfNecessary();
@@ -780,7 +783,7 @@ class AssignmentHandler {
       final int pSize,
       final Set<CType> pTypes) throws InterruptedException {
 
-    final PointerTargetPattern any = PointerTargetPattern.any();
+    final PointerTargetPattern any = PointerTargetPatternHeapArray.any();
     for (final CType type : pTypes) {
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       final int oldIndex = converter.getIndex(ufName, type, ssa);
