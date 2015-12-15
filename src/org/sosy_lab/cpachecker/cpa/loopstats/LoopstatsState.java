@@ -67,6 +67,9 @@ public class LoopstatsState implements AbstractState, Partitionable {
   }
 
   public int getIteration() {
+    if (activeIterations.isEmpty()) {
+      return 0;
+    }
     return activeIterations.peekHead();
   }
 
@@ -120,11 +123,13 @@ public class LoopstatsState implements AbstractState, Partitionable {
     Preconditions.checkNotNull(pPreviousState);
     Preconditions.checkNotNull(pEnteringLoopBody);
 
+    final LoopstatsState result;
+
     Loop lastLoop = pPreviousState.peekLoop();
     if (lastLoop == null || !pEnteringLoopBody.equals(lastLoop)) {
 
       // Beginning a new 'instance' of a loop
-      return new LoopstatsState(pPreviousState.statReceiver,
+      result = new LoopstatsState(pPreviousState.statReceiver,
           pPreviousState.activeLoops.push(pEnteringLoopBody),
           pPreviousState.activeIterations.push(Integer.valueOf(1)));
 
@@ -133,10 +138,14 @@ public class LoopstatsState implements AbstractState, Partitionable {
       // Another iteration of a loop
       Integer prevIterations = pPreviousState.activeIterations.peekHead();
 
-      return new LoopstatsState(pPreviousState.statReceiver,
+      result = new LoopstatsState(pPreviousState.statReceiver,
           pPreviousState.activeLoops,
           pPreviousState.activeIterations.getTail().push(prevIterations + 1));
     }
+
+    pPreviousState.statReceiver.signalNewLoopIteration(result.activeLoops, result.getIteration());
+
+    return result;
   }
 
   /**
@@ -160,8 +169,7 @@ public class LoopstatsState implements AbstractState, Partitionable {
       // Was not active, just track the information that the loop was reached
       //  but the loop body was not entered.
 
-      pPreviousState.statReceiver.signalLoopLeftAfter(pLeavingLoop,
-          pPreviousState.getDepth(), pPreviousState.activeLoops, pPreviousState.getIteration());
+      pPreviousState.statReceiver.signalLoopLeftAfter(pPreviousState.activeLoops, pPreviousState.getIteration());
 
       return pPreviousState;
 

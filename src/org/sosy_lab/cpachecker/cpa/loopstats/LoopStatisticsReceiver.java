@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopstats;
 
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
 public interface LoopStatisticsReceiver {
 
-  public void signalLoopLeftAfter(Loop pLoop, int pNestedInLoops, ImmutableLoopStack pActiveLoops, int pNumberOfIterations);
+  public void signalLoopLeftAfter(ImmutableLoopStack pActiveLoops, int pNumberOfIterations);
+
+  public void signalNewLoopIteration(ImmutableLoopStack pActiveLoops, int pNthIteration);
 
 }
