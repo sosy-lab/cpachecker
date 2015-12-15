@@ -75,7 +75,7 @@ public class GAEPathFactory implements AbstractPathFactory {
     Task taskForPath = threadTaskMap.get();
 
     if (taskForPath == null) {
-      return new FileSystemPath(path, more);
+      return new GAEFileSystemPath(path, more);
     } else {
       return new GAEPath(path, taskForPath, more);
     }
@@ -97,4 +97,14 @@ public class GAEPathFactory implements AbstractPathFactory {
     return getPath(filename);
   }
 
+  /**
+   * A {@link Path} implementation that uses the standard file-system access methods
+   * even on the GAE. Use this only for reading files.
+   */
+  private static class GAEFileSystemPath extends FileSystemPath {
+
+    private GAEFileSystemPath(String pPath, String[] pMore) {
+      super(pPath, pMore);
+    }
+  }
 }

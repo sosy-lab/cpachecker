@@ -27,7 +27,7 @@ import java.math.BigInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.solver.AssignableTerm.Function;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -82,6 +82,8 @@ public class FunctionApplicationManager {
     case "_~_": {
       return INTEGER_NOT.apply(func, value);
     }
+    default:
+      // $FALL-THROUGH$
     }
 
     if (func.getName().startsWith("_overflow")) {

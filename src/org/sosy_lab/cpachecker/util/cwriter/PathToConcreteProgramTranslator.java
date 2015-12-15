@@ -51,7 +51,7 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
     PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translateSinglePath0(pPath,
-        new RealCEdgeVisitor(translator, model.getExactVariableValuePath(pPath.getInnerEdges())));
+        new ConcreteProgramEdgeVisitor(translator, model.getExactVariableValuePath(pPath.getInnerEdges())));
 
     return translator.generateCCode();
   }
@@ -74,7 +74,7 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
     PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath,
-        new RealCEdgeVisitor(translator, model.getCFAPathWithAssignments()));
+        new ConcreteProgramEdgeVisitor(translator, model.getCFAPathWithAssignments()));
 
     return translator.generateCCode();
   }

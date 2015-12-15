@@ -125,7 +125,7 @@ public class IntervalAnalysisCPA implements ConfigurableProgramAnalysisWithBAM, 
 
     stopOperator        = new StopSepOperator(abstractDomain);
 
-    transferRelation    = new IntervalAnalysisTransferRelation(config);
+    transferRelation    = new IntervalAnalysisTransferRelation(config, logger);
 
     precisionAdjustment = StaticPrecisionAdjustment.getInstance();
 

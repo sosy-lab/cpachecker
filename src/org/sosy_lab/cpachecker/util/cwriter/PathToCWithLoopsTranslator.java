@@ -27,7 +27,6 @@ import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.Collections.singletonList;
 import static org.sosy_lab.common.Appenders.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor.getLoopsOfNode;
 
 import java.util.ArrayDeque;
@@ -42,7 +41,7 @@ import java.util.Stack;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -165,7 +164,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   @Override
   protected String startFunction(final ARGState firstFunctionElement, Stack<FunctionBody> functionStack, final CFANode predecessor) {
     // create the first stack element using the first element of the function
-    CFunctionEntryNode functionStartNode = (CFunctionEntryNode) extractLocation(firstFunctionElement);
+    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
     String functionName = functionStartNode.getFunctionName();
 
     // only use a unique name where we are not inside a relevant loop

@@ -28,7 +28,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;

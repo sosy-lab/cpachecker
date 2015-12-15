@@ -33,13 +33,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
@@ -444,7 +444,15 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
-      return new ApronState(apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null),
+      Abstract0 retState = apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+
+      if (retState == null) {
+        logger.log(Level.WARNING, "Assignment of expression to variable yielded an empty state,"
+            + " forgetting the value of the variable as fallback.");
+        return forget(leftVarName);
+      }
+
+      return new ApronState(retState,
                             apronManager,
                             integerToIndexMap,
                             realToIndexMap,

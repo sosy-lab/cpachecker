@@ -28,6 +28,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
+import json
 import logging
 import os
 import subprocess
@@ -66,6 +67,8 @@ def execute_benchmark(benchmark, output_handler):
         cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
         util.write_file(cloudInput, cloudInputFile)
         output_handler.all_created_files.append(cloudInputFile)
+        meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
+                                        "generator": "benchmark.vcloud.py"})
 
         # install cloud and dependencies
         ant = subprocess.Popen(["ant", "resolve-benchmark-dependencies"],
@@ -82,7 +85,8 @@ def execute_benchmark(benchmark, output_handler):
             logLevel = "INFO"
         heapSize = benchmark.config.cloudClientHeap + numberOfRuns//10 # 100 MB and 100 kB per run
         lib = os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
-        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel]
+        cmdLine = ["java", "-Xmx"+str(heapSize)+"m", "-jar", lib, "benchmark", "--loglevel", logLevel, \
+                   "--run-collection-meta-information", meta_information]
         if benchmark.config.cloudMaster:
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.debug:
@@ -236,7 +240,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
         # outputDir does not exist or is empty
-        logging.warning("Cloud produced no results. Output-directory is missing or empty: {0}".format(outputDir))
+        logging.warning("Cloud produced no results. Output-directory is missing or empty: %s", outputDir)
 
     # Write worker host informations in xml
     filePath = os.path.join(outputDir, "hostInformation.txt")
@@ -256,19 +260,20 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             dataFile = run.log_file + ".data"
             if os.path.exists(dataFile):
                 try:
-                    (run.cputime, run.walltime, return_value, values) = parseCloudRunResultFile(dataFile)
+                    (run.cputime, run.walltime, return_value, termination_reason, values) =\
+                        parseCloudRunResultFile(dataFile)
                     run.values.update(values)
                     if return_value is not None and not benchmark.config.debug:
                         # Do not delete .data file if there was some problem
                         os.remove(dataFile)
                 except IOError as e:
-                    logging.warning("Cannot extract measured values from output for file {0}: {1}".format(
-                                    run.identifier, e))
+                    logging.warning("Cannot extract measured values from output for file %s: %s",
+                                    run.identifier, e)
                     output_handler.all_created_files.append(dataFile)
                     executedAllRuns = False
                     return_value = None
             else:
-                logging.warning("No results exist for file {0}.".format(run.identifier))
+                logging.warning("No results exist for file %s.", run.identifier)
                 executedAllRuns = False
                 return_value = None
 
@@ -278,7 +283,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             if return_value is not None:
                 output_handler.output_before_run(run)
 
-                run.after_execution(return_value)
+                run.after_execution(return_value, termination_reason=termination_reason)
                 output_handler.output_after_run(run)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
@@ -288,8 +293,8 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     if not executedAllRuns:
         logging.warning("Some expected result files could not be found!")
     if runsProducedErrorOutput and not benchmark.config.debug:
-        logging.warning("Some runs produced unexpected warnings on stderr, please check the {0} files!"
-                        .format(os.path.join(outputDir, '*.stdError')))
+        logging.warning("Some runs produced unexpected warnings on stderr, please check the %s files!",
+                        os.path.join(outputDir, '*.stdError'))
 
 
 def parseAndSetCloudWorkerHostInformation(filePath, output_handler):
@@ -322,6 +327,7 @@ def parseCloudRunResultFile(filePath):
     cputime = None
     walltime = None
     return_value = None
+    termination_reason = None
 
     def parseTimeValue(s):
         if s[-1] != 's':
@@ -345,6 +351,8 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 return_value = int(value)
                 values['@exitcode'] = value
+            elif key == 'terminationreason':
+                termination_reason = value
             elif key == "host" or key.startswith("energy-"):
                 values[key] = value
             else:
@@ -356,4 +364,4 @@ def parseCloudRunResultFile(filePath):
     values.pop("@vcloud-timeLimit", None)
     values.pop("@vcloud-coreLimit", None)
 
-    return (cputime, walltime, return_value, values)
+    return (cputime, walltime, return_value, termination_reason, values)

@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -201,9 +201,7 @@ public class CEXExporter {
 
     final Set<ARGState> pathElements;
     Appender pathProgram = null;
-    if (counterexample.getTargetPath() != null) {
-      // TODO: This can no longer be distinguished by checking for null, the path is always non-null
-      // precise error path
+    if (counterexample.isPreciseCounterExample()) {
       pathElements = targetPath.getStateSet();
 
       if (errorPathSourceFile != null) {

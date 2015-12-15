@@ -17,14 +17,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.ImmutableMap;
@@ -48,18 +47,16 @@ public class InductiveWeakeningManagerTest {
             "analysis.interprocedural", "false"
         )
     ).build();
-    ShutdownNotifier notifier = ShutdownNotifier.create();
+    ShutdownNotifier notifier = ShutdownNotifier.createDummy();
     logger = new BasicLogManager(config,
         new StreamHandler(System.out, new SimpleFormatter()));
     creator = new CFACreator(config, logger, notifier);
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, notifier);
-    fmgr = new FormulaManagerView(factory, config, logger);
+    Solver solver = Solver.create(config, logger, notifier);
+    fmgr = solver.getFormulaManager();
     // todo: non-deprecated constructor.
     pfmgr = new PathFormulaManagerImpl(fmgr, config, logger, notifier,
         MachineModel.LINUX32, AnalysisDirection.FORWARD);
-    Solver solver = new Solver(fmgr, factory, config, logger);
-    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver,
-        factory.getFormulaManager().getUnsafeFormulaManager(), logger);
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, fmgr, solver, logger);
   }
 
   @After public void tearDown() throws Exception {

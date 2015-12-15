@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -304,16 +303,25 @@ public class ARGUtils {
         }
       };
 
+  private static final Predicate<CFANode> IS_RELEVANT_LOCATION = new Predicate<CFANode>() {
+    @Override
+    public boolean apply(CFANode pInput) {
+      return pInput.isLoopStart()
+          || pInput instanceof FunctionEntryNode
+          || pInput instanceof FunctionExitNode;
+    }
+  };
+
+  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION = new Predicate<Iterable<CFANode>>() {
+    @Override
+    public boolean apply(Iterable<CFANode> nodes) {
+      return Iterables.any(nodes, IS_RELEVANT_LOCATION);
+    }
+  };
+
   public static final Predicate<AbstractState> AT_RELEVANT_LOCATION = Predicates.compose(
-      new Predicate<CFANode>() {
-        @Override
-        public boolean apply(CFANode pInput) {
-          return pInput.isLoopStart()
-              || pInput instanceof FunctionEntryNode
-              || pInput instanceof FunctionExitNode;
-        }
-      },
-      AbstractStates.EXTRACT_LOCATION);
+      CONTAINS_RELEVANT_LOCATION,
+      AbstractStates.EXTRACT_LOCATIONS);
 
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE = Predicates.or(
@@ -350,18 +358,6 @@ public class ARGUtils {
       Predicate<? super ARGState> isRelevant) {
 
     return GraphUtils.projectARG(root, successorFunction, isRelevant);
-  }
-
-
-  /**
-   * Writes the ARG with the root state pRootState to pSb as a graphviz dot file
-   *
-   */
-  public static void writeARGAsDot(Appendable pSb, ARGState pRootState) throws IOException {
-    ARGToDotWriter.write(pSb, pRootState,
-        ARGUtils.CHILDREN_OF_STATE,
-        Predicates.alwaysTrue(),
-        Predicates.alwaysFalse());
   }
 
   /**
@@ -593,174 +589,6 @@ public class ARGUtils {
 
     return true;
   }
-
-
-  public static void produceTestGenPathAutomaton(Appendable sb, String name, CounterexampleTraceInfo pCounterExampleTrace)
-      throws IOException {
-
-    RichModel model = pCounterExampleTrace.getModel();
-    CFAPathWithAssumptions assignmentCFAPath = model.getCFAPathWithAssignments();
-
-    int stateCounter = 1;
-
-    sb.append("CONTROL AUTOMATON " + name + "\n\n");
-    sb.append("INITIAL STATE STATE" + stateCounter + ";\n\n");
-
-    for (Iterator<CFAEdgeWithAssumptions> it = assignmentCFAPath.iterator(); it.hasNext();) {
-      CFAEdgeWithAssumptions edge = it.next();
-
-      sb.append("STATE USEFIRST STATE" + stateCounter + " :\n");
-
-      sb.append("    MATCH \"");
-      escape(edge.getCFAEdge().getRawStatement(), sb);
-      sb.append("\" -> ");
-
-      if (it.hasNext()) {
-        String code = edge.getAsCode();
-        String assumption = code.isEmpty() ? "" : "ASSUME {" + code + "}";
-        sb.append(assumption + "GOTO STATE" + ++stateCounter);
-      } else {
-        sb.append("GOTO EndLoop");
-      }
-
-      sb.append(";\n");
-      sb.append("    TRUE -> STOP;\n\n");
-
-    }
-
-    //sb.append("    TRUE -> STOP;\n\n");
-    sb.append("STATE USEFIRST EndLoop" + " :\n");
-    sb.append("    MATCH EXIT -> BREAK;\n");
-    sb.append("    TRUE -> GOTO EndLoop;\n\n");
-
-    sb.append("END AUTOMATON\n");
-  }
-
-
-
-
-  /**
-   * Produce an automaton in the format for the AutomatonCPA from
-   * a given path. The automaton matches exactly the edges along the path.
-   * If there is a target state, it is signaled as an error state in the automaton.
-   * @param sb Where to write the automaton to
-   * @param pRootState The root of the ARG
-   * @param pPathStates The states along the path
-   * @param pCounterExample Given to try to write exact variable assignment values
-   * into the automaton
-   * @throws IOException
-   * @deprecated Code is broken
-   */
-  @Deprecated
-  public static void produceTestGenPathAutomaton(Appendable sb, ARGState pRootState,
-      Set<ARGState> pPathStates, String name, CounterexampleInfo pCounterExample, boolean generateAssumes) throws IOException {
-    checkNotNull(pCounterExample);
-
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
-
-    RichModel model = pCounterExample.getTargetPathModel();
-    CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
-    if (cfaPath != null) {
-      ARGPath targetPath = pCounterExample.getTargetPath();
-      valueMap = model.getExactVariableValues(targetPath);
-    }
-
-    sb.append("CONTROL AUTOMATON " + name + "\n\n");
-    sb.append("INITIAL STATE ARG" + pRootState.getStateId() + ";\n\n");
-
-    int multiEdgeCount = 0; // see below
-    final ARGState lastState = pCounterExample.getTargetPath().getLastState();
-    for (ARGState s : pPathStates) {
-
-      CFANode loc = AbstractStates.extractLocation(s);
-      sb.append("STATE USEFIRST ARG" + s.getStateId() + " :\n");
-      for (ARGState child : s.getChildren()) {
-        if (child.isCovered()) {
-          child = child.getCoveringState();
-          assert !child.isCovered();
-        }
-
-        if (pPathStates.contains(child)) {
-          CFANode childLoc = AbstractStates.extractLocation(child);
-          CFAEdge edge = loc.getEdgeTo(childLoc);
-          if (edge instanceof MultiEdge) {
-            // The successor state might have several incoming MultiEdges.
-            // In this case the state names like ARG<successor>_0 would occur
-            // several times.
-            // So we add this counter to the state names to make them unique.
-            multiEdgeCount++;
-
-            // Write out a long linear chain of pseudo-states
-            // because the AutomatonCPA also iterates through the MultiEdge.
-            List<CFAEdge> edges = ((MultiEdge)edge).getEdges();
-
-            // first, write edge entering the list
-            int i = 0;
-            sb.append("    MATCH \"");
-            escape(edges.get(i).getRawStatement(), sb);
-            sb.append("\" -> ");
-            sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
-            sb.append(";\n");
-
-            // inner part (without first and last edge)
-            for (; i < edges.size()-1; i++) {
-              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
-              sb.append("    MATCH \"");
-              escape(edges.get(i).getRawStatement(), sb);
-              sb.append("\" -> ");
-              sb.append("GOTO ARG" + child.getStateId() + "_" + (i+1) + "_" + multiEdgeCount);
-              sb.append(";\n");
-            }
-
-            // last edge connecting it with the real successor
-            edge = edges.get(i);
-            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
-            // remainder is written by code below
-          }
-
-          handleMatchCase(sb, edge);
-
-          if (child.isTarget()) {
-            sb.append("ERROR");
-          } else {
-            if (generateAssumes) {
-              addAssumption(valueMap, s, sb);
-            }
-            sb.append("GOTO ARG" + child.getStateId());
-          }
-          sb.append(";\n");
-        }
-      }
-      if (!s.equals(lastState)) {
-        sb.append("    TRUE -> STOP;\n\n");
-      }
-    }
-
-    throw new AssertionError("UNIMPLEMENTED");
-    /*
-     * TODO: lastEdge is the edge beyond the last state in the path.
-     * The new ARGPath does not contain this edge anymore.
-     * It is unclear whether it actually needs to be that edge,
-     * or whether the last regular edge of the path can be used.
-    CFAEdge lastEdge = Iterables.getLast(pCounterExample.getTargetPath().asEdgesList());
-    if (lastEdge != null) {
-      handleMatchCase(sb, lastEdge);
-      sb.append("GOTO EndLoop");
-      sb.append(";\n");
-      sb.append("    TRUE -> STOP;\n\n");
-//        lastElement.getSecond().getRawStatement()
-      sb.append("STATE USEFIRST EndLoop" + " :\n");
-      sb.append("    MATCH EXIT -> BREAK;\n");
-      sb.append("    TRUE -> GOTO EndLoop;\n\n");
-
-    } else {
-      sb.append("    TRUE -> STOP;\n\n");
-    }
-    sb.append("END AUTOMATON\n");
-    */
-  }
-
-
 
   /**
    * Produce an automaton in the format for the AutomatonCPA from

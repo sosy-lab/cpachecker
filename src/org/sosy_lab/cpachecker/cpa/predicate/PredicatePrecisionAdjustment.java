@@ -46,10 +46,10 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstr
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -196,7 +196,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
   }
 
-  private void extractInvariants() throws CPAException {
+  private void extractInvariants() throws CPAException, InterruptedException {
     if (invariantGenerator == null) {
       return; // already done
     }
@@ -205,7 +205,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       invariants = invariantGenerator.get();
 
     } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+      invariantGenerator.cancel();
+      throw e;
 
     } finally {
       invariantGenerator = null; // to allow GC'ing it and the ReachedSet
@@ -213,13 +214,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   void setInitialLocation(CFANode initialLocation) {
-    // Hack to avoid a NPE.
-    //  This scenario appears whenever a CPA gets queried for
-    //  the initial state after the analysis has already been started.
-    if (invariantGenerator == null) {
-      return;
-    }
-
     invariantGenerator.start(initialLocation);
   }
 }

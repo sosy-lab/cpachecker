@@ -35,7 +35,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -111,6 +110,7 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -1391,16 +1391,18 @@ public class AssumptionToEdgeAllocator {
       CBasicType basicType = simpleType.getType();
 
       switch (basicType) {
-      case BOOL:
-      case CHAR:
-      case INT:
-        return handleIntegerNumbers(pValue, simpleType);
-      case FLOAT:
-      case DOUBLE:
-        if (assumeLinearArithmetics) {
-          return UnknownValueLiteral.getInstance();
-        }
-        return handleFloatingPointNumbers(pValue, simpleType);
+        case BOOL:
+        case CHAR:
+        case INT:
+          return handleIntegerNumbers(pValue, simpleType);
+        case FLOAT:
+        case DOUBLE:
+          if (assumeLinearArithmetics) {
+            break;
+          }
+          return handleFloatingPointNumbers(pValue, simpleType);
+        default:
+          break;
       }
 
       return UnknownValueLiteral.getInstance();

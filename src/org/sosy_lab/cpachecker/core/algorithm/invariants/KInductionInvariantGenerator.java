@@ -36,7 +36,7 @@ import java.util.concurrent.Future;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -97,7 +97,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   private final ReachedSetFactory reachedSetFactory;
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
+  private final ShutdownManager shutdownManager;
 
   private final boolean async;
 
@@ -115,14 +115,14 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   };
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger, final ShutdownManager pShutdownNotifier,
       final CFA pCFA, final ReachedSetFactory pReachedSetFactory)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
             pConfig,
             pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
             true,
@@ -130,14 +130,14 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   }
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger, final ShutdownManager pShutdownNotifier,
       final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
             pConfig,
             pLogger.withComponentName("KInductionInvariantGenerator"),
-            ShutdownNotifier.createWithParent(pShutdownNotifier),
+            pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
             true,
@@ -145,21 +145,23 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
   }
 
   private KInductionInvariantGenerator(final Configuration config, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA cfa,
+      final ShutdownManager pShutdownNotifier, final CFA cfa,
       final ReachedSetFactory pReachedSetFactory, final boolean pAsync,
       final Optional<CandidateGenerator> pCandidateGenerator)
           throws InvalidConfigurationException, CPAException {
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownNotifier;
+
     reachedSetFactory = pReachedSetFactory;
     async = pAsync;
 
-    CPABuilder invGenBMCBuilder = new CPABuilder(config, logger, pShutdownNotifier, pReachedSetFactory);
+    CPABuilder invGenBMCBuilder =
+        new CPABuilder(config, logger, shutdownManager.getNotifier(), pReachedSetFactory);
     cpa = invGenBMCBuilder.buildCPAWithSpecAutomatas(cfa);
-    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, pShutdownNotifier);
+    Algorithm cpaAlgorithm = CPAAlgorithm.create(cpa, logger, config, shutdownManager.getNotifier());
     algorithm = new BMCAlgorithmForInvariantGeneration(
         cpaAlgorithm, cpa, config, logger, pReachedSetFactory,
-        pShutdownNotifier, cfa, stats, pCandidateGenerator);
+        shutdownManager, cfa, stats, pCandidateGenerator);
 
     PredicateCPA predicateCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predicateCPA == null) {
@@ -187,13 +189,13 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
       invariantGenerationFuture = new LazyFutureTask<>(task);
     }
 
-    shutdownNotifier.registerAndCheckImmediately(shutdownListener);
+    shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
 
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
-    shutdownNotifier.requestShutdown("Invariant generation cancel requested.");
+    shutdownManager.requestShutdown("Invariant generation cancel requested.");
   }
 
   @Override
@@ -211,7 +213,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
-        shutdownNotifier.shutdownIfNecessary();
+        shutdownManager.getNotifier().shutdownIfNecessary();
         throw e;
       }
     }
@@ -244,7 +246,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     @Override
     public InvariantSupplier call() throws InterruptedException, CPAException {
       stats.invariantGeneration.start();
-      shutdownNotifier.shutdownIfNecessary();
+      shutdownManager.getNotifier().shutdownIfNecessary();
 
       try {
         ReachedSet reachedSet = reachedSetFactory.create();

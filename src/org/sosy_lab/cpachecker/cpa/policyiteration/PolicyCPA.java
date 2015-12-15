@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,11 +43,11 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceManager;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.FormulaManagerFactory;
 import org.sosy_lab.solver.api.FormulaManager;
 
@@ -63,8 +64,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
                AbstractDomain,
                PrecisionAdjustment,
                AdjustableConditionCPA,
-               ReachedSetAdjustingCPA {
-
+               ReachedSetAdjustingCPA,
+               MergeOperator {
 
   @Option(secure=true, description="Generate invariants and strengthen the formulas during abstraction with them.")
   private boolean useInvariantsForAbstraction = false;
@@ -73,14 +74,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       description="Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
 
-  @Option(secure=true,
-    description="Whether to join states on merge (leads to cycles in ARG)")
-  private boolean joinOnMerge = true;
-
   private final Configuration config;
   private final IPolicyIterationManager policyIterationManager;
   private final LogManager logger;
-  private final MergeOperator mergeOperator;
   private final PolicyIterationStatistics statistics;
   private final StopOperator stopOperator;
 
@@ -104,9 +100,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         pConfig, pLogger, shutdownNotifier);
 
     FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory, pConfig, pLogger);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory, pConfig, pLogger);
+    Solver solver = new Solver(formulaManagerFactory, pConfig, pLogger);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
@@ -119,8 +114,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
     InvariantGenerator invariantGenerator;
     if (useInvariantsForAbstraction) {
-      invariantGenerator = CPAInvariantGenerator
-          .create(config, logger, shutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
+      invariantGenerator =
+          CPAInvariantGenerator.create(
+              config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -147,10 +144,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
           realFormulaManager.getUnsafeFormulaManager(),
           formulaManager.getBooleanFormulaManager(),
           formulaManager,
-        formulaManager.getIntegerFormulaManager());
+        formulaManager.getIntegerFormulaManager(), statistics);
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
-
 
     policyIterationManager = new PolicyIterationManager(
         pConfig,
@@ -161,10 +157,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         statistics,
         formulaLinearizationManager,
         pCongruenceManager,
-        joinOnMerge,
         pPwm,
         invariantGenerator, stateFormulaConversionManager);
-    mergeOperator = new PolicyMergeOperator(policyIterationManager, joinOnMerge);
     stopOperator = new StopSepOperator(this);
   }
 
@@ -226,7 +220,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return this;
   }
 
   @Override
@@ -258,7 +252,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
 
-    return policyIterationManager.prec((PolicyState)state,
+    return policyIterationManager.precisionAdjustment(
+        (PolicyState)state,
         (PolicyPrecision)precision, states,
         fullState);
   }
@@ -279,6 +274,14 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   public Configuration getConfig() {
     return config;
+  }
+
+  @Override
+  public AbstractState merge(AbstractState state1, AbstractState state2,
+      Precision precision) throws CPAException, InterruptedException {
+    return policyIterationManager.merge(
+        (PolicyState) state1, (PolicyState) state2, (PolicyPrecision) precision
+    );
   }
 }
 

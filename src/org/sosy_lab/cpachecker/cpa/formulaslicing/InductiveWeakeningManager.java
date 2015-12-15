@@ -18,18 +18,17 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.BooleanFormulaManager.Tactic;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager.Tactic;
+import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
@@ -68,18 +67,14 @@ public class InductiveWeakeningManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
-  private final UnsafeFormulaManager ufmgr;
   private final LogManager logger;
 
   public InductiveWeakeningManager(
-      Configuration config,
-      FormulaManagerView pFmgr, Solver pSolver,
-      UnsafeFormulaManager pUfmgr, LogManager pLogger)
+      Configuration config, FormulaManagerView pFmgr, Solver pSolver, LogManager pLogger)
       throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
     solver = pSolver;
-    ufmgr = pUfmgr;
     logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
   }
@@ -108,7 +103,7 @@ public class InductiveWeakeningManager {
     BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
         .of(fmgr, input.getSsa()).visit(input.getFormula()));
 
-    BooleanFormula noIntermediateNNF = bfmgr.applyTactic(noIntermediate,
+    BooleanFormula noIntermediateNNF = fmgr.applyTactic(noIntermediate,
         Tactic.NNF);
     if (noIntermediateNNF.equals(bfmgr.makeBoolean(false))) {
 
@@ -204,7 +199,7 @@ public class InductiveWeakeningManager {
       }
     }
 
-    BooleanFormula sliced = ufmgr.substitute(annotated, replacement);
+    BooleanFormula sliced = fmgr.substitute(annotated, replacement);
     sliced = fmgr.simplify(sliced);
     logger.log(Level.FINE, "Slice obtained: ", sliced);
 

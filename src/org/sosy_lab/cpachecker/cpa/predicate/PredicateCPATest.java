@@ -94,7 +94,7 @@ public class PredicateCPATest {
 
       factory.setConfiguration(config);
       factory.setLogger(logger);
-      factory.setShutdownNotifier(ShutdownNotifier.create());
+      factory.setShutdownNotifier(ShutdownNotifier.createDummy());
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
       factory.set(new ReachedSetFactory(config, logger), ReachedSetFactory.class);
 

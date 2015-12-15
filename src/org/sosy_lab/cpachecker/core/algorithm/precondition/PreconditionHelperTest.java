@@ -29,9 +29,7 @@ import static org.sosy_lab.cpachecker.util.test.TestDataTools.*;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -50,11 +48,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.test.SolverBasedTest0;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -82,7 +81,7 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
   }
 
   @Override
-  protected ConfigurationBuilder createTestConfigBuilder() throws InvalidConfigurationException {
+  protected ConfigurationBuilder createTestConfigBuilder() {
     ConfigurationBuilder result = super.createTestConfigBuilder();
     result.setOption("cpa.predicate.handlePointerAliasing", "false");
     result.setOption("cpa.predicate.handleArrays", "true");
@@ -96,9 +95,9 @@ public class PreconditionHelperTest extends SolverBasedTest0 {
     when(cfa.getMachineModel()).thenReturn(MachineModel.LINUX64);
     when(cfa.getVarClassification()).thenReturn(Optional.<VariableClassification>absent());
 
-    mgrv = new FormulaManagerView(factory, config, TestLogManager.getInstance());
-    helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier
-        .create(), cfa);
+    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+        config, TestLogManager.getInstance());
+    helper = new PreconditionHelper(mgrv, config, logger, ShutdownNotifier.createDummy(), cfa);
 
     // Test CFA elements...
     CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(MachineModel.LINUX64, TestLogManager.getInstance());

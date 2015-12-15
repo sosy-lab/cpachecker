@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import java.io.PrintStream;
 import java.util.Collection;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -153,6 +153,8 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
       }
     }
 
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the Apron Analysis
     return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 

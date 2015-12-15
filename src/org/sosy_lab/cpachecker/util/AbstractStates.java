@@ -26,33 +26,27 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.collect.TreeTraverser;
 
 /**
@@ -98,44 +92,6 @@ public final class AbstractStates {
     return null;
   }
 
-  @SuppressWarnings("unchecked")
-  public static <T extends AbstractState & Targetable> Collection<T> extractsActiveTargets(AbstractState pState) {
-
-    if (pState instanceof AbstractSingleWrapperState) {
-      AbstractState wrapped = ((AbstractSingleWrapperState)pState).getWrappedState();
-      return extractsActiveTargets(wrapped);
-
-    } else if (pState instanceof AbstractWrapperState) {
-      Collection<T> result = Lists.newArrayList();
-      for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
-        result.addAll((Collection<? extends T>) extractsActiveTargets(wrapped));
-      }
-      return result;
-
-    } else if (pState instanceof Targetable && ((Targetable) pState).isTarget()) {
-      return ImmutableList.<T>of((T)pState);
-
-    } else {
-      return Collections.emptyList();
-    }
-  }
-
-  public static <T extends Property> Set<T> extractViolatedProperties(AbstractState pState, Class<T> pType) {
-    Set<T> result = Sets.newHashSet();
-    Collection<? extends Targetable> targetStates = extractsActiveTargets(pState);
-
-    for (Targetable e: targetStates) {
-      for (Property p: e.getViolatedProperties()) {
-        Preconditions.checkState(pType.isInstance(p));
-        @SuppressWarnings("unchecked")
-        T property = (T) p;
-        result.add(property);
-      }
-    }
-
-    return result;
-  }
-
   /**
    * Applies {@link #extractStateByType(AbstractState, Class)} to all states
    * of a given {@link Iterable}.
@@ -166,10 +122,23 @@ public final class AbstractStates {
     return e == null ? null : e.getLocationNode();
   }
 
+  public static Iterable<CFANode> extractLocations(AbstractState pState) {
+    AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
+    return e == null ? null : e.getLocationNodes();
+  }
+
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION = new Function<AbstractState, CFANode>() {
     @Override
     public CFANode apply(AbstractState pArg0) {
       return extractLocation(pArg0);
+    }
+  };
+
+  public static final Function<AbstractState, Iterable<CFANode>> EXTRACT_LOCATIONS =
+      new Function<AbstractState, Iterable<CFANode>>() {
+    @Override
+    public Iterable<CFANode> apply(AbstractState pArg0) {
+      return extractLocations(pArg0);
     }
   };
 
@@ -312,14 +281,5 @@ public final class AbstractStates {
     }
 
     return result;
-  }
-
-  public static boolean containsTargetState(ReachedSet pReachedSet) {
-    for (AbstractState abstractState : pReachedSet) {
-      if (AbstractStates.isTargetState(abstractState)) {
-        return true;
-      }
-    }
-    return false;
   }
 }

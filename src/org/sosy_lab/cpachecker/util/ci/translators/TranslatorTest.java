@@ -34,7 +34,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -62,16 +61,17 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -109,15 +109,29 @@ public class TranslatorTest {
 
     ValueAnalysisState vStateTest = new ValueAnalysisState(constantsMap, locToTypeMap);
     Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
-    ValueRequirementsTranslator vReqTransTest = new ValueRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+    ValueRequirementsTranslator vReqTransTest =
+        new ValueRequirementsTranslator(
+            TestDataTools.configurationForTest().build(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance());
 
     // Test of method getVarsInRequirements()
     List<String> varsInRequirements = vReqTransTest.getVarsInRequirements(vStateTest);
     Truth.assertThat(varsInRequirements).containsExactly("var1", "var3", "fun::var1", "fun::varC");
 
     // Test of method getListOfIndependentRequirements()
-    List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest);
-    Truth.assertThat(listOfIndependentRequirements).containsExactly("(= |var1@1| 3)", "(= |fun::varC| -5)");
+    List<String> listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, null);
+    Truth.assertThat(listOfIndependentRequirements).containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
+
+    listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, Collections.<String>emptyList());
+    Truth.assertThat(listOfIndependentRequirements).isEmpty();
+
+    Collection<String> requiredVars = new ArrayList<>();
+    requiredVars.add("var3");
+    requiredVars.add("fun::varC");
+    requiredVars.add("main::x");
+    listOfIndependentRequirements = vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, requiredVars);
+    Truth.assertThat(listOfIndependentRequirements).containsExactly("(= |fun::varC| -5)");
   }
 
   @Test
@@ -129,24 +143,44 @@ public class TranslatorTest {
     sStateTest = sStateTest.assignSignToVariable("fun::var1", SIGN.PLUSMINUS);
     sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
     sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
-    SignRequirementsTranslator sReqTransTest = new SignRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+    SignRequirementsTranslator sReqTransTest =
+        new SignRequirementsTranslator(
+            TestDataTools.configurationForTest().build(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInReq = sReqTransTest.getVarsInRequirements(sStateTest);
     Truth.assertThat(varsInReq).containsExactlyElementsIn(Arrays.asList(varNames));
 
     // Test method getListOfIndependentRequirements()
-    List<String> listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest);
+    List<String> listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, Collections.<String>emptyList());
+    Truth.assertThat(listOfIndepententReq).isEmpty();
+
+    listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, null);
     List<String> content = new ArrayList<>();
-    content.add("(> |var1@1| 0)");
-    content.add("(< |var2| 0)");
-    content.add("(= |var3@1| 0)");
+    content.add("(> var1@1 0)");
+    content.add("(< var2 0)");
+    content.add("(= var3@1 0)");
     content.add("(or (> |fun::var1| 0) (< |fun::var1| 0))");
     content.add("(>= |fun::varB@1| 0)");
     content.add("(<= |fun::varC| 0)");
     Truth.assertThat(listOfIndepententReq).containsExactlyElementsIn(content);
+
+    Collection<String> requiredVars = new ArrayList<>();
+    requiredVars.add("var1");
+    requiredVars.add("var3");
+    requiredVars.add("varB");
+    requiredVars.add("fun::varC");
+    listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, requiredVars);
+    content = new ArrayList<>();
+    content.add("(> var1@1 0)");
+    content.add("(= var3@1 0)");
+    content.add("(<= |fun::varC| 0)");
+    Truth.assertThat(listOfIndepententReq).containsExactlyElementsIn(content);
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testIntervalAndCartesianTranslator() throws InvalidConfigurationException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
@@ -160,45 +194,83 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("fun::varC", new Interval((long) -15, (long) -3));
 
     IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
-    IntervalRequirementsTranslator iReqTransTest = new IntervalRequirementsTranslator(TestDataTools.configurationForTest().build(), ShutdownNotifier.create(), TestLogManager.getInstance());
+    IntervalRequirementsTranslator iReqTransTest =
+        new IntervalRequirementsTranslator(
+            TestDataTools.configurationForTest().build(),
+            ShutdownNotifier.createDummy(),
+            TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInRequirements = iReqTransTest.getVarsInRequirements(iStateTest);
     Truth.assertThat(varsInRequirements).containsExactlyElementsIn(Arrays.asList(varNames));
 
     // Test method getListOfIndepentendRequirements()
-    List<String> listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest);
+    List<String> listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, null);
     List<String> content = new ArrayList<>();
-    content.add("(<= |var1@1| 5)");
-    content.add("(>= |var2| -7)");
-    content.add("(<= |var3@1| -2)");
+    content.add("(<= var1@1 5)");
+    content.add("(>= var2 -7)");
+    content.add("(<= var3@1 -2)");
     content.add("(and (>= |fun::var1| 0) (<= |fun::var1| 10))");
     content.add("(>= |fun::varB@1| 8)");
     content.add("(and (>= |fun::varC| -15) (<= |fun::varC| -3))");
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
+    listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, Collections.<String>emptyList());
+    Truth.assertThat(listOfIndependentRequirements).isEmpty();
+
+    Collection<String> requiredVars = new ArrayList<>();
+    requiredVars.add("var1");
+    requiredVars.add("var3");
+    requiredVars.add("fun::varB");
+    listOfIndependentRequirements = iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, requiredVars);
+    content = new ArrayList<>();
+    content.add("(<= var1@1 5)");
+    content.add("(<= var3@1 -2)");
+    content.add("(>= |fun::varB@1| 8)");
+    Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
+
     // Test method writeVarDefinition()
-    Method writeVarDefinition = CartesianRequirementsTranslator.class.getDeclaredMethod("writeVarDefinition", new Class[]{List.class, SSAMap.class});
+    Method writeVarDefinition = CartesianRequirementsTranslator.class.getDeclaredMethod("writeVarDefinition", new Class[]{List.class, SSAMap.class, Collection.class});
     writeVarDefinition.setAccessible(true);
     @SuppressWarnings("unchecked")
-    List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest);
+    List<String> varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, Collections.<String>emptyList());
+    Truth.assertThat(varDefinition).isEmpty();
+
+    varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, null);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1| () Int)");
-    content.add("(declare-fun |var2| () Int)");
-    content.add("(declare-fun |var3@1| () Int)");
+    content.add("(declare-fun var1@1 () Int)");
+    content.add("(declare-fun var2 () Int)");
+    content.add("(declare-fun var3@1 () Int)");
     content.add("(declare-fun |fun::var1| () Int)");
     content.add("(declare-fun |fun::varB@1| () Int)");
     content.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
+    varDefinition = (List<String>) writeVarDefinition.invoke(iReqTransTest, Arrays.asList(varNames), ssaTest, requiredVars);
+    List<String> content2 = new ArrayList<>();
+    content2.add("(declare-fun var1@1 () Int)");
+    content2.add("(declare-fun var3@1 () Int)");
+    content2.add("(declare-fun |fun::varB@1| () Int)");
+    Truth.assertThat(varDefinition).containsExactlyElementsIn(content2);
+
     // Test method convertToFormula()
-    Pair<List<String>, String> convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest);
+    Pair<List<String>, String> convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.<String>emptyList());
+    Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
+    String s = "(define-fun req () Bool true)";
+    Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
+
+    convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, null);
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
-    String s = "(define-fun req () Bool (and (and (>= |fun::var1| 0) (<= |fun::var1| 10))(and (>= |fun::varB@1| 8)(and (and (>= |fun::varC| -15) (<= |fun::varC| -3))(and (<= |var1@1| 5)(and (>= |var2| -7)(<= |var3@1| -2)))))))";
+    s = "(define-fun req () Bool (and (and (>= |fun::var1| 0) (<= |fun::var1| 10))(and (>= |fun::varB@1| 8)(and (and (>= |fun::varC| -15) (<= |fun::varC| -3))(and (<= var1@1 5)(and (>= var2 -7)(<= var3@1 -2)))))))";
+    Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
+
+    convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);
+    Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content2);
+    s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with empty IntervalAnalysisState
-    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(), ssaTest);
+    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(), ssaTest, null);
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
@@ -209,11 +281,11 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("var1", new Interval((long) 0, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest = new IntervalAnalysisState(intervals, referenceMap);
 
-    convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest);
+    convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);
     content = new ArrayList<>();
-    content.add("(declare-fun |var1@1| () Int)");
+    content.add("(declare-fun var1@1 () Int)");
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content);
-    s = "(define-fun req () Bool (>= |var1@1| 0))";
+    s = "(define-fun req () Bool (>= var1@1 0))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
   }
 
@@ -222,10 +294,15 @@ public class TranslatorTest {
       UnsupportedOperationException, IOException, ParserException, InterruptedException {
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = new BasicLogManager(config);
-    PredicateCPA predicateCpa = (PredicateCPA) PredicateCPA.factory().setConfiguration(config)
-        .setLogger(logger).setShutdownNotifier(ShutdownNotifier.create())
-        .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
-        .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class).createInstance();
+    PredicateCPA predicateCpa =
+        (PredicateCPA)
+            PredicateCPA.factory()
+                .setConfiguration(config)
+                .setLogger(logger)
+                .setShutdownNotifier(ShutdownNotifier.createDummy())
+                .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
+                .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class)
+                .createInstance();
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 
     // Region used in abstractionFormula
@@ -263,12 +340,12 @@ public class TranslatorTest {
     PredicateRequirementsTranslator pReqTrans = new PredicateRequirementsTranslator(predicateCpa);
 
     // Test method convertToFormula()
-    Pair<List<String>, String> convertedFormula = pReqTrans.convertToFormula(ptrueState, ssaTest);
+    Pair<List<String>, String> convertedFormula = pReqTrans.convertToFormula(ptrueState, ssaTest, null);
     Truth.assertThat(convertedFormula.getFirst()).isEmpty();
     String s = "(define-fun .defci0 () Bool  true)";
     Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
 
-    convertedFormula = pReqTrans.convertToFormula(pf1State, ssaTest);
+    convertedFormula = pReqTrans.convertToFormula(pf1State, ssaTest, null);
     List<String> list = new ArrayList<>();
     list.add("(declare-fun |fun::var1| () Int)");
     list.add("(declare-fun var3@1 () Int)");
@@ -278,7 +355,7 @@ public class TranslatorTest {
     Truth.assertThat(convertedFormula.getSecond()).isEqualTo(s);
 
     // Test method convertRequirements()
-    Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements = pReqTrans.convertRequirements(pf1State, Collections.<AbstractState>emptyList(), ssaTest);
+    Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements = pReqTrans.convertRequirements(pf1State, Collections.<AbstractState>emptyList(), ssaTest, null, null);
     list.clear();
     list.add("(declare-fun var1 () Int)");
     list.add("(declare-fun var3 () Int)");
@@ -292,7 +369,7 @@ public class TranslatorTest {
 
     Collection<PredicateAbstractState> pAbstrStates = new ArrayList<>();
     pAbstrStates.add(ptrueState);
-    convertedRequirements = pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest);
+    convertedRequirements = pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest, null, null);
     list.clear();
     list.add("(declare-fun var2 () Int)");
     list.add("(declare-fun |fun::varB| () Int)");
@@ -307,7 +384,7 @@ public class TranslatorTest {
     pAbstrStates = new ArrayList<>();
     pAbstrStates.add(pf1State);
     pAbstrStates.add(pf2State);
-    convertedRequirements = pReqTrans.convertRequirements(ptrueState, pAbstrStates, ssaTest);
+    convertedRequirements = pReqTrans.convertRequirements(ptrueState, pAbstrStates, ssaTest, null, null);
     Truth.assertThat(convertedRequirements.getFirst().getFirst()).isEmpty();
     s = "(define-fun pre () Bool  true)";
     Truth.assertThat(convertedRequirements.getFirst().getSecond()).isEqualTo(s);

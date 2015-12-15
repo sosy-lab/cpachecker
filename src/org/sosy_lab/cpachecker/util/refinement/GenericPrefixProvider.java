@@ -30,7 +30,6 @@ import java.util.Deque;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -48,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.FluentIterable;
@@ -205,7 +205,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
     UseDefRelation useDefRelation = new UseDefRelation(infeasiblePrefix,
         cfa.getVarClassification().isPresent()
             ? cfa.getVarClassification().get().getIntBoolVars()
-            : Collections.<String>emptySet());
+            : Collections.<String>emptySet(), false);
 
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
         infeasiblePrefix,

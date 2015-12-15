@@ -28,6 +28,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,14 +63,14 @@ import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
@@ -198,7 +199,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
 
     if (useInvariantsForAbstraction) {
-      invariantGenerator = CPAInvariantGenerator.create(config, logger, pShutdownNotifier, Optional.<ShutdownNotifier>absent(), cfa);
+      ShutdownManager invariantShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
+      invariantGenerator = CPAInvariantGenerator.create(config, logger, invariantShutdown, Optional.<ShutdownManager>absent(), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -304,7 +306,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     if (invariantGenerator instanceof StatisticsProvider) {
       ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
     }
-    solver.getFormulaManager().collectStatistics(pStatsCollection);
   }
 
   @Override

@@ -38,7 +38,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -90,10 +90,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @SuppressFBWarnings(value="OS_OPEN_STREAM", justification="Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
   public void writeProof(UnmodifiableReachedSet pReached) {
 
-    OutputStream fos = null;
-    try {
-      fos = file.asByteSink().openStream();
-      ZipOutputStream zos = new ZipOutputStream(fos);
+    try (final OutputStream fos = file.asByteSink().openStream();
+        final ZipOutputStream zos = new ZipOutputStream(fos)) {
       zos.setLevel(9);
 
       ZipEntry ze = new ZipEntry("Proof");
@@ -118,7 +116,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         index++;
       }while (continueWriting);
 
-      zos.close();
     } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
     } catch (IOException e) {
@@ -127,11 +124,6 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.", e.getMessage());
     } catch (InterruptedException e) {
       logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
-    } finally {
-      try {
-        fos.close();
-      } catch (Exception e) {
-      }
     }
   }
 

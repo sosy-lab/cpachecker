@@ -25,11 +25,12 @@ package org.sosy_lab.cpachecker.cpa.apron.refiner;
 
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -53,10 +54,13 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
+import org.sosy_lab.cpachecker.cpa.apron.ApronState;
+import org.sosy_lab.cpachecker.cpa.apron.ApronTransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasabilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
@@ -64,6 +68,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOpera
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -72,7 +77,6 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import apron.ApronException;
@@ -129,6 +133,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
 
   public static ApronDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -167,6 +172,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     super(pCpa);
     final Configuration config = pApronCPA.getConfiguration();
     config.inject(this);
+    this.config = config;
 
     cfa                  = pApronCPA.getCFA();
     logger               = pApronCPA.getLogger();
@@ -195,7 +201,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     // if the path is infeasible, try to refine the precision, this time
     // only with apron states, this is more precise than only using the value analysis
     // refinement
-    ApronAnalysisFeasabilityChecker apronChecker;
+    OctagonAnalysisFeasabilityChecker apronChecker;
     try {
       apronChecker = createApronFeasibilityChecker(pErrorPath);
     } catch (ApronException e) {
@@ -208,6 +214,8 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
       }
     }
 
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the ApronCPA
     return CounterexampleInfo.feasible(pErrorPath, RichModel.empty());
   }
 
@@ -258,7 +266,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     }
   }
 
-  private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final ApronAnalysisFeasabilityChecker checker) {
+  private boolean performApronAnalysisRefinement(final ARGReachedSet reached, final OctagonAnalysisFeasabilityChecker checker) {
     UnmodifiableReachedSet reachedSet       = reached.asReachedSet();
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
@@ -347,21 +355,25 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
    * @throws ApronException
    */
-  private ApronAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
+  private OctagonAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
     try {
-      ApronAnalysisFeasabilityChecker checker;
+      OctagonAnalysisFeasabilityChecker checker;
 
       // no specific timelimit set for octagon feasibility check
       if (timeForApronFeasibilityCheck.isEmpty()) {
-        checker = new ApronAnalysisFeasabilityChecker(cfa, logger, shutdownNotifier, path, apronCPA);
+        checker = new OctagonAnalysisFeasabilityChecker(config, shutdownNotifier, path, apronCPA.getClass(),
+            cfa.getVarClassification(), new ApronTransferRelation(logger, cfa.getLoopStructure().get(), apronCPA.isSplitDisequalites()),
+            new ApronState(logger, apronCPA.getManager()));
 
       } else {
-        ShutdownNotifier notifier = ShutdownNotifier.createWithParent(shutdownNotifier);
+        ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForApronFeasibilityCheck);
-        ResourceLimitChecker limits = new ResourceLimitChecker(notifier, Lists.newArrayList((ResourceLimit)l));
+        ResourceLimitChecker limits = new ResourceLimitChecker(shutdown, Collections.<ResourceLimit>singletonList(l));
 
         limits.start();
-        checker = new ApronAnalysisFeasabilityChecker(cfa, logger, notifier, path, apronCPA);
+        checker = new OctagonAnalysisFeasabilityChecker(config, shutdown.getNotifier(), path, apronCPA.getClass(),
+            cfa.getVarClassification(), new ApronTransferRelation(logger, cfa.getLoopStructure().get(), apronCPA.isSplitDisequalites()),
+            new ApronState(logger, apronCPA.getManager()));
         limits.cancel();
       }
 

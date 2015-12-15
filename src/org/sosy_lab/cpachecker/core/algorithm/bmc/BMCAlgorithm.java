@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,12 +57,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -98,9 +98,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCFA)
+                      ShutdownManager pShutdownManager, CFA pCFA)
                       throws InvalidConfigurationException, CPAException {
-    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownNotifier, pCFA,
+    super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownManager, pCFA,
         new BMCStatistics(),
         false /* no invariant generator */);
     pConfig.inject(this);
@@ -260,7 +260,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       try {
         PathChecker pathChecker = new PathChecker(logger, pmgr, solver, assignmentToPathAllocator);
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath.getInnerEdges());
+        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath);
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");
@@ -270,7 +270,11 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
 
-          counterexample.addFurtherInformation(fmgr.dumpFormula(bfmgr.and(info.getCounterExampleFormulas())),
+          counterexample.addFurtherInformation(
+              solver.getFormulaManager().dumpFormula(
+                  solver.getFormulaManager().getBooleanFormulaManager().and(
+                      info.getCounterExampleFormulas()
+                  )),
               dumpCounterexampleFormula);
         }
 

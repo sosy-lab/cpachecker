@@ -31,8 +31,13 @@ import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import argparse
+import glob
 import logging
+import os
 import urllib.request as request
+
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+    sys.path.insert(0, egg)
 
 from benchmark.webclient import *  # @UnusedWildImport
 
@@ -145,7 +150,7 @@ def _init(config):
     webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision,
                              user_agent='cpa_web_cloud.py', version=__version__)
 
-    logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
+    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
     return webclient
 
 def _get_revision(config):
@@ -203,6 +208,9 @@ def _parse_cpachecker_args(cpachecker_args):
     while True:
         try:
             option=next(i)
+            if len(option) == 0:
+                continue # ignore empty arguments
+
             if option in ["-heap", "-timelimit", "-entryfunction", "-spec", "-config", "-setprop"]:
                 run.options.append(option)
                 run.options.append(next(i))
@@ -234,9 +242,9 @@ def _execute():
         return handle_result(run_result, config.output_path, cpachecker_args)
 
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
+        logging.warning(str(e))
 
     finally:
         webclient.shutdown()

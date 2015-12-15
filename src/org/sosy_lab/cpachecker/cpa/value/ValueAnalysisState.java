@@ -51,14 +51,14 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -635,17 +635,6 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
     return constantsMap.keySet();
-  }
-
-  /**
-   * This method returns the internal mapping of this state.
-   *
-   * @return the internal mapping of this state
-   * @TODO: eliminate this - breaks encapsulation
-   */
-  Map<MemoryLocation, Value> getConstantsMap() {
-    //TODO Investigate if this API change breaks functionality
-    return constantsMap;
   }
 
   public Map<MemoryLocation, Value> getConstantsMapView() {

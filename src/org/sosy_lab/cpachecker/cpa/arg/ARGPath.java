@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.IOException;
 import java.util.AbstractList;
@@ -39,7 +40,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -136,6 +137,50 @@ public class ARGPath implements Appender {
     return edges;
   }
 
+  /**
+   * Returns the full path contained in this {@link ARGPath}. This means, edges
+   * which are null while using getInnerEdges or the pathIterator will be resolved
+   * and the complete path from the first {@link ARGState} to the last ARGState
+   * is created. This is done by filling up the wholes in the path.
+   */
+  public List<CFAEdge> getFullPath() {
+    List<CFAEdge> fullPath = new ArrayList<>();
+
+    PathIterator it = pathIterator();
+    CFANode curNode = AbstractStates.extractLocation(it.getAbstractState());
+    CFAEdge curOutgoingEdge = it.getOutgoingEdge();
+
+    while (it.hasNext()) {
+      it.advance();
+      CFANode nextNode = AbstractStates.extractLocation(it.getAbstractState());
+
+      // compute path between cur and next node
+      if (curOutgoingEdge == null) {
+        while (curNode != nextNode) {
+          assert curNode.getNumLeavingEdges() == 1
+                 && curNode.getLeavingSummaryEdge() == null;
+
+          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
+          fullPath.add(intermediateEdge);
+          curNode = intermediateEdge.getSuccessor();
+        }
+
+      // we have a normal connection without whole in the edges
+      } else {
+        assert curOutgoingEdge.getPredecessor() == curNode
+               && curOutgoingEdge.getSuccessor() == nextNode;
+        fullPath.add(curOutgoingEdge);
+      }
+
+      if (it.hasNext()) {
+        curOutgoingEdge = it.getOutgoingEdge();
+      }
+      curNode = nextNode;
+    }
+
+    return fullPath;
+  }
+
   public ImmutableSet<ARGState> getStateSet() {
     return ImmutableSet.copyOf(states);
   }
@@ -176,6 +221,27 @@ public class ARGPath implements Appender {
    */
   public PathIterator reversePathIterator() {
     return new ReversePathIterator(this);
+  }
+
+  /**
+   * Create a fresh {@link PathIterator} for this path, with its position at the
+   * first state. Holes in the path are filled up by inserting more {@link CFAEdge}.
+   * Note that you cannot call {@link PathIterator#getIncomingEdge()} before calling
+   * {@link PathIterator#advance()} at least once.
+   */
+  public PathIterator fullPathIterator() {
+    return new DefaultFullPathIterator(this);
+  }
+
+  /**
+   * Create a fresh {@link PathIterator} for this path, with its position at the
+   * last state and iterating backwards. Holes in the path are filled up by inserting
+   * more {@link CFAEdge}.
+   * Note that you cannot call {@link PathIterator#getOutgoingEdge()} before calling
+   * {@link PathIterator#advance()} at least once.
+   */
+  public PathIterator reverseFullPathIterator() {
+    return new ReverseFullPathIterator(this);
   }
 
   /**
@@ -438,12 +504,50 @@ public class ARGPath implements Appender {
     }
 
     /**
+     * Indicates whether the current position of this iterator has a state.
+     * For {@code ARGPath#pathIterator()} and {@code ARGPath#reversePathIterator()}
+     * this will always return <code>true</code>. For other iterators, e.g. the
+     * {@link FullPathIterator} there may be holes in the iterated path, as the
+     * edges are expanded to the full path (and therefore they do not have holes
+     * anymore).
+     */
+    public boolean isPositionWithState() {
+      return true;
+    }
+
+    /**
      * Get the abstract state at the current position.
      * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
      * @return A non-null {@link ARGState}.
      */
     public ARGState getAbstractState() {
       return path.states.get(pos);
+    }
+
+    /**
+     * Get the abstract state at the next position.
+     * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
+     * May not be called when this iterator points to the last state in the path
+     * (at the end of an iteration with a forwards PathIterator,
+     * or at the beginning of an iteration with a backwards PathIterator).
+     * @return A non-null {@link ARGState}.
+     */
+    public ARGState getNextAbstractState() {
+      checkState(pos + 1 < path.states.size());
+      return path.states.get(pos+1);
+    }
+
+    /**
+     * Get the abstract state at the previous position.
+     * Note that unlike {@link Iterator#next()}, this does not change the iterator's state.
+     * May not be called when this iterator points to the first state in the path
+     * (at the beginning of an iteration with a forwards PathIterator,
+     * or at the end of an iteration with a backwards PathIterator).
+     * @return A non-null {@link ARGState}.
+     */
+    public ARGState getPreviousAbstractState() {
+      checkState(pos - 1 >= 0);
+      return path.states.get(pos-1);
     }
 
     /**
@@ -608,6 +712,152 @@ public class ARGPath implements Appender {
     public boolean hasNext() {
       return pos > 0;
     }
+  }
 
+  private static abstract class FullPathIterator extends PathIterator {
+    protected final List<CFAEdge> fullPath;
+    protected boolean currentPositionHasState = true;
+    protected int overallOffset = 0;
+
+    private FullPathIterator(ARGPath pPath, int pPos) {
+      super(pPath, pPos);
+      fullPath = pPath.getFullPath();
+    }
+
+    /**
+     * {@inheritDoc}
+     * May only be called on positions of the iterator where we have an {@link ARGState}
+     * not in the edges that fill up holes between them.
+     */
+    @Override
+    public ARGState getAbstractState() {
+      checkState(currentPositionHasState);
+      return path.states.get(pos);
+    }
+
+    @Override
+    public @Nullable CFAEdge getIncomingEdge() {
+      checkState(pos > 0, "First state in ARGPath has no incoming edge.");
+      return fullPath.get(overallOffset-1);
+    }
+
+    @Override
+    public @Nullable CFAEdge getOutgoingEdge() {
+      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
+      return fullPath.get(overallOffset);
+    }
+
+    /**
+     * {@inheritDoc}
+     * Returns the directly previous AbstractState that can be found, thus this is
+     * the appropriate replacement for {@code FullPathIterator#getAbstractState()}
+     * if the iterator is currently in a hole in the path that was filled with
+     * additional edges.
+     */
+    @Override
+    public ARGState getPreviousAbstractState() {
+      checkState(pos - 1 >= 0);
+      if (currentPositionHasState) {
+        return path.states.get(pos-1);
+      } else {
+        return path.states.get(pos);
+      }
+    }
+
+    /**
+     * {@inheritDoc}
+     * While in the hole of a path prefix inclusive returns the prefix inclusive
+     * the state following the hole of this path.
+     */
+    @Override
+    public ARGPath getPrefixInclusive() {
+      if (currentPositionHasState) {
+        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+      } else {
+        return new ARGPath(path.states.subList(0, pos+2), path.edges.subList(0, pos+1));
+      }
+    }
+
+    /**
+     * {@inheritDoc}
+     * While in the hole of a path prefix exclusive returns the prefix exclusive
+     * the state following the hole of this path. (But inclusive the last found
+     * state)
+     */
+    @Override
+    public ARGPath getPrefixExclusive() {
+      if (currentPositionHasState) {
+        return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos-1));
+      } else {
+        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+      }
+    }
+  }
+
+  private static class DefaultFullPathIterator extends FullPathIterator {
+
+    private DefaultFullPathIterator(ARGPath pPath, int pPos) {
+      super(pPath, pPos);
+    }
+
+    private DefaultFullPathIterator(ARGPath pPath) {
+      this(pPath, 0);
+    }
+
+    @Override
+    public void advance() throws IllegalStateException {
+      checkState(hasNext(), "No more states in PathIterator.");
+      if (fullPath.get(overallOffset).getSuccessor().equals(extractLocation(getNextAbstractState()))) {
+        pos++;
+        currentPositionHasState = true;
+      } else {
+        currentPositionHasState = false;
+      }
+      overallOffset++;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return pos < path.states.size()-1;
+    }
+
+    @Override
+    public boolean isPositionWithState() {
+      return currentPositionHasState;
+    }
+  }
+
+  private static class ReverseFullPathIterator extends FullPathIterator {
+
+    private ReverseFullPathIterator(ARGPath pPath, int pPos) {
+      super(pPath, pPos);
+      overallOffset = fullPath.size();
+    }
+
+    private ReverseFullPathIterator(ARGPath pPath) {
+      this(pPath, pPath.states.size() - 1);
+    }
+
+    @Override
+    public void advance() throws IllegalStateException {
+      checkState(hasNext(), "No more states in PathIterator.");
+
+      boolean nextPositionHasState = fullPath.get(overallOffset-1)
+                                        .getPredecessor()
+                                        .equals(extractLocation(getPreviousAbstractState()));
+
+      if (currentPositionHasState) {
+        pos--; // only reduce by one if it was a real node before we are leaving it now
+      }
+
+      currentPositionHasState = nextPositionHasState;
+
+      overallOffset--;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return pos > 0;
+    }
   }
 }

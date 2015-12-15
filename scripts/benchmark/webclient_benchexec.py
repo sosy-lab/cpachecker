@@ -74,8 +74,8 @@ def init(config, benchmark):
                               user_agent='BenchExec', version=benchexec.__version__)
 
     benchmark.tool_version = _webclient.tool_revision()
-    logging.info('Using CPAchecker version {0}.'.format(benchmark.tool_version))
     benchmark.executable = 'scripts/cpa.sh'
+    logging.info('Using %s version %s.', benchmark.tool_name, benchmark.tool_version)
 
 def get_system_info():
     return None
@@ -83,8 +83,8 @@ def get_system_info():
 def execute_benchmark(benchmark, output_handler):
     global _webclient
 
-    if (benchmark.tool_name != 'CPAchecker'):
-        logging.warning("The web client does only support the CPAchecker.")
+    if (benchmark.tool_name != _webclient.tool_name()):
+        logging.warning("The web client does only support %s.", _webclient.tool_name())
         return
 
     if not _webclient:
@@ -148,13 +148,11 @@ def _submitRunsParallel(runSet, benchmark):
                 result_futures[future.result()] = run
 
                 if submissonCounter % 50 == 0:
-                    logging.info('Submitted run {0}/{1}'.\
-                                format(submissonCounter, len(runSet.runs)))
+                    logging.info('Submitted run %s/%s', submissonCounter, len(runSet.runs))
 
 
             except (urllib2.URLError, WebClientError) as e:
-                logging.warning('Could not submit run {0}: {1}.'.\
-                    format(run.identifier, e))
+                logging.warning('Could not submit run %s: %s.', run.identifier, e)
             finally:
                 submissonCounter += 1
     finally:
@@ -165,13 +163,20 @@ def _submitRunsParallel(runSet, benchmark):
     logging.info("Run submission finished.")
     return result_futures
 
+
+def _log_future_exception(result):
+    if result.exception() is not None:
+        logging.warning('Error during result processing.', exc_info=True)
+
 def _handle_results(result_futures, output_handler, benchmark):
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]
         result = result_future.result()
-        executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+        f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+        f.add_done_callback(_log_future_exception)
+    executor.shutdown(wait=True)
 
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
     """
@@ -191,6 +196,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
         run.walltime = float(values["walltime"].strip('s'))
         run.cputime = float(values["cputime"].strip('s'))
         return_value = int(values["exitcode"])
+        termination_reason = values.pop("terminationreason", None)
 
         # remove irrelevant columns
         values.pop("command", None)
@@ -204,7 +210,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
                 values['@vcloud-'+key] = values.pop(key)
 
         run.values.update(values)
-        return return_value
+        return return_value, termination_reason
 
     def _handle_host_info(values):
         host = values.pop("name", "-")
@@ -226,12 +232,12 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             shutil.move(os.path.join(output_path, RESULT_FILE_STDERR), run.log_file + ".stdError")
             os.rmdir(output_path)
 
-    return_value = handle_result(
+    (return_value, termination_reason) = handle_result(
         zip_content, run.log_file + ".output", run.identifier, benchmark.result_files_pattern,
         _open_output_log, _handle_run_info, _handle_host_info, _handle_stderr_file)
 
     if return_value is not None:
-        run.after_execution(return_value)
+        run.after_execution(return_value, termination_reason=termination_reason)
 
         with _print_lock:
             output_handler.output_before_run(run)

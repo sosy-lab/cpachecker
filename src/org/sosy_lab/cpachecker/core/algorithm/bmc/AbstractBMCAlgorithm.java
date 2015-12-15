@@ -32,7 +32,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -66,10 +68,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
@@ -134,12 +136,14 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final TargetLocationProvider targetLocationProvider;
 
+  private final ShutdownRequestListener propagateSafetyInterrupt;
+
   private Collection<CFANode> targetLocations;
 
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
-                      ShutdownNotifier pShutdownNotifier, CFA pCFA,
+                      final ShutdownManager pShutdownManager, CFA pCFA,
                       BMCStatistics pBMCStatistics,
                       boolean pIsInvariantGenerator)
                       throws InvalidConfigurationException, CPAException {
@@ -158,12 +162,32 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
     if (induction) {
       LogManager stepCaseLogger = logger.withComponentName("InductionStepCase");
-      CPABuilder builder = new CPABuilder(pConfig, stepCaseLogger, pShutdownNotifier, pReachedSetFactory);
+      CPABuilder builder =
+          new CPABuilder(
+              pConfig, stepCaseLogger, pShutdownManager.getNotifier(), pReachedSetFactory);
       stepCaseCPA = builder.buildCPAWithSpecAutomatas(cfa);
-      stepCaseAlgorithm = CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownNotifier);
+      stepCaseAlgorithm =
+          CPAAlgorithm.create(stepCaseCPA, stepCaseLogger, pConfig, pShutdownManager.getNotifier());
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
+    }
+
+    ShutdownManager invariantGeneratorNotifier = pShutdownManager;
+    if (addInvariantsByAI || addInvariantsByInduction) {
+      invariantGeneratorNotifier = ShutdownManager.createWithParent(pShutdownManager.getNotifier());
+      propagateSafetyInterrupt = new ShutdownRequestListener() {
+
+        @Override
+        public void shutdownRequested(String pReason) {
+          if (invariantGenerator.isProgramSafe()) {
+            pShutdownManager.requestShutdown(pReason);
+          }
+        }
+      };
+      invariantGeneratorNotifier.getNotifier().register(propagateSafetyInterrupt);
+    } else {
+      propagateSafetyInterrupt = null;
     }
 
     if (!pIsInvariantGenerator
@@ -171,10 +195,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          pShutdownNotifier, pCFA, pReachedSetFactory);
-
+          invariantGeneratorNotifier, pCFA, pReachedSetFactory);
     } else if (induction && addInvariantsByAI) {
-      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, pShutdownNotifier, Optional.of(pShutdownNotifier), cfa);
+      invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
     } else {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
@@ -187,7 +210,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    shutdownNotifier = pShutdownNotifier;
+    shutdownNotifier = pShutdownManager.getNotifier();
 
     targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
   }

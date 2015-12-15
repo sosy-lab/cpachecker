@@ -31,8 +31,15 @@ import sys
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
 import argparse
+import glob
 import logging
+import os
 import urllib.request as request
+
+if os.path.basename(__file__) == 'witness_validation_web_cloud.py':
+    # try looking up additional libraries if not packaged
+    for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+        sys.path.insert(0, egg)
 
 from benchmark.webclient import *  # @UnusedWildImport
 
@@ -116,7 +123,7 @@ def _init(config):
     webclient = WebInterface(config.cloud_master, config.cloud_user,
                              user_agent='witness_validation_web_cloud.py', version=__version__)
 
-    logging.info('Using CPAchecker version {0}.'.format(webclient.tool_revision()))
+    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
     return webclient
 
 def _submit_run(webclient, config):
@@ -146,9 +153,9 @@ def _execute():
                              handle_host_info=lambda x : None)
 
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
+        logging.warning(str(e))
 
     finally:
         webclient.shutdown()
