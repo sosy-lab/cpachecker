@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -49,8 +48,9 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   final static int MIN_THREAD_NUM = 0;
 
   // String :: identifier for the thread TODO change to object or memory-location
-  // List<Pair<CallstackState, LocationState>> :: thread-position
-  private final PersistentMap<String, Pair<AbstractState, AbstractState>> states;
+  // CallstackState +  LocationState :: thread-position
+  private final PersistentMap<String, AbstractState> callstacks;
+  private final PersistentMap<String, AbstractState> locations;
 
   // Each thread is assigned to an Integer
   // TODO do we really need this? -> needed for identification of cloned functions.
@@ -60,50 +60,58 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   private final PersistentMap<String, String> locks;
 
   public ThreadingState() {
-    this.states = PathCopyingPersistentTreeMap.of();
+    this.callstacks = PathCopyingPersistentTreeMap.of();
+    this.locations = PathCopyingPersistentTreeMap.of();
     this.locks = PathCopyingPersistentTreeMap.of();
     this.threadNums = PathCopyingPersistentTreeMap.of();
   }
 
   private ThreadingState(
-      PersistentMap<String, Pair<AbstractState, AbstractState>> pStates,
+      PersistentMap<String, AbstractState> pStacks,
+      PersistentMap<String, AbstractState> pLocations,
       PersistentMap<String, String> pLocks,
       PersistentMap<String, Integer> pThreadNums) {
-    this.states = pStates;
+    this.callstacks = pStacks;
+    this.locations = pLocations;
     this.locks = pLocks;
     this.threadNums = pThreadNums;
  }
 
-  public ThreadingState addThreadAndCopy(String id, int num, Pair<AbstractState, AbstractState> state) {
+  public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
-    Preconditions.checkArgument(!states.containsKey(id), "thread already exists");
+    Preconditions.checkArgument(!locations.containsKey(id), "thread already exists");
     Preconditions.checkArgument(!threadNums.containsValue(num), "thread-number already exists");
-    return new ThreadingState(states.putAndCopy(id, state), locks, threadNums.putAndCopy(id, num));
+    return new ThreadingState(
+        callstacks.putAndCopy(id, stack), locations.putAndCopy(id, loc),
+        locks, threadNums.putAndCopy(id, num));
   }
 
-  public ThreadingState updateThreadAndCopy(String id, Pair<AbstractState, AbstractState> state) {
+  public ThreadingState updateThreadAndCopy(String id, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
-    Preconditions.checkArgument(states.containsKey(id), "updating non-existing thread");
-    return new ThreadingState(states.putAndCopy(id, state), locks, threadNums);
+    Preconditions.checkArgument(locations.containsKey(id), "updating non-existing thread");
+    return new ThreadingState(
+        callstacks.putAndCopy(id, stack), locations.putAndCopy(id, loc),
+        locks, threadNums);
   }
 
   public ThreadingState removeThreadAndCopy(String id) {
     Preconditions.checkNotNull(id);
-    Preconditions.checkState(states.containsKey(id), "leaving non-existing thread: " + id);
-    Preconditions.checkState(threadNums.containsKey(id), "leaving non-existing thread: " + id);
-    return new ThreadingState(states.removeAndCopy(id), locks, threadNums.removeAndCopy(id));
+    Preconditions.checkState(locations.containsKey(id), "leaving non-existing thread: " + id);
+    return new ThreadingState(
+        callstacks.removeAndCopy(id), locations.removeAndCopy(id),
+        locks, threadNums.removeAndCopy(id));
   }
 
   public Set<String> getThreadIds() {
-    return states.keySet();
+    return callstacks.keySet();
   }
 
   public AbstractState getThreadCallstack(String id) {
-    return Preconditions.checkNotNull(states.get(id).getFirst());
+    return Preconditions.checkNotNull(callstacks.get(id));
   }
 
   public LocationState getThreadLocation(String id) {
-    return (LocationState) Preconditions.checkNotNull(states.get(id).getSecond());
+    return (LocationState) Preconditions.checkNotNull(locations.get(id));
   }
 
   Set<Integer> getThreadNums() {
@@ -124,15 +132,15 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   public ThreadingState addLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(lockId);
     Preconditions.checkNotNull(threadId);
-    Preconditions.checkArgument(states.containsKey(threadId), "blocking non-existant thread: " + threadId + " with lock: " + lockId);
-    return new ThreadingState(states, locks.putAndCopy(lockId, threadId), threadNums);
+    Preconditions.checkArgument(locations.containsKey(threadId), "blocking non-existant thread: " + threadId + " with lock: " + lockId);
+    return new ThreadingState(callstacks, locations, locks.putAndCopy(lockId, threadId), threadNums);
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(threadId);
     Preconditions.checkNotNull(lockId);
-    Preconditions.checkArgument(states.containsKey(threadId), "unblocking non-existant thread: " + threadId + " with lock: " + lockId);
-    return new ThreadingState(states, locks.removeAndCopy(lockId), threadNums);
+    Preconditions.checkArgument(locations.containsKey(threadId), "unblocking non-existant thread: " + threadId + " with lock: " + lockId);
+    return new ThreadingState(callstacks, locations, locks.removeAndCopy(lockId), threadNums);
   }
 
   /** returns whether any of the threads has the lock */
@@ -152,9 +160,11 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   @Override
   public String toString() {
-    return "( threads={\n"
-        + Joiner.on(",\n ").withKeyValueSeparator("=").join(states)
-        + "}\n with locks={"
+    return "( locations={\n"
+        + Joiner.on(",\n ").withKeyValueSeparator("=").join(locations)
+        + "}\n with stacks={"
+        + Joiner.on(",\n ").withKeyValueSeparator("=").join(callstacks)
+        + "}\n and locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
         + "}\n and ids={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threadNums)
@@ -167,22 +177,23 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
       return false;
     }
     ThreadingState ts = (ThreadingState)other;
-    return states.equals(ts.states)
+    return callstacks.equals(ts.callstacks)
+        && locations.equals(ts.locations)
         && locks.equals(ts.locks)
         && threadNums.equals(ts.threadNums);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(states, locks, threadNums);
+    return Objects.hash(callstacks, locations, locks, threadNums);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
-    return FluentIterable.from(states.values()).transform(
-        new Function<Pair<AbstractState, AbstractState>, AbstractStateWithLocations>() {
+    return FluentIterable.from(locations.values()).transform(
+        new Function<AbstractState, AbstractStateWithLocations>() {
           @Override
-          public AbstractStateWithLocations apply(Pair<AbstractState, AbstractState> p) {
-            return ((AbstractStateWithLocations) p.getSecond());
+          public AbstractStateWithLocations apply(AbstractState s) {
+            return (AbstractStateWithLocations) s;
           }
         });
   }
@@ -218,7 +229,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     StringBuilder sb = new StringBuilder();
 
     sb.append("[");
-    Joiner.on(",\n ").withKeyValueSeparator("=").appendTo(sb, states);
+    Joiner.on(",\n ").withKeyValueSeparator("=").appendTo(sb, locations);
     sb.append("]");
 
     return sb.toString();
@@ -231,6 +242,6 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   @Override
   public Object getPartitionKey() {
-    return states;
+    return locations;
   }
 }

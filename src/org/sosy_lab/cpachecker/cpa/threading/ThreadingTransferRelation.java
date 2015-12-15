@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -267,7 +266,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // combine them pairwise, all combinations needed
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
-        results.add(threadingState.updateThreadAndCopy(activeThread, Pair.of(stack, loc)));
+        results.add(threadingState.updateThreadAndCopy(activeThread, stack, loc));
       }
     }
 
@@ -342,20 +341,19 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       functionName = CFACloner.getFunctionName(functionName, newThreadNum);
     }
 
-    CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
-    Pair<AbstractState, AbstractState> p = Pair.of(
-        callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition()),
-        locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition()));
-
     if (threadingState.getThreadIds().contains(id.getName())) {
       throw new UnrecognizedCodeException("multiple thread assignments to same LHS not supported", id);
     }
+
+    CFANode functioncallNode = Preconditions.checkNotNull(cfa.getFunctionHead(functionName), functionName);
+    AbstractState initialStack = callstackCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
+    AbstractState initialLoc = locationCPA.getInitialState(functioncallNode, StateSpacePartition.getDefaultPartition());
 
     // update all successors
     final Collection<ThreadingState> newResults = new ArrayList<>();
     for (ThreadingState ts : results) {
       if (maxNumberOfThreads == -1 || ts.getThreadIds().size() <= maxNumberOfThreads) {
-        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, p);
+        ts = ts.addThreadAndCopy(id.getName(), newThreadNum, initialStack, initialLoc);
         newResults.add(ts);
       }
     }
