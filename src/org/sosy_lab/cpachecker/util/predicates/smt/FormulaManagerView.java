@@ -154,7 +154,7 @@ public class FormulaManagerView {
 
   @Option(secure=true, description="Enable fallback to UFs if a solver does not "
       + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")
-  private boolean useUFsForNonLinearArithmetic = false;
+  private boolean useUFsForNonLinearArithmetic = true;
 
   @VisibleForTesting
   public FormulaManagerView(FormulaManager pFormulaManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
