@@ -27,6 +27,9 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+
+import com.google.common.base.Function;
 
 
 public class LeafExpression implements ExpressionTree {
@@ -75,5 +78,14 @@ public class LeafExpression implements ExpressionTree {
   public static ExpressionTree of(AExpression pExpression) {
     return new LeafExpression(pExpression);
   }
+
+  public static final Function<AExpressionStatement, LeafExpression> FROM_STATEMENT =
+      new Function<AExpressionStatement, LeafExpression>() {
+
+        @Override
+        public LeafExpression apply(AExpressionStatement s) {
+          return new LeafExpression(s.getExpression());
+        }
+  };
 
 }
