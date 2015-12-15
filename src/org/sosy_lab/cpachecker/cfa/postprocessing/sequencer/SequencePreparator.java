@@ -3,8 +3,10 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -43,7 +45,7 @@ public class SequencePreparator {
   public static final String MAIN_THREAD_NAME = THREAD_NAME_PATTERN + '0';
 
   private final Map<CThread, CStatementEdge> creationEdges = new HashMap<>();
-  private final Map<CThread, CStatementEdge> mutexEdges = new HashMap<>();
+  private final Set<AStatementEdge> mutexEdges = new HashSet<>();
   private final MutableCFA cfa;
 
 
@@ -53,8 +55,11 @@ public class SequencePreparator {
 
   private int threadCounter = 1;
 
-  public SequencePreparator(MutableCFA cfa) {
+  private final StubDeclaration stubDeclaration;
+
+  public SequencePreparator(StubDeclaration stubDeclaration, MutableCFA cfa) {
     this.cfa = cfa;
+    this.stubDeclaration = stubDeclaration;
   }
 
   /**
@@ -120,10 +125,6 @@ public class SequencePreparator {
     return edge;
   }
 
-  private void stubThreadJoin(AStatementEdge edge) {
-    // nothing to stub
-  }
-
   private CThread createCThread(int threadCounter, CThread creatorThread, CFunctionCall threadCreationStatement) {
     String threadStartFunctionName = PThreadUtils.getCThreadStartFunctionName(threadCreationStatement);
     CFunctionEntryNode threadStartNode = (CFunctionEntryNode) cfa.getFunctionHead(threadStartFunctionName);
@@ -138,7 +139,7 @@ public class SequencePreparator {
     return creationEdges;
   }
 
-  public Map<CThread, CStatementEdge> getMutexEdges() {
+  public Set<AStatementEdge> getMutexInitEdges() {
      return mutexEdges;
   }
 
@@ -148,7 +149,7 @@ public class SequencePreparator {
    * @return
    */
   public static boolean checkContextSwitchConsistency(List<CThread> threads) {
-    Map<ContextSwitch, CThread> css = new HashMap<ContextSwitch, CThread>();
+    Map<ContextSwitch, CThread> css = new HashMap<>();
     for(CThread thread : threads) {
       for(ContextSwitch cs : thread.getContextSwitchPoints()) {
         assert !css.containsKey(cs) : "The conextswitch point " + cs + " of "
@@ -216,7 +217,7 @@ public class SequencePreparator {
       if (!CFAFunctionUtils.isFunctionDeclared(functionCallStatement)) { return; }
       String regularFunctionName = CFAFunctionUtils.getFunctionName(edge);
 
-      switch (regularFunctionName) {
+      switch (regularFunctionName) {//TODO replace functionCallstatement with stubed declaration!!
         case PThreadUtils.PTHREAD_CREATE_NAME:
           CThread thread = createCThread(threadCounter, creatorThread, functionCallStatement);
 
@@ -226,10 +227,10 @@ public class SequencePreparator {
           threadCounter++;
           break;
         case PThreadUtils.PTHREAD_JOIN_NAME:
-          stubThreadJoin(edge);
+          // nothing to stub
           break;
         case PThreadUtils.PTHREAD_MUTEX_INIT_NAME:
-
+          mutexEdges.add(edge);
 
           break;
         case PThreadUtils.PTHREAD_MUTEX_DESTROY_NAME:

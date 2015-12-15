@@ -2,19 +2,13 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -32,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThread;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -418,17 +411,6 @@ public class CFAEdgeUtils {
     builder.addAll(getEnteringEdges(node));
     return builder.build();
   }
-
-
-  public static CStatementEdge getDummyAssignementEdge(CLeftHandSide left, CExpression right) {
-    CStatement assignStatement = new CExpressionAssignmentStatement(FileLocation.DUMMY, left, right);
-    return new CStatementEdge("", assignStatement, FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
-  }
-
-  public static CIntegerLiteralExpression getThreadAsNumberExpression(AThread thread) {
-    return new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(thread.getThreadNumber()));
-  }
-
 
   private static CFAEdge buildNewCEdges(CFAEdge edge, CFANode predecessor, CFANode successor) {
     Preconditions.checkNotNull(edge);

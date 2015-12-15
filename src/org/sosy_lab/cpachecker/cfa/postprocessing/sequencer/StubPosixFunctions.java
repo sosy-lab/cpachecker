@@ -2,62 +2,70 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
 import java.math.BigInteger;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.Map.Entry;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThread;
-import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunctionUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFASequenceBuilder;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.ExpressionUtils;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
+// TODO static posix stub functions. Add to POSIX Stub function
 public class StubPosixFunctions {
 
-  public static void replaceThreadCreationWithStub(
+  /**
+   * Don't use this due it can only handle special cases
+   */
+  @Deprecated
+  public static void stubThreadCreationNoFunction(
       CStatementEdge functionCallEdge, CThread thread,
-      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
+      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
+
     assert CFAFunctionUtils.isFunctionCallStatement(functionCallEdge);
+    CFunctionCall functionCallStatement = (CFunctionCall) functionCallEdge.getStatement();
+
+    List<CExpression> usedParameter = functionCallStatement
+        .getFunctionCallExpression().getParameterExpressions();
+
+    if (usedParameter.size() != 4) { throw new UnrecognizedCCodeException(
+        "pthread_create function must have 4 parameters in expression",
+        functionCallStatement); }
 
     CFANode predecessor = functionCallEdge.getPredecessor();
     CFANode successor = functionCallEdge.getSuccessor();
 
     CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
 
-    CFunctionCall functionCallStatement = (CFunctionCall) functionCallEdge.getStatement();
 
-    CLeftHandSide givenThreadVariable;
+
+    ALeftHandSide givenThreadVariable;
     CExpression threadCreationArgument;
 
-    try {
-      givenThreadVariable = getGivenPthreadVariable(functionCallStatement, logger);
-      threadCreationArgument = getGivenPthreadCreationArgument(functionCallStatement);
-    } catch (UnrecognizedCCodeException e) {
-      throw new RuntimeException(e);
-    }
+    givenThreadVariable = getGivenPthreadVariable(functionCallStatement, logger);
+    assert givenThreadVariable instanceof CLeftHandSide;
+    threadCreationArgument = getGivenPthreadCreationArgument(functionCallStatement);
 
-    if(givenThreadVariable != null) {
+    if (givenThreadVariable != null) {
       CFAEdge edge1 = getSavePthreadId(thread, givenThreadVariable);
       builder.addChainLink(edge1);
     }
@@ -66,8 +74,6 @@ public class StubPosixFunctions {
     CFAEdge edge3 = getActivateThreadStatement(thread, controlVariables);
     CFAEdge edge5 = getNotFinishedThreadStatement(thread, controlVariables); // TODO only for test purpose
     CFAEdge edge4 = new BlankEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, "THREAD CREATION");
-
-
 
     builder.addChainLink(edge2);
     builder.addChainLink(edge3);
@@ -80,69 +86,82 @@ public class StubPosixFunctions {
 
   private static CFAEdge getNotFinishedThreadStatement(CThread thread,
       ControlVariables controlVariables) {
-    CArraySubscriptExpression leftHandSide = new CArraySubscriptExpression(FileLocation.DUMMY,
-        CNumericTypes.BOOL, new CIdExpression(FileLocation.DUMMY,
-            controlVariables.getIsThreadFinishedDeclaration()), new CIntegerLiteralExpression(
-            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(thread.getThreadNumber())));
+    CArraySubscriptExpression leftHandSide = ExpressionUtils.getArrayVarOfIndex(controlVariables.getIsThreadFinishedDeclaration(), thread.getThreadNumber());
 
-    CExpressionAssignmentStatement activeAssignement = new CExpressionAssignmentStatement(
-        FileLocation.DUMMY, leftHandSide, new CIntegerLiteralExpression(FileLocation.DUMMY,
-            CNumericTypes.BOOL, BigInteger.valueOf(0)));
-
-    return new CStatementEdge("", activeAssignement, FileLocation.DUMMY,
-        CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
+    return ExpressionUtils.getDummyCStaticAssignement(leftHandSide, false);
   }
 
   private static CFAEdge getActivateThreadStatement(CThread thread,
       ControlVariables controlVariables) {
-    CArraySubscriptExpression leftHandSide = new CArraySubscriptExpression(FileLocation.DUMMY,
-        CNumericTypes.BOOL, new CIdExpression(FileLocation.DUMMY,
-            controlVariables.getIsThreadActiveArrayDeclaration()), new CIntegerLiteralExpression(
-            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(thread.getThreadNumber())));
+    CArraySubscriptExpression leftHandSide = ExpressionUtils.getArrayVarOfIndex(controlVariables.getIsThreadActiveArrayDeclaration(), thread.getThreadNumber());
 
-    CExpressionAssignmentStatement activeAssignement = new CExpressionAssignmentStatement(
-        FileLocation.DUMMY, leftHandSide, new CIntegerLiteralExpression(FileLocation.DUMMY,
-            CNumericTypes.BOOL, BigInteger.valueOf(1)));
-
-    return new CStatementEdge("", activeAssignement, FileLocation.DUMMY,
-        CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
+    return ExpressionUtils.getDummyCStaticAssignement(leftHandSide, true);
   }
 
-  private static CLeftHandSide getGivenPthreadVariable (
-      CFunctionCall functionCallStatement, LogManager logger) throws UnrecognizedCCodeException {
+  private static ALeftHandSide getGivenPthreadVariable (
+      CFunctionCall functionCallStatement, LogManager logger) {
 
-    List<CExpression> usedParameter = functionCallStatement
-        .getFunctionCallExpression().getParameterExpressions();
+    AExpression firstParameter =
+        CFAFunctionUtils.getFunctionParameter(functionCallStatement, 0);
 
-    if (usedParameter.size() != 4) {
-      throw new UnrecognizedCCodeException(
-          "pthread_create function must have 4 parameters in expression",
-          functionCallStatement);
-    }
-    CExpression exp = usedParameter.get(0);
-    if(exp instanceof CCastExpression) {
-      CCastExpression a = (CCastExpression) exp;
-      exp = a.getOperand();
-    }
-    if (exp instanceof CUnaryExpression
-        && ((CUnaryExpression) exp).getOperator().equals(UnaryOperator.AMPER)) {
-      CUnaryExpression unaryExpression = (CUnaryExpression) exp;
+    return getVisibleParameter(firstParameter);
+  }
 
-      CExpression parameterExpression = unaryExpression.getOperand();
-      if (parameterExpression instanceof CLeftHandSide) {
-        return (CLeftHandSide) parameterExpression;
-      }
-    } else if(exp instanceof CLiteralExpression) {
-      logger.log(Level.WARNING, "Given parameter in pthread_create is an literal. "
-          + "Dyamic pointer operations are not supported during the sequencing process!");
 
-      // legal operation but not determined and not supported
+  /**
+   * Returns a variable if it is visible outside the called function. If the
+   * parameter is a pointer address, the corresponding variable will be
+   * returned.
+   * @param expression - The function call expression
+   * @return a leftHandSide if it is visible outside this function, null instead
+   */
+  private static ALeftHandSide getVisibleParameter(AExpression expression) {
+    assert expression instanceof CExpression;
+
+    // remove the cast expression to get the plain leftHandSide
+    expression = unpackClassCast(expression);
+
+    // remove the first AMPER to get the plain leftHandSide
+    if (expression instanceof AUnaryExpression) {
+      return getVariableFromPointer((AUnaryExpression) expression);
+    } else if (expression instanceof CIdExpression) {
+      // even global variable parameter will called by value and have no effect
+      // because they are not visible outside this function
       return null;
-    }
-    throw new UnsupportedOperationException(
-        "Cannot handle parameter of pthread_create at "
-            + functionCallStatement.getFileLocation());
+    } else if (isNull(expression)) { return null; }
 
+
+    throw new UnsupportedOperationException(
+        "The first parameter of pthread_create must be a valid leftHandSide or NULL(void pointer with CIntegerLiteralExpression)");
+  }
+
+  private static AExpression unpackClassCast(AExpression expression) {
+    if(expression instanceof CCastExpression) {
+      CCastExpression a = (CCastExpression) expression;
+      return unpackClassCast(a.getOperand());
+    }
+    return expression;
+  }
+
+  private static ALeftHandSide getVariableFromPointer(AUnaryExpression unary) {
+    if(unary.getOperator().equals(UnaryOperator.AMPER)) {
+      AExpression t1 = unary.getOperand();
+      if(t1 instanceof ALeftHandSide) {
+        return (ALeftHandSide) t1;
+      }
+    }
+
+    throw new UnsupportedOperationException(
+        "Cannot handle the first parameter of pthread_create");
+  }
+
+  private static boolean isNull(AExpression expression) {
+    if(expression instanceof CIntegerLiteralExpression) {
+      if(((CIntegerLiteralExpression) expression).getValue().equals(BigInteger.ZERO)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static CExpression getGivenPthreadCreationArgument(CFunctionCall functionCallStatement) throws UnrecognizedCCodeException {
@@ -157,24 +176,33 @@ public class StubPosixFunctions {
     return exp;
   }
 
-  private static CFAEdge getSavePthreadId(CThread thread, CLeftHandSide threadId) {
-    CIntegerLiteralExpression threadNumber = CFAEdgeUtils.getThreadAsNumberExpression(thread);
+  private static CFAEdge getSavePthreadId(CThread thread, ALeftHandSide threadId) {
+    CIntegerLiteralExpression threadNumber = ExpressionUtils.getThreadNumberNumberExpression(thread);
 
-//    CIdExpression threadNumberSave = new CIdExpression(FileLocation.DUMMY, threadId);
-    CStatementEdge threadIdSave = CFAEdgeUtils.getDummyAssignementEdge(threadId, threadNumber);
+    AStatementEdge threadIdSave = ExpressionUtils.getDummyAssignement(threadId, threadNumber);
     return threadIdSave;
   }
 
   private static CFAEdge getSavePThreadArgument(CThread thread, CExpression threadCreationArgument, ControlVariables controlVariables) {
-    CIntegerLiteralExpression threadNumber = CFAEdgeUtils.getThreadAsNumberExpression(thread);
-    CType voidPointer = new CPointerType(false, false, CVoidType.VOID);
+    CIntegerLiteralExpression threadNumber = ExpressionUtils.getThreadNumberNumberExpression(thread);
 
-    CIdExpression threadCreationArgumentArray = new CIdExpression(FileLocation.DUMMY, controlVariables.getThreadCreationArgumentsArrayDeclaration());
-    CArraySubscriptExpression left = new CArraySubscriptExpression(FileLocation.DUMMY, voidPointer, threadCreationArgumentArray, threadNumber);
+    CLeftHandSide leftHandSide = ExpressionUtils.getArrayVarOfIndex(controlVariables.getThreadCreationArgumentsArrayDeclaration(), threadNumber);
 
-    CStatementEdge variableSaveEdge = CFAEdgeUtils.getDummyAssignementEdge(left, threadCreationArgument);
+    return ExpressionUtils.getDummyAssignement(leftHandSide, threadCreationArgument);
+  }
 
-    return variableSaveEdge;
+  @Deprecated
+  public static void stubThreadCreationIntoFunction(
+      SequencePreparator threadIdentificator,
+      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
+    for (Entry<CThread, CStatementEdge> aThread : threadIdentificator.getCreationEdges().entrySet()) {
+      try {
+        StubPosixFunctions.stubThreadCreationNoFunction(aThread.getValue(),
+            aThread.getKey(), controlVariables, cfa, logger);
+      } catch (UnrecognizedCCodeException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
   }
 
 }

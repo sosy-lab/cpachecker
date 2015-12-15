@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,12 +12,17 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -28,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
@@ -85,6 +92,47 @@ public class CFAFunctionUtils {
       }
 
     };
+
+  }
+
+  @SuppressWarnings("unchecked")
+  public static AExpression getFunctionParameter(
+      AFunctionCall functionCallStatement, int parameterPosition)
+      throws IndexOutOfBoundsException, ClassCastException {
+
+    functionCallStatement.getFunctionCallExpression().getParameterExpressions();
+
+    List<? extends AExpression> usedParameter = functionCallStatement
+        .getFunctionCallExpression().getParameterExpressions();
+
+    if(usedParameter.size() < parameterPosition || parameterPosition < 0) {
+      throw new IndexOutOfBoundsException("Out of parameter bound with position " + parameterPosition);
+    }
+    AExpression expression = usedParameter.get(parameterPosition);
+
+    return expression;
+  }
+
+  /**
+   * Checks if a AIdExpression represents a global variable
+   * @param variable - the AIdExpression which will be checked
+   * @return true if the given AIdExpression represents a global variable, false if not
+   */
+  public static boolean isVariableGlobal(AIdExpression variable) {
+    ASimpleDeclaration declaration = variable.getDeclaration();
+    if (declaration instanceof CVariableDeclaration) {
+      CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+      if (variableDeclaration.isGlobal()) {
+        return true;
+      } else {
+        return false;
+      }
+    } else if (declaration instanceof JVariableDeclaration) {
+      throw new UnsupportedOperationException("not impelemented yet");
+    } else {
+      // no variable
+      return false;
+    }
 
   }
 
@@ -190,7 +238,19 @@ public class CFAFunctionUtils {
     return functionCall.getFunctionCallExpression().getDeclaration().getName();
   }
 
+  public static FunctionEntryNode getFunctionFromDeclaration(CFunctionDeclaration dec, Optional<CVariableDeclaration> returnValue) {
+    List<String> parameterName = new ArrayList<String>();
+    for(CParameterDeclaration pa : dec.getParameters()) {
+      parameterName.add(pa.getName());
+    }
+    FunctionExitNode exitNode = new FunctionExitNode(dec.getName());
+    FunctionEntryNode entryNode = new CFunctionEntryNode(FileLocation.DUMMY, dec, exitNode, parameterName, returnValue);
+    exitNode.setEntryNode(entryNode);
 
+    return entryNode;
+  }
+
+  @Deprecated
   public static CFunctionEntryNode cloneCFunction(CFunctionEntryNode startNode, String newFunctionsName, MutableCFA cfa) throws IllegalArgumentException {
     Preconditions.checkNotNull(startNode);
     Preconditions.checkNotNull(newFunctionsName);

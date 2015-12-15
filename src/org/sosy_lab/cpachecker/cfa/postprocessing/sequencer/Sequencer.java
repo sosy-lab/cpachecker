@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map.Entry;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThread;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThreadContainer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunctionUtils;
@@ -55,14 +53,17 @@ public class Sequencer {
   }
 
 
+  // TODO replace declaration of function calls of stubbed functions!!!!!
+  // TODO assert edges in threaedIdentificator were not replaced !!
   public void sequenceCFA() {
-    SequencePreparator threadIdentificator = new SequencePreparator(cfa);
+    StubDeclaration stubDeclaration = new StubDeclaration();
+    SequencePreparator threadIdentificator = new SequencePreparator(stubDeclaration, cfa);
     CThreadContainer threads = threadIdentificator.traverseAndReplaceFunctions();
     ControlVariables controlVariables = new ControlVariables(threads);
-    POSIXStubs posixStubs = new POSIXStubs();
+    POSIXStubs posixStubs = new POSIXStubs(controlVariables, stubDeclaration, cfa, logger);
 
-    stubThreadCreation(threadIdentificator, controlVariables, cfa, logger);
-    stubMutex(threadIdentificator, controlVariables, cfa, logger);
+    //TODO this stub or the posixStub stub
+    StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
 
     // create context switches
     for(CThread thread : threads.getAllThreads()) {
@@ -72,28 +73,13 @@ public class Sequencer {
     // build scheduler simulation function and the corresponding context switch edges
     ControlCodeBuilder threadControlCodeInjector = new ControlCodeBuilder(controlVariables, cfa, threads, logger);
 
-    // TODO stub mutext etc.
     threadControlCodeInjector.buildControlVariableDeclaration();
-    threadControlCodeInjector.buildPthreadCreateBody(posixStubs.getPthreadCreateStubDeclaration());
-    threadControlCodeInjector.buildPThreadJoinBody(posixStubs.getPthreadJoinDeclaration());
+    posixStubs.buildPthreadCreateBody();//TODO
+    posixStubs.buildPThreadJoinBody();
 
     threadControlCodeInjector.buildScheduleSimulationFunction();
 
     cfa.setThreads(threads);
-  }
-
-  private static void stubMutex(SequencePreparator threadIdentificator,
-      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
-
-  }
-
-  private static void stubThreadCreation(
-      SequencePreparator threadIdentificator,
-      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
-    for (Entry<CThread, CStatementEdge> aThread : threadIdentificator.getCreationEdges().entrySet()) {
-      StubPosixFunctions.replaceThreadCreationWithStub(aThread.getValue(),
-          aThread.getKey(), controlVariables, cfa, logger);
-    }
   }
 
   private void exploreThreadRecursivly(CThread thread,
