@@ -1783,14 +1783,6 @@ cpa.predicate.relations.export = false
 # abstract precision
 cpa.predicate.relations.file = "relations.txt"
 
-# Use UFs to handle overflows when Bitvector theory was replaced with Integer
-# or Rational theory.
-cpa.predicate.replaceOverflowsWithUFs = false
-
-# Use UFs to handle sign-conversion (from signed to unsigned or back) when
-# Bitvector theory was replaced with Integer or Rational theory.
-cpa.predicate.replaceSignConversionWithUFs = false
-
 # Enable the option to allow detecting the allocation type by type of the LHS
 # of the assignment, e.g. char *arr = malloc(size) is detected as char[size]
 cpa.predicate.revealAllocationTypeFromLhs = true
