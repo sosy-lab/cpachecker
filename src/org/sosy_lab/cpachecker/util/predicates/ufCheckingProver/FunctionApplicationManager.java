@@ -82,6 +82,8 @@ public class FunctionApplicationManager {
     case "_~_": {
       return INTEGER_NOT.apply(func, value);
     }
+    default:
+      // $FALL-THROUGH$
     }
 
     if (func.getName().startsWith("_overflow")) {
