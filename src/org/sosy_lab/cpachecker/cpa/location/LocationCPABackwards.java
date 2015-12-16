@@ -42,8 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory.LocationStateType;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateType;
 
 public class LocationCPABackwards implements ConfigurableProgramAnalysis {
 
@@ -52,7 +51,9 @@ public class LocationCPABackwards implements ConfigurableProgramAnalysis {
   private final TransferRelation transferRelation;
   private final StopOperator stopOperator = new StopSepOperator(abstractDomain);
 
-  public LocationCPABackwards(CFA pCfa, Configuration pConfig) throws InvalidConfigurationException {
+  public LocationCPABackwards(CFA pCfa, Configuration pConfig)
+      throws InvalidConfigurationException {
+
     stateFactory = new LocationStateFactory(pCfa, LocationStateType.BACKWARD, pConfig);
     transferRelation = new LocationTransferRelationBackwards(stateFactory);
   }

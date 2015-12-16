@@ -32,10 +32,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class LocationTransferRelation implements TransferRelation {
@@ -84,8 +85,16 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
+  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
+      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+
+    LocationState element = (LocationState) pElement;
+
+    Collection<AbstractStateWithShadowLocations> shadowLocProviders =
+        AbstractStates.extractStatesByType(pElement, AbstractStateWithShadowLocations.class);
+
+
+
     return null;
   }
 }
