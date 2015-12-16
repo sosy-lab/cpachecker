@@ -49,7 +49,7 @@ import com.google.common.collect.Ordering;
 @Options(prefix="cpa.location")
 public class LocationStateFactory {
 
-  private final LocationState[] states;
+  private final LocationState[] statesByNodeNumber;
 
   @Option(secure=true, description="With this option enabled, unction calls that occur"
       + " in the CFA are followed. By disabling this option one can traverse a function"
@@ -63,7 +63,7 @@ public class LocationStateFactory {
     SortedSet<CFANode> allNodes = extractAllNodes(pCfa);
 
     int maxNodeNumber = allNodes.last().getNodeNumber();
-    states = new LocationState[maxNodeNumber+1];
+    statesByNodeNumber = new LocationState[maxNodeNumber+1];
     for (CFANode node : allNodes) {
       LocationState state = locationType == LocationStateType.BACKWARD
           ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
@@ -71,7 +71,7 @@ public class LocationStateFactory {
               ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
               : new ForwardsLocationState(node, followFunctionCalls);
 
-      states[node.getNodeNumber()] = state;
+      statesByNodeNumber[node.getNodeNumber()] = state;
     }
   }
 
@@ -97,11 +97,19 @@ public class LocationStateFactory {
         .append(pCfa.getAllNodes())
         // Third, sort and remove duplicates
         .toSortedSet(Ordering.natural());
+
     return allNodes;
   }
 
+  /**
+   * Get a state that represents a node that is part of the CFA.
+   *
+   * @param node  The CFA node.
+   * @return      The state that represents the CFA node.
+   */
   public LocationState getState(CFANode node) {
-    return Preconditions.checkNotNull(states[checkNotNull(node).getNodeNumber()],
+
+    return Preconditions.checkNotNull(statesByNodeNumber[checkNotNull(node).getNodeNumber()],
         "LocationState for CFANode %s in function %s requested,"
         + " but this node is not part of the current CFA.",
         node, node.getFunctionName());
