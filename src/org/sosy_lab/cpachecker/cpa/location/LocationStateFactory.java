@@ -60,6 +60,22 @@ public class LocationStateFactory {
       throws InvalidConfigurationException {
     config.inject(this);
 
+    SortedSet<CFANode> allNodes = extractAllNodes(pCfa);
+
+    int maxNodeNumber = allNodes.last().getNodeNumber();
+    states = new LocationState[maxNodeNumber+1];
+    for (CFANode node : allNodes) {
+      LocationState state = locationType == LocationStateType.BACKWARD
+          ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
+          : locationType == LocationStateType.BACKWARDNOTARGET
+              ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
+              : new ForwardsLocationState(node, followFunctionCalls);
+
+      states[node.getNodeNumber()] = state;
+    }
+  }
+
+  private SortedSet<CFANode> extractAllNodes(CFA pCfa) {
     SortedSet<CFANode> allNodes = from(pCfa.getAllNodes())
         // First, we collect all CFANodes in between the inner edges of all MultiEdges.
         // This is necessary for cpa.composite.splitMultiEdges
@@ -81,18 +97,7 @@ public class LocationStateFactory {
         .append(pCfa.getAllNodes())
         // Third, sort and remove duplicates
         .toSortedSet(Ordering.natural());
-
-    int maxNodeNumber = allNodes.last().getNodeNumber();
-    states = new LocationState[maxNodeNumber+1];
-    for (CFANode node : allNodes) {
-      LocationState state = locationType == LocationStateType.BACKWARD
-          ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
-          : locationType == LocationStateType.BACKWARDNOTARGET
-              ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
-              : new ForwardsLocationState(node, followFunctionCalls);
-
-      states[node.getNodeNumber()] = state;
-    }
+    return allNodes;
   }
 
   public LocationState getState(CFANode node) {
