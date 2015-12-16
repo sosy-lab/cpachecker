@@ -186,22 +186,29 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       AbstractState pFullState)
     throws CPAException, InterruptedException {
 
-
-
     // Casts to the AutomataCPA-specific types
     final AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
     final AutomatonInternalState internalState = ((AutomatonState) pState).getInternalState();
+    final Automaton automaton = ((AutomatonState) pState).getOwningAutomaton();
     final AutomatonState state = (AutomatonState) pState;
+
+    final AutomatonState stateOnHandledTarget;
+    switch (onHandledTarget) {
+      case BOTTOM: stateOnHandledTarget = bottomState; break;
+      case INACTIVE: stateOnHandledTarget = inactiveState; break;
+      default: stateOnHandledTarget = state;
+    }
+
+    ImmutableSet<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
+    ImmutableSet<SafetyProperty> disabled = pi.getBlacklist();
+    if (disabled.containsAll(encoded)) {
+      return Optional.of(PrecisionAdjustmentResult.create(
+          inactiveState,
+          pi, Action.CONTINUE));
+    }
 
     // Specific handling of potential target states!!!
     if (state.isTarget()) {
-
-      final AutomatonState stateOnHandledTarget;
-      switch (onHandledTarget) {
-        case BOTTOM: stateOnHandledTarget = bottomState; break;
-        case INACTIVE: stateOnHandledTarget = inactiveState; break;
-        default: stateOnHandledTarget = state;
-      }
 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
