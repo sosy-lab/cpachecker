@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.DefaultOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.CheaperFirstDivideOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -104,7 +104,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, name="partition.operator",
       description = "Operator for determining the partitions of properties that have to be checked.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning")
-  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = DefaultOperator.class;
+  @Nonnull private Class<? extends PartitioningOperator> partitionOperatorClass = CheaperFirstDivideOperator.class;
   private final PartitioningOperator partitionOperator;
 
   @Option(secure=true, description = "Operator for initializing the waitlist after the partitioning of properties was performed.")
@@ -144,7 +144,25 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
   public static int hackyRefinementBound = 0;
 
-  private final Comparator<Property> propertyExpenseComparator = new Comparator<Property>() {
+  private final Comparator<Property> propertyExplosionComparator = new Comparator<Property>() {
+    @Override
+    public int compare(Property p1, Property p2) {
+      final double p1ExplosionFactor = PropertyStats.INSTANCE.getExplosionFactor(p1);
+      final double p2ExplosionFactor = PropertyStats.INSTANCE.getExplosionFactor(p1);
+
+      // -1 : P1 is cheaper
+      // +1 : P1 is more expensive
+      if (p1ExplosionFactor < p2ExplosionFactor) {
+        return -1;
+      } else if (p1ExplosionFactor > p2ExplosionFactor) {
+        return 1;
+      } else {
+        return 0;
+      }
+    }
+  };
+
+  private final Comparator<Property> propertyRefinementComparator = new Comparator<Property>() {
 
     @Override
     public int compare(Property p1, Property p2) {
@@ -290,6 +308,14 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     return argCpa.getCexSummary().getDisabledProperties();
   }
 
+  private Set<Property> remaining(Set<Property> pAll,
+      Set<Property> pViolated,
+      Set<Property> pSatisfied,
+      Set<Property> pExhausted) {
+
+    return Sets.difference(pAll, Sets.union(Sets.union(pViolated, pSatisfied), pExhausted));
+  }
+
   @Override
   public AlgorithmStatus run(final ReachedSet pReachedSet) throws CPAException,
       CPAEnabledAnalysisPropertyViolationException, InterruptedException {
@@ -297,6 +323,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
+    final Set<Property> exhausted = Sets.newHashSet();
 
     try(Contexts ctx = Stats.beginRootContext("Multi-Property Verification")) {
 
@@ -351,6 +378,12 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
             Preconditions.checkState(!pReachedSet.isEmpty());
             stats.numberOfPartitionExhaustions++;
+
+            SetView<Property> active = Sets.difference(all,
+                Sets.union(violated, getInactiveProperties(pReachedSet)));
+            if (active.size() == 1) {
+              exhausted.addAll(active);
+            }
 
           } else {
             // B) the user (or the operating system) requested a stop of the verifier.
@@ -409,7 +442,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
                 Sets.union(violated, getInactiveProperties(pReachedSet)));
             satisfied.addAll(active);
 
-            logger.log(Level.INFO, "Fixpoint reached for: " + active.toString());
+            logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s", pReachedSet.size(), active.toString());
+            Preconditions.checkState(pReachedSet.size() >= 10, "The set reached has too few states for a correct analysis run! Bug?");
 
           } else {
             // The analysis terminated because it ran out of resources
@@ -423,9 +457,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           }
 
           // A new partitioning must be computed.
-          Set<Property> remaining = Sets.difference(all, Sets.union(violated, satisfied));
+          Set<Property> remain = remaining(all, violated, satisfied, exhausted);
 
-          if (remaining.isEmpty()) {
+          if (remain.isEmpty()) {
             break;
           }
 
@@ -441,7 +475,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
               ControlAutomatonPrecisionAdjustment.hackyLimitFactor = ControlAutomatonPrecisionAdjustment.hackyLimitFactor * 2;
 
-              checkPartitions = partition(lastPartitioning, remaining, disabledProperties);
+              checkPartitions = partition(lastPartitioning, remain, disabledProperties);
               lastPartitioning = checkPartitions;
 
               // Reset the statistics of the properties
@@ -468,7 +502,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
         //  ... (1) the fixpoint has not been reached
         //  ... (2) or not all properties have been checked so far.
       } while (pReachedSet.hasWaitingState()
-          || Sets.difference(all, Sets.union(violated, satisfied)).size() > 0);
+          || remaining(all, violated, satisfied, exhausted).size() > 0);
 
       // Compute the overall result:
       //    Violated properties (might have multiple counterexamples)
@@ -477,7 +511,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       //        (could be derived from the precision of the leaf states)
 
       logger.log(Level.WARNING, String.format("Multi-property analysis terminated: %d violated, %d satisfied, %d unknown",
-          violated.size(), satisfied.size(), Sets.difference(all, Sets.union(violated, satisfied)).size()));
+          violated.size(), satisfied.size(), remaining(all, violated, satisfied, exhausted).size()));
 
       return status;
 
@@ -512,7 +546,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       Set<Property> remaining,
       ImmutableSet<Property> disabledProperties) throws PartitioningException {
 
-    Partitioning result = partitionOperator.partition(lastPartitioning, remaining, disabledProperties, propertyExpenseComparator);
+    Partitioning result = partitionOperator.partition(lastPartitioning, remaining, disabledProperties, propertyExplosionComparator);
 
     logger.log(Level.WARNING, String.format("New partitioning with %d partitions.", result.partitionCount()));
     {
