@@ -197,6 +197,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, direction);
 
+      logger.log(Level.WARNING, "This package is currently developed. Be aware of possibly "
+          + "unsound results! It's not recommended to use the option cpa.predicate.useArrayHeap, "
+          + "yet!");
     } else if (handlePointerAliasing) {
       afmgr = null;
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
