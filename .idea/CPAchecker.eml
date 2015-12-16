@@ -7,6 +7,10 @@
 		<excludeFolder url="file://$MODULE_DIR$/test/results"/>
 		<excludeFolder url="file://$MODULE_DIR$/war"/>
 	</contentEntry>
+	<lib name="bin" scope="COMPILE">
+		<srcroot url="file://$MODULE_DIR$/src"/>
+		<relative-module-src project-related="file://$PROJECT_DIR$/src"/>
+	</lib>
 	<lib name="common.jar" scope="COMPILE">
 		<srcroot url="jar://$MODULE_DIR$/lib/java-contrib/common-sources.jar!/"/>
 		<relative-module-src project-related="jar://$PROJECT_DIR$/lib/java-contrib/common-sources.jar!/"/>
