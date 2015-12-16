@@ -331,7 +331,7 @@ public class ARGStatistics implements IterationStatistics {
    */
   private List<Integer> computeNumberOfStatesPerArgLevel(ReachedSet pReached) {
     Preconditions.checkNotNull(pReached);
-    Preconditions.checkNotNull(pReached.getFirstState() != null);
+    Preconditions.checkNotNull(pReached.getFirstState());
     Preconditions.checkArgument(pReached.getFirstState() instanceof ARGState);
 
     List<Integer> statesPerLevel = Lists.newArrayList();
