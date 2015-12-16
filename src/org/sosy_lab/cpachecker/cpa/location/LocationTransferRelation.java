@@ -109,9 +109,9 @@ public class LocationTransferRelation implements TransferRelation {
     if (!shadowingStates.isEmpty()) {
       // There is an element (component of the composite state) in the analysis
       // that provides shadow locations/transitions.
-      AbstractStateWithShadowTransitions shadow = shadowingStates.iterator().next();
+      AbstractStateWithShadowTransitions shadowProvider = shadowingStates.iterator().next();
 
-      Iterable<CFAEdge> shadowTransitions = shadow.getOutgoingShadowEdges(e.getLocationNode());
+      Iterable<CFAEdge> shadowTransitions = shadowProvider.getOutgoingShadowEdges(e.getLocationNode());
       if (shadowTransitions.iterator().hasNext()) {
         // There are shadow transitions that must get woven...
 
