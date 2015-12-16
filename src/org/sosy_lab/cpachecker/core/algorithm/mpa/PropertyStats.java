@@ -23,28 +23,40 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
+import java.io.PrintStream;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-public enum PropertyStats {
+public enum PropertyStats implements Statistics {
   INSTANCE;
 
   private Map<Property, StatCpuTime> refinementTime = Maps.newHashMap();
   private Map<Property, StatCounter> refinementCount = Maps.newHashMap();
+  private Map<Property, StatCounter> coverageCount = Maps.newHashMap();
+  private Map<Property, StatCounter> noCoverageCount = Maps.newHashMap();
 
   public synchronized void clear() {
     refinementCount.clear();
     refinementTime.clear();
+    coverageCount.clear();
+    noCoverageCount.clear();
   }
 
   public interface StatHandle extends AutoCloseable{
@@ -66,6 +78,42 @@ public enum PropertyStats {
       return Optional.absent();
     }
     return Optional.of(result);
+  }
+
+  public synchronized double getExplosionFactor(Property pProperty) {
+    final StatCounter covCount = coverageCount.get(pProperty);
+    final StatCounter noCovCount = noCoverageCount.get(pProperty);
+
+    if (covCount == null || noCovCount == null) {
+      return 0;
+    }
+
+    int divBy = covCount.getValue() + noCovCount.getValue();
+    if (divBy == 0) {
+      return 0;
+    }
+
+    return (double) noCovCount.getValue() / (double) divBy;
+  }
+
+  public synchronized void signalStopOperatorResult(final Set<? extends Property> pProperties, boolean pCoverage) {
+    for (Property p: pProperties) {
+      StatCounter counter;
+      if (pCoverage) {
+        counter = coverageCount.get(p);
+        if (counter == null) {
+          counter = new StatCounter(p.toString());
+          coverageCount.put(p, counter);
+        }
+      } else {
+        counter = noCoverageCount.get(p);
+        if (counter == null) {
+          counter = new StatCounter(p.toString());
+          noCoverageCount.put(p, counter);
+        }
+      }
+      counter.inc();
+    }
   }
 
   public synchronized StatHandle startRefinement(final Set<Property> pProperties) {
@@ -97,4 +145,26 @@ public enum PropertyStats {
       }
     };
   }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    TreeSet<Property> properties = Sets.newTreeSet(new Comparator<Property>() {
+      @Override
+      public int compare(Property pO1, Property pO2) {
+        return pO1.toString().compareTo(pO2.toString());
+      }
+    });
+
+    for (Property p: properties) {
+      StatisticsUtils.write(pOut, 1, 50, p.toString(), "");
+
+      StatisticsUtils.write(pOut, 2, 50, "Coverage Ratio", getExplosionFactor(p));
+    }
+  }
+
+  @Override
+  public String getName() {
+    return "Property Statistics";
+  }
+
 }
