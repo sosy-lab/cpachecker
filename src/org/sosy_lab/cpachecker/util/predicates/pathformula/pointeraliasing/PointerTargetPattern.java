@@ -86,7 +86,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   }
 
   public void setRange(final int size) {
-    assert containerOffset != null && properOffset != null : "Strating address is inexact";
+    assert containerOffset != null && properOffset != null : "Starting address is inexact";
     this.containerOffset += properOffset;
     this.properOffset = containerOffset + size;
     this.matchRange = true;
@@ -201,7 +201,7 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
     return base != null && containerOffset != null && properOffset != null;
   }
 
-  public boolean isSemiexact() {
+  public boolean isSemiExact() {
     return containerOffset != null && properOffset != null;
   }
 

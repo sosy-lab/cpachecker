@@ -262,7 +262,7 @@ class AssignmentHandler {
    * @param pPattern Either {@code null} or the pattern of pointer targets.
    * @param pUseOldSSAIndices A flag indicating if we should use the old SSA
    *                         indices or not.
-   * @param pUpdatedTypes Eiter {@code null} or a set of updated types.
+   * @param pUpdatedTypes Either {@code null} or a set of updated types.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -626,9 +626,9 @@ class AssignmentHandler {
             targetType, null);
       }
 
-    } else if (pPattern.isSemiexact()) {
+    } else if (pPattern.isSemiExact()) {
       Preconditions.checkArgument(pStartAddress != null, "Start address is "
-          + "mandatory for semiexact pointer target patterns");
+          + "mandatory for semi-exact pointer target patterns");
       // For semiexact retention constraints we need the first element type of
       // the composite
       if (pLvalueType instanceof CArrayType) {

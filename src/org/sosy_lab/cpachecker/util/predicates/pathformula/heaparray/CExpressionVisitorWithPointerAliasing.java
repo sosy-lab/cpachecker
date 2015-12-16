@@ -220,7 +220,7 @@ class CExpressionVisitorWithPointerAliasing
    * @param pFormulaTerm1 The first formula.
    * @param pFormulaTerm2 The second formula.
    */
-  private void addEqualBaseAdressConstraint(final Formula pFormulaTerm1,
+  private void addEqualBaseAddressConstraint(final Formula pFormulaTerm1,
       final Formula pFormulaTerm2) {
     if (errorConditions.isEnabled()) {
       // Constraint is only necessary for correct error conditions
@@ -325,7 +325,7 @@ class CExpressionVisitorWithPointerAliasing
     final Formula address = converter.formulaManager.makePlus(baseAddress,
         converter.formulaManager.makeMultiply(coeff, index, IS_POINTER_SIGNED),
         IS_POINTER_SIGNED);
-    addEqualBaseAdressConstraint(baseAddress, address);
+    addEqualBaseAddressConstraint(baseAddress, address);
     return AliasedLocation.ofAddress(address);
   }
 
@@ -367,7 +367,7 @@ class CExpressionVisitorWithPointerAliasing
 
         final Formula address = converter.formulaManager.makePlus(
             base.getAddress(), offset, IS_POINTER_SIGNED);
-        addEqualBaseAdressConstraint(base.getAddress(), address);
+        addEqualBaseAddressConstraint(base.getAddress(), address);
         return AliasedLocation.ofAddress(address);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite "
@@ -556,7 +556,7 @@ class CExpressionVisitorWithPointerAliasing
             addressExpression = AliasedLocation.ofAddress(
                 converter.formulaManager
                     .makePlus(base, offset, IS_POINTER_SIGNED));
-            addEqualBaseAdressConstraint(base, addressExpression.getAddress());
+            addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
         }
 
@@ -641,10 +641,10 @@ class CExpressionVisitorWithPointerAliasing
     switch (op) {
     case PLUS:
       if (t1 instanceof CPointerType) {
-        addEqualBaseAdressConstraint(result, f1);
+        addEqualBaseAddressConstraint(result, f1);
       }
       if (t2 instanceof CPointerType) {
-        addEqualBaseAdressConstraint(result, f2);
+        addEqualBaseAddressConstraint(result, f2);
       }
       break;
     case MINUS:

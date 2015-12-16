@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -133,7 +132,7 @@ class DynamicMemoryHandler {
 
     if ((converter.options.isSuccessfulAllocFunctionName(pFunctionName)
         || converter.options.isSuccessfulZallocFunctionName(pFunctionName))) {
-      return Value.ofValue(handleSucessfulMemoryAllocation(
+      return Value.ofValue(handleSuccessfulMemoryAllocation(
           pFunctionName, pExpression.getParameterExpressions(), pExpression));
 
     } else if ((converter.options.isMemoryAllocationFunction(pFunctionName)
@@ -212,14 +211,14 @@ class DynamicMemoryHandler {
         : converter.options.getSuccessfulZallocFunctionName();
 
     if (!converter.options.makeMemoryAllocationsAlwaysSucceed()) {
-      final Formula nondet = converter.makeFreshVariable(pFunctionName,
+      final Formula nonDet = converter.makeFreshVariable(pFunctionName,
           CPointerType.POINTER_TO_VOID, ssa);
       return converter.bfmgr.ifThenElse(converter.bfmgr.not(
-          converter.formulaManager.makeEqual(nondet, converter.nullPointer)),
-          handleSucessfulMemoryAllocation(delegateFunctionName, parameters,
+          converter.formulaManager.makeEqual(nonDet, converter.nullPointer)),
+          handleSuccessfulMemoryAllocation(delegateFunctionName, parameters,
               pExpression), converter.nullPointer);
     } else {
-      return handleSucessfulMemoryAllocation(delegateFunctionName, parameters,
+      return handleSuccessfulMemoryAllocation(delegateFunctionName, parameters,
           pExpression);
     }
   }
@@ -235,7 +234,7 @@ class DynamicMemoryHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
-  private Formula handleSucessfulMemoryAllocation(final String pFunctionName,
+  private Formula handleSuccessfulMemoryAllocation(final String pFunctionName,
       List<CExpression> pParameters,
       final CFunctionCallExpression pExpression)
       throws UnrecognizedCCodeException, InterruptedException {
