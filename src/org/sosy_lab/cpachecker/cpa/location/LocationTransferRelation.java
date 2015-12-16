@@ -48,20 +48,20 @@ public class LocationTransferRelation implements TransferRelation {
 
   @Override
   public Collection<LocationState> getAbstractSuccessorsForEdge(
-      AbstractState element, Precision prec, CFAEdge cfaEdge) {
+      AbstractState pElement, Precision pPrec, CFAEdge pCfaEdge) {
 
-    LocationState inputElement = (LocationState) element;
+    LocationState inputElement = (LocationState) pElement;
     CFANode node = inputElement.getLocationNode();
 
-    if (CFAUtils.allLeavingEdges(node).contains(cfaEdge)) {
-      return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+    if (CFAUtils.allLeavingEdges(node).contains(pCfaEdge)) {
+      return Collections.singleton(factory.getState(pCfaEdge.getSuccessor()));
 
     } else if (node.getNumLeavingEdges() == 1
         && node.getLeavingEdge(0) instanceof MultiEdge) {
       // maybe we are "entering" a MultiEdge via it's first component edge
       MultiEdge multiEdge = (MultiEdge)node.getLeavingEdge(0);
-      if (multiEdge.getEdges().get(0).equals(cfaEdge)) {
-        return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
+      if (multiEdge.getEdges().get(0).equals(pCfaEdge)) {
+        return Collections.singleton(factory.getState(pCfaEdge.getSuccessor()));
       }
     }
 
@@ -69,10 +69,10 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<LocationState> getAbstractSuccessors(AbstractState element,
-      Precision prec) throws CPATransferException {
+  public Collection<LocationState> getAbstractSuccessors(AbstractState pElement,
+      Precision pPrec) throws CPATransferException {
 
-    CFANode node = ((LocationState)element).getLocationNode();
+    CFANode node = ((LocationState)pElement).getLocationNode();
 
     List<LocationState> allSuccessors = new ArrayList<>(node.getNumLeavingEdges());
 
@@ -84,8 +84,9 @@ public class LocationTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState element,
-      List<AbstractState> otherElements, CFAEdge cfaEdge, Precision precision) {
+  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
+      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+
     return null;
   }
 }
