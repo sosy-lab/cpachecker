@@ -52,6 +52,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * ARGPath contains a non-empty path through the ARG
  * consisting of both a sequence of states
@@ -76,6 +78,11 @@ public class ARGPath implements Appender {
 
   private final ImmutableList<ARGState> states;
   private final List<CFAEdge> edges; // immutable, but may contain null
+
+  @SuppressFBWarnings(
+      value="JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
+      justification="This variable is only used for caching the full path for later use"
+          + " without having to compute it again.")
   private List<CFAEdge> fullPath = null;
 
   ARGPath(List<ARGState> pStates) {

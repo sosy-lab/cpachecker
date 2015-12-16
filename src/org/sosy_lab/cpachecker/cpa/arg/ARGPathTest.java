@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 public class ARGPathTest {
 
@@ -188,6 +190,10 @@ public class ARGPathTest {
 
   }
 
+  @SuppressFBWarnings(
+      value="DE_MIGHT_IGNORE",
+      justification="We want the the excpetions to be thrown in the unit test,"
+          + " and we are sure that we can continue afterwards.")
   @Test
   public void testFullPathIterator() {
     // test fullPath iterator
