@@ -4,7 +4,7 @@
 CPAchecker is a tool for configurable software verification.
 This file is part of CPAchecker.
 
-Copyright (C) 2007-2014  Dirk Beyer
+Copyright (C) 2007-2015  Dirk Beyer
 All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,57 +27,40 @@ CPAchecker web page:
 # prepare for Python 3
 from __future__ import absolute_import, division, print_function, unicode_literals
 
-import argparse
-import base64
-import hashlib
-import io
-import logging
-import os
 import sys
-import urllib
-import urllib.request as request
-import zlib
-import zipfile
-
-
-from  http.client import HTTPConnection
-from  http.client import HTTPSConnection
-from time import sleep
-from time import time
-
 sys.dont_write_bytecode = True # prevent creation of .pyc files
 
-CONNECTION_TIMEOUT = 600 #seconds
+import argparse
+import glob
+import logging
+import os
+import urllib.request as request
+
+for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
+    sys.path.insert(0, egg)
+
+from benchmark.webclient import *  # @UnusedWildImport
+
+__version__ = '1.0'
+
 DEFAULT_OUTPUT_PATH = "./"
-RESULT_FILE_LOG = 'output.log'
-RESULT_FILE_STDERR = 'stderr'
-RESULT_FILE_RUN_INFO = 'runInformation.txt'
-RESULT_FILE_HOST_INFO = 'hostInformation.txt'
-RESULT_KEYS = ["cputime", "walltime", "returnvalue"]
-SPECIAL_RESULT_FILES = {RESULT_FILE_LOG, RESULT_FILE_STDERR, RESULT_FILE_RUN_INFO,
-                        RESULT_FILE_HOST_INFO, 'runDescription.txt'}
-
-__webclient = None
-__base64_user_pwd = None
-__connection = None
 
 
-class WebClientError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
-def __create_argument_parser():
+def _create_argument_parser():
     """
     Create a parser for the command-line options.
     @return: an argparse.ArgumentParser instance
     """
-    
-    parser = argparse.ArgumentParser("Executes CPAchecker in the VerifierCloud and uses the web interface." \
-                                      + "Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
-                                    fromfile_prefix_chars='@',
-                                    add_help=False) # conflict with -heap
+
+    parser = argparse.ArgumentParser(
+        description="Execute a CPAchecker run in the VerifierCloud using the web interface." \
+         + " Command-line parameters can additionally be read from a file if file name prefixed with '@' is given as argument.",
+        fromfile_prefix_chars='@',
+        add_help=False) # conflicts with -heap
+
+    parser.add_argument("--help",
+                      action='help',
+                      help="Prints this help.")
 
     parser.add_argument("--cloudMaster",
                       dest="cloud_master",
@@ -104,7 +87,7 @@ def __create_argument_parser():
                       dest="revision",
                       metavar="BRANCH:REVISION",
                       help="The svn revision of CPAchecker to use.")
-     
+
     parser.add_argument("-d", "--debug",
                       action="store_true",
                       help="Enable debug output")
@@ -135,9 +118,12 @@ def __create_argument_parser():
                       metavar="N",
                       help="Limit the tool to N CPU cores.")
 
+    parser.add_argument("--version",
+                        action="version",
+                        version="%(prog)s " + __version__)
     return parser
 
-def __setup_logging(config):
+def _setup_logging(config):
     """
     Configure the logging framework.
     """
@@ -148,84 +134,26 @@ def __setup_logging(config):
         logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s",
                             level=logging.INFO)
 
-def __init(config):
+def _init(config):
     """
-    Sets __webclient and __base64_user_pwd if they are defined in the given config.
+    Sets _webclient if it is defined in the given config.
     """
-    global __webclient, __base64_user_pwd
+    if not config.cpu_model:
+        logging.warning("It is strongly recommended to set a CPU model('--cloudCPUModel'). "\
+                        "Otherwise the used machines and CPU models are undefined.")
 
-    if config.cloud_master:
-        if not config.cloud_master[-1] == '/':
-            config.cloud_master += '/'
+    if not config.cloud_master:
+        sys.exit("No URL of a VerifierCloud instance is given.")
 
-        webclient = config.cloud_master
-        __webclient = urllib.parse.urlparse(webclient)
-        logging.info('Using webclient at {0}'.format(webclient))
+    (svn_branch, svn_revision) = _get_revision(config)
 
-    if config.cloud_user:
-        __base64_user_pwd = base64.b64encode(config.cloud_user.encode("utf-8")).decode("utf-8")
+    webclient = WebInterface(config.cloud_master, config.cloud_user, svn_branch, svn_revision,
+                             user_agent='cpa_web_cloud.py', version=__version__)
 
-def __request(method, path, body, headers, expectedStatusCodes=[200]):
-    """
-    Sends a request specified by the parameters.
-    @raise urlib.request.HTTPError:  if the request fails more than 5 times
-    @return: (response body, status code)
-    """
-    connection = __get_connection()
+    logging.info('Using %s version %s.', webclient.tool_name(), webclient.tool_revision())
+    return webclient
 
-    headers["Connection"] = "Keep-Alive"
-
-    if __base64_user_pwd:
-        headers["Authorization"] = "Basic " + __base64_user_pwd
-
-    counter = 0
-    while (counter < 5):
-        counter+=1
-        # send request
-        try:
-            connection.request(method, path, body=body, headers=headers)
-            response = connection.getresponse()
-        except:
-            if (counter < 5):
-                # create new TCP connection and try to send the request
-                connection.close()
-                sleep(1)
-                continue
-            else:
-                raise
-
-        if response.status in expectedStatusCodes:
-            return (response.read(), response.getcode())
-
-        else:
-            message = ""
-            if response.status == 401:
-                message = 'Please check the user and password given to --cloudUser.\n'
-            if response.status == 404:
-                message = 'Please check the URL given to --cloudMaster.'
-            message += response.read().decode('UTF-8')
-            raise request.HTTPError(path, response.getcode(), message , response.getheaders(), None)
-
-def __get_connection():
-    """
-    Creates and caches a HTTPConnection or HTTPSConnection. 
-    A previously created connection object will be reused, otherwise a new connection Object is created.
-    @requires: __webclient must be set (see __init(config)).
-    @return: http.client.HTTPConnection object
-    """
-    global __connection
-
-    if __connection is None:
-        if __webclient.scheme == 'http':
-            __connection = HTTPConnection(__webclient.netloc, timeout=CONNECTION_TIMEOUT)
-        elif __webclient.scheme == 'https':
-            __connection = HTTPSConnection(__webclient.netloc, timeout=CONNECTION_TIMEOUT)
-        else:
-            raise WebClientError("Unknown protocol {0}.".format(__webclient.scheme))
-
-    return __connection
-
-def __get_revision(config):
+def _get_revision(config):
     """
     Extracts branch and revision number from the given config parameter.
     @return: (branch, revision number)
@@ -239,369 +167,91 @@ def __get_revision(config):
             revision = 'HEAD'
         return (svn_branch, revision)
     else:
-        return ('trunk', 'HEAD')      
+        return ('trunk', 'HEAD')
 
-def __compute_sha1_hash(path):
+
+def _submit_run(webclient, config, cpachecker_args, counter=0):
     """
-    Returns the SHA-1 hash of a file as string in hexadecimal format.
+    Submits a single run using the web interface of the VerifierCloud.
+    @return: the run's result
     """
-    with open(path, 'rb') as file:
-        return hashlib.sha1(file.read()).hexdigest()
-    
-def __parse_cpachecker_args(cpachecker_args):
+    limits = {}
+    if config.memorylimit:
+        limits['memlimit'] = config.memorylimit + "MB"
+    if config.timelimit:
+        limits['timelimit'] = config.timelimit
+    if config.corelimit:
+        limits['corelimit'] = config.corelimit
+
+    run = _parse_cpachecker_args(cpachecker_args)
+
+    run_result_future = webclient.submit(run, limits, config.cpu_model, \
+                              config.result_file_pattern, config.cloud_priority )
+    webclient.flush_runs()
+    return run_result_future.result()
+
+def _parse_cpachecker_args(cpachecker_args):
     """
     Parses the given CPAchecker arguments.
-    @return:  (list of invalid options, list of source files, dict of POST parameters).
+    @return:  Run object with options, identifier and list of source files
     """
-    params = {}
-    options = []
-    invalid_options = []
-    source_files = []
+    class Run:
+        options = []
+        identifier = None
+        sourcefiles = []
+        propertyfile = None
+
+    run = Run()
+    run.identifier = cpachecker_args
 
     i = iter(cpachecker_args)
     while True:
         try:
             option=next(i)
-            if option == "-heap":
-                params['heap'] = next(i)
+            if len(option) == 0:
+                continue # ignore empty arguments
 
-            elif option == "-noout":
-                options.append("output.disable=true")
-            elif option == "-stats":
-                options.append("statistics.print=true")
-            elif option == "-java":
-                options.append("language=JAVA")
-            elif option == "-32":
-                options.append("analysis.machineModel=Linux32")
-            elif option == "-64":
-                options.append("analysis.machineModel=Linux64")
-            elif option == "-entryfunction":
-                options.append("analysis.entryFunction=" + next(i))
-            elif option == "-timelimit":
-                options.append("limits.time.cpu=" + next(i))
-            elif option == "-skipRecursion":
-                options.append("cpa.callstack.skipRecursion=true")
-                options.append("analysis.summaryEdges=true")
+            if option in ["-heap", "-timelimit", "-entryfunction", "-spec", "-config", "-setprop"]:
+                run.options.append(option)
+                run.options.append(next(i))
 
-            elif option == "-spec":
-                spec_path  = next(i)
-                with open(spec_path, 'r') as  spec_file:
-                    file_text = spec_file.read()
-                    if spec_path[-8:] == ".graphml":
-                        params['errorWitnessText'] = file_text
-                    elif spec_path[-4:] == ".prp":
-                        params['propertyText'] = file_text
-                    else:
-                        params['specificationText'] = file_text
-                    
-            elif option == "-config":
-                configPath = next(i)
-                tokens = configPath.split('/')
-                if not (tokens[0] == "config" and len(tokens) == 2):
-                    logging.warning('Configuration {0} of is not from the default config directory.'.format(configPath))
-                    invalid_options.append(option)
-                    invalid_options.append(configPath)
-                config  = next(i).split('/')[2].split('.')[0]
-                params['configuration'] = config
+            elif option[0] == '-':
+                run.options.append(option)
 
-            elif option == "-setprop":
-                options.append(next(i))
-
-            # example: -predicateAnalysis
-            elif option[0] == '-' and 'configuration' not in params :
-                params['configuration'] = option[1:]
-                
-            elif os.path.isfile(option):
-                source_files.append(option)
-                
             else:
-                invalid_options.append(option)
+                run.sourcefiles.append(option)
 
         except StopIteration:
             break
 
-    params['option'] = options
-    return (invalid_options, source_files, params)
-    
-def __submit_run(config, cpachecker_args, counter=0):
+    return run
+
+def _execute():
     """
-    Submits a single run using the web interface of the VerifierCloud.
-    @return: the run's identifier
-    """
-    
-    (invalid_options, source_files, params) = __parse_cpachecker_args(cpachecker_args)
-    if len (invalid_options) > 0:
-        raise WebClientError('Command {0} contains option that is not usable with the webclient: {1} '\
-            .format(cpachecker_args, invalid_options))
-
-    print(params)
-
-    #revision
-    (svn_branch, svn_revision) = __get_revision(config)
-    params['svnBranch'] = svn_branch
-    params['revision'] = svn_revision
-
-    # limitations
-    if config.memorylimit:
-        params['memoryLimitation'] = config.memorylimit + "MB"
-    if config.timelimit:
-        params['timeLimitation'] = config.timelimit
-    if config.corelimit:
-        params['coreLimitation'] = config.corelimit
-    if config.cpu_model:
-        params['cpuModel'] = config.cpu_model
-
-    if config.result_file_pattern:
-        params['resultFilesPattern'] = config.result_file_pattern;
-    if config.cloud_priority:
-        params['priority'] = config.cloud_priority
-    
-    #source files
-    source_file_Hashs = []
-    for source_file in source_files:
-        source_file_Hashs.append(__compute_sha1_hash(source_file))
-    params['programTextHash'] = source_file_Hashs
-
-    # prepare request
-    headers = {"Content-Type": "application/x-www-form-urlencoded",
-               "Content-Encoding": "deflate",
-               "Accept": "text/plain"}
-
-    paramsCompressed = zlib.compress(urllib.parse.urlencode(params, doseq=True).encode('utf-8'))
-    path = __webclient.path + "runs/"
-
-    (run_id, status_code) = __request("POST", path, paramsCompressed, headers, [200, 412])
-    
-    # source files given as hash value are not known by the cloud system
-    if status_code == 412 and counter < 1: 
-        headers = {"Content-Type": "application/octet-stream",
-               "Content-Encoding": "deflate"}
-
-        # upload all used source files
-        filePath = __webclient.path + "files/"
-        for source_path in source_files:
-            with open(source_path, 'rb') as source_file:
-                compressedProgramText = zlib.compress(source_file.read(), 9)
-                __request('POST', filePath, compressedProgramText, headers, [200,204])
-                
-        # retry submission of run
-        return __submit_run(config, cpachecker_args, counter + 1)
-    
-    else:
-        decoded_run_id = run_id.decode()
-        logging.debug("Submitted run {0}".format(decoded_run_id))
-        return decoded_run_id
-
-def __get_results(runID, config, cpachecker_args):
-    """
-    Waits until the run given by its runID id finished, downloads and parses the result.
-    @return: the return value of CPAchecker or -1 if the execution failed
-    """
-
-    logging.info("Waiting for result of run {0}.".format(runID))
-
-    while True:
-        start = time()
-        state = __get_state(runID)
-        
-        if state == "FINISHED" or state == "UNKOWN":
-            result_value = __download_and_parse_result(runID, config, cpachecker_args)
-            if not result_value is None:
-                return result_value # download of result was successful
-            
-        elif state == "ERROR":
-            logging.warn("Run execution failed.")
-            return -1
-
-        end = time();
-        duration = end - start
-        if duration < 5:
-            sleep(5 - duration)
-
-def __get_state(runID):
-    """
-    @return:  the current state of the run given by its runID
-    """
-    headers = {"Accept": "text/plain"}
-    path = __webclient.path + "runs/" + runID + "/state"
-
-    try:
-        (state, _) = __request("GET", path,"", headers)
-
-        state = state.decode('utf-8')
-        if state == "FINISHED":
-            logging.debug('Run {0} finished.'.format(runID))
-
-        if state == "UNKNOWN":
-            logging.debug('Run {0} is not known by the webclient, trying to get the result.'.format(runID))
-
-        return state
-
-    except request.HTTPError as e:
-        logging.warning('Could not get run state {0}: {1}'.format(runID, e.reason))
-        return "UNKNOWN"
-
-def __download_and_parse_result(runID, config, cpachecker_args):
-    """
-    Downloads the result of the run given by its id, parses the meta information 
-    and writes all files to the 'output_path' defined in the config parameter.
-    @return: the return value of CPAchecker
-    """
-    # download result as zip file
-    headers = {"Accept": "application/zip"}
-    path = __webclient.path + "runs/" + runID + "/result"
-
-    try:
-        (zip_content, _) = __request("GET", path, {}, headers, expectedStatusCodes=[200])
-
-    except request.HTTPError as e:
-        logging.info('Could not get result of run {0}: {1}'.format(runID, e))
-        return None
-
-    # unzip and read result
-    return_value = None
-    try:
-        try:
-            with zipfile.ZipFile(io.BytesIO(zip_content)) as result_zip_file:
-                return_value = __handle_result(result_zip_file, config, cpachecker_args)
-        
-        except zipfile.BadZipfile:
-            logging.warning('Server returned illegal zip file with results of run {}.'.format(runID))
-            # Dump ZIP to disk for debugging
-            with open(config.output_path + '.zip', 'wb') as zip_file:
-                zip_file.write(zip_content)
-                
-    except IOError as e:
-        logging.warning('Error while writing results of run {}: {}'.format(runID, e))
-
-    return return_value
-
-
-def __handle_result(resultZipFile, config, cpachecker_args):
-    """
-    Extraxts all files from the given zip file, parses the meta information 
-    and writes all files to the 'output_path' defined in the config parameter.
-    @return: the return value of CPAchecker.
-    """
-    result_dir = config.output_path
-    files = set(resultZipFile.namelist())
-
-    # extract run info
-    if RESULT_FILE_RUN_INFO in files:
-        with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            (_, _, return_value, values) = __parse_cloud_result_file(runInformation)
-            print("run information:")
-            for key, value in values.items():
-                print ('\t' + str(key) + ": " + str(value))
-    else:
-        return_value = None
-        logging.warning('Missing log file.')
-        
-    # extract host info
-    if RESULT_FILE_HOST_INFO in files:
-        with resultZipFile.open(RESULT_FILE_HOST_INFO) as hostInformation:
-            values = __parse_worker_host_information(hostInformation)
-            print("host information:")
-            for key, value in values.items():
-                print ('\t' + str(key) + ": " + str(value))
-    else:
-        logging.warning('Missing host information.')
-
-    # extract log file
-    if RESULT_FILE_LOG in files:
-        log_file_path = config.output_path + "output.log"
-        with open(log_file_path, 'wb') as log_file:
-            with resultZipFile.open(RESULT_FILE_LOG) as result_log_file:
-                for line in result_log_file:
-                    log_file.write(line)
-        
-        logging.info('Log file is written to ' + log_file_path + '.')
-        
-    else:
-        logging.warning('Missing log file .')
-
-    if RESULT_FILE_STDERR in files:
-        resultZipFile.extract(RESULT_FILE_STDERR, result_dir)
-
-    resultZipFile.extractall(result_dir, files)
-    
-    logging.info("Results are written to {0}".format(result_dir))
-
-    return return_value
-
-def __parse_worker_host_information(file):
-    """
-    Parses the mete file containing information about the host executed the run.
-    Returns a dict of all values.
-    """
-    values = __parse_file(file)
-
-    values["host"] = values.pop("@vcloud-name", "-")
-    values.pop("@vcloud-os", "-")
-    values.pop("@vcloud-memory", "-")
-    values.pop("@vcloud-cpuModel", "-")
-    values.pop("@vcloud-frequency", "-")
-    values.pop("@vcloud-cores", "-")
-    return values
-
-def __parse_cloud_result_file(file):
-    """
-    Parses the mete file containing information about the run.
-    Returns a dict of all values.
-    """
-    values = __parse_file(file)
-
-    return_value = int(values["@vcloud-exitcode"])
-    walltime = float(values["walltime"].strip('s'))
-    cputime = float(values["cputime"].strip('s'))
-    if "@vcloud-memory" in values:
-        values["memUsage"] = int(values.pop("@vcloud-memory").strip('B'))
-
-    # remove irrelevant columns
-    values.pop("@vcloud-command", None)
-    values.pop("@vcloud-timeLimit", None)
-    values.pop("@vcloud-coreLimit", None)
-
-    return (walltime, cputime, return_value, values)
-
-def __parse_file(file):
-    """
-    Parses a file containing key value pairs in each line. 
-    @return:  a dict of the parsed key value pairs.
-    """
-    values = {}
-
-    for line in file:
-        (key, value) = line.decode('utf-8').split("=", 1)
-        value = value.strip()
-        if key in RESULT_KEYS or key.startswith("energy"):
-            values[key] = value
-        else:
-            # "@" means value is hidden normally
-            values["@vcloud-" + key] = value
-
-    return values
-
-def __execute():
-    """
-    Executes a single CPAchecker run in the VerifierCloud vis the web front end.
+    Executes a single CPAchecker run in the VerifierCloud via the web front end.
     All informations are given by the command line arguments.
     @return: the return value of CPAchecker
     """
-    arg_parser = __create_argument_parser()
+    arg_parser = _create_argument_parser()
     (config, cpachecker_args) = arg_parser.parse_known_args()
-    __setup_logging(config)
-    __init(config)
-    
+    _setup_logging(config)
+    webclient = _init(config)
+
     try:
-        run_id = __submit_run(config, cpachecker_args)
-        return __get_results(run_id, config, cpachecker_args)
-    
+        run_result = _submit_run(webclient, config, cpachecker_args)
+        return handle_result(run_result, config.output_path, cpachecker_args)
+
     except request.HTTPError as e:
-        logging.warn(e.reason)
+        logging.warning(e.reason)
     except WebClientError as e:
-        logging.warn(str(e))
-        
+        logging.warning(str(e))
+
+    finally:
+        webclient.shutdown()
+
 
 if __name__ == "__main__":
-    sys.exit(__execute())
+    try:
+        sys.exit(_execute())
+    except KeyboardInterrupt:
+        sys.exit(1)

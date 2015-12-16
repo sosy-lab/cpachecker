@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core;
 
-import java.io.BufferedWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Classes;
@@ -45,7 +45,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -59,9 +58,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.automaton.PowersetAutomatonCPA;
-import org.sosy_lab.cpachecker.cpa.automaton.ReducedAutomatonProduct;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -71,8 +68,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
 
 @Options
 public class CPABuilder {
@@ -92,21 +87,16 @@ public class CPABuilder {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = null;
 
-  @Option(secure=true, name="spec.usepowerset",
-      description="Use a powerset domain for representing the current states of the specification automata.")
-  private boolean powersetDomainForSpec = false;
-
-  public static enum SpecificationComposition { SEPARATE, UNION }
-  @Option(secure=true, name="specificationComposition",
-      description="(How) Should the specification (observer) automata be composed?")
-  private SpecificationComposition specificationComp = SpecificationComposition.SEPARATE;
-
   @Option(secure=true, name="backwardSpecification",
       description="comma-separated list of files with specifications that should be used "
       + "\nin a backwards analysis; used if the full analysis consists of a forward AND a backward part!"
         + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = null;
+
+  @Option(secure=true, name="spec.usepowerset",
+      description="Use a powerset domain for representing the current states of the specification automata.")
+  private boolean powersetDomainForSpec = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -135,68 +125,23 @@ public class CPABuilder {
     return buildCPAs(cfa, backwardSpecificationFiles);
   }
 
-  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, @Nullable final List<Path> specAutomatonFiles)
-      throws InvalidConfigurationException, CPAException {
+  public ConfigurableProgramAnalysis buildsCPAWithWitnessAutomataAndSpecification(final CFA cfa,
+                                                                                  @Nonnull List<Automaton> automata) throws InvalidConfigurationException, CPAException {
     Set<String> usedAliases = new HashSet<>();
 
     List<ConfigurableProgramAnalysis> cpas = null;
 
-    if (specAutomatonFiles != null) {
-      cpas = new ArrayList<>();
-      final List<Automaton> inputAutomata = Lists.newArrayList();
+    if (specificationFiles != null) {
+      cpas = createSpecificationCPAs(cfa, specificationFiles, usedAliases);
+    }
 
-      // Read all specification files provided as argument
-      // ... and extract the contained automata
-      for (Path specFile : specAutomatonFiles) {
-        Scope scope = createScope(cfa);
-
-        if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
-          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
-          inputAutomata.addAll(graphmlParser.parseAutomatonFile(specFile));
-
-        } else {
-          inputAutomata.addAll(AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage()));
-        }
+    if (!automata.isEmpty()) {
+      if (cpas == null){
+        cpas = new ArrayList<>();
       }
 
-      // (Optionally) compose/minimize/... the provided automata
-      final List<Automaton> componentAutomata;
-
-      if (specificationComp == SpecificationComposition.UNION) {
-
-        ArrayList<Automaton> computeUnionOf = Lists.newArrayList();
-        componentAutomata = Lists.newArrayList();
-
-        for (Automaton a: inputAutomata) {
-          if (a.getIsObservingOnly()) {
-            computeUnionOf.add(a);
-          } else {
-            componentAutomata.add(a);
-          }
-        }
-
-        try {
-          Automaton union = ReducedAutomatonProduct.productOf(computeUnionOf, "UNION");
-          componentAutomata.add(union);
-
-          try(BufferedWriter w = Files.newWriter(Paths.createTempPath(union.getName() + "_", ".dot").toFile(), Charset.defaultCharset())) {
-            union.writeDotFile(w);
-          } catch (Exception e) {
-            throw new InvalidConfigurationException("Dumping the union of automata failed!", e);
-          }
-
-          logger.log(Level.FINE, "Using product of %d observer automata!", computeUnionOf.size());
-
-        } catch (InvalidAutomatonException e) {
-          throw new InvalidConfigurationException("Union of automata failed!", e);
-        }
-
-      } else {
-        componentAutomata = inputAutomata;
-      }
-
-      for (Automaton a : componentAutomata) {
-        String cpaAlias = a.getName();
+      for (Automaton automaton : automata) {
+        String cpaAlias = automaton.getName();
 
         if (!usedAliases.add(cpaAlias)) {
           throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
@@ -209,15 +154,71 @@ public class CPABuilder {
         factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
         factory.setLogger(logger.withComponentName(cpaAlias));
         factory.set(cfa, CFA.class);
-        factory.set(a, Automaton.class);
+        factory.set(automaton, Automaton.class);
 
         cpas.add(factory.createInstance());
 
-        logger.log(Level.FINER, "Loaded Automaton\"" + a.getName() + "\"");
+        logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
       }
     }
 
     return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
+  }
+
+  public ConfigurableProgramAnalysis buildCPAs(final CFA cfa, @Nullable final List<Path> specAutomatonFiles)
+      throws InvalidConfigurationException, CPAException {
+    Set<String> usedAliases = new HashSet<>();
+
+    List<ConfigurableProgramAnalysis> cpas = null;
+
+    if (specAutomatonFiles != null) {
+      cpas = createSpecificationCPAs(cfa, specAutomatonFiles, usedAliases);
+    }
+
+    return buildCPAs(cpaName, CPA_OPTION_NAME, usedAliases, cpas, cfa);
+  }
+
+  /**
+   * create automata cpas for the specification files given as argument
+   */
+  private List<ConfigurableProgramAnalysis> createSpecificationCPAs(final CFA cfa, final List<Path> specAutomatonFiles,
+      Set<String> usedAliases)
+          throws InvalidConfigurationException, CPAException {
+
+    List<ConfigurableProgramAnalysis> cpas = new ArrayList<>();
+
+      for (Path specFile : specAutomatonFiles) {
+        List<Automaton> automata = Collections.emptyList();
+        Scope scope = createScope(cfa);
+
+        if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
+          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
+          automata = graphmlParser.parseAutomatonFile(specFile);
+
+        } else {
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+        }
+
+        for (Automaton automaton : automata) {
+          String cpaAlias = automaton.getName();
+
+          if (!usedAliases.add(cpaAlias)) {
+            throw new InvalidConfigurationException("Name " + cpaAlias + " used twice for an automaton.");
+          }
+
+          CPAFactory factory = ControlAutomatonCPA.factory();
+          factory.setConfiguration(Configuration.copyWithNewPrefix(config, cpaAlias));
+          factory.setLogger(logger.withComponentName(cpaAlias));
+          factory.set(cfa, CFA.class);
+          factory.set(automaton, Automaton.class);
+
+          cpas.add(factory.createInstance());
+
+          logger.log(Level.FINER, "Loaded Automaton\"" + automaton.getName() + "\"");
+        }
+      }
+
+    return cpas;
   }
 
   private Scope createScope(CFA cfa) {

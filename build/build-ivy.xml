@@ -5,10 +5,10 @@
 
     <!-- Targets for managing dependencies with Ivy. -->
 
-    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker and VerifierCloud. -->
+    <!-- Keep this file synchronized between SoSy-Lab Common, CPAchecker, JavaSMT, and VerifierCloud. -->
 
     <!-- These properties can be overridden from including file. -->
-    <property name="ivy.version" value="2.3.0"/> <!-- Change version number here to use a newer version of Ivy. -->
+    <property name="ivy.version" value="2.4.0"/> <!-- Change version number here to use a newer version of Ivy. -->
     <!-- <property name="ivy.disable" value=""/> --> <!-- Disable ivy completely. -->
     <property name="ivy.repo.url" value="http://www.sosy-lab.org/ivy"/>
     <property name="ivy.lib.dir" value="lib/java"/>

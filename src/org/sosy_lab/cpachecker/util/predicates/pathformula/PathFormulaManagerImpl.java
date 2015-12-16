@@ -23,20 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
+import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
+import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,17 +58,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.solver.AssignableTerm.Variable;
-import org.sosy_lab.solver.Model;
-import org.sosy_lab.solver.TermType;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
@@ -79,6 +69,16 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Formu
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTarget;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.AssignableTerm.Variable;
+import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.TermType;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaType;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -102,6 +102,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Option(secure=true, description = "Handle arrays using the theory of arrays.")
   private boolean handleArrays = false;
+
+  @Option(secure=true, description="Call 'simplify' on generated formulas.")
+  private boolean simplifyGeneratedPathFormulas = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -228,6 +231,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
       }
     }
+    if (simplifyGeneratedPathFormulas) {
+      pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+    }
     return pf;
   }
 
@@ -287,7 +293,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    return new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    if (simplifyGeneratedPathFormulas) {
+      out = out.updateFormula(fmgr.simplify(out.getFormula()));
+    }
+    return out;
   }
 
   @Override
@@ -371,19 +381,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                      final PointerTargetSet pts1,
                                      final SSAMap ssa2,
                                      final PointerTargetSet pts2) throws InterruptedException {
-    final Pair<SSAMap, List<Triple<String, Integer, Integer>>> ssaMergeResult = SSAMap.merge(ssa1, ssa2);
-    final SSAMap resultSSA = ssaMergeResult.getFirst();
-    final List<Triple<String, Integer, Integer>> symbolDifferences = ssaMergeResult.getSecond();
+    final List<MapsDifference.Entry<String, Integer>> symbolDifferences = new ArrayList<>();
+    final SSAMap resultSSA = SSAMap.merge(ssa1, ssa2, collectMapsDifferenceTo(symbolDifferences));
 
     BooleanFormula mergeFormula1 = bfmgr.makeBoolean(true);
     BooleanFormula mergeFormula2 = bfmgr.makeBoolean(true);
 
-    for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
+    for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
-      final String symbolName = symbolDifference.getFirst();
+      final String symbolName = symbolDifference.getKey();
       final CType symbolType = resultSSA.getType(symbolName);
-      final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
-      final int index2 = firstNonNull(symbolDifference.getThird(), 1);
+      final int index1 = symbolDifference.getLeftValue().or(1);
+      final int index2 = symbolDifference.getRightValue().or(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {
@@ -498,18 +507,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private BooleanFormula addMergeAssumptions(final BooleanFormula pFormula, final SSAMap ssa1,
       final PointerTargetSet pts1, final SSAMap ssa2) throws InterruptedException {
-    final Pair<SSAMap, List<Triple<String, Integer, Integer>>> ssaMergeResult = SSAMap.merge(ssa1, ssa2);
-  final SSAMap resultSSA = ssaMergeResult.getFirst();
-    final List<Triple<String, Integer, Integer>> symbolDifferences = ssaMergeResult.getSecond();
+    final List<MapsDifference.Entry<String, Integer>> symbolDifferences = new ArrayList<>();
+    final SSAMap resultSSA = SSAMap.merge(ssa1, ssa2, collectMapsDifferenceTo(symbolDifferences));
 
     BooleanFormula mergeFormula1 = pFormula;
 
-    for (final Triple<String, Integer, Integer> symbolDifference : symbolDifferences) {
+    for (final MapsDifference.Entry<String, Integer> symbolDifference : symbolDifferences) {
       shutdownNotifier.shutdownIfNecessary();
-      final String symbolName = symbolDifference.getFirst();
+      final String symbolName = symbolDifference.getKey();
       final CType symbolType = resultSSA.getType(symbolName);
-      final int index1 = firstNonNull(symbolDifference.getSecond(), 1);
-      final int index2 = firstNonNull(symbolDifference.getThird(), 1);
+      final int index1 = symbolDifference.getLeftValue().or(1);
+      final int index2 = symbolDifference.getRightValue().or(1);
 
       assert symbolName != null;
       if (index1 > index2 && index1 > 1) {

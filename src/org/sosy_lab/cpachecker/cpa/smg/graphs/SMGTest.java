@@ -549,4 +549,23 @@ public class SMGTest {
     Assert.assertFalse(nr.neq_exists(one, three));
     Assert.assertFalse(nr.neq_exists(two, three));
   }
+
+  @Test
+  public void neqMergeValuesTest2() {
+    NeqRelation nr = new NeqRelation();
+    Integer zero = Integer.valueOf(0);
+    Integer one = Integer.valueOf(1);
+    Integer two = Integer.valueOf(2);
+    Integer three = Integer.valueOf(3);
+
+    nr.add_relation(zero, three);
+    nr.add_relation(one, three);
+    nr.mergeValues(two, three);
+
+    Assert.assertTrue(nr.neq_exists(zero, two));
+    Assert.assertTrue(nr.neq_exists(one, two));
+    Assert.assertFalse(nr.neq_exists(zero, three));
+    Assert.assertFalse(nr.neq_exists(one, three));
+    Assert.assertFalse(nr.neq_exists(two, three));
+  }
 }

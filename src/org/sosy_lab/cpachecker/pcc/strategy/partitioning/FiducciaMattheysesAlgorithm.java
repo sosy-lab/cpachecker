@@ -32,7 +32,7 @@ import java.util.TreeMap;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 
 import com.google.common.base.Optional;

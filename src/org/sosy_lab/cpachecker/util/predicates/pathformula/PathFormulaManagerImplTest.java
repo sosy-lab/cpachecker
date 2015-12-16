@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static com.google.common.truth.Truth.assert_;
 import static org.junit.Assert.assertEquals;
 
 import java.math.BigInteger;
@@ -35,7 +34,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -68,14 +67,13 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
@@ -100,27 +98,28 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
         .build();
 
-    fmgr = new FormulaManagerView(factory, config, TestLogManager.getInstance());
+    fmgr = new FormulaManagerView(
+        factory.getFormulaManager(), config, TestLogManager.getInstance());
 
-    pfmgrFwd = new PathFormulaManagerImpl(
-        fmgr,
-        config,
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        MachineModel.LINUX32,
-        Optional.<VariableClassification>absent(),
-        AnalysisDirection.FORWARD
-        );
+    pfmgrFwd =
+        new PathFormulaManagerImpl(
+            fmgr,
+            config,
+            TestLogManager.getInstance(),
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.<VariableClassification>absent(),
+            AnalysisDirection.FORWARD);
 
-    pfmgrBwd = new PathFormulaManagerImpl(
-        fmgr,
-        configBackwards,
-        TestLogManager.getInstance(),
-        ShutdownNotifier.create(),
-        MachineModel.LINUX32,
-        Optional.<VariableClassification>absent(),
-        AnalysisDirection.BACKWARD
-        );
+    pfmgrBwd =
+        new PathFormulaManagerImpl(
+            fmgr,
+            configBackwards,
+            TestLogManager.getInstance(),
+            ShutdownNotifier.createDummy(),
+            MachineModel.LINUX32,
+            Optional.<VariableClassification>absent(),
+            AnalysisDirection.BACKWARD);
   }
 
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCCodeException {
@@ -442,7 +441,6 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     PathFormula resultA = pfmgrFwd.makeOr(pf1, pf2);
     PathFormula resultB = pfmgrFwd.makeOr(pf2, pf1);
 
-    assert_().about(BooleanFormula())
-             .that(resultA.getFormula()).isEquivalentTo(resultB.getFormula());
+    assertThatFormula(resultA.getFormula()).isEquivalentTo(resultB.getFormula());
   }
 }

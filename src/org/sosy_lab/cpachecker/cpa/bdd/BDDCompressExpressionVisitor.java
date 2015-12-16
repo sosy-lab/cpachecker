@@ -39,8 +39,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;

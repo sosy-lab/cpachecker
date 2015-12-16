@@ -56,7 +56,7 @@ public interface Reducer {
 
   /**
    * Use the expandedState as basis for a new state,
-   * that can be used as rebuildState for the next funcion-return-edge.
+   * that can be used as rebuildState for the next function-return-edge.
    *
    * @param rootState state before the function-call. this is the predecessor of the block-start-state, that will be reduced.
    * @param entryState state after the function-call. this is the block-start-state, that will be reduced.

@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
 
 /**
  * This class tracks constraints which are created during AST traversal but

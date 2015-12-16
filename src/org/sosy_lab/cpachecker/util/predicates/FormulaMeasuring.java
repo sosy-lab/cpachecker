@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.RecursiveBooleanFormulaVisitor;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.RecursiveBooleanFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.collect.ImmutableSortedSet;
 

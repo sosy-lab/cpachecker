@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -62,11 +61,9 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.ComputeAbstractionState;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
@@ -76,21 +73,19 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
-import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
-import org.sosy_lab.cpachecker.util.statistics.Stats;
-import org.sosy_lab.cpachecker.util.statistics.interfaces.RetrospectiveContext;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -117,9 +112,6 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
-
-  @Option(secure=true, description = "Check satisfiability when a observer automaton state with this name is reached.")
-  private Pattern satCheckStatenameRegexp = Pattern.compile("^SAT(_.*)?");
 
   @Option(secure=true, description = "try to reuse old abstractions from file during strengthening")
   private boolean strengthenWithReusedAbstractions = false;
@@ -382,84 +374,59 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       List<AbstractState> otherElements, CFAEdge edge, Precision pPrecision)
           throws CPATransferException, InterruptedException {
 
-    boolean satCheckRequested = false;
-    boolean newAbstractionStateOnSat = true;
+    strengthenTimer.start();
+    try {
 
-    try (RetrospectiveContext context = Stats.retrospectiveRootContext()) {
-      try (StatCpuTimer timer = Stats.startTimer("Predicate Strengthen Time")) {
+      PredicateAbstractState element = (PredicateAbstractState) pElement;
+      if (element.isAbstractionState()) {
+        // can't do anything with this object because the path formula of
+        // abstraction elements has to stay "true"
+        return Collections.singleton(element);
+      }
 
-        strengthenTimer.start();
-        try {
+      if (element instanceof ComputeAbstractionState && strengthenWithReusedAbstractions) {
+        element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element, otherElements);
+      }
 
-          PredicateAbstractState element = (PredicateAbstractState) pElement;
-          if (element.isAbstractionState()) {
-            // can't do anything with this object because the path formula of
-            // abstraction elements has to stay "true"
-            return Collections.singleton(element);
-          }
+      boolean errorFound = false;
+      for (AbstractState lElement : otherElements) {
+        if (lElement instanceof AssumptionStorageState) {
+          element = strengthen(element, (AssumptionStorageState) lElement);
+        }
+
+        if (element instanceof ComputeAbstractionState && lElement instanceof ARGReplayState) {
+          element = strengthen((ComputeAbstractionState)element, (ARGReplayState) lElement);
+        }
+
+        /*
+         * Add additional assumptions from an automaton state.
+         */
+        if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
+          element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
+        }
 
 
-          if (element instanceof ComputeAbstractionState && strengthenWithReusedAbstractions) {
-            element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element, otherElements);
-          }
-
-          boolean targetFound = false;
-
-          for (AbstractState lElement : otherElements) {
-            if (lElement instanceof AssumptionStorageState) {
-              element = strengthen(element, (AssumptionStorageState) lElement);
-            }
-
-            if (element instanceof ComputeAbstractionState && lElement instanceof ARGReplayState) {
-              element = strengthen((ComputeAbstractionState)element, (ARGReplayState) lElement);
-            }
-
-            /*
-             * Add additional assumptions from an automaton state.
-             */
-            if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-              element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
-            }
-
-            if (AbstractStates.isTargetState(lElement)) {
-              targetFound = true;
-
-              // Statistics relate to the property
-              context.putRootContexts(((Targetable)lElement).getViolatedProperties());
-            }
-
-            if (lElement instanceof AutomatonState) {
-              AutomatonState e = (AutomatonState) lElement;
-              if (satCheckStatenameRegexp.matcher(e.getInternalStateName()).matches()) {
-                satCheckRequested = true;
-                // Computing a new abstraction state would prohibit a merge!!!!
-                newAbstractionStateOnSat = false;
-              }
-            }
-          }
-
-          // check satisfiability in case of error
-          // (not necessary for abstraction elements)
-          if (satCheckRequested || targetFound && targetStateSatCheck) {
-            PredicateAbstractState e = strengthenSatCheck(element, getAnalysisSuccesor(edge));
-            if (e == null) {
-              // successor not reachable
-              return Collections.emptySet();
-            }
-
-            if (newAbstractionStateOnSat) {
-              element = e;
-            }
-          }
-
-          return Collections.singleton(element);
-        } catch (SolverException e) {
-          throw new CPATransferException("Solver failed during strengthen sat check", e);
-
-        } finally {
-          strengthenTimer.stop();
+        if (AbstractStates.isTargetState(lElement)) {
+          errorFound = true;
         }
       }
+
+      // check satisfiability in case of error
+      // (not necessary for abstraction elements)
+      if (errorFound && targetStateSatCheck) {
+        element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
+        if (element == null) {
+          // successor not reachable
+          return Collections.emptySet();
+        }
+      }
+
+      return Collections.singleton(element);
+    } catch (SolverException e) {
+      throw new CPATransferException("Solver failed during strengthen sat check", e);
+
+    } finally {
+      strengthenTimer.stop();
     }
   }
 
@@ -757,5 +724,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return false;
+  }
+
+  public void changeExplicitAbstractionNodes(final ImmutableSet<CFANode> explicitlyAbstractAt) {
+    blk.setExplicitAbstractionNodes(explicitlyAbstractAt);
   }
 }

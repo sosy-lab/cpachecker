@@ -72,7 +72,7 @@ class CoverageReportStdoutSummary implements CoverageWriter {
       numTotalLines =+ info.allLines.size();
 
       for (Integer line : info.allLines) {
-        if (info.visitedLines.get(line)) {
+        if (info.getVisitedLine(line) > 0) {
           numVisitedLines += 1;
         }
       }

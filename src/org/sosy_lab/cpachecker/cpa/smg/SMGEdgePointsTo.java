@@ -64,40 +64,18 @@ public class SMGEdgePointsTo extends SMGEdge {
     return true;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + offset;
-    return result;
+    return 31 * super.hashCode() + offset;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (!super.equals(obj)) {
+    if (obj == null || !(obj instanceof SMGEdgePointsTo)) {
       return false;
     }
-
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-
     SMGEdgePointsTo other = (SMGEdgePointsTo) obj;
-
-    if (offset != other.offset) {
-      return false;
-    }
-
-    return true;
+    return super.equals(obj)
+        && offset == other.offset;
   }
 }

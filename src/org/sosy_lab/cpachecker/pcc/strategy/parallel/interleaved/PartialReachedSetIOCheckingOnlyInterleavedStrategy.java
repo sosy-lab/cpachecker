@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -36,15 +37,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -178,6 +180,13 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
   protected void readProofFromStream(final ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
     ioHelper.readMetadata(pIn, true);
+  }
+
+  @Override
+  public Collection<Statistics> getAdditionalProofGenerationStatistics() {
+    Collection<Statistics> result = new ArrayList<>(super.getAdditionalProofGenerationStatistics());
+    result.add(ioHelper.getGraphStatistic());
+    return result;
   }
 
   private class PartitionReader implements Runnable {

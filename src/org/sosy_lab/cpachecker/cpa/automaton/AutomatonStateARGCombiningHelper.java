@@ -24,10 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -69,6 +72,15 @@ public class AutomatonStateARGCombiningHelper {
 
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
 
+      final Map<AutomatonSafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
+
+      for (Entry<? extends Property, ResultValue<?>> pi: toReplace.getViolatedPropertyInstances().entrySet()) {
+        Property prop = pi.getKey();
+        ResultValue<?> instance = pi.getValue();
+        assert prop instanceof AutomatonSafetyProperty;
+        violatedProperties.put((AutomatonSafetyProperty)prop, instance);
+      }
+
       return AutomatonState.automatonStateFactory(
           toReplace.getVars(),
           qualifiedAutomatonStateNameToInternalState.get(qualifiedName),
@@ -76,7 +88,7 @@ public class AutomatonStateARGCombiningHelper {
           toReplace.getAssumptions(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
-          toReplace.getViolatedPropertyInstances());
+          violatedProperties);
     }
 
     throw new CPAException("Changing state failed, unknown state.");

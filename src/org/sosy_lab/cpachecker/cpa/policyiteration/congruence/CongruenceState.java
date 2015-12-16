@@ -37,4 +37,14 @@ public class CongruenceState implements Iterable<Entry<Template, Congruence>>{
   public Iterator<Entry<Template, Congruence>> iterator() {
     return data.entrySet().iterator();
   }
+
+  public String toDOTLabel() {
+    StringBuilder b = new StringBuilder();
+    for (Entry<Template, Congruence> e : data.entrySet()) {
+      if (e.getValue() == Congruence.EVEN) {
+        b.append(e.getKey().toString()).append(" is even\n");
+      }
+    }
+    return b.toString();
+  }
 }

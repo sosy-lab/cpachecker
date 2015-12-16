@@ -39,10 +39,16 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -65,20 +71,30 @@ public final class CompositeTransferRelation implements TransferRelation {
           + " Does not work with backwards analysis!")
   private boolean splitMultiEdges = false;
 
+  @Option(secure=true, description="Instead of introducing MultiEdges in the CFA"
+      + " the Composite CPA can handle all paths in the CFA where MultiEdges could"
+      + " be if they were there. This has the big advantage, that we can have"
+      + " error locations in the middle of multi edges, which is not possible with"
+      + "static MultiEdges.\n Note that while this option is set to true,"
+      + " cfa.useMultiEdges has to be set to false.")
+  private boolean useDynamicMultiEdges = false;
+
   private final ImmutableList<TransferRelation> transferRelations;
+  private final CFA cfa;
   private final int size;
   private int assumptionIndex = -1;
   private int predicatesIndex = -1;
 
-  public CompositeTransferRelation(ImmutableList<TransferRelation> transferRelations,
-      Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
-    this.transferRelations = transferRelations;
-    size = transferRelations.size();
+  public CompositeTransferRelation(ImmutableList<TransferRelation> pTransferRelations,
+      Configuration pConfig, CFA pCFA) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    transferRelations = pTransferRelations;
+    cfa = pCFA;
+    size = pTransferRelations.size();
 
     // prepare special case handling if both predicates and assumptions are used
     for (int i = 0; i < size; i++) {
-      TransferRelation t = transferRelations.get(i);
+      TransferRelation t = pTransferRelations.get(i);
       if (t instanceof PredicateTransferRelation) {
         predicatesIndex = i;
       }
@@ -96,7 +112,7 @@ public final class CompositeTransferRelation implements TransferRelation {
     CompositePrecision compositePrecision = (CompositePrecision)precision;
     Collection<CompositeState> results;
 
-    AbstractStateWithLocation locState = extractStateByType(compositeState, AbstractStateWithLocation.class);
+    AbstractStateWithLocations locState = extractStateByType(compositeState, AbstractStateWithLocations.class);
     if (locState == null) {
       throw new CPATransferException("Analysis without any CPA tracking locations is not supported, please add one to the configuration (e.g., LocationCPA).");
     }
@@ -127,7 +143,53 @@ public final class CompositeTransferRelation implements TransferRelation {
   private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
       Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
 
-    if (splitMultiEdges && cfaEdge instanceof MultiEdge) {
+    if (useDynamicMultiEdges) {
+
+      assert !(cfaEdge instanceof MultiEdge) : "Static and dynamic MultiEdges may not be mixed.";
+
+      CFANode startNode = cfaEdge.getPredecessor();
+
+      // dynamic multiEdges may be used if the following conditions apply
+      if (isValidMultiEdgeStart(startNode)
+          && isValidMultiEdgeComponent(cfaEdge)) {
+
+        Collection<CompositeState> currentStates = new ArrayList<>(1);
+        currentStates.add(compositeState);
+        CFAEdge nextEdge = cfaEdge;
+
+        while (isValidMultiEdgeComponent(nextEdge)) {
+          Collection<CompositeState> successorStates = new ArrayList<>(currentStates.size());
+
+          for (CompositeState currentState : currentStates) {
+            getAbstractSuccessorForSimpleEdge(currentState, compositePrecision, cfaEdge, successorStates);
+          }
+
+          // if we found a target state in the current successors immediately return
+          if (from(successorStates).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+            compositeSuccessors.addAll(successorStates);
+            return;
+          }
+
+          // make successor states the new to-be-handled states for the next edge
+          currentStates = Collections.unmodifiableCollection(successorStates);
+
+          startNode = cfaEdge.getSuccessor();
+          if (startNode.getNumLeavingEdges() == 1) {
+            cfaEdge = startNode.getLeavingEdge(0);
+          } else {
+            break;
+          }
+        }
+
+        compositeSuccessors.addAll(currentStates);
+
+        // no use for dynamic multi edges right now, just compute the successor
+        // for the given edge
+      } else {
+        getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
+      }
+
+    } else if (splitMultiEdges && cfaEdge instanceof MultiEdge) {
       // We want to resolve MultiEdges here such that for every edge along
       // the MultiEdge there is a separate call to TransferRelation.getAbstractSuccessorsForEdge
       // and especially to TransferRelation.strengthen.
@@ -154,6 +216,58 @@ public final class CompositeTransferRelation implements TransferRelation {
     } else {
       getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
     }
+  }
+
+  private boolean isValidMultiEdgeStart(CFANode node) {
+    return node.getNumLeavingEdges() == 1         // linear chain of edges
+        && node.getLeavingSummaryEdge() == null   // without a functioncall
+        && node.getNumEnteringEdges() > 0;        // without a functionstart
+  }
+
+  /**
+   * This method checks if the given edge and its successor node are a valid
+   * component for a continuing dynamic MultiEdge.
+   */
+  private boolean isValidMultiEdgeComponent(CFAEdge edge) {
+    boolean result = edge.getEdgeType() == CFAEdgeType.BlankEdge
+        || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
+        || edge.getEdgeType() == CFAEdgeType.StatementEdge
+        || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
+
+    CFANode nodeAfterEdge = edge.getSuccessor();
+
+    result = result && nodeAfterEdge.getNumLeavingEdges() == 1
+                    && nodeAfterEdge.getNumEnteringEdges() == 1
+                    && nodeAfterEdge.getLeavingSummaryEdge() == null
+                    && !nodeAfterEdge.isLoopStart()
+                    && nodeAfterEdge.getClass() == CFANode.class;
+
+    return result && !containsFunctionCall(edge);
+  }
+
+  /**
+   * This method checks, if the given (statement) edge contains a function call
+   * directly or via a function pointer.
+   *
+   * @param edge the edge to inspect
+   * @return whether or not this edge contains a function call or not.
+   */
+  private boolean containsFunctionCall(CFAEdge edge) {
+    if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+      CStatementEdge statementEdge = (CStatementEdge)edge;
+
+      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
+        CFunctionCall call = ((CFunctionCall)statementEdge.getStatement());
+        CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
+
+        // declaration == null -> functionPointer
+        // functionName exists in CFA -> functioncall with CFA for called function
+        // otherwise: call of non-existent function, example: nondet_int() -> ignore this case
+        return declaration == null || cfa.getAllFunctionNames().contains(declaration.getQualifiedName());
+      }
+      return (statementEdge.getStatement() instanceof CFunctionCall);
+    }
+    return false;
   }
 
   private void getAbstractSuccessorForSimpleEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,

@@ -33,18 +33,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+
+import com.google.common.math.DoubleMath;
 
 import apron.Abstract0;
 import apron.Dimchange;
@@ -53,6 +55,9 @@ import apron.DoubleScalar;
 import apron.Interval;
 import apron.Lincons0;
 import apron.Linexpr0;
+import apron.MpfrScalar;
+import apron.MpqScalar;
+import apron.Scalar;
 import apron.Tcons0;
 import apron.Texpr0BinNode;
 import apron.Texpr0CstNode;
@@ -60,8 +65,7 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
-import com.google.common.math.DoubleMath;
+import gmp.Mpfr;
 
 /**
  * An element of Abstract0 abstract domain. This element contains an {@link Abstract0} which
@@ -440,7 +444,15 @@ logger.log(Level.FINEST, "apron state: isEqual");
     }
     if (assignment != null) {
       logger.log(Level.FINEST, "apron state: assignCopy: " + leftVarName + " = " + assignment);
-      return new ApronState(apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null),
+      Abstract0 retState = apronState.assignCopy(apronManager.getManager(), varIndex, assignment, null);
+
+      if (retState == null) {
+        logger.log(Level.WARNING, "Assignment of expression to variable yielded an empty state,"
+            + " forgetting the value of the variable as fallback.");
+        return forget(leftVarName);
+      }
+
+      return new ApronState(retState,
                             apronManager,
                             integerToIndexMap,
                             realToIndexMap,
@@ -637,13 +649,29 @@ logger.log(Level.FINEST, "apron state: isEqual");
     @Override
     BitvectorFormula visit(Texpr0CstNode pNode) {
       if (pNode.isScalar()) {
-        double value = ((DoubleScalar)pNode.getConstant().inf()).get();
+        double value;
+        Scalar scalar = pNode.getConstant().inf();
+        if (scalar instanceof DoubleScalar) {
+         value = ((DoubleScalar)scalar).get();
+        } else if (scalar instanceof MpqScalar) {
+          value = ((MpqScalar)scalar).get().doubleValue();
+        } else if (scalar instanceof MpfrScalar) {
+          value = ((MpfrScalar)scalar).get().doubleValue(Mpfr.RNDN);
+        } else {
+          throw new AssertionError("Unhandled Scalar subclass: " + scalar.getClass());
+        }
         if (DoubleMath.isMathematicalInteger(value)) {
           // TODO fix size, machineModel needed?
           return bitFmgr.makeBitvector(32, (int) value);
+        } else {
+          throw new AssertionError("Floats are currently not handled");
         }
+
+      } else {
+        // this is an interval and cannot be handled here because we need
+        // the other side of the operator to create > or < constraints
+        throw new AssertionError("Intervals are currently not handled");
       }
-      throw new AssertionError("intervals not handled");
     }
 
     @Override

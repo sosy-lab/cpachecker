@@ -25,32 +25,39 @@ package org.sosy_lab.cpachecker.util;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.ShutdownManager;
 
 import com.google.common.base.Preconditions;
 
 public class InterruptProvider {
 
-  private final ShutdownNotifier irreversibleParent;
+  private final ShutdownManager irreversibleParent;
 
-  private AtomicReference<ShutdownNotifier> reversibleNotifier;
+  private AtomicReference<ShutdownManager> temporaryManager;
 
-  public InterruptProvider(ShutdownNotifier pIrreversibleParent) {
+  public InterruptProvider(ShutdownManager pIrreversibleParent) {
     this.irreversibleParent = Preconditions.checkNotNull(pIrreversibleParent);
-    this.reversibleNotifier = new AtomicReference<>();
+    this.temporaryManager = new AtomicReference<>();
+
     reset();
   }
 
   public void reset() {
-    reversibleNotifier.set(ShutdownNotifier.createWithParent(irreversibleParent));
+    temporaryManager.set(ShutdownManager.createWithParent(irreversibleParent.getNotifier()));
   }
 
   public void canInterrupt() throws InterruptedException {
-    irreversibleParent.shutdownIfNecessary();
-    reversibleNotifier.get().shutdownIfNecessary();
+    irreversibleParent.getNotifier().shutdownIfNecessary();
+    temporaryManager.get().getNotifier().shutdownIfNecessary();
   }
 
-  public ShutdownNotifier getNotifier() {
-    return reversibleNotifier.get();
+  public ShutdownManager getReversibleManager() {
+    return temporaryManager.get();
   }
+
+  public boolean hasTemporaryInterruptRequest() {
+    return temporaryManager.get().getNotifier().shouldShutdown();
+  }
+
+
 }

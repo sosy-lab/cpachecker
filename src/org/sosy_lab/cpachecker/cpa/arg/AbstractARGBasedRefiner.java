@@ -126,6 +126,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
       // set the path from the exception as the target path
       // so it can be used for debugging
+      // we don't know if the path is precise here, so we assume it is imprecise
+      // (this only affects the CEXExporter)
       argCpa.addFeasibleCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), RichModel
           .empty()));
       throw e;

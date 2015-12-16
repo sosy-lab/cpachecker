@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
@@ -122,7 +122,7 @@ public class ValueAnalysisReducer implements Reducer {
     ValueAnalysisState elementKey = (ValueAnalysisState)pElementKey;
     VariableTrackingPrecision precisionKey = (VariableTrackingPrecision)pPrecisionKey;
 
-    return Pair.of(elementKey.getConstantsMap(), precisionKey);
+    return Pair.of(elementKey.getConstantsMapView(), precisionKey);
   }
 
   @Override

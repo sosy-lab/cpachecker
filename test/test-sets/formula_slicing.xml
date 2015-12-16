@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="200" hardtimelimit="220" memlimit="2000" cpuCores="1">
+    <option name="-noout" />
+
+    <option name="-setprop">cpa.stator.policy.wideningThreshold=0</option>
+    <option name="-setprop">cpa.stator.policy.runCongruence=false</option>
+    <option name="-setprop">cpa.stator.policy.useLatestVersion=false</option>
+    <option name="-setprop">cpa.stator.policy.checkPolicyInitialCondition=false</option>
+    <option name="-setprop">cpa.stator.policy.generateFromAsserts=false</option>
+    <option name="-setprop">cpa.stator.policy.generateFromStatements=false</option>
+    <option name="-setprop">cpa.slicing.runSyntacticSlicing=true</option>
+    <option name="-setprop">cpa.slicing.applyLBETransformation=true</option>
+    <option name="-setprop">cpa.slicing.checkTargetStates=true</option>
+
+    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+    <tasks name="Loops">
+        <includesfile>../../programs/benchmarks/Loops.set</includesfile>
+    </tasks>
+
+    <rundefinition name="intervals">
+        <option name="-policy-intervals"/>
+    </rundefinition>
+
+    <rundefinition name="intervals_w_cti_slicing">
+        <option name="-policy-slicing"/>
+        <option name="-setprop">cpa.slicing.runCounterexampleBasedSlicing=true</option>
+        <option name="-setprop">cpa.slicing.runDestructiveSlicing=false</option>
+    </rundefinition>
+
+    <rundefinition name="intervals_w_destructive_slicing">
+        <option name="-policy-slicing"/>
+        <option name="-setprop">cpa.slicing.runCounterexampleBasedSlicing=false</option>
+        <option name="-setprop">cpa.slicing.runDestructiveSlicing=true</option>
+    </rundefinition>
+</benchmark>

@@ -29,29 +29,21 @@ import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.precondition.interfaces.PreconditionWriter;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 
 import com.google.common.base.Preconditions;
 
-@Options
 public class PreconditionToSmtlibWriter implements PreconditionWriter {
 
   private final FormulaManagerView fmgr;
 
-  public PreconditionToSmtlibWriter(CFA pCfa, Configuration pConfig, LogManager pLogger, FormulaManagerView pFormulaManager)
-          throws InvalidConfigurationException {
-
-    pConfig.inject(this);
+  public PreconditionToSmtlibWriter(FormulaManagerView pFormulaManager) {
     fmgr = pFormulaManager;
   }
 

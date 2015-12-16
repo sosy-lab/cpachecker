@@ -28,7 +28,7 @@ import static com.google.common.base.Preconditions.*;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -38,6 +38,7 @@ import com.google.common.collect.Lists;
 public class CounterexampleInfo {
 
   private final boolean spurious;
+  private final boolean isPreciseCounterExample;
 
   private final ARGPath targetPath;
   private final RichModel model;
@@ -45,12 +46,13 @@ public class CounterexampleInfo {
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
-  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null);
+  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel, boolean pIsPreciseCEX) {
     spurious = pSpurious;
     targetPath = pTargetPath;
     model = pModel;
+    isPreciseCounterExample = pIsPreciseCEX;
 
     if (!spurious) {
       furtherInfo = Lists.newArrayListWithExpectedSize(1);
@@ -63,8 +65,23 @@ public class CounterexampleInfo {
     return SPURIOUS;
   }
 
+  public boolean isPreciseCounterExample() {
+    checkState(!spurious);
+    return isPreciseCounterExample;
+  }
+
+  /**
+   * Creates a feasible counterexample whose target path is marked as being imprecise.
+   */
   public static CounterexampleInfo feasible(ARGPath pTargetPath, RichModel pModel) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel));
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel), false);
+  }
+
+  /**
+   * Creates a feasible counterexample whose target path is marked as being precise.
+   */
+  public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, RichModel pModel) {
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel), true);
   }
 
   public boolean isSpurious() {

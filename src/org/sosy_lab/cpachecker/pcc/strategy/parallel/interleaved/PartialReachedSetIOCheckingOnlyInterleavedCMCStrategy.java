@@ -34,9 +34,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -49,16 +49,18 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.CMCPartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.CMCPartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.AssumptionAutomatonGenerator;
 import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.Sets;
-
+// FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
 
   private final Configuration config;
@@ -101,11 +103,12 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       AtomicBoolean checkResult = new AtomicBoolean(true);
       // we may use one semaphore only because we check and read proof parts sequentially
       Semaphore partitionsAvailable = new Semaphore(0);
+      Semaphore automatonAvailable = new Semaphore(1);
 
       Thread readingThread =
           new Thread(
-              new ProofPartReader(partitionsAvailable, checkResult, ioHelpers, cpas, roots, new ReachedSetFactory(
-                  config, logger)));
+              new ProofPartReader(automatonAvailable, partitionsAvailable, checkResult, ioHelpers, cpas, roots,
+                  new ReachedSetFactory(config, logger)));
       try {
         readingThread.start();
 
@@ -158,6 +161,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           if(i<numProofs) {
             // write assumption automaton for next round
             automatonWriter.writeAutomaton(checkingResult.getFirst(), checkingResult.getSecond());
+            automatonAvailable.release();
           } else {
             if(!checkingResult.getSecond().isEmpty()) {
               return false;
@@ -231,15 +235,16 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
   private class ProofPartReader implements Runnable {
 
     private final AtomicBoolean checkResult;
-    private final Semaphore mainSemaphore;
+    private final Semaphore mainSemaphore, startReading;
     private final CMCPartitioningIOHelper[] ioHelperPerProofPart;
     private final PropertyCheckerCPA[] cpas;
     private final AbstractState[] roots;
     private final ReachedSetFactory factory;
 
-    public ProofPartReader(final Semaphore pPartitionsAvailable, final AtomicBoolean pCheckResult,
+    public ProofPartReader(final Semaphore pReadNext, Semaphore pPartitionsAvailable, final AtomicBoolean pCheckResult,
         final CMCPartitioningIOHelper[] pIoHelpers, final PropertyCheckerCPA[] pCpas, final AbstractState[] pRoots,
         final ReachedSetFactory pFactory) {
+      startReading = pReadNext;
       checkResult = pCheckResult;
       mainSemaphore = pPartitionsAvailable;
       ioHelperPerProofPart = pIoHelpers;
@@ -259,7 +264,10 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
         CMCPartitioningIOHelper ioHelper;
         ConfigurableProgramAnalysis cpa;
 
+        boolean mustReadAndCheckSequentially;
+
         for (int i = 0; i < numProofs && checkResult.get(); i++) {
+          startReading.acquire();
           ioHelper = new CMCPartitioningIOHelper(config, logger, shutdown);
           // save helper for proof checking
           ioHelperPerProofPart[i] = ioHelper;
@@ -274,6 +282,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           cpas[i] = (PropertyCheckerCPA) cpa;
           GlobalInfo.getInstance().setUpInfoFromCPA(cpas[i]);
 
+          mustReadAndCheckSequentially = CPAs.retrieveCPA(cpa, PredicateCPA.class) != null;
+
           ioHelper.readMetadata(o, true);
           roots[i] = ioHelper.getRoot();
 
@@ -284,7 +294,9 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
           }
 
           // release for set up checking of particular, partial proof
-          mainSemaphore.release();
+          if(!mustReadAndCheckSequentially) {
+            mainSemaphore.release();
+          }
 
           for (int j = 0; j < ioHelper.getNumPartitions() && checkResult.get(); j++) {
             ioHelper.readPartition(o, stats);
@@ -295,12 +307,22 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             }
 
             // release to check partition
-            mainSemaphore.release();
+            if(!mustReadAndCheckSequentially) {
+              mainSemaphore.release();
+            }
+          }
+          if(mustReadAndCheckSequentially) {
+            mainSemaphore.release(ioHelper.getNumPartitions()+1);
           }
         }
       } catch (IOException | ClassNotFoundException e) {
         logger.logUserException(Level.SEVERE, e, "Partition reading failed. Stop checking");
         abortPreparation();
+      } catch(InterruptedException exp) {
+        if(checkResult.get()) {
+          logger.log(Level.SEVERE, "Unexpected interrupt. Stop checking.");
+          abortPreparation();
+        }
       } catch (Exception e2) {
         logger.logException(Level.SEVERE, e2, "Unexpected failure during proof reading");
         abortPreparation();

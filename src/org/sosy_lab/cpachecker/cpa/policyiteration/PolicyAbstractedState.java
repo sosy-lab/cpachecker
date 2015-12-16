@@ -1,22 +1,23 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 public final class PolicyAbstractedState extends PolicyState
@@ -40,16 +41,19 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * Uninstantiated invariant associated with a state,
    * derived from other analyses.
-   * *NOT* used in comparison.
    */
   private final BooleanFormula extraInvariant;
 
   /**
-   * Pointer to the latest version of the state associated with the given
-   * location.
+   * Predecessor intermediate state, empty only for the initial state.
    */
-  private transient Optional<PolicyAbstractedState> newVersion =
-      Optional.absent();
+  private final Optional<PolicyIntermediateState> predecessor;
+
+  /**
+   * Pointer to the latest version of the state associated with the given
+   * location (potentially itself).
+   */
+  private transient PolicyAbstractedState latestVersion = this;
 
   /**
    * If state A and state B can potentially get merged, they share the same
@@ -62,11 +66,13 @@ public final class PolicyAbstractedState extends PolicyState
       CongruenceState pCongruence,
       int pLocationID,
       StateFormulaConversionManager pManager, SSAMap pSsaMap,
-      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate) {
+      PointerTargetSet pPointerTargetSet, BooleanFormula pPredicate,
+      Optional<PolicyIntermediateState> pPredecessor) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
     extraInvariant = pPredicate;
+    predecessor = pPredecessor;
     abstraction = ImmutableMap.copyOf(pAbstraction);
     congruence = pCongruence;
     locationID = pLocationID;
@@ -81,8 +87,8 @@ public final class PolicyAbstractedState extends PolicyState
     return congruence;
   }
 
-  public void setNewVersion(PolicyAbstractedState pNewVersion) {
-    newVersion = Optional.of(pNewVersion);
+  public void setLatestVersion(PolicyAbstractedState pLatestVersion) {
+    latestVersion = pLatestVersion.getLatestVersion();
   }
 
   /**
@@ -91,22 +97,24 @@ public final class PolicyAbstractedState extends PolicyState
    */
   public PolicyAbstractedState getLatestVersion() {
     if (!manager.shouldUseLatestVersion()) {
-      // An option to make this operation non-op.
+
+      // An option to make this operation a NO-OP.
       return this;
     }
 
     PolicyAbstractedState latest = this;
-    List<PolicyAbstractedState> toUpdate = new ArrayList<>();
+    Set<PolicyAbstractedState> toUpdate = new HashSet<>();
 
     // Traverse the pointers up.
-    while (latest.newVersion.isPresent()) {
-      toUpdate.add(latest);
-      latest = latest.newVersion.get();
+    while (latest.latestVersion != latest) {
+      boolean changed = toUpdate.add(latest);
+      latest = latest.latestVersion;
+      Preconditions.checkState(changed, "getLatestVersion should not be cyclic");
     }
 
     // Update the pointers on the visited states.
     for (PolicyAbstractedState updated : toUpdate) {
-      updated.newVersion = Optional.of(latest);
+      updated.latestVersion = latest;
     }
     return latest;
   }
@@ -119,18 +127,22 @@ public final class PolicyAbstractedState extends PolicyState
       StateFormulaConversionManager pManager,
       SSAMap pSSAMap,
       PointerTargetSet pPointerTargetSet,
-      BooleanFormula pPredicate
+      BooleanFormula pPredicate,
+      PolicyIntermediateState pPredecessor
   ) {
     return new PolicyAbstractedState(node, data,
         pCongruence, pLocationID, pManager, pSSAMap,
-        pPointerTargetSet, pPredicate);
+        pPointerTargetSet, pPredicate, Optional.of(pPredecessor));
   }
 
-  public PolicyAbstractedState updateAbstraction(
+  /**
+   * Replace the abstraction with the given input.
+   */
+  public PolicyAbstractedState replaceAbstraction(
       Map<Template, PolicyBound> newAbstraction) {
     return new PolicyAbstractedState(getNode(),
         newAbstraction, congruence, locationID, manager, ssaMap,
-        pointerTargetSet, extraInvariant);
+        pointerTargetSet, extraInvariant, predecessor);
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
@@ -161,19 +173,18 @@ public final class PolicyAbstractedState extends PolicyState
    * @return Empty abstracted state associated with {@code node}.
    */
   public static PolicyAbstractedState empty(CFANode node,
-      SSAMap pSSAMap,
-      PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
       StateFormulaConversionManager pManager) {
-    return PolicyAbstractedState.of(
-        ImmutableMap.<Template, PolicyBound>of(), // abstraction
+    return new PolicyAbstractedState(
         node, // node
+        ImmutableMap.<Template, PolicyBound>of(), // abstraction
         CongruenceState.empty(),
         -1,
         pManager,
-        pSSAMap,
-        pPointerTargetSet,
-        pPredicate
+        SSAMap.emptySSAMap(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        pPredicate,
+        Optional.<PolicyIntermediateState>absent()
     );
   }
 
@@ -189,9 +200,10 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s)%s%nExtra Invariant: %s %n",
-        getNode(),
+        "(node=%s, locID=%s)%s%n%s%nExtra Invariant: %s %n",
+        getNode(), locationID,
         (new PolicyDotWriter()).toDOTLabel(abstraction),
+        congruence.toDOTLabel(),
         extraInvariant
     );
   }
@@ -209,6 +221,10 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public Iterator<Entry<Template, PolicyBound>> iterator() {
     return abstraction.entrySet().iterator();
+  }
+
+  public Optional<PolicyIntermediateState> getPredecessor() {
+    return predecessor;
   }
 
   @Override

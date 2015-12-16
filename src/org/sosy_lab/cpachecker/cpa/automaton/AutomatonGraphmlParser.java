@@ -97,6 +97,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteSource;
 
 @Options(prefix="spec")
 public class AutomatonGraphmlParser {
@@ -145,12 +146,20 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-  * Parses a Specification File and returns the Automata found in the file.
+   * Parses a specification from a file and returns the Automata found in the file.
    * @throws CParserException
-  */
+   */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
+    return parseAutomatonFile(pInputFile.asByteSource());
+  }
+
+  /**
+   * Parses a specification from a ByteSource and returns the Automata found in the file.
+   * @throws CParserException
+   */
+  public List<Automaton> parseAutomatonFile(ByteSource pInputFile) throws InvalidConfigurationException {
     CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
-    try (InputStream input = pInputFile.asByteSource().openStream()) {
+    try (InputStream input = pInputFile.openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -199,10 +208,10 @@ public class AutomatonGraphmlParser {
         EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
         if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          violationStates.add(sourceStateId);
+          violationStates.add(targetStateId);
         }
         if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-          violationStates.add(targetStateId);
+          violationStates.add(sourceStateId);
         }
       }
 
@@ -322,7 +331,8 @@ public class AutomatonGraphmlParser {
           newStack = new ArrayDeque<>(newStack);
         }
 
-        AutomatonBoolExpr conjunctedTriggers = AutomatonBoolExpr.TRUE;
+        // Never match on the dummy edge directly after the main function entry node
+        AutomatonBoolExpr conjunctedTriggers = new AutomatonBoolExpr.Negation(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
 
         // Add assumptions to the transition
         if (considerAssumptions) {
@@ -526,10 +536,19 @@ public class AutomatonGraphmlParser {
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
       AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      distanceVariable.setValue(-distances.get(initialStateName));
+      Integer initialStateDistance = distances.get(initialStateName);
+      if (initialStateDistance != null) {
+        distanceVariable.setValue(-distances.get(initialStateName));
+      } else {
+        logger.log(Level.WARNING,
+            String.format("There is no path from the entry state %s"
+                + " to a state explicitly marked as violation state."
+                + " Distance-to-violation waitlist order will not work"
+                + " and witness validation may fail to confirm this witness.", initialStateName));
+      }
       Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
-      AutomatonSafetyPropertyFactory propFact = new AutomatonSafetyPropertyFactory(config, pInputFile.getName());
+      AutomatonSafetyPropertyFactory propFact = new AutomatonSafetyPropertyFactory(config, "Witness");
       Automaton automaton = new Automaton(propFact, automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
 
@@ -543,8 +562,6 @@ public class AutomatonGraphmlParser {
 
       return result;
 
-    } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException("Invalid automaton file provided! File not found!: " + pInputFile.getPath());
     } catch (IOException | ParserConfigurationException | SAXException e) {
       throw new InvalidConfigurationException("Error while accessing automaton file!", e);
     } catch (InvalidAutomatonException e) {

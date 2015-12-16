@@ -39,7 +39,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
@@ -107,12 +108,12 @@ public class CPAchecker {
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
 
     private final ReachedSet reached;
-    private final ShutdownNotifier shutdownNotifier;
+    private final ShutdownManager shutdownManager;
 
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownNotifier pShutdownNotifier) {
+    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
-      shutdownNotifier = pShutdownNotifier;
+      shutdownManager = pShutdownManager;
       register();
     }
 
@@ -123,7 +124,7 @@ public class CPAchecker {
 
     @Override
     public void stop() {
-      shutdownNotifier.requestShutdown("A stop request was received via the JMX interface.");
+      shutdownManager.requestShutdown("A stop request was received via the JMX interface.");
     }
 
   }
@@ -184,6 +185,7 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
+  private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
 
@@ -218,10 +220,11 @@ public class CPAchecker {
   }
 
   public CPAchecker(Configuration pConfiguration, LogManager pLogManager,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+      ShutdownManager pShutdownManager) throws InvalidConfigurationException {
     config = pConfiguration;
     logger = pLogManager;
-    shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownManager;
+    shutdownNotifier = pShutdownManager.getNotifier();
 
     config.inject(this);
     factory = new CoreComponentsFactory(pConfiguration, pLogManager, shutdownNotifier);
@@ -307,6 +310,7 @@ public class CPAchecker {
 
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.SEVERE, e, "Invalid configuration");
+      stats.resultAnalysisTime.stop();
 
       } catch (InterruptedException e) {
         // Get intermediate verification results
@@ -318,7 +322,7 @@ public class CPAchecker {
         // we return normally instead of propagating the exception
         // so we can return the partial result we have so far
         if (!Strings.isNullOrEmpty(e.getMessage())) {
-          logger.logUserException(Level.WARNING, e, "Analysis stopped");
+          logger.logUserException(Level.WARNING, e, "Analysis interrupted");
         }
 
       } catch (CPAException e) {
@@ -386,7 +390,7 @@ public class CPAchecker {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     // register management interface for CPAchecker
-    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownNotifier);
+    CPAcheckerBean mxbean = new CPAcheckerBean(reached, logger, shutdownManager);
 
     stats.startAnalysisTimer();
     try {

@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -68,10 +69,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
@@ -124,61 +127,70 @@ class EclipseCParser implements CParser {
     return pPath;
   }
 
-  private FileContent wrapCode(FileContentToParse pContent) {
-    return FileContent.create(fixPath(pContent.getFileName()), pContent.getFileContent().toCharArray());
-  }
-
   private FileContent wrapCode(String pFileName, String pCode) {
-    return FileContent.create(fixPath(pFileName), pCode.toCharArray());
+    return FileContent.create(pFileName, pCode.toCharArray());
   }
 
   private FileContent wrapFile(String pFileName) throws IOException {
     String code = Paths.get(pFileName).asCharSource(Charset.defaultCharset()).read();
-    return wrapCode(fixPath(pFileName), code);
+    return wrapCode(pFileName, code);
   }
 
   @Override
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
+    Map<String, String> fileNameMapping = new HashMap<>();
 
     List<IASTTranslationUnit> astUnits = new ArrayList<>();
     for (FileToParse f: pFilenames) {
-      astUnits.add(parse(wrapFile(f.getFileName())));
+      String fileName = fixPath(f.getFileName());
+      fileNameMapping.put(fileName, f.getFileName());
+      astUnits.add(parse(wrapFile(fileName)));
     }
-    return buildCFA(astUnits, sourceOriginMapping);
+    return buildCFA(
+        astUnits, new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
   @Override
   public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
+    Map<String, String> fileNameMapping = new HashMap<>();
 
     List<IASTTranslationUnit> astUnits = new ArrayList<>();
     for (FileContentToParse f : codeFragments) {
-      astUnits.add(parse(wrapCode(f)));
+      String fileName = fixPath(f.getFileName());
+      fileNameMapping.put(fileName, f.getFileName());
+      astUnits.add(parse(wrapCode(fileName, f.getFileContent())));
     }
-    return buildCFA(astUnits, sourceOriginMapping);
+    return buildCFA(
+        astUnits, new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
   /**
    * This method parses a single file where no prefix for static variables is needed.
    */
   @Override
-  public ParseResult parseFile(String pFilename, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
-
-    IASTTranslationUnit unit = parse(wrapFile(pFilename));
-    List<IASTTranslationUnit> returnParam = new ArrayList<>();
-    returnParam.add(unit);
-    return buildCFA(returnParam, sourceOriginMapping);
+  public ParseResult parseFile(String pFileName, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, IOException, InvalidConfigurationException {
+    String fileName = fixPath(pFileName);
+    Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
+    IASTTranslationUnit unit = parse(wrapFile(fileName));
+    return buildCFA(
+        ImmutableList.of(unit),
+        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
   /**
    * This method parses a single string, where no prefix for static variables is needed.
    */
   @Override
-  public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
-
-    IASTTranslationUnit unit = parse(wrapCode(pFilename, pCode));
-    List<IASTTranslationUnit> returnParam = new ArrayList<>();
-    returnParam.add(unit);
-    return buildCFA(returnParam, sourceOriginMapping);
+  public ParseResult parseString(
+      String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, InvalidConfigurationException {
+    String fileName = fixPath(pFileName);
+    Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
+    IASTTranslationUnit unit = parse(wrapCode(fileName, pCode));
+    return buildCFA(
+        ImmutableList.of(unit),
+        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
   @Override
@@ -454,7 +466,6 @@ class EclipseCParser implements CParser {
       // some non-trivial usage in the code, we get parsing errors.
       // So we redefine these macros to themselves in order to
       // parse them as functions.
-      macrosBuilder.put("__builtin_va_arg", "__builtin_va_arg");
       macrosBuilder.put("__builtin_constant_p", "__builtin_constant_p");
       macrosBuilder.put("__builtin_types_compatible_p(t1,t2)", "__builtin_types_compatible_p(({t1 arg1; arg1;}), ({t2 arg2; arg2;}))");
       macrosBuilder.put("__offsetof__", "__offsetof__");
@@ -465,6 +476,13 @@ class EclipseCParser implements CParser {
 
       // Eclipse CDT 8.1.1 has problems with more complex attributes
       macrosBuilder.put("__attribute__(a)", "");
+
+      // There are some interesting macros available at
+      // http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
+      macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))"); // at least size of smallest addressable unit
+      //macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
+      macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
+      // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
 
       MACROS = macrosBuilder.build();
     }
@@ -498,6 +516,33 @@ class EclipseCParser implements CParser {
     public InternalFileContent getContentForInclusion(IIndexFileLocation pIfl,
         String pAstPath) {
       return InternalParserUtil.createFileContent(pIfl);
+    }
+  }
+
+  /**
+   * Wrapper for {@link CSourceOriginMapping} that does the reverse file-name mapping
+   * of {@link EclipseCParser#fixPath(String)}, otherwise file-name lookup fails
+   * and origin-source mapping does not work for files in the current directory
+   * that are not specified as "./foo.c" but only as "foo.c".
+   */
+  private static class FixedPathSourceOriginMapping extends CSourceOriginMapping {
+
+    private final CSourceOriginMapping delegate;
+    private final ImmutableMap<String, String> fileNameMapping;
+
+    FixedPathSourceOriginMapping(
+        CSourceOriginMapping pDelegate, Map<String, String> pFileNameMapping) {
+      delegate = pDelegate;
+      fileNameMapping = ImmutableMap.copyOf(pFileNameMapping);
+    }
+
+    @Override
+    public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(
+        String pAnalysisFile, int pAnalysisCodeLine) {
+      if (fileNameMapping.containsKey(pAnalysisFile)) {
+        pAnalysisFile = fileNameMapping.get(pAnalysisFile);
+      }
+      return delegate.getOriginLineFromAnalysisCodeLine(pAnalysisFile, pAnalysisCodeLine);
     }
   }
 }

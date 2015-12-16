@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.util.octagon;
 
 import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
 
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.NativeLibraries;
 
 import com.google.common.collect.BiMap;
 

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 /**
@@ -353,15 +354,15 @@ public enum InvariantsFormulaManager {
   }
 
   /**
-   * Gets an invariants formula representing the variable with the given name.
+   * Gets an invariants formula representing the variable with the given memory location.
    *
    * @param pBitVectorInfo the bit vector information for the variable.
-   * @param pName the name of the variable.
+   * @param pMemoryLocation the memory location of the variable.
    *
-   * @return an invariants formula representing the variable with the given name.
+   * @return an invariants formula representing the variable with the given memory location.
    */
-  public <T> Variable<T> asVariable(BitVectorInfo pBitVectorInfo, String pName) {
-    return Variable.of(pBitVectorInfo, pName);
+  public <T> Variable<T> asVariable(BitVectorInfo pBitVectorInfo, MemoryLocation pMemoryLocation) {
+    return Variable.of(pBitVectorInfo, pMemoryLocation);
   }
 
   /**

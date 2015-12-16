@@ -31,7 +31,7 @@ import java.io.PrintStream;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,9 +51,11 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Closer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -92,7 +94,8 @@ public class CPAMain {
     cpaConfig.enableLogging(logManager);
 
     // create everything
-    ShutdownNotifier shutdownNotifier = ShutdownNotifier.create();
+    final ShutdownManager shutdownManager = ShutdownManager.create();
+    final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
     CPAchecker cpachecker = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
@@ -104,10 +107,10 @@ public class CPAMain {
       }
       dumpConfiguration(options, cpaConfig, logManager);
 
-      limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownNotifier);
+      limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
-      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownNotifier);
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager);
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
@@ -118,7 +121,7 @@ public class CPAMain {
     }
 
     // This is for shutting down when Ctrl+C is caught.
-    ShutdownHook shutdownHook = new ShutdownHook(shutdownNotifier);
+    ShutdownHook shutdownHook = new ShutdownHook(shutdownManager);
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // This is for actually forcing a termination when CPAchecker
@@ -154,6 +157,11 @@ public class CPAMain {
     logManager.flush();
   }
 
+  // Default values for options from external libraries
+  // that we want to override in CPAchecker.
+  private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS = ImmutableMap.of(
+      "log.level", Level.INFO.toString());
+
   @Options
   private static class BootstrapOptions {
     @Option(secure=true, name="memorysafety.check",
@@ -166,6 +174,17 @@ public class CPAMain {
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private Path memsafetyConfig = null;
+
+    @Option(secure=true, name="overflow.check",
+        description="Whether to check for the overflow property "
+            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
+    private boolean checkOverflow = false;
+
+    @Option(secure=true, name="overflow.config",
+        description="When checking for the overflow property, "
+            + "use this configuration file instead of the current one.")
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private Path overflowConfig = null;
   }
 
   @Options
@@ -224,8 +243,10 @@ public class CPAMain {
     // and remove this from the list of options (it's not a real option)
     String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
 
-    // create initial configuration from config file and command-line arguments
+    // create initial configuration
+    // from default values, config file, and command-line arguments
     ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
     if (configFile != null) {
       configBuilder.loadFromFile(configFile);
     }
@@ -249,6 +270,20 @@ public class CPAMain {
                             .setOptions(cmdLineOptions)
                             .clearOption("memorysafety.check")
                             .clearOption("memorysafety.config")
+                            .clearOption("output.disable")
+                            .clearOption("output.path")
+                            .clearOption("rootDirectory")
+                            .build();
+    }
+    if (options.checkOverflow) {
+      if (options.overflowConfig == null) {
+        throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
+      }
+      config = Configuration.builder()
+                            .loadFromFile(options.overflowConfig)
+                            .setOptions(cmdLineOptions)
+                            .clearOption("overflow.check")
+                            .clearOption("overflow.config")
                             .clearOption("output.disable")
                             .clearOption("output.path")
                             .clearOption("rootDirectory")
@@ -288,6 +323,7 @@ public class CPAMain {
     // setup output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
+    @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
     Closer closer = Closer.create();
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {

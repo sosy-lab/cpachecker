@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,7 +36,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -53,15 +53,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 
 import com.google.common.base.Preconditions;
@@ -129,7 +129,7 @@ class AssignmentHandler {
     }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
-    final List<Pair<CCompositeType, String>> rhsUsedFields = rhsVisitor.getUsedFields();
+    pts.addEssentialFields(rhsVisitor.getUsedFields());
     final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
     final Map<String, CType> rhsUsedDeferredAllocationPointers = rhsVisitor.getUsedDeferredAllocationPointers();
 
@@ -138,7 +138,7 @@ class AssignmentHandler {
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers = lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
-    final List<Pair<CCompositeType, String>> lhsUsedFields = lhsVisitor.getUsedFields();
+    pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
     final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
         ? null
@@ -160,8 +160,6 @@ class AssignmentHandler {
                           batchMode,
                           destroyedTypes);
 
-    pts.addEssentialFields(lhsUsedFields);
-    pts.addEssentialFields(rhsUsedFields);
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
     }

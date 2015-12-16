@@ -8,6 +8,8 @@ import java.util.logging.StreamHandler;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
@@ -33,7 +35,8 @@ import apron.SetUp;
 
 public class ApronPolyhedraTest {
   static {
-    SetUp.init("lib/native/x86_64-linux/apron/");
+    SetUp.init(
+        NativeLibraries.getNativeLibraryPath().resolve("apron").getAbsolutePath());
   }
 
   private PolyhedraWideningManager pwm;
@@ -43,13 +46,14 @@ public class ApronPolyhedraTest {
     Handler h = new StreamHandler(System.out, new SimpleFormatter());
     Configuration config = TestDataTools.configurationForTest().build();
     logger = new BasicLogManager(config, h);
-
-    PolicyIterationStatistics stats = new PolicyIterationStatistics(config);
+    PolicyIterationStatistics stats = Mockito.mock(PolicyIterationStatistics.class);
 
     pwm = new PolyhedraWideningManager(stats, logger);
   }
 
   @Test public void test_polyhedra() {
+    // FIXME Tests should not rely on a user manually checking log message
+    // but instead use proper assertions, otherwise they are useless as regression tests.
     CIdExpression x, y;
     x = makeVar("x", CNumericTypes.INT);
     y = makeVar("y", CNumericTypes.INT);

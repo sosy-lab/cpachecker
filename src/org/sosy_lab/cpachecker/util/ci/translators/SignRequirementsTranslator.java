@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,10 +52,13 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices) {
+  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices,
+      final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getSignMapView().keySet()) {
-      list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
+      if (pRequiredVars == null || pRequiredVars.contains(var)) {
+        list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
+      }
     }
     return list;
   }

@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -107,8 +108,20 @@ public class SMGIsLessOrEqual {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
+      //check, whether it is the same stack
+      if (!frameInSMG1.getFunctionDeclaration().getOrigName()
+          .equals(frameInSMG2.getFunctionDeclaration().getOrigName())) {
+        return false;
+      }
+
       //technically, one should look if any SMGHVE exist in additional region in SMG1
       if (frameInSMG1.getAllObjects().size() > frameInSMG2.getAllObjects().size()) {
+        return false;
+      }
+
+      // check, whether they have different return values if present
+      if (!(frameInSMG1.getFunctionDeclaration().getType().getReturnType().getCanonicalType() instanceof CVoidType)
+          && !isLessOrEqualFields(pSMG1, pSMG2, frameInSMG1.getReturnObject(), frameInSMG2.getReturnObject())) {
         return false;
       }
 
@@ -128,6 +141,27 @@ public class SMGIsLessOrEqual {
         if (!isLessOrEqualFields(pSMG1, pSMG2, localInSMG1, localInSMG2)) {
           return false;
         }
+      }
+    }
+
+    // Check, whether the heap of smg1 is less or equal to smg 2
+    Set<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
+    Set<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
+
+    for (SMGObject object_in_smg1 : heap_in_smg1) {
+
+      //technically, one should look if any SMGHVE exist in additional region in SMG1
+      if (!heap_in_smg2.contains(object_in_smg1)) {
+        return false;
+      }
+
+      //FIXME SMG Objects in heap have to be the same object to be comparable
+      if (!isLessOrEqualFields(pSMG1, pSMG2, object_in_smg1, object_in_smg1)) {
+        return false;
+      }
+
+      if (pSMG1.isObjectValid(object_in_smg1) != pSMG2.isObjectValid(object_in_smg1)) {
+        return false;
       }
     }
 

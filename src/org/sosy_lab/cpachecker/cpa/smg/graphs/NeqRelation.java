@@ -23,132 +23,80 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SetMultimap;
 
 final class NeqRelation {
+
+  /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also
+   * inserted as pair (V,K). We avoid self-references like (A,A). */
+  private final SetMultimap<Integer, Integer> smgValues = HashMultimap.create();
+
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((smgValues == null) ? 0 : smgValues.hashCode());
-    return result;
+    return smgValues.hashCode();
   }
 
   public Set<Integer> getNeqsForValue(Integer pV) {
-    if (smgValues.containsKey(pV)) {
-      return Collections.unmodifiableSet(new HashSet<>(smgValues.get(pV)));
-    }
-    return Collections.unmodifiableSet(new HashSet<Integer>());
+    return Collections.unmodifiableSet(smgValues.get(pV));
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     NeqRelation other = (NeqRelation) obj;
-    if (smgValues == null) {
-      if (other.smgValues != null) {
-        return false;
-      }
-    } else if (!smgValues.equals(other.smgValues)) {
-      return false;
-    }
-    return true;
+    return other.smgValues != null && smgValues.equals(other.smgValues);
   }
-
-  private final Map<Integer, List<Integer>> smgValues = new HashMap<>();
 
   public void add_relation(Integer pOne, Integer pTwo) {
 
+    // we do not want self-references
     if(pOne.intValue() == pTwo.intValue()) {
       return;
     }
 
-    if (! smgValues.containsKey(pOne)) {
-      smgValues.put(pOne, new ArrayList<Integer>());
-    }
-    if (! smgValues.containsKey(pTwo)) {
-      smgValues.put(pTwo, new ArrayList<Integer>());
-    }
-
-    if (! smgValues.get(pOne).contains(pTwo)) {
-      smgValues.get(pOne).add(pTwo);
-      smgValues.get(pTwo).add(pOne);
-    }
+    smgValues.put(pOne, pTwo);
+    smgValues.put(pTwo, pOne);
   }
 
   public void putAll(NeqRelation pNeq) {
-    for (Integer key : pNeq.smgValues.keySet()) {
-      smgValues.put(key, new ArrayList<Integer>());
-      smgValues.get(key).addAll(pNeq.smgValues.get(key));
-    }
+    smgValues.putAll(pNeq.smgValues);
   }
 
   public void remove_relation(Integer pOne, Integer pTwo) {
-    if (smgValues.containsKey(pOne) && smgValues.containsKey(pTwo)) {
-      List<Integer> listOne = smgValues.get(pOne);
-      List<Integer> listTwo = smgValues.get(pTwo);
-
-      if (listOne.contains(pTwo)) {
-        listOne.remove(pTwo);
-        listTwo.remove(pOne);
-      }
-    }
+    smgValues.remove(pOne, pTwo);
+    smgValues.remove(pTwo, pOne);
   }
 
   public boolean neq_exists(Integer pOne, Integer pTwo) {
-    if (smgValues.containsKey(pOne) && smgValues.get(pOne).contains(pTwo)) {
-      return true;
-    }
-    return false;
+    return smgValues.containsEntry(pOne, pTwo);
   }
 
   public void removeValue(Integer pOne) {
-    if (smgValues.containsKey(pOne)) {
-      for (Integer other : smgValues.get(pOne)) {
-        smgValues.get(other).remove(pOne);
-      }
-      smgValues.remove(pOne);
+    for (Integer other : smgValues.get(pOne)) {
+      smgValues.get(other).remove(pOne);
+    }
+    smgValues.removeAll(pOne);
+  }
+
+  /** transform all relations from (A->C) towards (A->B) and delete C */
+  public void mergeValues(Integer pB, Integer pC) {
+    List<Integer> values = ImmutableList.copyOf(smgValues.get(pC));
+    removeValue(pC);
+    for (Integer value : values) {
+      add_relation(pB, value);
     }
   }
 
-  public void mergeValues(Integer pOne, Integer pTwo) {
-    if (! smgValues.containsKey(pOne)) {
-      smgValues.put(pOne, new ArrayList<Integer>());
-    }
-    if (! smgValues.containsKey(pTwo)) {
-      smgValues.put(pTwo, new ArrayList<Integer>());
-    }
-
-    List<Integer> values = ImmutableList.copyOf(smgValues.get(pTwo));
-    removeValue(pTwo);
-
-    List<Integer> my = smgValues.get(pOne);
-    for (Integer value : values) {
-      if(!smgValues.containsKey(value)) {
-        continue;
-      }
-
-      List<Integer> other = smgValues.get(value);
-      if ((! value.equals(pOne)) && (! other.contains(pOne))) {
-        other.add(pOne);
-        my.add(value);
-      }
-    }
+  @Override
+  public String toString() {
+    return "neq_rel=" + smgValues.toString();
   }
 }

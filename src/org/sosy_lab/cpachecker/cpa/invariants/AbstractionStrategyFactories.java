@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -134,31 +135,31 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
             private final Set<CFAEdge> visitedEdges;
 
-            private final Set<String> wideningTargets;
+            private final Set<MemoryLocation> wideningTargets;
 
             private final Set<BooleanFormula<CompoundInterval>> wideningHints;
 
             private EnteringEdgesBasedAbstractionState(
-                Set<String> pPreviousWideningTargets,
+                Set<MemoryLocation> pPreviousWideningTargets,
                 Set<BooleanFormula<CompoundInterval>> pPreviousWideningHints) {
               this(Collections.<CFAEdge>emptySet(), pPreviousWideningTargets, pPreviousWideningHints);
             }
 
             private EnteringEdgesBasedAbstractionState(
                 Set<CFAEdge> pVisitedEdges,
-                Set<String> pWideningTargets,
+                Set<MemoryLocation> pWideningTargets,
                 Set<BooleanFormula<CompoundInterval>> pWideningHints) {
               this.visitedEdges = pVisitedEdges;
               this.wideningTargets = pWideningTargets;
               this.wideningHints = pWideningHints;
             }
 
-            private ImmutableSet<String> determineWideningTargets(CFAEdge pEdge) {
+            private ImmutableSet<MemoryLocation> determineWideningTargets(CFAEdge pEdge) {
               return determineWideningTargets(Collections.singleton(pEdge));
             }
 
-            private ImmutableSet<String> determineWideningTargets(Iterable<CFAEdge> pEdges) {
-              ImmutableSet.Builder<String> wideningTargets = ImmutableSet.builder();
+            private ImmutableSet<MemoryLocation> determineWideningTargets(Iterable<CFAEdge> pEdges) {
+              ImmutableSet.Builder<MemoryLocation> wideningTargets = ImmutableSet.builder();
               Set<CFAEdge> checkedEdges = new HashSet<>();
               Queue<CFAEdge> waitlist = new ArrayDeque<>();
               Iterables.addAll(waitlist, pEdges);
@@ -257,7 +258,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
             }
 
             @Override
-            public Set<String> determineWideningTargets(AbstractionState pOther) {
+            public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther) {
               if (pOther instanceof EnteringEdgesBasedAbstractionState) {
                 EnteringEdgesBasedAbstractionState other = (EnteringEdgesBasedAbstractionState) pOther;
                 if (!visitedEdges.containsAll(other.visitedEdges)) {
@@ -270,7 +271,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
             @Override
             public AbstractionState addEnteringEdge(CFAEdge pEdge) {
-              Set<String> newWideningTargets = determineWideningTargets(pEdge);
+              Set<MemoryLocation> newWideningTargets = determineWideningTargets(pEdge);
               Set<BooleanFormula<CompoundInterval>> newWideningHints = determineWideningHints(pEdge);
               if (visitedEdges.contains(pEdge)
                   && wideningTargets.containsAll(newWideningTargets)
@@ -294,12 +295,12 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                       new ExpressionToFormulaVisitor(
                           pCompoundIntervalManagerFactory,
                           pMachineModel,
-                          new VariableNameExtractor(
+                          new MemoryLocationExtractor(
                               pCompoundIntervalManagerFactory,
                               pMachineModel,
                               pEdge,
                               pWithEnteringEdges,
-                              Collections.<String, NumeralFormula<CompoundInterval>>emptyMap()));
+                              Collections.<MemoryLocation, NumeralFormula<CompoundInterval>>emptyMap()));
                   if (expression instanceof CExpression) {
                     wideningHint = ((CExpression) expression).accept(expressionToFormulaVisitor);
                   } else if (expression instanceof JExpression) {
@@ -380,7 +381,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 }
                 final Set<CFAEdge> edges =
                     union(visitedEdges, other.visitedEdges);
-                final Set<String> lastEdges =
+                final Set<MemoryLocation> lastEdges =
                     union(wideningTargets, other.wideningTargets);
                 final Set<BooleanFormula<CompoundInterval>> hints =
                     union(wideningHints, other.wideningHints);
@@ -431,7 +432,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
           if (pWithEnteringEdges && pPrevious instanceof EnteringEdgesBasedAbstractionState) {
             return pPrevious;
           }
-          final Set<String> previousWideningTargets;
+          final Set<MemoryLocation> previousWideningTargets;
           final Set<BooleanFormula<CompoundInterval>> previousWideningHints;
           if (pPrevious instanceof EnteringEdgesBasedAbstractionState) {
             previousWideningTargets = ((EnteringEdgesBasedAbstractionState) pPrevious).wideningTargets;
@@ -520,7 +521,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
     ALWAYS_STATE {
 
       @Override
-      public Set<String> determineWideningTargets(AbstractionState pOther) {
+      public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther) {
         return null;
       }
 
@@ -549,7 +550,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
     NEVER_STATE {
 
       @Override
-      public Set<String> determineWideningTargets(AbstractionState pOther) {
+      public Set<MemoryLocation> determineWideningTargets(AbstractionState pOther) {
         return Collections.emptySet();
       }
 

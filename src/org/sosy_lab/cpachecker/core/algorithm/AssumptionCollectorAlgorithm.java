@@ -69,9 +69,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -359,11 +359,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
       int multiEdgeID = 0;
 
-      final CFANode loc = AbstractStates.extractLocation(s);
       for (final ARGState child : getUncoveredChildrenView(s)) {
         assert !child.isCovered();
 
-        CFAEdge edge = loc.getEdgeTo(extractLocation(child));
+        CFAEdge edge = s.getEdgeToChild(child);
 
         if (edge instanceof MultiEdge) {
           assert (((MultiEdge) edge).getEdges().size() > 1);

@@ -102,4 +102,8 @@ public class CustomInstructionApplications {
     return ci;
   }
 
+  public Map<CFANode, AppliedCustomInstruction> getMapping() {
+    return cis;
+  }
+
 }

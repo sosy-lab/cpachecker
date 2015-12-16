@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Vector;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -63,7 +64,6 @@ public class ReachingDefUtils {
   }
 
   public static Pair<Set<String>, Map<FunctionEntryNode, Set<String>>> getAllVariables(CFANode pMainNode) {
-    CFAEdge out;
     Vector<String> globalVariables = new Vector<>();
     Vector<CFANode> nodes = new Vector<>();
 
@@ -104,8 +104,7 @@ TODO delete */
         currentElement = currentWaitlist.pop();
         nodes.add(currentElement);
 
-        for (int i = 0; i < currentElement.getNumLeavingEdges(); i++) {
-          out = currentElement.getLeavingEdge(i);
+        for (CFAEdge out : CFAUtils.leavingEdges(currentElement)) {
 
           if (out instanceof FunctionReturnEdge) {
             continue;

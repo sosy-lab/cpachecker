@@ -14,10 +14,10 @@
 	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
 	<classpathentry kind="lib" path="lib/jpl.jar"/>
 	<classpathentry kind="lib" path="lib/jsylvan.jar"/>
-	<classpathentry kind="lib" path="lib/apron.jar"/>
+	<classpathentry kind="lib" path="lib/apron.jar" sourcepath="lib/apron.jar"/>
 	<classpathentry kind="lib" path="lib/gmp.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="lib/java-contrib/guava-testlib-sources.jar"/>
-	<classpathentry kind="lib" path="lib/java/build/annotations.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/annotations.jar" sourcepath="lib/java/build/annotations.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth.jar" sourcepath="lib/java-contrib/truth-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smt-parser.jar"/>
 	<classpathentry kind="lib" path="lib/java/build/error_prone_annotations.jar" sourcepath="lib/java-contrib/error_prone_annotations-sources.jar"/>
@@ -33,8 +33,14 @@
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.jar" sourcepath="lib/java-contrib/org.eclipse.jdt.core-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.osgi.jar"/>
 	<classpathentry kind="lib" path="lib/meconsole010.jar"/>
-	<classpathentry kind="lib" path="lib/java/runtime/princess.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/princess-assertionless.jar" sourcepath="lib/java-contrib/princess-sources-assertionless.zip"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-library.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/scala-actors.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/javasmt.jar" sourcepath="lib/java-contrib/javasmt-sources.jar"/>
+	<classpathentry kind="src" path=".apt-generated">
+		<attributes>
+			<attribute name="optional" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

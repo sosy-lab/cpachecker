@@ -38,11 +38,9 @@ import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -63,7 +61,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Preconditions;
 
-@Options(prefix = "pcc.arg.cmc")
 public class ARG_CMCStrategy extends AbstractStrategy {
 
   private final Configuration globalConfig;
@@ -73,10 +70,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
   private ARGState[] roots;
   private boolean proofKnown = false;
-
-  @Option(secure = true,
-      description = "Enable if partial ARGs can be read based using different CPA object than checker")
-  private boolean interleavedMode = true;
 
   public ARG_CMCStrategy(Configuration pConfig, LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa) throws InvalidConfigurationException {
@@ -153,11 +146,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     logger.log(Level.INFO, "Start checking partial ARGs");
     pReachedSet.popFromWaitlist();
 
-    if (interleavedMode) {
-      return checkAndReadInterleaved();
-    } else {
-      return checkAndReadSequentially();
-    }
+    return checkAndReadSequentially();
   }
 
   private boolean checkAndReadSequentially() {
@@ -234,6 +223,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
   }
 
+  @SuppressWarnings("unused")
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
     final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
@@ -360,7 +350,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     AbstractARGStrategy partialProofChecker;
     logger.log(Level.FINEST, "Build checking instance");
     // require ARG_CPA strategy because the other ARG based strategy does not take strengthening into account
-    // strengthening is required for assumpton guiding CPA
+    // strengthening is required for assumption guiding CPA
     Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
             "Conflicting configuration: Partial ARGs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
     partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, (PropertyCheckerCPA) cpa);

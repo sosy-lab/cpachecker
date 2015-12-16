@@ -29,8 +29,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -45,6 +47,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -59,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CollectVarsVisitor;
@@ -72,10 +77,10 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -125,13 +130,36 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     InvariantsState state = (InvariantsState) pState;
     InvariantsPrecision precision = (InvariantsPrecision) pPrecision;
 
+    final AtomicBoolean overflowDetected = new AtomicBoolean(false);
+    OverflowEventHandler overflowEventHandler = new OverflowEventHandler() {
+
+      @Override
+      public void signedOverflow() {
+        overflowDetected.set(true);
+      }
+    };
+
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      compoundBitVectorIntervalManagerFactory.addOverflowEventHandler(overflowEventHandler);
+    }
+
     state = getSuccessor(pEdge, precision, state);
+
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      compoundBitVectorIntervalManagerFactory.removeOverflowEventHandler(overflowEventHandler);
+    }
 
     if (state == null) {
       return Collections.emptySet();
     }
 
     state = state.updateAbstractionState(precision, pEdge);
+
+    if (overflowDetected.get()) {
+      state = state.overflowDetected();
+    }
 
     return Collections.singleton(state);
   }
@@ -174,17 +202,31 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     return state;
   }
 
-  private InvariantsState handleAssume(InvariantsState pElement, CAssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
-    CExpression expression = pEdge.getExpression();
+  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, InvariantsPrecision pPrecision) throws UnrecognizedCodeException {
+    return handleAssume(pState, pEdge, pPrecision, getExpressionToFormulaVisitor(pEdge, pState));
+  }
+
+  private InvariantsState handleAssume(InvariantsState pState, AssumeEdge pEdge, InvariantsPrecision pPrecision, ExpressionToFormulaVisitor pExpressionToFormulaVisitor) throws UnrecognizedCodeException {
+    AExpression expression = pEdge.getExpression();
 
     // Create a formula representing the edge expression
-    NumeralFormula<CompoundInterval> expressionFormula = expression.accept(getExpressionToFormulaVisitor(pEdge, pElement));
-    BooleanFormula<CompoundInterval> assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
+
+    BooleanFormula<CompoundInterval> assumption = null;
+    if (expression instanceof CExpression) {
+      NumeralFormula<CompoundInterval> expressionFormula = ((CExpression) expression).accept(pExpressionToFormulaVisitor);
+      assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
+    } else if (expression instanceof JExpression) {
+      NumeralFormula<CompoundInterval> expressionFormula = ((JExpression) expression).accept(pExpressionToFormulaVisitor);
+      assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
+    } else {
+      return pState;
+    }
+
     if (!pEdge.getTruthAssumption()) {
       assumption = compoundIntervalFormulaManager.logicalNot(assumption);
     }
 
-    return handleAssumption(pElement, pEdge, assumption, pPrecision);
+    return handleAssumption(pState, pEdge, assumption, pPrecision);
   }
 
   private InvariantsState handleAssumption(InvariantsState pState, CFAEdge pEdge, BooleanFormula<CompoundInterval> pAssumption, InvariantsPrecision pPrecision) {
@@ -202,9 +244,9 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
 
-    String varName = decl.getName();
+    MemoryLocation varName = MemoryLocation.valueOf(decl.getName());
     if (!decl.isGlobal()) {
-      varName = VariableNameExtractor.scope(varName, pEdge.getSuccessor().getFunctionName());
+      varName = MemoryLocationExtractor.scope(decl.getName(), pEdge.getSuccessor().getFunctionName());
     }
 
     NumeralFormula<CompoundInterval> value;
@@ -231,7 +273,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     int limit = Math.min(formalParams.size(), actualParams.size());
 
     ExpressionToFormulaVisitor actualParamExpressionToFormulaVisitor =
-        getExpressionToFormulaVisitor(new VariableNameExtractor(compoundIntervalManagerFactory, machineModel, pEdge, true, pElement.getEnvironment()), pElement);
+        getExpressionToFormulaVisitor(new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pEdge, true, pElement.getEnvironment()), pElement);
 
     if (limit == 1 && "__VERIFIER_assume".equals(pEdge.getSuccessor().getFunctionName())) {
       NumeralFormula<CompoundInterval> assumptionExpression =
@@ -252,7 +294,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
       }
-      String formalParam = VariableNameExtractor.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
+      MemoryLocation formalParam = MemoryLocationExtractor.scope(param.getFirst(), pEdge.getSuccessor().getFunctionName());
 
       value = handlePotentialOverflow(pElement, value, declaration.getType());
       newElement = newElement.assign(formalParam, value);
@@ -263,13 +305,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private CompoundInterval evaluate(
       NumeralFormula<CompoundInterval> pFormula,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return pFormula.accept(new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory), pEnvironment);
   }
 
   private NumeralFormula<CompoundInterval> toConstant(
       NumeralFormula<CompoundInterval> pFormula,
-      Map<? extends String, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return InvariantsFormulaManager.INSTANCE.asConstant(pFormula.getBitVectorInfo(), evaluate(pFormula, pEnvironment));
   }
 
@@ -330,14 +372,14 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
-    VariableNameExtractor variableNameExtractor = new VariableNameExtractor(compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
+    MemoryLocationExtractor variableNameExtractor = new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pEdge, pElement.getEnvironment());
     if (pLeftHandSide instanceof CArraySubscriptExpression) {
       CArraySubscriptExpression arraySubscriptExpression = (CArraySubscriptExpression) pLeftHandSide;
-      String array = variableNameExtractor.getVarName(arraySubscriptExpression.getArrayExpression());
+      MemoryLocation array = variableNameExtractor.getMemoryLocation(arraySubscriptExpression.getArrayExpression());
       NumeralFormula<CompoundInterval> subscript = arraySubscriptExpression.getSubscriptExpression().accept(etfv);
       return pElement.assignArray(array, subscript, value);
     } else {
-      String varName = variableNameExtractor.getVarName(pLeftHandSide);
+      MemoryLocation varName = variableNameExtractor.getMemoryLocation(pLeftHandSide);
       return pElement.assign(varName, value);
     }
   }
@@ -356,7 +398,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
     ExpressionToFormulaVisitor etfv = getExpressionToFormulaVisitor(pEdge, pElement);
     NumeralFormula<CompoundInterval> returnedState = pEdge.getExpression().get().accept(etfv);
-    String returnValueName = pEdge.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName();
+    MemoryLocation returnValueName = MemoryLocation.valueOf(pEdge.getSuccessor().getEntryNode().getReturnVariable().get().getQualifiedName());
     return pElement.assign(returnValueName, returnedState);
   }
 
@@ -379,7 +421,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, var.get().getType());
           NumeralFormula<CompoundInterval> value = InvariantsFormulaManager.INSTANCE.asVariable(
               bitVectorInfo,
-              var.get().getQualifiedName());
+              MemoryLocation.valueOf(var.get().getQualifiedName()));
           result = handleAssignment(pElement, pFunctionReturnEdge.getSuccessor().getFunctionName(), pFunctionReturnEdge, funcExp.getLeftHandSide(), value, pPrecision);
         }
       } else {
@@ -391,17 +433,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           CExpression actualParam = actualParamIterator.next();
           NumeralFormula<CompoundInterval> actualParamFormula = actualParam.accept(getExpressionToFormulaVisitor(summaryEdge, pElement));
           if (actualParamFormula instanceof Variable) {
-            String actualParamName = ((Variable<?>) actualParamFormula).getName();
+            MemoryLocation actualParamName = ((Variable<?>) actualParamFormula).getMemoryLocation();
             String formalParamPrefixDeref = calledFunctionName + "::" + formalParamName + "->";
             String formalParamPrefixAccess = calledFunctionName + "::" + formalParamName + ".";
-            for (Entry<? extends String, ? extends NumeralFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
-              String varName = entry.getKey();
+            for (Entry<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> entry : pElement.getEnvironment().entrySet()) {
+              String varName = entry.getKey().getAsSimpleString();
               if (varName.startsWith(formalParamPrefixDeref)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixDeref.length());
-                result = result.assign(actualParamName + "->" + formalParamSuffix, entry.getValue());
+                result = result.assign(MemoryLocation.valueOf(actualParamName + "->" + formalParamSuffix), entry.getValue());
               } else if (varName.startsWith(formalParamPrefixAccess)) {
                 String formalParamSuffix = varName.substring(formalParamPrefixAccess.length());
-                result = result.assign(actualParamName + "." + formalParamSuffix, entry.getValue());
+                result = result.assign(MemoryLocation.valueOf(actualParamName + "." + formalParamSuffix), entry.getValue());
               }
             }
           }
@@ -409,11 +451,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
 
       // Remove all variables that are in the scope of the returning function
-      result = result.clearAll(new Predicate<String>() {
+      result = result.clearAll(new Predicate<MemoryLocation>() {
 
         @Override
-        public boolean apply(String pVariableName) {
-          return VariableNameExtractor.isFunctionScoped(pVariableName, calledFunctionName);
+        public boolean apply(MemoryLocation pMemoryLocation) {
+          return pMemoryLocation.isOnFunctionStack() && pMemoryLocation.getFunctionName().equals(calledFunctionName);
         }
 
       });
@@ -424,9 +466,19 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCCodeException {
+      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCodeException {
 
     InvariantsState state = (InvariantsState) pElement;
+
+    for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
+      for (AssumeEdge edge : assumptionState.getAsAssumeEdges(pCfaEdge.getSuccessor().getFunctionName())) {
+        state = handleAssume(state, edge, (InvariantsPrecision) pPrecision, getExpressionToFormulaVisitor(pCfaEdge, state));
+        if (state == null) {
+          return Collections.emptySet();
+        }
+      }
+    }
+
     CFAEdge edge = pCfaEdge;
     if (edge instanceof MultiEdge) {
       for (CFAEdge subEdge : ((MultiEdge) edge)) {
@@ -454,11 +506,11 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         if (locationSet.isTop()) {
           return Collections.singleton(state.clear());
         }
-        Iterable<String> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
+        Iterable<MemoryLocation> locations = PointerTransferRelation.toNormalSet(pointerState, locationSet);
         boolean moreThanOneLocation = hasMoreThanNElements(locations, 1);
-        for (String location : locations) {
-          int lastIndexOfDot = location.lastIndexOf('.');
-          int lastIndexOfArrow = location.lastIndexOf("->");
+        for (MemoryLocation location : locations) {
+          int lastIndexOfDot = location.getAsSimpleString().lastIndexOf('.');
+          int lastIndexOfArrow = location.getAsSimpleString().lastIndexOf("->");
           final boolean hasDot = lastIndexOfDot >= 0;
           final boolean hasArrow = lastIndexOfArrow >= 0;
           if (hasArrow || hasDot) {
@@ -466,17 +518,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
               ++lastIndexOfArrow;
             }
             int lastIndexOfSep = Math.max(lastIndexOfDot, lastIndexOfArrow);
-            final String end = location.substring(lastIndexOfSep + 1);
-            Iterable<? extends String> targets = FluentIterable.from(result.getEnvironment().keySet()).filter(new Predicate<String>() {
+            final String end = location.getAsSimpleString().substring(lastIndexOfSep + 1);
+            Iterable<? extends MemoryLocation> targets = FluentIterable.from(result.getEnvironment().keySet()).filter(new Predicate<MemoryLocation>() {
 
               @Override
-              public boolean apply(String pVar) {
-                return pVar != null && (pVar.endsWith("." + end) || pVar.endsWith("->" + end));
+              public boolean apply(MemoryLocation pVar) {
+                return pVar != null && (pVar.getIdentifier().endsWith("." + end) || pVar.getIdentifier().endsWith("->" + end));
               }
 
             });
             if (moreThanOneLocation || hasMoreThanNElements(targets, 1)) {
-              for (String variableName : targets) {
+              for (MemoryLocation variableName : targets) {
                 Type type = result.getType(variableName);
                 if (type != null) {
                   result = result.assign(variableName, allPossibleValues(type));
@@ -497,16 +549,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final CFAEdge pEdge, final InvariantsState pState) {
-    return getExpressionToFormulaVisitor(new VariableNameExtractor(compoundIntervalManagerFactory, machineModel, pEdge, pState.getEnvironment()), pState);
+    return getExpressionToFormulaVisitor(new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pEdge, pState.getEnvironment()), pState);
   }
 
-  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final VariableNameExtractor pVariableNameExtractor, final InvariantsState pState) {
+  private ExpressionToFormulaVisitor getExpressionToFormulaVisitor(final MemoryLocationExtractor pVariableNameExtractor, final InvariantsState pState) {
     return new ExpressionToFormulaVisitor(compoundIntervalManagerFactory, machineModel, pVariableNameExtractor, pState.getEnvironment());
   }
 
   private static boolean containsArrayWildcard(NumeralFormula<CompoundInterval> pFormula) {
-    for (String pVarName : pFormula.accept(COLLECT_VARS_VISITOR)) {
-      if (pVarName.contains("[*]")) {
+    for (MemoryLocation memoryLocation : pFormula.accept(COLLECT_VARS_VISITOR)) {
+      if (memoryLocation.getIdentifier().contains("[*]")) {
         return true;
       }
     }
@@ -534,7 +586,5 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
   private static boolean hasMoreThanNElements(Iterable<?> pIterable, int pN) {
     return !Iterables.isEmpty(Iterables.skip(pIterable, pN));
   }
-
-
 
 }

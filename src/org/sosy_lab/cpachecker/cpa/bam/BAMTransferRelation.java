@@ -36,9 +36,9 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -603,21 +603,21 @@ public class BAMTransferRelation implements TransferRelation {
       }
 
       //no call node, check if successors can be constructed with help of CFA edges
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         // edge leads to node in inner block
         Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
         if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
-            && currentNodeBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
-          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
+            && currentNodeBlock.getNodes().contains(leavingEdge.getSuccessor())) {
+          if (usedEdges.contains(leavingEdge)) { return false; }
           continue;
         }
         // edge leaves block, do not analyze, check for call node since if call node is also return node analysis will go beyond current block
         if (!currentBlock.isCallNode(node) && currentBlock.isReturnNode(node)
-            && !currentBlock.getNodes().contains(node.getLeavingEdge(i).getSuccessor())) {
-          if (usedEdges.contains(node.getLeavingEdge(i))) { return false; }
+            && !currentBlock.getNodes().contains(leavingEdge.getSuccessor())) {
+          if (usedEdges.contains(leavingEdge)) { return false; }
           continue;
         }
-        if (!wrappedProofChecker.areAbstractSuccessors(pState, node.getLeavingEdge(i), pSuccessors)) {
+        if (!wrappedProofChecker.areAbstractSuccessors(pState, leavingEdge, pSuccessors)) {
           return false;
         }
       }

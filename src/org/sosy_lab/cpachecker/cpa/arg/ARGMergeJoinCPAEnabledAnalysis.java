@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
 public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
@@ -98,7 +98,6 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
   private void deleteChildren(ARGState parent) {
     // assumes that covered elements are not saved in reached set
     Stack<ARGState> toProcess = new Stack<>();
-    HashSet<ARGState> delete = new HashSet<>();
     toProcess.add(parent);
 
     ARGState current;
@@ -108,7 +107,6 @@ public class ARGMergeJoinCPAEnabledAnalysis implements MergeOperator {
     while (!toProcess.isEmpty()) {
       current = toProcess.pop();
       toDeleteFromReached.add(current);
-      delete.add(current);
 
       // delete connection to children
       while (current.getChildren().size() != 0) {

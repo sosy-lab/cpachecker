@@ -32,7 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -114,6 +114,7 @@ public class UseDefBasedInterpolator {
     LinkedList<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new LinkedList<>();
     PathIterator iterator = slicedPrefix.reversePathIterator();
     while (iterator.hasNext()) {
+      iterator.advance();
       ARGState state = iterator.getAbstractState();
 
       Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
@@ -129,8 +130,6 @@ public class UseDefBasedInterpolator {
       if (interpolant != trivialItp) {
         trivialItp = ValueAnalysisInterpolant.TRUE;
       }
-
-      iterator.advance();
     }
 
     return interpolants;

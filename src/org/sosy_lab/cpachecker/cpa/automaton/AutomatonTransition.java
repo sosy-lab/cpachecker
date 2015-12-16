@@ -32,13 +32,13 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;

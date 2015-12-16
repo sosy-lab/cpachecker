@@ -17,15 +17,15 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
 import org.sosy_lab.cpachecker.cpa.policyiteration.TemplateManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
@@ -154,11 +154,11 @@ public class CongruenceManager {
 
     for (Entry<Template, Congruence> entry : abstraction.entrySet()) {
       Template template = entry.getKey();
-      Congruence congr = entry.getValue();
+      Congruence congruence = entry.getValue();
 
       Formula formula = templateManager.toFormula(pfmgr, fmgr, template, ref);
       Formula remainder;
-      switch (congr) {
+      switch (congruence) {
         case ODD:
           remainder = makeBv(fmgr.getBitvectorFormulaManager(), formula, 1);
           break;

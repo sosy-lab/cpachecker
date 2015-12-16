@@ -166,11 +166,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
-    cexExporter = new CEXExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
+    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
+    cexExporter = new CEXExporter(config, logger, argPathExporter);
     machineModel = cfa.getMachineModel();
     cexSummary = new CounterexamplesSummary(config, logger, machineModel);
     stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(), cfa.getLanguage(),
-        dumpErrorPathImmediately ? null : cexExporter, cexSummary);
+        dumpErrorPathImmediately ? null : cexExporter, argPathExporter, cexSummary);
   }
 
   private CounterexampleFilter createCounterexampleFilter(Configuration config,

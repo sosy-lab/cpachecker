@@ -23,36 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.*;
+import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.MutableARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 
-import com.google.common.collect.Iterables;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 
 @Options(prefix="cpa.predicate.refinement")
 public class PredicateBasedPrefixProvider implements PrefixProvider {
@@ -73,7 +76,10 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    *
    * @param pSolver the solver to use
    */
-  public PredicateBasedPrefixProvider(Configuration config, LogManager pLogger, Solver pSolver, PathFormulaManager pPathFormulaManager) {
+  public PredicateBasedPrefixProvider(Configuration config,
+      LogManager pLogger,
+      Solver pSolver,
+      PathFormulaManager pPathFormulaManager) {
     try {
       config.inject(this);
     } catch (InvalidConfigurationException e) {
@@ -85,127 +91,153 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     pathFormulaManager = pPathFormulaManager;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.cpa.predicate.PrefixProvider#getInfeasiblePrefixes(org.sosy_lab.cpachecker.cpa.arg.ARGPath)
-   */
   @Override
-  public List<InfeasiblePrefix> extractInfeasiblePrefixes(
-      final ARGPath path) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> prefixes = new ArrayList<>();
-    MutableARGPath feasiblePrefixPath = new MutableARGPath();
-    List<Object> feasiblePrefixTerms = new ArrayList<>(path.size());
+  public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath pPath)
+      throws CPAException, InterruptedException {
+
+    List<ARGState> abstractionStates = transformPath(pPath);
+    List<BooleanFormula> blockFormulas = from(abstractionStates)
+        .transform(AbstractStates.toState(PredicateAbstractState.class))
+        .transform(GET_BLOCK_FORMULA)
+        .toList();
+
+    List<Object> terms = new ArrayList<>(abstractionStates.size());
+    List<InfeasiblePrefix> infeasiblePrefixes = new ArrayList<>();
 
     try (@SuppressWarnings("unchecked")
       InterpolatingProverEnvironmentWithAssumptions<Object> prover =
       (InterpolatingProverEnvironmentWithAssumptions<Object>)solver.newProverEnvironmentWithInterpolation()) {
 
+      List<BooleanFormula> pathFormula = new ArrayList<>();
       PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
 
-      PathIterator iterator = path.pathIterator();
+      int currentBlockIndex = 0;
+
+      PathIterator iterator = pPath.pathIterator();
       while (iterator.hasNext()) {
-        feasiblePrefixPath.addLast(Pair.of(iterator.getAbstractState(), iterator.getOutgoingEdge()));
-        try {
-          formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), iterator.getOutgoingEdge());
-          Object term = prover.push(formula.getFormula());
-          feasiblePrefixTerms.add(term);
+        ARGState currentState = iterator.getAbstractState();
 
-          if (iterator.getOutgoingEdge().getEdgeType() == CFAEdgeType.AssumeEdge && prover.isUnsat()) {
-            logger.log(Level.FINE, "found infeasible prefix: ", iterator.getOutgoingEdge(), " resulted in an unsat-formula");
+        if(iterator.getIndex() == 0) {
+          assert(isAbstractionState(currentState));
+        }
 
-            List<BooleanFormula> interpolantSequence = extractInterpolantSequence(feasiblePrefixTerms, prover);
+        // only compute prefixes at abstraction states
+        if (isAbstractionState(currentState)) {
 
-            // add infeasible prefix
-            InfeasiblePrefix infeasiblePrefix = buildInfeasiblePrefix(path, feasiblePrefixPath, interpolantSequence, solver.getFormulaManager());
-            prefixes.add(infeasiblePrefix);
+          BooleanFormula currentBlockFormula = blockFormulas.get(currentBlockIndex);
+          pathFormula.add(currentBlockFormula);
 
-            // remove failing operation
-            Pair<ARGState, CFAEdge> failingOperation =
-                removeFailingOperation(feasiblePrefixPath, feasiblePrefixTerms, prover);
+          try {
+            formula = pathFormulaManager.makeAnd(makeEmpty(formula), currentBlockFormula);
+            Object term = prover.push(formula.getFormula());
+            terms.add(term);
 
-            // add noop-operation
-            formula = addNoopOperation(feasiblePrefixPath, feasiblePrefixTerms, prover, formula, failingOperation);
+            if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
 
-            if(prefixes.size() >= maxPrefixCount) {
-              break;
+              logger.log(Level.FINE, "found infeasible prefix, ending with edge ",
+                  iterator.getOutgoingEdge(),
+                  " in block # ",
+                  currentBlockIndex,
+                  ", that resulted in an unsat-formula");
+
+              List<BooleanFormula> interpolantSequence = extractInterpolantSequence(terms, prover);
+              List<BooleanFormula> finalPathFormula = new ArrayList<>(pathFormula);
+
+              // create and add infeasible prefix, mind that the ARGPath has not (!)
+              // failing assume operations replaced with no-ops, as this is not needed here,
+              // and it would be cumbersome for ABE, so lets skip it
+              infeasiblePrefixes.add(InfeasiblePrefix.buildForPredicateDomain(ARGUtils.getOnePathTo(currentState),
+                  interpolantSequence,
+                  finalPathFormula,
+                  solver.getFormulaManager()));
+
+              // remove reason for UNSAT from solver stack
+              prover.pop();
+
+              // replace respective term by tautology
+              terms.remove(terms.size() - 1);
+              formula = pathFormulaManager.makeAnd(makeEmpty(formula), makeTrue());
+              terms.add(prover.push(formula.getFormula()));
+
+              // replace failing block formula by tautology, too
+              pathFormula.remove(pathFormula.size() - 1);
+              pathFormula.add(makeTrue());
             }
           }
-        }
 
-        catch (SolverException | CPATransferException e) {
-          throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
-        }
+          catch (SolverException e) {
+            throw new CPAException("Error during computation of prefixes: " + e.getMessage(), e);
+          }
 
-        if(!prefixes.isEmpty() && feasiblePrefixPath.size() >= maxPrefixLength) {
-          break;
+          currentBlockIndex++;
+
+          // put hard-limit on number of prefixes
+          if (infeasiblePrefixes.size() == maxPrefixCount) {
+            break;
+          }
         }
 
         iterator.advance();
       }
     }
 
-    return prefixes;
+    return infeasiblePrefixes;
   }
 
-  private <T> List<BooleanFormula> extractInterpolantSequence(List<T> feasiblePrefixFormulas,
-      InterpolatingProverEnvironmentWithAssumptions<T> prover) throws SolverException {
+  private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
+      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 
-    for(int i = 1; i < feasiblePrefixFormulas.size(); i++) {
-      interpolantSequence.add(prover.getInterpolant(feasiblePrefixFormulas.subList(0, i)));
+    for(int i = 1; i < pTerms.size(); i++) {
+      interpolantSequence.add(pProver.getInterpolant(pTerms.subList(0, i)));
     }
 
     return interpolantSequence;
   }
 
-  private InfeasiblePrefix buildInfeasiblePrefix(final ARGPath path,
-      MutableARGPath currentPrefix,
-      List<BooleanFormula> interpolantSequence,
-      FormulaManagerView fmgr) {
-    MutableARGPath infeasiblePrefix = new MutableARGPath();
-    infeasiblePrefix.addAll(currentPrefix);
+  /**
+   * This method checks if a unsat call is necessary. It the path is not single-block encoded,
+   * then unsatisfiability has to be check always. In case it is single-block encoded,
+   * then it suffices to check unsatisfiability at assume edges.
+   *
+   * @param pPath the path to check
+   * @param pCfaEdge the current edge
+   * @return true if a unsat call is neccessary, else false
+   */
+  private boolean checkUnsat(final ARGPath pPath, final CFAEdge pCfaEdge) {
+    if (!isSingleBlockEncoded(pPath)) {
+      return true;
+    }
 
-    // for interpolation/refinement to work properly with existing code,
-    // add another transition after the infeasible one, also add FALSE itp
-    infeasiblePrefix.add(obtainSuccessorTransition(path, currentPrefix.size()));
-    interpolantSequence.add(fmgr.getBooleanFormulaManager().makeBoolean(false));
-
-    // additionally, add final (target) state, also to satisfy requirements of existing code
-    infeasiblePrefix.add(Pair.of(Iterables.getLast(path.asStatesList()), Iterables.getLast(path.asEdgesList())));
-
-    return InfeasiblePrefix.buildForPredicateDomain(infeasiblePrefix.immutableCopy(), interpolantSequence, fmgr);
+    return pCfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge;
   }
 
   /**
-   * This method returns the pair of state and edge at the given offset.
+   * This method checks if the given path is single-block-encoded, which is the case,
+   * if all states in the path are abstraction states.
+   *
+   * @param pPath the path to check
+   * @return true, if all states in the path are abstraction states, else false
    */
-  private Pair<ARGState, CFAEdge> obtainSuccessorTransition(final ARGPath path, final int offset) {
-    Pair<ARGState, CFAEdge> transition = path.obtainTransitionAt(offset);
-    return Pair.<ARGState, CFAEdge>of(transition.getFirst(),
-        BlankEdge.buildNoopEdge(transition.getSecond().getPredecessor(), transition.getSecond().getSuccessor()));
+  private boolean isSingleBlockEncoded(final ARGPath pPath) {
+    return from(pPath.asStatesList()).allMatch(isAbstractionState());
   }
 
-  private <T> Pair<ARGState, CFAEdge> removeFailingOperation(MutableARGPath feasiblePrefixPath,
-      List<T> feasiblePrefixTerms, InterpolatingProverEnvironmentWithAssumptions<T> prover) {
-    Pair<ARGState, CFAEdge> failingOperation = feasiblePrefixPath.removeLast();
-
-    // also remove formula, term for failing assume edge from stack, formula
-    prover.pop();
-    feasiblePrefixTerms.remove(feasiblePrefixTerms.size() - 1);
-    return failingOperation;
+  private Predicate<AbstractState> isAbstractionState() {
+    return Predicates.compose(PredicateAbstractState.FILTER_ABSTRACTION_STATES,
+        toState(PredicateAbstractState.class));
   }
 
-  private <T> PathFormula addNoopOperation(MutableARGPath feasiblePrefixPath, List<T> feasiblePrefixTerms,
-      InterpolatingProverEnvironmentWithAssumptions<T> prover, PathFormula formula,
-      Pair<ARGState, CFAEdge> failingOperation) throws CPATransferException, InterruptedException {
-    CFAEdge noopEdge = BlankEdge.buildNoopEdge(
-        failingOperation.getSecond().getPredecessor(),
-        failingOperation.getSecond().getSuccessor());
+  private boolean isAbstractionState(ARGState pCurrentState) {
+    return AbstractStates.toState(PredicateAbstractState.class).apply(pCurrentState).isAbstractionState();
+  }
 
-    feasiblePrefixPath.add(Pair.<ARGState, CFAEdge>of(failingOperation.getFirst(), noopEdge));
+  private PathFormula makeEmpty(PathFormula formula) {
+    return pathFormulaManager.makeEmptyPathFormula(formula);
+  }
 
-    formula = pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(formula), noopEdge);
-    feasiblePrefixTerms.add(prover.push(formula.getFormula()));
-    return formula;
+  private BooleanFormula makeTrue() {
+    return solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
   }
 }

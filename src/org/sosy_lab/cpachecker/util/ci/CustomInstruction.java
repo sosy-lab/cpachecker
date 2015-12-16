@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -70,19 +69,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
 public class CustomInstruction{
@@ -170,17 +173,20 @@ public class CustomInstruction{
   /**
    * Returns the signature of the input and output variables,
    * this is a String containing all input and output variables.
-   * @return String like (iV1, iV2, ... iVn -> oV1, oV2, ..., oVm)
+   * @return String like (|iV1|, |iV2|, ... |iVn| -> |oV1|, |oV2|, ..., |oVm|)
    */
   public String getSignature() {
     StringBuilder sb = new StringBuilder();
 
     sb.append("(");
-    Joiner.on(", ").appendTo(sb, inputVariables);
-    sb.append(" -> ");
-    Joiner.on("@1, ").appendTo(sb, outputVariables);
+    if (inputVariables.size() > 0) {
+      Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
+    }
+
+    sb.append(") -> (");
+
     if (outputVariables.size() > 0) {
-      sb.append("@1");
+      Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
 
@@ -199,7 +205,7 @@ public class CustomInstruction{
         "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
-    sb.append("(define-fun ci() Bool(");
+    sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
@@ -208,6 +214,9 @@ public class CustomInstruction{
         String variable = inputVariables.get(i);
         if (outputVariables.size()==0 && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
+//          sb.append("= ");
+//          sb.append(variable);
+//          sb.append(" 0)");
         } else {
           sb.append("(and ");
           sb.append(getAssignmentOfVariableToZero(variable, false));
@@ -223,6 +232,9 @@ public class CustomInstruction{
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
+//          sb.append("= ");
+//          sb.append(variable);
+//          sb.append("@1 0)");
         } else {
           sb.append("(and ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
@@ -236,8 +248,15 @@ public class CustomInstruction{
     }
 
     List<String> outputVariableList = new ArrayList<>();
+    for (String var : inputVariables) {
+      try {
+        Integer.parseInt(var);
+      } catch (NumberFormatException e) {
+        outputVariableList.add("(declare-fun " + CIUtils.getSMTName(var) + " () Int)");
+      }
+    }
     for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun " + var + "@1 () Int)");
+      outputVariableList.add("(declare-fun " + CIUtils.getSMTName(var+"@1") + " () Int)");
     }
     return Pair.of(outputVariableList, sb.toString());
   }
@@ -250,11 +269,25 @@ public class CustomInstruction{
    */
   private String getAssignmentOfVariableToZero(final String var, final boolean isOutputVariable) {
     StringBuilder sb = new StringBuilder();
-    sb.append("(= ");
-    sb.append(var);
-    if (isOutputVariable) {
-      sb.append("@1");
+
+    boolean isNumber = false;
+    try {
+      Integer.parseInt(var);
+      isNumber = true;
+    } catch (NumberFormatException ex) {
     }
+
+    sb.append("(= ");
+    if (!isNumber) {
+      if(isOutputVariable) {
+        sb.append(CIUtils.getSMTName(var+"@1"));
+      } else {
+        sb.append(CIUtils.getSMTName(var));
+      }
+    } else{
+      sb.append(var);
+    }
+
     sb.append(" 0)");
     return sb.toString();
   }
@@ -274,6 +307,7 @@ public class CustomInstruction{
     Set<CFANode> aciEndNodes = new HashSet<>();
     Set<Pair<CFANode, CFANode>> visitedNodes = new HashSet<>();
     Queue<Pair<CFANode, CFANode>> queue = new ArrayDeque<>();
+    Pair<CFANode, CFANode> next;
 
     visitedNodes.add(Pair.of(ciStartNode, aciStartNode));
     queue.add(Pair.of(ciStartNode, aciStartNode));
@@ -303,10 +337,19 @@ public class CustomInstruction{
 
         computeMappingOfCiAndAci(ciEdge, aciEdge, mapping, outVariables);
 
+        if (ciEdge instanceof FunctionCallEdge) {
+          computeMappingOfCiAndAci(((FunctionCallEdge) ciEdge).getSummaryEdge(),
+              ((FunctionCallEdge) aciEdge).getSummaryEdge(), mapping, outVariables);
+          next = Pair.of(((FunctionCallEdge) ciEdge).getSummaryEdge().getSuccessor(),
+              ((FunctionCallEdge) aciEdge).getSummaryEdge().getSuccessor());
+        } else {
+          next = Pair.of(ciSucc, aciSucc);
+        }
+
         // breadth-first-search
-        if (!visitedNodes.contains(Pair.of(ciSucc, aciSucc))) {
-          queue.add(Pair.of(ciSucc, aciSucc));
-          visitedNodes.add(Pair.of(ciSucc, aciSucc));
+        if (!visitedNodes.contains(next)) {
+          queue.add(next);
+          visitedNodes.add(next);
         }
       }
     }
@@ -320,7 +363,33 @@ public class CustomInstruction{
       ssaMapBuilder.setIndex(var,new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false), 1);
     }
 
-    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+    List<String> inVars = getVariablesOrdered(mapping, inputVariables);
+    List<String> outVars = getVariablesOrdered(mapping, outputVariables);
+    List<String> inVarsConst = new ArrayList<>(inputVariables.size());
+
+    for(String ciVar: inputVariables) {
+      inVarsConst.add(mapping.get(ciVar));
+    }
+
+    return new AppliedCustomInstruction(aciStartNode, aciEndNodes, inVars, outVars, inVarsConst, getFakeSMTDescriptionForACI(mapping), ssaMapBuilder.build());
+  }
+
+  private List<String> getVariablesOrdered(final Map<String, String> pMapping,
+      final List<String> pVariables) {
+    List<String> result = new ArrayList<>(pVariables.size());
+
+    String aciVar;
+    for (String ciVar : pVariables) {
+      assert (pMapping.containsKey(ciVar));
+      aciVar = pMapping.get(ciVar);
+      try {
+        Integer.parseInt(aciVar);
+      } catch (NumberFormatException ex) {
+        result.add(aciVar);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -335,8 +404,9 @@ public class CustomInstruction{
       return Pair.of(Collections.<String> emptyList(),
         "(define-fun ci() Bool true)");
     }
+
     StringBuilder sb = new StringBuilder();
-    sb.append("(define-fun aci() Bool(");
+    sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
     if (inputVariables.size() != 0) {
@@ -368,14 +438,22 @@ public class CustomInstruction{
       }
     }
 
-    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of define-fun ci Bool(...)
+    for (int i=0; i<BracketCounter+1; i++) { // +1 because of the Bracket of (define-fun ci Bool...)
       sb.append(")");
     }
 
     List<String> outputVariableList = new ArrayList<>();
-    for (String var : outputVariables) {
-      outputVariableList.add("(declare-fun " + map.get(var) + "@1 () Int)");
+    for (String var : inputVariables) {
+      try {
+        Integer.parseInt(map.get(var));
+      } catch (NumberFormatException e) {
+        outputVariableList.add("(declare-fun " + CIUtils.getSMTName(map.get(var))+ " () Int)");
+      }
     }
+    for (String var : outputVariables) {
+      outputVariableList.add("(declare-fun " + CIUtils.getSMTName(map.get(var)+"@1") + " () Int)");
+    }
+
     return Pair.of(outputVariableList, sb.toString());
   }
 
@@ -427,7 +505,7 @@ public class CustomInstruction{
         compareMultiEdge((MultiEdge) ciEdge, (MultiEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case CallToReturnEdge:
-        throw new AppliedCustomInstructionParsingFailedException("The ci edge " + ciEdge + " is a CallToReturnEdge, which is not supported!");
+        compareStatementsOfStatementEdge(((CFunctionSummaryEdge) ciEdge).getExpression(), ((CFunctionSummaryEdge) aciEdge).getExpression(), ciVarToAciVar, outVariables);
     }
   }
 
@@ -468,7 +546,7 @@ public class CustomInstruction{
       // left side => output variables
       Map<String,String> currentCiVarToAciVar = new HashMap<>();
       ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-      outVariables.addAll(currentCiVarToAciVar.keySet());
+      outVariables.addAll(currentCiVarToAciVar.values());
 
       // right side: just proof it
       ciStmt.getRightHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getRightHandSide(), ciVarToAciVar, currentCiVarToAciVar));
@@ -487,7 +565,7 @@ public class CustomInstruction{
       // left side => output variables
       Map<String,String> currentCiVarToAciVar = new HashMap<>();
       ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
-      outVariables.addAll(ciVarToAciVar.keySet());
+      outVariables.addAll(currentCiVarToAciVar.values());
 
       compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
     }
@@ -512,7 +590,7 @@ public class CustomInstruction{
     }
 
     exp.getFunctionNameExpression().accept(
-        new StructureComparisonVisitor(aexp.getFunctionNameExpression(), ciVarToAciVar));
+        new StructureComparisonVisitor(aexp.getFunctionNameExpression(), new HashMap<String, String>()));
 
     List<CExpression> ciList = exp.getParameterExpressions();
     List<CExpression> aciList = aexp.getParameterExpressions();
@@ -538,20 +616,25 @@ public class CustomInstruction{
       if (!ciVarDec.getType().equals(aciVarDec.getType())) {
         throw new AppliedCustomInstructionParsingFailedException("The CVariableDeclaration of ci " + ciVarDec + " and aci " + aciVarDec + " have different declaration types!");
       }
-      if (!ciDec.getQualifiedName().equals(aciDec.getQualifiedName())) {
-        throw new AppliedCustomInstructionParsingFailedException("The CVariableDeclaration of ci " + ciVarDec + " and aci " + aciVarDec + " have different qualified names!");
+      if (ciVarToAciVar.containsKey(ciVarDec.getQualifiedName())
+          && !ciVarToAciVar.get(ciVarDec.getQualifiedName()).equals(aciVarDec.getQualifiedName())) {
+        throw new AppliedCustomInstructionParsingFailedException(
+          "The mapping is not clear. The map contains " + ciVarDec.getQualifiedName() + " with the value "
+              + ciVarToAciVar.get(ciVarDec.getQualifiedName()) + ", which is different to "
+              + aciVarDec.getQualifiedName() + ".");
       }
 
       compareInitializer(ciVarDec.getInitializer(), aciVarDec.getInitializer(), ciVarToAciVar, outVariables);
       if (ciVarDec.getInitializer() != null) {
         if (ciVarDec.getInitializer() instanceof CInitializerExpression
             || ciVarDec.getInitializer() instanceof CInitializerList) {
-          outVariables.add(ciVarDec.getName());
+          outVariables.add(aciVarDec.getQualifiedName());
         } else {
           throw new AppliedCustomInstructionParsingFailedException("Unsupported initializer: "
               + ciVarDec.getInitializer());
         }
       }
+      ciVarToAciVar.put(ciVarDec.getQualifiedName(), aciVarDec.getQualifiedName());
     }
 
     else if (ciDec instanceof CComplexTypeDeclaration && aciDec instanceof CComplexTypeDeclaration) {
@@ -571,7 +654,15 @@ public class CustomInstruction{
       final Map<String,String> ciVarToAciVar, final Collection<String> outVariables)
       throws AppliedCustomInstructionParsingFailedException {
 
-    if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
+    if (ciI == null && aciI == null) {
+      // nothing to do here
+    } else if (ciI == null && aciI != null) {
+      throw new AppliedCustomInstructionParsingFailedException("The aci has an initializer but not the ci.");
+    } else if (ciI != null && aciI == null) {
+      throw new AppliedCustomInstructionParsingFailedException("The ci has an initializer but not the aci.");
+    }
+
+    else if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
       ((CInitializerExpression) ciI).getExpression().accept(new StructureComparisonVisitor(((CInitializerExpression) aciI).getExpression(), ciVarToAciVar));
     }
 
@@ -590,6 +681,7 @@ public class CustomInstruction{
           compareInitializer(ciList.get(i), aciList.get(i), ciVarToAciVar, outVariables);
         }
       }
+
     } else {
       throw new AppliedCustomInstructionParsingFailedException("The CInitializer of ci " + ciI + " and aci " + aciI + " are different.");
     }
@@ -612,6 +704,10 @@ public class CustomInstruction{
   private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
       final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
 
+    if(ciEdge.getSuccessor() != aciEdge.getSuccessor()) {
+      throw new AppliedCustomInstructionParsingFailedException("Applied custom instruction calls different method than custom instruction.");
+    }
+
     List<CExpression> ciArguments = ciEdge.getArguments();
     List<CExpression> aciArguments = aciEdge.getArguments();
     if (ciArguments.size() != aciArguments.size()) {
@@ -631,6 +727,22 @@ public class CustomInstruction{
     for (int i=0; i<ciEdge.getEdges().size(); i++) {
       computeMappingOfCiAndAci(ciEdge.getEdges().get(i), aciEdge.getEdges().get(i), ciVarToAciVar, outVariables);
     }
+  }
+
+  CFANode getStartNode() {
+    return ciStartNode;
+  }
+
+  Collection<CFANode> getEndNodes() {
+    return ciEndNodes;
+  }
+
+  List<String> getInputVariables() {
+    return inputVariables;
+  }
+
+  List<String> getOutputVariables() {
+    return outputVariables;
   }
 
   private static class StructureComparisonVisitor implements CExpressionVisitor<Void, AppliedCustomInstructionParsingFailedException>{
@@ -727,9 +839,9 @@ public class CustomInstruction{
 
         if (isValidSimpleType(ciST, aciType)) {
           if (!ciVarToAciVar.containsKey(ciExp.getDeclaration().getQualifiedName())) {
-            ciVarToAciVar.put(ciExp.getName(), aciExpValue.toString());
-          } else if (!ciVarToAciVar.get(ciExp.getName()).equals(aciExpValue.toString())) {
-            throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getName() + " with the value " + ciVarToAciVar.get(ciExp.getName()) + ", which is different to " + aciExpValue.toString() + ".");
+            ciVarToAciVar.put(ciExp.getDeclaration().getQualifiedName(), aciExpValue.toString());
+          } else if (!ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName()).equals(aciExpValue.toString())) {
+            throw new AppliedCustomInstructionParsingFailedException("The mapping is not clear. The map contains " + ciExp.getDeclaration().getQualifiedName() + " with the value " + ciVarToAciVar.get(ciExp.getDeclaration().getQualifiedName()) + ", which is different to " + aciExpValue.toString() + ".");
           }
         } else {
           throw new AppliedCustomInstructionParsingFailedException("The simpleType of the ci " + ciExp + " is not a valid one.");

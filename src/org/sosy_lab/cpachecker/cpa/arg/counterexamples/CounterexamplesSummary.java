@@ -368,7 +368,7 @@ public class CounterexamplesSummary implements IterationStatistics {
 
     // Collect coverage information
     if (pPath != null) {
-      for (CFAEdge t: pPath.asEdgesList()) {
+      for (CFAEdge t: pPath.getInnerEdges()) {
         if (t != null) {
           CoverageData cd = CoverageCPA.getCoverageData();
           if (cd != null) {

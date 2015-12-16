@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.pcc.strategy;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartitioningCheckingHelper;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -152,6 +154,13 @@ public class PartitionedReachedSetStrategy extends AbstractStrategy {
   protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
       InvalidConfigurationException, IOException {
    ioHelper.readProof(pIn, stats);
+  }
+
+  @Override
+  public Collection<Statistics> getAdditionalProofGenerationStatistics() {
+    Collection<Statistics> result = new ArrayList<>(super.getAdditionalProofGenerationStatistics());
+    result.add(ioHelper.getGraphStatistic());
+    return result;
   }
 
 }

@@ -38,13 +38,21 @@ Install CPAchecker -- Source
 
 4. Checkout CPAchecker from SVN repository.
    URL: https://svn.sosy-lab.org/software/cpachecker/trunk
-   URL (read-only GIT mirror): https://github.com/dbeyer/cpachecker
+   URL (read-only GIT mirror): https://github.com/sosy-lab/cpachecker
 
 5. Run "ant" in CPAchecker directory to build CPAchecker.
    When building CPAchecker for the first time, this will automatically
    download all needed libraries.
-   If you have incompatible versions of some libraries installed on your system,
-   the build might fail with NoSuchMethodErrors or similar exceptions.
-   In this case, run "ant -lib lib/java/build".
+   If you experience problems, please check the following items:
+   - If you have incompatible versions of some libraries installed on your system,
+     the build might fail with NoSuchMethodErrors or similar exceptions.
+     In this case, run "ant -lib lib/java/build".
+   - If the build fails due to compile errors in AutomatonScanner.java or FormulaScanner.java,
+     you have a too-old version of JFlex installed.
+     In this case, run "ANT_TASKS=none ant" to use our supplied JFlex
+     instead of the one installed on the system.
+   - If the build fails because the class org.apache.ivy.ant.BuildOBRTask cannot be found,
+     this is probably caused by an old Ivy version installed on your system.
+     Please try uninstalling Ivy.
 
 (For building CPAchecker within Eclipse, cf. doc/Developing.txt.)

@@ -92,8 +92,8 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.common.Pair;
-import org.sosy_lab.common.Triple;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -741,6 +741,11 @@ class ASTConverter {
      * the second one is obviously wrong, because the unsigned is missing
      */
      final CType castType = convert(e.getTypeId());
+
+    if (castType.equals(CVoidType.VOID)) {
+      // ignore casts to void as in "(void) f();"
+      return convertExpressionWithSideEffects(e.getOperand());
+    }
 
     // To recognize and simplify constructs e.g. struct s *ps = (struct s *) malloc(.../* e.g. sizeof(struct s)*/);
     if (e.getOperand() instanceof CASTFunctionCallExpression &&

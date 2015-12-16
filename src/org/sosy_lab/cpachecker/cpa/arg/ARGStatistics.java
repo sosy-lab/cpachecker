@@ -37,7 +37,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -82,6 +82,11 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
+  @Option(secure=true, name="proofWitness",
+      description="export a proof as .graphml file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path proofWitness = Paths.get("ARG.graphml");
+
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -103,21 +108,24 @@ public class ARGStatistics implements IterationStatistics {
   private ARGToDotWriter refinementGraphWriter = null;
 
   private final @Nullable CEXExporter cexExporter;
+  private final ARGPathExporter argPathExporter;
   private final CounterexamplesSummary cexSummary;
 
   public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
       MachineModel pMachineModel, Language pLanguage,
-      @Nullable CEXExporter pCexExporter, CounterexamplesSummary pCexSummary)
+      @Nullable CEXExporter pCexExporter,
+      ARGPathExporter pARGPathExporter,
+      CounterexamplesSummary pCexSummary)
           throws InvalidConfigurationException {
-
 
     config.inject(this);
 
     logger = pLogger;
     cexSummary = pCexSummary;
     cexExporter = pCexExporter;
+    argPathExporter = pARGPathExporter;
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
+    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
     }
   }
@@ -228,6 +236,16 @@ public class ARGStatistics implements IterationStatistics {
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
+
+    if (proofWitness != null) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, proofWitness))) {
+        argPathExporter.writeProofWitness(w, rootState,
+            Predicates.alwaysTrue(),
+            Predicates.alwaysTrue());
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+      }
+    }
 
     if (argFile != null) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {

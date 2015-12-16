@@ -34,13 +34,11 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.FormulaManagerFactory;
-import org.sosy_lab.cpachecker.util.predicates.Solver;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -52,15 +50,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     ConfigurableProgramAnalysis,
     AbstractDomain,
     PrecisionAdjustment,
-    StatisticsProvider {
+    StatisticsProvider, MergeOperator {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
-
-  @Option(secure=true,
-      description="Whether to join states on merge (leads to cycles in ARG)")
-  private boolean joinOnMerge = true;
 
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
@@ -76,14 +70,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     pConfiguration.inject(this);
 
     statistics = new FormulaSlicingStatistics();
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
-        pConfiguration, pLogger, shutdownNotifier);
-
-    FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    FormulaManagerView formulaManager = new FormulaManagerView(
-        formulaManagerFactory, pConfiguration, pLogger);
-    Solver solver = new Solver(formulaManager, formulaManagerFactory,
-        pConfiguration, pLogger);
+    Solver solver = Solver.create(pConfiguration, pLogger, shutdownNotifier);
+    FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfiguration, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
@@ -97,16 +85,14 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         statistics, shutdownNotifier);
 
     InductiveWeakeningManager pInductiveWeakeningManager =
-        new InductiveWeakeningManager(pConfiguration,
-        formulaManager, solver, realFormulaManager.getUnsafeFormulaManager(),
-            pLogger);
+        new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
         pathFormulaManager, formulaManager, pLogger, cfa, ltf,
         pInductiveWeakeningManager, solver,
         statistics);
     stopOperator = new StopSepOperator(this);
-    mergeOperator = new SlicingMergeOperator(manager, joinOnMerge);
+    mergeOperator = this;
   }
 
   public static CPAFactory factory() {
@@ -191,5 +177,11 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(statistics);
+  }
+
+  @Override
+  public AbstractState merge(AbstractState state1, AbstractState state2,
+      Precision precision) throws CPAException, InterruptedException {
+    return manager.merge((SlicingState) state1, (SlicingState) state2);
   }
 }

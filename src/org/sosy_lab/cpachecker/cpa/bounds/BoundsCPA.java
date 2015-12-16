@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -80,6 +81,10 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
   @Option(secure=true, description="threshold for unrolling loops of the program (0 is infinite)\n"
   + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0;
+
+  @Option(secure=true, description="threshold for unwinding recursion (0 is infinite)\n"
+  + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
+  private int maxRecursionDepth = 0;
 
   @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
@@ -109,7 +114,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
     config.inject(this);
     this.transferRelation = pDelegatingTransferRelation;
     this.transferRelation.setDelegate(new BoundsTransferRelation(
-        loopIterationsBeforeAbstraction, maxLoopIterations, loopStructure));
+        loopIterationsBeforeAbstraction, maxLoopIterations, maxRecursionDepth, loopStructure));
     this.logger = pLogger;
   }
 
@@ -338,7 +343,8 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-    pOut.println("Bound k:" + this.maxLoopIterations);
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
+    writer.put("Bound k", this.maxLoopIterations);
     int maximumLoopIterationReached = 0;
     for (AbstractState state : pReached) {
       BoundsState loopstackState = AbstractStates.extractStateByType(state, BoundsState.class);
@@ -346,7 +352,8 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
         maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getDeepestIteration());
       }
     }
-    pOut.print("Maximum loop iteration reached:" + maximumLoopIterationReached);
+    writer.put("Maximum loop iteration reached", maximumLoopIterationReached);
+    writer.spacer();
   }
 
   @Override
@@ -358,7 +365,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
     this.maxLoopIterations = pMaxLoopIterations;
     this.transferRelation.setDelegate(new BoundsTransferRelation(
         loopIterationsBeforeAbstraction,
-        maxLoopIterations, loopStructure));
+        maxLoopIterations, maxRecursionDepth, loopStructure));
   }
 
   public int getMaxLoopIterations() {

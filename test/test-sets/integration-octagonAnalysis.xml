@@ -33,7 +33,7 @@
       <tasks>
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
-        <includesfile>integration-DeviceDrivers64.set</includesfile>
+        <includesfile>integration-DeviceDriversLinux64.set</includesfile>
               <option name="-64"/>
         </tasks>
 

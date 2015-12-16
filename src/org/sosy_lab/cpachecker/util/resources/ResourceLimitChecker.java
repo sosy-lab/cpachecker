@@ -34,6 +34,7 @@ import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import javax.management.JMException;
 
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
@@ -69,32 +70,19 @@ public final class ResourceLimitChecker {
    * It is safe (but useless) to call this constructor with an empty list of limits,
    * limits that have already been exceeded, or a shutdown notifier that has
    * already been triggered.
-   * @param pShutdownNotifier A non-null shutdown notifier instance.
-   * @param pLimits A (possibly empty) list without null entries of resource limits.
+   * @param shutdownNotifier A non-null shutdown notifier instance.
+   * @param limits A (possibly empty) list without null entries of resource limits.
    */
-  public ResourceLimitChecker(List<ShutdownNotifier> pShutdownNotifier, List<ResourceLimit> pLimits) {
-    checkNotNull(pShutdownNotifier);
-
-    boolean shouldShutdown = false;
-    for (ShutdownNotifier n: pShutdownNotifier) {
-      if (n.shouldShutdown()) {
-        shouldShutdown = true;
-        break;
-      }
-    }
-
-    if (pLimits.isEmpty() || shouldShutdown) {
+  public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> limits) {
+    checkNotNull(shutdownManager);
+    if (limits.isEmpty() || shutdownManager.getNotifier().shouldShutdown()) {
       // limits are irrelevant
       thread = null;
 
     } else {
-      Runnable runnable = new ResourceLimitCheckRunnable(pShutdownNotifier, pLimits);
-      thread = Threads.newThread(runnable, "Resource limit checker" + pLimits.toString(), true);
+      Runnable runnable = new ResourceLimitCheckRunnable(shutdownManager, limits);
+      thread = Threads.newThread(runnable, "Resource limit checker", true);
     }
-  }
-
-  public ResourceLimitChecker(ShutdownNotifier pShutdownNotifier, List<ResourceLimit> pLimits) {
-    this(ImmutableList.of(pShutdownNotifier), pLimits);
   }
 
   /**
@@ -120,31 +108,30 @@ public final class ResourceLimitChecker {
    * Create an instance of this class from some configuration options.
    * The returned instance is not started yet.
    */
-  public static ResourceLimitChecker fromConfiguration(Configuration pConfig,
-      LogManager pLogger, ShutdownNotifier pNotifier) throws InvalidConfigurationException {
+  public static ResourceLimitChecker fromConfiguration(
+      Configuration config, LogManager logger, ShutdownManager shutdownManager)
+      throws InvalidConfigurationException {
 
     ResourceLimitOptions options = new ResourceLimitOptions();
-    pConfig.inject(options);
+    config.inject(options);
 
-    ImmutableList.Builder<ResourceLimit> builder = ImmutableList.builder();
-
+    ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
     if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
-      builder.add(WalltimeLimit.fromNowOn(options.walltime));
+      limits.add(WalltimeLimit.fromNowOn(options.walltime));
     }
-
     if (options.cpuTime.compareTo(TimeSpan.empty()) >= 0) {
       try {
-        builder.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
+        limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
       } catch (JMException e) {
-        pLogger.logDebugException(e, "Querying cpu time failed");
-        pLogger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
+        logger.logDebugException(e, "Querying cpu time failed");
+        logger.log(Level.WARNING, "Your Java VM does not support measuring the cpu time, cpu time threshold disabled.");
       }
     }
 
-    ImmutableList<ResourceLimit> limits = builder.build();
-    if (!limits.isEmpty()) {
-      pLogger.log(Level.INFO, "Using the following resource limits:",
-          Joiner.on(", ").join(Lists.transform(limits,
+    ImmutableList<ResourceLimit> limitsList = limits.build();
+    if (!limitsList.isEmpty()) {
+      logger.log(Level.INFO, "Using the following resource limits:",
+          Joiner.on(", ").join(Lists.transform(limitsList,
               new Function<ResourceLimit, String>() {
                 @Override
                 public String apply(@Nonnull ResourceLimit pInput) {
@@ -152,8 +139,7 @@ public final class ResourceLimitChecker {
                 }
               })));
     }
-
-    return new ResourceLimitChecker(ImmutableList.of(pNotifier), limits);
+    return new ResourceLimitChecker(shutdownManager, limitsList);
   }
 
   @Options(prefix="limits")
@@ -185,12 +171,12 @@ public final class ResourceLimitChecker {
     // This could be made configurable if necessary.
     private final static long PRECISION = TimeUnit.MILLISECONDS.toNanos(500);
 
-    private final ImmutableList<ShutdownNotifier> toNotify;
+    private final ShutdownManager shutdownManager;
+
     private final ImmutableList<ResourceLimit> limits;
 
-    ResourceLimitCheckRunnable(List<ShutdownNotifier> pToNotify, List<ResourceLimit> pLimits) {
-      checkNotNull(pToNotify);
-      toNotify = ImmutableList.copyOf(pToNotify);
+    ResourceLimitCheckRunnable(ShutdownManager pShutdownManager, List<ResourceLimit> pLimits) {
+      shutdownManager = checkNotNull(pShutdownManager);
       limits = ImmutableList.copyOf(pLimits);
       checkArgument(!limits.isEmpty());
     }
@@ -198,10 +184,7 @@ public final class ResourceLimitChecker {
     @Override
     public void run() {
       ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
-
-      for (ShutdownNotifier n: toNotify) {
-        n.registerAndCheckImmediately(interruptThreadOnShutdown);
-      }
+      shutdownManager.getNotifier().registerAndCheckImmediately(interruptThreadOnShutdown);
 
       // Here we keep track of the next time we need to check each limit.
       final long[] timesOfNextCheck = new long[limits.size()];
@@ -221,10 +204,7 @@ public final class ResourceLimitChecker {
           final long currentValue = limit.getCurrentValue();
           if (limit.isExceeded(currentValue)) {
             String reason = String.format("The %s has elapsed.", limit.getName());
-
-            for (ShutdownNotifier n: toNotify) {
-              n.requestShutdown(reason);
-            }
+            shutdownManager.requestShutdown(reason);
             return;
           }
 
@@ -246,9 +226,7 @@ public final class ResourceLimitChecker {
           Thread.sleep(millisToSleep);
         } catch (InterruptedException e) {
           // Cancel requested by ResourceLimitChecker#cancel()
-          for (ShutdownNotifier n: toNotify) {
-            n.unregister(interruptThreadOnShutdown);
-          }
+          shutdownManager.getNotifier().unregister(interruptThreadOnShutdown);
           return;
         }
       }

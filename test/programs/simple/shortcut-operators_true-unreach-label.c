@@ -10,6 +10,7 @@ ERROR:
 int main() {
 	const int t = 1;
 	const int f = 0;
+	int rand;
 	int tmp;
 
 	t || error();
@@ -35,6 +36,9 @@ int main() {
 
 	int test_multiple_operators_not_nested;
 	(t || error()) + (f && error()) + tmp++;
+
+	if (rand > 100 && tmp > 0 || rand <= 100 && tmp <= 1 || rand > 100 && tmp <= 1 || rand <= 100 && tmp > 0) { }
+	else error();
 
 	int test_expression_list_statement;
 	return ({

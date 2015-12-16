@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -133,16 +133,9 @@ public class PredicatePrecision implements Precision {
    */
   public Set<AbstractionPredicate> getPredicates(CFANode loc, Integer locInstance) {
     Set<AbstractionPredicate> result = getLocationInstancePredicates().get(Pair.of(loc, locInstance));
-    if (result.isEmpty()) {
-      result = getLocalPredicates().get(loc);
-    }
-    if (result.isEmpty()) {
-      result = getFunctionPredicates().get(loc.getFunctionName());
-    }
-    if (result.isEmpty()) {
-      result = getGlobalPredicates();
-    }
-    return result;
+    result = Sets.union(result, getLocalPredicates().get(loc));
+    result = Sets.union(result, getFunctionPredicates().get(loc.getFunctionName()));
+    return Sets.union(result, getGlobalPredicates());
   }
 
   /**

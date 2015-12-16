@@ -10,6 +10,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
@@ -17,15 +20,14 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.NumeralFormulaManagerView;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 public class FormulaLinearizationManager {
   private final UnsafeFormulaManager ufmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
+  private final PolicyIterationStatistics statistics;
 
   // Opt environment cached to perform evaluation queries on the model.
   private OptEnvironment environment;
@@ -35,11 +37,13 @@ public class FormulaLinearizationManager {
 
   public FormulaLinearizationManager(UnsafeFormulaManager pUfmgr,
       BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr) {
+      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr,
+      PolicyIterationStatistics pStatistics) {
     ufmgr = pUfmgr;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     ifmgr = pIfmgr;
+    statistics = pStatistics;
   }
 
   /**
@@ -64,6 +68,7 @@ public class FormulaLinearizationManager {
   }
 
   private class LinearizationManager extends BooleanFormulaTransformationVisitor {
+    // todo: shouldn't we just convert to NNF instead?
 
     protected LinearizationManager(
         FormulaManagerView pFmgr, Map<BooleanFormula, BooleanFormula> pCache) {
@@ -144,46 +149,43 @@ public class FormulaLinearizationManager {
 
     environment = optEnvironment;
 
+    statistics.ackermannizationTimer.start();
+    f = fmgr.applyTactic(f, Tactic.NNF);
+
     // Get rid of UFs.
     BooleanFormula noUFs = processUFs(f);
 
     // Get rid of ite-expressions.
-    return replaceITE(noUFs);
-  }
+    BooleanFormula out = new ReplaceITEVisitor().visit(noUFs);
+    statistics.ackermannizationTimer.stop();
 
-  private BooleanFormula replaceITE(BooleanFormula f) {
-    return (BooleanFormula) recReplaceITE(f, new HashMap<Formula, Formula>());
-  }
-
-  private Formula recReplaceITE(Formula f,
-      Map<Formula, Formula> memoization) {
-    if (memoization.containsKey(f)) {
-      return memoization.get(f);
-    }
-    Formula out;
-
-    if (bfmgr.isIfThenElse(f)) {
-      Formula condition = ufmgr.getArg(f, 0);
-      Formula then = ufmgr.getArg(f, 1);
-      Formula else_ = ufmgr.getArg(f, 2);
-
-      if (evaluate(condition).equals(bfmgr.makeBoolean(true))) {
-        out = recReplaceITE(then, memoization);
-      } else {
-        out = recReplaceITE(else_, memoization);
-      }
-    } else {
-      List<Formula> newChildren = new ArrayList<>(ufmgr.getArity(f));
-      for (Formula child : children(f)) {
-        newChildren.add(recReplaceITE(child, memoization));
-      }
-      out = ufmgr.replaceArgs(f, newChildren);
-    }
-
-    memoization.put(f, out);
     return out;
   }
 
+  private class ReplaceITEVisitor extends BooleanFormulaTransformationVisitor {
+
+    private ReplaceITEVisitor() {
+      super(fmgr, new HashMap<BooleanFormula, BooleanFormula>());
+    }
+
+    @Override
+    protected BooleanFormula visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+
+      BooleanFormula cond = fmgr.simplify(environment.evaluate(pCondition));
+      if (bfmgr.isTrue(cond)) {
+        return visitIfNotSeen(pThenFormula);
+      } else {
+        return visitIfNotSeen(pElseFormula);
+      }
+    }
+  }
+
+  /**
+   * Ackermannization:
+   * Requires a fixpoint computation as UFs can take other UFs as arguments.
+   * First removes UFs with no arguments, etc.
+   */
   private BooleanFormula processUFs(BooleanFormula f) {
     List<Formula> UFs = new ArrayList<>(findUFs(f));
 
@@ -199,11 +201,17 @@ public class FormulaLinearizationManager {
 
       for (int idx2=idx1+1; idx2<UFs.size(); idx2++) {
         Formula otherUF = UFs.get(idx2);
-        if (uf == otherUF) continue;
+        if (uf == otherUF) {
+          continue;
+        }
 
         Formula otherFreshVar = fmgr.makeVariable(fmgr.getFormulaType(otherUF),
             freshUFName(idx2));
 
+        /**
+         * If UFs are equal _under_given_model_, make them equal in the
+         * resulting policy bound.
+         */
         if (evaluate(uf).equals(evaluate(otherUF))) {
           extraConstraints.add(fmgr.makeEqual(freshVar, otherFreshVar));
         }
@@ -224,7 +232,9 @@ public class FormulaLinearizationManager {
   }
 
   private void recFindUFs(Formula f, Set<Formula> visited, Set<Formula> UFs) {
-    if (visited.contains(f)) return;
+    if (visited.contains(f)) {
+      return;
+    }
     if (ufmgr.isUF(f)) {
       UFs.add(f);
     } else {
@@ -246,7 +256,7 @@ public class FormulaLinearizationManager {
   }
 
   private Formula evaluate(Formula f) {
-    return ufmgr.simplify(environment.evaluate(f));
+    return fmgr.simplify(environment.evaluate(f));
   }
 
   private String freshUFName(int idx) {

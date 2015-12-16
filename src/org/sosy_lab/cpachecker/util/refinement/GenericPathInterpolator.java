@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -275,10 +275,10 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
     Set<ARGState> useDefStates = new UseDefRelation(pErrorPathPrefix,
         cfa.getVarClassification().isPresent()
           ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet()).getUseDefStates();
+          : Collections.<String>emptySet(), false).getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.asEdgesList());
+    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {

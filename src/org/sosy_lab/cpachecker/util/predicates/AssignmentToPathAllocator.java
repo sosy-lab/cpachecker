@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.common.Pair;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,10 +55,11 @@ import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.AssignableTerm.Function;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.view.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -101,7 +102,7 @@ public class AssignmentToPathAllocator {
    * Additionally, provides the information, at which {@link CFAEdge} edge which
    * {@link AssignableTerm} terms have been assigned.
    */
-  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(List<CFAEdge> pPath,
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> allocateAssignmentsToPath(ARGPath pPath,
       RichModel pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
 
     // create concrete state path, also remember at wich edge which terms were used.
@@ -117,11 +118,11 @@ public class AssignmentToPathAllocator {
 
 
   private Pair<ConcreteStatePath, Multimap<CFAEdge, AssignableTerm>> createConcreteStatePath(
-      List<CFAEdge> pPath, RichModel pModel, List<SSAMap> pSSAMaps)
+      ARGPath pPath, RichModel pModel, List<SSAMap> pSSAMaps)
           throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
-    List<ConcerteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.size());
+    List<ConcerteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
     Multimap<CFAEdge, AssignableTerm> usedAssignableTerms = HashMultimap.create();
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
 
@@ -140,7 +141,7 @@ public class AssignmentToPathAllocator {
 
     int ssaMapIndex = 0;
 
-    for (CFAEdge cfaEdge : pPath) {
+    for (CFAEdge cfaEdge : pPath.getInnerEdges()) {
       shutdownNotifier.shutdownIfNecessary();
 
       /*We always look at the precise path, with resolved multi edges*/

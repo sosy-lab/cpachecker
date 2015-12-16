@@ -338,7 +338,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           // The shutdown notifier might trigger the interrupted exception
           // either because ...
 
-          if (interruptNotifier.getNotifier().shouldShutdown()) {
+          if (interruptNotifier.hasTemporaryInterruptRequest()) {
             interruptNotifier.reset();
 
             // A) the resource limit for the analysis run has exceeded
@@ -551,7 +551,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
       // Start the check
       reschecker = new ResourceLimitChecker(
-          interruptNotifier.getNotifier(), // The order of notifiers is important!
+          interruptNotifier.getReversibleManager(), // The order of notifiers is important!
           limits);
 
       reschecker.start();
