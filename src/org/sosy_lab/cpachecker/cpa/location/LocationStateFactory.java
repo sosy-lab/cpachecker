@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationStateNoTarget;
+import org.sosy_lab.cpachecker.cpa.location.LocationState.ForwardsLocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -88,7 +89,7 @@ public class LocationStateFactory {
           ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
           : locationType == LocationStateType.BACKWARDNOTARGET
               ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
-              : new LocationState(node, followFunctionCalls);
+              : new ForwardsLocationState(node, followFunctionCalls);
 
       states[node.getNodeNumber()] = state;
     }

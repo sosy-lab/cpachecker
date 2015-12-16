@@ -48,11 +48,21 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.collect.ImmutableSet;
 
-public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
+public abstract class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
   private static final long serialVersionUID = -801176497691618779L;
 
   enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
+
+  static class ForwardsLocationState extends LocationState {
+
+    private static final long serialVersionUID = -2214381183720196734L;
+
+    public ForwardsLocationState(CFANode locationNode, boolean pFollowFunctionCalls) {
+      super(locationNode, pFollowFunctionCalls);
+    }
+
+  }
 
   static class BackwardsLocationState extends LocationState implements Targetable {
 
@@ -106,7 +116,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
   private transient CFANode locationNode;
   private boolean followFunctionCalls;
 
-  LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
+  protected LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;
     followFunctionCalls = pFollowFunctionCalls;
   }
