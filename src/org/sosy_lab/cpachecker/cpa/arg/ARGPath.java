@@ -306,12 +306,12 @@ public class ARGPath implements Appender {
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on('\n').skipNulls().appendTo(appendable, getInnerEdges());
+    Joiner.on('\n').skipNulls().appendTo(appendable, getFullPath());
   }
 
   @Override
   public String toString() {
-    return Joiner.on('\n').skipNulls().join(getInnerEdges());
+    return Joiner.on('\n').skipNulls().join(getFullPath());
   }
 
   /**
