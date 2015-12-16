@@ -35,6 +35,8 @@
  *       option: <code>solver.solver=SMTINTERPOL</code>)</li>
  *   <li><emph>MathSAT5</emph>&mdash;available with configuration option:
  *       <code>solver.solver=MATHSAT5</code></li>
+ *   <li><emph>Princess</emph>&mdash;available with configuration option:
+ *       <code>solver.solver=PRINCESS</code>)</li>
  *   <li><emph>Z3</emph>&mdash;available with configuration option:
  *       <code>solver.solver=Z3</code></li>
  * </ul>
