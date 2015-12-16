@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -184,7 +183,6 @@ public class ARGPath implements Appender {
       curNode = nextNode;
     }
 
-    Verify.verify(fullPath.size() == edges.size());
     this.fullPath = fullPath;
     return fullPath;
   }
