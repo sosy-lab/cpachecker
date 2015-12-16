@@ -65,6 +65,7 @@ public class AutomatonMergeOperator implements MergeOperator {
 
     AutomatonState e1 = (AutomatonState) pE1;
     AutomatonState e2 = (AutomatonState) pE2;
+
     AutomatonInternalState e1state = e1.getInternalState();
     AutomatonInternalState e2state = e2.getInternalState();
 
