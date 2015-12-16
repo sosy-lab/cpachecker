@@ -32,6 +32,9 @@ import java.util.regex.Pattern;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -246,6 +249,23 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
       return false;
     }
 
+    private boolean isReturnCall(final CFAEdge pCFAEdge) {
+      if (pCFAEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        return true;
+      }
+
+      if (pCFAEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        if (pCFAEdge instanceof AStatementEdge) {
+          if (((AStatementEdge) pCFAEdge).getStatement() instanceof
+              AFunctionCallAssignmentStatement) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws UnrecognizedCFAEdgeException {
       final Optional<?> ast;
@@ -259,11 +279,9 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
         }
         break;
       case RETURN:
-        if (pArgs.getCfaEdge().getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+        if (isReturnCall(pArgs.getCfaEdge())) {
           // Match the function summary edge of the call!!
-          FunctionReturnEdge ret = (FunctionReturnEdge) pArgs.getCfaEdge();
-          ast = Optional.of(ret.getSummaryEdge().getExpression());
-
+          ast = pArgs.getCfaEdge().getRawAST();
         } else {
           return CONST_FALSE;
         }
