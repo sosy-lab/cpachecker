@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cpa.location.LocationState.LocationStateFactory;
+import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
 
 
 public class CFAInfo {

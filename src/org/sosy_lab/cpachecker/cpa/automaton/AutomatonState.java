@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowLocations;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowTransitions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -68,7 +68,7 @@ import com.google.common.collect.Sets;
  */
 public class AutomatonState
     implements AbstractQueryableState, Targetable, Serializable,
-    AbstractStateWithAssumptions, AbstractStateWithShadowLocations, Graphable {
+    AbstractStateWithAssumptions, AbstractStateWithShadowTransitions, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -540,11 +540,6 @@ public class AutomatonState
 
   public void setMatches(int pMatches) {
     matches = pMatches;
-  }
-
-  @Override
-  public Iterable<CFANode> getShadowLocationNodes() {
-    return ImmutableSet.of();
   }
 
   @Override
