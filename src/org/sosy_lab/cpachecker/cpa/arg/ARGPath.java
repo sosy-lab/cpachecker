@@ -40,11 +40,11 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -312,22 +312,25 @@ public class ARGPath implements Appender {
    * @param pathWithAssignments A list of {@link CFAEdgeWithAssumptions} with additional information, may be empty.
    */
   public void toJSON(Appendable sb, List<CFAEdgeWithAssumptions> pathWithAssignments) throws IOException {
-    List<Map<?, ?>> path = new ArrayList<>(getInnerEdges().size());
+    int pathLength = getFullPath().size();
+    List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
-    if (getInnerEdges().size() != pathWithAssignments.size()) {
+    if (pathLength != pathWithAssignments.size()) {
       // TODO: Probably pathWithAssignments should always be empty or have same size
       // add assert?
       pathWithAssignments = ImmutableList.of();
     }
 
-    PathIterator iterator = pathIterator();
+    PathIterator iterator = fullPathIterator();
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
       CFAEdge edge = iterator.getOutgoingEdge();
       if (edge == null) {
         continue; // in this case we do not need the edge
       }
-      elem.put("argelem", iterator.getAbstractState().getStateId());
+      if (iterator.isPositionWithState()) {
+        elem.put("argelem", iterator.getAbstractState().getStateId());
+      }
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
