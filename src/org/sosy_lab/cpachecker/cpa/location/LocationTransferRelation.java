@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.cpa.location;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+
+import javax.annotation.Nonnull;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,13 +42,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 public class LocationTransferRelation implements TransferRelation {
 
-  private final LocationStateFactory factory;
+  @Nonnull private final LocationStateFactory factory;
 
   public LocationTransferRelation(LocationStateFactory pFactory) {
-    factory = pFactory;
+    factory = Preconditions.checkNotNull(pFactory);
   }
 
   @Override
@@ -91,7 +93,7 @@ public class LocationTransferRelation implements TransferRelation {
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
       List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
 
-    LocationState e = (LocationState) pElement;
+    final LocationState e = (LocationState) pElement;
 
     //
     // Support for shadow CFA transitions.
@@ -109,14 +111,16 @@ public class LocationTransferRelation implements TransferRelation {
       // that provides shadow locations/transitions.
       AbstractStateWithShadowTransitions shadow = shadowingStates.iterator().next();
 
-      Iterator<CFAEdge> shadowTransitions = shadow.getOutgoingShadowEdges(e.getLocationNode()).iterator();
-      if (shadowTransitions.hasNext()) {
+      Iterable<CFAEdge> shadowTransitions = shadow.getOutgoingShadowEdges(e.getLocationNode());
+      if (shadowTransitions.iterator().hasNext()) {
         // There are shadow transitions that must get woven...
 
+        return ImmutableSet.of(factory.createStateWithShadowTransitions(shadowTransitions, e.getLocationNode()));
       }
 
     }
 
+    // Return 'null' if there was no change
     return null;
   }
 }

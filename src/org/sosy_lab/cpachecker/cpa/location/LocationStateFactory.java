@@ -114,4 +114,10 @@ public class LocationStateFactory {
         + " but this node is not part of the current CFA.",
         node, node.getFunctionName());
   }
+
+  public LocationState createStateWithShadowTransitions(Iterable<CFAEdge> pShadowTransitions,
+      CFANode pEndInNodeOfCfa) {
+
+    return new LocationState.ForwardsShadowLocationState(pShadowTransitions, pEndInNodeOfCfa);
+  }
 }
