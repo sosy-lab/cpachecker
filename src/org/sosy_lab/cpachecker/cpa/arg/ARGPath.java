@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -76,6 +77,7 @@ public class ARGPath implements Appender {
 
   private final ImmutableList<ARGState> states;
   private final List<CFAEdge> edges; // immutable, but may contain null
+  private List<CFAEdge> fullPath = null;
 
   ARGPath(List<ARGState> pStates) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
@@ -144,6 +146,10 @@ public class ARGPath implements Appender {
    * is created. This is done by filling up the wholes in the path.
    */
   public List<CFAEdge> getFullPath() {
+    if (fullPath != null) {
+      return fullPath;
+    }
+
     List<CFAEdge> fullPath = new ArrayList<>();
 
     PathIterator it = pathIterator();
@@ -178,6 +184,8 @@ public class ARGPath implements Appender {
       curNode = nextNode;
     }
 
+    Verify.verify(fullPath.size() == edges.size());
+    this.fullPath = fullPath;
     return fullPath;
   }
 
