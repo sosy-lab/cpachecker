@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
@@ -122,7 +122,7 @@ public class AssignmentToPathAllocator {
           throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
-    List<ConcerteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
+    List<ConcreteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
     Multimap<CFAEdge, AssignableTerm> usedAssignableTerms = HashMultimap.create();
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
 
@@ -173,7 +173,7 @@ public class AssignmentToPathAllocator {
           multiEdgeIndex++;
         }
 
-        ConcerteStatePathNode edge =
+        ConcreteStatePathNode edge =
             ConcreteStatePath.valueOfPathNode(singleConcreteStates, multiEdge);
         pathWithAssignments.add(edge);
       } else {
@@ -184,7 +184,7 @@ public class AssignmentToPathAllocator {
 
         SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-        ConcerteStatePathNode concreteStatePathNode =
+        ConcreteStatePathNode concreteStatePathNode =
             createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvironment,
                 variables,
                 functionEnvironment, memory, addressOfVariables,
@@ -199,7 +199,7 @@ public class AssignmentToPathAllocator {
     return Pair.of(concreteStatePath, usedAssignableTerms);
   }
 
-  private ConcerteStatePathNode createSingleConcreteStateNode(
+  private ConcreteStatePathNode createSingleConcreteStateNode(
       CFAEdge cfaEdge, SSAMap ssaMap,
       Map<String, Assignment> variableEnvoirment,
       Map<LeftHandSide, Object> variables,
