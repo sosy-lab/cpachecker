@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotat
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -111,7 +110,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AbstractDomain automatonDomain = new AutomatonDomain(topState, inactiveState);
   private final AutomatonPrecision initPrecision = AutomatonPrecision.emptyBlacklist();
 
-  private final StopOperator stopOperator = new StopSepOperator(automatonDomain);
+  private final StopOperator stopOperator = new AutomatonStopOperator(automatonDomain);
   private final AutomatonTransferRelation transferRelation;
   private final PrecisionAdjustment precisionAdjustment;
   private final MergeOperator mergeOperator;
