@@ -40,7 +40,7 @@ public interface AbstractStateWithShadowLocations extends AbstractState {
    * Get the {@link CFANode}s that represents the shadow locations of this state.
    * @return A node of the CFA.
    */
-  Iterable<CFANode> getLocationNodes();
+  Iterable<CFANode> getShadowLocationNodes();
 
   /**
    * Get the edges that are considered "outgoing" from the current shadow locations
@@ -48,6 +48,6 @@ public interface AbstractStateWithShadowLocations extends AbstractState {
    *
    * @return A (possibly empty) iterable of shadow edges without duplicates.
    */
-  Iterable<CFAEdge> getOutgoingEdges();
+  Iterable<CFAEdge> getOutgoingShadowEdges();
 
 }
