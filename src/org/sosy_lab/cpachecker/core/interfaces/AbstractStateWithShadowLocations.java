@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -38,6 +40,7 @@ public interface AbstractStateWithShadowLocations extends AbstractState {
 
   /**
    * Get the {@link CFANode}s that represents the shadow locations of this state.
+   *
    * @return A node of the CFA.
    */
   Iterable<CFANode> getShadowLocationNodes();
@@ -46,8 +49,10 @@ public interface AbstractStateWithShadowLocations extends AbstractState {
    * Get the edges that are considered "outgoing" from the current shadow locations
    * by the CPA of this abstract state.
    *
+   * @param pContinueTo The non-shadow successor node of the returned {@link CFAEdge}s.
+   *
    * @return A (possibly empty) iterable of shadow edges without duplicates.
    */
-  Iterable<CFAEdge> getOutgoingShadowEdges();
+  Iterable<CFAEdge> getOutgoingShadowEdges(@Nonnull CFANode pContinueTo);
 
 }

@@ -41,11 +41,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -65,7 +67,8 @@ import com.google.common.collect.Sets;
  * Instances of this class are passed to the CPAchecker as AbstractState.
  */
 public class AutomatonState
-    implements AbstractQueryableState, Targetable, Serializable, AbstractStateWithAssumptions, Graphable {
+    implements AbstractQueryableState, Targetable, Serializable,
+    AbstractStateWithAssumptions, AbstractStateWithShadowLocations, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -538,4 +541,15 @@ public class AutomatonState
   public void setMatches(int pMatches) {
     matches = pMatches;
   }
+
+  @Override
+  public Iterable<CFANode> getShadowLocationNodes() {
+    return ImmutableSet.of();
+  }
+
+  @Override
+  public Iterable<CFAEdge> getOutgoingShadowEdges(CFANode pContinueTo) {
+    return ImmutableSet.of();
+  }
+
 }
