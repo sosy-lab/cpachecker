@@ -54,6 +54,10 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
   enum LocationStateType {FORWARD, BACKWARD, BACKWARDNOTARGET}
 
+  /**
+   * Location state of an analysis that runs FORWARDS
+   *  (from the entry point of the program).
+   */
   static class ForwardsLocationState extends LocationState {
 
     private static final long serialVersionUID = -2214381183720196734L;
@@ -64,6 +68,10 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
   }
 
+  /**
+   * Location state of an analysis that runs BACKWARDS
+   *  (from the target states).
+   */
   static class BackwardsLocationState extends LocationState implements Targetable {
 
     private static final long serialVersionUID = 6825257572921009531L;
@@ -99,6 +107,10 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
   }
 
+  /**
+   * Location state of an analysis that runs BACKWARDS (from the target states).
+   *  This state always signals 'isTarget() == false'.
+   */
   static class BackwardsLocationStateNoTarget extends BackwardsLocationState {
 
     private static final long serialVersionUID = -2918748452708606128L;
