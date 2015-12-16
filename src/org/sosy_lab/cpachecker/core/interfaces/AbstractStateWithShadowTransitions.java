@@ -36,14 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * The interface is intended to provide this knowledge about the shadow locations
  * to other components, such as other CPAs or algorithms.
  */
-public interface AbstractStateWithShadowLocations extends AbstractState {
-
-  /**
-   * Get the {@link CFANode}s that represents the shadow locations of this state.
-   *
-   * @return A node of the CFA.
-   */
-  Iterable<CFANode> getShadowLocationNodes();
+public interface AbstractStateWithShadowTransitions extends AbstractState {
 
   /**
    * Get the edges that are considered "outgoing" from the current shadow locations

@@ -26,16 +26,21 @@ package org.sosy_lab.cpachecker.cpa.location;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowTransitions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+
+import com.google.common.base.Preconditions;
 
 public class LocationTransferRelation implements TransferRelation {
 
@@ -85,6 +90,32 @@ public class LocationTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState pElement,
       List<AbstractState> pOtherElements, CFAEdge pCfaEdge, Precision pPrecision) {
+
+    LocationState e = (LocationState) pElement;
+
+    //
+    // Support for shadow CFA transitions.
+    //    This transitions are not part of the program code,
+    //    but get woven from a different source, for example, a specification (property) automata.
+    //
+
+    Collection<AbstractStateWithShadowTransitions> shadowingStates =
+        AbstractStates.extractStatesByType(e, AbstractStateWithShadowTransitions.class);
+
+    Preconditions.checkState(shadowingStates.size() <= 1, "At most one shadowing state supported (at the moment)!");
+
+    if (!shadowingStates.isEmpty()) {
+      // There is an element (component of the composite state) in the analysis
+      // that provides shadow locations/transitions.
+      AbstractStateWithShadowTransitions shadow = shadowingStates.iterator().next();
+
+      Iterator<CFAEdge> shadowTransitions = shadow.getOutgoingShadowEdges(e.getLocationNode()).iterator();
+      if (shadowTransitions.hasNext()) {
+        // There are shadow transitions that must get woven...
+
+      }
+
+    }
 
     return null;
   }
