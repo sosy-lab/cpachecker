@@ -337,7 +337,7 @@ analysis.mpa.initOperatorClass = InitDefaultOperator.class
 
 # Operator for determining the partitions of properties that have to be
 # checked.
-analysis.mpa.partition.operator = DefaultOperator.class
+analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
