@@ -676,24 +676,24 @@ public class TigerAlgorithm
         final ARGState criticalState = findStateAfterCriticalEdge(goal, pTestcase.getArgPath());
         Preconditions.checkState(criticalState != null, "Each ARG path of a counterexample must be along a critical edge!");
 
-        Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
-        if (goalCriticalStateRegion != null) {
-          if (allCoveredGoalsPerTestCase
-              || !bddCpaNamedRegionManager.makeAnd(testsuite.getRemainingPresenceCondition(goal), goalCriticalStateRegion).isFalse()) {
+        Region statePresenceCondition = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
+        Preconditions.checkState(statePresenceCondition != null, "Each critical state must be annotated with a presence condition!");
 
-            // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+        if (allCoveredGoalsPerTestCase
+            || !bddCpaNamedRegionManager.makeAnd(testsuite.getRemainingPresenceCondition(goal), statePresenceCondition).isFalse()) {
 
-            testsuite.addTestCase(pTestcase, goal, goalCriticalStateRegion);
+          // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
 
-            logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by test case %d!",
-                goal.getIndex(), testsuite.getTestGoalLabel(goal),
-                bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion), pTestcase.getId());
-            logger.logf(Level.WARNING, "Remaining PC %s!",
-                bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(goal)));
+          testsuite.addTestCase(pTestcase, goal, statePresenceCondition);
 
-            if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
-              coveredGoals.add(goal);
-            }
+          logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by test case %d!",
+              goal.getIndex(), testsuite.getTestGoalLabel(goal),
+              bddCpaNamedRegionManager.dumpRegion(statePresenceCondition), pTestcase.getId());
+          logger.logf(Level.WARNING, "Remaining PC %s!",
+              bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(goal)));
+
+          if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
+            coveredGoals.add(goal);
           }
         }
 
