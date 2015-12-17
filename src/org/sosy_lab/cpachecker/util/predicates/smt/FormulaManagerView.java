@@ -288,6 +288,11 @@ public class FormulaManagerView {
     return wrappingHandler;
   }
 
+  // DO NOT MAKE THIS METHOD PUBLIC!
+  FormulaManager getRawFormulaManager() {
+    return manager;
+  }
+
   private <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
     return wrappingHandler.wrap(targetType, toWrap);
   }

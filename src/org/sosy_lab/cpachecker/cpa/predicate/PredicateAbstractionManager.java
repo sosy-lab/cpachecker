@@ -45,7 +45,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -62,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsSt
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator.RegionBuild
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -954,7 +953,7 @@ public class PredicateAbstractionManager {
   }
 
   private class AllSatCallbackImpl
-      extends DefaultBooleanFormulaVisitor<BooleanFormula>
+      extends BooleanFormulaManagerView.DefaultBooleanFormulaVisitor<BooleanFormula>
       implements AllSatCallback<Region> {
 
     private final RegionBuilder builder;
@@ -1029,6 +1028,11 @@ public class PredicateAbstractionManager {
 
     private int getCount() {
       return count;
+    }
+
+    @Override
+    public BooleanFormula visitDefault() {
+      throw new UnsupportedOperationException();
     }
   }
 

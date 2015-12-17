@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.RecursiveBooleanFormulaVisitor;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.ImmutableSortedSet;
@@ -65,7 +66,8 @@ public class FormulaMeasuring {
     return result;
   }
 
-  private static class FormulaMeasuringVisitor extends RecursiveBooleanFormulaVisitor {
+  private static class FormulaMeasuringVisitor
+      extends BooleanFormulaManagerView.RecursiveBooleanFormulaVisitor {
 
     private final FormulaMeasures measures;
     private final FormulaManagerView fmgr;
@@ -77,19 +79,19 @@ public class FormulaMeasuring {
     }
 
     @Override
-    protected Void visitFalse() {
+    public Void visitFalse() {
       measures.falses++;
       return null;
     }
 
     @Override
-    protected Void visitTrue() {
+    public Void visitTrue() {
       measures.trues++;
       return null;
     }
 
     @Override
-    protected Void visitAtom(BooleanFormula pAtom) {
+    public Void visitAtom(BooleanFormula pAtom) {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);
@@ -98,37 +100,38 @@ public class FormulaMeasuring {
     }
 
     @Override
-    protected Void visitNot(BooleanFormula pOperand) {
+    public Void visitNot(BooleanFormula pOperand) {
       measures.negations++;
       return super.visitNot(pOperand);
     }
 
     @Override
-    protected Void visitAnd(BooleanFormula... pOperands) {
+    public Void visitAnd(List<BooleanFormula> pOperands) {
       measures.conjunctions++;
       return super.visitAnd(pOperands);
     }
 
     @Override
-    protected Void visitOr(BooleanFormula... pOperand) {
+    public Void visitOr(List<BooleanFormula> pOperands) {
       measures.disjunctions++;
-      return super.visitOr(pOperand);
+      return super.visitOr(pOperands);
     }
 
     @Override
-    protected Void visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    public Void visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       // TODO count?
       return super.visitEquivalence(pOperand1, pOperand2);
     }
 
     @Override
-    protected Void visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+    public Void visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       // TODO count?
       return super.visitIfThenElse(pCondition, pThenFormula, pElseFormula);
     }
 
     @Override
-    protected Void visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    public Void visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       // TODO count?
       return super.visitImplication(pOperand1, pOperand2);
     }
