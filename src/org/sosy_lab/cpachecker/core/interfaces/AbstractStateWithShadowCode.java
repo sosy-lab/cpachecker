@@ -23,29 +23,27 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import java.util.List;
+
 import javax.annotation.Nonnull;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 
 /**
- * This interface represents abstract states that somehow store information
- * about which shadow CFA locations the abstract state belongs to.
- *
- * The interface is intended to provide this knowledge about the shadow locations
- * to other components, such as other CPAs or algorithms.
+ * Represents abstract states can introduce shadow code the analysis.
  */
-public interface AbstractStateWithShadowTransitions extends AbstractState {
+public interface AbstractStateWithShadowCode extends AbstractState {
 
   /**
-   * Get the edges that are considered "outgoing" from the current shadow locations
-   * by the CPA of this abstract state.
+   * Get a (ordered) sequence of AST nodes that are considered "outgoing" from
+   * the current shadow location by the CPA of this abstract state.
    *
-   * @param pContinueTo The non-shadow successor node of the returned {@link CFAEdge}s.
+   * @param pContinueTo   The sequence of {@link AAstNode}s is intended to terminate in this CFA location.
    *
    * @return A (possibly empty) iterable of shadow edges without duplicates.
    */
-  Iterable<CFAEdge> getOutgoingShadowEdges(@Nonnull CFANode pContinueTo);
+  List<AAstNode> getOutgoingShadowCode(@Nonnull CFANode pContinueTo);
 
 }

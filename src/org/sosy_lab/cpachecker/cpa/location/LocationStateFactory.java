@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.List;
 import java.util.SortedSet;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
@@ -115,9 +117,9 @@ public class LocationStateFactory {
         node, node.getFunctionName());
   }
 
-  public LocationState createStateWithShadowTransitions(Iterable<CFAEdge> pShadowTransitions,
+  public LocationState createStateWithShadowCode(List<AAstNode> pShadowCode,
       CFANode pEndInNodeOfCfa) {
 
-    return new LocationState.ForwardsShadowLocationState(pShadowTransitions, pEndInNodeOfCfa);
+    return new LocationState.ForwardsShadowLocationState(pShadowCode, pEndInNodeOfCfa);
   }
 }

@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,13 +42,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowTransitions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowCode;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
@@ -68,7 +68,7 @@ import com.google.common.collect.Sets;
  */
 public class AutomatonState
     implements AbstractQueryableState, Targetable, Serializable,
-    AbstractStateWithAssumptions, AbstractStateWithShadowTransitions, Graphable {
+    AbstractStateWithAssumptions, AbstractStateWithShadowCode, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -543,8 +543,9 @@ public class AutomatonState
   }
 
   @Override
-  public Iterable<CFAEdge> getOutgoingShadowEdges(CFANode pContinueTo) {
-    return ImmutableSet.of();
+  public List<AAstNode> getOutgoingShadowCode(CFANode pContinueTo) {
+    return ImmutableList.of();
   }
+
 
 }

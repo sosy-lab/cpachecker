@@ -32,11 +32,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -87,13 +90,14 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
       private final CFANode shadowOnLocation;
 
-      public ShadowCFANode(List<CFAEdge> pLeavingShadowEdges, CFANode pShadowOnLocation) {
+      public ShadowCFANode(List<AAstNode> pLeavingShadowCode, CFANode pShadowOnLocation) {
         super(pShadowOnLocation.getFunctionName());
-        this.shadowOnLocation = pShadowOnLocation;
 
-        for (CFAEdge g: pLeavingShadowEdges) {
-          addLeavingEdge(g);
-        }
+        shadowOnLocation = pShadowOnLocation;
+
+        final MultiEdge codeEdges = CFAEdgeFactory.INSTANCE.createEdgeForNodeSequence(this, pLeavingShadowCode, pShadowOnLocation);
+
+        addLeavingEdge(codeEdges);
       }
 
       @Override
@@ -120,8 +124,8 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
     private static final long serialVersionUID = -4273114440243620843L;
 
-    public ForwardsShadowLocationState(Iterable<CFAEdge> pShadowTransitions, CFANode pShadowOfLocation) {
-      super(new ShadowCFANode(ImmutableList.copyOf(pShadowTransitions), pShadowOfLocation), false);
+    public ForwardsShadowLocationState(List<AAstNode> pShadowCode, CFANode pShadowOfLocation) {
+      super(new ShadowCFANode(ImmutableList.copyOf(pShadowCode), pShadowOfLocation), false);
     }
 
   }

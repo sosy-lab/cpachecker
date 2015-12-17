@@ -30,11 +30,12 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowTransitions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithShadowCode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -101,21 +102,21 @@ public class LocationTransferRelation implements TransferRelation {
     //    but get woven from a different source, for example, a specification (property) automata.
     //
 
-    Collection<AbstractStateWithShadowTransitions> shadowingStates =
-        AbstractStates.extractStatesByType(e, AbstractStateWithShadowTransitions.class);
+    Collection<AbstractStateWithShadowCode> shadowingStates =
+        AbstractStates.extractStatesByType(e, AbstractStateWithShadowCode.class);
 
     Preconditions.checkState(shadowingStates.size() <= 1, "At most one shadowing state supported (at the moment)!");
 
     if (!shadowingStates.isEmpty()) {
       // There is an element (component of the composite state) in the analysis
       // that provides shadow locations/transitions.
-      AbstractStateWithShadowTransitions shadowProvider = shadowingStates.iterator().next();
+      AbstractStateWithShadowCode shadowProvider = shadowingStates.iterator().next();
 
-      Iterable<CFAEdge> shadowTransitions = shadowProvider.getOutgoingShadowEdges(e.getLocationNode());
-      if (shadowTransitions.iterator().hasNext()) {
-        // There are shadow transitions that must get woven...
+      List<AAstNode> shadowCodeSequence = shadowProvider.getOutgoingShadowCode(e.getLocationNode());
+      if (shadowCodeSequence.iterator().hasNext()) {
+        // There are shadow code that must get woven...
 
-        return ImmutableSet.of(factory.createStateWithShadowTransitions(shadowTransitions, e.getLocationNode()));
+        return ImmutableSet.of(factory.createStateWithShadowCode(shadowCodeSequence, e.getLocationNode()));
       }
 
     }
