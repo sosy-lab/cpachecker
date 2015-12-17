@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EliminationRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.EquivalenceRule;
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.util.precondition.segkro.rules.InEqualityRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.RuleEngine;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
@@ -92,7 +92,7 @@ public class ExtractNewPreds {
           dimensions.add(resultPredicates);
         }
 
-        for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
+        for (List<BooleanFormula> tuple: Lists.cartesianProduct(dimensions)) {
           boolean containsFormulasNotFrom = false;
           for (BooleanFormula f: tuple) {
             if (!pBasePredicates.contains(f)) {

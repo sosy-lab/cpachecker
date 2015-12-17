@@ -32,12 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.cpachecker.util.precondition.segkro.Cartesian;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
@@ -48,6 +43,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -129,12 +128,12 @@ public abstract class PatternBasedRule extends AbstractRule {
     final int premiseCount = getPremises().size();
     Verify.verify(premiseCount != 0);
 
-    final List<Collection<BooleanFormula>> dimensions = new ArrayList<>(premiseCount);
+    final List<List<BooleanFormula>> dimensions = new ArrayList<>(premiseCount);
     for (int i=0; i<premiseCount; i++) {
-      dimensions.add(pConjunctiveInputPredicates);
+      dimensions.add(ImmutableList.copyOf(pConjunctiveInputPredicates));
     }
 
-    for (List<BooleanFormula> tuple: Cartesian.product(dimensions)) {
+    for (List<BooleanFormula> tuple: Lists.cartesianProduct(dimensions)) {
       final Set<BooleanFormula> inferred = applyWithInputRelatingPremises(tuple, pMatchingBindings);
       result.addAll(inferred);
     }
@@ -144,13 +143,13 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   private Collection<Map<String, Formula>> getAllAssignments(Multimap<String, Formula> pFromBindings) {
     final Set<String> boundVariables = pFromBindings.keySet();
-    final List<Collection<Formula>> dimensions = new ArrayList<>(boundVariables.size());
+    final List<List<Formula>> dimensions = new ArrayList<>(boundVariables.size());
     for (String var: boundVariables) {
-      dimensions.add(pFromBindings.get(var));
+      dimensions.add(ImmutableList.copyOf(pFromBindings.get(var)));
     }
 
     Collection<Map<String, Formula>> result = Lists.newArrayList();
-    for (List<Formula> x: Cartesian.product(dimensions)) {
+    for (List<Formula> x: Lists.cartesianProduct(dimensions)) {
       final Map<String, Formula> tuple = Maps.newHashMap();
       final Iterator<Formula> xIt = x.iterator();
       for (String var: boundVariables) {
