@@ -37,7 +37,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
@@ -102,6 +101,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder;
 
@@ -604,7 +604,7 @@ private boolean classifyNodes = false;
     }
 
     if (expandFunctionPointerArrayAssignments) {
-      ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger, config);
+      ExpandFunctionPointerArrayAssignments transformer = new ExpandFunctionPointerArrayAssignments(logger);
       transformer.replaceFunctionPointerArrayAssignments(cfa);
     }
 
@@ -654,7 +654,7 @@ private boolean classifyNodes = false;
 
     if (useFunctionCallUnwinding) {
       // must be done before adding global vars
-      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config, logger);
+      final FunctionCallUnwinder fca = new FunctionCallUnwinder(cfa, config);
       cfa = fca.unwindRecursion();
     }
 
@@ -662,7 +662,7 @@ private boolean classifyNodes = false;
       // cloning must be done before adding global vars,
       // current use case is ThreadingCPA, thus we check for the creation of new threads first.
       logger.log(Level.INFO, "program contains concurrency, cloning functions...");
-      final CFACloner cloner = new CFACloner(cfa, config, logger);
+      final CFACloner cloner = new CFACloner(cfa, config);
       cfa = cloner.execute();
     }
 

@@ -179,14 +179,14 @@ public class PreconditionRefinerAlgorithm implements Algorithm, StatisticsProvid
     cfa = pCfa;
     logger = Preconditions.checkNotNull(pLogger);
     wrappedAlgorithm = Preconditions.checkNotNull(pAlgorithm);
-    reachedSetFactory = new ReachedSetFactory(pConfig, pLogger);
+    reachedSetFactory = new ReachedSetFactory(pConfig);
 
     amgr = predcpa.getAbstractionManager();
     mgrv = predcpa.getSolver().getFormulaManager();
     solver = predcpa.getSolver();
 
     helper = new PreconditionHelper(mgrv, pConfig, logger, pShutdownNotifier, pCfa);
-    ruleEngine = new RuleEngine(logger, solver);
+    ruleEngine = new RuleEngine(solver);
 
     refiner = createRefiner(pConfig, pShutdownNotifier);
 

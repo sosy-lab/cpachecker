@@ -86,7 +86,7 @@ public class OctagonAnalysisFeasabilityChecker {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(VariableTrackingPrecision pOctPrecision) {
+  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement() {
     if (isFeasible()) {
       return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {

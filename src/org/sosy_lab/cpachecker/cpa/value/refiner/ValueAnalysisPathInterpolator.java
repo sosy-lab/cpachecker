@@ -98,7 +98,6 @@ public class ValueAnalysisPathInterpolator
     super(new ValueAnalysisEdgeInterpolator(pFeasibilityChecker,
             pStrongestPostOperator,
             pConfig,
-            pLogger,
             pShutdownNotifier,
             pCfa),
         pFeasibilityChecker,

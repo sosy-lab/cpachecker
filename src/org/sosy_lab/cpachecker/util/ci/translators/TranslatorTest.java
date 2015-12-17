@@ -110,10 +110,7 @@ public class TranslatorTest {
     ValueAnalysisState vStateTest = new ValueAnalysisState(constantsMap, locToTypeMap);
     Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
     ValueRequirementsTranslator vReqTransTest =
-        new ValueRequirementsTranslator(
-            TestDataTools.configurationForTest().build(),
-            ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance());
+        new ValueRequirementsTranslator(TestLogManager.getInstance());
 
     // Test of method getVarsInRequirements()
     List<String> varsInRequirements = vReqTransTest.getVarsInRequirements(vStateTest);
@@ -144,10 +141,7 @@ public class TranslatorTest {
     sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
     sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
     SignRequirementsTranslator sReqTransTest =
-        new SignRequirementsTranslator(
-            TestDataTools.configurationForTest().build(),
-            ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance());
+        new SignRequirementsTranslator(TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInReq = sReqTransTest.getVarsInRequirements(sStateTest);
@@ -195,10 +189,7 @@ public class TranslatorTest {
 
     IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
     IntervalRequirementsTranslator iReqTransTest =
-        new IntervalRequirementsTranslator(
-            TestDataTools.configurationForTest().build(),
-            ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance());
+        new IntervalRequirementsTranslator(TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInRequirements = iReqTransTest.getVarsInRequirements(iStateTest);
@@ -301,7 +292,7 @@ public class TranslatorTest {
                 .setLogger(logger)
                 .setShutdownNotifier(ShutdownNotifier.createDummy())
                 .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
-                .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class)
+                .set(new ReachedSetFactory(config), ReachedSetFactory.class)
                 .createInstance();
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 

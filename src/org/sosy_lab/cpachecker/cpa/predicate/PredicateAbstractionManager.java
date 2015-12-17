@@ -378,7 +378,7 @@ public class PredicateAbstractionManager {
         stats.quantifierEliminationTime.start();
         try {
           abs = rmgr.makeAnd(abs,
-              eliminateIrrelevantVariablePropositions(f, location, ssa, thmProver, predicates));
+              eliminateIrrelevantVariablePropositions(f, ssa));
         } finally {
           stats.quantifierEliminationTime.stop();
         }
@@ -561,8 +561,7 @@ public class PredicateAbstractionManager {
     return null; //no abstraction could be reused
   }
 
-  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, CFANode pLocation, SSAMap pSsa,
-      ProverEnvironment pThmProver, ImmutableSet<AbstractionPredicate> pPredicates) throws InterruptedException, SolverException {
+  private Region eliminateIrrelevantVariablePropositions(BooleanFormula pF, SSAMap pSsa) throws InterruptedException, SolverException {
 
     BooleanFormula eliminationResult = fmgr.uninstantiate(
         fmgr.eliminateDeadVariables(pF, pSsa));

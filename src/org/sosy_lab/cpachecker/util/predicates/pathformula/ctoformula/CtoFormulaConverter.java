@@ -427,7 +427,7 @@ public class CtoFormulaConverter {
    */
   protected Formula makeCast(final CType pFromType, final CType pToType,
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
-    Formula result = makeCast0(pFromType, pToType, formula, constraints, edge);
+    Formula result = makeCast0(pFromType, pToType, formula, edge);
 
     if (options.encodeOverflowsWithUFs()) {
       // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
@@ -509,7 +509,7 @@ public class CtoFormulaConverter {
    * @return the new formula after the cast.
    */
   private Formula makeCast0(final CType pFromType, final CType pToType,
-      Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCCodeException {
+      Formula formula, CFAEdge edge) throws UnrecognizedCCodeException {
     // UNDEFINED: Casting a numeric value into a value that can't be represented by the target type (either directly or via static_cast)
 
     CType fromType = pFromType.getCanonicalType();
@@ -554,7 +554,7 @@ public class CtoFormulaConverter {
       CSimpleType sfromType = (CSimpleType)fromType;
       if (toType instanceof CSimpleType) {
         CSimpleType stoType = (CSimpleType)toType;
-        return makeSimpleCast(sfromType, stoType, formula, constraints);
+        return makeSimpleCast(sfromType, stoType, formula);
       }
     }
 
@@ -600,8 +600,7 @@ public class CtoFormulaConverter {
    * When the fromType is a signed type a bit-extension will be done,
    * on any other case it will be filled with 0 bits.
    */
-  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType,
-      Formula pFormula, Constraints constraints) {
+  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType, Formula pFormula) {
     final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
     final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
@@ -1289,15 +1288,34 @@ public class CtoFormulaConverter {
     return bfmgr.and(f, constraints.get());
   }
 
+  /**
+   * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
+   * @param pts
+   */
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
   }
 
+  /**
+   * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
+   * @param pts1
+   * @param pts2
+   * @param resultSSA
+   */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
       final PointerTargetSet pts2, final SSAMapBuilder resultSSA) throws InterruptedException {
     return MergeResult.trivial(pts1, bfmgr);
   }
 
+  /**
+   * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
+   * @param pEdge
+   * @param pFunction
+   * @param ssa
+   * @param pts
+   * @param constraints
+   * @param errorConditions
+   */
   protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,

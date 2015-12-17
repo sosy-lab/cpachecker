@@ -28,8 +28,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
@@ -263,7 +261,7 @@ public class ToBitvectorFormulaVisitor implements
         negativeCaseFormula);
   }
 
-  public static Integer getSize(NumeralFormula<CompoundInterval> pFormula, Map<MemoryLocation, CType> pTypes, MachineModel pMachineModel) {
+  public static Integer getSize(NumeralFormula<CompoundInterval> pFormula) {
     return pFormula.getBitVectorInfo().getSize();
   }
 

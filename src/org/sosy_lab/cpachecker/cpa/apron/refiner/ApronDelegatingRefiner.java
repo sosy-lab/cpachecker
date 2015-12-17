@@ -271,7 +271,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
     Precision precision                     = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision apronPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(ApronCPA.class)).get(0);
 
-    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(apronPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
     // no newly tracked variables, so the refinement was not successful // TODO why is this commented out
     if (increment.isEmpty()) {
     //  return false;

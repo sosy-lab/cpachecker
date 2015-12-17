@@ -160,7 +160,7 @@ public class CoreComponentsFactory {
 
     config.inject(this);
 
-    reachedSetFactory = new ReachedSetFactory(config, logger);
+    reachedSetFactory = new ReachedSetFactory(config);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
   }
 
@@ -179,7 +179,7 @@ public class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
       if (useARGCombiningAlgorithm) {
-        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier, cfa);
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
       }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -207,7 +207,7 @@ public class CoreComponentsFactory {
       }
 
       if (useBDDCPARestriction) {
-        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (collectAssumptions) {

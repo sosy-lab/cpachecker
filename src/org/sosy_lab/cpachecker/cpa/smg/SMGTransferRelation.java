@@ -651,7 +651,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         while(!processQueue.isEmpty()) {
           SMGState next = processQueue.poll();
-          Collection<? extends AbstractState> resultOfOneOp = getAbstractSuccessorsForEdge(next, precision, edge);
+          Collection<? extends AbstractState> resultOfOneOp = getAbstractSuccessorsForEdge(next, edge);
 
           for(AbstractState result : resultOfOneOp) {
             resultQueue.add((SMGState) result);
@@ -665,7 +665,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       results = ImmutableSet.copyOf(processQueue);
     } else {
-      results = getAbstractSuccessorsForEdge((SMGState)state, precision, cfaEdge);
+      results = getAbstractSuccessorsForEdge((SMGState)state, cfaEdge);
     }
 
     return results;
@@ -688,7 +688,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      SMGState state, Precision precision, CFAEdge cfaEdge)
+      SMGState state, CFAEdge cfaEdge)
           throws CPATransferException {
     logger.log(Level.FINEST, "SMG GetSuccessor >>");
     logger.log(Level.FINEST, "Edge:", cfaEdge.getEdgeType());
@@ -826,8 +826,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       CExpression lValue = ((CFunctionCallAssignmentStatement) exprOnSummary).getLeftHandSide();
 
-      CType lValueType = expressionEvaluator.getRealExpressionType(lValue);
-
       CType rValueType = expressionEvaluator.getRealExpressionType(((CFunctionCallAssignmentStatement) exprOnSummary).getRightHandSide());
 
       SMGSymbolicValue rValue = getFunctionReturnValue(newState, rValueType, functionReturnEdge);
@@ -852,7 +850,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         int offset = address.getOffset().getAsInt();
 
-        return assignFieldToState(newState, functionReturnEdge, object, offset, lValueType, rValue, rValueType);
+        return assignFieldToState(newState, functionReturnEdge, object, offset, rValue, rValueType);
       } else {
         //TODO missingInformation, exception
         return newState;
@@ -956,7 +954,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       // We want to write a possible new Address in the new State, but
       // explore the old state for the parameters
-      newState = assignFieldToState(newState, callEdge, newObject, 0, cParamType, symbolicValue, rValueType);
+      newState = assignFieldToState(newState, callEdge, newObject, 0, symbolicValue, rValueType);
     }
 
     return newState;
@@ -1238,7 +1236,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     newState = assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue);
 
-    newState = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, pLFieldType, value, rValueType);
+    newState = assignFieldToState(newState, cfaEdge, memoryOfField, fieldOffset, value, rValueType);
 
     return newState;
   }
@@ -1272,7 +1270,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private SMGState assignFieldToState(SMGState newState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, CType pFieldType, SMGSymbolicValue value, CType rValueType)
+      SMGObject memoryOfField, int fieldOffset, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
     //FIXME Does not work with variable array length.

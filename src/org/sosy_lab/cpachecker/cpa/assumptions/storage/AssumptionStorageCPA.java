@@ -80,7 +80,7 @@ public class AssumptionStorageCPA implements ConfigurableProgramAnalysis, ProofC
     Solver solver = Solver.create(config, logger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, options, cfa.getMachineModel(), formulaManager);
+    CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
     CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
     abstractDomain = new AssumptionStorageDomain(formulaManager);
     stopOperator = new AssumptionStorageStop();

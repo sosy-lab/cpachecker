@@ -57,7 +57,6 @@ public class InfeasiblePrefix {
 
   private InfeasiblePrefix(final ARGPath pInfeasiblePrefix,
       final List<Set<String>> pSimpleInterpolantSequence,
-      final List<BooleanFormula> pItpSequence,
       final List<BooleanFormula> pPathFormulas) {
 
     prefix = pInfeasiblePrefix;
@@ -78,7 +77,6 @@ public class InfeasiblePrefix {
 
     return new InfeasiblePrefix(pInfeasiblePrefix,
         simpleInterpolantSequence,
-        pInterpolantSequence,
         pPathFormulas);
   }
 

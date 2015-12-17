@@ -163,6 +163,13 @@ public abstract class PathTranslator {
     }
   }
 
+  /**
+   * Start the function, puts another body on the function stack.
+   *
+   * @param firstFunctionElement
+   * @param functionStack
+   * @param predecessor
+   */
   protected String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack, CFANode predecessor) {
     // create the first stack element using the first element of the function
     CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);

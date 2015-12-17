@@ -190,7 +190,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.getTrueInterpolant();
     }
 
-    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate
@@ -223,10 +223,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * This optimization was removed again in commit r16007 because the payoff did not justify
    * maintaining the code, esp. as other optimizations work equally well with less code.
    */
-  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
-      final CFAEdge pCurrentEdge,
-      final S candidateInterpolant
-  ) {
+  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final S candidateInterpolant) {
     return candidateInterpolant.getTrackedMemoryLocations();
   }
 

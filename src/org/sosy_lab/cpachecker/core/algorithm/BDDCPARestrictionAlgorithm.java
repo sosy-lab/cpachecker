@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -35,7 +34,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -69,9 +67,8 @@ public class BDDCPARestrictionAlgorithm implements Algorithm, StatisticsProvider
   private final NamedRegionManager manager;
   private Region errorSummary;
 
-  public BDDCPARestrictionAlgorithm(Algorithm algorithm,
-      ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
+  public BDDCPARestrictionAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa,
+      Configuration config, LogManager logger) throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
     config.inject(this);

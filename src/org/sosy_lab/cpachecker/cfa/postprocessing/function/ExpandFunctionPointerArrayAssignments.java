@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -71,7 +70,7 @@ public class ExpandFunctionPointerArrayAssignments {
 
   private final LogManager logger;
 
-  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) {
+  public ExpandFunctionPointerArrayAssignments(LogManager pLogger) {
     logger = pLogger;
   }
 

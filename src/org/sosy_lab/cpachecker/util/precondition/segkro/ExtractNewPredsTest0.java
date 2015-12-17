@@ -108,7 +108,7 @@ public class ExtractNewPredsTest0 extends SolverBasedTest0 {
     ifm = mgrv.getIntegerFormulaManager();
     qfm = mgrv.getQuantifiedFormulaManager();
 
-    rulesEngine = new RuleEngine(logger, solver);
+    rulesEngine = new RuleEngine(solver);
     enp = new ExtractNewPreds(solver, rulesEngine);
 
     setupTestdata();

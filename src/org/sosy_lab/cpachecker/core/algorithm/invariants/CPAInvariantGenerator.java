@@ -304,7 +304,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
+    reachedSetFactory = new ReachedSetFactory(invariantConfig);
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
             .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);

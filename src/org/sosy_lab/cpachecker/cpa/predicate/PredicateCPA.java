@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -136,8 +135,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final InvariantGenerator invariantGenerator;
 
   protected PredicateCPA(Configuration config, LogManager logger,
-      BlockOperator blk, CFA pCfa, ReachedSetFactory reachedSetFactory,
-      ShutdownNotifier pShutdownNotifier)
+      BlockOperator blk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
     config.inject(this, PredicateCPA.class);
 
@@ -212,7 +210,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
       staticRefiner = null;
     }
 
-    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, pathFormulaManager, abstractionManager, formulaManager);
+    precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 

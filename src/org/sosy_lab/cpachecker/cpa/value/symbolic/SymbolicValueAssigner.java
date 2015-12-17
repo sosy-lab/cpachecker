@@ -140,7 +140,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       Type pVarType, ExpressionValueVisitor pValueVisitor) throws UnrecognizedCCodeException {
 
     if (pVarType instanceof JType) {
-       addSymbolicTracking(pState, pVarLocation, (JType) pVarType, pValueVisitor);
+       addSymbolicTracking(pState, pVarLocation, (JType) pVarType);
 
     } else {
       assert pVarType instanceof CType : "Unhandled type " + pVarType;
@@ -151,7 +151,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
 
   private void addSymbolicTracking(ValueAnalysisState pState,
-      MemoryLocation pVarLocation, JType pVarType, ExpressionValueVisitor pValueVisitor) {
+      MemoryLocation pVarLocation, JType pVarType) {
 
     if (pVarType instanceof JSimpleType) {
        assignSymbolicIdentifier(pState, pVarLocation, pVarType);

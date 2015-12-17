@@ -272,7 +272,7 @@ public class FormulaManagerView {
     NumeralFormulaManager<IntegerFormula, IntegerFormula> ifmgr = manager.getIntegerFormulaManager();
     if (useUFsForNonLinearArithmetic) {
       ifmgr = new NonLinearUFNumeralFormulaManager<>(
-          wrappingHandler, booleanFormulaManager, ifmgr, functionFormulaManager);
+          wrappingHandler, ifmgr, functionFormulaManager);
     }
     return ifmgr;
   }
@@ -281,7 +281,7 @@ public class FormulaManagerView {
     NumeralFormulaManager<NumeralFormula, RationalFormula> rfmgr = manager.getRationalFormulaManager();
     if (useUFsForNonLinearArithmetic) {
       rfmgr = new NonLinearUFNumeralFormulaManager<>(
-          wrappingHandler, booleanFormulaManager, rfmgr, functionFormulaManager);
+          wrappingHandler, rfmgr, functionFormulaManager);
     }
     return rfmgr;
   }
@@ -1405,18 +1405,6 @@ public class FormulaManagerView {
         return true;
       }
     }).visit(t);
-  }
-
-  private boolean containsIfThenElse(Formula f) {
-    if (booleanFormulaManager.isIfThenElse(f)) {
-      return true;
-    }
-    for (int i = 0; i < unsafeManager.getArity(f); ++i) {
-      if (containsIfThenElse(unsafeManager.getArg(f, i))) {
-        return true;
-      }
-    }
-    return false;
   }
 
   static final String BitwiseAndUfName = "_&_";

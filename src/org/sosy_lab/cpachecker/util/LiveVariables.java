@@ -525,8 +525,7 @@ public class LiveVariables {
         default: throw new AssertionError("Unhandled case statement: " + evaluationStrategy);
       }
 
-      ReachedSetFactory reachedFactory = new ReachedSetFactory(config,
-                                                               logger);
+      ReachedSetFactory reachedFactory = new ReachedSetFactory(config);
       ConfigurableProgramAnalysis cpa = new CPABuilder(config,
                                                        logger,
                                                        shutdownNotifier,

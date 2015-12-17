@@ -166,7 +166,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (handleArrays) {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
       converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
@@ -174,7 +174,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     } else if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
-      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
@@ -182,7 +182,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 

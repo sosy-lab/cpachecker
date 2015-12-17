@@ -36,8 +36,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -89,10 +87,6 @@ public class DeterministicVariablesTransferRelation
 
   private Set<CFANode> assumes = new HashSet<>();
   private Set<CFANode> nondetAssumes = new HashSet<>();
-
-  public DeterministicVariablesTransferRelation(Configuration pConfig)
-      throws InvalidConfigurationException {
-  }
 
   @Override
   protected void setInfo(final AbstractState abstractState,

@@ -662,7 +662,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   public Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     if (this.environmentAsAssumptions == null) {
-      environmentAsAssumptions = getEnvironmentAsAssumptions(machineModel, compoundIntervalManagerFactory, environment, variableTypes);
+      environmentAsAssumptions = getEnvironmentAsAssumptions(compoundIntervalManagerFactory, environment);
     }
     return environmentAsAssumptions;
   }
@@ -695,10 +695,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   private static Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions(
-      MachineModel pMachineModel,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
-      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
-      Map<? extends MemoryLocation, ? extends Type> pVariableTypes) {
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
 
     CompoundIntervalFormulaManager compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);

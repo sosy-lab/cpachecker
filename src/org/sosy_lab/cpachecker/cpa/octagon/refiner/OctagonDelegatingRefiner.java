@@ -262,7 +262,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
-    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
     // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;

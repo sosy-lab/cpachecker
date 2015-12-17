@@ -32,7 +32,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -87,14 +86,13 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
 
   private boolean printWarnings;
 
-  public UninitializedVariablesTransferRelation(String printWarnings, LogManager logger) {
+  public UninitializedVariablesTransferRelation(String printWarnings) {
     globalVars = new HashSet<>();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
   }
 
   private AbstractState getAbstractSuccessor(AbstractState element,
-                                              CFAEdge cfaEdge,
-                                              Precision precision)
+                                              CFAEdge cfaEdge)
                                               throws CPATransferException {
 
     UninitializedVariablesState successor = ((UninitializedVariablesState)element).clone();
@@ -217,9 +215,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       //only need to do this for non-external structs: add a variable for each field of the struct
       //and set it uninitialized (since it is only declared at this point); do this recursively for all
       //fields that are structs themselves
-      handleStructDeclaration(element,
-                              (CCompositeType)type, varName, varName,
-                              decl.isGlobal());
+      handleStructDeclaration(element, (CCompositeType)type, varName, decl.isGlobal());
     }
   }
 
@@ -370,8 +366,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       assert t1.equals(t2);
 
       //check all fields of the structures' type and set their status
-      initializeFields(element, cfaEdge, op2,
-                       (CCompositeType)t1, leftName, rightName, leftName, rightName);
+      initializeFields(element, cfaEdge, op2, (CCompositeType)t1, leftName, rightName);
     }
   }
 
@@ -481,7 +476,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
                                            AbstractState element,
                                            Precision precision, CFAEdge cfaEdge)
                        throws CPATransferException {
-    return Collections.singleton(getAbstractSuccessor(element, cfaEdge, precision));
+    return Collections.singleton(getAbstractSuccessor(element, cfaEdge));
   }
 
   @Override
@@ -499,7 +494,6 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void initializeFields(UninitializedVariablesState element,
                                 CFAEdge cfaEdge, CRightHandSide exp,
                                 CCompositeType structType,
-                                String leftName, String rightName,
                                 String recursiveLeftName, String recursiveRightName) {
 
     //check all members
@@ -508,7 +502,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       String name = member.getName();
       //for a field that is itself a struct, repeat the whole process
       if (isStructType(t)) {
-        initializeFields(element, cfaEdge, exp, (CCompositeType)t, name, name,
+        initializeFields(element, cfaEdge, exp, (CCompositeType)t,
                          recursiveLeftName + "." + name, recursiveRightName + "." + name);
       //else, check the initialization status of the assigned variable
       //and set the status of the assignee accordingly
@@ -528,7 +522,6 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
    */
   private void handleStructDeclaration(UninitializedVariablesState element,
                                        CCompositeType structType,
-                                       String varName,
                                        String recursiveVarName,
                                        boolean isGlobalDeclaration) {
 
@@ -540,8 +533,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       String name = member.getName();
       //for a field that is itself a struct, repeat the whole process
       if (isStructType(t)) {
-        handleStructDeclaration(element, (CCompositeType)t, name,
-                                recursiveVarName + "." + name, isGlobalDeclaration);
+        handleStructDeclaration(element, (CCompositeType)t, recursiveVarName + "." + name, isGlobalDeclaration);
       } else {
         //set non structure fields uninitialized, since they have only just been declared
         if (isGlobalDeclaration) {

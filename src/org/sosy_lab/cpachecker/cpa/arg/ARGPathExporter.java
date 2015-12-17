@@ -555,7 +555,7 @@ public class ARGPathExporter {
       return result;
     }
 
-    private void appendKeyDefinitions(GraphMlBuilder pDoc, GraphType pGraphType) {
+    private void appendKeyDefinitions(GraphMlBuilder pDoc) {
       EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
       pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
       keyDefs.remove(KeyDef.NODETYPE);
@@ -709,7 +709,7 @@ public class ARGPathExporter {
       String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       doc.appendDocHeader();
-      appendKeyDefinitions(doc, graphType);
+      appendKeyDefinitions(doc);
       doc.appendGraphHeader(
           graphType,
           language,

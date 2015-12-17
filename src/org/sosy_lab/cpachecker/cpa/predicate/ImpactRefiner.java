@@ -78,7 +78,6 @@ public abstract class ImpactRefiner implements Refiner {
 
     RefinementStrategy strategy = new ImpactRefinementStrategy(
         config,
-        logger,
         predicateCpa.getSolver(),
         predicateCpa.getPredicateManager());
 

@@ -53,9 +53,9 @@ final class SMGJoinTargetObjects {
                                             Integer pAddress1, Integer pAddress2) {
     if ((! pObj1.notNull()) && (! pObj2.notNull()) ||
         (pJto.mapping1.containsKey(pObj1) && pJto.mapping2.containsKey(pObj2) && pJto.mapping1.get(pObj1) == pJto.mapping2.get(pObj2))) {
-      SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.inputSMG2, pJto.destSMG,
-                                                        pJto.mapping1, pJto.mapping2,
-                                                        pAddress1, pAddress2);
+      SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(pJto.inputSMG1, pJto.destSMG, pJto.mapping1,
+                                                        pJto.mapping2, pAddress1,
+                                                        pAddress2);
       pJto.defined = true;
       pJto.destSMG = mta.getSMG();
       pJto.mapping1 = mta.getMapping1();
@@ -119,7 +119,7 @@ final class SMGJoinTargetObjects {
     mapping1.map(target1, newObject);
     mapping2.map(target2, newObject);
 
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
+    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
     mapping1 = mta.getMapping1();
     mapping2 = mta.getMapping2();

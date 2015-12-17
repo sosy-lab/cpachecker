@@ -48,8 +48,7 @@ final class SMGJoinMatchObjects {
   }
 
   private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,
-                                                    SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                                                    SMG pSMG1, SMG pSMG2) {
+                                                    SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
     if (pMapping1.containsKey(pObj1) && pMapping2.containsKey(pObj2) &&
         pMapping1.get(pObj1) != pMapping2.get(pObj2)) {
       return true;
@@ -59,8 +58,7 @@ final class SMGJoinMatchObjects {
   }
 
   private static boolean checkConsistentMapping(SMGObject pObj1, SMGObject pObj2,
-                                                      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                                                      SMG pSMG1, SMG pSMG2) {
+                                                      SMGNodeMapping pMapping1, SMGNodeMapping pMapping2) {
     if ((pMapping1.containsKey(pObj1) && pMapping2.containsValue(pMapping1.get(pObj1))) ||
         (pMapping2.containsKey(pObj2) && pMapping1.containsValue(pMapping2.get(pObj2)))) {
       return true;
@@ -130,11 +128,11 @@ final class SMGJoinMatchObjects {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+    if (SMGJoinMatchObjects.checkMatchingMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 
-    if (SMGJoinMatchObjects.checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2, pSMG1, pSMG2)) {
+    if (SMGJoinMatchObjects.checkConsistentMapping(pObj1, pObj2, pMapping1, pMapping2)) {
       return;
     }
 

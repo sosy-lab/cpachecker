@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -110,7 +109,7 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public RichModel allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel) {
+  public RichModel allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 

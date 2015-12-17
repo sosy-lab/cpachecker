@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FunctionFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
@@ -58,7 +57,6 @@ public class NonLinearUFNumeralFormulaManager
   private final FunctionFormulaManager functionManager;
 
   NonLinearUFNumeralFormulaManager(FormulaWrappingHandler pWrappingHandler,
-      BooleanFormulaManager pBooleanFormulaManager,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> numeralFormulaManager,
       FunctionFormulaManager pFunctionManager) {
     super(pWrappingHandler, numeralFormulaManager);

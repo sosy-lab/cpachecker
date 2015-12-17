@@ -89,7 +89,7 @@ public class CoverageStatistics extends AbstractStatistics {
     }
 
     if (writeToStdout) {
-      CoverageReportStdoutSummary writer = new CoverageReportStdoutSummary(logger);
+      CoverageReportStdoutSummary writer = new CoverageReportStdoutSummary();
       writer.write(cov, pOut);
     }
 
