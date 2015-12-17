@@ -63,7 +63,7 @@ public class Sequencer {
     POSIXStubs posixStubs = new POSIXStubs(controlVariables, stubDeclaration, cfa, logger);
 
     //TODO this stub or the posixStub stub
-    StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
+//    StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
 
     // create context switches
     for(CThread thread : threads.getAllThreads()) {
@@ -74,7 +74,7 @@ public class Sequencer {
     ControlCodeBuilder threadControlCodeInjector = new ControlCodeBuilder(controlVariables, cfa, threads, logger);
 
     threadControlCodeInjector.buildControlVariableDeclaration();
-    posixStubs.buildPthreadCreateBody();//TODO
+    posixStubs.buildPthreadCreateBody();
     posixStubs.buildPThreadJoinBody();
 
     threadControlCodeInjector.buildScheduleSimulationFunction();

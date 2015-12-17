@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
+import static org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.ExpressionUtils.*;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -19,6 +22,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -32,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunctionUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFASequenceBuilder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.PThreadUtils;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -98,31 +104,66 @@ public class SequencePreparator {
   }
 
 
-  private CStatementEdge createNewStatementEdge(FunctionEntryNode newNode, CFunctionCall originalFunctionCallStatement) {
-    // TODO review
-    CFunctionCallExpression originalFunctionCallExpression = originalFunctionCallStatement.getFunctionCallExpression();
-    CFunctionDeclaration originalFunctionDeclaration = originalFunctionCallExpression.getDeclaration();
 
-    CFunctionDeclaration newFunctionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, originalFunctionDeclaration.getType(),
-        newNode.getFunctionName(), originalFunctionDeclaration.getParameters());
-    CIdExpression newFunctionNameExpression = new CIdExpression(FileLocation.DUMMY, newFunctionDeclaration);
-    CFunctionCallExpression newFunctionCallExpression = new CFunctionCallExpression(FileLocation.DUMMY,
-        originalFunctionCallExpression.getExpressionType(), newFunctionNameExpression,
-        originalFunctionCallExpression.getParameterExpressions(), newFunctionDeclaration);
+  private CStatementEdge createNewStatementForNewFunction(FunctionEntryNode node,
+      CFunctionCall origianlFunctionCall) {
+    String newFunctionName = node.getFunctionName();
 
+    CFunctionCallExpression origExp = origianlFunctionCall.getFunctionCallExpression();
+    CFunctionDeclaration origDec = origExp.getDeclaration();
+
+    CFunctionDeclaration newDeclaration =
+        copyFunctionDeclarationWithNewName(origDec, newFunctionName);
+    CFunctionCallExpression newExpression = changeDeclaration(origExp, newDeclaration);
+
+    CStatement callStatement = getFunctionCallWithDifferent(origianlFunctionCall, newExpression);
+    return new CStatementEdge(callStatement.toString(), callStatement, FileLocation.DUMMY,
+        CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
+  }
+
+  private CFunctionDeclaration copyFunctionDeclarationWithNewName(
+      CFunctionDeclaration functionDeclaration, String newName) {
+
+    CFunctionType type = functionDeclaration.getType();
+    List<CParameterDeclaration> parameters = functionDeclaration.getParameters();
+    return new CFunctionDeclaration(FileLocation.DUMMY, type, newName, parameters);
+  }
+
+  private CFunctionCallExpression changeDeclaration(CFunctionCallExpression origCallExp,
+      CFunctionDeclaration newDeclaration) {
+
+    CIdExpression newNameExp = CID_EXPRESSION_OF.apply(newDeclaration);
+    CFunctionCallExpression newFunctionCallExpression =
+        new CFunctionCallExpression(FileLocation.DUMMY,
+            origCallExp.getExpressionType(), newNameExp,
+            origCallExp.getParameterExpressions(), newDeclaration);
+
+    return newFunctionCallExpression;
+  }
+
+  private CFunctionCallExpression changeParameter(CFunctionCallExpression origExp, List<CExpression> params) {
+    List<CExpression> parameter = new ArrayList<>();
+    for(CExpression param : params) {
+      parameter.add(param);
+    }
+    return new CFunctionCallExpression(FileLocation.DUMMY, origExp.getExpressionType(), origExp.getFunctionNameExpression(), parameter, origExp.getDeclaration());
+  }
+
+  private CFunctionCall getFunctionCallWithDifferent(CFunctionCall functionCall, CFunctionCallExpression newFunctionCallExpression) {
     CFunctionCall newFunctionCallStatement;
-    if(originalFunctionCallStatement instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement assign = (CFunctionCallAssignmentStatement) originalFunctionCallStatement;
+    if (functionCall instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement assign = (CFunctionCallAssignmentStatement) functionCall;
       CLeftHandSide leftHandSide = assign.getLeftHandSide();
-      newFunctionCallStatement = new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, newFunctionCallExpression);
+      newFunctionCallStatement =
+          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide,
+              newFunctionCallExpression);
     } else {
-      assert originalFunctionCallStatement instanceof CFunctionCallStatement;
-      newFunctionCallStatement = new CFunctionCallStatement(FileLocation.DUMMY, newFunctionCallExpression);
+      assert functionCall instanceof CFunctionCallStatement;
+      newFunctionCallStatement =
+          new CFunctionCallStatement(FileLocation.DUMMY, newFunctionCallExpression);
     }
 
-    CStatementEdge edge = new CStatementEdge("", newFunctionCallStatement, FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE,
-        CFASequenceBuilder.DUMMY_NODE);
-    return edge;
+    return newFunctionCallStatement;
   }
 
   private CThread createCThread(int threadCounter, CThread creatorThread, CFunctionCall threadCreationStatement) {
@@ -217,14 +258,9 @@ public class SequencePreparator {
       if (!CFAFunctionUtils.isFunctionDeclared(functionCallStatement)) { return; }
       String regularFunctionName = CFAFunctionUtils.getFunctionName(edge);
 
-      switch (regularFunctionName) {//TODO replace functionCallstatement with stubed declaration!!
+      switch (regularFunctionName) {
         case PThreadUtils.PTHREAD_CREATE_NAME:
-          CThread thread = createCThread(threadCounter, creatorThread, functionCallStatement);
-
-          creationEdges.put(thread, (CStatementEdge) edge);
-          threadsToProcess.add(thread);
-          allThreads.add(thread);
-          threadCounter++;
+          handlePthreadCreate((CStatementEdge) edge, functionCallStatement);
           break;
         case PThreadUtils.PTHREAD_JOIN_NAME:
           // nothing to stub
@@ -249,9 +285,61 @@ public class SequencePreparator {
           }
           FunctionEntryNode node = getUniqueFunctionCopyForThread(regularFunctionEntry);
           CFAEdgeUtils.replaceCEdgeWith(edge,
-              createNewStatementEdge(node, (CFunctionCall) edge.getStatement()));
+              createNewStatementForNewFunction(node, (CFunctionCall) edge.getStatement()));
           break;
       }
+    }
+
+    private void handlePthreadCreate(CStatementEdge edge, CFunctionCall functionCallStatement) {
+      CThread thread = createCThread(threadCounter, creatorThread, functionCallStatement);
+
+      List<CExpression> parameterExp = getPThreadCreationParameterExp(functionCallStatement, thread);
+      CFAEdgeUtils.replaceCEdgeWith(edge, changeToStubParameterCall(functionCallStatement, parameterExp));
+      creationEdges.put(thread, edge);
+      threadsToProcess.add(thread);
+      allThreads.add(thread);
+      threadCounter++;
+    }
+
+    private List<CExpression> getPThreadCreationParameterExp(CFunctionCall pFunctionCallStatement,
+        CThread thread) {
+      List<CExpression> origExp = pFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
+      List<CExpression> newExp = new ArrayList<>();
+      newExp.add(origExp.get(0)); // pthread_t
+      newExp.add(origExp.get(3)); // arg
+      newExp.add(getThreadNumberNumberExpression(thread));
+
+      return newExp;
+    }
+
+    /**
+     * The pthread_create function call expression will be increased by a
+     * parameter which holds the thread number.
+     * @return a new CStatementEdge with changed parameter expression
+     */
+    private CStatementEdge changeToStubParameterCall(CFunctionCall functionCall, List<CExpression> paramExp) {
+      CFunctionCallExpression origExp = functionCall.getFunctionCallExpression();
+      CFunctionDeclaration pthreadCreateStubDeclaration = stubDeclaration.getPthreadCreateStubDeclaration();
+      List<CParameterDeclaration> stubParamDec =  pthreadCreateStubDeclaration.getParameters();
+
+      assert checkParameterDeclarationConsistency(stubParamDec, paramExp);
+
+      CFunctionCallExpression newFunctionCallExp =
+          changeParameter(origExp, paramExp);
+      newFunctionCallExp = changeDeclaration(newFunctionCallExp, pthreadCreateStubDeclaration);
+
+      CFunctionCall newFunctionCall = getFunctionCallWithDifferent(functionCall, newFunctionCallExp);
+
+      return new CStatementEdge("", newFunctionCall, FileLocation.DUMMY,
+          CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
+    }
+
+    private boolean checkParameterDeclarationConsistency(List<CParameterDeclaration> decl, List<CExpression> expression) {
+      if(decl.size() != expression.size()) {
+        return false;
+      }
+      // TODO check parameter type
+      return true;
     }
 
 

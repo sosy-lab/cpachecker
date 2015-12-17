@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
+import static org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.ExpressionUtils.*;
+
 import java.math.BigInteger;
+import java.util.List;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -11,15 +14,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,15 +31,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunctionUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFASequenceBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
 import com.google.common.base.Optional;
 
@@ -62,34 +62,48 @@ public class POSIXStubs {
     this.cfa = cfa;
   }
 
-  @Deprecated
   public void buildPthreadCreateBody() {
-    // TODO review
-    FunctionEntryNode entryNode = CFAFunctionUtils.getFunctionFromDeclaration(stubDeclaration.getPthreadCreateStubDeclaration(), Optional.<CVariableDeclaration>absent());
+    CFunctionDeclaration pthreadCreateDeclaration = stubDeclaration.getPthreadCreateStubDeclaration();
+    CVariableDeclaration threadCreationArgumentStorage = controlVariables.getThreadCreationArgumentsArrayDeclaration();
+    CVariableDeclaration threadActiveStorage = controlVariables.getIsThreadActiveArrayDeclaration();
+    CVariableDeclaration threadFinishedStorage = controlVariables.getIsThreadFinishedDeclaration();
+
+    List<CParameterDeclaration> parameters = pthreadCreateDeclaration.getParameters();
+    assert parameters.size() == 3;
+    CParameterDeclaration firstParameter = parameters.get(0);
+    CParameterDeclaration secondParameter = parameters.get(1);
+    CParameterDeclaration thirdParameter = parameters.get(2);
+
+    // create edges
+    CPointerExpression threadID = POINTER_OF.apply(firstParameter);
+    CIdExpression threadNumber = CID_EXPRESSION_OF.apply(thirdParameter);
+    CArraySubscriptExpression creationArgument =
+        getArrayVarOfIndex(threadCreationArgumentStorage, threadNumber);
+    CArraySubscriptExpression activeState = getArrayVarOfIndex(threadActiveStorage, threadNumber);
+    CArraySubscriptExpression finishedState = getArrayVarOfIndex(threadFinishedStorage, threadNumber);
+
+    AStatementEdge threadIDSaveStatement = getDummyAssignement(threadID, threadNumber);
+    AStatementEdge saveCreationArgument =
+        getDummyAssignement(creationArgument, CID_EXPRESSION_OF.apply(secondParameter));
+    AStatementEdge activateThread = getDummyCStaticAssignement(activeState, true);
+    AStatementEdge setUnfinished = getDummyCStaticAssignement(finishedState, false);
+    BlankEdge defaultReturn =
+        new BlankEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE,
+            CFASequenceBuilder.DUMMY_NODE, CFAFunctionUtils.DEFAULT_RETURN);
+
+    // create function
+    FunctionEntryNode entryNode = CFAFunctionUtils.createFunctionFromDeclaration(
+        pthreadCreateDeclaration, Optional.<CVariableDeclaration> absent());
+
     cfa.addFunction(entryNode);
+
     CFASequenceBuilder builder = new CFASequenceBuilder(entryNode, cfa);
-    CParameterDeclaration firstParameter = stubDeclaration.getPthreadCreateStubDeclaration().getParameters().get(0);
-    CParameterDeclaration secondParameter = stubDeclaration.getPthreadCreateStubDeclaration().getParameters().get(1);
-    CParameterDeclaration thirdParameter = stubDeclaration.getPthreadCreateStubDeclaration().getParameters().get(2);
-
-    CType pthreadType = new CTypedefType(false, false, "pthread_t", CNumericTypes.UNSIGNED_LONG_INT);
-    CPointerExpression a = new CPointerExpression(FileLocation.DUMMY, pthreadType, new CIdExpression(FileLocation.DUMMY, firstParameter));
-
-    CStatement threadAssignmentExpression = new CExpressionAssignmentStatement(FileLocation.DUMMY, a, new CIdExpression(FileLocation.DUMMY, thirdParameter));
-    CStatementEdge threadCountStatement = new CStatementEdge("", threadAssignmentExpression, FileLocation.DUMMY,
-        CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE);
-
-    CIdExpression threadArgSave = new CIdExpression(FileLocation.DUMMY, controlVariables.getThreadCreationArgumentsArrayDeclaration());
-
-    CPointerType b = new CPointerType(false, false, CVoidType.VOID);
-    CArraySubscriptExpression sub = new CArraySubscriptExpression(FileLocation.DUMMY, b, threadArgSave, new CIdExpression(FileLocation.DUMMY, thirdParameter));
-    CStatement variableSaveExpression = new CExpressionAssignmentStatement(FileLocation.DUMMY, sub, new CIdExpression(
-        FileLocation.DUMMY, secondParameter));
-    CStatementEdge variable = new CStatementEdge("", variableSaveExpression, FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE,
-        CFASequenceBuilder.DUMMY_NODE);
-    BlankEdge defaultReturn = new BlankEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, CFAFunctionUtils.DEFAULT_RETURN);
-    builder.addChainLink(threadCountStatement);
-    builder.addChainLink(variable);
+    // activate edge is missing!!
+    builder.addChainLink(threadIDSaveStatement);
+    builder.addChainLink(saveCreationArgument);
+    builder.addChainLink(activateThread);
+    //debug only
+    builder.addChainLink(setUnfinished);  // normally not necessary, because set in initializer
     builder.addChainLink(defaultReturn, entryNode.getExitNode());
   }
 
@@ -99,7 +113,7 @@ public class POSIXStubs {
         CStorageClass.AUTO, CNumericTypes.INT, "__temp_retval_", "__temp_retval_",
         "__temp_retval_", new CInitializerExpression(FileLocation.DUMMY, null));
 
-    FunctionEntryNode functionEntry = CFAFunctionUtils.getFunctionFromDeclaration(stubDeclaration.getPthreadJoinDeclaration(), Optional.<CVariableDeclaration>of(retVal));
+    FunctionEntryNode functionEntry = CFAFunctionUtils.createFunctionFromDeclaration(stubDeclaration.getPthreadJoinDeclaration(), Optional.<CVariableDeclaration>of(retVal));
     cfa.addFunction(functionEntry);
     CFASequenceBuilder builder = new CFASequenceBuilder(functionEntry, cfa);
 

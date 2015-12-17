@@ -35,6 +35,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -47,8 +50,31 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+import com.google.common.base.Function;
+
 
 public class ExpressionUtils {
+
+  public static final Function<CParameterDeclaration, CPointerExpression> POINTER_OF =
+      new Function<CParameterDeclaration, CPointerExpression>() {
+
+        @Override
+        public CPointerExpression apply(CParameterDeclaration dec) {
+          return new CPointerExpression(FileLocation.DUMMY, dec.getType(),
+              new CIdExpression(FileLocation.DUMMY, dec));
+        }
+      };
+
+   public static final Function<CSimpleDeclaration, CIdExpression> CID_EXPRESSION_OF =
+       new Function<CSimpleDeclaration, CIdExpression>() {
+
+        @Override
+        public CIdExpression apply(CSimpleDeclaration dec) {
+          return new CIdExpression(FileLocation.DUMMY, dec);
+        }
+
+   };
+
 
   public static CArraySubscriptExpression getArrayVarOfIndex(CVariableDeclaration arrayDec,
       int staticIndex) {

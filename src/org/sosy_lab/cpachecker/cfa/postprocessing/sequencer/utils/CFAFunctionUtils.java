@@ -238,8 +238,8 @@ public class CFAFunctionUtils {
     return functionCall.getFunctionCallExpression().getDeclaration().getName();
   }
 
-  public static FunctionEntryNode getFunctionFromDeclaration(CFunctionDeclaration dec, Optional<CVariableDeclaration> returnValue) {
-    List<String> parameterName = new ArrayList<String>();
+  public static FunctionEntryNode createFunctionFromDeclaration(CFunctionDeclaration dec, Optional<CVariableDeclaration> returnValue) {
+    List<String> parameterName = new ArrayList<>();
     for(CParameterDeclaration pa : dec.getParameters()) {
       parameterName.add(pa.getName());
     }
