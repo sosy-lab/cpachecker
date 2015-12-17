@@ -1378,25 +1378,33 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    if (unsafeManager.isAtom(t)) {
-      // term is atom
-      return !containsIfThenElse(t);
+    t = applyTactic(t, Tactic.NNF);
+    return (new DefaultBooleanFormulaVisitor<Boolean>(this) {
 
-    } else if (booleanFormulaManager.isNot(t)) {
-      t = (BooleanFormula)unsafeManager.getArg(t, 0);
-      return (unsafeManager.isUF(t) || unsafeManager.isAtom(t));
-
-    } else if (booleanFormulaManager.isAnd(t)) {
-      for (int i = 0; i < unsafeManager.getArity(t); ++i) {
-        if (!isPurelyConjunctive((BooleanFormula)unsafeManager.getArg(t, i))) {
-          return false;
-        }
+      @Override public Boolean visitDefault() {
+        return false;
       }
-      return true;
-
-    } else {
-      return false;
-    }
+      @Override public Boolean visitTrue() {
+        return true;
+      }
+      @Override public Boolean visitFalse() {
+        return true;
+      }
+      @Override public Boolean visitAtom(BooleanFormula atom) {
+        return true;
+      }
+      @Override public Boolean visitNot(BooleanFormula operand) {
+        return true;
+      }
+      @Override public Boolean visitAnd(List<BooleanFormula> operands) {
+        for (BooleanFormula operand : operands) {
+          if (!visit(operand)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }).visit(t);
   }
 
   private boolean containsIfThenElse(Formula f) {
