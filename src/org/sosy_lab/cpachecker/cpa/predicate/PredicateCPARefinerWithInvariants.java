@@ -635,7 +635,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   }
 
   private List<BooleanFormula> generateInvariants0(final List<ARGState> abstractionStatesTrace,
-      InvariantGenerator invGen) throws InvalidConfigurationException, CPAException, InterruptedException {
+      InvariantGenerator invGen) throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
     InvariantSupplier invSup = invGen.get();

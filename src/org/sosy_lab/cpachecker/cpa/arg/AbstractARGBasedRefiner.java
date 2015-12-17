@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import com.google.common.base.Function;
@@ -160,10 +161,11 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @see org.sosy_lab.cpachecker.cpa.arg.ARGUtils
    * @return
    * @throws InterruptedException
+   * @throws CPATransferException
    */
   @ForOverride
   @Nullable
-  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
+  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
   }
 }

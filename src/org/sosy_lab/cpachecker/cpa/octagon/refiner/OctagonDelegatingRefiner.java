@@ -132,7 +132,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
     }

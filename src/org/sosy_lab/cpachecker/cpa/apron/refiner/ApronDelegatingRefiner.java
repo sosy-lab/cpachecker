@@ -135,7 +135,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static ApronDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static ApronDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ApronDelegatingRefiner.class.getSimpleName() + " could not find the ApronCPA");
     }

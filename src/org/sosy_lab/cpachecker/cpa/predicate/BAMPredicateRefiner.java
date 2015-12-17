@@ -108,11 +108,11 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
   private final ExtendedPredicateRefiner refiner;
 
 
-  public static BAMPredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public static BAMPredicateRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     return new BAMPredicateRefiner(pCpa);
   }
 
-  public BAMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws CPAException, InvalidConfigurationException {
+  public BAMPredicateRefiner(final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
 
     super(pCpa);
 
@@ -196,8 +196,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
         final RefinementStrategy pStrategy,
         final Solver pSolver,
         final PredicateAssumeStore pAssumesStore,
-        final CFA pCfa)
-            throws CPAException, InvalidConfigurationException {
+        final CFA pCfa) throws InvalidConfigurationException {
 
       super(config,
           logger,
@@ -367,7 +366,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr,
         final PredicateStaticRefiner pStaticRefiner)
-            throws CPAException, InvalidConfigurationException {
+            throws InvalidConfigurationException {
 
       super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
       this.predicateCpa = predicateCpa;

@@ -104,7 +104,7 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createNegativeConstraint(AIdExpression pExpression) throws UnrecognizedCodeException {
+  public Constraint createNegativeConstraint(AIdExpression pExpression) {
    Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {

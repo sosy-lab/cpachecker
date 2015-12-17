@@ -87,6 +87,10 @@ public abstract class PatternBasedRule extends AbstractRule {
 
   protected abstract void setupPatterns();
 
+  /**
+   * @throws SolverException
+   * @throws InterruptedException
+   */
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
     return true;
   }

@@ -320,7 +320,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     assert definiteAssignment.entrySet().containsAll(oldDefinites.entrySet());
   }
 
-  private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException, UnrecognizedCCodeException {
+  private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException {
     Model validAssignment = prover.getModel();
 
     for (Map.Entry<AssignableTerm, Object> entry : validAssignment.entrySet()) {

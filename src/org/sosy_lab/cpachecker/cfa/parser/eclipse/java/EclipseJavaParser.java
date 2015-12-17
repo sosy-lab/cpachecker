@@ -209,15 +209,13 @@ class EclipseJavaParser implements Parser {
     return astsOfFoundFiles;
   }
 
-  private Set<Path> getJavaFilesInSourcePaths() throws JParserException {
+  private Set<Path> getJavaFilesInSourcePaths() {
 
     Set<Path> sourceFileToBeParsed = new HashSet<>();
 
     for (String path : javaSourcePaths) {
       sourceFileToBeParsed.addAll(getJavaFilesInPath(path));
     }
-
-
 
     return sourceFileToBeParsed;
   }

@@ -371,7 +371,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   private PolicyIntermediateState joinIntermediateStates(
       PolicyIntermediateState newState,
       PolicyIntermediateState oldState
-  ) throws InterruptedException, SolverException {
+  ) throws InterruptedException {
 
     Preconditions.checkState(newState.getNode() == oldState.getNode());
 
@@ -409,7 +409,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyAbstractedState oldState,
       final PolicyPrecision precision,
       Map<Template, PolicyBound> updated
-  ) throws CPATransferException, InterruptedException, SolverException {
+  ) throws InterruptedException, SolverException {
     Preconditions.checkState(newState.getNode() == oldState.getNode());
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
@@ -1053,12 +1053,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       return state2;
     }
 
-    try {
-      return joinIntermediateStates(
-          state1.asIntermediate(), state2.asIntermediate());
-    } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
-    }
+    return joinIntermediateStates(state1.asIntermediate(), state2.asIntermediate());
   }
 
   /**

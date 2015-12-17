@@ -86,7 +86,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   private final LogManager logger;
   private final Timer timer = new Timer();
 
-  public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa, ARGCPA cpa) throws InvalidConfigurationException, CPAException {
+  public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa, ARGCPA cpa) throws InvalidConfigurationException {
 
     if (cfa.getLanguage() != Language.C) {
       throw new UnsupportedOperationException("Concrete execution checker can only be used with C.");

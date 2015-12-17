@@ -311,7 +311,7 @@ public class ConstraintsTransferRelation
   }
 
   private Optional<Constraint> createConstraint(AIdExpression pExpression, ConstraintFactory pFactory,
-      boolean pTruthAssumption) throws UnrecognizedCodeException {
+      boolean pTruthAssumption) {
    Constraint constraint;
 
     if (pTruthAssumption) {

@@ -930,7 +930,7 @@ public class ARGPathExporter {
       pDoc.appendToAppendable(result);
     }
 
-    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) throws IOException {
+    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
       Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
       for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");

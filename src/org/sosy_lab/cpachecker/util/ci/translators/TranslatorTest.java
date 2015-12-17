@@ -96,7 +96,7 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testValueTranslator() throws InvalidConfigurationException {
+  public void testValueTranslator() {
     PersistentMap<MemoryLocation, Value> constantsMap = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
 
@@ -132,7 +132,7 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testSignTranslator() throws InvalidConfigurationException {
+  public void testSignTranslator() {
     SignState sStateTest = SignState.TOP;
     sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
     sStateTest = sStateTest.assignSignToVariable("var2", SIGN.MINUS);
@@ -176,7 +176,7 @@ public class TranslatorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testIntervalAndCartesianTranslator() throws InvalidConfigurationException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testIntervalAndCartesianTranslator() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 

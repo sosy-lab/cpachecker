@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
-import java.io.IOException;
-
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 
 public class RedundancyRemoverTest {
@@ -157,7 +153,7 @@ public class RedundancyRemoverTest {
   }
 
   @Test
-  public void testIdentifyAndRemoveRedundantRequirements() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
+  public void testIdentifyAndRemoveRedundantRequirements() {
     /*CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
     AbstractState loc =
         new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(

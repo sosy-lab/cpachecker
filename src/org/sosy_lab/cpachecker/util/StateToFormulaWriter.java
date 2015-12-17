@@ -256,7 +256,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       CFANode cfaNode,
       Set<String> definitions,
       Multimap<CFANode, String> cfaNodeToPredicate,
-      List<BooleanFormula> predicates) throws IOException {
+      List<BooleanFormula> predicates) {
 
     for (BooleanFormula formula : predicates) {
       String s = fmgr.dumpFormula(formula).toString();

@@ -220,8 +220,7 @@ public class InductiveWeakeningManager {
   private Set<BooleanFormula> syntacticWeakening(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       Collection<BooleanFormula> selectionVars,
-      PathFormula transition
-  ) throws SolverException, InterruptedException {
+      PathFormula transition) {
     Set<BooleanFormula> out = new HashSet<>();
     for (BooleanFormula selector : selectionVars) {
       BooleanFormula atom = selectionInfo.get(selector);

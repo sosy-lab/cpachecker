@@ -68,8 +68,8 @@ public class PredicatePCCStopOperator implements StopOperator {
 
   }
 
-  private boolean isCoveredBy(final PredicateAbstractState e1, final PredicateAbstractState e2) throws CPAException,
-      InterruptedException, SolverException {
+  private boolean isCoveredBy(final PredicateAbstractState e1, final PredicateAbstractState e2)
+      throws InterruptedException, SolverException {
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
       return paMgr.checkCoverage(e1.getAbstractionFormula(), e2.getAbstractionFormula());
 

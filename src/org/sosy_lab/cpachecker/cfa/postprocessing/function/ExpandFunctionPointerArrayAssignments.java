@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableList;
 
@@ -74,7 +73,7 @@ public class ExpandFunctionPointerArrayAssignments {
     logger = pLogger;
   }
 
-  public void replaceFunctionPointerArrayAssignments(final MutableCFA cfa) throws CParserException {
+  public void replaceFunctionPointerArrayAssignments(final MutableCFA cfa) {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 

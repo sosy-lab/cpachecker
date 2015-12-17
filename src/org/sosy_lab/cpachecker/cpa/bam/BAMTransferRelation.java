@@ -427,6 +427,8 @@ public class BAMTransferRelation implements TransferRelation {
    *
    * @param reducedResult
    * @param cachedReturnStates
+   * @throws CPAException
+   * @throws InterruptedException
    */
   protected Collection<AbstractState> filterResultStatesForFurtherAnalysis(
       final Collection<AbstractState> reducedResult, final Collection<AbstractState> cachedReturnStates)

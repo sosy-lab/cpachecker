@@ -142,6 +142,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   /**
    * @param pOut the outputstream to which should be written
+   * @throws IOException
    */
   protected boolean writeAdditionalProofStream(final ObjectOutputStream pOut) throws IOException {
     return false;

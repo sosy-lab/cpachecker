@@ -1268,6 +1268,9 @@ public class CtoFormulaConverter {
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
+  /**
+   * @throws InterruptedException
+   */
   protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException, InterruptedException {
 
@@ -1301,6 +1304,7 @@ public class CtoFormulaConverter {
    * @param pts1
    * @param pts2
    * @param resultSSA
+   * @throws InterruptedException
    */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
       final PointerTargetSet pts2, final SSAMapBuilder resultSSA) throws InterruptedException {
