@@ -158,6 +158,7 @@
             <classpath refid="classpath"/>
             <jvmarg value="-Djava.library.path=lib/native/${architecture}-${os}/"/>
 
+            <arg value="-includeLibraryOptions"/>
             <!-- "-v" is a optional param for verbose output of OptionCollector -->
             <!-- <arg value="-v"/> -->
         </java>

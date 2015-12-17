@@ -186,7 +186,7 @@ class CmdLineArguments {
           verbose = ("-v".equals(nextArg) || ("-verbose".equals(nextArg)));
         }
         PrintStream out = System.out;
-        OptionCollector.collectOptions(verbose, out);
+        OptionCollector.collectOptions(verbose, true, out);
         System.exit(0);
 
       } else if ("-printUsedOptions".equals(arg)) {

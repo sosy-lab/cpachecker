@@ -97,102 +97,6 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = []
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = []
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = []
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = []
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
@@ -529,11 +433,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-cbmc.timelimit = 0
+# maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0ms
+cbmc.timelimit = 0
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
@@ -850,10 +754,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in an analysis with enabler CPA because then it
-# must behave differntly during merge.
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
+# inform ARG CPA if it is run in an analysis with enabler CPA because then it
+# must behave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
