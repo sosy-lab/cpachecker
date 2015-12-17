@@ -54,6 +54,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -71,6 +72,7 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -862,7 +864,7 @@ public class FormulaManagerView {
 
   /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see {@link #instantiate(BooleanFormula, SSAMap)}
+   *  @see {@link #instantiate(F extends Formula, SSAMap)}
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
@@ -1112,12 +1114,17 @@ public class FormulaManagerView {
    */
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities) {
     return myExtractAtoms(f, splitArithEqualities,
-        new Predicate<BooleanFormula>() {
+        new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
-          public boolean apply(BooleanFormula pInput) {
-            return unsafeManager.isAtom(pInput);
+          public Boolean visitDefault() {
+            return false;
           }
-        });
+          @Override
+          public Boolean visitAtom(BooleanFormula atom) {
+            return true;
+          }
+        }
+    );
   }
 
   /**
@@ -1126,28 +1133,44 @@ public class FormulaManagerView {
    */
   public Collection<BooleanFormula> extractDisjuncts(BooleanFormula f) {
     return myExtractAtoms(f, false /*splitArithEqualities not supported for disjuncts */,
-        new Predicate<BooleanFormula>() {
+        new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
-          public boolean apply(BooleanFormula pInput) {
-            // treat as atomic if formula is neither "not" nor "and"
-            return !(booleanFormulaManager.isNot(pInput) || booleanFormulaManager.isAnd(pInput));
+          public Boolean visitDefault() {
+            return true;
           }
-        });
+          @Override
+          public Boolean visitNot(BooleanFormula f) {
+            return false;
+          }
+          @Override
+          public Boolean visitAnd(List<BooleanFormula> f) {
+            return false;
+          }
+        }
+    );
   }
 
   public Collection<BooleanFormula> extractLiterals(BooleanFormula f) {
+    f = applyTactic(f, Tactic.NNF);
 
     return myExtractAtoms(f, false /*splitArithEqualities not supported for literals */,
-        new Predicate<BooleanFormula>() {
+        new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
-          public boolean apply(BooleanFormula pInput) {
-            // TODO: description of UnsafeManager.isLiteral said "atom or negation of atom"
-            // The implementation only checked for "atom or negation".
-            // This method currently does the latter.
-            return unsafeManager.isAtom(pInput)
-                || booleanFormulaManager.isNot(pInput);
+          public Boolean visitDefault() {
+            return false;
           }
-        });
+
+          @Override
+          public Boolean visitAtom(BooleanFormula atom) {
+            return true;
+          }
+
+          @Override
+          public Boolean visitNot(BooleanFormula f) {
+            return true;
+          }
+        }
+    );
   }
 
   /**
@@ -1160,7 +1183,7 @@ public class FormulaManagerView {
   }
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula pFormula, boolean splitArithEqualities,
-      Predicate<BooleanFormula> isLowestLevel) {
+      BooleanFormulaVisitor<Boolean> isLowestLevel) {
     Set<BooleanFormula> seen = new HashSet<>();
     List<BooleanFormula> result = new ArrayList<>();
 
@@ -1177,7 +1200,7 @@ public class FormulaManagerView {
         continue;
       }
 
-      if (isLowestLevel.apply(f)) {
+      if (isLowestLevel.visit(f)) {
         if (splitArithEqualities && myIsPurelyArithmetic(f)) {
           List<BooleanFormula> split = unsafeManager.splitNumeralEqualityIfPossible(f);
           // some solvers might produce non-atomic formulas for split,
