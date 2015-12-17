@@ -113,6 +113,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
@@ -626,10 +628,12 @@ public class TigerAlgorithm
   @Nullable private ARGState findStateAfterCriticalEdge(Goal pCriticalForGoal, ARGPath pPath) {
     PathIterator it = pPath.pathIterator();
 
+    final CFAEdge criticalEdge = pCriticalForGoal.getCriticalEdge();
+
     while (it.hasNext()) {
       ARGState state = it.getAbstractState();
       if (it.getIndex() != 0) { // get incoming edge is not allowed if index==0
-        if (it.getIncomingEdge().equals(pCriticalForGoal.getCriticalEdge())) {
+        if (it.getIncomingEdge().equals(criticalEdge)) {
           return state;
         }
       }
@@ -674,6 +678,23 @@ public class TigerAlgorithm
       if (useTigerAlgorithm_with_pc) {
 
         final ARGState criticalState = findStateAfterCriticalEdge(goal, pTestcase.getArgPath());
+
+        if (criticalState == null) {
+          Path argFile = Paths.get("output", "ARG_goal_criticalIsNull_" + Integer.toString(goal.getIndex()) + ".dot");
+
+          final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+          allTargetPathEdges.addAll(pTestcase.getArgPath().getStatePairs());
+
+          try (Writer w = Files.openOutputFile(argFile)) {
+            ARGToDotWriter.write(w, (ARGState) reachedSet.getFirstState(),
+                ARGUtils.CHILDREN_OF_STATE,
+                Predicates.alwaysTrue(),
+                Predicates.in(allTargetPathEdges));
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+          }
+        }
+
         Preconditions.checkState(criticalState != null, "Each ARG path of a counterexample must be along a critical edge!");
 
         Region statePresenceCondition = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
