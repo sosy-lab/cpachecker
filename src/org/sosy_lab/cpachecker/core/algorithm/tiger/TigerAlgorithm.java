@@ -695,64 +695,6 @@ public class TigerAlgorithm
   }
 
 
-  private boolean checkAndCoverGoal(Goal pGoal) {
-
-    boolean isFullyCovered = false;
-
-    for (TestCase testcase : testsuite.getTestCases()) {
-
-      // Check if the goal is covered by the testcase
-      ThreeValuedAnswer isCovered = TigerAlgorithm.accepts(pGoal.getAutomaton(), testcase.getErrorPath());
-
-      if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
-        logger.logf(Level.WARNING, "Coverage check for goal %d could not be performed in a precise way!",
-            pGoal.getIndex());
-        continue;
-      } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
-        continue;
-      }
-
-      // test goal is already covered by an existing test case
-      if (useTigerAlgorithm_with_pc) {
-        boolean goalCoveredByTestCase = testsuite.isGoalCoveredByTestCase(pGoal, testcase);
-
-        if (!goalCoveredByTestCase) {
-          PathIterator pathIterator = testcase.getArgPath().pathIterator();
-          while (pathIterator.hasNext()) {
-            ARGState state = pathIterator.getAbstractState();
-            if (pathIterator.getIndex() != 0) { // get incoming edge is not allowed if index==0
-              if (pathIterator.getIncomingEdge().equals(pGoal.getCriticalEdge())) {
-                Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(state);
-                if (goalCriticalStateRegion != null) {
-                  if (allCoveredGoalsPerTestCase || !bddCpaNamedRegionManager
-                      .makeAnd(testsuite.getRemainingPresenceCondition(pGoal), goalCriticalStateRegion)
-                      .isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
-                    testsuite.addTestCase(testcase, pGoal, goalCriticalStateRegion);
-                    logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by existing test case!",
-                        pGoal.getIndex(), testsuite.getTestGoalLabel(pGoal),
-                        bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion));
-                    logger.logf(Level.WARNING, "Remaining PC %s!",
-                        bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(pGoal)));
-                  }
-                }
-              }
-            }
-            pathIterator.advance();
-          }
-        }
-      } else {
-        testsuite.addTestCase(testcase, pGoal, null);
-        logger.logf(Level.WARNING, "Covered Goal %d (%s) by existing test case!",
-            pGoal.getIndex(),
-            testsuite.getTestGoalLabel(pGoal));
-
-        if (!allCoveredGoalsPerTestCase) { return true; }
-      }
-    }
-
-    return isFullyCovered;
-  }
-
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
       List<CFAEdge> pCFAPath) {
     Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
