@@ -656,10 +656,14 @@ public class TigerAlgorithm
       // test goal is already covered by an existing test case
       if (useTigerAlgorithm_with_pc) {
         PathIterator pathIterator = pTestcase.getArgPath().pathIterator();
+
+        boolean criticalEdgeFound = false;
+
         while (pathIterator.hasNext()) {
           ARGState state = pathIterator.getAbstractState();
           if (pathIterator.getIndex() != 0) { // get incoming edge is not allowed if index==0
             if (pathIterator.getIncomingEdge().equals(goal.getCriticalEdge())) {
+              criticalEdgeFound = true;
               Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(state);
               if (goalCriticalStateRegion != null) {
                 if (allCoveredGoalsPerTestCase || !bddCpaNamedRegionManager
@@ -681,6 +685,9 @@ public class TigerAlgorithm
           }
           pathIterator.advance();
         }
+
+        Preconditions.checkState(criticalEdgeFound, "Each ARG path of a counterexample must be along a critical edge!");
+
       } else {
         testsuite.addTestCase(pTestcase, goal, null);
         logger.logf(Level.WARNING, "Covered Goal %d (%s) by test case %d!",
