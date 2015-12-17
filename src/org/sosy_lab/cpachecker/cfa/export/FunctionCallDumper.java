@@ -120,6 +120,9 @@ public class FunctionCallDumper {
         throw new AssertionError("traversal-strategy should ignore functioncalls");
       }
 
+      default:
+         // nothing to do
+
       }
       return TraversalProcess.CONTINUE;
     }

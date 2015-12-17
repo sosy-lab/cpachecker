@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -108,6 +107,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Predicate;
@@ -1134,6 +1134,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case SHIFT_RIGHT:
       case MODULO:
         return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+      default:
+        // nothing to do
       }
 
       Set<Pair<IOctagonCoefficients, OctagonState>> left = e.getOperand1().accept(this);
@@ -1451,6 +1453,8 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
       case SIZEOF:
       case TILDE:
         return Collections.singleton(Pair.of((IOctagonCoefficients)OctagonUniversalCoefficients.INSTANCE, visitorState));
+      default:
+        // nothing to do
       }
 
       // only minus operantor is handled after here

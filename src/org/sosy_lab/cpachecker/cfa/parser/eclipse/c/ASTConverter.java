@@ -92,8 +92,6 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -172,6 +170,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -651,6 +651,8 @@ class ASTConverter {
       CIdExpression tmp = createTemporaryVariable(e);
       sideAssignmentStack.addConditionalExpression(e, tmp);
       return tmp;
+    default:
+      // nothing to do here
     }
 
     Pair<BinaryOperator, Boolean> opPair = operatorConverter.convertBinaryOperator(e);

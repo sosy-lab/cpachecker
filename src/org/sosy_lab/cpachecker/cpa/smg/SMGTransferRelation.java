@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -117,6 +116,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -1132,6 +1132,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           break;
         case "printf":
           return new SMGState(pState);
+        default:
+          // nothing to do here
         }
 
         if (expressionEvaluator.missingExplicitInformation) {
@@ -1145,8 +1147,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case ASSUME_SAFE:
           return pState;
+        default:
+          throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
         }
-        throw new AssertionError();
       }
     } else {
       newState = pState;
@@ -1761,7 +1764,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           return operand.accept(this);
         case SIZEOF:
           assert false : "At the moment, this cae should be able to be calculated";
-
+          break;
+        default:
+          // TODO alignof is not handled
         }
 
         return null;
@@ -1896,8 +1901,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
           case ASSUME_SAFE:
             return SMGValueAndState.of(getInitialSmgState());
+          default:
+            throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
           }
-          throw new AssertionError();
         }
 
         return SMGValueAndState.of(getInitialSmgState());
@@ -2051,8 +2057,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
                 "Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
           case ASSUME_SAFE:
             return SMGAddressValueAndState.of(getInitialSmgState());
+          default:
+            throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
           }
-          throw new AssertionError();
         }
       }
     }
@@ -2319,6 +2326,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       case "memset":
         SMGEdgePointsToAndState memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, pSmgState, pEdge);
         return createAddress(memsetTargetEdge);
+      default:
+        // nothing to do here
       }
       throw new AssertionError();
     } else {

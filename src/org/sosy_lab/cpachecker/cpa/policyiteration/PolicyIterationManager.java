@@ -23,11 +23,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.Template.Kind;
@@ -37,19 +37,19 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.congruence.CongruenceState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.AssignableTerm;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -787,6 +787,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
           case UNDEF:
             shutdownNotifier.shutdownIfNecessary();
             throw new CPATransferException("Solver returned undefined status");
+          default:
+            throw new AssertionError("Unhandled enum value in switch: " + status);
         }
         optEnvironment.pop();
       }

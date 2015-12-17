@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.Collection;
 import java.util.Set;

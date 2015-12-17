@@ -128,6 +128,8 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
             // TODO Change with inclusion of Boxing, Unboxing
             // Unnecessary to track Primitive types.
             return state;
+          default:
+            // nothing to do here, TODO perhaps throw exceptions in other cases?
       }
     }
 

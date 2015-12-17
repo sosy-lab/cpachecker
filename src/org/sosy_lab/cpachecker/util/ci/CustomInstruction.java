@@ -506,6 +506,9 @@ public class CustomInstruction{
         return;
       case CallToReturnEdge:
         compareStatementsOfStatementEdge(((CFunctionSummaryEdge) ciEdge).getExpression(), ((CFunctionSummaryEdge) aciEdge).getExpression(), ciVarToAciVar, outVariables);
+        return;
+      default:
+        throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
   }
 
