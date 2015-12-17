@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -622,6 +623,22 @@ public class TigerAlgorithm
     return wasSound;
   }
 
+  @Nullable private ARGState findStateAfterCriticalEdge(Goal pCriticalForGoal, ARGPath pPath) {
+    PathIterator it = pPath.pathIterator();
+
+    while (it.hasNext()) {
+      ARGState state = it.getAbstractState();
+      if (it.getIndex() != 0) { // get incoming edge is not allowed if index==0
+        if (it.getIncomingEdge().equals(pCriticalForGoal.getCriticalEdge())) {
+          return state;
+        }
+      }
+      it.advance();
+    }
+
+    return null;
+  }
+
   private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
 
     Set<Goal> coveredGoals = new HashSet<>();
@@ -655,38 +672,30 @@ public class TigerAlgorithm
 
       // test goal is already covered by an existing test case
       if (useTigerAlgorithm_with_pc) {
-        PathIterator pathIterator = pTestcase.getArgPath().pathIterator();
 
-        boolean criticalEdgeFound = false;
+        final ARGState criticalState = findStateAfterCriticalEdge(goal, pTestcase.getArgPath());
+        Preconditions.checkState(criticalState != null, "Each ARG path of a counterexample must be along a critical edge!");
 
-        while (pathIterator.hasNext()) {
-          ARGState state = pathIterator.getAbstractState();
-          if (pathIterator.getIndex() != 0) { // get incoming edge is not allowed if index==0
-            if (pathIterator.getIncomingEdge().equals(goal.getCriticalEdge())) {
-              criticalEdgeFound = true;
-              Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(state);
-              if (goalCriticalStateRegion != null) {
-                if (allCoveredGoalsPerTestCase || !bddCpaNamedRegionManager
-                    .makeAnd(testsuite.getRemainingPresenceCondition(goal), goalCriticalStateRegion)
-                    .isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
-                  testsuite.addTestCase(pTestcase, goal, goalCriticalStateRegion);
-                  logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by test case %d!",
-                      goal.getIndex(), testsuite.getTestGoalLabel(goal),
-                      bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion), pTestcase.getId());
-                  logger.logf(Level.WARNING, "Remaining PC %s!",
-                      bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(goal)));
-                  if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
-                    coveredGoals.add(goal);
-                  }
-                }
-              }
-              break;
+        Region goalCriticalStateRegion = BDDUtils.getRegionFromWrappedBDDstate(criticalState);
+        if (goalCriticalStateRegion != null) {
+          if (allCoveredGoalsPerTestCase
+              || !bddCpaNamedRegionManager.makeAnd(testsuite.getRemainingPresenceCondition(goal), goalCriticalStateRegion).isFalse()) {
+
+            // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+
+            testsuite.addTestCase(pTestcase, goal, goalCriticalStateRegion);
+
+            logger.logf(Level.WARNING, "Covered some PCs for Goal %d (%s) for PC %s by test case %d!",
+                goal.getIndex(), testsuite.getTestGoalLabel(goal),
+                bddCpaNamedRegionManager.dumpRegion(goalCriticalStateRegion), pTestcase.getId());
+            logger.logf(Level.WARNING, "Remaining PC %s!",
+                bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(goal)));
+
+            if (testsuite.getRemainingPresenceCondition(goal).isFalse()) {
+              coveredGoals.add(goal);
             }
           }
-          pathIterator.advance();
         }
-
-        Preconditions.checkState(criticalEdgeFound, "Each ARG path of a counterexample must be along a critical edge!");
 
       } else {
         testsuite.addTestCase(pTestcase, goal, null);
