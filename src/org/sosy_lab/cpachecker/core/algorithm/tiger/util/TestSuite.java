@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -212,21 +215,34 @@ public class TestSuite {
   public String toString() {
     StringBuffer str = new StringBuffer();
 
-    for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-      str.append(entry.getKey().toString() + "\n");
-      List<CFAEdge> errorPath = entry.getKey().getErrorPath();
-      if (entry.getKey().getGenerationTime() != -1) {
-        str.append("Generation Time: " + (entry.getKey().getGenerationTime() - getGenerationStartTime()) + "\n");
+    List<TestCase> testcases = new ArrayList<>(mapping.keySet());
+    Collections.sort(testcases, new Comparator<TestCase>() {
+
+      @Override
+      public int compare(TestCase pTestCase1, TestCase pTestCase2) {
+        if (pTestCase1.getGenerationTime() > pTestCase2.getGenerationTime()) {
+          return 1;
+        } else if (pTestCase1.getGenerationTime() < pTestCase2.getGenerationTime()) { return -1; }
+        return 0;
+      }
+    });
+
+    for (TestCase testcase : testcases) {
+      str.append(testcase.toString() + "\n");
+      List<CFAEdge> errorPath = testcase.getErrorPath();
+      if (testcase.getGenerationTime() != -1) {
+        str.append("Generation Time: " + (testcase.getGenerationTime() - getGenerationStartTime()) + "\n");
       }
       if (errorPath != null) {
-        str.append("Errorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
+        str.append("Errorpath Length: " + testcase.getErrorPath().size() + "\n");
       }
 
-      for (Goal goal : entry.getValue()) {
+      List<Goal> goals = mapping.get(testcase);
+      for (Goal goal : goals) {
         str.append("Goal ");
         str.append(getTestGoalLabel(goal));
 
-        Region presenceCondition = coveringPresenceConditions.get(Pair.of(entry.getKey(), goal));
+        Region presenceCondition = coveringPresenceConditions.get(Pair.of(testcase, goal));
         if (presenceCondition != null) {
           str.append(": " + bddCpaNamedRegionManager.dumpRegion(presenceCondition).toString().replace("@0", "")
               .replace(" & TRUE", ""));
@@ -236,7 +252,7 @@ public class TestSuite {
 
       if (printLabels) {
         str.append("Labels: ");
-        for (CFAEdge edge : entry.getKey().getErrorPath()) {
+        for (CFAEdge edge : testcase.getErrorPath()) {
           if (edge == null) {
             continue;
           }
