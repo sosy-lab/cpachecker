@@ -88,7 +88,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
         new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, pLogger, cfa, ltf,
+        pathFormulaManager, formulaManager, cfa, ltf,
         pInductiveWeakeningManager, solver,
         statistics);
     stopOperator = new StopSepOperator(this);
