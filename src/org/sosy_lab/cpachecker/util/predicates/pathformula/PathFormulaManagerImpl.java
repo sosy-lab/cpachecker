@@ -186,8 +186,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final FormulaEncodingWithPointerAliasingOptions options =
           new FormulaEncodingWithPointerAliasingOptions(config);
       TypeHandlerWithPointerAliasing aliasingTypeHandler =
-          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel,
-              pFmgr, options);
+          new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithHeapArray(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
