@@ -44,12 +44,14 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -60,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
@@ -77,6 +80,9 @@ import com.google.common.collect.Sets.SetView;
  */
 @Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
+
+  @Option(secure=true, description = "Collect information about matched (and traversed) tokens.")
+  private boolean collectTokenInformation = false;
 
   @Option(secure=true, description = "Stop in the automata transfer relation if the analysis identified one feasible path for each target state.")
   private boolean stopAfterOneFeasiblePathPerProperty = false;
@@ -237,7 +243,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.emptySet();
     }
 
-    if (state.getInternalState().getTransitions().isEmpty()) {
+    // Collect information on the matched tokens
+    if (collectTokenInformation) {
+      SourceLocationMapper.getKnownToEdge(pEdge);
+    }
+
     // SINK state: Do not compute successor states for
     //  states without outgoing transitions!
     if (pState.getInternalState().getTransitions().isEmpty()) {
@@ -389,7 +399,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(pState.getVars(), pState.getInternalState(), cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, null);
-      return Collections.singleton(stateNewCounters);
+      if (collectTokenInformation) {
+        stateNewCounters.addNoMatchTokens(pState.getTokensSinceLastMatch());
+        if (pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+          stateNewCounters.addNoMatchTokens(SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pEdge, true));
+        }
+      }
       return Collections.singleton(stateNewCounters);
     }
   }

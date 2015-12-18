@@ -60,6 +60,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
@@ -152,6 +153,7 @@ public class AutomatonState
 
   private int matches = 0;
   private int failedMatches = 0;
+  private Set<Integer> tokensSinceLastMatch = null;
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
@@ -515,6 +517,21 @@ public class AutomatonState
 
   public int getFailedMatches() {
     return failedMatches;
+  }
+
+  public Set<Integer> getTokensSinceLastMatch() {
+    if (tokensSinceLastMatch == null) {
+      return Collections.emptySet();
+    } else {
+      return tokensSinceLastMatch;
+    }
+  }
+
+  public void addNoMatchTokens(Set<Integer> pTokens) {
+    if (tokensSinceLastMatch == null) {
+      tokensSinceLastMatch = Sets.newTreeSet();
+    }
+    tokensSinceLastMatch.addAll(pTokens);
   }
 
   public void setFailedMatches(int pFailedMatches) {
