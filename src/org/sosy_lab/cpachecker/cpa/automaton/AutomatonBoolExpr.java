@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
@@ -58,7 +57,6 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -554,137 +552,7 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
 
   }
 
-  class MatchNonEmptyEdgeTokens implements OnRelevantEdgesBoolExpr {
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      Set<Integer> edgeTokens;
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
-        edgeTokens = Collections.emptySet();
-      } else {
-        edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
-      }
-
-      return edgeTokens.size() > 0 ? CONST_TRUE : CONST_FALSE;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH NONEMPTY TOKENS";
-    }
-
-    @Override
-    public Equality equalityTo(Object pOther) {
-      return this.equals(pOther)
-          ? Equality.EQUAL
-          : Equality.UNKNOWN;
-    }
-
-  }
-
-  abstract class MatchEdgeTokens implements OnRelevantEdgesBoolExpr {
-
-    protected final Set<Comparable<Integer>> matchTokens;
-
-    public MatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
-      matchTokens = pTokens;
-    }
-
-    protected abstract boolean tokensMatching(Set<Integer> cfaEdgeTokens);
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
-      boolean match = false;
-
-      Set<Integer> edgeTokens;
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pArgs.getCfaEdge())) {
-        edgeTokens = Collections.emptySet();
-      } else {
-        edgeTokens = SourceLocationMapper.getAbsoluteTokensFromCFAEdge(pArgs.getCfaEdge(), true);
-      }
-
-      match = tokensMatching(edgeTokens);
-
-      if (!match) {
-        Set<Integer> tokensSinceLastMatch = pArgs.getState().getTokensSinceLastMatch();
-        if (!tokensSinceLastMatch.isEmpty()) {
-          match = tokensMatching(tokensSinceLastMatch);
-        }
-      }
-
-      return match ? CONST_TRUE : CONST_FALSE;
-    }
-
-    public Set<Comparable<Integer>> getMatchTokens() {
-      return matchTokens;
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH TOKENS " + matchTokens;
-    }
-  }
-
-
-
-  class SubsetMatchEdgeTokens extends MatchEdgeTokens {
-
-    public SubsetMatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
-      super(pTokens);
-    }
-
-    @Override
-    protected boolean tokensMatching(Set<Integer> cfaEdgeTokens) {
-      if (matchTokens.isEmpty()) {
-        return cfaEdgeTokens.isEmpty();
-      } else {
-        return cfaEdgeTokens.containsAll(matchTokens);
-      }
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH TOKENS SUBSET " + matchTokens;
-    }
-
-    @Override
-    public Equality equalityTo(Object pOther) {
-      return this.equals(pOther)
-          ? Equality.EQUAL
-          : Equality.UNKNOWN;
-    }
-
-  }
-
-  class IntersectionMatchEdgeTokens extends MatchEdgeTokens {
-
-    public IntersectionMatchEdgeTokens(Set<Comparable<Integer>> pTokens) {
-      super(pTokens);
-    }
-
-    @Override
-    protected boolean tokensMatching(Set<Integer> cfaEdgeTokens) {
-      if (matchTokens.isEmpty()) {
-        return cfaEdgeTokens.isEmpty();
-      } else {
-        return Sets.intersection(cfaEdgeTokens, matchTokens).size() > 0;
-      }
-    }
-
-    @Override
-    public String toString() {
-      return "MATCH TOKENS INTERSECT " + matchTokens;
-    }
-
-    @Override
-    public Equality equalityTo(Object pOther) {
-      return this.equals(pOther)
-          ? Equality.EQUAL
-          : Equality.UNKNOWN;
-    }
-
-  }
-
+  static class MatchLocationDescriptor implements AutomatonBoolExpr {
   class MatchLocationDescriptor extends AbstractAutomatonBoolExpr {
 
     private final LocationDescriptor matchDescriptor;
