@@ -61,11 +61,13 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
@@ -149,7 +151,7 @@ import com.google.common.collect.Sets;
 
 @Options(prefix = "tiger")
 public class TigerAlgorithm
-    implements Algorithm, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
+    implements Algorithm, AlgorithmWithResult, PrecisionCallback<PredicatePrecision>, StatisticsProvider, Statistics {
 
   public static String originalMainFunction = null;
 
@@ -391,6 +393,11 @@ public class TigerAlgorithm
     }
 
     return cpuTime;
+  }
+
+  @Override
+  public AlgorithmResult getResult() {
+    return testsuite;
   }
 
   @Override

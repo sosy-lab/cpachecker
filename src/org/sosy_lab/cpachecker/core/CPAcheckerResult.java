@@ -48,6 +48,8 @@ public class CPAcheckerResult {
 
   private final Result result;
 
+  private final AlgorithmResult algorithmResult;
+
   private final String violatedPropertyDescription;
 
   private final @Nullable ReachedSet reached;
@@ -57,9 +59,11 @@ public class CPAcheckerResult {
   private @Nullable Statistics proofGeneratorStats = null;
 
   CPAcheckerResult(Result result,
+        AlgorithmResult algorithmResult,
         String violatedPropertyDescription,
         @Nullable ReachedSet reached, @Nullable Statistics stats) {
     this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
+    this.algorithmResult = algorithmResult;
     this.result = checkNotNull(result);
     this.reached = reached;
     this.stats = stats;
@@ -70,6 +74,13 @@ public class CPAcheckerResult {
    */
   public Result getResult() {
     return result;
+  }
+
+  /**
+   * Return the result of the algorithm of the analysis.
+   */
+  public AlgorithmResult getAlgorithmResult() {
+    return algorithmResult;
   }
 
   /**

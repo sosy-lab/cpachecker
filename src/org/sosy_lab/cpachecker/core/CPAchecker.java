@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory.SpecAutomatonCompositionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.AlgorithmWithResult;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -224,6 +225,7 @@ public class CPAchecker {
     ReachedSet reached = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
+    AlgorithmResult algorithmResult = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -275,13 +277,17 @@ public class CPAchecker {
 
       if (disableAnalysis) {
         return new CPAcheckerResult(Result.NOT_YET_STARTED,
-            violatedPropertyDescription, null, stats);
+            algorithmResult, violatedPropertyDescription, null, stats);
       }
 
       // run analysis
       result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
+      if (algorithm instanceof AlgorithmWithResult) {
+        AlgorithmWithResult algorithmWithResult = (AlgorithmWithResult) algorithm;
+        algorithmResult = algorithmWithResult.getResult();
+      }
 
       stats.resultAnalysisTime.start();
       Set<Property> violatedProperties = findViolatedProperties(algorithm, reached);
@@ -329,8 +335,9 @@ public class CPAchecker {
     } finally {
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result,
-        violatedPropertyDescription, reached, stats);
+
+    return new CPAcheckerResult(result, algorithmResult,
+      violatedPropertyDescription, reached, stats);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
