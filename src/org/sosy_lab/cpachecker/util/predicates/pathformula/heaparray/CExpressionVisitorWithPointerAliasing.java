@@ -575,7 +575,7 @@ class CExpressionVisitorWithPointerAliasing
             PointerTargetSet.getBaseName(base.getName()),
             CTypeUtils.getBaseType(base.getType()));
         converter.addValueImportConstraints(edge, baseAddress, base,
-            initializedFields, ssa, constraints, pts);
+            initializedFields, ssa, constraints);
 
         if (converter.hasIndex(base.getName(), base.getType(), ssa)) {
           ssa.deleteVariable(base.getName());

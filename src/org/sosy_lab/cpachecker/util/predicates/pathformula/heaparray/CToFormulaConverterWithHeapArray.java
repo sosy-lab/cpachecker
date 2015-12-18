@@ -445,7 +445,6 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @param pFields A list of fields of the composite type.
    * @param pSSAMapBuilder The SSA map.
    * @param pConstraints Additional constraints.
-   * @param pPointerTargetSetBuilder Not used.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   void addValueImportConstraints(final CFAEdge pCFAEdge,
@@ -453,8 +452,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final Variable pBase,
       final List<Pair<CCompositeType, String>> pFields,
       final SSAMapBuilder pSSAMapBuilder,
-      final Constraints pConstraints,
-      final PointerTargetSetBuilder pPointerTargetSetBuilder)
+      final Constraints pConstraints)
       throws UnrecognizedCCodeException {
 
     final CType baseType = CTypeUtils.simplifyType(pBase.getType());
@@ -483,7 +481,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
           addValueImportConstraints(pCFAEdge, formulaManager.makePlus(
               pAddress, formulaManager.makeNumber(
                   voidPointerFormulaType, offset), IS_POINTER_SIGNED), newBase,
-              pFields, pSSAMapBuilder, pConstraints, pPointerTargetSetBuilder);
+              pFields, pSSAMapBuilder, pConstraints);
         }
 
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {

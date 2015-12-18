@@ -256,8 +256,6 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    *
    * @param pBase The base variable
    * @param pCurrentType The type of the base variable or of the next sub field
-   * @param pContainerType Either {@code null} or the type of the innermost
-   *                      container of the next considered sub field
    * @param pProperOffset Either {@code 0} or the offset of the next sub field in
    *                     its innermost container
    * @param pContainerOffset Either {@code 0} or the offset of the innermost
@@ -267,7 +265,6 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    */
   private void addTargets(final String pBase,
       final CType pCurrentType,
-      final @Nullable CType pContainerType,
       final int pProperOffset,
       final int pContainerOffset,
       final String pComposite,
@@ -286,8 +283,8 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
       int offset = 0;
       for (int i = 0; i < length; ++i) {
-        addTargets(pBase, arrayType.getType(), arrayType, offset,
-            pContainerOffset + pProperOffset, pComposite, pMemberName);
+        addTargets(pBase, arrayType.getType(), offset, pContainerOffset + pProperOffset,
+            pComposite, pMemberName);
         offset += ptsMgs.getSize(arrayType.getType());
       }
     } else if (type instanceof CCompositeType) {
@@ -303,8 +300,8 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
           : compositeType.getMembers()) {
         if (fields.containsKey(CompositeField.of(typeName,
             memberDeclaration.getName()))) {
-          addTargets(pBase, memberDeclaration.getType(), compositeType, offset,
-              pContainerOffset + pProperOffset, pComposite, pMemberName);
+          addTargets(pBase, memberDeclaration.getType(), offset, pContainerOffset + pProperOffset,
+              pComposite, pMemberName);
         }
 
         if (isTargetComposite
@@ -341,8 +338,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
         targets;
     for (final PersistentSortedMap.Entry<String, CType> baseEntry
         : bases.entrySet()) {
-      addTargets(baseEntry.getKey(), baseEntry.getValue(), null, 0, 0, type,
-          pFieldName);
+      addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, type, pFieldName);
     }
     fields = fields.putAndCopy(field, true);
 

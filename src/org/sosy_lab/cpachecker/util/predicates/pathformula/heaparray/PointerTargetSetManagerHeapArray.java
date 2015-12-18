@@ -492,8 +492,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
             makeValueImportConstraints(
                 formulaManager.makeVariable(
                     formulaType, PointerTargetSet.getBaseName(base.getKey())),
-                base.getKey(), base.getValue(), pSharedFields, pSSAMapBuilder,
-                pPointerTargetSet));
+                base.getKey(), base.getValue(), pSharedFields, pSSAMapBuilder));
       }
     }
 
@@ -509,7 +508,6 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param pVariableType The type of the variable.
    * @param pSharedFields A list of shared fields.
    * @param pSSAMapBuilder The SSA map.
-   * @param pPointerTargetSet The underlying PointerTargetSet.
    * @return A boolean formula for the import constraint.
    */
   private BooleanFormula makeValueImportConstraints(
@@ -517,8 +515,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final String pVariablePrefix,
       final CType pVariableType,
       final List<Pair<CCompositeType, String>> pSharedFields,
-      final SSAMapBuilder pSSAMapBuilder,
-      final PointerTargetSet pPointerTargetSet) {
+      final SSAMapBuilder pSSAMapBuilder) {
     assert !CTypeUtils.containsArray(pVariableType) : "Array access can't be "
         + "encoded as a variable";
 
@@ -546,7 +543,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
                       formulaManager.makeNumber(
                           typeHandler.getPointerType(), offset),
                       IS_POINTER_SIGNED),
-                  prefix, type, pSharedFields, pSSAMapBuilder, pPointerTargetSet));
+                  prefix, type, pSharedFields, pSSAMapBuilder));
         }
 
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
