@@ -129,7 +129,12 @@ def _submitRunsParallel(runSet, benchmark):
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
-    if benchmark.config.cpu_model not None:
+    if CORELIMIT in limits and limits[CORELIMIT] != benchmark.requirements.cpu_cores:
+        logging.warning("CPU core requirement is not supported by the WebInterface.")
+    if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
+        logging.warning("Memory requirement is not supported by the WebInterface.")
+        
+    if benchmark.config.cpu_model is not None:
         cpu_model = benchmark.config.cpu_model
     else:
         cpu_model = benchmark.requirements.cpu_model
