@@ -40,12 +40,10 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -54,7 +52,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
@@ -69,9 +66,6 @@ import com.google.common.collect.Sets;
  */
 @Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
-
-  @Option(secure=true, description = "Collect information about matched (and traversed) tokens.")
-  private boolean collectTokenInformation = false;
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
@@ -202,10 +196,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return Collections.emptySet();
     }
 
-    if (collectTokenInformation) {
-      SourceLocationMapper.getKnownToEdge(edge);
-    }
-
     if (state.getInternalState().getTransitions().isEmpty()) {
       // shortcut
       return Collections.singleton(state);
@@ -316,12 +306,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(state.getVars(), state.getInternalState(), cpa, state.getMatches(), state.getFailedMatches() + failedMatches, null);
-      if (collectTokenInformation) {
-        stateNewCounters.addNoMatchTokens(state.getTokensSinceLastMatch());
-        if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
-          stateNewCounters.addNoMatchTokens(SourceLocationMapper.getAbsoluteTokensFromCFAEdge(edge, true));
-        }
-      }
       return Collections.singleton(stateNewCounters);
     }
   }
