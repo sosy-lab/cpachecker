@@ -39,11 +39,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -313,7 +310,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedProperties);
+                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR,
+                cpa, 0, 0, false, violatedProperties);
 
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + pEdge.getDescription() + "\"");
             result.add(errorState);
@@ -333,14 +331,32 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     if (edgeMatched) {
       // execute Transitions
       for (Pair<AutomatonTransition, Map<Integer, AAstNode>> pair : transitionsToBeTaken) {
+
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
         Map<Integer, AAstNode> transitionVariables = pair.getSecond();
+
+        boolean checkFeasibility = false;
+
         actionTime.start();
         Map<String, AutomatonVariable> newVars = deepCloneVars(pState.getVars());
         exprArgs.setAutomatonVariables(newVars);
         exprArgs.putTransitionVariables(transitionVariables);
-        t.executeActions(exprArgs);
+
+        for (AutomatonAction action : t.getActions()) {
+          ResultValue<?> res = action.eval(exprArgs);
+          if (res.canNotEvaluate()) {
+            exprArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
+          }
+
+          if (action instanceof AutomatonAction.CheckFeasibility) {
+            checkFeasibility = true;
+          }
+        }
+        if (exprArgs.getLogMessage() != null && exprArgs.getLogMessage().length() > 0) {
+          exprArgs.getLogger().log(Level.INFO, exprArgs.getLogMessage());
+          exprArgs.clearLogMessage();
+        }
         actionTime.stop();
 
         Map<SafetyProperty, ResultValue<?>> violatedProperties = Maps.newHashMap();
@@ -364,6 +380,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             instantiatedAssumes,
             pState.getMatches() + 1,
             pState.getFailedMatches(),
+            checkFeasibility,
             violatedProperties);
 
         if (!(lSuccessor instanceof AutomatonState.BOTTOM)) {
@@ -375,7 +392,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return result;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(pState.getVars(), pState.getInternalState(), cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, null);
+      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(pState.getVars(),
+          pState.getInternalState(), cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, false, null);
+
       return Collections.singleton(stateNewCounters);
     }
   }

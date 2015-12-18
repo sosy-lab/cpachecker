@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -64,7 +65,8 @@ import com.google.common.collect.ImmutableSet;
  * Instances of this class are passed to the CPAchecker as AbstractState.
  */
 public class AutomatonState
-    implements AbstractQueryableState, Targetable, Serializable, AbstractStateWithAssumptions, Graphable {
+    implements AbstractQueryableState, Targetable, IntermediateTargetable, Serializable,
+    AbstractStateWithAssumptions, Graphable {
 
   private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
@@ -80,7 +82,7 @@ public class AutomatonState
           AutomatonInternalState.TOP,
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
-          0, 0, null);
+          0, 0, false, null);
     }
 
     @Override
@@ -103,7 +105,7 @@ public class AutomatonState
           AutomatonInternalState.INACTIVE,
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
-          0, 0, null);
+          0, 0, false, null);
     }
 
     @Override
@@ -125,7 +127,7 @@ public class AutomatonState
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA, ImmutableList.<Pair<AStatement, Boolean>> of(),
-          0, 0, null);
+          0, 0, false, null);
     }
 
     @Override
@@ -141,6 +143,7 @@ public class AutomatonState
 
   private transient ControlAutomatonCPA automatonCPA;
 
+  private final boolean checkFeasibility;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<Pair<AStatement, Boolean>> assumptions;
@@ -154,25 +157,36 @@ public class AutomatonState
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       int successfulMatches, int failedMatches,
+      boolean checkFeasibility,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
       return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
-          pInstantiatedAssumes, successfulMatches, failedMatches,
+          pInstantiatedAssumes, successfulMatches, failedMatches, checkFeasibility,
           pViolatedProperties);
     }
   }
 
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
+      ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       int successfulMatches, int failedMatches,
+      Map<? extends Property, ResultValue<?>> pViolatedProperties) {
+
+    return automatonStateFactory(pVars, pInternalState, pAutomatonCPA, pInstantiatedAssumes,
+        successfulMatches, failedMatches, false, pViolatedProperties);
+  }
+
+  static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
+      AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
+      int successfulMatches, int failedMatches, boolean checkFeasibility,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
         ImmutableList.<Pair<AStatement, Boolean>> of(),
-        successfulMatches, failedMatches, pViolatedProperties);
+        successfulMatches, failedMatches, checkFeasibility, pViolatedProperties);
   }
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
@@ -181,6 +195,7 @@ public class AutomatonState
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       int successfulMatches,
       int failedMatches,
+      boolean checkFeasibility,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
     this.vars = checkNotNull(pVars);
@@ -188,6 +203,7 @@ public class AutomatonState
     this.automatonCPA = checkNotNull(pAutomatonCPA);
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
+    this.checkFeasibility = checkFeasibility;
     this.assumptions = pInstantiatedAssumes;
 
     if (isTarget()) {
@@ -201,6 +217,11 @@ public class AutomatonState
   @Override
   public boolean isTarget() {
     return this.automatonCPA.isTreatingErrorsAsTargets() && internalState.isTarget();
+  }
+
+  @Override
+  public boolean isIntermediateTarget() {
+    return checkFeasibility;
   }
 
   public ImmutableMap<? extends Property, ResultValue<?>> getViolatedPropertyInstances() {
@@ -372,7 +393,7 @@ public class AutomatonState
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
       super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA,
-          pPreviousState.getAssumptions(), -1, -1, null);
+          pPreviousState.getAssumptions(), -1, -1, false, null);
       previousState = pPreviousState;
     }
 

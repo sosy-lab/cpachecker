@@ -77,9 +77,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
+import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.precisionConverter.FormulaParser;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -388,7 +388,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element, otherElements);
       }
 
-      boolean errorFound = false;
+      boolean targetOrIntermediateTargetStateFound = false;
       for (AbstractState lElement : otherElements) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
@@ -405,15 +405,15 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
 
-
-        if (AbstractStates.isTargetState(lElement)) {
-          errorFound = true;
+        if (AbstractStates.isTargetState(lElement)
+            || AbstractStates.isIntermediateTargetState(lElement)) {
+          targetOrIntermediateTargetStateFound = true;
         }
       }
 
       // check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && targetStateSatCheck) {
+      if (targetOrIntermediateTargetStateFound && targetStateSatCheck) {
         element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
         if (element == null) {
           // successor not reachable

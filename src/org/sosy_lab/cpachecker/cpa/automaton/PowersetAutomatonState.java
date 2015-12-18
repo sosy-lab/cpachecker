@@ -123,6 +123,7 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   @Override
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
+
     for (AbstractState element : states) {
       if (element instanceof Graphable) {
         String label = ((Graphable)element).toDOTLabel();

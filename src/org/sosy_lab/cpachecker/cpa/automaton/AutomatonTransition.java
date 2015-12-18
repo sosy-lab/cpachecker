@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
@@ -280,23 +279,6 @@ public class AutomatonTransition {
    */
   public ResultValue<Boolean> assertionsHold(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return assertion.eval(pArgs);
-  }
-
-  /**
-   * Executes all actions of this transition in the order which is defined in the automaton definition file.
-   * @throws CPATransferException
-   */
-  public void executeActions(AutomatonExpressionArguments pArgs) throws CPATransferException {
-    for (AutomatonAction action : actions) {
-      ResultValue<?> res = action.eval(pArgs);
-      if (res.canNotEvaluate()) {
-        pArgs.getLogger().log(Level.SEVERE, res.getFailureMessage() + " in " + res.getFailureOrigin());
-      }
-    }
-    if (pArgs.getLogMessage() != null && pArgs.getLogMessage().length() > 0) {
-      pArgs.getLogger().log(Level.INFO, pArgs.getLogMessage());
-      pArgs.clearLogMessage();
-    }
   }
 
   /** Returns if the actions of this transiton can be executed on these AutomatonExpressionArguments.

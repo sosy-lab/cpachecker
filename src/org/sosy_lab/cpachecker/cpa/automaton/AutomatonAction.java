@@ -59,6 +59,27 @@ public abstract class AutomatonAction {
   //abstract void execute(AutomatonExpressionArguments pArgs);
 
   /**
+   * Perform a feasibility check for the current abstract state.
+   */
+  public static class CheckFeasibility extends AutomatonAction {
+
+    static CheckFeasibility instance = new CheckFeasibility();
+
+    public static CheckFeasibility getInstance() {
+      return instance;
+    }
+
+    private CheckFeasibility() {
+    }
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return defaultResultValue;
+    }
+
+  }
+
+  /**
    * Logs a String when executed.
    */
   static class Print extends AutomatonAction {

@@ -344,13 +344,21 @@ public class Goal implements SafetyProperty {
         final String sucessorStateName = Integer.toString(t.getTarget().ID);
         final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
         final ImmutableList<AStatement> assumptions = createAssumesForLabel(t.getLabel());
+        final ImmutableList<AutomatonAction> actions;
+
+        final boolean matchesCriticalEdge = t.getLabel().contains(getCriticalEdge());
+        if (matchesCriticalEdge) {
+          actions = ImmutableList.<AutomatonAction>of(AutomatonAction.CheckFeasibility.getInstance());
+        } else {
+          actions = ImmutableList.of();
+        }
 
         AutomatonTransition ct = new AutomatonTransition(
             trigger,
             Collections.<AutomatonBoolExpr> emptyList(),
             assumptions,
             true,
-            Collections.<AutomatonAction> emptyList(),
+            actions,
             sucessorStateName,
             null,
             ImmutableSet.<SafetyProperty>of(this),

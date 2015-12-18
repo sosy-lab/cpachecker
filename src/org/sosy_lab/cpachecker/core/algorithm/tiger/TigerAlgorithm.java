@@ -700,6 +700,8 @@ public class TigerAlgorithm
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
           }
+
+          throw new RuntimeException("Each ARG path of a counterexample must be along a critical edge! None for edge " + goal.getCriticalEdge());
         }
 
         Preconditions.checkState(criticalState != null, "Each ARG path of a counterexample must be along a critical edge!");
