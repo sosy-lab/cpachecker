@@ -41,7 +41,7 @@ import benchexec.util as util
 DEFAULT_CLOUD_TIMELIMIT = 300 # s
 DEFAULT_CLOUD_MEMLIMIT = None
 
-DEFAULT_CLOUD_MEMORY_REQUIREMENT = 7000 # MB
+DEFAULT_CLOUD_MEMORY_REQUIREMENT = 7000000000 # 7 GB
 DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 2 # one core with hyperthreading
 DEFAULT_CLOUD_CPUMODEL_REQUIREMENT = "" # empty string matches every model
 
@@ -172,13 +172,13 @@ def getBenchmarkDataForCloud(benchmark):
 
     # get requirements
     r = benchmark.requirements
-    requirements = [DEFAULT_CLOUD_MEMORY_REQUIREMENT if r.memory is None else r.memory,
+    requirements = [bytes_to_mb(DEFAULT_CLOUD_MEMORY_REQUIREMENT if r.memory is None else r.memory),
                     DEFAULT_CLOUD_CPUCORE_REQUIREMENT if r.cpu_cores is None else r.cpu_cores,
                     DEFAULT_CLOUD_CPUMODEL_REQUIREMENT if r.cpu_model is None else r.cpu_model]
 
     # get limits and number of Runs
     timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_CLOUD_TIMELIMIT)
-    memLimit  = benchmark.rlimits.get(MEMLIMIT,  DEFAULT_CLOUD_MEMLIMIT)
+    memLimit  = bytes_to_mb(benchmark.rlimits.get(MEMLIMIT,  DEFAULT_CLOUD_MEMLIMIT))
     coreLimit = benchmark.rlimits.get(CORELIMIT, None)
     numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.run_sets if runSet.should_be_executed())
     limitsAndNumRuns = [numberOfRuns, timeLimit, memLimit]
@@ -204,7 +204,7 @@ def getBenchmarkDataForCloud(benchmark):
             # we build a string-representation of all this info (it's a map),
             # that can be parsed with python again in cloudRunexecutor.py (this is very easy with eval()) .
             argMap = {"args":cmdline, "env":env,
-                      "debug":benchmark.config.debug, "maxLogfileSize":benchmark.config.maxLogfileSize}
+                      "debug":benchmark.config.debug, "maxLogfileSize":bytes_to_mb(benchmark.config.maxLogfileSize)}
             argString = repr(argMap)
             assert not "\t" in argString # cannot call toTabList(), if there is a tab
 
@@ -365,3 +365,8 @@ def parseCloudRunResultFile(filePath):
     values.pop("@vcloud-coreLimit", None)
 
     return (cputime, walltime, return_value, termination_reason, values)
+
+def bytes_to_mb(mb):
+    if mb is None:
+        return None
+    return int(mb / 1000 / 1000)
