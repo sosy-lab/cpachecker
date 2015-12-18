@@ -164,8 +164,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
-   * @param additionalAutomata additional specification automata that should be used
-   *                           during invariant generation
    *
    * @return a new {@link CPAInvariantGenerator}.
    *
@@ -190,6 +188,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
+   * @param additionalAutomata additional specification automata that should be used
+   *                           during invariant generation
    *
    * @return a new {@link CPAInvariantGenerator}.
    *
@@ -419,8 +419,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   /**
    * Callable for creating invariants by running the CPAAlgorithm,
    * potentially in a loop with increasing precision.
-   * Returns the final invariants,
-   * and publishes intermediate results to {@link CPAInvariantGenerator#latestInvariant}.
+   * Returns the final invariants.
    */
   private class InvariantGenerationTask implements Callable<InvariantSupplier> {
 

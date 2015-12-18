@@ -161,8 +161,6 @@ public class ExtractNewPreds {
    *          Formula consists of a conjunction of atoms; disjunctions are not considered explicitly.
    *
    * @return  List of predicates in ascending order (predicates with higher priority first)
-   * @throws InterruptedException
-   * @throws SolverException
    */
   public List<BooleanFormula> extractNewPreds(BooleanFormula pConjunctiveFormula) throws SolverException, InterruptedException {
     // Start with the list of basic predicates

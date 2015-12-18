@@ -163,7 +163,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pMemberName the name of the member to return the memory location for
    * @param pStructType the type of the struct
    * @return the memory location of the struct member
-   * @throws UnrecognizedCCodeException
    */
   public MemoryLocation evaluateRelativeMemLocForStructMember(MemoryLocation pStartLocation,
       String pMemberName, CCompositeType pStructType) throws UnrecognizedCCodeException {

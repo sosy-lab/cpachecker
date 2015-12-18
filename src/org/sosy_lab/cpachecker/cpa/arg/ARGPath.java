@@ -115,7 +115,7 @@ public class ARGPath implements Appender {
   /**
    * This method returns the transition, as pair of state and edge, at the given offset.
    *
-   * @param pOffset
+   * @param pOffset the offset of the state / edge pair
    * @return the pair of state and edge at the given offset
    * @throws IndexOutOfBoundsException If the offset is beyond the last edge (greater or equal than {@code getInnerEdges().size()}).
    */
@@ -368,7 +368,7 @@ public class ARGPath implements Appender {
    * A class for creating {@link ARGPath}s by iteratively adding path elements
    * one after another. ARGPaths can be built either from the beginning to the
    * endpoint or in reverse.
-   * The builder can still be used after calling {@link #build(ARGState, CFAEdge)}.
+   * The builder can still be used after calling {@link #build(ARGState)}.
    * Please note that the state and edge given to the build method will not be
    * added permanently to the builder. If they should be in the builder afterwards
    * you need to use  {@link #add(ARGState, CFAEdge)}.

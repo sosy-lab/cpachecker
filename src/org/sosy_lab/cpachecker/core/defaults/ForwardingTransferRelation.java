@@ -343,7 +343,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param cfaEdge the edge to handle
    * @param expression the condition of the edge
    * @param truthAssumption indicates if this is the then or the else branch
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleAssumption(CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException {
@@ -356,7 +356,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param cfaEdge the edge to handle
    * @param expression the condition of the edge
    * @param truthAssumption indicates if this is the then or the else branch
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleAssumption(JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption)
       throws CPATransferException {
@@ -391,7 +391,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param arguments the arguments given to the function
    * @param parameters the parameters of the function
    * @param calledFunctionName the name of the function
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
       List<CExpression> arguments, List<CParameterDeclaration> parameters,
@@ -406,7 +406,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param arguments the arguments given to the function
    * @param parameters the parameters of the function
    * @param calledFunctionName the name of the function
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionCallEdge(JMethodCallEdge cfaEdge,
       List<JExpression> arguments, List<JParameterDeclaration> parameters,
@@ -439,7 +439,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param fnkCall the summary edge of the formerly called function
    * @param summaryExpr the function call
    * @param callerFunctionName the name of the called function
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
@@ -454,7 +454,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * @param fnkCall the summary edge of the formerly called function
    * @param summaryExpr the function call
    * @param callerFunctionName the name of the called function
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionReturnEdge(JMethodReturnEdge cfaEdge,
       JMethodSummaryEdge fnkCall, JMethodOrConstructorInvocation summaryExpr, String callerFunctionName)
@@ -482,7 +482,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *
    * @param cfaEdge the edge to handle
    * @param decl the declaration at the given edge
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws CPATransferException {
@@ -494,7 +494,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *
    * @param cfaEdge the edge to handle
    * @param decl the declaration at the given edge
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration decl)
       throws CPATransferException {
@@ -521,7 +521,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *
    * @param cfaEdge the edge to handle
    * @param statement the statement at the given edge
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
@@ -533,7 +533,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    *
    * @param cfaEdge the edge to handle
    * @param statement the statement at the given edge
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleStatementEdge(JStatementEdge cfaEdge, JStatement statement)
       throws CPATransferException {
@@ -559,7 +559,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * Handles the {@link CReturnStatementEdge}
    *
    * @param cfaEdge the edge to handle
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws CPATransferException {
@@ -570,7 +570,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * Handles the {@link JReturnStatementEdge}
    *
    * @param cfaEdge the edge to handle
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleReturnStatementEdge(JReturnStatementEdge cfaEdge)
       throws CPATransferException {
@@ -605,7 +605,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * Handle the {@link CFunctionSummaryEdge}
    *
    * @param cfaEdge the edge to handle
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);
@@ -615,7 +615,7 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * Handle the {@link JMethodSummaryEdge}
    *
    * @param cfaEdge the edge to handle
-   * @throws CPATransferException
+   * @throws CPATransferException may be thrown in subclasses
    */
   protected S handleFunctionSummaryEdge(JMethodSummaryEdge cfaEdge) throws CPATransferException {
     throw new AssertionError(NOT_IMPLEMENTED);

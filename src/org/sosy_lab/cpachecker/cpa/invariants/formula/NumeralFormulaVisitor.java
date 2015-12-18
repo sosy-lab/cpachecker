@@ -170,7 +170,7 @@ public interface NumeralFormulaVisitor<ConstantType, ReturnType> {
   /**
    * Visits the given cast invariants formula.
    *
-   * @param pIfThenElse the cast invariants formula to visit..
+   * @param pCast the cast invariants formula to visit..
    *
    * @return the result of the visit.
    */

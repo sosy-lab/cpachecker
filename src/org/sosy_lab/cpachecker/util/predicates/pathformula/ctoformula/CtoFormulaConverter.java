@@ -420,8 +420,8 @@ public class CtoFormulaConverter {
   /**
    * Used for implicit and explicit type casts between CTypes.
    * Optionally, overflows can be replaced with UFs.
-   * @param fromType the origin Type of the expression.
-   * @param toType the type to cast into.
+   * @param pFromType the origin Type of the expression.
+   * @param pToType the type to cast into.
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
@@ -503,8 +503,8 @@ public class CtoFormulaConverter {
 
   /**
    * Used for implicit and explicit type casts between CTypes.
-   * @param fromType the origin Type of the expression.
-   * @param toType the type to cast into.
+   * @param pFromType the origin Type of the expression.
+   * @param pToType the type to cast into.
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
@@ -1133,8 +1133,6 @@ public class CtoFormulaConverter {
    * @param lhs the left-hand-side of the assignment
    * @param rhs the right-hand-side of the assignment
    * @return the assignment formula
-   * @throws UnrecognizedCCodeException
-   * @throws InterruptedException
    */
   private BooleanFormula makeAssignment(
       final CLeftHandSide lhs, CRightHandSide rhs,
@@ -1154,8 +1152,7 @@ public class CtoFormulaConverter {
    *                       If the assignment is not important, we return TRUE.
    * @param rhs the right-hand-side of the assignment
    * @return the assignment formula
-   * @throws UnrecognizedCCodeException
-   * @throws InterruptedException
+   * @throws InterruptedException may be thrown in subclasses
    */
   protected BooleanFormula makeAssignment(
           final CLeftHandSide lhs, final CLeftHandSide lhsForChecking, CRightHandSide rhs,
@@ -1208,7 +1205,6 @@ public class CtoFormulaConverter {
    * @param expr Expression to convert.
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
-   * @throws UnrecognizedCCodeException
    */
   public Formula buildTermFromPathFormula(PathFormula pFormula,
       CIdExpression expr,
@@ -1269,7 +1265,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * @throws InterruptedException
+   * @throws InterruptedException may be thrown in subclasses
    */
   protected BooleanFormula makePredicate(CExpression exp, boolean isTrue, CFAEdge edge,
       String function, SSAMapBuilder ssa, PointerTargetSetBuilder pts, Constraints constraints, ErrorConditions errorConditions) throws UnrecognizedCCodeException, InterruptedException {
@@ -1293,7 +1289,7 @@ public class CtoFormulaConverter {
 
   /**
    * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
-   * @param pts
+   * @param pts the pointer target set to use initially
    */
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pts) {
     return DummyPointerTargetSetBuilder.INSTANCE;
@@ -1301,10 +1297,10 @@ public class CtoFormulaConverter {
 
   /**
    * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
-   * @param pts1
-   * @param pts2
-   * @param resultSSA
-   * @throws InterruptedException
+   * @param pts1 the first PointerTargetset
+   * @param pts2 the second PointerTargetset
+   * @param resultSSA the SSAMapBuilder to use
+   * @throws InterruptedException may be thrown in subclasses
    */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
       final PointerTargetSet pts2, final SSAMapBuilder resultSSA) throws InterruptedException {
@@ -1313,12 +1309,12 @@ public class CtoFormulaConverter {
 
   /**
    * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
-   * @param pEdge
-   * @param pFunction
-   * @param ssa
-   * @param pts
-   * @param constraints
-   * @param errorConditions
+   * @param pEdge the edge to be visited
+   * @param pFunction the current function name
+   * @param ssa the current SSAMapBuilder
+   * @param pts the current PointerTargetSet
+   * @param constraints the constraints needed during visiting
+   * @param errorConditions the error conditions
    */
   protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException> createCRightHandSideVisitor(
       CFAEdge pEdge, String pFunction,

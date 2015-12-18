@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.solver.AssignableTerm;
@@ -150,8 +150,6 @@ public class CEXExporter {
    *                            If the targetPath is available, it will be used for the output.
    *                            Otherwise we use backwards reachable states from pTargetState.
    * @param cexIndex should be a unique index for the CEX and will be used to enumerate files.
-   * @param allTargetPathEdges can be used to collect edges. All targetPath-edges are added to it.
-   * @param reallyWriteToDisk enable/disable output to files.
    */
   public void exportCounterexample(final ARGState pTargetState,
       final CounterexampleInfo pCounterexampleInfo,

@@ -284,10 +284,9 @@ public abstract class AbstractExpressionValueVisitor
    *
    * e.g. joining `a` and `5` with `+` will produce `a + 5`
    *
-   * @param lVal left hand side value
-   * @param rVal right hand side value
-   * @param binaryExpr the binary expression with the operator
-   * @param logger logging
+   * @param pLValue left hand side value
+   * @param pRValue right hand side value
+   * @param pExpression the binary expression with the operator
    * @return the calculated Value
    */
   public static Value calculateSymbolicBinaryExpression(Value pLValue, Value pRValue,

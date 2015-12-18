@@ -43,7 +43,7 @@ public class BAMBlockOperator extends BlockOperator {
   }
 
   /**
-   * @see {@link BlockOperator#isBlockEnd}
+   * @see{@link BlockOperator#isBlockEnd}
    */
   @Override
   public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pPf) {

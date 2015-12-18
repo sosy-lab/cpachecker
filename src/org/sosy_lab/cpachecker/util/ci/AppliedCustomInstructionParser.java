@@ -120,8 +120,6 @@ public class AppliedCustomInstructionParser {
    * @param file Path of the file to be read
    * @return CustomInstructionApplication
    * @throws IOException if the file doesn't contain all required data.
-   * @throws AppliedCustomInstructionParsingFailedException
-   * @throws InterruptedException
    */
   public CustomInstructionApplications parse (final Path file)
       throws IOException, AppliedCustomInstructionParsingFailedException, InterruptedException {
@@ -209,7 +207,6 @@ public class AppliedCustomInstructionParser {
    * Creates a ImmutableSet out of the given String[].
    * @param pNodes String[]
    * @return Immutable Set of CFANodes out of the String[]
-   * @throws AppliedCustomInstructionParsingFailedException
    */
   protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();

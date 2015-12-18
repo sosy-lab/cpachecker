@@ -230,8 +230,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
    * This class ensures that each identical subtree of the formula
    * is visited only once to avoid the exponential explosion.
    * When a subclass wants to traverse into a subtree of the formula,
-   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} or
-   * {@link #visitIfNotSeen(BooleanFormula...)} to ensure this.
+   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} to ensure this.
    *
    * By default this class implements the identity function.
    *

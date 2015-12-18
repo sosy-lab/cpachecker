@@ -321,9 +321,6 @@ class EclipseCParser implements CParser {
    * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for static variables
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
-   * @return
-   * @throws CParserException
-   * @throws InvalidConfigurationException
    */
   private ParseResult buildCFA(List<IASTTranslationUnit> asts,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {

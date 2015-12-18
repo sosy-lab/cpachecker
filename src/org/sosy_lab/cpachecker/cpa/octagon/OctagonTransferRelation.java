@@ -265,7 +265,7 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
    * either return the unchanged state or null if the following branch is not reachable.
    *
    * @param value The long value of the CLiteralExpression
-   * @param truthAssumption
+   * @param truthAssumption indicates if we are in the then or else branch of the assumption
    * @return an OctState or null
    */
   private Set<OctagonState> handleLiteralBooleanExpression(long value, boolean truthAssumption, OctagonState state) {
@@ -1104,8 +1104,6 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
     /**
      * This method creates the Visitor, which evaluates all coefficients for a given
      * Expression.
-     *
-     * @param state
      */
     public COctagonCoefficientVisitor(OctagonState pState, String pFunctionName) {
       visitorState = pState;

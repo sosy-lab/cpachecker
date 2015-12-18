@@ -265,7 +265,6 @@ public class CustomInstruction{
    * Returns String of the given variable: if it is an outputVariable (= variable@1 0), otherwise (= variable 0)
    * @param var String of variable
    * @param isOutputVariable boolean if the variable is an output variable
-   * @return
    */
   private String getAssignmentOfVariableToZero(final String var, final boolean isOutputVariable) {
     StringBuilder sb = new StringBuilder();
@@ -294,7 +293,7 @@ public class CustomInstruction{
 
   /**
    * Returns AppliedCustomInstruction which begins at the given aciStartNode.
-   * @param aciStartNode
+   * @param aciStartNode the starting node of the instruction to be returned
    * @return the resulting AppliedCustomInstruction
    * @throws InterruptedException due to the shutdownNotifier
    * @throws AppliedCustomInstructionParsingFailedException if the matching of the variables of ci and aci
@@ -467,9 +466,7 @@ public class CustomInstruction{
    * @param ciEdge CFAEdge of CustomInstruction (CI)
    * @param aciEdge CFAEdge of AppliedCustomInstruction (ACI)
    * @param ciVarToAciVar Map of variables of CI and ACI
-   * @param currentCiVarToAciVar Map of variables of CI and ACI of the current edge
    * @param outVariables Collection of output variables
-   * @throws AppliedCustomInstructionParsingFailedException
    */
   private void computeMappingOfCiAndAci(final CFAEdge ciEdge, final CFAEdge aciEdge,
       final Map<String, String> ciVarToAciVar, final Collection<String> outVariables)

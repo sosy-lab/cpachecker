@@ -66,7 +66,6 @@ public class CustomInstructionApplications {
    * @param pIsEnd AbstractState
    * @param pCIStart AbstractState
    * @return true if pIsEnd is an endNode of pCISart
-   * @throws CPAException
    */
   public boolean isEndState(final AbstractState pIsEnd, final AbstractState pCIStart) throws CPAException {
     return isEndState(pIsEnd, AbstractStates.extractLocation(pCIStart));
@@ -77,7 +76,6 @@ public class CustomInstructionApplications {
    * @param pIsEnd AbstractState
    * @param pCIStart CFANode
    * @return true if pIsEnd is an endNode of pCISart
-   * @throws CPAException
    */
   public boolean isEndState(final AbstractState pIsEnd, final CFANode pCIStart) throws CPAException {
     assert(cis.containsKey(pCIStart));

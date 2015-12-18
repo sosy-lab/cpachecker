@@ -59,9 +59,9 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
   }
 
   /**
-   * @param pRootPrecision
-   * @param pRoot
-   * @throws InvalidConfigurationException
+   * @param pRootPrecision the root precision
+   * @param pRoot the root state
+   * @throws InvalidConfigurationException may be thrown in subclasses
    */
   protected NodeSelectionARGPass getARGPass(final Precision pRootPrecision, final ARGState pRoot)
       throws InvalidConfigurationException {

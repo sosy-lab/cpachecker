@@ -155,7 +155,6 @@ public class CFASecondPassBuilder {
    * @param functionCall If the call was an assignment from the function call
    * this keeps only the function call expression, e.g. if statement is a = call(b);
    * then functionCall is call(b).
-   * @throws ParserException
    */
   private void createCallAndReturnEdges(AStatementEdge edge, AFunctionCall functionCall) throws ParserException {
 

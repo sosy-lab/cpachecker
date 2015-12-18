@@ -48,7 +48,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   /**
    * javadoc to remove unused parameter warning
-   * @param out
+   * @param out the output stream
    */
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();

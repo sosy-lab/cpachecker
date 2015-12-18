@@ -42,12 +42,11 @@ public interface Parser {
   /**
    * Parse the content of a file into a CFA.
    *
-   * @param fileName  The file to parse.
+   * @param filename  The file to parse.
    * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws IOException If file cannot be read.
    * @throws ParserException If parser or CFA builder cannot handle the  code.
-   * @throws InterruptedException
    */
   ParseResult parseFile(String filename, CSourceOriginMapping sourceOriginMapping) throws ParserException, IOException, InvalidConfigurationException, InterruptedException;
 

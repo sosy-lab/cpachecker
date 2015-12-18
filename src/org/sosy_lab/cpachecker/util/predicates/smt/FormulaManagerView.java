@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
+import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
@@ -175,8 +176,7 @@ public class FormulaManagerView {
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
   }
 
-  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
-   * @param config */
+  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
   private BitvectorFormulaManager getRawBitvectorFormulaManager(Configuration config) throws InvalidConfigurationException, AssertionError {
     final BitvectorFormulaManager rawBitvectorFormulaManager;
     switch (encodeBitvectorAs) {
@@ -353,9 +353,6 @@ public class FormulaManagerView {
 
   /**
    * Make a variable of the given type.
-   * @param formulaType
-   * @param value
-   * @return
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, long value) {
@@ -639,10 +636,6 @@ public class FormulaManagerView {
 
   /**
    * Returns a term representing the selection of pFormula[pMsb:pLsb].
-   * @param pFormula
-   * @param pMsb
-   * @param pLsb
-   * @return
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb, boolean signed) {
@@ -864,7 +857,7 @@ public class FormulaManagerView {
 
   /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see {@link #instantiate(F extends Formula, SSAMap)}
+   *  @see{@link #instantiate(F extends Formula, SSAMap)}
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
@@ -937,8 +930,7 @@ public class FormulaManagerView {
 
   /**
    * Only use inside this package and for solver-specific classes
-   * when creating a {@link Model}.
-   * Do not use in client code!
+   * when creating a {@link Model}. Do not use in client code!
    *
    * @throws IllegalArgumentException thrown if the given name is invalid
    */
@@ -957,7 +949,7 @@ public class FormulaManagerView {
    * Uninstantiate a given formula.
    * (remove the SSA indices from its free variables and UFs)
    *
-   * @param pF  Input formula
+   * @param f  Input formula
    * @return    Uninstantiated formula
    */
   public <F extends Formula> F uninstantiate(F f) {
@@ -1585,12 +1577,6 @@ public class FormulaManagerView {
    *
    * A variable is considered 'dead' if its SSA index
    *  is different from the index in the SSA map.
-   *
-   * @param pF
-   * @param pSsa
-   * @return
-   * @throws SolverException
-   * @throws InterruptedException
    */
   public BooleanFormula eliminateDeadVariables(
       final BooleanFormula pF,

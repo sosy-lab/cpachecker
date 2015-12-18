@@ -60,7 +60,7 @@ public class Converter {
   }
 
   /**
-   * @throws UnknownFormulaSymbolException
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
    */
   public String convertFunctionDeclaration(String symbol, Type<String> pFt)
       throws UnknownFormulaSymbolException {
@@ -69,7 +69,7 @@ public class Converter {
   }
 
   /**
-   * @throws UnknownFormulaSymbolException
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
    */
   public String convertFunctionDefinition(String symbol,
       Type<String> type, Pair<String, Type<FormulaType<?>>> initializerTerm)
@@ -84,7 +84,7 @@ public class Converter {
   }
 
   /**
-   * @throws UnknownFormulaSymbolException
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
    */
   public Pair<String, Type<FormulaType<?>>> convertSymbol(String symbol)
       throws UnknownFormulaSymbolException {
@@ -92,7 +92,7 @@ public class Converter {
   }
 
   /**
-   * @throws UnknownFormulaSymbolException
+   * @throws UnknownFormulaSymbolException may be thrown in subclasses
    */
   public Pair<String, Type<FormulaType<?>>> convertTerm(
       Pair<String, Type<FormulaType<?>>> op, List<Pair<String, Type<FormulaType<?>>>> terms)

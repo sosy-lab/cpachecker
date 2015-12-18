@@ -43,7 +43,6 @@ public interface FeasibilityChecker<S extends AbstractState> {
    * @param path the path to investigate
    * @return <code>true</code> if the given path is feasible,
    *    <code>false</code> otherwise
-   * @throws CPAException
    */
   boolean isFeasible(final ARGPath path) throws CPAException, InterruptedException;
 
@@ -55,7 +54,6 @@ public interface FeasibilityChecker<S extends AbstractState> {
    * @param startingPoint the state to start at
    * @return <code>true</code> if the given path is feasible,
    *    <code>false</code> otherwise
-   * @throws CPAException
    */
   boolean isFeasible(final ARGPath path, S startingPoint) throws CPAException, InterruptedException;
 
@@ -75,7 +73,6 @@ public interface FeasibilityChecker<S extends AbstractState> {
    * @param automatons these automatons specify the concrete target states of the given path
    * @return <code>true</code> if the given path is feasible,
    *    <code>false</code> otherwise
-   * @throws CPAException
    */
   boolean isFeasible(final ARGPath path, Set<ControlAutomatonCPA> automatons) throws CPAException, InterruptedException;
 
@@ -92,7 +89,6 @@ public interface FeasibilityChecker<S extends AbstractState> {
    * @param automatons these automatons specify the concrete target states of the given path
    * @return <code>true</code> if the given path is feasible,
    *    <code>false</code> otherwise
-   * @throws CPAException
    */
   boolean isFeasible(final ARGPath path, S startingPoint, Set<ControlAutomatonCPA> automatons) throws CPAException, InterruptedException;
 

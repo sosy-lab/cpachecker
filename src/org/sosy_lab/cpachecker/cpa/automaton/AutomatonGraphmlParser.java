@@ -149,7 +149,6 @@ public class AutomatonGraphmlParser {
 
   /**
    * Parses a specification from a file and returns the Automata found in the file.
-   * @throws CParserException
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile) throws InvalidConfigurationException {
     return parseAutomatonFile(pInputFile.asByteSource());
@@ -157,7 +156,6 @@ public class AutomatonGraphmlParser {
 
   /**
    * Parses a specification from a ByteSource and returns the Automata found in the file.
-   * @throws CParserException
    */
   public List<Automaton> parseAutomatonFile(ByteSource pInputFile) throws InvalidConfigurationException {
     CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);

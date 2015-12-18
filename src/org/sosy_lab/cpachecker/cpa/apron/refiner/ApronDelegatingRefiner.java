@@ -82,7 +82,7 @@ import com.google.common.collect.Multimap;
 import apron.ApronException;
 
 /**
- * Refiner implementation that delegates to {@link ApronInterpolationBasedRefiner},
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.apron.refiner")
@@ -226,7 +226,6 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
    * @param errorPath the current error path
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
-   * @throws InvalidConfigurationException
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
@@ -353,7 +352,6 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
   /**
    * Creates a new OctagonAnalysisPathChecker, which checks the given path at full precision.
-   * @throws ApronException
    */
   private OctagonAnalysisFeasabilityChecker createApronFeasibilityChecker(ARGPath path) throws CPAException, ApronException {
     try {

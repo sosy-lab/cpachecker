@@ -2052,15 +2052,6 @@ public class AssumptionToEdgeAllocator {
       return new ExplicitValueLiteral(lit);
     }
 
-    /**
-     *
-     * @param pValueLiteral
-     * @param pCastedValue
-     */
-    protected ExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression pCastedValue) {
-      explicitValueLiteral = pValueLiteral;
-    }
-
     @Override
     public ValueLiteral addCast(CSimpleType pType) {
 

@@ -213,8 +213,8 @@ public class BAMTransferRelation implements TransferRelation {
   /**
    * When a block-start-location is reached, we start a new sub-analysis for the entered block.
    *
-   * @param pState
-   * @param node
+   * @param pState the abstract state at the location
+   * @param node the node of the location
    */
   protected boolean startNewBlockAnalysis(final AbstractState pState, final CFANode node) {
     return partitioning.isCallNode(node) && !partitioning.getBlockForCallNode(node).equals(currentBlock);
@@ -224,8 +224,8 @@ public class BAMTransferRelation implements TransferRelation {
    * When finding a block-exit-location, we do not return any further states.
    * This stops the current running CPA-algorithm, when its waitlist is emtpy.
    *
-   * @param pState
-   * @param node
+   * @param pState the abstract state at the location
+   * @param node the node of the location
    */
   protected boolean exitBlockAnalysis(final AbstractState pState, final CFANode node) {
     return currentBlock != null && currentBlock.isReturnNode(node);
@@ -425,10 +425,10 @@ public class BAMTransferRelation implements TransferRelation {
   /**
    * We try to get a smaller set of states for further analysis.
    *
-   * @param reducedResult
-   * @param cachedReturnStates
-   * @throws CPAException
-   * @throws InterruptedException
+   * @param reducedResult the result states
+   * @param cachedReturnStates the cached return states
+   * @throws CPAException may be thrown in subclass
+   * @throws InterruptedException may be thrown in subclass
    */
   protected Collection<AbstractState> filterResultStatesForFurtherAnalysis(
       final Collection<AbstractState> reducedResult, final Collection<AbstractState> cachedReturnStates)

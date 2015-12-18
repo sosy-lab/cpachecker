@@ -188,7 +188,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
    *
    * If the state is a NonDet-State multiple following states may be returned.
    * If the only following state is BOTTOM an empty set is returned.
-   * @throws CPATransferException
    */
   private Collection<AutomatonState> getFollowStates(AutomatonState state, List<AbstractState> otherElements, CFAEdge edge, boolean failOnUnknownMatch) throws CPATransferException {
     Preconditions.checkArgument(!(state instanceof AutomatonUnknownState));

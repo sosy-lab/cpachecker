@@ -88,7 +88,7 @@ public abstract class PartitioningHeuristic {
   }
 
   /**
-   * @param pNode
+   * @param pNode the node to be checked
    * @return <code>true</code>, if for the given node a new <code>Block</code> should be created; <code>false</code> otherwise
    */
   protected abstract boolean shouldBeCached(CFANode pNode);

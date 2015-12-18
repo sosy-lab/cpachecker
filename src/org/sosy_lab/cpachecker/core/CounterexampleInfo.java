@@ -28,10 +28,10 @@ import static com.google.common.base.Preconditions.*;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.Lists;
 
@@ -117,8 +117,6 @@ public class CounterexampleInfo {
    * Get all additional information stored in this object.
    * A file where to dump it may be associated with each object, but this part
    * of the pair may be null.
-   *
-   * @return
    */
   public Collection<Pair<Object, PathTemplate>> getAllFurtherInformation() {
     checkState(!spurious);

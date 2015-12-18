@@ -65,7 +65,6 @@ public interface InvariantGenerator {
    * for some time during the invariant generation runs,
    * or return a current snapshot of the invariants quickly.
    *
-   * @return
    * @throws CPAException If the invariant generation failed.
    * @throws InterruptedException If the invariant generation was interrupted.
    */

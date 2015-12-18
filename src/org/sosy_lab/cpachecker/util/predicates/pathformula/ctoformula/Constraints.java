@@ -39,9 +39,6 @@ public class Constraints {
 
   private final List<BooleanFormula> constraints = new ArrayList<>();
 
-  /**
-   * @param pCtoFormulaConverter
-   */
   public Constraints(BooleanFormulaManagerView pBfmgr) {
     bfmgr = pBfmgr;
   }

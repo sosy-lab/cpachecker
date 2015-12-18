@@ -331,7 +331,6 @@ private boolean classifyNodes = false;
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
-   * @throws InterruptedException
    */
   public CFA parseFileAndCreateCFA(String program)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
@@ -357,7 +356,6 @@ private boolean classifyNodes = false;
    * @throws InvalidConfigurationException If the main function that was specified in the configuration is not found.
    * @throws IOException If an I/O error occurs.
    * @throws ParserException If the parser or the CFA builder cannot handle the C code.
-   * @throws InterruptedException
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {

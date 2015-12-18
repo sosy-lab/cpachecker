@@ -71,8 +71,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    *
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
-   * @param pInitial the initial state for starting the exploration
-   * @throws InvalidConfigurationException
    */
   public GenericPrefixProvider(
       final StrongestPostOperator<S> pStrongestPost,
@@ -97,7 +95,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    *
    * @param path the path to check
    * @return the list of prefix of the path that are feasible by themselves
-   * @throws CPAException
    */
   @Override
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(final ARGPath path)
@@ -113,7 +110,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    * @param path the path to check
    * @param pInitial the initial state
    * @return the list of prefix of the path that are feasible by themselves
-   * @throws CPAException
    */
   public List<InfeasiblePrefix> extractInfeasiblePrefixes(
       final ARGPath path,

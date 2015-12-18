@@ -109,7 +109,7 @@ public class ArrayValue implements Value {
    *
    * <p>
    * The given list of values may only contain values of types compatible with the given type
-   * (that is values of the type or subtypes of this type and instances of {@link UnknownValue}).
+   * (that is values of the type or subtypes of this type and instances of {@link Value.UnknownValue}).
    * Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    * </p>
    *

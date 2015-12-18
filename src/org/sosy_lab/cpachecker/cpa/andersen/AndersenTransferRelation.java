@@ -189,8 +189,6 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
    * @param pCfaEdge
   *          Corresponding edge of the CFA.
    * @return <code>element</code>'s successor.
-   *
-   * @throws UnrecognizedCCodeException
    */
   private AndersenState handleAssignmentTo(String pOp1, CRightHandSide pOp2, AndersenState pElement, CFAEdge pCfaEdge)
       throws UnrecognizedCCodeException {

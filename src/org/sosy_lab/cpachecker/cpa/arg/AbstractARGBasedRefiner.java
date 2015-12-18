@@ -142,10 +142,9 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   /**
    * Perform refinement.
-   * @param pReached
-   * @param pPath
+   * @param pReached the reached set
+   * @param pPath the potential error path
    * @return Information about the counterexample.
-   * @throws InterruptedException
    */
   protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
             throws CPAException, InterruptedException;
@@ -158,10 +157,9 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    *
    * @param pLastElement Last ARGState of the given reached set
    * @param pReached ReachedSet
+   * @throws InterruptedException may be thrown in subclasses
+   * @throws CPATransferException may be thrown in subclasses
    * @see org.sosy_lab.cpachecker.cpa.arg.ARGUtils
-   * @return
-   * @throws InterruptedException
-   * @throws CPATransferException
    */
   @ForOverride
   @Nullable

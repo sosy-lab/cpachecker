@@ -31,11 +31,11 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
@@ -78,13 +78,6 @@ public class MinCorePrio implements InterpolationWithCandidates {
    *
    *  The list pItpCandidatePredicates is sorted in ascending order according
    *    the priority of its elements; predicates with lower priority are in front.
-   *
-   * @param pPhiMinus
-   * @param pPhiPlus
-   * @param pItpCandidatePredicates
-   *
-   * @throws InterruptedException
-   * @throws SolverException
    */
   @Override
   public BooleanFormula getInterpolant(
