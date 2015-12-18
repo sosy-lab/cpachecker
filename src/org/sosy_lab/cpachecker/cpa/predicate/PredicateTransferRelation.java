@@ -405,9 +405,12 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
           element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
         }
 
-        if (AbstractStates.isTargetState(lElement)
-            || AbstractStates.isIntermediateTargetState(lElement)) {
+        if (AbstractStates.isTargetState(lElement)) {
           targetOrIntermediateTargetStateFound = true;
+        }
+
+        if (AbstractStates.isIntermediateTargetState(lElement)) {
+          // targetOrIntermediateTargetStateFound = true;
         }
       }
 
