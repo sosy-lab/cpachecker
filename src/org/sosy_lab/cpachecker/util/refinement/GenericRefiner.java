@@ -65,7 +65,6 @@ import com.google.common.collect.Lists;
  *
  * @param <S> the type of the state the {@link StrongestPostOperator} and
  *    {@link Interpolant Interpolants} are based on
- * @param <T> the type <code>S</code> uses for returning forgotten information
  * @param <I> the type of the interpolants used in refinement
  *
  * @see GenericFeasibilityChecker
@@ -323,8 +322,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InterruptedException
-   * @throws CPAException
+   * @throws InterruptedException may be thrown in subclass
+   * @throws CPAException may be thrown in subclass
    */
   protected RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {
     return RichModel.empty();

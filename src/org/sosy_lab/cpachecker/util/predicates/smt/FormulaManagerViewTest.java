@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.Collection;
 import java.util.Set;
@@ -119,10 +118,10 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     BooleanFormula atom5 = imgr.lessOrEquals(imgr.makeVariable("e"), imgr.makeNumber(5));
 
     BooleanFormula f = bmgrv.and(ImmutableList.of(
-        bmgrv.or(atom1, atom2), bmgrv.not(bmgrv.or(atom1, atom3)), atom4, atom5));
+        bmgrv.or(atom1, atom2), bmgrv.or(atom1, bmgrv.not(atom3)), atom4, atom5));
 
     assertThat(mgrv.extractLiterals(f))
-        .containsExactly(atom1, atom2, bmgrv.not(bmgrv.or(atom1, atom3)), atom4, atom5);
+        .containsExactly(atom1, atom2, bmgrv.not(atom3), atom4, atom5);
 
     // TODO: this should really be the following (c.f. FormulaManagerView.extractLiterals)
 //    assertThat(mgrv.extractLiterals(f, false))

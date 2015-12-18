@@ -662,7 +662,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    */
   public Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions() {
     if (this.environmentAsAssumptions == null) {
-      environmentAsAssumptions = getEnvironmentAsAssumptions(machineModel, compoundIntervalManagerFactory, environment, variableTypes);
+      environmentAsAssumptions = getEnvironmentAsAssumptions(compoundIntervalManagerFactory, environment);
     }
     return environmentAsAssumptions;
   }
@@ -695,10 +695,8 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
   }
 
   private static Iterable<BooleanFormula<CompoundInterval>> getEnvironmentAsAssumptions(
-      MachineModel pMachineModel,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
-      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment,
-      Map<? extends MemoryLocation, ? extends Type> pVariableTypes) {
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
 
     CompoundIntervalFormulaManager compoundIntervalFormulaManager =
         new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
@@ -783,7 +781,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @param pAssumptions the assumptions to be made.
    * @param pEvaluationVisitor the evaluation visitor to use for evaluating the assumptions' correctness.
-   * @param pNewVariableSelection
+   * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>false</code> otherwise.
    */
   private InvariantsState assumeInternal(Collection<? extends BooleanFormula<CompoundInterval>> pAssumptions,
@@ -803,7 +801,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @param pAssumption the assumption to be made.
    * @param pEvaluationVisitor the evaluation visitor to use for evaluating the assumptions' correctness.
-   * @param pNewVariableSelection
+   * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>false</code> otherwise.
    */
   private InvariantsState assumeInternal(BooleanFormula<CompoundInterval> pAssumption,

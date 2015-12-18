@@ -36,7 +36,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
@@ -49,8 +48,6 @@ import org.sosy_lab.solver.api.FunctionFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
-
-import com.google.common.collect.Lists;
 
 class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   extends BaseManagerView implements BitvectorFormulaManager {
@@ -76,14 +73,6 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
     @Option(secure=true, description="Allows to ignore Concat and Extract Calls when Bitvector theory was replaced with Integer or Rational.")
     private boolean ignoreExtractConcat = true;
-
-    @Option(secure=true, description="Use UFs to handle overflows "
-        + "when Bitvector theory was replaced with Integer or Rational theory.")
-    private boolean replaceOverflowsWithUFs = false;
-
-    @Option(secure=true, description="Use UFs to handle sign-conversion (from signed to unsigned or back) "
-        + "when Bitvector theory was replaced with Integer or Rational theory.")
-    private boolean replaceSignConversionWithUFs = false;
   }
 
   ReplaceBitvectorWithNumeralAndFunctionTheory(
@@ -190,87 +179,21 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
     return ((BitvectorType)getFormulaType(pNumber)).getSize();
   }
 
-  private static Pair<BigInteger, BigInteger> getMinAndMax(int pLength, boolean signed) {
-    assert pLength > 0 : "length of bitvector should be positive, instead of "+ pLength;
-    BigInteger maxInt;
-    BigInteger minInt;
-    if (signed) {
-      // signed integer : [2^31, 2^31-1]
-      minInt = BigInteger.ONE.shiftLeft(pLength - 1).negate();
-      maxInt = BigInteger.ONE.shiftLeft(pLength - 1).subtract(BigInteger.ONE);
-    } else {
-      // unsigned integer : [0, 2^32-1]
-      minInt = BigInteger.ZERO;
-      maxInt = BigInteger.ONE.shiftLeft(pLength).subtract(BigInteger.ONE);
-    }
-    return Pair.of(minInt, maxInt);
-  }
-
-
-  /**
-   * Replace the formula with a matching UF, if the formula causes an overflow, else keep it.
-   *
-   * @param pValue that should be replaced
-   * @param pLength size of bitvector to determine the current range of values
-   * @param pSigned to determine the current range of values
-   */
-  @Deprecated
-  /* reason: we are sound, but not efficient, due to lack of information about signedness.
-             The better implementation is CtoFormula.encodeOverflowsWithUFs. */
-  private T replaceOverflowWithUF(T pValue, int pLength, boolean pSigned) {
-
-    if (pLength == 0) {
-      // ignore and return plain value, this happens only for special variables
-      // like {@link PointerTargetSetManager.FAKE_ALLOC_FUNCTION_NAME}
-      assert pValue.toString().contains("__VERIFIER_fake_alloc") : "invalid name: " + pValue;
-      return pValue;
-    }
-
-    Pair<BigInteger, BigInteger> minMax = getMinAndMax(pLength, pSigned);
-    BooleanFormula lower  = numericFormulaManager.lessOrEquals(numericFormulaManager.makeNumber(minMax.getFirst()), pValue);
-    BooleanFormula higher = numericFormulaManager.lessOrEquals(pValue, numericFormulaManager.makeNumber(minMax.getSecond()));
-
-    UninterpretedFunctionDeclaration<T> decl = getUFDecl("overflow", pLength, pSigned);
-    T overflowUF = functionManager.callUninterpretedFunction(decl, Lists.<Formula>newArrayList(pValue));
-
-    // TODO improvement:
-    // Add special handling for a constant number of overflows (N=1 or N=2).
-    // This would allow to catch overflows from ADD and SUBTRACT.
-
-    // if (value in [MIN,MAX])   then return (value)  else return UF(value)
-    return booleanFormulaManager.ifThenElse(booleanFormulaManager.and(lower, higher), pValue, overflowUF);
-  }
-
-  private BitvectorFormula handleOverflow(FormulaType<BitvectorFormula> pFormulaType, T pValue, boolean pSigned) {
-    if (options.replaceOverflowsWithUFs) {
-      pValue = replaceOverflowWithUF(pValue, ((BitvectorType)pFormulaType).getSize(), pSigned);
-    }
-    return wrap(pFormulaType, pValue);
-  }
-
-  private T handleOverflow(BitvectorFormula pValue, boolean pSigned) {
-    T result = unwrap(pValue);
-    if (options.replaceSignConversionWithUFs) {
-      result = replaceOverflowWithUF(result, getLength(pValue), pSigned);
-    }
-    return result;
-  }
-
   @Override
   public BitvectorFormula negate(BitvectorFormula pNumber, boolean signed) {
-    return handleOverflow(getFormulaType(pNumber), numericFormulaManager.negate(unwrap(pNumber)), signed);
+    return wrap(getFormulaType(pNumber), numericFormulaManager.negate(unwrap(pNumber)));
   }
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return handleOverflow(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)), signed);
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return handleOverflow(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)), signed);
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
@@ -344,39 +267,37 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean signed) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return handleOverflow(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)), signed);
+    return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    boolean signed = true; // signedness is irrelevant for equality
-    return numericFormulaManager.equal(handleOverflow(pNumber1, signed), handleOverflow(pNumber2, signed));
-    // return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
+    return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula greaterThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return numericFormulaManager.greaterThan(handleOverflow(pNumber1, pSigned), handleOverflow(pNumber2, pSigned));
+    return numericFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula greaterOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return numericFormulaManager.greaterOrEquals(handleOverflow(pNumber1, pSigned), handleOverflow(pNumber2, pSigned));
+    return numericFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula lessThan(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return numericFormulaManager.lessThan(handleOverflow(pNumber1, pSigned), handleOverflow(pNumber2, pSigned));
+    return numericFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
   }
 
   @Override
   public BooleanFormula lessOrEquals(BitvectorFormula pNumber1, BitvectorFormula pNumber2, boolean pSigned) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
-    return numericFormulaManager.lessOrEquals(handleOverflow(pNumber1, pSigned), handleOverflow(pNumber2, pSigned));
+    return numericFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
 
 

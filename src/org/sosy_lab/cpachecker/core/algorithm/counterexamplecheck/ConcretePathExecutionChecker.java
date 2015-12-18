@@ -86,7 +86,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   private final LogManager logger;
   private final Timer timer = new Timer();
 
-  public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa, ARGCPA cpa) throws InvalidConfigurationException, CPAException {
+  public ConcretePathExecutionChecker(Configuration config, LogManager logger, CFA cfa, ARGCPA cpa) throws InvalidConfigurationException {
 
     if (cfa.getLanguage() != Language.C) {
       throw new UnsupportedOperationException("Concrete execution checker can only be used with C.");
@@ -120,8 +120,6 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
    * Compiles the program given in the global variable "dumpFile" and saves the
    * output in the file given in the global variable "executable". The return
    * value indicates the success of the compilation process.
-   * @throws IOException
-   * @throws TimeoutException
    */
   private void compilePathProgram(String absFilePath) throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
     logger.log(Level.FINE, "Compiling concrete error path.");

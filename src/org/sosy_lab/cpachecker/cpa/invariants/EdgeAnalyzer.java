@@ -93,7 +93,6 @@ public class EdgeAnalyzer {
    * Gets the variables involved in the given edge.
    *
    * @param pCfaEdge the edge to be analyzed.
-   * @param pVariableClassification the variable classification.
    *
    * @return the variables involved in the given edge.
    */
@@ -244,7 +243,6 @@ public class EdgeAnalyzer {
    * Gets the variables involved in the given CInitializer.
    *
    * @param pCInitializer the CInitializer to be analyzed.
-   * @param pVariableClassification the variable classification.
    *
    * @return the variables involved in the given CInitializer.
    */

@@ -127,7 +127,7 @@ public class RefineTest0 extends SolverBasedTest0 {
     Solver solver = new Solver(factory, config, TestLogManager.getInstance());
     mgrv = solver.getFormulaManager();
 
-    RuleEngine ruleEngine = new RuleEngine(logger, solver);
+    RuleEngine ruleEngine = new RuleEngine(solver);
     ExtractNewPreds enp = new ExtractNewPreds(solver, ruleEngine);
     InterpolationWithCandidates ipc = new MinCorePrio(logger, Mockito.mock(CFA.class), solver);
     RegionManager regionManager = new BDDManagerFactory(config, logger).createRegionManager();

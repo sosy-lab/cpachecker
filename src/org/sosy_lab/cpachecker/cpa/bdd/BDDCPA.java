@@ -101,7 +101,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     manager           = new NamedRegionManager(rmgr);
-    bvmgr             = new BitvectorManager(config, rmgr);
+    bvmgr             = new BitvectorManager(rmgr);
     predmgr           = new PredicateManager(config, manager, cfa);
     transferRelation  = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
     reducer           = new BDDReducer(manager, predmgr);

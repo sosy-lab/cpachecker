@@ -92,7 +92,6 @@ public final class CInitializers {
    * @param decl The variable declaration.
    * @param edge The current CFA edge.
    * @return A (possibly empty) list of assignment statements.
-   * @throws UnrecognizedCCodeException
    */
   public static List<CExpressionAssignmentStatement> convertToAssignments(
       CVariableDeclaration decl, CFAEdge edge) throws UnrecognizedCCodeException {
@@ -359,9 +358,8 @@ public final class CInitializers {
    * @param targetType The type to search.
    * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
    * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
-   * @param loc
-   * @param edge
-   * @throws UnrecognizedCCodeException
+   * @param loc the location of the currently handled object
+   * @param edge the edge that is handled here
    */
   private static void findFirstSubobjectWithType(final CType targetType,
       final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,

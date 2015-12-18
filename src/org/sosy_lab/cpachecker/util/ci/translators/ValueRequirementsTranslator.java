@@ -30,8 +30,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -41,9 +39,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
 
-  public ValueRequirementsTranslator(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier,
-      final LogManager pLog) {
-    super(ValueAnalysisState.class, pConfig, pShutdownNotifier, pLog);
+  public ValueRequirementsTranslator(final LogManager pLog) {
+    super(ValueAnalysisState.class, pLog);
   }
 
   @Override

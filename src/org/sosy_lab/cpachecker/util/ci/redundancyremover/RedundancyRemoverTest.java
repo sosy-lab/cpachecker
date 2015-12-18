@@ -23,20 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
-import java.io.IOException;
-
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
-import org.sosy_lab.cpachecker.cpa.sign.SignState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class RedundancyRemoverTest {
@@ -65,7 +52,7 @@ public class RedundancyRemoverTest {
 
   @Test
   public void testGetAbstractValueIntervalState() {
-    IntervalAnalysisState intervalState = new IntervalAnalysisState().addInterval("x", new Interval(-1L,4L), 0);
+    // IntervalAnalysisState intervalState = new IntervalAnalysisState().addInterval("x", new Interval(-1L,4L), 0);
     // TODO
     // varOrConst 1 -> Interval [1,1]
     // varOrConst x -> Interval [-1,4]
@@ -126,7 +113,7 @@ public class RedundancyRemoverTest {
 
   @Test
   public void testGetAbstractValueSignState() {
-    SignState signState = SignState.TOP.assignSignToVariable("x", SIGN.PLUSMINUS);
+    // SignState signState = SignState.TOP.assignSignToVariable("x", SIGN.PLUSMINUS);
     // TODO
     // varOrConst -1 -> MINUS
     // varOrConst 0 -> ZERO
@@ -156,9 +143,9 @@ public class RedundancyRemoverTest {
 
   @Test
   public void testGetAbstractValueValueAnalysisState() {
-    ValueAnalysisState valState = new ValueAnalysisState();
-    valState.assignConstant(MemoryLocation.valueOf("x"), new NumericValue(7), new CSimpleType(
-        false, false, CBasicType.INT, false, false, false, false, false, false, false));
+    // ValueAnalysisState valState = new ValueAnalysisState();
+    // valState.assignConstant(MemoryLocation.valueOf("x"), new NumericValue(7), new CSimpleType(
+    //    false, false, CBasicType.INT, false, false, false, false, false, false, false));
     // TODO
     // varOrConst 1 -> NumericValue with value 1
     // varOrConst x -> NumericValue with value 7
@@ -166,7 +153,7 @@ public class RedundancyRemoverTest {
   }
 
   @Test
-  public void testIdentifyAndRemoveRedundantRequirements() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
+  public void testIdentifyAndRemoveRedundantRequirements() {
     /*CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
     AbstractState loc =
         new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(

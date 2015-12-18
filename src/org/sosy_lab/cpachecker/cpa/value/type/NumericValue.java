@@ -61,7 +61,6 @@ public class NumericValue implements Value, Serializable {
   /**
    * Returns the integer stored in the container as long. Before calling this function,
    * it must be ensured using `getType()` that this container contains an integer.
-   * @return
    */
   public long longValue() {
     return number.longValue();
@@ -69,7 +68,6 @@ public class NumericValue implements Value, Serializable {
 
   /**
    * Returns the floating point stored in the container as float.
-   * @return
    */
   public float floatValue() {
     return number.floatValue();
@@ -77,7 +75,6 @@ public class NumericValue implements Value, Serializable {
 
   /**
    * Returns the floating point stored in the container as double.
-   * @return
    */
   public double doubleValue() {
     return number.doubleValue();

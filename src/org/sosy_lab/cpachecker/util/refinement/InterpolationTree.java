@@ -149,10 +149,10 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
   /**
    * This method builds a (linear) tree from a single path.
    *
-   * Note that, while this is just a special case of {@link buildTreeFromMultiplePaths},
+   * Note that, while this is just a special case of {@link #buildTreeFromMultiplePaths},
    * this is the preferred way, because the given path could come from any analysis,
    * e.g., a predicate analysis, and the exact given path should be used for interpolation.
-   * This is not guaranteed by the more general approach given in {@link buildTreeFromMultiplePaths},
+   * This is not guaranteed by the more general approach given in {@link #buildTreeFromMultiplePaths},
    * because there the interpolation tree is build from a (non-unambiguous) set of states.
    */
   private ARGState buildTreeFromSinglePath(final ARGPath targetPath) {
@@ -227,7 +227,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
   /**
    * This method exports the current representation in dot format to the given file.
    *
-   * @param Path file the file to write to
+   * @param file file the file to write to
    */
   public void exportToDot(PathTemplate file, int refinementCounter) {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
@@ -263,8 +263,6 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
   /**
    * This method returns the next error path for interpolation.
    *
-   * @param current the current root of the error path to retrieve for a subsequent interpolation
-   * @param interpolationRoots the mutable stack of interpolation roots, which might be added to within this method
    * @return the next error path for a subsequent interpolation
    */
   public ARGPath getNextPathForInterpolation() {
@@ -334,7 +332,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    * to the root, it collects the highest state that has a non-trivial interpolant associated.
    * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
    *
-   * @param whether to perform lazy abstraction or not
+   * @param strategy whether to perform lazy abstraction or not
    * @return the set of refinement roots
    */
   public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy strategy) {

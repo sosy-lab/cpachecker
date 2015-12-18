@@ -133,9 +133,9 @@ class LDDFactory {
         return JLDD.tvpi_create_tvpiz_theory(size);
       case UTVPIZ:
         return JLDD.tvpi_create_utvpiz_theory(size);
+      default:
+        throw new AssertionError("Unhandled enum value in switch: " + type);
       }
-    assert false;
-    return null;
   }
 
   public void setExistsType(ExistsType type) {
@@ -149,6 +149,8 @@ class LDDFactory {
       case LW:
           JLDD.jldd_use_lw_exists(this.lddManagerPtr);
           break;
+      default:
+        throw new AssertionError("Unhandled enum value in switch: " + type);
     }
   }
 

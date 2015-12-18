@@ -25,19 +25,18 @@ package org.sosy_lab.cpachecker.util.precondition.segkro.rules.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import java.io.IOException;
 import java.util.Set;
 
 import org.junit.Test;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Premise;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.ExistentialRule;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.PatternBasedPremise;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatchResult;
 
 import com.google.common.collect.Lists;
 
@@ -74,7 +73,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
   }
 
   @Test
-  public void testPremise2() throws SolverException, InterruptedException {
+  public void testPremise2() {
 
     Premise p1 = er.getPremises().get(1);
     assertThat(p1).isInstanceOf(PatternBasedPremise.class);
@@ -86,7 +85,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
   }
 
   @Test
-  public void testPremise2a() throws SolverException, InterruptedException, IOException {
+  public void testPremise2a() {
 
     Premise p1 = er.getPremises().get(1);
     assertThat(p1).isInstanceOf(PatternBasedPremise.class);
@@ -99,7 +98,7 @@ public class ExistentialRuleTest0 extends AbstractRuleTest0 {
   }
 
   @Test
-  public void testPremise1() throws SolverException, InterruptedException {
+  public void testPremise1() {
 
     Premise p2 = er.getPremises().get(0);
     assertThat(p2).isInstanceOf(PatternBasedPremise.class);

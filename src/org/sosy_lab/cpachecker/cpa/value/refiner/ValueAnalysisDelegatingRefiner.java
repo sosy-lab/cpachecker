@@ -109,7 +109,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   StatCounter totalSecondaryExtraRefinementsSelected = new StatCounter("Times selected refinement (primary was SAT)");
   StatCounter totalSecondaryExtraRefinementsFinished = new StatCounter("Times finished refinement (primary was SAT)");
 
-  public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static ValueAnalysisDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(ValueAnalysisDelegatingRefiner.class.getSimpleName() + " could not find the ValueAnalysisCPA");
     }
@@ -118,7 +118,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   }
 
   private static ValueAnalysisDelegatingRefiner initialiseDelegatingRefiner(ConfigurableProgramAnalysis cpa)
-      throws CPAException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
 
     ValueAnalysisCPA valueCpa = ((WrapperCPA)cpa).retrieveWrappedCpa(ValueAnalysisCPA.class);
     if (valueCpa == null) {

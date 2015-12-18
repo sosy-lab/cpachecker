@@ -54,13 +54,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.Address;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
@@ -110,7 +109,7 @@ public class SMGConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public RichModel allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath, MachineModel pMachineModel) {
+  public RichModel allocateAssignmentsToPath(List<Pair<SMGState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 
@@ -126,7 +125,7 @@ public class SMGConcreteErrorPathAllocator {
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<SMGState, CFAEdge>> pPath) {
 
-    List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
+    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
     // Until SMGObjects are comparable for persistant maps, this object is mutable
     // and depends on side effects
@@ -137,7 +136,7 @@ public class SMGConcreteErrorPathAllocator {
       SMGState pSMGState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
-      ConcerteStatePathNode node;
+      ConcreteStatePathNode node;
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
@@ -154,7 +153,7 @@ public class SMGConcreteErrorPathAllocator {
     return new ConcreteStatePath(result);
   }
 
-  private ConcerteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
+  private ConcreteStatePathNode createMultiEdge(SMGState pSMGState, MultiEdge multiEdge,
       SMGObjectAddressMap pVariableAddresses) {
 
     int size = multiEdge.getEdges().size();

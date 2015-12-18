@@ -30,7 +30,7 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -52,9 +52,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * are resolved where possible for each assignment along the path.
  *
  */
-public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> {
+public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> {
 
-  private final List<ConcerteStatePathNode> list;
+  private final List<ConcreteStatePathNode> list;
 
   /**
    * A object of this class can be constructed, when a list
@@ -64,12 +64,12 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
    * @param pList a list of pairs of concrete States {@link ConcreteState}
    *  and cfa edges {@link CFAEdge}.
    */
-  public ConcreteStatePath(List<ConcerteStatePathNode> pList) {
+  public ConcreteStatePath(List<ConcreteStatePathNode> pList) {
     list = ImmutableList.copyOf(pList);
   }
 
   @Override
-  public final Iterator<ConcerteStatePathNode> iterator() {
+  public final Iterator<ConcreteStatePathNode> iterator() {
     return list.iterator();
   }
 
@@ -92,9 +92,9 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
    *
    * @return Returns a pair of {@link ConcreteState}
    *  concrete states and {@link CFAEdge} cfa edges, represented
-   *  as {@link ConcerteStatePathNode} node of {@link ConcreteStatePath} path.
+   *  as {@link ConcreteStatePathNode} node of {@link ConcreteStatePath} path.
    */
-  public static ConcerteStatePathNode valueOfPathNode(ConcreteState pConcreteState, CFAEdge cfaEdge) {
+  public static ConcreteStatePathNode valueOfPathNode(ConcreteState pConcreteState, CFAEdge cfaEdge) {
 
     Preconditions.checkArgument(cfaEdge.getEdgeType() != CFAEdgeType.MultiEdge);
     return new SingleConcreteState(cfaEdge, pConcreteState);
@@ -114,7 +114,7 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
    * @return Returns a sub path of the program {@link MultiConcreteState}, represented by
    * the given list of concrete states {@link ConcreteState} and cfa edges {@link MultiEdge}.
    */
-  public static ConcerteStatePathNode valueOfPathNode(List<ConcreteState> pConcreteStates, MultiEdge multiEdge) {
+  public static ConcreteStatePathNode valueOfPathNode(List<ConcreteState> pConcreteStates, MultiEdge multiEdge) {
 
     List<CFAEdge> edges = multiEdge.getEdges();
 
@@ -151,11 +151,11 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     return "ConcreteStatePath:" + list.toString();
   }
 
-  public static abstract class ConcerteStatePathNode {
+  public static abstract class ConcreteStatePathNode {
 
     private final CFAEdge cfaEdge;
 
-    public ConcerteStatePathNode(CFAEdge pCfaEdge) {
+    public ConcreteStatePathNode(CFAEdge pCfaEdge) {
       cfaEdge = pCfaEdge;
     }
 
@@ -164,7 +164,7 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     }
   }
 
-  static final class SingleConcreteState extends ConcerteStatePathNode {
+  static final class SingleConcreteState extends ConcreteStatePathNode {
 
     private final ConcreteState concreteState;
 
@@ -184,7 +184,7 @@ public final class ConcreteStatePath implements Iterable<ConcerteStatePathNode> 
     }
   }
 
-  static final class MultiConcreteState extends ConcerteStatePathNode implements Iterable<SingleConcreteState> {
+  static final class MultiConcreteState extends ConcreteStatePathNode implements Iterable<SingleConcreteState> {
 
     private final List<SingleConcreteState> concreteStates;
 

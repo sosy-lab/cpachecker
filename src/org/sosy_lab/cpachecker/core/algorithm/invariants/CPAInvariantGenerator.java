@@ -164,8 +164,6 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
-   * @param additionalAutomata additional specification automata that should be used
-   *                           during invariant generation
    *
    * @return a new {@link CPAInvariantGenerator}.
    *
@@ -190,6 +188,8 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
    * @param pShutdownOnSafeManager optional shutdown notifier that will be
    * notified if the invariant generator proves safety.
    * @param pCFA the CFA to run the CPA on.
+   * @param additionalAutomata additional specification automata that should be used
+   *                           during invariant generation
    *
    * @return a new {@link CPAInvariantGenerator}.
    *
@@ -230,7 +230,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
             if (adjustConditions(logger, conditionCPAs)) {
               result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pToAdjust.iteration + 1, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
             }
-          } catch (InvalidConfigurationException | CPAException e) {
+          } catch (InvalidConfigurationException e) {
             pLogger.logUserException(Level.WARNING, e, "Creating adjusted invariant generator failed");
           } finally {
             if (result == pToAdjust) {
@@ -304,7 +304,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
+    reachedSetFactory = new ReachedSetFactory(invariantConfig);
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
             .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
@@ -318,7 +318,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       final int pIteration,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
-      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException, CPAException {
+      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownManager = pShutdownManager;
@@ -419,8 +419,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
   /**
    * Callable for creating invariants by running the CPAAlgorithm,
    * potentially in a loop with increasing precision.
-   * Returns the final invariants,
-   * and publishes intermediate results to {@link CPAInvariantGenerator#latestInvariant}.
+   * Returns the final invariants.
    */
   private class InvariantGenerationTask implements Callable<InvariantSupplier> {
 

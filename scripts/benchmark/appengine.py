@@ -461,11 +461,19 @@ class _AppEnginePoller(threading.Thread):
 
 class AppEngineSystemInfo(object):
     def __init__(self, cpu_max_frequency, memory):
+        if cpu_max_frequency.endswith("Mhz"):
+            self.cpu_max_frequency = int(cpu_max_frequency[:-3]) * 1000 * 1000
+        else:
+            self.cpu_max_frequency = int(cpu_max_frequency)
+
+        if memory.endswith("M"):
+            self.memory = int(memory[:-1]) * 1000 * 1000
+        else:
+            self.memory = int(memory)
+
         self.os = 'unknown'
         self.cpu_model = 'unknown'
         self.cpu_number_of_cores = 'unknown'
-        self.cpu_max_frequency = cpu_max_frequency
         self.cpu_turboboost = None
-        self.memory = memory
         self.hostname = 'Google App Engine'
         self.environment = {}

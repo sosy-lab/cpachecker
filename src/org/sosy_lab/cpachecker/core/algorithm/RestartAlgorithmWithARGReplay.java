@@ -167,7 +167,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_PRECISE;
 
     try {
-      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(globalConfig, logger);
+      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(globalConfig);
 
       // predicate analysis
       logger.log(Level.FINE, "Creating CPA for PredicateAnalysis");
@@ -264,7 +264,7 @@ public class RestartAlgorithmWithARGReplay implements Algorithm, StatisticsProvi
       LogManager singleLogger) throws InvalidConfigurationException {
     singleLogger.log(Level.FINE, "Creating initial reached set");
 
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(singleConfig, logger);
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(singleConfig);
     AbstractState initialState = cpa.getInitialState(mainFunction, StateSpacePartition.getDefaultPartition());
     Precision initialPrecision = cpa.getInitialPrecision(mainFunction, StateSpacePartition.getDefaultPartition());
 

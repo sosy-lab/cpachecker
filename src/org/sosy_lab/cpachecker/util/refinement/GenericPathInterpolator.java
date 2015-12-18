@@ -153,7 +153,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @param pInterpolant the initial interpolant, i.e. the initial state,
    *    with which to check the error path.
    * @return a sliced infeasible prefix of the error path
-   * @throws CPAException
    */
   protected ARGPath performRefinementSelection(
       ARGPath pErrorPath,
@@ -200,9 +199,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * @param pInterpolant an initial interpolant
    *    (only non-trivial when interpolating error path suffixes in global refinement)
    * @return the mapping of {@link ARGState}s to {@link Interpolant}s
-   *
-   * @throws InterruptedException
-   * @throws CPAException
    */
   protected Map<ARGState, I> performEdgeBasedInterpolation(
       ARGPath pErrorPathPrefix,
@@ -261,9 +257,6 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * This method returns a sliced error path (prefix). In case the sliced error path becomes feasible,
    * i.e., because slicing is not fully precise in presence of, e.g., structs or arrays, the original
    * error path (prefix) that was given as input is returned.
-   *
-   * @throws InterruptedException
-   * @throws CPAException
    */
   private ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
       throws CPAException, InterruptedException {
@@ -344,14 +337,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * the original error path, but are not anymore in the (shorter) prefix.
    *
    * The property that every state on the path beneath the first state with an
-   * false interpolant is needed by some code in {@link org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolationTree},
-   * i.e., for global refinement. This property could also be enforced there,
-   * but interpolant creation should only happen during interpolation, and not
-   * in the data structure holding the interpolants.
+   * false interpolant is needed by some code in ValueAnalysisInterpolationTree
+   * a subclass of {@link InterpolationTree}, i.e., for global refinement. This
+   * property could also be enforced there, but interpolant creation should only
+   * happen during interpolation, and not in the data structure holding the interpolants.
    *
    * @param errorPath the original error path
-   * @param errorPathPrefix the possible shorter error path prefix
-   * @param interpolants the current interpolant map
+   * @param pErrorPathPrefix the possible shorter error path prefix
+   * @param pInterpolants the current interpolant map
    */
   protected final void propagateFalseInterpolant(final ARGPath errorPath,
       final ARGPath pErrorPathPrefix,

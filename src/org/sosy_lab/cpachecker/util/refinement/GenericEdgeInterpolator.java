@@ -137,7 +137,6 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param pCallstack the current call stack
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
-   * @throws CPAException
    */
   @Override
   public I deriveInterpolant(
@@ -190,7 +189,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
       return interpolantManager.getTrueInterpolant();
     }
 
-    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(pCurrentEdge, initialSuccessor)) {
+    for (MemoryLocation currentMemoryLocation : determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
       shutdownNotifier.shutdownIfNecessary();
 
       // temporarily remove the value of the current memory location from the candidate
@@ -223,10 +222,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * This optimization was removed again in commit r16007 because the payoff did not justify
    * maintaining the code, esp. as other optimizations work equally well with less code.
    */
-  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
-      final CFAEdge pCurrentEdge,
-      final S candidateInterpolant
-  ) {
+  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(final S candidateInterpolant) {
     return candidateInterpolant.getTrackedMemoryLocations();
   }
 
@@ -235,8 +231,6 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
-   * @throws InterruptedException
-   * @throws CPAException
    */
   private boolean isSuffixContradicting(ARGPath errorPath)
       throws CPAException, InterruptedException {
@@ -256,10 +250,9 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   /**
    * This method gets the initial successor, i.e. the state following the initial state.
    *
-   * @param initialState the initial state, i.e. the state represented by the input interpolant.
+   * @param pInitialState the initial state, i.e. the state represented by the input interpolant.
    * @param pInitialEdge the initial edge of the error path
    * @return the initial successor
-   * @throws CPAException
    */
   private Optional<S> getInitialSuccessor(
       final S pInitialState,
@@ -289,7 +282,6 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state
    * @return true, it the path is feasible, else false
-   * @throws CPAException
    */
   public boolean isRemainingPathFeasible(ARGPath remainingErrorPath, S state)
       throws CPAException, InterruptedException {

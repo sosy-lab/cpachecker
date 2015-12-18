@@ -27,7 +27,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -68,7 +67,7 @@ public class RuleEngine implements Concluding, StatisticsProvider, Canonicalizer
   private final RuleEngineStatistics stats = new RuleEngineStatistics();
   private final Canonicalizer canon;
 
-  public RuleEngine(LogManager pLogger, Solver pSolver) {
+  public RuleEngine(Solver pSolver) {
     final SmtAstMatcher matcher = pSolver.getSmtAstMatcher();
 
     // ATTENTION: The ordering of the rules is important!!!!!!

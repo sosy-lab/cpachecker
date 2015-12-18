@@ -68,7 +68,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
 
   /**
    * Creates a new compound state from the given interval. This should only be
-   * invoked via the {@link CompoundInterval.getInternal} functions.
+   * invoked via the {@link CompoundBitVectorInterval#getInternal} functions.
    *
    * @param pInterval the interval to compose this state from. Must not be
    * {@code null}.
@@ -80,7 +80,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
 
   /**
    * Creates a new compound state from the given intervals. This should only be
-   * invoked via the {@link CompoundInterval.getInternal} functions.
+   * invoked via the {@link CompoundBitVectorInterval#getInternal} functions.
    *
    * @param pInfo the bit vector information.
    * @param pIntervals the intervals to compose this state from. None of the
@@ -750,7 +750,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
 
   /**
    * Inverts the state so that all values previously contained are no longer contained and vice versa.
-   * Do not confuse this with negating ({@link #negate()}) the state.
+   * Do not confuse this with negating ({@link #negate(boolean, OverflowEventHandler)}) the state.
    *
    * @return the inverted state.
    */
@@ -947,7 +947,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    *
    * @param pInterval the interval to add to this state.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   * @param pOverflowEventHandler
+   * @param pOverflowEventHandler the handle for overflows
    *
    * @return the state resulting from adding the given interval to this
    * state.
@@ -1202,7 +1202,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * top if they do intersect but are not equal singletons and
    * bottom if one of the states is bottom.
    *
-   * Do not confuse this method with {@link #equals()} which tests two
+   * Do not confuse this method with {@link #equals(Object)} which tests two
    * states for equality; while the states [0,1] and [0,1] are equal
    * states, they do not guarantee that two different concrete states
    * abstracted by those states are equal: one might be 0 while the other
@@ -1400,7 +1400,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * a state representing top is returned.
    *
    * Do not confuse this method with mathematical negation or state
-   * inversion. For mathematical negation, see {@link #negate()}.
+   * inversion. For mathematical negation, see {@link #negate(boolean, OverflowEventHandler)}.
    * For state inversion, see {@link #invert()}.
    *
    * @return a state representing true if this state represents false,
@@ -1734,7 +1734,7 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * returned.
    *
    * Do not confuse this method with mathematical negation or state
-   * inversion. For mathematical negation, see {@link #negate()}.
+   * inversion. For mathematical negation, see {@link #negate(boolean, OverflowEventHandler)}.
    * For state inversion, see {@link #invert()}.
    *
    * @param pState the state to logically negate.
@@ -1752,7 +1752,6 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
    * Applies the given operator and operand to every interval in this
    * state and unites the results.
    *
-   * @param pInfo the bit vector information.
    * @param pOperator the interval operator to apply to the intervals.
    * @param pOperand the second operand of each operator application.
    *

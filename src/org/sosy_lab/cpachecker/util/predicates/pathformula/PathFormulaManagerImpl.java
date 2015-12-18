@@ -174,13 +174,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     if (handleArrays) {
       afmgr = fmgr.getArrayFormulaManager();
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler =
-          new CtoFormulaTypeHandlerWithArrays(pLogger, options, pMachineModel,
-              pFmgr);
-      converter =
-          new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-              pVariableClassification, logger, shutdownNotifier, typeHandler,
-              direction);
+      typeHandler = new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
+      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
+          pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 
       logger.log(Level.WARNING,
           "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
@@ -203,7 +199,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else if (handlePointerAliasing) {
       afmgr = null;
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
-      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, pFmgr, options);
+      TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
@@ -212,7 +208,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else {
       afmgr = null;
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      typeHandler = new CtoFormulaTypeHandler(pLogger, options, pMachineModel, pFmgr);
+      typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
       converter = new CtoFormulaConverter(options, fmgr, pMachineModel,
           pVariableClassification, logger, shutdownNotifier, typeHandler, direction);
 

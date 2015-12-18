@@ -563,7 +563,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
           .spacer()
           .put(totalRefinement);
 
-        formulaManager.printStatistics(out, result, reached);
+        formulaManager.printStatistics(out);
 
         w0.beginLevel().put(errorPathProcessing);
         w0.beginLevel().put(getFormulasForPathTime);

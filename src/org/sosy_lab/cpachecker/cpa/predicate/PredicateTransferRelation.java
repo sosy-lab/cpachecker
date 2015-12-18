@@ -385,7 +385,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
       }
 
       if (element instanceof ComputeAbstractionState && strengthenWithReusedAbstractions) {
-        element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element, otherElements);
+        element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element);
       }
 
       boolean errorFound = false;
@@ -432,8 +432,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
   private Multimap<Integer, BooleanFormula> abstractions = null; // lazy initialization
 
-  private PredicateAbstractState updateStateWithAbstractionFromFile(ComputeAbstractionState pPredicateState,
-      List<AbstractState> pOtherElements) throws CPATransferException, SolverException, InterruptedException {
+  private PredicateAbstractState updateStateWithAbstractionFromFile(ComputeAbstractionState pPredicateState) throws CPATransferException, SolverException, InterruptedException {
 
     if (abstractions == null) { // lazy initialization
       strengthenReuseReadTimer.start();

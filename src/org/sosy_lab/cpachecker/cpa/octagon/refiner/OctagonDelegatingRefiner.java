@@ -79,7 +79,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import com.google.common.collect.Multimap;
 
 /**
- * Refiner implementation that delegates to {@link OctagonInterpolationBasedRefiner},
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
  * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 @Options(prefix="cpa.octagon.refiner")
@@ -132,7 +132,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
     }
@@ -218,7 +218,6 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
    * @param errorPath the current error path
    * @returns true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
-   * @throws InvalidConfigurationException
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
@@ -262,7 +261,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
-    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
     // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;

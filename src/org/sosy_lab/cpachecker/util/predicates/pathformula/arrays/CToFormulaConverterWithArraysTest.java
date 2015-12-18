@@ -229,7 +229,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
     FormulaEncodingOptions opts = new FormulaEncodingOptions(
         Configuration.defaultConfiguration());
     CtoFormulaTypeHandlerWithArrays th = new CtoFormulaTypeHandlerWithArrays(
-        logger, opts, machineModel, mgrv);
+        logger, machineModel);
     expressionBuilder = new CBinaryExpressionBuilder(machineModel, logger);
 
     ctfBwd =

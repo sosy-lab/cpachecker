@@ -54,7 +54,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
+import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
@@ -64,13 +66,14 @@ import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -152,6 +155,10 @@ public class FormulaManagerView {
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
   private Theory encodeFloatAs = Theory.RATIONAL;
 
+  @Option(secure=true, description="Enable fallback to UFs if a solver does not "
+      + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")
+  private boolean useUFsForNonLinearArithmetic = true;
+
   @VisibleForTesting
   public FormulaManagerView(FormulaManager pFormulaManager, Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this, FormulaManagerView.class);
@@ -159,18 +166,17 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
-    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
-    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
-
     booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
+
+    final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
+    final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
   }
 
-  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'.
-   * @param config */
+  /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
   private BitvectorFormulaManager getRawBitvectorFormulaManager(Configuration config) throws InvalidConfigurationException, AssertionError {
     final BitvectorFormulaManager rawBitvectorFormulaManager;
     switch (encodeBitvectorAs) {
@@ -188,14 +194,14 @@ public class FormulaManagerView {
     case INTEGER:
       rawBitvectorFormulaManager = new ReplaceBitvectorWithNumeralAndFunctionTheory<>(wrappingHandler,
           manager.getBooleanFormulaManager(),
-          manager.getIntegerFormulaManager(),
+          getIntegerFormulaManager0(),
           manager.getFunctionFormulaManager(),
           new ReplaceBitvectorEncodingOptions(config));
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
       try {
-        rmgr = manager.getRationalFormulaManager();
+        rmgr = getRationalFormulaManager0();
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
             + "please choose another SMT solver "
@@ -236,13 +242,13 @@ public class FormulaManagerView {
       break;
     case INTEGER:
       rawFloatingPointFormulaManager = new ReplaceFloatingPointWithNumeralAndFunctionTheory<>(
-          wrappingHandler, manager.getIntegerFormulaManager(), manager.getFunctionFormulaManager(),
+          wrappingHandler, getIntegerFormulaManager0(), manager.getFunctionFormulaManager(),
           manager.getBooleanFormulaManager());
       break;
     case RATIONAL:
       NumeralFormulaManager<NumeralFormula, RationalFormula> rmgr;
       try {
-        rmgr = manager.getRationalFormulaManager();
+        rmgr = getRationalFormulaManager0();
       } catch (UnsupportedOperationException e) {
         throw new InvalidConfigurationException("The chosen SMT solver does not support the theory of rationals, "
             + "please choose another SMT solver "
@@ -262,8 +268,31 @@ public class FormulaManagerView {
     return rawFloatingPointFormulaManager;
   }
 
+  private NumeralFormulaManager<IntegerFormula, IntegerFormula> getIntegerFormulaManager0() {
+    NumeralFormulaManager<IntegerFormula, IntegerFormula> ifmgr = manager.getIntegerFormulaManager();
+    if (useUFsForNonLinearArithmetic) {
+      ifmgr = new NonLinearUFNumeralFormulaManager<>(
+          wrappingHandler, ifmgr, functionFormulaManager);
+    }
+    return ifmgr;
+  }
+
+  private NumeralFormulaManager<NumeralFormula, RationalFormula> getRationalFormulaManager0() {
+    NumeralFormulaManager<NumeralFormula, RationalFormula> rfmgr = manager.getRationalFormulaManager();
+    if (useUFsForNonLinearArithmetic) {
+      rfmgr = new NonLinearUFNumeralFormulaManager<>(
+          wrappingHandler, rfmgr, functionFormulaManager);
+    }
+    return rfmgr;
+  }
+
   FormulaWrappingHandler getFormulaWrappingHandler() {
     return wrappingHandler;
+  }
+
+  // DO NOT MAKE THIS METHOD PUBLIC!
+  FormulaManager getRawFormulaManager() {
+    return manager;
   }
 
   private <T1 extends Formula, T2 extends Formula> T1 wrap(FormulaType<T1> targetType, T2 toWrap) {
@@ -324,9 +353,6 @@ public class FormulaManagerView {
 
   /**
    * Make a variable of the given type.
-   * @param formulaType
-   * @param value
-   * @return
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeNumber(FormulaType<T> formulaType, long value) {
@@ -610,10 +636,6 @@ public class FormulaManagerView {
 
   /**
    * Returns a term representing the selection of pFormula[pMsb:pLsb].
-   * @param pFormula
-   * @param pMsb
-   * @param pLsb
-   * @return
    */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb, boolean signed) {
@@ -764,14 +786,14 @@ public class FormulaManagerView {
 
   public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
     if (integerFormulaManager == null) {
-      integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getIntegerFormulaManager());
+      integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getIntegerFormulaManager0());
     }
     return integerFormulaManager;
   }
 
   public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, manager.getRationalFormulaManager());
+      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getRationalFormulaManager0());
     }
     return rationalFormulaManager;
   }
@@ -835,7 +857,7 @@ public class FormulaManagerView {
 
   /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see {@link #instantiate(BooleanFormula, SSAMap)}
+   *  @see{@link #instantiate(F extends Formula, SSAMap)}
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
@@ -908,8 +930,7 @@ public class FormulaManagerView {
 
   /**
    * Only use inside this package and for solver-specific classes
-   * when creating a {@link Model}.
-   * Do not use in client code!
+   * when creating a {@link Model}. Do not use in client code!
    *
    * @throws IllegalArgumentException thrown if the given name is invalid
    */
@@ -928,7 +949,7 @@ public class FormulaManagerView {
    * Uninstantiate a given formula.
    * (remove the SSA indices from its free variables and UFs)
    *
-   * @param pF  Input formula
+   * @param f  Input formula
    * @return    Uninstantiated formula
    */
   public <F extends Formula> F uninstantiate(F f) {
@@ -1085,12 +1106,17 @@ public class FormulaManagerView {
    */
   public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities) {
     return myExtractAtoms(f, splitArithEqualities,
-        new Predicate<BooleanFormula>() {
+        new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
-          public boolean apply(BooleanFormula pInput) {
-            return unsafeManager.isAtom(pInput);
+          public Boolean visitDefault() {
+            return false;
           }
-        });
+          @Override
+          public Boolean visitAtom(BooleanFormula atom) {
+            return true;
+          }
+        }
+    );
   }
 
   /**
@@ -1099,28 +1125,44 @@ public class FormulaManagerView {
    */
   public Collection<BooleanFormula> extractDisjuncts(BooleanFormula f) {
     return myExtractAtoms(f, false /*splitArithEqualities not supported for disjuncts */,
-        new Predicate<BooleanFormula>() {
+        new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
-          public boolean apply(BooleanFormula pInput) {
-            // treat as atomic if formula is neither "not" nor "and"
-            return !(booleanFormulaManager.isNot(pInput) || booleanFormulaManager.isAnd(pInput));
+          public Boolean visitDefault() {
+            return true;
           }
-        });
+          @Override
+          public Boolean visitNot(BooleanFormula f) {
+            return false;
+          }
+          @Override
+          public Boolean visitAnd(List<BooleanFormula> f) {
+            return false;
+          }
+        }
+    );
   }
 
   public Collection<BooleanFormula> extractLiterals(BooleanFormula f) {
+    f = applyTactic(f, Tactic.NNF);
 
     return myExtractAtoms(f, false /*splitArithEqualities not supported for literals */,
-        new Predicate<BooleanFormula>() {
+        new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
-          public boolean apply(BooleanFormula pInput) {
-            // TODO: description of UnsafeManager.isLiteral said "atom or negation of atom"
-            // The implementation only checked for "atom or negation".
-            // This method currently does the latter.
-            return unsafeManager.isAtom(pInput)
-                || booleanFormulaManager.isNot(pInput);
+          public Boolean visitDefault() {
+            return false;
           }
-        });
+
+          @Override
+          public Boolean visitAtom(BooleanFormula atom) {
+            return true;
+          }
+
+          @Override
+          public Boolean visitNot(BooleanFormula f) {
+            return true;
+          }
+        }
+    );
   }
 
   /**
@@ -1133,7 +1175,7 @@ public class FormulaManagerView {
   }
 
   private Collection<BooleanFormula> myExtractAtoms(BooleanFormula pFormula, boolean splitArithEqualities,
-      Predicate<BooleanFormula> isLowestLevel) {
+      BooleanFormulaVisitor<Boolean> isLowestLevel) {
     Set<BooleanFormula> seen = new HashSet<>();
     List<BooleanFormula> result = new ArrayList<>();
 
@@ -1150,7 +1192,7 @@ public class FormulaManagerView {
         continue;
       }
 
-      if (isLowestLevel.apply(f)) {
+      if (isLowestLevel.visit(f)) {
         if (splitArithEqualities && myIsPurelyArithmetic(f)) {
           List<BooleanFormula> split = unsafeManager.splitNumeralEqualityIfPossible(f);
           // some solvers might produce non-atomic formulas for split,
@@ -1328,25 +1370,33 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    if (unsafeManager.isAtom(t)) {
-      // term is atom
-      return !containsIfThenElse(t);
+    t = applyTactic(t, Tactic.NNF);
+    return (new DefaultBooleanFormulaVisitor<Boolean>(this) {
 
-    } else if (booleanFormulaManager.isNot(t)) {
-      t = (BooleanFormula)unsafeManager.getArg(t, 0);
-      return (unsafeManager.isUF(t) || unsafeManager.isAtom(t));
-
-    } else if (booleanFormulaManager.isAnd(t)) {
-      for (int i = 0; i < unsafeManager.getArity(t); ++i) {
-        if (!isPurelyConjunctive((BooleanFormula)unsafeManager.getArg(t, i))) {
-          return false;
-        }
+      @Override public Boolean visitDefault() {
+        return false;
       }
-      return true;
-
-    } else {
-      return false;
-    }
+      @Override public Boolean visitTrue() {
+        return true;
+      }
+      @Override public Boolean visitFalse() {
+        return true;
+      }
+      @Override public Boolean visitAtom(BooleanFormula atom) {
+        return !containsIfThenElse(atom);
+      }
+      @Override public Boolean visitNot(BooleanFormula operand) {
+        return visit(operand);
+      }
+      @Override public Boolean visitAnd(List<BooleanFormula> operands) {
+        for (BooleanFormula operand : operands) {
+          if (!visit(operand)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }).visit(t);
   }
 
   private boolean containsIfThenElse(Formula f) {
@@ -1527,12 +1577,6 @@ public class FormulaManagerView {
    *
    * A variable is considered 'dead' if its SSA index
    *  is different from the index in the SSA map.
-   *
-   * @param pF
-   * @param pSsa
-   * @return
-   * @throws SolverException
-   * @throws InterruptedException
    */
   public BooleanFormula eliminateDeadVariables(
       final BooleanFormula pF,

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 
 import com.google.common.base.Function;
@@ -95,7 +96,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getInnerEdges(), pathToFunctionCalls)));
+          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getFullPath(), pathToFunctionCalls)));
     }
 
     final CounterexampleInfo counterexample;
@@ -141,10 +142,9 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
 
   /**
    * Perform refinement.
-   * @param pReached
-   * @param pPath
+   * @param pReached the reached set
+   * @param pPath the potential error path
    * @return Information about the counterexample.
-   * @throws InterruptedException
    */
   protected abstract CounterexampleInfo performRefinement(ARGReachedSet pReached, ARGPath pPath)
             throws CPAException, InterruptedException;
@@ -157,13 +157,13 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    *
    * @param pLastElement Last ARGState of the given reached set
    * @param pReached ReachedSet
+   * @throws InterruptedException may be thrown in subclasses
+   * @throws CPATransferException may be thrown in subclasses
    * @see org.sosy_lab.cpachecker.cpa.arg.ARGUtils
-   * @return
-   * @throws InterruptedException
    */
   @ForOverride
   @Nullable
-  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
+  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
   }
 }

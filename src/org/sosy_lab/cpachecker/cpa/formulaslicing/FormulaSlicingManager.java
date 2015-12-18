@@ -9,7 +9,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -20,15 +19,15 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -39,7 +38,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
-  private final LogManager logger;
   private final CFA cfa;
   private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
@@ -52,7 +50,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   public FormulaSlicingManager(
       Configuration config,
       PathFormulaManager pPfmgr,
-      FormulaManagerView pFmgr, LogManager pLogger,
+      FormulaManagerView pFmgr,
       CFA pCfa,
       LoopTransitionFinder pLoopTransitionFinder,
       InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver,
@@ -61,7 +59,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     config.inject(this);
     fmgr = pFmgr;
     pfmgr = pPfmgr;
-    logger = pLogger;
     cfa = pCfa;
     loopTransitionFinder = pLoopTransitionFinder;
     inductiveWeakeningManager = pInductiveWeakeningManager;

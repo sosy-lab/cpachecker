@@ -36,7 +36,7 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
 
   INSTANCE;
 
-  public static Function<ExpressionTree, String> TO_CODE = new Function<ExpressionTree, String>() {
+  public static final Function<ExpressionTree, String> TO_CODE = new Function<ExpressionTree, String>() {
 
     @Override
     public String apply(ExpressionTree pArg0) {

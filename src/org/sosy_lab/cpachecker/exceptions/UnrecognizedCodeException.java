@@ -28,8 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -133,8 +133,8 @@ public class UnrecognizedCodeException extends CPATransferException {
         String rawCode = edge != null ? edge.getRawStatement() : "";
 
         // remove all whitespaces and trailing semicolons for comparison
-        String codeWithoutWhitespace    = CharMatcher.WHITESPACE.removeFrom(code);
-        String rawCodeWithoutWhitespace = CharMatcher.WHITESPACE.removeFrom(rawCode);
+        String codeWithoutWhitespace = CharMatcher.whitespace().removeFrom(code);
+        String rawCodeWithoutWhitespace = CharMatcher.whitespace().removeFrom(rawCode);
 
         codeWithoutWhitespace    = SEMICOLON.trimFrom(codeWithoutWhitespace);
         rawCodeWithoutWhitespace = SEMICOLON.trimFrom(rawCodeWithoutWhitespace);

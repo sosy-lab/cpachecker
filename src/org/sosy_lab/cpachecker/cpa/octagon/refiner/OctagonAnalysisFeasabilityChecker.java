@@ -77,16 +77,13 @@ public class OctagonAnalysisFeasabilityChecker {
   /**
    * This method checks if the given path is feasible, when not tracking the given set of variables.
    *
-   * @param path the path to check
    * @return true, if the path is feasible, else false
-   * @throws CPAException
-   * @throws InterruptedException
    */
   public boolean isFeasible() {
       return checkedPath.size() == foundPath.size();
   }
 
-  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement(VariableTrackingPrecision pOctPrecision) {
+  public Multimap<CFANode, MemoryLocation> getPrecisionIncrement() {
     if (isFeasible()) {
       return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {
@@ -114,12 +111,9 @@ public class OctagonAnalysisFeasabilityChecker {
    * This method obtains the prefix of the path, that is infeasible by itself. If the path is feasible, the whole path
    * is returned
    *
-   * @param path the path to check
    * @param pPrecision the precision to use
    * @param pInitial the initial state
    * @return the prefix of the path that is feasible by itself
-   * @throws CPAException
-   * @throws InterruptedException
    */
   private ARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final AbstractState pInitial)
       throws CPAException, InterruptedException {

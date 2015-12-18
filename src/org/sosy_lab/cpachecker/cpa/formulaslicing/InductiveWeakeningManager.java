@@ -20,15 +20,15 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager.Tactic;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
@@ -220,8 +220,7 @@ public class InductiveWeakeningManager {
   private Set<BooleanFormula> syntacticWeakening(
       Map<BooleanFormula, BooleanFormula> selectionInfo,
       Collection<BooleanFormula> selectionVars,
-      PathFormula transition
-  ) throws SolverException, InterruptedException {
+      PathFormula transition) {
     Set<BooleanFormula> out = new HashSet<>();
     for (BooleanFormula selector : selectionVars) {
       BooleanFormula atom = selectionInfo.get(selector);
@@ -429,7 +428,7 @@ public class InductiveWeakeningManager {
   }
 
   private static class SlicingPreprocessor
-      extends BooleanFormulaTransformationVisitor {
+      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     private final SSAMap finalSSA;
     private final FormulaManagerView fmgr;
 
@@ -451,7 +450,7 @@ public class InductiveWeakeningManager {
      * Replace all atoms containing intermediate variables with "true".
      */
     @Override
-    protected BooleanFormula visitAtom(BooleanFormula atom) {
+    public BooleanFormula visitAtom(BooleanFormula atom) {
 
       if (!fmgr.getDeadFunctionNames(atom, finalSSA).isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
@@ -466,7 +465,7 @@ public class InductiveWeakeningManager {
    * (and (or p_1 a_1) ...)
    */
   private static class ConjunctionAnnotator
-      extends BooleanFormulaTransformationVisitor {
+      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     private final UniqueIdGenerator controllerIdGenerator =
         new UniqueIdGenerator();
     private final BooleanFormulaManager bfmgr;
@@ -493,8 +492,8 @@ public class InductiveWeakeningManager {
     }
 
     @Override
-    protected BooleanFormula visitAnd(BooleanFormula... pOperands) {
-      List<BooleanFormula> args = new ArrayList<>(pOperands.length);
+    public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
+      List<BooleanFormula> args = new ArrayList<>(pOperands.size());
       for (BooleanFormula arg : pOperands) {
         BooleanFormula controller = makeFreshSelector(arg);
         args.add(bfmgr.or(controller, arg));

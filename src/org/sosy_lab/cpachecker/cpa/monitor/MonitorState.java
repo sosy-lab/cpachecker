@@ -28,10 +28,10 @@ import java.io.NotSerializableException;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -46,6 +46,10 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   private static final long serialVersionUID = 0xDEADBEEF;
 
+  /**
+   * javadoc to remove unused parameter warning
+   * @param out the output stream
+   */
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();
   }

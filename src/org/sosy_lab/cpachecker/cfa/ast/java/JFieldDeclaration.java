@@ -120,8 +120,6 @@ public class JFieldDeclaration extends JVariableDeclaration {
   /**
    * Method for setting a initializer.
    * DO ONLY CALL IT WHILE CREATING THE CFA.
-   *
-   * @param initializer
    */
   public void updateInitializer(AbstractInitializer initializer) {
     addInitializer(initializer);

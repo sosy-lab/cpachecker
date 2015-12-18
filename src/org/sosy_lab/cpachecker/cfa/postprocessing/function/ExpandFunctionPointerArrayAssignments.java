@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.math.BigInteger;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 import com.google.common.collect.ImmutableList;
 
@@ -71,11 +69,11 @@ public class ExpandFunctionPointerArrayAssignments {
 
   private final LogManager logger;
 
-  public ExpandFunctionPointerArrayAssignments(LogManager pLogger, Configuration config) {
+  public ExpandFunctionPointerArrayAssignments(LogManager pLogger) {
     logger = pLogger;
   }
 
-  public void replaceFunctionPointerArrayAssignments(final MutableCFA cfa) throws CParserException {
+  public void replaceFunctionPointerArrayAssignments(final MutableCFA cfa) {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 

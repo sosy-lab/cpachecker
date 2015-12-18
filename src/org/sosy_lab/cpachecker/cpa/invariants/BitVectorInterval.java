@@ -116,7 +116,7 @@ public class BitVectorInterval implements BitVectorType {
 
   /**
    * Intersects this interval with the given interval. May only be called
-   * if {@link #intersectsWith(pOther)} returns true.
+   * if {@link #intersectsWith(BitVectorInterval)} returns true.
    *
    * @param pOther the interval to intersect this interval with.
    * @return the intersection of this interval with the given interval.
@@ -437,7 +437,7 @@ public class BitVectorInterval implements BitVectorType {
 
   /**
    * Checks if this interval contains the given interval.
-   * @param other the interval that this interval is checked for containing.
+   * @param pOther the interval that this interval is checked for containing.
    * @return <code>true</code> if this interval contains the given
    * interval, <code>false</code> otherwise.
    */

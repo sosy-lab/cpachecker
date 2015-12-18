@@ -211,7 +211,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
    * by the Transferrelation)
    * @param oldState the ApronState which has the preferred size, is the parameter,
    *                 so we can check if the variables are matching if not an Exception is thrown
-   * @return
+   * @return a pair of the shrinked caller and the shrinked stated
    */
   public Pair<ApronState, ApronState> shrinkToFittingSize(ApronState oldState) {
     int maxEqualIntIndex = 0;

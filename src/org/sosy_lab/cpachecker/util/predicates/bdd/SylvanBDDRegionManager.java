@@ -40,11 +40,8 @@ import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import jsylvan.JSylvan;
-
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -52,18 +49,22 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
+
+import jsylvan.JSylvan;
 
 /**
  * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
@@ -463,17 +464,17 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    protected Long visitTrue() {
+    public Long visitTrue() {
       return JSylvan.getTrue();
     }
 
     @Override
-    protected Long visitFalse() {
+    public Long visitFalse() {
       return JSylvan.getFalse();
     }
 
     @Override
-    protected Long visitAtom(BooleanFormula pAtom) {
+    public Long visitAtom(BooleanFormula pAtom) {
       return unwrap(atomToRegion.apply(pAtom));
     }
 
@@ -497,12 +498,12 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    protected Long visitNot(BooleanFormula pOperand) {
+    public Long visitNot(BooleanFormula pOperand) {
       return JSylvan.makeNot(convert(pOperand));
     }
 
     @Override
-    protected Long visitAnd(BooleanFormula... pOperands) {
+    public Long visitAnd(List<BooleanFormula> pOperands) {
       long result = JSylvan.getTrue();
 
       for (BooleanFormula f : pOperands) {
@@ -515,7 +516,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    protected Long visitOr(BooleanFormula... pOperands) {
+    public Long visitOr(List<BooleanFormula> pOperands) {
       long result = JSylvan.getFalse();
 
       for (BooleanFormula f : pOperands) {
@@ -528,22 +529,30 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    protected Long visitEquivalence(BooleanFormula pOperand1,
-        BooleanFormula pOperand2) {
+    public Long visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return JSylvan.makeEquals(convert(pOperand1), convert(pOperand2));
     }
 
     @Override
-    protected Long visitImplication(BooleanFormula pOperand1,
-        BooleanFormula pOperand2) {
+    public Long visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return JSylvan.makeImplies(convert(pOperand1), convert(pOperand2));
     }
 
     @Override
-    protected Long visitIfThenElse(BooleanFormula pCondition,
-        BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+    public Long visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       return JSylvan.makeIte(convert(pCondition), convert(pThenFormula),
           convert(pElseFormula));
+    }
+
+    @Override
+    public Long visitForallQuantifier(List<? extends Formula> pVariables, BooleanFormula pBody) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Long visitExistsQuantifier(List<? extends Formula> pVariables, BooleanFormula pBody) {
+      throw new UnsupportedOperationException();
     }
   }
 }

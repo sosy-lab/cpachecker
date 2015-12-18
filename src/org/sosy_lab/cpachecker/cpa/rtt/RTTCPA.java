@@ -25,9 +25,7 @@ package org.sosy_lab.cpachecker.cpa.rtt;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
@@ -67,7 +65,7 @@ public class RTTCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final LogManager logger;
 
 
-  public RTTCPA(Configuration pConfig, LogManager logger, CFA cfa) {
+  public RTTCPA(LogManager logger) {
     this.logger = logger;
 
     mergeOperator = new MergeSepOperator();

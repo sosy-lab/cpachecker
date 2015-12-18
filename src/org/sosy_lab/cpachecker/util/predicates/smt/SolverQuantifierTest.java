@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static com.google.common.truth.TruthJUnit.assume;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

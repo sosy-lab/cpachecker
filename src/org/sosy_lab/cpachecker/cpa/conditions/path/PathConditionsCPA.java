@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -90,11 +89,11 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysis, Adjustabl
     return AutomaticCPAFactory.forType(PathConditionsCPA.class);
   }
 
-  private PathConditionsCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private PathConditionsCPA(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
 
-    Class<?>[] argumentTypes = { Configuration.class, LogManager.class };
-    Object[] argumentValues = { config, logger };
+    Class<?>[] argumentTypes = { Configuration.class };
+    Object[] argumentValues = { config };
     condition = Classes.createInstance(PathCondition.class, conditionClass, argumentTypes, argumentValues);
   }
 

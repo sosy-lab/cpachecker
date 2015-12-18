@@ -6,7 +6,7 @@
      smgcpa with ValueAnalysisCPA without any kind of abstraction.
       -->
 
-<benchmark tool="cpachecker" timelimit="60" hardtimelimit="90" memlimit="3000" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="2">
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>

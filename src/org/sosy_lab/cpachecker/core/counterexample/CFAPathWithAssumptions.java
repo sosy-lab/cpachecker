@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.MultiConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -177,7 +177,7 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
 
     List<CFAEdgeWithAssumptions> result = new ArrayList<>(statePath.size());
 
-    for (ConcerteStatePathNode node : statePath) {
+    for (ConcreteStatePathNode node : statePath) {
       if (node instanceof SingleConcreteState) {
 
         SingleConcreteState singleState = (SingleConcreteState) node;

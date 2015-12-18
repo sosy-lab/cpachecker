@@ -28,8 +28,8 @@ import static com.google.common.truth.Truth.assertThat;
 import java.util.Set;
 
 import org.junit.Test;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinkRule;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
@@ -103,7 +103,7 @@ public class LinkRuleTest0 extends AbstractRuleTest0 {
 
 
   @Test
-  public void testConclusion2() throws SolverException, InterruptedException {
+  public void testConclusion2() {
     //  (forall ((x Int))
     //      (and (not (= (select |copy::b@1| x) 0))
     //           (>= x (+ (- 3) al@1))

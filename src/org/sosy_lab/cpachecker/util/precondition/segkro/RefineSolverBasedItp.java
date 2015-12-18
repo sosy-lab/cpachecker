@@ -102,8 +102,7 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
   @VisibleForTesting
   BooleanFormula interpolate(
       final BooleanFormula pPreconditionA,
-      final BooleanFormula pPreconditionB,
-      final PathPosition pItpPosition)
+      final BooleanFormula pPreconditionB)
           throws SolverException, InterruptedException {
 
     List<BooleanFormula> p = enp.extractNewPreds(pPreconditionA);
@@ -276,9 +275,9 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
     // "Enrich" the preconditions with more general predicates
     // TODO: Is this part completely useless when using QE?
     pcViolation = alterPf(pcViolation,
-        interpolate(pcViolation.getFormula(), pcValid.getFormula(), pTraceFromViolation));
+        interpolate(pcViolation.getFormula(), pcValid.getFormula()));
     pcValid = alterPf(pcValid,
-        interpolate(pcValid.getFormula(), pcViolation.getFormula(), pTraceFromValidTermination));
+        interpolate(pcValid.getFormula(), pcViolation.getFormula()));
 
     // Now we have an initial set of useful predicates; add them to the corresponding list.
     Builder<BooleanFormula> globalPreds = ImmutableList.builder();

@@ -242,6 +242,9 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       if (pResultSign == SIGN.ZERO) {
         return Optional.of(new IdentifierValuePair(pIdExp, SIGN.PLUSMINUS));
       }
+      break;
+    default:
+      // nothing to do here
     }
     return Optional.absent();
   }

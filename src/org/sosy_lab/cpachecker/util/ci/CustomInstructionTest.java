@@ -71,7 +71,7 @@ public class CustomInstructionTest {
 
   @Before
   public void init() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException, AppliedCustomInstructionParsingFailedException, IOException,
+      IllegalArgumentException, InvocationTargetException, IOException,
       ParserException, InterruptedException {
     String testProgram = ""
         + "void main(int a){"
@@ -135,8 +135,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testIsEndState() throws CPAException, InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException {
+  public void testIsEndState() throws CPAException, IllegalArgumentException {
     ARGState noLocation = new ARGState(new CallstackState(null, "main", startNode), null);
 
     // test applied custom instruction
@@ -157,8 +156,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testGetAppliedCustomInstruction() throws InstantiationException, IllegalAccessException,
-      IllegalArgumentException, InvocationTargetException, CPAException {
+  public void testGetAppliedCustomInstruction() throws IllegalArgumentException, CPAException {
     Truth.assertThat(cia.getAppliedCustomInstructionFor(start)).isEqualTo(cis.get(startNode));
     // test if input parameter not a start state
     try {
@@ -271,7 +269,8 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, IOException, ParserException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testInspectAppliedCustomInstruction() throws AppliedCustomInstructionParsingFailedException,
+    InterruptedException, IOException, ParserException, SecurityException, IllegalArgumentException {
     String testProgram = ""
         + "extern int f2(int);"
         + "int f(int x) {"
@@ -382,7 +381,7 @@ public class CustomInstructionTest {
   }
 
   @Test
-  public void testGetInputVariables() throws IOException, ParserException, InterruptedException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testGetInputVariables() throws SecurityException, IllegalArgumentException {
     Truth.assertThat(aci.getInputVariables()).isEmpty();
 
     List<String> inputVariables = new ArrayList<>(1);

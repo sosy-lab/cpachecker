@@ -40,17 +40,19 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -76,6 +78,12 @@ public class ARGPath implements Appender {
 
   private final ImmutableList<ARGState> states;
   private final List<CFAEdge> edges; // immutable, but may contain null
+
+  @SuppressFBWarnings(
+      value="JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
+      justification="This variable is only used for caching the full path for later use"
+          + " without having to compute it again.")
+  private List<CFAEdge> fullPath = null;
 
   ARGPath(List<ARGState> pStates) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
@@ -107,7 +115,7 @@ public class ARGPath implements Appender {
   /**
    * This method returns the transition, as pair of state and edge, at the given offset.
    *
-   * @param pOffset
+   * @param pOffset the offset of the state / edge pair
    * @return the pair of state and edge at the given offset
    * @throws IndexOutOfBoundsException If the offset is beyond the last edge (greater or equal than {@code getInnerEdges().size()}).
    */
@@ -144,6 +152,10 @@ public class ARGPath implements Appender {
    * is created. This is done by filling up the wholes in the path.
    */
   public List<CFAEdge> getFullPath() {
+    if (fullPath != null) {
+      return fullPath;
+    }
+
     List<CFAEdge> fullPath = new ArrayList<>();
 
     PathIterator it = pathIterator();
@@ -178,6 +190,7 @@ public class ARGPath implements Appender {
       curNode = nextNode;
     }
 
+    this.fullPath = fullPath;
     return fullPath;
   }
 
@@ -298,12 +311,12 @@ public class ARGPath implements Appender {
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on('\n').skipNulls().appendTo(appendable, getInnerEdges());
+    Joiner.on('\n').skipNulls().appendTo(appendable, getFullPath());
   }
 
   @Override
   public String toString() {
-    return Joiner.on('\n').skipNulls().join(getInnerEdges());
+    return Joiner.on('\n').skipNulls().join(getFullPath());
   }
 
   /**
@@ -312,22 +325,25 @@ public class ARGPath implements Appender {
    * @param pathWithAssignments A list of {@link CFAEdgeWithAssumptions} with additional information, may be empty.
    */
   public void toJSON(Appendable sb, List<CFAEdgeWithAssumptions> pathWithAssignments) throws IOException {
-    List<Map<?, ?>> path = new ArrayList<>(getInnerEdges().size());
+    int pathLength = getFullPath().size();
+    List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
-    if (getInnerEdges().size() != pathWithAssignments.size()) {
+    if (pathLength != pathWithAssignments.size()) {
       // TODO: Probably pathWithAssignments should always be empty or have same size
       // add assert?
       pathWithAssignments = ImmutableList.of();
     }
 
-    PathIterator iterator = pathIterator();
+    PathIterator iterator = fullPathIterator();
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
       CFAEdge edge = iterator.getOutgoingEdge();
       if (edge == null) {
         continue; // in this case we do not need the edge
       }
-      elem.put("argelem", iterator.getAbstractState().getStateId());
+      if (iterator.isPositionWithState()) {
+        elem.put("argelem", iterator.getAbstractState().getStateId());
+      }
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
@@ -352,7 +368,7 @@ public class ARGPath implements Appender {
    * A class for creating {@link ARGPath}s by iteratively adding path elements
    * one after another. ARGPaths can be built either from the beginning to the
    * endpoint or in reverse.
-   * The builder can still be used after calling {@link #build(ARGState, CFAEdge)}.
+   * The builder can still be used after calling {@link #build(ARGState)}.
    * Please note that the state and edge given to the build method will not be
    * added permanently to the builder. If they should be in the builder afterwards
    * you need to use  {@link #add(ARGState, CFAEdge)}.

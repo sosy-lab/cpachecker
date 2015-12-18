@@ -29,9 +29,11 @@ import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorType;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -124,12 +126,12 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   /**
    * Compute a compound state representing possible results of adding the
    * given summand compound states up. This method provides a much weaker
-   * implementation of compound state addition than
-   * {@link CompoundInterval#add(CompoundInterval)} and will thus usually return a
-   * much larger result range.
+   * implementation of compound state addition than using the methods from
+   * {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval}
+   * and will thus usually return a much larger result range.
    *
-   * @param a the first summand.
-   * @param b the second summand.
+   * @param pA the first summand.
+   * @param pB the second summand.
    * @return a state representing possible results of adding the given summand
    * compound states up.
    */
@@ -146,9 +148,9 @@ public class FormulaAbstractionVisitor extends DefaultParameterizedNumeralFormul
   /**
    * Compute a compound state representing possible results of multiplying the
    * given factor compound states. This method provides a much weaker
-   * implementation of compound state addition than
-   * {@link CompoundInterval#multiply(CompoundInterval)} and will thus usually return
-   * a much larger result range.
+   * implementation of compound state addition than using the methods from
+   * {@link CompoundBitVectorInterval} or {@link CompoundMathematicalInterval}
+   * and will thus usually return a much larger result range.
    *
    * @param a the first factor.
    * @param b the second factor.

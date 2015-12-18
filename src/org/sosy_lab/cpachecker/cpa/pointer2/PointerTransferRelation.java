@@ -113,10 +113,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     case CallToReturnEdge:
       break;
     case DeclarationEdge:
-      resultState = handleDeclarationEdge(pState, pPrecision, (CDeclarationEdge) pCfaEdge);
+      resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
       break;
     case FunctionCallEdge:
-      resultState = handleFunctionCallEdge(pState, pPrecision, ((CFunctionCallEdge) pCfaEdge));
+      resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
       break;
     case FunctionReturnEdge:
       break;
@@ -126,10 +126,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       }
       break;
     case ReturnStatementEdge:
-      resultState = handleReturnStatementEdge(pState, pPrecision, (CReturnStatementEdge) pCfaEdge);
+      resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
       break;
     case StatementEdge:
-      resultState = handleStatementEdge(pState, pPrecision, (CStatementEdge) pCfaEdge);
+      resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
       break;
     default:
       throw new UnrecognizedCCodeException("Unrecognized CFA edge.", pCfaEdge);
@@ -137,8 +137,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return resultState;
   }
 
-  private PointerState handleReturnStatementEdge(PointerState pState, Precision pPrecision,
-      CReturnStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
+  private PointerState handleReturnStatementEdge(PointerState pState, CReturnStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
     if (!pCfaEdge.getExpression().isPresent()) {
       return pState;
     }
@@ -147,13 +146,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       return pState;
     }
     return handleAssignment(pState,
-        pPrecision,
         MemoryLocation.valueOf(returnVariable.get().getQualifiedName()),
         pCfaEdge.getExpression().get());
   }
 
-  private PointerState handleFunctionCallEdge(PointerState pState, Precision pPrecision,
-      CFunctionCallEdge pCFunctionCallEdge) throws UnrecognizedCCodeException {
+  private PointerState handleFunctionCallEdge(PointerState pState, CFunctionCallEdge pCFunctionCallEdge) throws UnrecognizedCCodeException {
     PointerState newState = pState;
     List<CParameterDeclaration> formalParams = pCFunctionCallEdge.getSuccessor().getFunctionParameters();
     List<CExpression> actualParams = pCFunctionCallEdge.getArguments();
@@ -166,13 +163,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration formalParam = param.getFirst();
       MemoryLocation location = toLocation(formalParam);
-      newState = handleAssignment(pState, pPrecision, location, asLocations(actualParam, pState, 1));
+      newState = handleAssignment(pState, location, asLocations(actualParam, pState, 1));
     }
 
     // Handle remaining formal parameters where no actual argument was provided
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
       MemoryLocation location = toLocation(formalParam);
-      newState = handleAssignment(pState, pPrecision, location, LocationSetBot.INSTANCE);
+      newState = handleAssignment(pState, location, LocationSetBot.INSTANCE);
     }
 
     return newState;
@@ -186,21 +183,20 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return MemoryLocation.valueOf(pDeclaration.getQualifiedName());
   }
 
-  private PointerState handleStatementEdge(PointerState pState, Precision pPrecision, CStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
+  private PointerState handleStatementEdge(PointerState pState, CStatementEdge pCfaEdge) throws UnrecognizedCCodeException {
     if (pCfaEdge.getStatement() instanceof CAssignment) {
       CAssignment assignment = (CAssignment) pCfaEdge.getStatement();
-      return handleAssignment(pState, pPrecision, assignment.getLeftHandSide(), assignment.getRightHandSide());
+      return handleAssignment(pState, assignment.getLeftHandSide(), assignment.getRightHandSide());
     }
     return pState;
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, CExpression pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
+  private PointerState handleAssignment(PointerState pState, CExpression pLeftHandSide, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
     LocationSet locations = asLocations(pLeftHandSide, pState, 0);
-    return handleAssignment(pState, pPrecision, locations, pRightHandSide);
+    return handleAssignment(pState, locations, pRightHandSide);
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, LocationSet pLocationSet,
-      CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
+  private PointerState handleAssignment(PointerState pState, LocationSet pLocationSet, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
     final Iterable<MemoryLocation> locations;
     if (pLocationSet.isTop()) {
       locations = pState.getKnownLocations();
@@ -211,21 +207,20 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     }
     PointerState result = pState;
     for (MemoryLocation location : locations) {
-      result = handleAssignment(result, pPrecision, location, pRightHandSide);
+      result = handleAssignment(result, location, pRightHandSide);
     }
     return result;
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, MemoryLocation pLhsLocation,
-      CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
+  private PointerState handleAssignment(PointerState pState, MemoryLocation pLhsLocation, CRightHandSide pRightHandSide) throws UnrecognizedCCodeException {
     return pState.addPointsToInformation(pLhsLocation, asLocations(pRightHandSide, pState, 1));
   }
 
-  private PointerState handleAssignment(PointerState pState, Precision pPrecision, MemoryLocation pLeftHandSide, LocationSet pRightHandSide) {
+  private PointerState handleAssignment(PointerState pState, MemoryLocation pLeftHandSide, LocationSet pRightHandSide) {
     return pState.addPointsToInformation(pLeftHandSide, pRightHandSide);
   }
 
-  private PointerState handleDeclarationEdge(final PointerState pState, Precision pPrecision, final CDeclarationEdge pCfaEdge) throws UnrecognizedCCodeException {
+  private PointerState handleDeclarationEdge(final PointerState pState, final CDeclarationEdge pCfaEdge) throws UnrecognizedCCodeException {
     if (!(pCfaEdge.getDeclaration() instanceof CVariableDeclaration)) {
       return pState;
     }
@@ -252,7 +247,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       });
 
       MemoryLocation location = toLocation(declaration);
-      return handleAssignment(pState, pPrecision, location, rhs);
+      return handleAssignment(pState, location, rhs);
 
     }
     return pState;

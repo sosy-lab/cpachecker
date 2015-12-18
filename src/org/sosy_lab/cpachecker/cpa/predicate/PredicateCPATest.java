@@ -96,7 +96,7 @@ public class PredicateCPATest {
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
       factory.set(TestDataTools.makeCFA("void main() { }", config), CFA.class);
-      factory.set(new ReachedSetFactory(config, logger), ReachedSetFactory.class);
+      factory.set(new ReachedSetFactory(config), ReachedSetFactory.class);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
       if (cpa instanceof AutoCloseable) {

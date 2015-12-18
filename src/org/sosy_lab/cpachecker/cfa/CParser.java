@@ -81,7 +81,6 @@ public interface CParser extends Parser {
    * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
    * @return The CFA.
    * @throws IOException If file cannot be read.
-   * @throws InterruptedException
    * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
   ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException, InterruptedException;

@@ -1542,7 +1542,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       private ValueLiteralVisitor(Address pAddress, ValueLiterals pValueLiterals,
-          CExpression pSubExp, Set<Pair<CType, Address>> pVisited, ConcreteState pConcreteState) {
+          CExpression pSubExp, Set<Pair<CType, Address>> pVisited) {
         address = pAddress;
         valueLiterals = pValueLiterals;
         visited = pVisited;
@@ -1601,7 +1601,7 @@ public class AssumptionToEdgeAllocator {
         for (CCompositeType.CCompositeTypeMemberDeclaration memberType : pCompType
             .getMembers()) {
 
-          handleMemberField(memberType, fieldAddress, pCompType);
+          handleMemberField(memberType, fieldAddress);
           int offsetToNextField = machineModel.getSizeof(memberType.getType());
 
           if (fieldAddress.isConcrete()) {
@@ -1612,8 +1612,7 @@ public class AssumptionToEdgeAllocator {
         }
       }
 
-      private void handleMemberField(CCompositeTypeMemberDeclaration pType, Address fieldAddress,
-          CCompositeType structType) {
+      private void handleMemberField(CCompositeTypeMemberDeclaration pType, Address fieldAddress) {
         CType expectedType = pType.getType().getCanonicalType();
 
         assert isStructOrUnionType(subExpression.getExpressionType().getCanonicalType());
@@ -1677,7 +1676,7 @@ public class AssumptionToEdgeAllocator {
 
         if (valueAddress != null) {
           ValueLiteralVisitor v =
-              new ValueLiteralVisitor(valueAddress, valueLiterals, fieldReference, visited, concreteState);
+              new ValueLiteralVisitor(valueAddress, valueLiterals, fieldReference, visited);
           expectedType.accept(v);
         }
       }
@@ -1765,7 +1764,7 @@ public class AssumptionToEdgeAllocator {
 
           visited.add(visits);
 
-          ValueLiteralVisitor v = new ValueLiteralVisitor(valueAddress, valueLiterals, arraySubscript, visited, concreteState);
+          ValueLiteralVisitor v = new ValueLiteralVisitor(valueAddress, valueLiterals, arraySubscript, visited);
           pExpectedType.accept(v);
         }
 
@@ -1828,7 +1827,7 @@ public class AssumptionToEdgeAllocator {
           /*Tell all instanced visitors that you visited this memory location*/
           visited.add(visits);
 
-          ValueLiteralVisitor v = new ValueLiteralVisitor(valueAddress, valueLiterals, pointerExp, visited, concreteState);
+          ValueLiteralVisitor v = new ValueLiteralVisitor(valueAddress, valueLiterals, pointerExp, visited);
           expectedType.accept(v);
 
         }
@@ -2051,10 +2050,6 @@ public class AssumptionToEdgeAllocator {
       CLiteralExpression lit = new CIntegerLiteralExpression(
           FileLocation.DUMMY, CNumericTypes.LONG_LONG_INT, value);
       return new ExplicitValueLiteral(lit);
-    }
-
-    protected ExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression pCastedValue) {
-      explicitValueLiteral = pValueLiteral;
     }
 
     @Override

@@ -56,7 +56,7 @@ public class BitvectorManagerTest {
     logger = TestLogManager.getInstance();
 
     rmgr = new BDDManagerFactory(config, logger).createRegionManager();
-    bvmgr = new BitvectorManager(config, rmgr);
+    bvmgr = new BitvectorManager(rmgr);
 
     zero = bvmgr.makeNumber(BigInteger.ZERO, 4);
     one = bvmgr.makeNumber(BigInteger.ONE, 4);

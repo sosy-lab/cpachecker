@@ -599,7 +599,6 @@ public class ARGUtils {
    * @param pPathStates The states along the path
    * @param pCounterExample Given to try to write exact variable assignment values
    * into the automaton, may be null
-   * @throws IOException
    */
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
@@ -702,7 +701,6 @@ public class ARGUtils {
    * @param pPathStates The states along the path
    * @param name the name the automaton should have
    * @param loopsToUproll the loops which should be recreated in the automaton
-   * @throws IOException
    */
   public static void producePathAutomatonWithLoops(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, Set<Loop> loopsToUproll) throws IOException {

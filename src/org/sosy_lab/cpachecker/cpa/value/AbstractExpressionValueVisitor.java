@@ -36,7 +36,6 @@ import javax.annotation.Nonnull;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -233,7 +232,7 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
-      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr, binaryExpr, logger);
+      return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
     }
 
     if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
@@ -285,14 +284,13 @@ public abstract class AbstractExpressionValueVisitor
    *
    * e.g. joining `a` and `5` with `+` will produce `a + 5`
    *
-   * @param lVal left hand side value
-   * @param rVal right hand side value
-   * @param binaryExpr the binary expression with the operator
-   * @param logger logging
+   * @param pLValue left hand side value
+   * @param pRValue right hand side value
+   * @param pExpression the binary expression with the operator
    * @return the calculated Value
    */
   public static Value calculateSymbolicBinaryExpression(Value pLValue, Value pRValue,
-      final CBinaryExpression pExpression, AAstNode pLocation, LogManagerWithoutDuplicates pLogger) {
+      final CBinaryExpression pExpression) {
 
     final BinaryOperator operator = pExpression.getOperator();
 
@@ -302,12 +300,11 @@ public abstract class AbstractExpressionValueVisitor
     final CType calculationType = pExpression.getCalculationType();
 
     return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
-        expressionType,
-        calculationType, pLocation);
+        expressionType, calculationType);
   }
 
   private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
-      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, CType pCalculationType, AAstNode pLocation) {
+      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, CType pCalculationType) {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression leftOperand;
@@ -917,7 +914,7 @@ public abstract class AbstractExpressionValueVisitor
       final CType expressionType = unaryExpression.getExpressionType();
       final CType operandType = unaryOperand.getExpressionType();
 
-      return createSymbolicExpression(value, operandType, unaryOperator, expressionType, unaryExpression);
+      return createSymbolicExpression(value, operandType, unaryOperator, expressionType);
 
     } else if (!value.isNumericValue()) {
       logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
@@ -938,7 +935,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Value createSymbolicExpression(Value pValue, CType pOperandType, UnaryOperator pUnaryOperator,
-      CType pExpressionType, AAstNode pLocation) {
+      CType pExpressionType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
@@ -1012,8 +1009,7 @@ public abstract class AbstractExpressionValueVisitor
     if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
       final JType expressionType = pExpression.getExpressionType();
 
-      return createSymbolicExpression(pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType,
-          pExpression);
+      return createSymbolicExpression(pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType);
 
     } else if (pLValue instanceof NumericValue) {
 
@@ -1049,8 +1045,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Value createSymbolicExpression(Value pLeftValue, JType pLeftType, Value pRightValue,
-      JType pRightType, JBinaryExpression.BinaryOperator pOperator, JType pExpressionType, JType pCalculationType,
-      AAstNode pLocation) {
+      JType pRightType, JBinaryExpression.BinaryOperator pOperator, JType pExpressionType, JType pCalculationType) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
@@ -1431,7 +1426,7 @@ public abstract class AbstractExpressionValueVisitor
       final JType expressionType = unaryExpression.getExpressionType();
       final JType operandType = unaryOperand.getExpressionType();
 
-      return createSymbolicExpression(valueObject, operandType, unaryOperator, expressionType, unaryExpression);
+      return createSymbolicExpression(valueObject, operandType, unaryOperator, expressionType);
 
     } else {
       logger.logf(Level.FINE, errorMsg);
@@ -1440,7 +1435,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private Value createSymbolicExpression(Value pValue, JType pOperandType,
-      JUnaryExpression.UnaryOperator pUnaryOperator, JType pExpressionType, AAstNode pLocation) {
+      JUnaryExpression.UnaryOperator pUnaryOperator, JType pExpressionType) {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);

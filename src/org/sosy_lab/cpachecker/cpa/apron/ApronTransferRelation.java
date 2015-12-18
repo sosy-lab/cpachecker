@@ -99,6 +99,10 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+
 import apron.DoubleScalar;
 import apron.Interval;
 import apron.Linexpr0;
@@ -111,10 +115,6 @@ import apron.Texpr0DimNode;
 import apron.Texpr0Intern;
 import apron.Texpr0Node;
 import apron.Texpr0UnNode;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 
 public class ApronTransferRelation extends ForwardingTransferRelation<Collection<ApronState>, ApronState, VariableTrackingPrecision> {
 
@@ -544,7 +544,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
    * either return the unchanged state or null if the following branch is not reachable.
    *
    * @param value The long value of the CLiteralExpression
-   * @param truthAssumption
+   * @param truthAssumption indicates if we are in the then or the else branch of an assumption
    * @return an OctState or null
    */
   private Set<ApronState> handleLiteralBooleanExpression(long value, boolean truthAssumption, ApronState state) {
@@ -890,18 +890,11 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     return null;
   }
 
+  /**
+   * This Visitor, evaluates all coefficients for a given Expression.
+   */
   class CApronExpressionVisitor extends DefaultCExpressionVisitor<Set<Texpr0Node>, CPATransferException>
       implements CRightHandSideVisitor<Set<Texpr0Node>, CPATransferException> {
-
-    /**
-     * This method creates the Visitor, which evaluates all coefficients for a given
-     * Expression.
-     *
-     * @param state
-     */
-    public CApronExpressionVisitor() {
-    }
-
 
     @Override
     protected Set<Texpr0Node> visitDefault(CExpression pExp) throws CPATransferException {

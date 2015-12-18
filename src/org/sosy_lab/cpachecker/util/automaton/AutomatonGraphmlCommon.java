@@ -287,7 +287,7 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    public void appendNewNode(String nodeId, NodeType nodeType) throws IOException {
+    public void appendNewNode(String nodeId, NodeType nodeType) {
       Element result = createNodeElement(nodeId, nodeType);
       appendToAppendable(result);
     }

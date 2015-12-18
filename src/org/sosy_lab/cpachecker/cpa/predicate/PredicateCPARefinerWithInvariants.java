@@ -534,7 +534,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
                                                                                 .toList());
     ReachedSetFactory reached;
     try {
-      reached = new ReachedSetFactory(config, logger);
+      reached = new ReachedSetFactory(config);
 
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker limits = null;
@@ -635,7 +635,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
   }
 
   private List<BooleanFormula> generateInvariants0(final List<ARGState> abstractionStatesTrace,
-      InvariantGenerator invGen) throws InvalidConfigurationException, CPAException, InterruptedException {
+      InvariantGenerator invGen) throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
     InvariantSupplier invSup = invGen.get();

@@ -284,7 +284,7 @@ public class CPAchecker {
       AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
 
       stats.resultAnalysisTime.start();
-      Set<Property> violatedProperties = findViolatedProperties(algorithm, reached);
+      Set<Property> violatedProperties = findViolatedProperties(reached);
       if (!violatedProperties.isEmpty()) {
         violatedPropertyDescription = Joiner.on(", ").join(violatedProperties);
 
@@ -409,8 +409,7 @@ public class CPAchecker {
     }
   }
 
-  private Set<Property> findViolatedProperties(final Algorithm pAlgorithm,
-      final ReachedSet reached) {
+  private Set<Property> findViolatedProperties(final ReachedSet reached) {
 
     final Set<Property> result = Sets.newHashSet();
 

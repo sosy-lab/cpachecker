@@ -113,7 +113,7 @@ public class SMGJoinFieldsTest {
     Assert.assertSame(obj1, newHv.getObject());
     Assert.assertEquals(4, newHv.getSizeInBytes(MachineModel.LINUX64));
     Assert.assertEquals(2, newHv.getOffset());
-    Assert.assertTrue(newHv.isCompatibleField(nonPointer, MachineModel.LINUX64));
+    Assert.assertTrue(newHv.isCompatibleField(nonPointer));
   }
 
   @Test

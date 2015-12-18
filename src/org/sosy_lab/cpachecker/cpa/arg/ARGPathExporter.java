@@ -456,14 +456,11 @@ public class ARGPathExporter {
             }
 
             if (!assignments.isEmpty()) {
-              code.add(And.of(FluentIterable.from(assignments).transform(new Function<AExpressionStatement, ExpressionTree>() {
-
-                @Override
-                public ExpressionTree apply(AExpressionStatement pArg0) {
-                  return LeafExpression.of(pArg0.getExpression());
-                }
-
-              }).toList()));
+              code.add(
+                  And.of(
+                      FluentIterable.from(assignments)
+                          .transform(LeafExpression.FROM_STATEMENT)
+                          .toList()));
             }
           }
         }
@@ -558,31 +555,19 @@ public class ARGPathExporter {
       return result;
     }
 
-    private void appendKeyDefinitions(GraphMlBuilder pDoc, GraphType pGraphType) {
-      if (pGraphType == GraphType.PROOF_WITNESS) {
-        pDoc.appendNewKeyDef(KeyDef.INVARIANT, null);
-        pDoc.appendNewKeyDef(KeyDef.INVARIANTSCOPE, null);
-        //pDoc.appendNewKeyDef(KeyDef.NAMED, null);
-      } else if (pGraphType == GraphType.ERROR_WITNESS) {
-        pDoc.appendNewKeyDef(KeyDef.ASSUMPTION, null);
-        pDoc.appendNewKeyDef(KeyDef.ASSUMPTIONSCOPE, null);
-      }
-      pDoc.appendNewKeyDef(KeyDef.SOURCECODE, null);
-      pDoc.appendNewKeyDef(KeyDef.SOURCECODELANGUAGE, null);
-      pDoc.appendNewKeyDef(KeyDef.CONTROLCASE, null);
-      pDoc.appendNewKeyDef(KeyDef.ORIGINLINE, null);
-      pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
+    private void appendKeyDefinitions(GraphMlBuilder pDoc) {
+      EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
       pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
-      pDoc.appendNewKeyDef(KeyDef.PRODUCER, null);
-      pDoc.appendNewKeyDef(KeyDef.SPECIFICATION, null);
-      pDoc.appendNewKeyDef(KeyDef.MEMORYMODEL, null);
-      pDoc.appendNewKeyDef(KeyDef.ARCHITECTURE, null);
+      keyDefs.remove(KeyDef.NODETYPE);
+      pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
+      keyDefs.remove(KeyDef.ORIGINFILE);
       for (NodeFlag f : NodeFlag.values()) {
+        keyDefs.remove(f.key);
         pDoc.appendNewKeyDef(f.key, "false");
       }
-
-      pDoc.appendNewKeyDef(KeyDef.FUNCTIONENTRY, null);
-      pDoc.appendNewKeyDef(KeyDef.FUNCTIONEXIT, null);
+      for (KeyDef keyDef : keyDefs) {
+        pDoc.appendNewKeyDef(keyDef, null);
+      }
     }
 
     /**
@@ -724,7 +709,7 @@ public class ARGPathExporter {
       String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       doc.appendDocHeader();
-      appendKeyDefinitions(doc, graphType);
+      appendKeyDefinitions(doc);
       doc.appendGraphHeader(
           graphType,
           language,
@@ -945,7 +930,7 @@ public class ARGPathExporter {
       pDoc.appendToAppendable(result);
     }
 
-    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) throws IOException {
+    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
       Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
       for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");
