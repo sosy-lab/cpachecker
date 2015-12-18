@@ -1391,10 +1391,10 @@ public class FormulaManagerView {
         return true;
       }
       @Override public Boolean visitAtom(BooleanFormula atom) {
-        return true;
+        return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
-        return true;
+        return visit(operand);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
