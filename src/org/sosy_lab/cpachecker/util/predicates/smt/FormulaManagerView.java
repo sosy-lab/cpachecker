@@ -1407,6 +1407,18 @@ public class FormulaManagerView {
     }).visit(t);
   }
 
+  private boolean containsIfThenElse(Formula f) {
+    if (booleanFormulaManager.isIfThenElse(f)) {
+      return true;
+    }
+    for (int i = 0; i < unsafeManager.getArity(f); ++i) {
+      if (containsIfThenElse(unsafeManager.getArg(f, i))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   static final String BitwiseAndUfName = "_&_";
   static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
   static final String BitwiseXorUfName ="_^_";
