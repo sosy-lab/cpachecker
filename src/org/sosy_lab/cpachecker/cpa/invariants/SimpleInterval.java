@@ -102,7 +102,7 @@ public class SimpleInterval {
 
   /**
    * Intersects this interval with the given interval. May only be called
-   * if {@link #intersectsWith(pOther)} returns true.
+   * if {@link #intersectsWith(SimpleInterval)} returns true.
    *
    * @param pOther the interval to intersect this interval with.
    * @return the intersection of this interval with the given interval.

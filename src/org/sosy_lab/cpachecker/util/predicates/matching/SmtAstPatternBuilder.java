@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern.SmtAstMatchFlag;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
+import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -37,9 +40,6 @@ import org.sosy_lab.solver.api.FormulaType.NumeralType;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPattern.SmtAstMatchFlag;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstPatternSelection.LogicalConnection;
-import org.sosy_lab.cpachecker.util.predicates.matching.SmtQuantificationPattern.QuantifierType;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Verify;
@@ -186,10 +186,6 @@ public class SmtAstPatternBuilder {
 
   /**
    * Matches only if NONE of the patterns matches on the arguments of the specific function application.
-   *
-   * @param pFunction
-   * @param argumentMatchers
-   * @return
    */
   public static SmtAstPattern matchIfNot(Comparable<?> pFunction, SmtAstPattern... argumentMatchers) {
     return new SmtFunctionApplicationPattern(
@@ -201,9 +197,6 @@ public class SmtAstPatternBuilder {
 
   /**
    * Matches only if NONE of the patterns matches an arbitrary function application.
-   *
-   * @param quantorBodyMatchers
-   * @return
    */
   public static SmtAstPattern matchIfNot(SmtAstPattern... pMatchers) {
     return new SmtFunctionApplicationPattern(

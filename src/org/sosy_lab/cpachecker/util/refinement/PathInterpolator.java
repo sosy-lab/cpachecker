@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * Classes implementing this interface derive interpolants of a whole path.
  *
  * @param <I> the type of interpolant created by the implementation
- * @param <P> the type of the computed precisions' elements
  */
 public interface PathInterpolator<I extends Interpolant<?>> extends Statistics {
 

@@ -130,7 +130,6 @@ public interface RegionCreator {
 
     /**
      * Add the negation of a region to the current conjunctive clause.
-     * @param r
      */
     void addNegativeRegion(Region r);
 

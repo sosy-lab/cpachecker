@@ -26,16 +26,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
 
 public interface PathFormulaManager {
 
@@ -45,7 +45,7 @@ public interface PathFormulaManager {
 
   /**
    * Creates a new path formula representing an OR of the two arguments. Differently
-   * from {@link FormulaManager#makeOr(BooleanFormula, BooleanFormula)},
+   * from {@link BooleanFormulaManager#or(BooleanFormula, BooleanFormula)},
    * it also merges the SSA maps and creates the necessary adjustments to the
    * formulas if the two SSA maps contain different values for the same variables.
    *
@@ -99,7 +99,6 @@ public interface PathFormulaManager {
    * @param expr Expression to convert.
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
-   * @throws UnrecognizedCCodeException
    */
   public Formula expressionToFormula(PathFormula pFormula,
       CIdExpression expr,
@@ -116,7 +115,6 @@ public interface PathFormulaManager {
    * @param pF1 path formula which should be covered
    * @param pF2 path formula which covers
    * @return pF1.getFormula() and assumptions and not pF2.getFormula()
-   * @throws InterruptedException
    */
   public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
 }

@@ -119,7 +119,6 @@ public class SMGExpressionEvaluator {
    * @param pState The state that contains the current variable values.
    * @param expression The expression, which evaluates to the value with the given type.
    * @return The size of the given type in bytes.
-   * @throws UnrecognizedCCodeException
    */
   public int getSizeof(CFAEdge edge, CType pType, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
 
@@ -150,7 +149,6 @@ public class SMGExpressionEvaluator {
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bytes.
-   * @throws UnrecognizedCCodeException
    */
   public int getSizeof(CFAEdge edge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
 
@@ -938,10 +936,7 @@ public class SMGExpressionEvaluator {
    * {@link SMGUnknownValue} if the symbolic value does not represent a pointer
    * in the smg.
    *
-   *
-   *
-   * @param pSmgState This contains the SMG.
-   * @param pAddressValue the symbolic value that may represent a pointer in the smg
+   * @param pAddressValueAndState This contains the SMG.
    * @return The address, otherwise unknown
    * @throws SMGInconsistentException thrown if the symbolic address is misinterpreted as a pointer.
    */
@@ -1195,7 +1190,6 @@ public class SMGExpressionEvaluator {
        *          expression between two values.
        * @param pV1 the first operand.
        * @param pV2 the second operand
-       * @throws SMGInconsistentException
        */
       public BinaryRelationEvaluator(SMGState newState, BinaryOperator pOp,
           SMGSymbolicValue pV1, SMGSymbolicValue pV2)
@@ -1963,6 +1957,10 @@ public class SMGExpressionEvaluator {
    * sub classes to, for example, change the smgState while
    * evaluating expressions.
    *
+   */
+
+  /**
+   * @param edge the edge to handle
    */
   protected SMGValueAndState handleUnknownDereference(SMGState smgState, CFAEdge edge) {
     return SMGValueAndState.of(smgState);

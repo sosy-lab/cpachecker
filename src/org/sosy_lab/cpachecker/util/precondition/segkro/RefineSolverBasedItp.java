@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.InterpolationWithCandidates;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.PreconditionRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -242,9 +242,7 @@ public class RefineSolverBasedItp implements PreconditionRefiner {
   /**
    *
    * @param pTransition           The transition to encode
-   * @param pCounterStatePrecond  An uninstanciated formula that describes a precondition
-   * @return
-   * @throws SolverException
+   * @param pCounterStatePrecond  An uninstantiated formula that describes a precondition
    */
   private PathFormula computeCounterCondition(
       final CFAEdge pTransition,

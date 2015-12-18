@@ -82,7 +82,6 @@ public class SortingPathExtractor extends PathExtractor {
    *
    * @param pReached the set of reached states
    * @return the target states
-   * @throws RefinementFailedException
    */
   @Override
   public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {

@@ -31,7 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -82,6 +81,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSetTop;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Optional;
@@ -436,11 +436,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
    * location is the identifier x. For the expression 's.a' the location is the identifier
    * t.a, where t is the type of s. For the expression '*p', the possible locations are the
    * points-to set of locations the expression 'p'.
-   *
-   * @param pState
-   * @param pExpression
-   * @return
-   * @throws UnrecognizedCCodeException
    */
   public static LocationSet asLocations(CExpression pExpression, final PointerState pState) throws UnrecognizedCCodeException {
     return asLocations(pExpression, pState, 0);

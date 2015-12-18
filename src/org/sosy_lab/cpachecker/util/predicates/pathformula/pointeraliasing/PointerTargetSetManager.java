@@ -36,7 +36,6 @@ import java.util.Map;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -56,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
@@ -437,8 +437,6 @@ class PointerTargetSetManager {
 
   /**
    * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
-   * @param cType
-   * @return
    */
   int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
@@ -446,9 +444,6 @@ class PointerTargetSetManager {
 
   /**
    * The method is used to speed up member offset computation for declared composite types.
-   * @param compositeType
-   * @param memberName
-   * @return
    */
   int getOffset(CCompositeType compositeType, final String memberName) {
     return typeHandler.getOffset(compositeType, memberName);

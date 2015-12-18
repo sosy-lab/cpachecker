@@ -31,14 +31,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Canonicalizer;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Concluding;
 import org.sosy_lab.cpachecker.util.precondition.segkro.interfaces.Rule;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.matching.SmtAstMatcher;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -97,10 +97,9 @@ public class RuleEngine implements Concluding, StatisticsProvider, Canonicalizer
   }
 
   /**
-   *
-   * @param pAtomPredicates
-   * @param pRule
-   * @return    List of atomic predicates
+   * @param pAtomPredicates list of atomic predicates
+   * @param pRule the rule to use
+   * @return List of atomic predicates
    */
   public List<BooleanFormula> concludeWithSingleRule(List<BooleanFormula> pAtomPredicates, Rule pRule) {
     return null;

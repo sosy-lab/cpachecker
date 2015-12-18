@@ -40,14 +40,6 @@ public interface PreconditionRefiner {
    *
    * @param pTraceToViolation         Trace to the error location
    * @param pTraceToValidTermination  Trace to the exit location of the entry function
-   *
-   * @param pWpPosition   The goal is to provide a precondition for this location.
-   *
-   * @return
-   *
-   * @throws SolverException
-   * @throws InterruptedException
-   * @throws CPATransferException
    */
   public abstract PredicatePrecision refine(
       final PathPosition pTraceToViolation,

@@ -88,13 +88,17 @@ public abstract class PatternBasedRule extends AbstractRule {
   protected abstract void setupPatterns();
 
   /**
-   * @throws SolverException
-   * @throws InterruptedException
+   * @param pAssignment the assignments that should be checked
+   * @throws SolverException may be thrown in subclasses
+   * @throws InterruptedException may be thrown in subclasses
    */
   protected boolean satisfiesConstraints(Map<String, Formula> pAssignment) throws SolverException, InterruptedException {
     return true;
   }
 
+  /**
+   * @param pAssignment the assignments that should be used
+   */
   protected Collection<BooleanFormula> deriveConclusion(Map<String, Formula> pAssignment) {
     return Collections.emptyList();
   }

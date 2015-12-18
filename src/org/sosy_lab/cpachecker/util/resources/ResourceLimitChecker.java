@@ -70,7 +70,7 @@ public final class ResourceLimitChecker {
    * It is safe (but useless) to call this constructor with an empty list of limits,
    * limits that have already been exceeded, or a shutdown notifier that has
    * already been triggered.
-   * @param shutdownNotifier A non-null shutdown notifier instance.
+   * @param shutdownManager A non-null shutdown notifier instance.
    * @param limits A (possibly empty) list without null entries of resource limits.
    */
   public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> limits) {

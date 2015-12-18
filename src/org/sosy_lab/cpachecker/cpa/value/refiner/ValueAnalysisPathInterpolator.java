@@ -145,7 +145,6 @@ public class ValueAnalysisPathInterpolator
    * use-def-relation. It creates fake interpolants that are not inductive.
    *
    * @param errorPathPrefix the error path prefix to interpolate
-   * @return
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 

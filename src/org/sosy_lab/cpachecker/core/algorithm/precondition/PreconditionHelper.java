@@ -50,14 +50,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -152,11 +152,6 @@ public final class PreconditionHelper {
    *
    * This code can later also be used to compute postconditions.
    *
-   * @param pPathToEntryLocation
-   * @return
-   * @throws InterruptedException
-   * @throws CPATransferException
-   * @throws SolverException
    */
   public BooleanFormula getPreconditionOfPath(
       final ARGPath pPathToEntryLocation,

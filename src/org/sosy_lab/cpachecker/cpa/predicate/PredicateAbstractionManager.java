@@ -261,10 +261,9 @@ public class PredicateAbstractionManager {
    * so the indices there should match those from the PathFormula.
    * @param abstractionFormula An AbstractionFormula that is used as input.
    * @param pathFormula A PathFormula that is used as input.
-   * @param predicates The set of predicates used for abstraction.
+   * @param pPredicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
-   * @throws InterruptedException
    */
   public AbstractionFormula buildAbstraction(CFANode location,
       AbstractionFormula abstractionFormula, PathFormula pathFormula,
@@ -589,11 +588,8 @@ public class PredicateAbstractionManager {
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
    * @param ssa The SSA map to use for instantiating predicates.
-   * @param pPathFormula
+   * @param pLocation the location that should be used
    * @return A subset of pPredicates.
-   *
-   * @throws InterruptedException
-   * @throws SolverException
    */
   private ImmutableSet<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
@@ -1060,8 +1056,8 @@ public class PredicateAbstractionManager {
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-   * @param pAbstractionFormula the abstraction formula
-   * @param pPathFormula the path formula
+   * @param abstractionFormula the abstraction formula
+   * @param pathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula)
