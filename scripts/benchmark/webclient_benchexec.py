@@ -134,10 +134,7 @@ def _submitRunsParallel(runSet, benchmark):
     if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
         logging.warning("Memory requirement is not supported by the WebInterface.")
         
-    if benchmark.config.cpu_model is not None:
-        cpu_model = benchmark.config.cpu_model
-    else:
-        cpu_model = benchmark.requirements.cpu_model
+    cpu_model = benchmark.requirements.cpu_model
     result_files_pattern = benchmark.result_files_pattern
     priority = benchmark.config.cloudPriority
 
