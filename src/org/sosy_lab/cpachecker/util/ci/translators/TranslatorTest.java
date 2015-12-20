@@ -301,7 +301,7 @@ public class TranslatorTest {
                 .setLogger(logger)
                 .setShutdownNotifier(ShutdownNotifier.createDummy())
                 .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
-                .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class)
+                .set(new ReachedSetFactory(config), ReachedSetFactory.class)
                 .createInstance();
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();
 

@@ -144,6 +144,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "INACTIVE"          { return symbol("INACTIVE", AutomatonSym.INACTIVE); }
 <YYINITIAL> "BREAK"             { return symbol("BREAK", AutomatonSym.BREAK); }
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
+<YYINITIAL> "ENTRY"             { return symbol("ENTRY", AutomatonSym.ENTRY); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "MATCH"             { return symbol("MATCH", AutomatonSym.MATCH); }
@@ -154,6 +155,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "CHECK"             { return symbol("EVAL", AutomatonSym.CHECK); }
 <YYINITIAL> "MODIFY"            { return symbol("MODIFY", AutomatonSym.MODIFY); }
 <YYINITIAL> "DO"                { return symbol("DO", AutomatonSym.DO); }
+<YYINITIAL> "ENCODE"            { return symbol("ENCODE", AutomatonSym.ENCODE); }
 <YYINITIAL> "GOTO"              { return symbol("GOTO", AutomatonSym.GOTO); }
 <YYINITIAL> "SPLIT"             { return symbol("SPLIT", AutomatonSym.SPLIT); }
 <YYINITIAL> "NEGATION"          { return symbol("NEGATION", AutomatonSym.NEGATION); }

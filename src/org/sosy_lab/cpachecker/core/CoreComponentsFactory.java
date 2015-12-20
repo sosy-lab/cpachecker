@@ -170,7 +170,7 @@ public class CoreComponentsFactory {
 
     interruptProvider = new InterruptProvider(shutdownManager);
 
-    reachedSetFactory = new ReachedSetFactory(config, logger);
+    reachedSetFactory = new ReachedSetFactory(config);
     cpaFactory = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
   }
 

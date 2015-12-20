@@ -33,9 +33,9 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -169,6 +170,14 @@ class AutomatonASTComparator {
     return parseBlockOfStatements(tmp, parser, scope);
   }
 
+  static List<AAstNode> generateSourceASTOfCode(String pSource, CParser parser, Scope scope)
+      throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    String tmp = addFunctionDeclaration(pSource);
+
+    return parseBlockOfCode(tmp, parser, scope);
+  }
+
+
   @VisibleForTesting
   static String replaceJokersInPattern(String pPattern) {
     final String tmp = pPattern.replaceAll("\\$\\?", " " + JOKER_EXPR + " ");
@@ -248,11 +257,9 @@ class AutomatonASTComparator {
    * @throws CParserException
    */
   private static List<AStatement> parseBlockOfStatements(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
-    List<CAstNode> statements;
+    List<AAstNode> codeBlock = parseBlockOfCode(code, parser, scope);
 
-    statements = parser.parseStatements(replaceJokersInPattern(code), scope);
-
-    for (CAstNode statement : statements) {
+    for (AAstNode statement : codeBlock) {
       if (!(statement instanceof CStatement)) {
         throw new InvalidAutomatonException("Code in assumption: <"
       + statement.toASTString() + "> is not a valid assumption.");
@@ -263,14 +270,19 @@ class AutomatonASTComparator {
       }
     }
 
-    Function<CAstNode, CStatement> function = new Function<CAstNode, CStatement>() {
+    Function<AAstNode, CStatement> function = new Function<AAstNode, CStatement>() {
       @Override
-      public CStatement apply(CAstNode statement) {
+      public CStatement apply(AAstNode statement) {
         return (CStatement) statement;
       }
     };
 
-    return ImmutableList.<AStatement>copyOf(Lists.transform(statements, function));
+    return ImmutableList.<AStatement>copyOf(Lists.transform(codeBlock, function));
+  }
+
+  private static List<AAstNode> parseBlockOfCode(String code, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    List<CAstNode> result = parser.parseStatements(replaceJokersInPattern(code), scope);
+    return ImmutableList.<AAstNode>copyOf(result);
   }
 
 

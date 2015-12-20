@@ -404,9 +404,9 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     if (singleOptions.runCBMCasExternalTool) {
       algorithm = new ExternalCBMCAlgorithm(filename, singleConfig, singleLogger);
       cpa = null;
-      reached = new ReachedSetFactory(singleConfig, singleLogger).create();
+      reached = new ReachedSetFactory(singleConfig).create();
     } else {
-      ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig, singleLogger);
+      ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
       cpa = createCPA(singleReachedSetFactory, singleConfig, singleLogger, singleShutdownManager.getNotifier(), stats);
       algorithm = createAlgorithm(cpa, singleConfig, singleLogger, singleShutdownManager, stats, singleReachedSetFactory, singleOptions);
       reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory, singleLogger);

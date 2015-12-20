@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -90,6 +91,10 @@ parser code {:
   
   public List<AStatement> generateSourceASTOfBlock(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
     return AutomatonASTComparator.generateSourceASTOfBlock(code, cparser, scope);
+  }
+  
+  public List<AAstNode> generateSourceASTOfCode(String code) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
+    return AutomatonASTComparator.generateSourceASTOfCode(code, cparser, scope);
   }
   
   public List<AStatement> negateAssumeStatements(List<AStatement> pAssumes) throws InvalidAutomatonException, InvalidConfigurationException, CParserException {
@@ -176,7 +181,7 @@ parser code {:
 
 
 
-terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, INACTIVE, EXIT, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE, CALL, RETURN, SPLIT, NEGATION;
+terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS, CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE, ERROR, STOP, INACTIVE, EXIT, ENTRY, BREAK, ASSERT, ASSUME, MATCH, LABEL, CHECK, EVAL, MODIFY, DO, ENCODE, PRINT, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS, MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST, TARGET, IS_TARGET_STATE, CALL, RETURN, SPLIT, NEGATION;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -187,6 +192,7 @@ non terminal List<AutomatonInternalState> StateDefs ;
 non terminal List<AutomatonTransition> Transitions ;
 non terminal List<AutomatonBoolExpr> Assertions ;
 non terminal List<AStatement> Assume ;
+non terminal List<AAstNode> Encode ;
 non terminal List<AStatement> Split ;
 non terminal List<AutomatonAction> Actions ;
 
@@ -266,20 +272,20 @@ Transitions   ::= Transition:t Transitions:lst {: lst.addAll(0, t); RESULT = lst
             | /* empty */ {: RESULT = new LinkedList<AutomatonTransition>(); :}
             ;
  
-Transition   ::= Bool:trigger  ARROW Split:a GOTO IDENTIFIER:follow NEGATION GOTO IDENTIFIER:followneg SEMICOLON
-              {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ImmutableList.<AutomatonAction>of(), follow.toString()), new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AutomatonAction>of(), followneg.toString())); :}
-               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts GOTO IDENTIFIER:follow SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, follow.toString(), null, ImmutableSet.<SafetyProperty>of(), propFact.createAssertionProperties(ass))); :}
-               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
-               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
-               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts STOP SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM)); :}
-               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts INACTIVE SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.INACTIVE)); :}
-               | Bool:trigger  ARROW Assertions:ass Assume:a Actions:acts BREAK SEMICOLON
-              {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BREAK)); :}
+Transition   ::= Bool:trigger ARROW Split:a GOTO IDENTIFIER:follow NEGATION GOTO IDENTIFIER:followneg SEMICOLON
+               {: RESULT = Lists.newArrayList(new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, true, ImmutableList.<AutomatonAction>of(), follow.toString()), new AutomatonTransition(trigger, ImmutableList.<AutomatonBoolExpr>of(), a, false, ImmutableList.<AutomatonAction>of(), followneg.toString())); :}
+             | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts GOTO IDENTIFIER:follow SEMICOLON
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, follow.toString(), null, ImmutableSet.<SafetyProperty>of(), propFact.createAssertionProperties(ass))); :}
+             | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts ERROR SEMICOLON
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty())); :}
+             | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts ERROR OPEN_BRACKETS STRING_LITERAL:property CLOSE_BRACKETS SEMICOLON
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.ERROR, propFact.createSingleProperty(new AutomatonExpression.StringExpression(property.toString())))); :}
+             | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts STOP SEMICOLON
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BOTTOM)); :}
+             | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts INACTIVE SEMICOLON
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.INACTIVE)); :}
+             | Bool:trigger  ARROW Assertions:ass Assume:a Encode:ec Actions:acts BREAK SEMICOLON
+               {: RESULT = Collections.singletonList(new AutomatonTransition(trigger, ass, a, true, acts, AutomatonInternalState.BREAK)); :}
               ;
 
 Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
@@ -290,13 +296,16 @@ Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 Assume    ::= ASSUME CURLYEXPR:a {: RESULT = parser.generateSourceASTOfBlock(a.toString()); :}
              | /* empty */ {: RESULT = new ArrayList<AStatement>(); :};
              
+Encode    ::= ENCODE CURLYEXPR:a {: RESULT = parser.generateSourceASTOfCode(a.toString()); :}
+             | /* empty */ {: RESULT = new ArrayList<AAstNode>(); :};
+             
 Split    ::= SPLIT CURLYEXPR:a {: RESULT = parser.generateSourceASTOfBlock(a.toString()); :};
 
 Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert at the beginning of the list to preserve the order.
             | /* empty */ {: RESULT = new LinkedList<AutomatonAction>(); :}
             ;
 Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
-                        // InnerInt in this position allows for x = EVAL(..) Statements
+                        // InnerInt in this position allows for x = EVAL(..) Statements 
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
 /*next statement is deprecated*/            
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
@@ -355,7 +364,9 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = new AutomatonBoolExpr.MatchLabelRegEx(expr.toString()); :}
             | MATCH ASSERT
               {: RESULT = new AutomatonBoolExpr.MatchJavaAssert(); :}
-            | MATCH EXIT
+            | MATCH ENTRY
+              {: RESULT = AutomatonBoolExpr.MatchProgramEntry.INSTANCE; :}
+            | MATCH EXIT            
               {: RESULT = new AutomatonBoolExpr.MatchProgramExit(); :}
 /*next statement is deprecated*/ 
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
