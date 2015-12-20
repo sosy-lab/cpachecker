@@ -179,8 +179,6 @@ public class ARGPath implements Appender {
 
       // we have a normal connection without whole in the edges
       } else {
-        assert curOutgoingEdge.getPredecessor() == curNode
-               && curOutgoingEdge.getSuccessor() == nextNode;
         fullPath.add(curOutgoingEdge);
       }
 
