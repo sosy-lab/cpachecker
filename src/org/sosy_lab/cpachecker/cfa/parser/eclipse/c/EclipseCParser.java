@@ -226,10 +226,7 @@ class EclipseCParser implements CParser {
         new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
-  @Override
-  public CAstNode parseSingleStatement(String pCode, Scope scope)
-      throws CParserException, InvalidConfigurationException {
-
+  private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -248,47 +245,38 @@ class EclipseCParser implements CParser {
     }
 
     IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
-    if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
-      throw new CParserException("Not exactly one statement in function body: " + body);
-    }
 
+    return statements;
+  }
+
+  private ASTConverter prepareTemporaryConverter(Scope scope) throws InvalidConfigurationException {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
-        .convert(statements[0]);
+
+    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
+        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
+  }
+
+  @Override
+  public CAstNode parseSingleStatement(String pCode, Scope scope)
+      throws CParserException, InvalidConfigurationException {
+
+    IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
+    ASTConverter converter = prepareTemporaryConverter(scope);
+
+    if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
+      throw new CParserException("Not exactly one statement in function body: " + pCode);
+    }
+
+    return converter.convert(statements[0]);
   }
 
   @Override
   public List<CAstNode> parseStatements(String pCode, Scope scope)
       throws CParserException, InvalidConfigurationException {
 
-    // parse
-    IASTTranslationUnit ast = parse(wrapCode("", pCode));
-
-    // strip wrapping function header
-    IASTDeclaration[] declarations = ast.getDeclarations();
-    if (   declarations == null
-        || declarations.length != 1
-        || !(declarations[0] instanceof IASTFunctionDefinition)) {
-      throw new CParserException("Not a single function: " + ast.getRawSignature());
-    }
-
-    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
-    IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
-      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
-    }
-
-    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
-    if (statements.length == 1 && statements[0] == null || statements.length == 0) {
-      throw new CParserException("No statement found in function body: " + body);
-    }
-
-    Sideassignments sa = new Sideassignments();
-    sa.enterBlock();
-
-    ASTConverter converter = new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
-        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
+    IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
+    ASTConverter converter = prepareTemporaryConverter(scope);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
@@ -299,7 +287,7 @@ class EclipseCParser implements CParser {
     }
 
     if (nodeList.size() < 1) {
-      throw new CParserException("No statement found in function body: " + body);
+      throw new CParserException("No statement found in function body: " + pCode);
     }
 
     return nodeList;
