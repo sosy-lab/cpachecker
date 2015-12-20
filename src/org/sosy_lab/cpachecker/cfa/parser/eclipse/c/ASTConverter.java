@@ -45,6 +45,7 @@ import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarationStatement;
 import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTEnumerationSpecifier;
@@ -92,8 +93,6 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -172,6 +171,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -651,6 +652,8 @@ class ASTConverter {
       CIdExpression tmp = createTemporaryVariable(e);
       sideAssignmentStack.addConditionalExpression(e, tmp);
       return tmp;
+    default:
+      // nothing to do here
     }
 
     Pair<BinaryOperator, Boolean> opPair = operatorConverter.convertBinaryOperator(e);
@@ -1371,7 +1374,11 @@ class ASTConverter {
 
   public CAstNode convert(final IASTStatement s) {
 
-    if (s instanceof IASTExpressionStatement) {
+    if (s instanceof IASTDeclarationStatement) {
+      IASTDeclarationStatement decl = (IASTDeclarationStatement) s;
+      return convert (decl);
+
+    } else if (s instanceof IASTExpressionStatement) {
       return convert((IASTExpressionStatement) s);
 
     } else if (s instanceof IASTReturnStatement) {
@@ -1383,6 +1390,10 @@ class ASTConverter {
     } else {
       throw new CFAGenerationRuntimeException("unknown statement: " + s.getClass(), s, niceFileNameFunction);
     }
+  }
+
+  public CSimpleDeclaration convert(final IASTDeclarationStatement s) {
+    return null;
   }
 
   public CStatement convert(final IASTExpressionStatement s) {

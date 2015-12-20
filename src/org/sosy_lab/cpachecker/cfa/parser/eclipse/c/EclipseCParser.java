@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -96,13 +97,13 @@ class EclipseCParser implements CParser {
   private final Timer cfaTimer = new Timer();
 
   public EclipseCParser(Configuration pConfig, LogManager pLogger,
-      Dialect dialect, MachineModel pMachine) {
+      Dialect pDialect, MachineModel pMachine) {
 
     this.logger = pLogger;
     this.machine = pMachine;
     this.config = pConfig;
 
-    switch (dialect) {
+    switch (pDialect) {
     case C99:
       language = new CLanguage(new ANSICParserExtensionConfiguration());
       break;
@@ -136,32 +137,60 @@ class EclipseCParser implements CParser {
     return wrapCode(pFileName, code);
   }
 
-  @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
-    Map<String, String> fileNameMapping = new HashMap<>();
+  private static interface FileParseWrapper {
+    public FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
+  }
 
+  private ParseResult parseSomething(List<? extends FileToParse> pInput,
+      CSourceOriginMapping pSourceOriginMapping,
+      FileParseWrapper pWrapperFunction)
+          throws CParserException, InvalidConfigurationException {
+
+    Preconditions.checkNotNull(pInput);
+    Preconditions.checkNotNull(pSourceOriginMapping);
+    Preconditions.checkNotNull(pWrapperFunction);
+
+    Map<String, String> fileNameMapping = new HashMap<>();
     List<IASTTranslationUnit> astUnits = new ArrayList<>();
-    for (FileToParse f: pFilenames) {
-      String fileName = fixPath(f.getFileName());
+
+    for (FileToParse f : pInput) {
+      final String fileName = fixPath(f.getFileName());
       fileNameMapping.put(fileName, f.getFileName());
-      astUnits.add(parse(wrapFile(fileName)));
+
+      try {
+        astUnits.add(parse(pWrapperFunction.wrap(fileName, f)));
+      } catch (IOException e) {
+        throw new CParserException("IO failed!", e);
+      }
     }
-    return buildCFA(
-        astUnits, new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
+
+    return buildCFA(astUnits, new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping));
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
-    Map<String, String> fileNameMapping = new HashMap<>();
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, IOException, InvalidConfigurationException {
 
-    List<IASTTranslationUnit> astUnits = new ArrayList<>();
-    for (FileContentToParse f : codeFragments) {
-      String fileName = fixPath(f.getFileName());
-      fileNameMapping.put(fileName, f.getFileName());
-      astUnits.add(parse(wrapCode(fileName, f.getFileContent())));
-    }
-    return buildCFA(
-        astUnits, new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
+    return parseSomething(pFilenames, sourceOriginMapping, new FileParseWrapper() {
+      @Override
+      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
+        return wrapFile(pFileName);
+      }
+    });
+  }
+
+  @Override
+  public ParseResult parseString(List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, InvalidConfigurationException {
+
+    return parseSomething(pCodeFragments, sourceOriginMapping, new FileParseWrapper() {
+      @Override
+      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
+        Preconditions.checkArgument(pContent instanceof FileContentToParse);
+        return wrapCode(pFileName, ((FileContentToParse)pContent).getFileContent());
+      }
+    });
+
   }
 
   /**
@@ -170,9 +199,11 @@ class EclipseCParser implements CParser {
   @Override
   public ParseResult parseFile(String pFileName, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, IOException, InvalidConfigurationException {
+
     String fileName = fixPath(pFileName);
     Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
     IASTTranslationUnit unit = parse(wrapFile(fileName));
+
     return buildCFA(
         ImmutableList.of(unit),
         new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
@@ -185,16 +216,17 @@ class EclipseCParser implements CParser {
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
+
     String fileName = fixPath(pFileName);
     Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
     IASTTranslationUnit unit = parse(wrapCode(fileName, pCode));
+
     return buildCFA(
         ImmutableList.of(unit),
         new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
-  @Override
-  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
+  private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -213,45 +245,38 @@ class EclipseCParser implements CParser {
     }
 
     IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
-    if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
-      throw new CParserException("Not exactly one statement in function body: " + body);
-    }
 
+    return statements;
+  }
+
+  private ASTConverter prepareTemporaryConverter(Scope scope) throws InvalidConfigurationException {
     Sideassignments sa = new Sideassignments();
     sa.enterBlock();
-    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger), Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa)
-        .convert(statements[0]);
+
+    return new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
+        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
-    // parse
-    IASTTranslationUnit ast = parse(wrapCode("", pCode));
+  public CAstNode parseSingleStatement(String pCode, Scope scope)
+      throws CParserException, InvalidConfigurationException {
 
-    // strip wrapping function header
-    IASTDeclaration[] declarations = ast.getDeclarations();
-    if (   declarations == null
-        || declarations.length != 1
-        || !(declarations[0] instanceof IASTFunctionDefinition)) {
-      throw new CParserException("Not a single function: " + ast.getRawSignature());
+    IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
+    ASTConverter converter = prepareTemporaryConverter(scope);
+
+    if (!(statements.length == 2 && statements[1] == null || statements.length == 1)) {
+      throw new CParserException("Not exactly one statement in function body: " + pCode);
     }
 
-    IASTFunctionDefinition func = (IASTFunctionDefinition)declarations[0];
-    IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
-      throw new CParserException("Function has an unexpected " + body.getClass().getSimpleName() + " as body: " + func.getRawSignature());
-    }
+    return converter.convert(statements[0]);
+  }
 
-    IASTStatement[] statements = ((IASTCompoundStatement)body).getStatements();
-    if (statements.length == 1 && statements[0] == null || statements.length == 0) {
-      throw new CParserException("No statement found in function body: " + body);
-    }
+  @Override
+  public List<CAstNode> parseStatements(String pCode, Scope scope)
+      throws CParserException, InvalidConfigurationException {
 
-    Sideassignments sa = new Sideassignments();
-    sa.enterBlock();
-
-    ASTConverter converter = new ASTConverter(config, scope, new LogManagerWithoutDuplicates(logger),
-        Functions.<String>identity(), new CSourceOriginMapping(), machine, "", sa);
+    IASTStatement[] statements = parseCodeFragmentReturnBody(pCode);
+    ASTConverter converter = prepareTemporaryConverter(scope);
 
     List<CAstNode> nodeList = new ArrayList<>(statements.length);
 
@@ -262,7 +287,7 @@ class EclipseCParser implements CParser {
     }
 
     if (nodeList.size() < 1) {
-      throw new CParserException("No statement found in function body: " + body);
+      throw new CParserException("No statement found in function body: " + pCode);
     }
 
     return nodeList;
@@ -308,7 +333,9 @@ class EclipseCParser implements CParser {
     }
   }
 
-  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CFAGenerationRuntimeException, CoreException {
+  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode)
+      throws CFAGenerationRuntimeException, CoreException {
+
     return language.getASTTranslationUnit(pCode,
                                           StubScannerInfo.instance,
                                           FileContentProvider.instance,
@@ -321,12 +348,10 @@ class EclipseCParser implements CParser {
    * Builds the cfa out of a list of pairs of translation units and their appropriate prefixes for static variables
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
-   * @return
-   * @throws CParserException
-   * @throws InvalidConfigurationException
    */
   private ParseResult buildCFA(List<IASTTranslationUnit> asts,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
+
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
