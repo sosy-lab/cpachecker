@@ -176,6 +176,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -1392,7 +1393,13 @@ class ASTConverter {
     }
   }
 
-  public CSimpleDeclaration convert(final IASTDeclarationStatement s) {
+  public CAstNode convert(final IASTDeclarationStatement s) {
+    if (s.getDeclaration() instanceof IASTSimpleDeclaration) {
+      IASTSimpleDeclaration decl = (IASTSimpleDeclaration) s.getDeclaration();
+      List<CDeclaration> converted = convert(decl);
+      Preconditions.checkState(converted.size() == 1);
+      return converted.iterator().next();
+    }
     return null;
   }
 
