@@ -37,7 +37,6 @@ public interface CType extends Type {
 
   /**
    * Will throw a UnsupportedOperationException
-   * @return
    */
   @Override
   public int hashCode();

@@ -159,7 +159,11 @@ public final class CArrayType extends AArrayType implements CType, Serializable 
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in the input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 

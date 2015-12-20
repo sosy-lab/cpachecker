@@ -32,7 +32,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -56,7 +55,7 @@ public class CFACloner {
   @Option(secure = true, description = "how often do we clone a function?")
   private int numberOfCopies = 5;
 
-  public CFACloner(final CFA pCfa, Configuration pConfig, LogManager pLogger)
+  public CFACloner(final CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException {
     this.cfa = pCfa;
     pConfig.inject(this);

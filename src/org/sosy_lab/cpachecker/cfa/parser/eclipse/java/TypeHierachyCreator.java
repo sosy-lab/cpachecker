@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.*;
 
 import java.util.List;
 import java.util.Set;
@@ -87,8 +86,6 @@ class TypeHierachyCreator extends ASTVisitor {
  *
  * @param pLogger Logger logging progress.
  * @param pTypeTable The type table of the type hierarchy, to be filled with the created types
- * @param pTypes Resulting Types are inserted in this map.
- * @param pTypeOfFiles Maps types to the files they were extracted from.
  */
   public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable) {
     logger = pLogger;
@@ -105,9 +102,6 @@ class TypeHierachyCreator extends ASTVisitor {
    * When calling <code>createTypeHierachy</code>, the file names will be set according to the
    * parsed ASTs. Otherwise, the file name provided in this method will be used.</p>
    *
-   * @param pLogger
-   * @param pTypeTable
-   * @param fileName
    */
   public TypeHierachyCreator(LogManager pLogger, THTypeTable pTypeTable, String fileName) {
     logger = pLogger;
