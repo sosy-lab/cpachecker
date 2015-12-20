@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -96,13 +97,13 @@ class EclipseCParser implements CParser {
   private final Timer cfaTimer = new Timer();
 
   public EclipseCParser(Configuration pConfig, LogManager pLogger,
-      Dialect dialect, MachineModel pMachine) {
+      Dialect pDialect, MachineModel pMachine) {
 
     this.logger = pLogger;
     this.machine = pMachine;
     this.config = pConfig;
 
-    switch (dialect) {
+    switch (pDialect) {
     case C99:
       language = new CLanguage(new ANSICParserExtensionConfiguration());
       break;
@@ -136,36 +137,60 @@ class EclipseCParser implements CParser {
     return wrapCode(pFileName, code);
   }
 
+  private static interface FileParseWrapper {
+    public FileContent wrap(String pFileName, FileToParse pContent) throws IOException;
+  }
+
+  private ParseResult parseSomething(List<? extends FileToParse> pInput,
+      CSourceOriginMapping pSourceOriginMapping,
+      FileParseWrapper pWrapperFunction)
+          throws CParserException, InvalidConfigurationException {
+
+    Preconditions.checkNotNull(pInput);
+    Preconditions.checkNotNull(pSourceOriginMapping);
+    Preconditions.checkNotNull(pWrapperFunction);
+
+    Map<String, String> fileNameMapping = new HashMap<>();
+    List<IASTTranslationUnit> astUnits = new ArrayList<>();
+
+    for (FileToParse f : pInput) {
+      final String fileName = fixPath(f.getFileName());
+      fileNameMapping.put(fileName, f.getFileName());
+
+      try {
+        astUnits.add(parse(pWrapperFunction.wrap(fileName, f)));
+      } catch (IOException e) {
+        throw new CParserException("IO failed!", e);
+      }
+    }
+
+    return buildCFA(astUnits, new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping));
+  }
+
   @Override
   public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, IOException, InvalidConfigurationException {
 
-    Map<String, String> fileNameMapping = new HashMap<>();
-
-    List<IASTTranslationUnit> astUnits = new ArrayList<>();
-    for (FileToParse f: pFilenames) {
-      String fileName = fixPath(f.getFileName());
-      fileNameMapping.put(fileName, f.getFileName());
-      astUnits.add(parse(wrapFile(fileName)));
-    }
-    return buildCFA(
-        astUnits, new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
+    return parseSomething(pFilenames, sourceOriginMapping, new FileParseWrapper() {
+      @Override
+      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
+        return wrapFile(pFileName);
+      }
+    });
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping)
+  public ParseResult parseString(List<FileContentToParse> pCodeFragments, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
 
-    Map<String, String> fileNameMapping = new HashMap<>();
+    return parseSomething(pCodeFragments, sourceOriginMapping, new FileParseWrapper() {
+      @Override
+      public FileContent wrap(String pFileName, FileToParse pContent) throws IOException {
+        Preconditions.checkArgument(pContent instanceof FileContentToParse);
+        return wrapCode(pFileName, ((FileContentToParse)pContent).getFileContent());
+      }
+    });
 
-    List<IASTTranslationUnit> astUnits = new ArrayList<>();
-    for (FileContentToParse f : codeFragments) {
-      String fileName = fixPath(f.getFileName());
-      fileNameMapping.put(fileName, f.getFileName());
-      astUnits.add(parse(wrapCode(fileName, f.getFileContent())));
-    }
-    return buildCFA(
-        astUnits, new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
   }
 
   /**
@@ -174,9 +199,11 @@ class EclipseCParser implements CParser {
   @Override
   public ParseResult parseFile(String pFileName, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, IOException, InvalidConfigurationException {
+
     String fileName = fixPath(pFileName);
     Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
     IASTTranslationUnit unit = parse(wrapFile(fileName));
+
     return buildCFA(
         ImmutableList.of(unit),
         new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
@@ -189,9 +216,11 @@ class EclipseCParser implements CParser {
   public ParseResult parseString(
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
+
     String fileName = fixPath(pFileName);
     Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
     IASTTranslationUnit unit = parse(wrapCode(fileName, pCode));
+
     return buildCFA(
         ImmutableList.of(unit),
         new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
