@@ -137,7 +137,9 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, IOException, InvalidConfigurationException {
+
     Map<String, String> fileNameMapping = new HashMap<>();
 
     List<IASTTranslationUnit> astUnits = new ArrayList<>();
@@ -151,7 +153,9 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
+  public ParseResult parseString(List<FileContentToParse> codeFragments, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, InvalidConfigurationException {
+
     Map<String, String> fileNameMapping = new HashMap<>();
 
     List<IASTTranslationUnit> astUnits = new ArrayList<>();
@@ -194,7 +198,9 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public CAstNode parseSingleStatement(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
+  public CAstNode parseSingleStatement(String pCode, Scope scope)
+      throws CParserException, InvalidConfigurationException {
+
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -224,7 +230,9 @@ class EclipseCParser implements CParser {
   }
 
   @Override
-  public List<CAstNode> parseStatements(String pCode, Scope scope) throws CParserException, InvalidConfigurationException {
+  public List<CAstNode> parseStatements(String pCode, Scope scope)
+      throws CParserException, InvalidConfigurationException {
+
     // parse
     IASTTranslationUnit ast = parse(wrapCode("", pCode));
 
@@ -308,7 +316,9 @@ class EclipseCParser implements CParser {
     }
   }
 
-  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode) throws CFAGenerationRuntimeException, CoreException {
+  private IASTTranslationUnit getASTTranslationUnit(FileContent pCode)
+      throws CFAGenerationRuntimeException, CoreException {
+
     return language.getASTTranslationUnit(pCode,
                                           StubScannerInfo.instance,
                                           FileContentProvider.instance,
@@ -324,6 +334,7 @@ class EclipseCParser implements CParser {
    */
   private ParseResult buildCFA(List<IASTTranslationUnit> asts,
       CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
+
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
 
