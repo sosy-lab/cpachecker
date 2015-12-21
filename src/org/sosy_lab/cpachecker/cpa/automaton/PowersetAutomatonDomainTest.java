@@ -28,6 +28,7 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -69,6 +70,7 @@ public class PowersetAutomatonDomainTest {
                 q1,
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -76,6 +78,7 @@ public class PowersetAutomatonDomainTest {
                 q2,
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
@@ -86,6 +89,7 @@ public class PowersetAutomatonDomainTest {
                 q2,
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -93,6 +97,7 @@ public class PowersetAutomatonDomainTest {
                 q3,
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
@@ -103,6 +108,7 @@ public class PowersetAutomatonDomainTest {
                 q2,
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
@@ -110,6 +116,7 @@ public class PowersetAutomatonDomainTest {
                 q3,
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
+                ImmutableList.<AAstNode> of(),
                 0, 0, ImmutableMap.<Property, ResultValue<?>>of())
     }));
   }

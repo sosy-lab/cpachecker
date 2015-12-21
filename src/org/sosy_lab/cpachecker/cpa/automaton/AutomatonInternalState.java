@@ -28,7 +28,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 /** Represents a State in the automaton.
@@ -54,7 +56,8 @@ public class AutomatonInternalState {
                                     AutomatonBoolExpr.TRUE,
                                     null,
                                     true,
-                                    Collections.<AutomatonAction>emptyList(),
+                                    ImmutableList.<AAstNode>of(),
+                                    ImmutableList.<AutomatonAction>of(),
                                     BOTTOM, ImmutableSet.<SafetyProperty>of())),
       true, false);
 
@@ -65,7 +68,8 @@ public class AutomatonInternalState {
                                     AutomatonBoolExpr.TRUE,
                                     null,
                                     true,
-                                    Collections.<AutomatonAction>emptyList(),
+                                    ImmutableList.<AAstNode>of(),
+                                    ImmutableList.<AutomatonAction>of(),
                                     BOTTOM, ImmutableSet.<SafetyProperty>of())),
       false, false);
 
@@ -96,6 +100,7 @@ public class AutomatonInternalState {
         pSelfTransitionExpr,
         null,
         true,
+        ImmutableList.<AAstNode>of(),
         Collections.<AutomatonAction>emptyList(),
         this,
         ImmutableSet.<SafetyProperty>of()));

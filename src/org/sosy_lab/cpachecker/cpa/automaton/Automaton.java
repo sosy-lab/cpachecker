@@ -67,6 +67,7 @@ public class Automaton {
     this.initVars = pVars;
 
     Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pStates.size());
+
     for (AutomatonInternalState q : pStates) {
       // Check for duplicated state names in the input
       if (nameToState.put(q.getName(), q) != null) {

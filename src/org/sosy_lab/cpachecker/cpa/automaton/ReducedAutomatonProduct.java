@@ -328,6 +328,7 @@ public final class ReducedAutomatonProduct {
               Collections.singletonList(t.assertion),
               t.assumption,
               t.assumptionTruth,
+              t.shadowCode,
               t.actions,
               succ.getStateName(),
               null,

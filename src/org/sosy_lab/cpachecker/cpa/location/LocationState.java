@@ -34,7 +34,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeFactory;
+import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -95,7 +95,7 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
         shadowOnLocation = pShadowOnLocation;
 
-        final MultiEdge codeEdges = CFAEdgeFactory.INSTANCE.createEdgeForNodeSequence(this, pLeavingShadowCode, pShadowOnLocation);
+        final MultiEdge codeEdges = ShadowCFAEdgeFactory.INSTANCE.createEdgeForNodeSequence(this, pLeavingShadowCode, pShadowOnLocation);
 
         addLeavingEdge(codeEdges);
       }

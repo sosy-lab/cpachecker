@@ -86,6 +86,7 @@ public class AutomatonStateARGCombiningHelper {
           qualifiedAutomatonStateNameToInternalState.get(qualifiedName),
           nameToCPA.get(toReplace.getOwningAutomatonName()),
           toReplace.getAssumptions(),
+          toReplace.getShadowCode(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
           violatedProperties);

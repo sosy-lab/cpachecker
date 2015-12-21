@@ -59,6 +59,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -596,6 +597,7 @@ public class AutomatonGraphmlParser {
               assertions,
               assumes,
               pAssumeTruth,
+              ImmutableList.<AAstNode>of(),
               pActions,
               pTargetStateId);
     }
@@ -604,6 +606,7 @@ public class AutomatonGraphmlParser {
             pAssertions,
             pAssumptions,
             pAssumeTruth,
+            ImmutableList.<AAstNode>of(),
             pActions,
             pTargetStateId);
   }
@@ -634,9 +637,10 @@ public class AutomatonGraphmlParser {
         List<AutomatonBoolExpr> pAssertions,
         ImmutableList<AStatement> pAssumptions,
         boolean pAssumeTruth,
+        List<AAstNode> pShadowCode,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
-      super(pTriggers, pAssertions, pAssumptions, pAssumeTruth, pActions, pTargetStateId);
+      super(pTriggers, pAssertions, pAssumptions, pAssumeTruth, pShadowCode, pActions, pTargetStateId);
     }
 
     private ViolationCopyingAutomatonTransition(

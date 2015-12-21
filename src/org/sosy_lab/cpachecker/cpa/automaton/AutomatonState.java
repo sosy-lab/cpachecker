@@ -83,6 +83,7 @@ public class AutomatonState
           AutomatonInternalState.TOP,
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
+          ImmutableList.<AAstNode> of(),
           0, 0, null);
     }
 
@@ -106,6 +107,7 @@ public class AutomatonState
           AutomatonInternalState.INACTIVE,
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
+          ImmutableList.<AAstNode> of(),
           0, 0, null);
     }
 
@@ -128,6 +130,7 @@ public class AutomatonState
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA, ImmutableList.<Pair<AStatement, Boolean>> of(),
+          ImmutableList.<AAstNode> of(),
           0, 0, null);
     }
 
@@ -147,6 +150,7 @@ public class AutomatonState
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<Pair<AStatement, Boolean>> assumptions;
+  private final ImmutableList<AAstNode> shadowCode;
 
   private final Map<? extends Property, ResultValue<?>> violatedPropertyInstance;
 
@@ -156,6 +160,7 @@ public class AutomatonState
   static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
+      List<AAstNode> pShadowCode,
       int successfulMatches, int failedMatches,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
@@ -163,7 +168,8 @@ public class AutomatonState
       return pAutomatonCPA.getBottomState();
     } else {
       return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
-          pInstantiatedAssumes, successfulMatches, failedMatches,
+          pInstantiatedAssumes, pShadowCode,
+          successfulMatches, failedMatches,
           pViolatedProperties);
     }
   }
@@ -175,6 +181,7 @@ public class AutomatonState
 
     return automatonStateFactory(pVars, pInternalState, pAutomatonCPA,
         ImmutableList.<Pair<AStatement, Boolean>> of(),
+        ImmutableList.<AAstNode> of(),
         successfulMatches, failedMatches, pViolatedProperties);
   }
 
@@ -182,6 +189,7 @@ public class AutomatonState
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
+      List<AAstNode> pShadowCode,
       int successfulMatches,
       int failedMatches,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
@@ -192,6 +200,7 @@ public class AutomatonState
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
     this.assumptions = pInstantiatedAssumes;
+    this.shadowCode = ImmutableList.copyOf(pShadowCode);
 
     if (isTarget()) {
       checkArgument(pViolatedProperties.size() > 0);
@@ -371,7 +380,7 @@ public class AutomatonState
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
       super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA,
-          pPreviousState.getAssumptions(), -1, -1, null);
+          pPreviousState.getAssumptions(), pPreviousState.getShadowCode(), -1, -1, null);
       previousState = pPreviousState;
     }
 
@@ -525,9 +534,14 @@ public class AutomatonState
     matches = pMatches;
   }
 
+
+  public ImmutableList<AAstNode> getShadowCode() {
+    return shadowCode;
+  }
+
   @Override
   public List<AAstNode> getOutgoingShadowCode(CFANode pContinueTo) {
-    return ImmutableList.of();
+    return shadowCode;
   }
 
 

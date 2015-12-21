@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 public class LocationTransferRelation implements TransferRelation {
 
@@ -102,21 +103,27 @@ public class LocationTransferRelation implements TransferRelation {
     //    but get woven from a different source, for example, a specification (property) automata.
     //
 
-    Collection<AbstractStateWithShadowCode> shadowingStates =
-        AbstractStates.extractStatesByType(e, AbstractStateWithShadowCode.class);
+    List<AbstractStateWithShadowCode> shadowingStates = Lists.newArrayList();
+    for (AbstractState o: pOtherElements) {
+      shadowingStates.addAll(AbstractStates.extractStatesByType(o, AbstractStateWithShadowCode.class));
+    }
 
-    Preconditions.checkState(shadowingStates.size() <= 1, "At most one shadowing state supported (at the moment)!");
+    if (shadowingStates.size() > 0) {
 
-    if (!shadowingStates.isEmpty()) {
-      // There is an element (component of the composite state) in the analysis
-      // that provides shadow locations/transitions.
-      AbstractStateWithShadowCode shadowProvider = shadowingStates.iterator().next();
+      // There are elements (components of the composite state) in the analysis
+      // that provide shadow locations/transitions.
 
-      List<AAstNode> shadowCodeSequence = shadowProvider.getOutgoingShadowCode(e.getLocationNode());
-      if (shadowCodeSequence.iterator().hasNext()) {
-        // There are shadow code that must get woven...
+      List<AAstNode> shadowingCodeSequence = Lists.newLinkedList();
 
-        return ImmutableSet.of(factory.createStateWithShadowCode(shadowCodeSequence, e.getLocationNode()));
+      for (AbstractStateWithShadowCode shadowProvider: shadowingStates) {
+        List<AAstNode> shadowCode = shadowProvider.getOutgoingShadowCode(e.getLocationNode());
+        shadowingCodeSequence.addAll(shadowCode);
+      }
+
+      if (shadowingCodeSequence.size() > 0) {
+
+        // There is shadow code that must get woven...
+        return ImmutableSet.of(factory.createStateWithShadowCode(shadowingCodeSequence, e.getLocationNode()));
       }
 
     }
