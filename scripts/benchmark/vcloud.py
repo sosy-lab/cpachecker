@@ -139,10 +139,9 @@ def getCloudInput(benchmark):
     outputDir = benchmark.log_folder
     absOutputDir = os.path.abspath(outputDir)
     absWorkingDir = os.path.abspath(workingDir)
-    absScriptsPath = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
     absToolpaths = list(map(os.path.abspath, toolpaths))
     absSourceFiles = list(map(os.path.abspath, sourceFiles))
-    absBaseDir = util.common_base_dir(absSourceFiles + absToolpaths + [absScriptsPath])
+    absBaseDir = util.common_base_dir(absSourceFiles + absToolpaths)
 
     if absBaseDir == "": sys.exit("No common base dir found.")
 
@@ -153,7 +152,7 @@ def getCloudInput(benchmark):
     # build the input for the cloud,
     # see external vcloud/README.txt for details.
     cloudInput = [
-                toTabList(absToolpaths + [absScriptsPath]),
+                toTabList(absToolpaths),
                 toTabList([absBaseDir, absOutputDir, absWorkingDir]),
                 toTabList(requirements)
             ]
