@@ -19,6 +19,7 @@ body {
     border-bottom: solid 2px;
     border-bottom-color: lightgrey;
 }
+
 .sections{
     position: relative;
     height: 100%;
@@ -74,6 +75,7 @@ height: 25px;
     position:relative;
     float: left;
     width: 25%;
+    min-width: 70px;
     height: inherit;
     background-color: white;
     border: solid 4px;
@@ -181,6 +183,7 @@ td:first-child {
 
 .markedARGNode polygon{
     fill: #ff9c00;
+
 }
 .markedTableElement{
     border: solid 2px;
@@ -220,10 +223,14 @@ td:first-child {
 .cfaContent{
     margin: 20px;
     margin-top: 45px;
+    /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
+    display: inline-block;
 }
 .argContent{
     margin: 20px;
     margin-top: 45px;
+    /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
+    display: inline-block;
 }
 .edit-line{
     position: fixed;

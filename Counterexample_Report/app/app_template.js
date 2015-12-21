@@ -1,27 +1,27 @@
 /**
  * Created by magdalena on 06.07.15.
  */
-//(function(){})() --> diese Schreibweise macht eine Funktion in JS "self-invoking"
+//(function(){})() --> this notation makes a function in JS "self-invoking"
 (function() {
     var app = angular.module('report', []);
     app.controller('ReportController', ['$anchorScroll', '$location', function($anchorScroll, $location){
         this.date = date;
         this.logo = logo;
 
-        //Inititalize Tab 1
+        //the tab that is shown
         this.tab = 1;
 
-        //Selected Line in the Errorpath
+        //the line (errorpath) that is selected
         this.selected_ErrLine = null;
 
-        //Available Functions (CFA-Graphs)
+        //available functions (cfa-graphs)
         this.functions = functions;
 
-        //Help-Button-Content
+        //help-button-content
         this.help_errorpath = help_errorpath;
         this.help_externalFiles = help_externalFiles;
 
-        //Selected CFA-Graph
+        //selected cfa-graph (index = -1 means the function does not exist)
         if (functions.indexOf("main" != -1)) {
             this.selectedCFAFunction = functions.indexOf("main");
         } else {
@@ -31,7 +31,7 @@
         this.zoomFactorCFA = 100;
         this.zoomFactorARG = 100;
 
-        //preprocess Errorpath-Data for left content
+        //preprocess errorpath-data for left content
         this.errorPathData = [];
 
         this.getValues = function(val){
@@ -39,6 +39,7 @@
             if(val != "") {
                 var singleStatements = val.split("\n");
                 for (var i = 0; i < singleStatements.length-1; i++) {
+                    //WHY SLICE-METHOD?
                     values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
                 }
             }
@@ -48,6 +49,7 @@
         var level = 0;
         for(var a = 0; a<errorPathData.length; a++) {
             var errPathElem = errorPathData[a];
+            //do not show start, return and blank edges
             if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
                 if (errPathElem.source in fCallEdges) {
                     errPathElem.target = fCallEdges[errPathElem.source][0];
@@ -95,7 +97,6 @@
             var button = $event.currentTarget.innerHTML;
             var line;
             if (button == "Prev" && (this.selected_ErrLine.substring("errpath-".length) == 0 || this.selected_ErrLine == null)) {
-
             } else if (button == "Prev") {
                 line = parseInt(this.selected_ErrLine.substring("errpath-".length)) - 1;
                 this.setLine("errpath-" + line);
@@ -108,7 +109,6 @@
                 this.markCFAedge(0);
                 this.markARGnode(0);
             } else if (button == "Next" && (this.selected_ErrLine.substring("errpath-".length) == this.errorPathData.length -1)) {
-
             } else if (button == "Next") {
                 line = parseInt(this.selected_ErrLine.substring("errpath-".length)) + 1;
                 this.setLine("errpath-" + line);
@@ -118,7 +118,7 @@
             }
         };
 
-        //gets called when element with source-node-number in Errorpath is clicked
+        //gets called when '-V-'button in errorpath is clicked
         this.showValues = function($event){
             var element = $event.currentTarget;
             if (element.classList.contains("markedTableElement")) {
@@ -128,17 +128,17 @@
             }
         };
 
+        //this is for the search-functionality
         this.checkIfEnter = function($event){
             if($event.keyCode == 13){
                 this.searchFor();
             }
         }
 
-
         this.numOfValueMatches = 0;
         this.numOfDescriptionMatches = 0;
         this.searchFor = function(){
-            //you have to search for it that way, because display:none does not allow direct search
+            //you have to get the element this way, because display:none does not allow direct search
             var matchesDiv = document.getElementsByClassName("markedValues")[0].parentNode;
             if(matchesDiv.style.display != "inline"){
                 matchesDiv.style.display = "inline";
@@ -162,36 +162,33 @@
                 allMarkedValueDescElements[0].classList.remove("markedValueDescElement");
             }
             var searchedString = document.getElementsByClassName("search-input")[0].value;
-            if(searchedString.trim() != "" && !document.getElementById("optionExactMatch").checked) {
+
+            if (searchedString.trim() != "" && !document.getElementById("optionExactMatch").checked) {
                 for (var l = 0; l < this.errorPathData.length; l++) {
                     var errorPathElem = this.errorPathData[l];
                     if (errorPathElem.val.contains(searchedString) && errorPathElem.desc.contains(searchedString)) {
                         this.numOfValueMatches = this.numOfValueMatches + 1;
                         this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueDescElement");
-                    }
-                    else if (errorPathElem.val.contains(searchedString)) {
+                    } else if (errorPathElem.val.contains(searchedString)) {
                         this.numOfValueMatches = this.numOfValueMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueElement");
-                    }
-                    else if (errorPathElem.desc.contains(searchedString)) {
+                    } else if (errorPathElem.desc.contains(searchedString)) {
                         this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedDescElement");
                     }
                 }
-            } else if(searchedString.trim() != "" && document.getElementById("optionExactMatch").checked) {
+            } else if (searchedString.trim() != "" && document.getElementById("optionExactMatch").checked) {
                 for (var l = 0; l < this.errorPathData.length; l++) {
                     var errorPathElem = this.errorPathData[l];
                     if (searchedString in errorPathElem.newValDict && errorPathElem.desc == searchedString) {
                         this.numOfValueMatches = this.numOfValueMatches + 1;
                         this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueDescElement");
-                    }
-                    else if (searchedString in errorPathElem.newValDict) {
+                    } else if (searchedString in errorPathElem.newValDict) {
                         this.numOfValueMatches = this.numOfValueMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedValueElement");
-                    }
-                    else if (errorPathElem.desc == searchedString) {
+                    } else if (errorPathElem.desc == searchedString) {
                         this.numOfDescriptionMatches = this.numOfDescriptionMatches + 1;
                         document.getElementById("errpath-" + l).getElementsByTagName("td")[1].classList.add("markedDescElement");
                     }
@@ -223,7 +220,6 @@
             }
         };
 
-
         //Behaviour for Click-Elements in ARG
         this.clickedARGElement = function($event){
             var y = $event.currentTarget.id;
@@ -237,7 +233,6 @@
                 this.markCFANode(cfaNodeNumber);
             }
         };
-
 
         //mark correct line in the Source-Tab
         this.lineMarked = false;
@@ -306,17 +301,19 @@
         this.scrollToCFAElement = function(id){
             var element = document.getElementById(id);
             var box = document.getElementsByClassName("cfaContent")[0].parentNode.getBoundingClientRect();
-            /* FUNKTIONIERT auch nicht, weil es nachm cfa-function-wechseln nicht in Kraft tritt FALSCH: Tritt in Kraft, aber ClientRect von unsichtbar ist 0 (s.u.)
-             if (funcChanged) {
+            /*if (funcChanged) {
              xScroll = 0;
              yScroll = 0;
-             }*/
-            //PROBLEM: Koordinaten des Elements sind 0,wenn es nicht sichtbar ist
+             }
+             *///PROBLEM: Coordinates of element are 0, if it is not visible
             var bcr = element.getBoundingClientRect();
-            var xScroll = document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft;
-            var yScroll =  document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop;
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = bcr.left + xScroll - box.left - 10;
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = bcr.top + yScroll - box.top - 50;
+            var cfaContent = document.getElementsByClassName("cfaContent")[0];
+            var xScroll = cfaContent.parentNode.scrollLeft;
+            var yScroll =  cfaContent.parentNode.scrollTop;
+            var xMargin = (cfaContent.style.marginLeft).split("px")[0];
+            var yMargin = (cfaContent.style.marginTop).split("px")[0];
+            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + bcr.width/2;
+            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin + bcr.height/2;
         };
 
         //mark correct ARG-node
@@ -333,14 +330,16 @@
         // scroll to correct ARG-node
         this.scrollToARGElement = function(id){
             var element = document.getElementById(id);
-            var box = document.getElementsByClassName("argContent")[0].parentNode.getBoundingClientRect();
-            var xScroll = document.getElementsByClassName("argContent")[0].parentNode.scrollLeft;
-            var yScroll = document.getElementsByClassName("argContent")[0].parentNode.scrollTop;
+            var argContent = document.getElementsByClassName("argContent")[0];
+            var box = argContent.parentNode.getBoundingClientRect();
+            var xScroll = argContent.parentNode.scrollLeft;
+            var yScroll = argContent.parentNode.scrollTop;
             var bcr = element.getBoundingClientRect();
-            document.getElementsByClassName("argContent")[0].parentNode.scrollLeft = bcr.left + xScroll - box.left - 10;
-            document.getElementsByClassName("argContent")[0].parentNode.scrollTop =  bcr.top + yScroll - box.top - 50;
+            var xMargin = (argContent.style.marginLeft).split("px")[0];
+            var yMargin = (argContent.style.marginTop).split("px")[0];
+            argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + bcr.width/2;
+            argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin + bcr.height/2;
         };
-
 
         //CFA-Controller
         this.setCFAFunction = function(value){
@@ -366,8 +365,20 @@
             mouseDown = false;
             document.onselectstart = null;
             document.onmousedown = null;
+            // Adjust margin of cfaContent
+            var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-20) + "px");
+            var height = (Math.round((document.getElementById("externalFiles_section").offsetHeight/ 2)-50) + "px");
+            var cfaContent = document.getElementsByClassName("cfaContent")[0];
+            var argContent = document.getElementsByClassName("argContent")[0];
+            cfaContent.style.marginLeft = width;
+            cfaContent.style.marginRight = width;
+            cfaContent.style.marginTop = height;
+            cfaContent.style.marginBottom = height;
+            argContent.style.marginLeft = width;
+            argContent.style.marginRight = width;
+            argContent.style.marginTop = height;
+            argContent.style.marginBottom = height;
         };
-
 
         //Tab-Controller
         this.setTab = function(value){
@@ -377,11 +388,10 @@
             return this.tab === value;
         };
 
-
         //Code-Controller
         this.setMouseDown = function(){
             mouseDown = true;
-            //werden benötigt, damit kein Text markiert wird beim Verschieben der middleline (übernommen aus altem)
+            //we need this so that no text gets marked when moving middleline
             document.onselectstart = function(){return false;};
             document.onmousedown = function(){return false;};
         };
@@ -407,6 +417,7 @@
         };
     }]);
 })();
+
 
 var date = Date.now();
 var logo = "http://cpachecker.sosy-lab.org/logo.svg";
@@ -435,98 +446,102 @@ var help_errorpath = "The errorpath leads to the error 'line by line' (Source) o
     "tip: if you search for the (full) name of a variable, add a blank space at the end";
 
 $(function () {
-    $('[data-toggle="popover"]').popover()
+  $('[data-toggle="popover"]').popover()
 })
 
 function init(){
-    var svgElements = document.getElementsByTagName("svg");
-    //set IDs for all CFA-SVGs
-    for(var r = 0; r<svgElements.length-1; r++){
-        var graph = svgElements[r].getElementsByTagName("g")[0];
-        graph.id = "cfaGraph-" + r.toString();
-        var nodes = graph.getElementsByClassName("node");
-        for(var s = 0; s < nodes.length; s++){
-            nodes[s].id = "cfa-" + nodes[s].getElementsByTagName("title")[0].innerHTML;
-            if(nodes[s].getElementsByTagName("title")[0].innerHTML > 100000){
-                nodes[s].classList.add("functionNode");
-            }
-        }
-        var edges = graph.getElementsByClassName("edge");
-        for(var t=0; t<edges.length; t++){
-            var edge = edges[t];
-            var fromto = [];
-            if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
-                fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
-            } else if (edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>")[1] != null) {
-                fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>");
-            } else if (edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;")[1] != null) {
-                fromto = edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;");
-            } else {
-                fromto = edge.getElementsByTagName("title")[0].innerHTML.split("->");
-            }
-            edge.id = "cfa-" + fromto[0] + "->" + fromto[1];
-        }
+  var svgElements = document.getElementsByTagName("svg");
+  //set IDs for all CFA-SVGs
+  for(var r = 0; r<svgElements.length-1; r++){
+    var graph = svgElements[r].getElementsByTagName("g")[0];
+    graph.id = "cfaGraph-" + r.toString();
+    var nodes = graph.getElementsByClassName("node");
+    for(var s = 0; s < nodes.length; s++){
+      nodes[s].id = "cfa-" + nodes[s].getElementsByTagName("title")[0].innerHTML;
+      if(nodes[s].getElementsByTagName("title")[0].innerHTML > 100000){
+        nodes[s].classList.add("functionNode");
+      }
     }
-    //set IDs for the ARG-SVG
-    graph = svgElements[svgElements.length-1].getElementsByTagName("g")[0];
-    graph.id = "argGraph-" + (svgElements.length-1).toString();
-    nodes = graph.getElementsByClassName("node");
-    for(var u = 0; u < nodes.length; u++){
-        nodes[u].id = "arg-" + nodes[u].getElementsByTagName("title")[0].innerHTML;
+    var edges = graph.getElementsByClassName("edge");
+    for(var t=0; t<edges.length; t++){
+      var edge = edges[t];
+      var fromto = [];
+      if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
+        fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
+      } else if (edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>")[1] != null) {
+        fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>");
+      } else if (edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;")[1] != null) {
+        fromto = edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;");
+      } else {
+        fromto = edge.getElementsByTagName("title")[0].innerHTML.split("->");
+      }
+      edge.id = "cfa-" + fromto[0] + "->" + fromto[1];
     }
-    edges = graph.getElementsByClassName("edge");
-    for(var v=0; v<edges.length; v++){
-        edge = edges[v];
-        fromto = [];
-        if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
-            fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
-        } else if (edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>")[1] != null) {
-            fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>");
-        } else if (edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;")[1] != null) {
-            fromto = edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;");
-        } else {
-            fromto = edge.getElementsByTagName("title")[0].innerHTML.split("->");
-        }
-        edge.id = "arg-" + fromto[0] + "->" + fromto[1];
+  }
+  //set IDs for the ARG-SVG
+  graph = svgElements[svgElements.length-1].getElementsByTagName("g")[0];
+  graph.id = "argGraph-" + (svgElements.length-1).toString();
+  nodes = graph.getElementsByClassName("node");
+  for(var u = 0; u < nodes.length; u++){
+    nodes[u].id = "arg-" + nodes[u].getElementsByTagName("title")[0].innerHTML;
+  }
+  edges = graph.getElementsByClassName("edge");
+  for(var v=0; v<edges.length; v++){
+    edge = edges[v];
+    fromto = [];
+    if(edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;")[1] != null){
+      fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;&gt;");
+    } else if (edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>")[1] != null) {
+      fromto = edge.getElementsByTagName("title")[0].innerHTML.split("&#45;>");
+    } else if (edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;")[1] != null) {
+      fromto = edge.getElementsByTagName("title")[0].innerHTML.split("-&gt;");
+    } else {
+      fromto = edge.getElementsByTagName("title")[0].innerHTML.split("->");
     }
+    edge.id = "arg-" + fromto[0] + "->" + fromto[1];
+  }
 
-    //prepare Errorpath-Data for marking in the cfa
-    var returnedges = {};
-    for(key in fCallEdges){
-        var fcalledge = fCallEdges[key];
-        returnedges[fcalledge[1]] = fcalledge[0];
+  //prepare Errorpath-Data for marking in the cfa
+  var returnedges = {};
+  for(key in fCallEdges){
+    var fcalledge = fCallEdges[key];
+    returnedges[fcalledge[1]] = fcalledge[0];
+  }
+  var errPathDataForCFA = [];
+  for(var w = 0; w < errorPathData.length; w++){
+    var source = errorPathData[w].source;
+    var target = errorPathData[w].target;
+    if(source in combinedNodes && target in combinedNodes){
+    } else if(source in combinedNodes){
+      errPathDataForCFA.push(combinedNodes[source] + "->" + target);
+    } else if (source in fCallEdges){
+      errPathDataForCFA.push(source + "->" + fCallEdges[source][0]);
+    } else if (target in returnedges){
+      errPathDataForCFA.push(returnedges[target] + "->" + target);
+    } else {
+      errPathDataForCFA.push(source + "->" + target);
     }
-    var errPathDataForCFA = [];
-    for(var w = 0; w < errorPathData.length; w++){
-        var source = errorPathData[w].source;
-        var target = errorPathData[w].target;
-        if(source in combinedNodes && target in combinedNodes){
+  }
+  for(var x = 0; x < errPathDataForCFA.length; x++){
+    var cfaEdge = document.getElementById("cfa-" + errPathDataForCFA[x]);
+    var path = cfaEdge.getElementsByTagName("path")[0];
+    var poly = cfaEdge.getElementsByTagName("polygon")[0];
+    var text = cfaEdge.getElementsByTagName("text")[0];
+    path.setAttribute("stroke", "red");
+    poly.setAttribute("stroke", "red");
+    poly.setAttribute("fill", "red");
+    if(text != undefined) {
+      text.setAttribute("fill", "red");
+    }
+  }
 
-        }
-        else if(source in combinedNodes){
-            errPathDataForCFA.push(combinedNodes[source] + "->" + target);
-        }
-        else if (source in fCallEdges){
-            errPathDataForCFA.push(source + "->" + fCallEdges[source][0]);
-        }
-        else if (target in returnedges){
-            errPathDataForCFA.push(returnedges[target] + "->" + target);
-        } else {
-            errPathDataForCFA.push(source + "->" + target);
-        }
-    }
-    for(var x = 0; x < errPathDataForCFA.length; x++){
-        var cfaEdge = document.getElementById("cfa-" + errPathDataForCFA[x]);
-        var path = cfaEdge.getElementsByTagName("path")[0];
-        var poly = cfaEdge.getElementsByTagName("polygon")[0];
-        var text = cfaEdge.getElementsByTagName("text")[0];
-        path.setAttribute("stroke", "red");
-        poly.setAttribute("stroke", "red");
-        poly.setAttribute("fill", "red");
-        if(text != undefined) {
-            text.setAttribute("fill", "red");
-        }
-    }
+  //Set margin for CFAs
+  var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-10) + "px");
+  var height = (Math.round(document.getElementById("externalFiles_section").offsetHeight/ 2) + "px");
+  var cfaContent = document.getElementsByClassName("cfaContent")[0];
+  var argContent = document.getElementsByClassName("argContent")[0];
+  cfaContent.style.marginLeft, cfaContent.style.marginRight = (width);
+  cfaContent.style.marginTop, cfaContent.style.marginBottom = (height);
+  argContent.style.marginLeft, argContent.style.marginRight = (width);
+  argContent.style.marginTop, argContent.style.marginBottom = (height);
 };
-
-

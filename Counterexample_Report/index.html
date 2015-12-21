@@ -4,7 +4,7 @@
     <link rel="stylesheet" type="text/css" href="bootstrap-3.3.5-dist/css/bootstrap.min.css"/>
     <link href="app/generic.css" rel="stylesheet" type="text/css">
     <link href="prettify.css" rel="stylesheet" type="text/css">
-    <!--the jquery-script is necessary for bootstrap has to be added BEFORE the bootstrap-script-->
+    <!--the jquery-script is necessary for bootstrap, it has to be added BEFORE the bootstrap-script-->
     <script type="text/javascript" src="jquery-1.11.3.min.js"></script>
     <script type="text/javascript" src="bootstrap-3.3.5-dist/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="angular.js"></script>
@@ -54,7 +54,7 @@
         <div class="fileContent">
             <table id="err_table">
                 <tr id="errpath-{{$index}}" ng-repeat="line in report.errorPathData">
-                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" title="Instantiated Variables" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
+                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
                     <td ng-click="report.clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
                 </tr>
             </table>
@@ -84,9 +84,7 @@
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
         </ul>
-
         <div class="fileContent" ng-show="report.tabIsSet(1)">
-
             <div class="edit-line">
                 <div class="dropdown">
                     <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -4614,21 +4612,21 @@
 <pre id="statistics-36"></pre>
 <pre id="statistics-37">Number of path formula cache hits:   100 (24%)</pre>
 <pre id="statistics-38"></pre>
-<pre id="statistics-39">Time for post operator:                  0.109s</pre>
-<pre id="statistics-40">  Time for path formula creation:        0.106s</pre>
-<pre id="statistics-41">    Actual computation:                  0.188s</pre>
-<pre id="statistics-42">Time for strengthen operator:            0.131s</pre>
-<pre id="statistics-43">  Time for satisfiability checks:        0.129s</pre>
-<pre id="statistics-44">Time for prec operator:                  0.061s</pre>
-<pre id="statistics-45">  Time for abstraction:                  0.060s (Max:     0.034s, Count: 6)</pre>
-<pre id="statistics-46">    Boolean abstraction:                 0.019s</pre>
-<pre id="statistics-47">    Solving time:                        0.013s (Max:     0.011s)</pre>
-<pre id="statistics-48">    Model enumeration time:              0.000s</pre>
+<pre id="statistics-39">Time for post operator:                  0.199s</pre>
+<pre id="statistics-40">  Time for path formula creation:        0.195s</pre>
+<pre id="statistics-41">    Actual computation:                  0.347s</pre>
+<pre id="statistics-42">Time for strengthen operator:            0.249s</pre>
+<pre id="statistics-43">  Time for satisfiability checks:        0.243s</pre>
+<pre id="statistics-44">Time for prec operator:                  0.101s</pre>
+<pre id="statistics-45">  Time for abstraction:                  0.097s (Max:     0.050s, Count: 6)</pre>
+<pre id="statistics-46">    Boolean abstraction:                 0.029s</pre>
+<pre id="statistics-47">    Solving time:                        0.019s (Max:     0.017s)</pre>
+<pre id="statistics-48">    Model enumeration time:              0.001s</pre>
 <pre id="statistics-49">    Time for BDD construction:           0.000s (Max:     0.000s)</pre>
 <pre id="statistics-50">Time for merge operator:                 0.000s</pre>
-<pre id="statistics-51">Time for coverage check:                 0.005s</pre>
-<pre id="statistics-52">  Time for BDD entailment checks:        0.005s</pre>
-<pre id="statistics-53">Total time for SMT solver (w/o itp):     0.141s</pre>
+<pre id="statistics-51">Time for coverage check:                 0.029s</pre>
+<pre id="statistics-52">  Time for BDD entailment checks:        0.029s</pre>
+<pre id="statistics-53">Total time for SMT solver (w/o itp):     0.261s</pre>
 <pre id="statistics-54"></pre>
 <pre id="statistics-55">Number of BDD nodes:                               202</pre>
 <pre id="statistics-56">Size of BDD node table:                            55949</pre>
@@ -4646,21 +4644,21 @@
 <pre id="statistics-68">AutomatonAnalysis (AssertionAutomaton) statistics</pre>
 <pre id="statistics-69">-------------------------------------------------</pre>
 <pre id="statistics-70">Number of states:                                  1</pre>
-<pre id="statistics-71">Total time for successor computation:                  0.026s</pre>
+<pre id="statistics-71">Total time for successor computation:                  0.050s</pre>
 <pre id="statistics-72">Automaton transfers with branching:                0</pre>
 <pre id="statistics-73">Automaton transfer successors:                          763 (count: 763, min: 1, max: 1, avg: 1,00) [1 x 763]</pre>
 <pre id="statistics-74"></pre>
 <pre id="statistics-75">AutomatonAnalysis (ErrorLabelAutomaton) statistics</pre>
 <pre id="statistics-76">--------------------------------------------------</pre>
 <pre id="statistics-77">Number of states:                                  1</pre>
-<pre id="statistics-78">Total time for successor computation:                  0.013s</pre>
+<pre id="statistics-78">Total time for successor computation:                  0.018s</pre>
 <pre id="statistics-79">Automaton transfers with branching:                0</pre>
 <pre id="statistics-80">Automaton transfer successors:                          763 (count: 763, min: 1, max: 1, avg: 1,00) [1 x 763]</pre>
 <pre id="statistics-81"></pre>
 <pre id="statistics-82">AutomatonAnalysis (TerminatingFunctions) statistics</pre>
 <pre id="statistics-83">---------------------------------------------------</pre>
 <pre id="statistics-84">Number of states:                                  1</pre>
-<pre id="statistics-85">Total time for successor computation:                  0.016s</pre>
+<pre id="statistics-85">Total time for successor computation:                  0.028s</pre>
 <pre id="statistics-86">Automaton transfers with branching:                0</pre>
 <pre id="statistics-87">Automaton transfer successors:                          760 (count: 763, min: 0, max: 1, avg: 1,00) [0 x 3, 1 x 760]</pre>
 <pre id="statistics-88"></pre>
@@ -4675,32 +4673,32 @@
 <pre id="statistics-97">Number of times stopped:         3</pre>
 <pre id="statistics-98">Number of times breaked:         3</pre>
 <pre id="statistics-99"></pre>
-<pre id="statistics-100">Total time for CPA algorithm:         0.432s (Max:     0.250s)</pre>
+<pre id="statistics-100">Total time for CPA algorithm:         0.826s (Max:     0.535s)</pre>
 <pre id="statistics-101">  Time for choose from waitlist:      0.004s</pre>
-<pre id="statistics-102">  Time for precision adjustment:      0.071s</pre>
-<pre id="statistics-103">  Time for transfer relation:         0.328s</pre>
+<pre id="statistics-102">  Time for precision adjustment:      0.119s</pre>
+<pre id="statistics-103">  Time for transfer relation:         0.643s</pre>
 <pre id="statistics-104">  Time for merge operator:            0.001s</pre>
-<pre id="statistics-105">  Time for stop operator:             0.012s</pre>
-<pre id="statistics-106">  Time for adding to reached set:     0.004s</pre>
+<pre id="statistics-105">  Time for stop operator:             0.033s</pre>
+<pre id="statistics-106">  Time for adding to reached set:     0.009s</pre>
 <pre id="statistics-107"></pre>
 <pre id="statistics-108">Predicate-Abstraction Refiner statistics</pre>
 <pre id="statistics-109">----------------------------------------</pre>
 <pre id="statistics-110">Avg. length of target path (in blocks):                   6 (count: 3, min: 2, max: 2, avg: 2,00)</pre>
 <pre id="statistics-111">Number of infeasible sliced prefixes:                     0 (count: 0, min: 0, max: 0, avg: 0,00)</pre>
 <pre id="statistics-112"></pre>
-<pre id="statistics-113">Time for refinement:                                   0.349s</pre>
-<pre id="statistics-114">  Counterexample analysis:                0.111s (Max:     0.048s, Calls: 3)</pre>
-<pre id="statistics-115">    Refinement sat check:                 0.060s</pre>
+<pre id="statistics-113">Time for refinement:                                   0.658s</pre>
+<pre id="statistics-114">  Counterexample analysis:                0.177s (Max:     0.082s, Calls: 3)</pre>
+<pre id="statistics-115">    Refinement sat check:                 0.089s</pre>
 <pre id="statistics-116">    Interpolant computation:              0.000s</pre>
 <pre id="statistics-117">  Error path post-processing:                          0.000s</pre>
 <pre id="statistics-118">  Path-formulas extraction:                            0.000s</pre>
-<pre id="statistics-119">  Building the counterexample trace:                   0.111s</pre>
-<pre id="statistics-120">  Extracting precise counterexample:                   0.196s</pre>
+<pre id="statistics-119">  Building the counterexample trace:                   0.178s</pre>
+<pre id="statistics-120">  Extracting precise counterexample:                   0.413s</pre>
 <pre id="statistics-121">  Extracting infeasible sliced prefixes:               0.000s</pre>
 <pre id="statistics-122">  Selecting infeasible sliced prefixes:                0.000s</pre>
-<pre id="statistics-123">  Predicate creation:                                  0.000s</pre>
-<pre id="statistics-124">  Precision update:                                    0.003s</pre>
-<pre id="statistics-125">  ARG update:                                          0.004s</pre>
+<pre id="statistics-123">  Predicate creation:                                  0.001s</pre>
+<pre id="statistics-124">  Precision update:                                    0.005s</pre>
+<pre id="statistics-125">  ARG update:                                          0.006s</pre>
 <pre id="statistics-126"></pre>
 <pre id="statistics-127">Length of refined path (in blocks):                       2 (count: 1, min: 2, max: 2, avg: 2,00)</pre>
 <pre id="statistics-128">Number of affected states:                                1 (count: 1, min: 1, max: 1, avg: 1,00)</pre>
@@ -4723,16 +4721,16 @@
 <pre id="statistics-145">Avg. size of reached set before ref.: 51.00</pre>
 <pre id="statistics-146">Avg. size of reached set after ref.:  3.00</pre>
 <pre id="statistics-147"></pre>
-<pre id="statistics-148">Total time for CEGAR algorithm:       0.793s</pre>
-<pre id="statistics-149">Time for refinements:                 0.360s</pre>
-<pre id="statistics-150">Average time for refinement:          0.120s</pre>
-<pre id="statistics-151">Max time for refinement:              0.247s</pre>
+<pre id="statistics-148">Total time for CEGAR algorithm:       1.506s</pre>
+<pre id="statistics-149">Time for refinements:                 0.680s</pre>
+<pre id="statistics-150">Average time for refinement:          0.226s</pre>
+<pre id="statistics-151">Max time for refinement:              0.501s</pre>
 <pre id="statistics-152"></pre>
 <pre id="statistics-153">Counterexample-Check Algorithm statistics</pre>
 <pre id="statistics-154">-----------------------------------------</pre>
 <pre id="statistics-155">Number of counterexample checks:    1</pre>
 <pre id="statistics-156">Number of infeasible paths:         0 (0%)</pre>
-<pre id="statistics-157">Time for counterexample checks:         0.402s</pre>
+<pre id="statistics-157">Time for counterexample checks:         0.932s</pre>
 <pre id="statistics-158"></pre>
 <pre id="statistics-159">Code Coverage</pre>
 <pre id="statistics-160">-----------------------------</pre>
@@ -4762,29 +4760,29 @@
 <pre id="statistics-184">  Number of target states:       1</pre>
 <pre id="statistics-185">  Size of final wait list        2</pre>
 <pre id="statistics-186"></pre>
-<pre id="statistics-187">Time for analysis setup:          2.491s</pre>
-<pre id="statistics-188">  Time for loading CPAs:          0.809s</pre>
-<pre id="statistics-189">  Time for loading parser:        0.573s</pre>
-<pre id="statistics-190">  Time for CFA construction:      1.025s</pre>
-<pre id="statistics-191">    Time for parsing file(s):     0.425s</pre>
-<pre id="statistics-192">    Time for AST to CFA:          0.255s</pre>
-<pre id="statistics-193">    Time for CFA sanity check:    0.044s</pre>
-<pre id="statistics-194">    Time for post-processing:     0.238s</pre>
+<pre id="statistics-187">Time for analysis setup:          4.631s</pre>
+<pre id="statistics-188">  Time for loading CPAs:          1.699s</pre>
+<pre id="statistics-189">  Time for loading parser:        1.138s</pre>
+<pre id="statistics-190">  Time for CFA construction:      1.619s</pre>
+<pre id="statistics-191">    Time for parsing file(s):     0.685s</pre>
+<pre id="statistics-192">    Time for AST to CFA:          0.386s</pre>
+<pre id="statistics-193">    Time for CFA sanity check:    0.098s</pre>
+<pre id="statistics-194">    Time for post-processing:     0.345s</pre>
 <pre id="statistics-195">      Time for var class.:        0.000s</pre>
-<pre id="statistics-196">    Time for CFA export:          0.485s</pre>
-<pre id="statistics-197">Time for Analysis:                1.195s</pre>
-<pre id="statistics-198">CPU time for analysis:            2.170s</pre>
-<pre id="statistics-199">Total time for CPAchecker:        3.693s</pre>
-<pre id="statistics-200">Total CPU time for CPAchecker:    7.650s</pre>
+<pre id="statistics-196">    Time for CFA export:          0.891s</pre>
+<pre id="statistics-197">Time for Analysis:                2.438s</pre>
+<pre id="statistics-198">CPU time for analysis:            3.100s</pre>
+<pre id="statistics-199">Total time for CPAchecker:        7.097s</pre>
+<pre id="statistics-200">Total CPU time for CPAchecker:   10.310s</pre>
 <pre id="statistics-201"></pre>
-<pre id="statistics-202">Time for Garbage Collector:       0.051s (in 5 runs)</pre>
+<pre id="statistics-202">Time for Garbage Collector:       0.114s (in 5 runs)</pre>
 <pre id="statistics-203">Garbage Collector(s) used:    PS MarkSweep, PS Scavenge</pre>
-<pre id="statistics-204">Used heap memory:                 81MB (    77 MiB) max;     37MB (    35 MiB) avg;     88MB (    84 MiB) peak</pre>
-<pre id="statistics-205">Used non-heap memory:             23MB (    22 MiB) max;     16MB (    15 MiB) avg;     23MB (    22 MiB) peak</pre>
-<pre id="statistics-206">Used in PS Old Gen pool:          21MB (    20 MiB) max;     10MB (     9 MiB) avg;     21MB (    20 MiB) peak</pre>
+<pre id="statistics-204">Used heap memory:                 79MB (    75 MiB) max;     37MB (    36 MiB) avg;     90MB (    86 MiB) peak</pre>
+<pre id="statistics-205">Used non-heap memory:             23MB (    22 MiB) max;     16MB (    16 MiB) avg;     23MB (    22 MiB) peak</pre>
+<pre id="statistics-206">Used in PS Old Gen pool:          16MB (    15 MiB) max;     10MB (     9 MiB) avg;     23MB (    22 MiB) peak</pre>
 <pre id="statistics-207">Allocated heap memory:           107MB (   102 MiB) max;     89MB (    85 MiB) avg</pre>
 <pre id="statistics-208">Allocated non-heap memory:        24MB (    23 MiB) max;     24MB (    23 MiB) avg</pre>
-<pre id="statistics-209">Total process virtual memory:   2755MB (  2627 MiB) max;   2723MB (  2597 MiB) avg</pre>
+<pre id="statistics-209">Total process virtual memory:   2741MB (  2614 MiB) max;   2713MB (  2588 MiB) avg</pre>
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(6)">
 <pre id="config-0">analysis.algorithm.CEGAR = true</pre>
