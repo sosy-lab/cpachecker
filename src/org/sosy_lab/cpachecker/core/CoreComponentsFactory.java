@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
@@ -133,10 +132,6 @@ public class CoreComponentsFactory {
 
   @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
-
-  @Option(secure=true, name="refinePreconditions",
-      description = "Refine the preconditions until the set of unsafe and safe states are disjoint.")
-  private boolean usePreconditionRefinementAlgorithm = false;
 
   @Option(secure=true, name="restartAlgorithmWithARGReplay",
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
@@ -233,10 +228,6 @@ public class CoreComponentsFactory {
 
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
-      }
-
-      if (usePreconditionRefinementAlgorithm) {
-        algorithm = new PreconditionRefinerAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
       }
     }
 

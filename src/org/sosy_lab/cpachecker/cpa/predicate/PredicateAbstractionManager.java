@@ -33,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -60,9 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.precondition.segkro.rules.LinCombineRule;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -82,15 +79,10 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
@@ -180,10 +172,6 @@ public class PredicateAbstractionManager {
       description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
 
-  @Option(secure=true, name = "abstraction.elimDeadVariablePreds",
-      description="Eliminate propositions about dead variables in abstraction predicates by running a generalization procedure.")
-  private boolean elimDeadVariablePredsByGeneralization = false;
-
   private boolean warnedOfCartesianAbstraction = false;
 
   private boolean abstractionReuseDisabledBecauseOfAmbiguity = false;
@@ -202,8 +190,6 @@ public class PredicateAbstractionManager {
 
   private final PredicateAbstractionsStorage abstractionStorage;
 
-  private Optional<LiveVariables> liveVars;
-
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       FormulaManagerView pFmgr,
@@ -211,8 +197,8 @@ public class PredicateAbstractionManager {
       Solver pSolver,
       Configuration config,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      Optional<LiveVariables> pLiveVars) throws InvalidConfigurationException, PredicateParsingFailedException {
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
 
     config.inject(this, PredicateAbstractionManager.class);
@@ -224,7 +210,6 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    liveVars = pLiveVars;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -595,10 +580,9 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
       final SSAMap ssa,
-      final CFANode pLocation) throws SolverException, InterruptedException {
+      final CFANode pLocation) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
-    Multimap<Formula, AbstractionPredicate> elimPredicatesOnDeadVariables = HashMultimap.create();
     ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
 
     for (AbstractionPredicate predicate : pPredicates) {
@@ -613,23 +597,7 @@ public class PredicateAbstractionManager {
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
       Map<String, Formula> predVariables = fmgr.extractFreeVariableMap(instantiatedPredicate);
 
-      final Set<String> deadPredVariables;
-      if (liveVars.isPresent()) {
-        Set<String> liveVariabes = fmgr.instantiate(
-            liveVars.get().getLiveVariableNamesForNode(pLocation),
-            ssa);
-        deadPredVariables = Sets.difference(predVariables.keySet(), liveVariabes);
-      } else {
-        deadPredVariables = Collections.emptySet();
-      }
-
-      if (!deadPredVariables.isEmpty() && elimDeadVariablePredsByGeneralization) {
-
-        for (String var: deadPredVariables) {
-          elimPredicatesOnDeadVariables.put(predVariables.get(var), predicate);
-        }
-
-      } else if (predVariables.isEmpty()
+      if (predVariables.isEmpty()
           || !Sets.intersection(predVariables.keySet(), variables).isEmpty()) {
         // Predicates without variables occur (for example, talking about UFs).
         // We do not know whether they are relevant, so we have to add them.
@@ -640,47 +608,7 @@ public class PredicateAbstractionManager {
       }
     }
 
-    // Do not ignore predicates on dead variables,
-    // but infer new predicates from them that are more general
-    // and that eliminate them.
-    if (!elimPredicatesOnDeadVariables.isEmpty()) {
-      for (Formula deadVar: elimPredicatesOnDeadVariables.keySet()) {
-        Collection<AbstractionPredicate> referencingPreds = elimPredicatesOnDeadVariables.get(deadVar);
-        Collection<AbstractionPredicate> predsWithoutVar = deriveNewPredsWithoutVar(deadVar, referencingPreds);
-        predicateBuilder.addAll(predsWithoutVar);
-      }
-    }
-
     return predicateBuilder.build();
-  }
-
-  private Collection<AbstractionPredicate> deriveNewPredsWithoutVar(
-      final Formula pDeadVar,
-      final Collection<AbstractionPredicate> pReferencingPreds)
-          throws SolverException, InterruptedException {
-
-    LinCombineRule linComb = new LinCombineRule(solver, solver.getSmtAstMatcher());
-
-    Multimap<String, Formula> ruleVarBinding = HashMultimap.create();
-    ruleVarBinding.put("e", fmgr.uninstantiate(pDeadVar));
-
-    Collection<BooleanFormula> conjunctiveInputPredicates = Collections2.transform(
-        pReferencingPreds, new Function<AbstractionPredicate, BooleanFormula>() {
-      @Override
-      public BooleanFormula apply(AbstractionPredicate pArg0) {
-        return pArg0.getSymbolicAtom();
-      }
-    });
-
-    Set<BooleanFormula> inferred = linComb.apply(conjunctiveInputPredicates, ruleVarBinding);
-
-    return Collections2.transform(
-        inferred, new Function<BooleanFormula, AbstractionPredicate>() {
-      @Override
-      public AbstractionPredicate apply(BooleanFormula pArg0) {
-        return createPredicateFor(pArg0);
-      }
-    });
   }
 
   /**

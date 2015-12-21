@@ -199,10 +199,6 @@ analysis.programNames = no default value
 analysis.reachedSet = PARTITIONED
   enum:     [NORMAL, LOCATIONMAPPED, PARTITIONED]
 
-# Refine the preconditions until the set of unsafe and safe states are
-# disjoint.
-analysis.refinePreconditions = false
-
 # restart the analysis using a different configuration after unknown result
 analysis.restartAfterUnknown = false
 
@@ -1169,10 +1165,6 @@ cpa.predicate.abstraction.computation = BOOLEAN
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
-
-# Eliminate propositions about dead variables in abstraction predicates by
-# running a generalization procedure.
-cpa.predicate.abstraction.elimDeadVariablePreds = false
 
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
@@ -2435,16 +2427,6 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
-
-# Where should the precondition be exported to?
-precondition.export.target = "precondition.txt"
-
-# (How) should the precondition be exported?
-precondition.export.type = NONE
-  enum:     [NONE, SMTLIB]
-
-# Use the refiner that uses a solver-based interpolation mechanism.
-precondition.solverbasedInterpolation = false
 
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []

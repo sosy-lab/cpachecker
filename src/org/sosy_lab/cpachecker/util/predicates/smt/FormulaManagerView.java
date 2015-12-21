@@ -965,17 +965,6 @@ public class FormulaManagerView {
         );
   }
 
-  public Set<BooleanFormula> uninstantiate(Collection<BooleanFormula> formulas) {
-    return from(formulas)
-        .transform(new Function<BooleanFormula, BooleanFormula>() {
-          @Override
-          public BooleanFormula apply(BooleanFormula pInput) {
-            return uninstantiate(pInput);
-          }
-        })
-        .toSet();
-  }
-
   /**
    * Apply an arbitrary renaming to all free variables and UFs in a formula.
    * @param pFormula The formula in which the renaming should occur.
@@ -1113,52 +1102,6 @@ public class FormulaManagerView {
           }
           @Override
           public Boolean visitAtom(BooleanFormula atom) {
-            return true;
-          }
-        }
-    );
-  }
-
-  /**
-   * Extract all disjuncts of a given boolean formula.
-   * It removes the top-level "and" and "not" operators and returns the rest.
-   */
-  public Collection<BooleanFormula> extractDisjuncts(BooleanFormula f) {
-    return myExtractAtoms(f, false /*splitArithEqualities not supported for disjuncts */,
-        new DefaultBooleanFormulaVisitor<Boolean>(this) {
-          @Override
-          public Boolean visitDefault() {
-            return true;
-          }
-          @Override
-          public Boolean visitNot(BooleanFormula f) {
-            return false;
-          }
-          @Override
-          public Boolean visitAnd(List<BooleanFormula> f) {
-            return false;
-          }
-        }
-    );
-  }
-
-  public Collection<BooleanFormula> extractLiterals(BooleanFormula f) {
-    f = applyTactic(f, Tactic.NNF);
-
-    return myExtractAtoms(f, false /*splitArithEqualities not supported for literals */,
-        new DefaultBooleanFormulaVisitor<Boolean>(this) {
-          @Override
-          public Boolean visitDefault() {
-            return false;
-          }
-
-          @Override
-          public Boolean visitAtom(BooleanFormula atom) {
-            return true;
-          }
-
-          @Override
-          public Boolean visitNot(BooleanFormula f) {
             return true;
           }
         }

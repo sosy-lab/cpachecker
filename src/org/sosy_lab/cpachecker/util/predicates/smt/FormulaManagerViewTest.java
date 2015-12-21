@@ -95,40 +95,6 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testExtractDisjuncts() {
-    BooleanFormula atom1 = imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(1));
-    BooleanFormula atom2 = imgr.greaterThan(imgr.makeVariable("b"), imgr.makeNumber(2));
-    BooleanFormula atom3 = imgr.greaterOrEquals(imgr.makeVariable("c"), imgr.makeNumber(3));
-    BooleanFormula atom4 = imgr.lessThan(imgr.makeVariable("d"), imgr.makeNumber(4));
-    BooleanFormula atom5 = imgr.lessOrEquals(imgr.makeVariable("e"), imgr.makeNumber(5));
-
-    BooleanFormula f = bmgrv.and(ImmutableList.of(
-        bmgrv.or(atom1, atom2), bmgrv.not(bmgrv.or(atom1, atom3)), atom4, atom5));
-
-    assertThat(mgrv.extractDisjuncts(f))
-        .containsExactly(bmgrv.or(atom1, atom2), bmgrv.or(atom1, atom3), stripNot(atom4), stripNot(atom5));
-  }
-
-  @Test
-  public void testExtractLiterals() {
-    BooleanFormula atom1 = imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(1));
-    BooleanFormula atom2 = imgr.greaterThan(imgr.makeVariable("b"), imgr.makeNumber(2));
-    BooleanFormula atom3 = imgr.greaterOrEquals(imgr.makeVariable("c"), imgr.makeNumber(3));
-    BooleanFormula atom4 = imgr.lessThan(imgr.makeVariable("d"), imgr.makeNumber(4));
-    BooleanFormula atom5 = imgr.lessOrEquals(imgr.makeVariable("e"), imgr.makeNumber(5));
-
-    BooleanFormula f = bmgrv.and(ImmutableList.of(
-        bmgrv.or(atom1, atom2), bmgrv.or(atom1, bmgrv.not(atom3)), atom4, atom5));
-
-    assertThat(mgrv.extractLiterals(f))
-        .containsExactly(atom1, atom2, bmgrv.not(atom3), atom4, atom5);
-
-    // TODO: this should really be the following (c.f. FormulaManagerView.extractLiterals)
-//    assertThat(mgrv.extractLiterals(f, false))
-//        .containsExactly(atom1, atom2, atom3, atom4, atom5);
-  }
-
-  @Test
   public void testExtractAtoms() {
     BooleanFormula atom1 = imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(1));
     BooleanFormula atom2 = imgr.greaterThan(imgr.makeVariable("b"), imgr.makeNumber(2));
