@@ -28,18 +28,13 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.*;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -51,7 +46,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public abstract class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
@@ -80,52 +74,10 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
    */
   static class ForwardsShadowLocationState extends LocationState {
 
-    static class ShadowCFANode extends CFANode {
-
-      //
-      //  EnteringEdges(this) == EnteringEdges (OrigianlLocation)
-      //  LeavingEdges(this) == ShadowTransitions
-      //  TargetLocation(ShadowTransitions) == OriginalLocation
-      //
-
-      private final CFANode shadowOnLocation;
-
-      public ShadowCFANode(List<AAstNode> pLeavingShadowCode, CFANode pShadowOnLocation) {
-        super(pShadowOnLocation.getFunctionName());
-
-        shadowOnLocation = pShadowOnLocation;
-
-        final MultiEdge codeEdges = ShadowCFAEdgeFactory.INSTANCE.createEdgeForNodeSequence(this, pLeavingShadowCode, pShadowOnLocation);
-
-        addLeavingEdge(codeEdges);
-      }
-
-      @Override
-      public CFAEdge getEnteringEdge(int pIndex) {
-        return shadowOnLocation.getEnteringEdge(pIndex);
-      }
-
-      @Override
-      public FunctionSummaryEdge getEnteringSummaryEdge() {
-        return shadowOnLocation.getEnteringSummaryEdge();
-      }
-
-      @Override
-      public int getNumEnteringEdges() {
-        return shadowOnLocation.getNumEnteringEdges();
-      }
-
-      @Override
-      public int getReversePostorderId() {
-        return shadowOnLocation.getReversePostorderId();
-      }
-
-    }
-
     private static final long serialVersionUID = -4273114440243620843L;
 
-    public ForwardsShadowLocationState(List<AAstNode> pShadowCode, CFANode pShadowOfLocation) {
-      super(new ShadowCFANode(ImmutableList.copyOf(pShadowCode), pShadowOfLocation), false);
+    public ForwardsShadowLocationState(CFANode pShadowLocation) {
+      super(pShadowLocation, false);
     }
 
   }

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.BackwardsLocationStateNoTarget;
 import org.sosy_lab.cpachecker.cpa.location.LocationState.ForwardsLocationState;
@@ -58,23 +59,35 @@ public class LocationStateFactory {
       + " without following function calls (in this case FunctionSummaryEdges are used)")
   private boolean followFunctionCalls = true;
 
-  public LocationStateFactory(CFA pCfa, LocationStateType locationType, Configuration config)
+  private final LocationStateType locationType;
+  private final CFA cfa;
+
+  public LocationStateFactory(CFA pCfa, LocationStateType pLocationType, Configuration pConfig)
       throws InvalidConfigurationException {
-    config.inject(this);
+
+    Preconditions.checkNotNull(pConfig);
+    pConfig.inject(this);
+
+    locationType = Preconditions.checkNotNull(pLocationType);
+    cfa = Preconditions.checkNotNull(pCfa);
 
     SortedSet<CFANode> allNodes = extractAllNodes(pCfa);
 
-    int maxNodeNumber = allNodes.last().getNodeNumber();
+    final int maxNodeNumber = allNodes.last().getNodeNumber();
     statesByNodeNumber = new LocationState[maxNodeNumber+1];
-    for (CFANode node : allNodes) {
-      LocationState state = locationType == LocationStateType.BACKWARD
-          ? new BackwardsLocationState(node, pCfa, followFunctionCalls)
-          : locationType == LocationStateType.BACKWARDNOTARGET
-              ? new BackwardsLocationStateNoTarget(node, pCfa, followFunctionCalls)
-              : new ForwardsLocationState(node, followFunctionCalls);
 
+    for (CFANode node : allNodes) {
+      LocationState state = createState(node);
       statesByNodeNumber[node.getNodeNumber()] = state;
     }
+  }
+
+  private LocationState createState(CFANode node) {
+    return locationType == LocationStateType.BACKWARD
+        ? new BackwardsLocationState(node, cfa, followFunctionCalls)
+        : locationType == LocationStateType.BACKWARDNOTARGET
+            ? new BackwardsLocationStateNoTarget(node, cfa, followFunctionCalls)
+            : new ForwardsLocationState(node, followFunctionCalls);
   }
 
   private SortedSet<CFANode> extractAllNodes(CFA pCfa) {
@@ -106,20 +119,31 @@ public class LocationStateFactory {
   /**
    * Get a state that represents a node that is part of the CFA.
    *
-   * @param node  The CFA node.
+   * @param pNode  The CFA node.
    * @return      The state that represents the CFA node.
    */
-  public LocationState getState(CFANode node) {
+  public LocationState getState(CFANode pNode) {
 
-    return Preconditions.checkNotNull(statesByNodeNumber[checkNotNull(node).getNodeNumber()],
-        "LocationState for CFANode %s in function %s requested,"
-        + " but this node is not part of the current CFA.",
-        node, node.getFunctionName());
+    final int nodeNumber = checkNotNull(pNode).getNodeNumber();
+
+    if (nodeNumber >= statesByNodeNumber.length) {
+      return createState(pNode);
+
+    } else {
+      return Preconditions.checkNotNull(statesByNodeNumber[nodeNumber],
+          "LocationState for CFANode %s in function %s requested,"
+              + " but this node is not part of the current CFA.",
+              pNode, pNode.getFunctionName());
+    }
   }
 
   public LocationState createStateWithShadowCode(List<AAstNode> pShadowCode,
       CFANode pEndInNodeOfCfa) {
 
-    return new LocationState.ForwardsShadowLocationState(pShadowCode, pEndInNodeOfCfa);
+    List<CFAEdge> shadowEdges = ShadowCFAEdgeFactory.INSTANCE.createEdgesForNodeSequence(pShadowCode, pEndInNodeOfCfa);
+
+    Preconditions.checkState(shadowEdges.size() > 0);
+
+    return new LocationState.ForwardsShadowLocationState(shadowEdges.get(0).getPredecessor());
   }
 }

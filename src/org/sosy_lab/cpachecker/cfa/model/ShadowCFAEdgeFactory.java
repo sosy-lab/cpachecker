@@ -23,10 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -39,42 +46,8 @@ public enum ShadowCFAEdgeFactory {
 
   public static class ShadowCFANode extends CFANode {
 
-    //
-    //  EnteringEdges(this) == EnteringEdges (OrigianlLocation)
-    //  LeavingEdges(this) == ShadowTransitions
-    //  TargetLocation(ShadowTransitions) == OriginalLocation
-    //
-
-    private final CFANode shadowOnLocation;
-
-    public ShadowCFANode(List<AAstNode> pLeavingShadowCode, CFANode pShadowOnLocation) {
-      super(pShadowOnLocation.getFunctionName());
-
-      shadowOnLocation = pShadowOnLocation;
-
-      final MultiEdge codeEdges = ShadowCFAEdgeFactory.INSTANCE.createEdgeForNodeSequence(this, pLeavingShadowCode, pShadowOnLocation);
-
-      addLeavingEdge(codeEdges);
-    }
-
-    @Override
-    public CFAEdge getEnteringEdge(int pIndex) {
-      return shadowOnLocation.getEnteringEdge(pIndex);
-    }
-
-    @Override
-    public FunctionSummaryEdge getEnteringSummaryEdge() {
-      return shadowOnLocation.getEnteringSummaryEdge();
-    }
-
-    @Override
-    public int getNumEnteringEdges() {
-      return shadowOnLocation.getNumEnteringEdges();
-    }
-
-    @Override
-    public int getReversePostorderId() {
-      return shadowOnLocation.getReversePostorderId();
+    public ShadowCFANode(String pInFunctionWithName) {
+      super(pInFunctionWithName);
     }
 
   }
@@ -89,62 +62,69 @@ public enum ShadowCFAEdgeFactory {
    *    and {@code CFAEdge}s (that are not part of the CFA).
    *
    * @param pCode       A sequence [op1, op2, ... opN] of operations (declarations, assumes, statements, ...).
-   * @param pSuccessor  The {@code CFANode} lSucc where the last operation should lead to.
+   * @param pSuccessorInCfa  The {@code CFANode} lSucc where the last operation should lead to.
    * @return            List of dummy {@code CFAEdge}s, i.e., [(l1', op1, l1''), (l1'', op2, l1'''), ... , (l1', opN, lSucc)].
    */
-  public List<CFAEdge> createEdgesForNodeSequence(List<AAstNode> pCode, CFANode pSuccessor) {
+  public List<CFAEdge> createEdgesForNodeSequence(List<AAstNode> pCode, CFANode pSuccessorInCfa) {
     Preconditions.checkNotNull(pCode);
-    Preconditions.checkArgument(pCode.size() > 1);
-    Preconditions.checkNotNull(pSuccessor);
+    Preconditions.checkArgument(pCode.size() > 0);
+    Preconditions.checkNotNull(pSuccessorInCfa);
 
     LinkedList<CFAEdge> result = Lists.newLinkedList();
-    List<CFANode> shadowLocations = Lists.newArrayList();
 
-    //
-    //  l0  --op1--> l1
-    //
+    Iterator<AAstNode> it = pCode.iterator();
 
-//    Iterator<AAstNode> it = pCode.iterator();
-//
-//    while (it.hasNext()) {
-//      final AAstNode node = it.next();
-//
-//      if (it.hasNext()) {
-//        succLoc = new ShadowCFANode(pLeavingShadowCode, pShadowOnLocation);
-//      } else {
-//        succLoc = pSuccessor;
-//      }
-//
-//      if (node instanceof CAssignment) {
-//
-//      } else if (node instanceof CAssignment) {
-//
-//      } else if (node instanceof CInitializer) {
-//
-//      } else if (node instanceof CReturnStatement) {
-//
-//      } else if (node instanceof CRightHandSide) {
-//
-//      } else if (node instanceof CDeclaration) {
-//        final CDeclaration decl = (CDeclaration) node;
-//        final CDeclarationEdge edge = new CDeclarationEdge(node.toString(), node.getFileLocation(),
-//            pPredecessor, pSuccessor, decl);
-//      } else if (node instanceof AStatement) {
-//
-//      } else {
-//        throw new RuntimeException(String.format("Creating edges for interface %s is not yet implemented!", node.getClass().getSimpleName()));
-//      }
-//
-//      CFAEdge edge = null;
-//
-//    }
+    CFANode predLoc = null;
+    CFANode succLoc = null;
+
+    while (it.hasNext()) {
+      final AAstNode node = it.next();
+
+      predLoc = (predLoc == null)
+        ? new ShadowCFANode(pSuccessorInCfa.getFunctionName())
+            : succLoc;
+
+      if (it.hasNext()) {
+        succLoc = new ShadowCFANode(pSuccessorInCfa.getFunctionName());
+      } else {
+        succLoc = pSuccessorInCfa;
+      }
+
+      final CFAEdge edge;
+
+      if (node instanceof CStatement) {
+        CStatement stmt = (CStatement) node;
+        edge = new CStatementEdge(node.toASTString(), stmt, node.getFileLocation(), predLoc, succLoc);
+
+      } else if (node instanceof CInitializer) {
+        edge = null;
+
+      } else if (node instanceof CDeclaration) {
+        final CDeclaration decl = (CDeclaration) node;
+        final CDeclarationEdge declEdge = new CDeclarationEdge(node.toASTString(), node.getFileLocation(),
+            predLoc, succLoc, decl);
+        edge = declEdge;
+
+      } else if (node instanceof AStatement) {
+        edge = null;
+
+      } else {
+        throw new RuntimeException(String.format("Creating edges for interface %s is not yet implemented!", node.getClass().getSimpleName()));
+      }
+
+      Preconditions.checkState(edge != null, "Each ASTNode has to be reflected in a corresponding CFAEdge! " + node.toString());
+
+      predLoc.addLeavingEdge(edge);
+
+      result.add(edge);
+    }
 
     return result;
   }
 
-  public MultiEdge createEdgeForNodeSequence(CFANode pPredecessor,
-      List<AAstNode> pCode, CFANode pSuccessor) {
-
-    throw new RuntimeException("Implement me");
-  }
+//  public MultiEdge createEdgeForNodeSequence(CFANode pPredecessor,
+//      List<AAstNode> pCode, CFANode pSuccessor) {
+//
+//    throw new RuntimeException("Implement me");
+//  }
 }
