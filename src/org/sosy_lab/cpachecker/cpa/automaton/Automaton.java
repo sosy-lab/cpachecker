@@ -59,16 +59,18 @@ public class Automaton {
   private Optional<Boolean> isObservingOnly = Optional.absent();
 
   public Automaton(AutomatonSafetyPropertyFactory pPropFact,
-      String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
+      String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pRawStates,
       String pInitialStateName) throws InvalidAutomatonException {
 
     this.propertyFactory = Preconditions.checkNotNull(pPropFact);
     this.name = pName;
     this.initVars = pVars;
 
-    Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pStates.size());
+    Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pRawStates.size());
+    List<AutomatonInternalState> postprocessedStates = postprocessStates(pRawStates);
 
-    for (AutomatonInternalState q : pStates) {
+    for (AutomatonInternalState q : postprocessedStates) {
+
       // Check for duplicated state names in the input
       if (nameToState.put(q.getName(), q) != null) {
         throw new InvalidAutomatonException("State " + q.getName() + " exists twice in automaton " + pName);
@@ -100,9 +102,21 @@ public class Automaton {
     }
 
     // set the FollowStates of all Transitions
-    for (AutomatonInternalState q : pStates) {
+    for (AutomatonInternalState q : pRawStates) {
       q.setFollowStates(nameToState);
     }
+  }
+
+  /**
+   * The transitions of the automaton can be annotated with C expressions that
+   *  should get woven during the analysis. This method is responsible for performing the type inference,
+   *  or adding the references to the variable declarations.
+   *
+   * @param pStates   The states (with transitions) to adjust.
+   * @return          A copy of the states with modified transitions.
+   */
+  private List<AutomatonInternalState> postprocessStates(List<AutomatonInternalState> pStates) {
+    return pStates; //TODO: Implement this
   }
 
   public Set<AutomatonInternalState> getStates() {

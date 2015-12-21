@@ -139,11 +139,11 @@ parser code {:
       throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
     }
   }
-
+  
   /**
   * Parses a Specification File and returns the Automata found in the file.
   */
-  public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
+  public static List<Automaton> parseAutomaton(Reader reader, Optional<Path> pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope pScope, Language pLanguage) throws InvalidConfigurationException {
     ComplexSymbolFactory sf = new ComplexSymbolFactory();
     final Path p = pInputFile.or(Paths.get(""));
     Scanner scanner = new AutomatonScanner(reader, p, pLogger, sf);
@@ -155,7 +155,7 @@ parser code {:
     switch (pLanguage) {
     case C:
       CParser cparser = CParser.Factory.getParser(config, pLogger, CParser.Factory.getOptions(config), pMachine);
-      automatonParser = new AutomatonParser(scanner, sf, pLogger, propFactory, cparser, scope);
+      automatonParser = new AutomatonParser(scanner, sf, pLogger, propFactory, cparser, pScope);
       break;
     default:
       automatonParser = new AutomatonParser(scanner, sf, pLogger, propFactory);
