@@ -52,10 +52,6 @@ public enum ShadowCFAEdgeFactory {
 
   }
 
-  public CFAEdge createEdgeForNode(CFANode pPredecessor, AAstNode pCode, CFANode pSuccessor) {
-    throw new RuntimeException("Implement me");
-  }
-
   /**
    * Given a sequence of operations (declarations, assumes, statements, ...)
    *    produce a sequence of dummy {@code CFANode}s,
@@ -122,9 +118,4 @@ public enum ShadowCFAEdgeFactory {
     return result;
   }
 
-//  public MultiEdge createEdgeForNodeSequence(CFANode pPredecessor,
-//      List<AAstNode> pCode, CFANode pSuccessor) {
-//
-//    throw new RuntimeException("Implement me");
-//  }
 }
