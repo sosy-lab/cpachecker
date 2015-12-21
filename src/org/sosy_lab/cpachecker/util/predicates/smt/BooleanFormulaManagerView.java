@@ -84,21 +84,25 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  @Deprecated
   public boolean isNot(BooleanFormula pBits) {
     return manager.isNot(pBits);
   }
 
   @Override
+  @Deprecated
   public boolean isAnd(BooleanFormula pBits) {
     return manager.isAnd(pBits);
   }
 
   @Override
+  @Deprecated
   public boolean isOr(BooleanFormula pBits) {
     return manager.isOr(pBits);
   }
 
   @Override
+  @Deprecated
   public boolean isXor(BooleanFormula pBits) {
     return manager.isXor(pBits);
   }
@@ -145,6 +149,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  @Deprecated
   public <T extends Formula> boolean isIfThenElse(T pF) {
     return manager.isIfThenElse(unwrap(pF));
   }
@@ -165,11 +170,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  @Deprecated
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(pFormula);
   }
 
   @Override
+  @Deprecated
   public boolean isImplication(BooleanFormula pFormula) {
     return manager.isImplication(pFormula);
   }

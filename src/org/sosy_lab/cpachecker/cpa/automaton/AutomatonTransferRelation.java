@@ -38,9 +38,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -64,7 +61,6 @@ import com.google.common.collect.Sets;
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-@Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   private final ControlAutomatonCPA cpa;
@@ -77,9 +73,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
-      LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this);
+  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, LogManager pLogger) {
     this.cpa = pCpa;
     this.logger = pLogger;
   }

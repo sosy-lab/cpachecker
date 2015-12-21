@@ -145,31 +145,37 @@ public class QuantifiedFormulaManagerView
   }
 
   @Override
+  @Deprecated
   public boolean isQuantifier(BooleanFormula pF) {
     return manager.isQuantifier(pF);
   }
 
   @Override
+  @Deprecated
   public boolean isForall(BooleanFormula pF) {
     return manager.isForall(pF);
   }
 
   @Override
+  @Deprecated
   public boolean isExists(BooleanFormula pF) {
     return manager.isExists(pF);
   }
 
   @Override
+  @Deprecated
   public int numQuantifierBound(BooleanFormula pF) {
     return manager.numQuantifierBound(pF);
   }
 
   @Override
+  @Deprecated
   public BooleanFormula getQuantifierBody(BooleanFormula pF) {
     return manager.getQuantifierBody(pF);
   }
 
   @Override
+  @Deprecated
   public boolean isBoundByQuantifier(Formula pF) {
     return manager.isBoundByQuantifier(pF);
   }
