@@ -1121,21 +1121,18 @@ public class FormulaManagerView {
    * @return An optional formula.
    */
   public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
-    return stripNegation.visit(f);
+    return new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>(this) {
+      @Override
+      protected Optional<BooleanFormula> visitDefault() {
+        return Optional.absent();
+      }
+
+      @Override
+      public Optional<BooleanFormula> visitNot(BooleanFormula negated) {
+        return Optional.of(negated);
+      }
+    }.visit(f);
   }
-
-  private final BooleanFormulaVisitor<Optional<BooleanFormula>> stripNegation =
-      new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>(this) {
-        @Override
-        protected Optional<BooleanFormula> visitDefault() {
-          return Optional.absent();
-        }
-
-        @Override
-        public Optional<BooleanFormula> visitNot(BooleanFormula negated) {
-          return Optional.of(negated);
-        }
-      };
 
   /**
    * @see UnsafeFormulaManager#splitNumeralEqualityIfPossible(Formula) for
