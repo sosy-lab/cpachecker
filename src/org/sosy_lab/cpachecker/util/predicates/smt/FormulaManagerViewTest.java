@@ -40,7 +40,6 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
@@ -93,17 +92,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   /** strip the most outer NOT, if there is one, else return the formula unchanged. */
   private BooleanFormula stripNot(final BooleanFormula f) {
-    return new DefaultBooleanFormulaVisitor<BooleanFormula>(mgrv) {
-      @Override
-      public BooleanFormula visitDefault() {
-        return f;
-      }
-      @Override
-      public BooleanFormula visitNot(BooleanFormula notExpr) {
-        // no recursive visit, not needed for testing
-        return notExpr;
-      }
-    }.visit(f);
+    return mgrv.stripNegation(f).or(f);
   }
 
   @Test
