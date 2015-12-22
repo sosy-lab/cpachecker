@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 
 
-public abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
+abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   private final BitVectorInfo info;
 
