@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.ConjunctionSplitter;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
@@ -300,15 +302,14 @@ public final class Solver implements AutoCloseable {
   private void addConstraint(BooleanFormula constraint,
       ProverEnvironment prover, UnsafeFormulaManager ufmgr) {
 
-    if (bfmgr.isAnd(constraint)) {
-      for (int k = 0; k < ufmgr.getArity(constraint); k++) {
-        addConstraint((BooleanFormula)ufmgr.getArg(constraint, k),
-            prover, ufmgr);
-      }
-    } else {
+    List<BooleanFormula> splittedConjunction = new ConjunctionSplitter(fmgr).visit(constraint);
+    if (splittedConjunction == null) {
+      // in this case, we could not split the constraint and use it "as is".
+      splittedConjunction = Collections.singletonList(constraint);
+    }
 
-      //noinspection ResultOfMethodCallIgnored
-      prover.push(constraint);
+    for (BooleanFormula f : splittedConjunction) {
+      addConstraint(f, prover, ufmgr);
     }
   }
 

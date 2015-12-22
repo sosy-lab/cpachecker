@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.Triple;
@@ -249,6 +251,40 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr,
         Map<BooleanFormula, BooleanFormula> pCache) {
       super(pFmgr.getRawFormulaManager(), pCache);
+    }
+  }
+
+  /**
+   * This visitor visits a formula and splits it (recursively) in case of a
+   * conjunction. Otherwise it returns NULL.
+   *
+   * Example: AND(x,AND(y,z)) -> [x,y,z], NOT(x) -> NULL
+   */
+  public static class ConjunctionSplitter
+      extends DefaultBooleanFormulaVisitor<List<BooleanFormula>> {
+
+    protected ConjunctionSplitter(FormulaManagerView pFmgr) {
+      super(pFmgr);
+    }
+
+    @Override
+    protected List<BooleanFormula> visitDefault() {
+      return null;
+    }
+
+    @Override
+    public List<BooleanFormula> visitAnd(List<BooleanFormula> conjunction) {
+      final List<BooleanFormula> result = new ArrayList<>();
+      for (BooleanFormula f : conjunction) {
+        List<BooleanFormula> parts = visit(f);
+        if (parts == null) {
+          result.add(f);
+        } else {
+          // recursive conjunction found
+          result.addAll(parts);
+        }
+      }
+      return result;
     }
   }
 }
