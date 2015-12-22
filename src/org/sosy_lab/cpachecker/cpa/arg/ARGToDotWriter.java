@@ -179,9 +179,12 @@ public class ARGToDotWriter {
       } else {
         // edge exists, use info from edge
         boolean colored = highlightEdge.apply(Pair.of(state, succesorState));
-        if (colored) {
+        if (edge.getPredecessor() instanceof ShadowCFANode) {
+          builder.append("style=\"bold\" color=\"green\" ");
+        } else if (colored) {
           builder.append("color=\"red\" ");
         }
+
         builder.append("label=\"");
         builder.append("Line ");
         builder.append(edge.getLineNumber());
