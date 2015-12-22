@@ -69,17 +69,6 @@ Symbol = {SMTLetter} {SMTLetterDigit}*
   {WhiteSpace}           { /* ignore */ }
 }
 
-<STRING> {
-  \"                             { String value = string.toString();
-                                   string = null;
-                                   yybegin(YYINITIAL);
-                                   return symbol(FormulaSymbols.STRING, value); }
-  [^\"\\]+                       { string.append( yytext() ); }
-  \\\"                           { string.append('\"'); }
-  \\\\                           { string.append('\\'); }
-  \\                             { string.append('\\'); }
-}
-
 /* error fallback */
 [^]                              { return symbol(FormulaSymbols.error, yytext()); }
 <<EOF>>                          { return symbol(FormulaSymbols.EOF, yytext()); }
