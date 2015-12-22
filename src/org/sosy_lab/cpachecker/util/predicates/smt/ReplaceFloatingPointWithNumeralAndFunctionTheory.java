@@ -38,7 +38,7 @@ import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 import org.sosy_lab.solver.api.FunctionFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
+import org.sosy_lab.solver.api.UfDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
@@ -51,7 +51,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
   private final FormulaType<T> formulaType;
 
-  private final UninterpretedFunctionDeclaration<BooleanFormula> isSubnormalUfDecl;
+  private final UfDeclaration<BooleanFormula> isSubnormalUfDecl;
   private final T zero;
   private final T nanVariable;
   private final T plusInfinityVariable;
@@ -106,7 +106,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       T2 result = (T2)pNumber;
       return result;
     } else {
-      UninterpretedFunctionDeclaration<T2> castFunction = functionManager.declareUninterpretedFunction(
+      UfDeclaration<T2> castFunction = functionManager.declareUninterpretedFunction(
           "__cast_" + type + "_to_" + pTargetType + "__",
           pTargetType, type);
       return functionManager.callUninterpretedFunction(castFunction, ImmutableList.of(pNumber));

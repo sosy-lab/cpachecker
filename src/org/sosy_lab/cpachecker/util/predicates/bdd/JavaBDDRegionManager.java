@@ -754,12 +754,12 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitForallQuantifier(List<? extends Formula> pVariables, BooleanFormula pBody) {
+    public BDD visitForAll(List<Formula> pVariables, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public BDD visitExistsQuantifier(List<? extends Formula> pVariables, BooleanFormula pBody) {
+    public BDD visitExists(List<Formula> pVariables, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

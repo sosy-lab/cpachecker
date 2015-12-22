@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -1473,7 +1474,11 @@ public class FormulaManagerView {
 
   public BooleanFormula substitute(
       BooleanFormula f, Map<BooleanFormula, BooleanFormula> replacements) {
-    return unsafeManager.substitute(f, replacements);
+    Map<Formula, Formula> m = new HashMap<>();
+    for (Entry<BooleanFormula, BooleanFormula> e : replacements.entrySet()) {
+      m.put(e.getKey(), e.getValue());
+    }
+    return (BooleanFormula)unsafeManager.substitute(f, m);
   }
 
   /**
