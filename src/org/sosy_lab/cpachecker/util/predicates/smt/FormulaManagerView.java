@@ -77,6 +77,7 @@ import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -1107,6 +1108,34 @@ public class FormulaManagerView {
         }
     );
   }
+
+  /**
+   * Return the negated part of a formula, if the top-level operator is a negation.
+   * I.e., for {@code not f} return {@code f}.
+   *
+   * For removing the outer-most negation of a formula if it is present
+   * or otherwise keeping the original formula, use
+   * {@code f = stripNegation(f).or(f);}.
+   *
+   * @param f The formula, possibly negated.
+   * @return An optional formula.
+   */
+  public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
+    return stripNegation.visit(f);
+  }
+
+  private final BooleanFormulaVisitor<Optional<BooleanFormula>> stripNegation =
+      new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>(this) {
+        @Override
+        protected Optional<BooleanFormula> visitDefault() {
+          return Optional.absent();
+        }
+
+        @Override
+        public Optional<BooleanFormula> visitNot(BooleanFormula negated) {
+          return Optional.of(negated);
+        }
+      };
 
   /**
    * @see UnsafeFormulaManager#splitNumeralEqualityIfPossible(Formula) for

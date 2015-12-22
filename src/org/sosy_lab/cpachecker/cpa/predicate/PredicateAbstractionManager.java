@@ -79,6 +79,7 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -874,9 +875,7 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private class AllSatCallbackImpl
-      extends BooleanFormulaManagerView.DefaultBooleanFormulaVisitor<BooleanFormula>
-      implements AllSatCallback<Region> {
+  private class AllSatCallbackImpl implements AllSatCallback<Region> {
 
     private final RegionBuilder builder;
 
@@ -887,7 +886,6 @@ public class PredicateAbstractionManager {
     private Region formula;
 
     private AllSatCallbackImpl() {
-      super(fmgr);
       builder = rmgr.builder(shutdownNotifier);
 
       stats.abstractionSolveTime.start();
@@ -908,11 +906,13 @@ public class PredicateAbstractionManager {
       // first, let's create the BDD corresponding to the model
       builder.startNewConjunction();
       for (BooleanFormula f : model) {
-        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
-                             // the negation.
-          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
+        Optional<BooleanFormula> inner = fmgr.stripNegation(f);
+        Region region = amgr.getPredicate(inner.or(f)).getAbstractVariable();
+        if (inner.isPresent()) {
+          // TODO: possible bug if the predicate itself contains the negation.
+          builder.addNegativeRegion(region);
         } else {
-          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
+          builder.addPositiveRegion(region);
         }
       }
       builder.finishConjunction();
@@ -921,11 +921,6 @@ public class PredicateAbstractionManager {
 
       regionTime.stop();
 
-    }
-
-    @Override
-    public BooleanFormula visitNot(BooleanFormula negated) {
-      return negated;
     }
 
     @Override
@@ -950,11 +945,6 @@ public class PredicateAbstractionManager {
 
     private int getCount() {
       return count;
-    }
-
-    @Override
-    public BooleanFormula visitDefault() {
-      throw new UnsupportedOperationException();
     }
   }
 

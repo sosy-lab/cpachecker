@@ -91,7 +91,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   }
 
   private BooleanFormula stripNot(BooleanFormula f) {
-    return bmgrv.isNot(f) ? (BooleanFormula)mgr.getUnsafeFormulaManager().getArg(f, 0) : f;
+    return mgrv.stripNegation(f).or(f);
   }
 
   @Test
