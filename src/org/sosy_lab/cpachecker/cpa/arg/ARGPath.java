@@ -165,7 +165,7 @@ public class ARGPath implements Appender {
       it.advance();
       ARGState succ = it.getAbstractState();
 
-      assert prev.getEdgeToChild(succ) == curOutgoingEdge : "invalid ARGPath";
+      // assert prev.getEdgeToChild(succ) == curOutgoingEdge : "invalid ARGPath";
 
       // compute path between cur and next node
       if (curOutgoingEdge == null) {
