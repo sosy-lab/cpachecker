@@ -75,7 +75,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   private boolean pathSlicing = true;
 
   @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
+  private List<PrefixPreference> prefixPreference = Lists.newArrayList(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
    * the offset in the path from where to cut-off the subtree, and restart the analysis
@@ -159,7 +159,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final I pInterpolant
   ) throws CPAException, InterruptedException {
 
-    if(prefixPreference == PrefixPreference.NONE) {
+    if(!isRefinementSelectionEnabled()) {
       return pErrorPath;
     }
 
@@ -370,6 +370,15 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   }
 
   /**
+   * This method checks if refinement selection is enabled.
+   *
+   * @return true, if if refinement selection is enabled, else false
+   */
+  protected boolean isRefinementSelectionEnabled() {
+    return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
+  }
+
+  /**
    * This method decides if path slicing is possible.
    *
    * It is only possible if the respective option is set,
@@ -382,7 +391,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    */
   private boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing
-        && prefixPreference != PrefixPreference.NONE
+        && isRefinementSelectionEnabled()
         && pErrorPathPrefix.getFirstState().getParents().isEmpty();
   }
 }

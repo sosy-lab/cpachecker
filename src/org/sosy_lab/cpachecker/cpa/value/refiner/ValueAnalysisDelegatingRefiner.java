@@ -250,7 +250,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
       return Integer.MAX_VALUE;
     }
 
-    return classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
+    return classfier.obtainScoreForPrefixes(vaPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
   /** Experimental **/
@@ -258,7 +258,7 @@ public class ValueAnalysisDelegatingRefiner extends AbstractARGBasedRefiner impl
   private int obtainScoreForPredicateDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
     List<InfeasiblePrefix> paPrefixes = getPrefixesOfPredicateDomain(pErrorPath);
 
-    return classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_GOOD_LONG);
+    return classfier.obtainScoreForPrefixes(paPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
   private List<InfeasiblePrefix> getPrefixesOfValueDomain(final ARGPath pErrorPath)
