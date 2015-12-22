@@ -381,11 +381,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-# maximum time limit for CBMC (0 is infinite)
-cbmc.timelimit = 0ms
 cbmc.timelimit = 0
+cbmc.timelimit = 0ms
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
@@ -2381,10 +2381,10 @@ pcc.proofFile = "arg.obj"
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
