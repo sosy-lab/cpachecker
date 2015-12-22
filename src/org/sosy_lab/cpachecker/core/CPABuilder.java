@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.GlobalScope;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
@@ -196,7 +197,8 @@ public class CPABuilder {
           automata = graphmlParser.parseAutomatonFile(specFile);
 
         } else {
-          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+          Scope automatonScope = new GlobalScope();
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), automatonScope, cfa.getLanguage());
         }
 
         for (Automaton automaton : automata) {

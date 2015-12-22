@@ -129,7 +129,7 @@ parser code {:
   
   /**
   * Parses a Specification File and returns the Automata found in the file.
-  */
+  */ 
   public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
 
     try (Reader input = pInputFile.asCharSource(StandardCharsets.UTF_8).openBufferedStream()) {

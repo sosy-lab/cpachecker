@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,10 +41,10 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -181,6 +182,21 @@ public final class AbstractStates {
   public static <T extends AbstractState> FluentIterable<T> projectToType(Iterable<AbstractState> states, Class<T> pType) {
     return from(states).transform(toState(pType))
                         .filter(notNull());
+  }
+
+  public static Iterable<CFANode> extractWeavedOnLocations(AbstractState pNode) {
+    final Iterable<CFANode> locs = extractLocations(pNode);
+
+    return FluentIterable.from(locs).transform(new Function<CFANode, CFANode>() {
+      @Override
+      public CFANode apply(CFANode pLoc) {
+        if (pLoc instanceof WeavingLocation) {
+          return ((WeavingLocation) pLoc).getWeavedOnLocation();
+        }
+        return pLoc;
+      }
+    });
+
   }
 
   public static CFANode extractLocation(AbstractState pState) {

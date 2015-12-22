@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
@@ -135,8 +135,11 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     // by an analysis. Possible traces might be 'interrupted' by covered states.
     // Covered states do not have children, so we expect the return value null in this case.
 
-    final Iterable<CFANode> currentLocs = extractLocations(this);
-    final Iterable<CFANode> childLocs = extractLocations(pChild);
+    //
+    //    -----> l1 -----> lw(l1) -----> l2 ----->
+    //
+    final Iterable<CFANode> currentLocs = AbstractStates.extractLocations(this);
+    final Iterable<CFANode> childLocs = AbstractStates.extractWeavedOnLocations(pChild);
 
     // first try to get a normal edge
     for (CFANode currentLoc : currentLocs) {

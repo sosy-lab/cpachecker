@@ -30,14 +30,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -295,6 +296,9 @@ public class ARGToDotWriter {
       for (CFANode loc : AbstractStates.extractLocations(currentElement)) {
         builder.append(" @ ");
         builder.append(loc.toString());
+        if (loc instanceof ShadowCFANode) {
+          builder.append(" ~ weaved ");
+        }
         builder.append("\\n");
         builder.append(loc.getFunctionName());
         if (loc instanceof FunctionEntryNode) {

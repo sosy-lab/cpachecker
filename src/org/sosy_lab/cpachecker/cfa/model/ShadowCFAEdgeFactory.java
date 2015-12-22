@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -52,6 +53,22 @@ public enum ShadowCFAEdgeFactory {
 
   }
 
+  public static class ShadowCodeStartNode extends ShadowCFANode implements WeavingLocation {
+
+    private final CFANode weavedOnLocation;
+
+    public ShadowCodeStartNode(String pInFunctionWithName, CFANode pWeavedOnLocation) {
+      super(pInFunctionWithName);
+      this.weavedOnLocation = pWeavedOnLocation;
+    }
+
+    @Override
+    public CFANode getWeavedOnLocation() {
+      return weavedOnLocation;
+    }
+
+  }
+
   /**
    * Given a sequence of operations (declarations, assumes, statements, ...)
    *    produce a sequence of dummy {@code CFANode}s,
@@ -67,7 +84,6 @@ public enum ShadowCFAEdgeFactory {
     Preconditions.checkNotNull(pSuccessorInCfa);
 
     LinkedList<CFAEdge> result = Lists.newLinkedList();
-
     Iterator<AAstNode> it = pCode.iterator();
 
     CFANode predLoc = null;
@@ -77,7 +93,7 @@ public enum ShadowCFAEdgeFactory {
       final AAstNode node = it.next();
 
       predLoc = (predLoc == null)
-        ? new ShadowCFANode(pSuccessorInCfa.getFunctionName())
+        ? new ShadowCodeStartNode(pSuccessorInCfa.getFunctionName(), pSuccessorInCfa)
             : succLoc;
 
       if (it.hasNext()) {

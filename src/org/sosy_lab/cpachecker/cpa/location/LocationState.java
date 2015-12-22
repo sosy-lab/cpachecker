@@ -140,8 +140,8 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
     }
   }
 
-  private transient CFANode locationNode;
-  private boolean followFunctionCalls;
+  private final transient CFANode locationNode;
+  private final boolean followFunctionCalls;
 
   protected LocationState(CFANode pLocationNode, boolean pFollowFunctionCalls) {
     locationNode = pLocationNode;
@@ -150,12 +150,12 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
 
   @Override
   public CFANode getLocationNode() {
-      return locationNode;
+    return locationNode;
   }
 
   @Override
   public Iterable<CFANode> getLocationNodes() {
-      return Collections.singleton(locationNode);
+      return Collections.singleton(getLocationNode());
   }
 
   @Override

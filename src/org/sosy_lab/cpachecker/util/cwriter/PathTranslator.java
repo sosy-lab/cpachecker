@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractWeavedOnLocations;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -78,7 +79,7 @@ public abstract class PathTranslator {
     // We assume, that each node has one location.
     // TODO: the location is invalid for all concurrent programs,
     //       because interleaving threads are not handled.
-    return FluentIterable.from(extractLocations(state))
+    return FluentIterable.from(extractWeavedOnLocations(state))
         .filter(CFunctionEntryNode.class)
         .first().orNull();
   }
@@ -163,27 +164,34 @@ public abstract class PathTranslator {
     }
   }
 
-  protected String startFunction(ARGState firstFunctionElement, Stack<FunctionBody> functionStack, CFANode predecessor) {
+  protected String startFunction(ARGState pFirstFunctionElement,
+      Stack<FunctionBody> pFunctionStack, CFANode pPredecessor) {
+
+    Preconditions.checkNotNull(pFirstFunctionElement);
+    Preconditions.checkNotNull(pFunctionStack);
+    Preconditions.checkNotNull(pPredecessor);
+
     // create the first stack element using the first element of the function
-    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(firstFunctionElement);
+    CFunctionEntryNode functionStartNode = extractFunctionCallLocation(pFirstFunctionElement);
     String freshFunctionName = getFreshFunctionName(functionStartNode);
 
     String lFunctionHeader = functionStartNode.getFunctionDefinition().getType().toASTString(freshFunctionName);
     // lFunctionHeader is for example "void foo_99(int a)"
 
     // create a new function
-    FunctionBody newFunction = new FunctionBody(firstFunctionElement.getStateId(),
+    FunctionBody newFunction = new FunctionBody(pFirstFunctionElement.getStateId(),
         lFunctionHeader);
 
     // register function
     mFunctionDecls.add(lFunctionHeader + ";");
     mFunctionBodies.add(newFunction);
-    functionStack.push(newFunction); // add function to current stack
+    pFunctionStack.push(newFunction); // add function to current stack
     return freshFunctionName;
   }
 
   /**
    * Processes an edge of the CFA and will write code to the output function body.
+   *
    * @param childElement
    * @param edge
    * @param functionStack

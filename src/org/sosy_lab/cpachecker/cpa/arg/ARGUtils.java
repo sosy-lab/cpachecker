@@ -379,12 +379,15 @@ public class ARGUtils {
 
     List<ARGState> states = new ArrayList<>();
     List<CFAEdge> edges = new ArrayList<>();
+
     ARGState currentElement = root;
+
     while (!currentElement.isTarget()) {
       Collection<ARGState> children = currentElement.getChildren();
 
       ARGState child;
       CFAEdge edge;
+
       switch (children.size()) {
 
       case 0:
@@ -460,7 +463,10 @@ public class ARGUtils {
       }
 
       states.add(currentElement);
+
+      Preconditions.checkState(edge != null, "No 'null' edges are allowed along an ARGPath!");
       edges.add(edge);
+
       currentElement = child;
     }
 
