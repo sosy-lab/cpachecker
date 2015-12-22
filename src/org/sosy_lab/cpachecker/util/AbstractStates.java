@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -125,6 +126,10 @@ public final class AbstractStates {
   public static Iterable<CFANode> extractLocations(AbstractState pState) {
     AbstractStateWithLocations e = extractStateByType(pState, AbstractStateWithLocations.class);
     return e == null ? null : e.getLocationNodes();
+  }
+
+  public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
+    return extractStateByType(pState, AbstractStateWithLocation.class).getOutgoingEdges();
   }
 
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION = new Function<AbstractState, CFANode>() {
