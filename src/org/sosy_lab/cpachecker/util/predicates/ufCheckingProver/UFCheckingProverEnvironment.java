@@ -55,9 +55,4 @@ public class UFCheckingProverEnvironment
       throws InterruptedException, SolverException {
     return delegate.allSat(callback, important);
   }
-
-  @Override
-  public <E extends Formula> E evaluate(E f) {
-    return delegate.evaluate(f);
-  }
 }
