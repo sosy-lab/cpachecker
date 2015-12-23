@@ -716,12 +716,7 @@ class CExpressionVisitorWithPointerAliasing
     }
 
     // Delegate
-    Formula result = delegate.visit(pExpression);
-    if (result == null) {
-      return Value.nondetValue();
-    } else {
-      return Value.ofValue(result);
-    }
+    return Value.ofValue(delegate.visit(pExpression));
   }
 
   /**

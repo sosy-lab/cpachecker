@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.Pair;
@@ -103,7 +104,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
           Triple<CCompositeType, String, CType>>() {
         @Override
         public Triple<CCompositeType, String, CType> apply(
-            Pair<CCompositeType, String> pField) {
+            @Nonnull Pair<CCompositeType, String> pField) {
           final CCompositeType fieldComposite = pField.getFirst();
           final String fieldName = pField.getSecond();
           for (final CCompositeTypeMemberDeclaration declaration
