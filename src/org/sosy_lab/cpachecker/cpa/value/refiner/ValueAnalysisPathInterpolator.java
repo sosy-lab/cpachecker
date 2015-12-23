@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -50,7 +51,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
-import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -64,9 +64,6 @@ public class ValueAnalysisPathInterpolator
 
   @Option(secure=true, description="whether to perform (more precise) edge-based interpolation or (more efficient) path-based interpolation")
   private boolean performEdgeBasedInterpolation = true;
-
-  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.DOMAIN_GOOD_SHORT;
 
   /**
    * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
@@ -145,14 +142,16 @@ public class ValueAnalysisPathInterpolator
    * use-def-relation. It creates fake interpolants that are not inductive.
    *
    * @param errorPathPrefix the error path prefix to interpolate
-   * @return
    */
   private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
 
+    Set<String> booleanVariables = cfa.getVarClassification().isPresent()
+      ? cfa.getVarClassification().get().getIntBoolVars()
+      : Collections.<String>emptySet();
+
     UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
-        cfa.getVarClassification().isPresent()
-          ? cfa.getVarClassification().get().getIntBoolVars()
-          : Collections.<String>emptySet(), prefixPreference == PrefixPreference.NONE);
+        booleanVariables,
+        !isRefinementSelectionEnabled());
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
         errorPathPrefix,

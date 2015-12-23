@@ -257,14 +257,14 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    public BooleanFormula visitForallQuantifier(
-        List<? extends Formula> pVariables, BooleanFormula pBody) {
+    public BooleanFormula visitForAll(
+        List<Formula> pVariables, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public BooleanFormula visitExistsQuantifier(
-        List<? extends Formula> pVariables, BooleanFormula pBody) {
+    public BooleanFormula visitExists(
+        List<Formula> pVariables, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

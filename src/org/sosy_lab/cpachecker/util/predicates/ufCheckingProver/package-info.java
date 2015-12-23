@@ -28,11 +28,11 @@
  * We use UFs to model some operations and let the solver choose
  * arbitrary values (over-approximation!) for the result of the UF.
  * If a formula is UNSAT, we can ignore the UF. Otherwise we try to compute
- * a better result with the {@link FunctionApplicationManager} and
+ * a better result with the {@link org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.FunctionApplicationManager} and
  * add an additional constraint for the UF.
  * This iteratively improves the solver's model.
  *
- * The {@link FunctionApplicationManager} depends on the program's analysis
+ * The {@link org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.FunctionApplicationManager} depends on the program's analysis
  * and matches the precise operations that are over-approximated with UFs.
  */
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;

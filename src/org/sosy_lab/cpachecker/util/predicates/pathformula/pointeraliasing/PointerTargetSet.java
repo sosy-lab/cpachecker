@@ -262,7 +262,7 @@ public final class PointerTargetSet implements Serializable {
 
   /**
    * javadoc to remove unused parameter warning
-   * @param in
+   * @param in the input stream
    */
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");

@@ -122,7 +122,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
-  private PrefixPreference prefixPreference = PrefixPreference.NONE;
+  private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
 
   @Option(secure=true, description="use only the atoms from the interpolants"
                                  + "as predicates, and not the whole interpolant")
@@ -354,7 +354,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @return true, if refinement selection has to be performed, else false
    */
   private boolean isRefinementSelectionEnabled() {
-    return prefixPreference != PrefixPreference.NONE;
+    return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
   }
 
   static List<ARGState> transformPath(ARGPath pPath) {
@@ -391,7 +391,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    * @param path A list of all abstraction elements
    * @param initialState The initial element of the analysis (= the root element of the ARG)
    * @return A list of block formulas for this path.
-   * @throws SolverException
    */
   protected List<BooleanFormula> getFormulasForPath(List<ARGState> path, ARGState initialState)
       throws CPATransferException, InterruptedException, SolverException {

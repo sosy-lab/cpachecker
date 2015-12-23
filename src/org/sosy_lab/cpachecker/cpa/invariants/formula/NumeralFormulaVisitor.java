@@ -30,7 +30,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  * formulae.
  * @param <ReturnType> the type of the visit results.
  */
-public interface NumeralFormulaVisitor<ConstantType, ReturnType> {
+interface NumeralFormulaVisitor<ConstantType, ReturnType> {
 
   /**
    * Visits the given addition invariants formula.

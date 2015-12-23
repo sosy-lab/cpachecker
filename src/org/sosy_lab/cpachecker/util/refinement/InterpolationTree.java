@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Function;
@@ -591,7 +590,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
 
       ARGPathBuilder errorPathBuilder = ARGPath.reverseBuilder();
 
-      errorPathBuilder.add(current, CFAUtils.leavingEdges(AbstractStates.extractLocation(current)).first().orNull());
+      errorPathBuilder.add(current, FluentIterable.from(AbstractStates.getOutgoingEdges(current)).first().orNull());
 
       while (predecessorRelation.get(current) != null) {
 

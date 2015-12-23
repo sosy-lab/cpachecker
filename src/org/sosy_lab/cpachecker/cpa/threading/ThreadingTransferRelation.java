@@ -197,7 +197,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_MUTEX_UNLOCK:
             return removeLock(activeThread, statement, results);
           case THREAD_JOIN:
-            return joinThread(threadingState, activeThread, statement, results);
+            return joinThread(threadingState, statement, results);
           case THREAD_EXIT:
             // this function-call is already handled in the beginning with isLastNodeOfThread.
             // return exitThread(threadingState, activeThread, results);
@@ -432,7 +432,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return newResults;
   }
 
-  private Collection<ThreadingState> joinThread(ThreadingState threadingState, String activeThread,
+  private Collection<ThreadingState> joinThread(ThreadingState threadingState,
       AStatement statement, Collection<ThreadingState> results) throws UnrecognizedCodeException {
 
     // first check for some possible errors and unsupported parts

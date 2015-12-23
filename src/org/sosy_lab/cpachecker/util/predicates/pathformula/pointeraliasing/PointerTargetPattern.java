@@ -115,7 +115,6 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Increase containerOffset by properOffset, unset properOffset and set containerType.
    * Useful for array subscript visitors.
-   * @param containerType
    */
   public void shift(final CType containerType) {
     assert !matchRange : "Contradiction in target pattern: shift";
@@ -133,7 +132,6 @@ public class PointerTargetPattern implements Serializable, Predicate<PointerTarg
   /**
    * Increase containerOffset by properOffset, set properOffset and containerType.
    * Useful for field access visitors.
-   * @param containerType
    */
   public void shift(final CType containerType, final int properOffset) {
     shift(containerType);

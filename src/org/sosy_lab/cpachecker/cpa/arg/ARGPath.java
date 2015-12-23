@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.*;
 
 import java.io.IOException;
 import java.util.AbstractList;
@@ -157,17 +157,21 @@ public class ARGPath implements Appender {
     }
 
     List<CFAEdge> fullPath = new ArrayList<>();
-
     PathIterator it = pathIterator();
-    CFANode curNode = AbstractStates.extractLocation(it.getAbstractState());
-    CFAEdge curOutgoingEdge = it.getOutgoingEdge();
 
     while (it.hasNext()) {
+      ARGState prev = it.getAbstractState();
+      CFAEdge curOutgoingEdge = it.getOutgoingEdge();
       it.advance();
-      CFANode nextNode = AbstractStates.extractLocation(it.getAbstractState());
+      ARGState succ = it.getAbstractState();
+
+      // assert prev.getEdgeToChild(succ) == curOutgoingEdge : "invalid ARGPath";
 
       // compute path between cur and next node
       if (curOutgoingEdge == null) {
+        // we assume a linear chain of edges from 'prev' to 'succ'
+        CFANode curNode = extractLocation(prev);
+        CFANode nextNode = extractLocation(succ);
         while (curNode != nextNode) {
           assert curNode.getNumLeavingEdges() == 1
                  && curNode.getLeavingSummaryEdge() == null;
@@ -179,15 +183,8 @@ public class ARGPath implements Appender {
 
       // we have a normal connection without whole in the edges
       } else {
-        assert curOutgoingEdge.getPredecessor() == curNode
-               && curOutgoingEdge.getSuccessor() == nextNode;
         fullPath.add(curOutgoingEdge);
       }
-
-      if (it.hasNext()) {
-        curOutgoingEdge = it.getOutgoingEdge();
-      }
-      curNode = nextNode;
     }
 
     this.fullPath = fullPath;
@@ -823,7 +820,8 @@ public class ARGPath implements Appender {
     @Override
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
-      if (fullPath.get(overallOffset).getSuccessor().equals(extractLocation(getNextAbstractState()))) {
+      if (Iterables.contains(extractLocations(getNextAbstractState()),
+          fullPath.get(overallOffset).getSuccessor())) {
         pos++;
         currentPositionHasState = true;
       } else {
@@ -858,9 +856,9 @@ public class ARGPath implements Appender {
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
 
-      boolean nextPositionHasState = fullPath.get(overallOffset-1)
-                                        .getPredecessor()
-                                        .equals(extractLocation(getPreviousAbstractState()));
+      boolean nextPositionHasState = Iterables.contains(
+          extractLocations(getPreviousAbstractState()),
+          fullPath.get(overallOffset-1).getPredecessor());
 
       if (currentPositionHasState) {
         pos--; // only reduce by one if it was a real node before we are leaving it now

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
+import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,13 +31,11 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -111,8 +109,7 @@ public class ARGTransferRelation implements TransferRelation {
       return wrappedProofChecker.areAbstractSuccessors(wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
     }
 
-    CFANode loc = AbstractStates.extractLocation(element);
-    for (CFAEdge edge : leavingEdges(loc)) {
+    for (CFAEdge edge : getOutgoingEdges(element)) {
       if (!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
         return false;
       }

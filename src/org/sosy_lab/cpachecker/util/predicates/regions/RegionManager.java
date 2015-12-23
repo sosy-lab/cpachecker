@@ -28,9 +28,9 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
@@ -76,12 +76,11 @@ public interface RegionManager extends RegionCreator {
    * A region consists of the form
    * if (predicate) then formula1 else formula2
    * This method decomposes a region into these three parts.
-   * @param pF a region
+   * @param f a region
    * @return a triple with the condition predicate and the formulas for the true
    *         branch and the else branch
    */
-  public Triple<Region, Region, Region>
-  getIfThenElse(Region f);
+  public Triple<Region, Region, Region> getIfThenElse(Region f);
 
   /**
    * Prints some information about the RegionManager.

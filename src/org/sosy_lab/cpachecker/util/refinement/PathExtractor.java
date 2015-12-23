@@ -92,7 +92,6 @@ public class PathExtractor implements Statistics {
    *
    * @param pReached the set of reached states
    * @return the target states
-   * @throws org.sosy_lab.cpachecker.exceptions.RefinementFailedException
    */
   public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
 

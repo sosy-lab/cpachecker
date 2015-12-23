@@ -160,7 +160,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param pOriginalState Original state. Will be the predecessor of the
    * new state
-   * @throws SMGInconsistentException
    */
   public SMGState(SMGState pOriginalState) {
     heap = new CLangSMG(pOriginalState.heap);
@@ -282,7 +281,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param pTypeSize Size of the type of the new variable
    * @param pVarName Name of the local variable
-   * @param new_object object of local variable
+   * @param smgObject object of local variable
    * @return given object
    *
    * @throws SMGInconsistentException when resulting SMGState is inconsistent
@@ -307,7 +306,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * Keeps consistency: yes
    *
    * @param pFunctionDefinition A function for which to create a new stack frame
-   * @throws SMGInconsistentException
    */
   public void addStackFrame(CFunctionDeclaration pFunctionDefinition) throws SMGInconsistentException {
     heap.addStackFrame(pFunctionDefinition);
@@ -364,7 +362,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param pLevel A level of the check request. When e.g. HALF is passed, it
    * means "perform the check if the setting is HALF or finer.
-   * @throws SMGInconsistentException
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel) throws SMGInconsistentException {
     if (runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
@@ -394,7 +391,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param pName A name of the graph.
    * @param pLocation A location in the program.
-   * @param pExplicitState
+   * @param pExplicitState the state that should be converted
    * @return String containing a DOT graph corresponding to the SMGState.
    */
   public String toDot(String pName, String pLocation, ValueAnalysisState pExplicitState) {
@@ -441,7 +438,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param pValue A value for which to return the Points-To edge
    * @return True, if the smg contains a {@link SMGEdgePointsTo} edge
-   * with {@link pValue} as source, false otherwise.
+   * with pValue as source, false otherwise.
    *
    */
   public boolean isPointer(Integer pValue) {
@@ -458,7 +455,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pOffset offset of field being read.
    * @param pType type of field
    * @return the value and the state (may be the given state)
-   * @throws SMGInconsistentException
    */
   public SMGValueAndState forceReadValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
     SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
@@ -480,7 +476,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pOffset offset of field being read.
    * @param pType type of field
    * @return the value and the state (may be the given state)
-   * @throws SMGInconsistentException
    */
   public SMGValueAndState readValue(SMGObject pObject, int pOffset, CType pType) throws SMGInconsistentException {
     if (! heap.isObjectValid(pObject)) {
@@ -521,13 +516,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * SMG, if the given symbolic value points to an address, and
    *
    *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field written into.
-   * @param type type of field written into.
-   * @param value value to be written into field.
-   * @param machineModel Currently used Machine Model
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field written into.
+   * @param pType type of field written into.
+   * @param pValue value to be written into field.
    * @return the edge and the new state (may be this state)
-   * @throws SMGInconsistentException
    */
   public SMGStateEdgePair writeValue(SMGObject pObject, int pOffset,
       CType pType, SMGSymbolicValue pValue) throws SMGInconsistentException {
@@ -576,12 +569,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * Write a value into a field (offset, type) of an Object.
    *
    *
-   * @param object SMGObject representing the memory the field belongs to.
-   * @param offset offset of field written into.
-   * @param type type of field written into.
-   * @param value value to be written into field.
-   * @param machineModel Currently used Machine Model
-   * @throws SMGInconsistentException
+   * @param pObject SMGObject representing the memory the field belongs to.
+   * @param pOffset offset of field written into.
+   * @param pType type of field written into.
+   * @param pValue value to be written into field.
    */
   private SMGStateEdgePair writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue) throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
@@ -727,7 +718,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param reachedState already reached state, that may cover this state already.
    * @return True, if this state is covered by the given state, false otherwise.
-   * @throws SMGInconsistentException
    */
   @Override
   public boolean isLessOrEqual(SMGState reachedState) throws SMGInconsistentException {
@@ -879,7 +869,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param offset The offset of the address relative to the beginning of smgObject.
    * @param smgObject The memory the given Address belongs to.
    * @return returns a possible new State
-   * @throws SMGInconsistentException
    */
   public SMGState free(Integer address, Integer offset, SMGObject smgObject) throws SMGInconsistentException {
 
@@ -922,9 +911,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   /**
    * Drop the stack frame representing the stack of
    * the function with the given name
-   *
-   * @param functionName
-   * @throws SMGInconsistentException
    */
   public void dropStackFrame() throws SMGInconsistentException {
     heap.dropStackFrame();

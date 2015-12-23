@@ -240,7 +240,7 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
   }
 
   /**
-   * @param pMergedInto
+   * @param pMergedInto the state that should be set as merged
    */
   void setMergedInto(PredicateAbstractState pMergedInto) {
     throw new UnsupportedOperationException("Merging wrong PredicateAbstractStates!");

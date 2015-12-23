@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -68,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.FormulaMeasuring;
@@ -333,7 +333,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   /**
    * Get the predicates out of an interpolant.
-   * @param interpolant The interpolant formula.
+   * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
   protected final Collection<AbstractionPredicate> convertInterpolant(

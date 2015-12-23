@@ -40,7 +40,7 @@ public interface Reducer {
 
   /** Returns a hashable object for the stateKey and the precisionKey.
    * This object is used to identify elements in the
-   * {@link org.sosy_lab.cpachecker.cpa.bam.BAMCache.AbstractStateHash AbstractStateHash}. */
+   * <code> BAMCache.AbstractStateHash </code>. */
   Object getHashCodeForState(AbstractState stateKey, Precision precisionKey);
 
   /** Returns a (non-negative) value for the difference between two precisions.

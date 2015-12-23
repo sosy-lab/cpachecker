@@ -113,7 +113,7 @@ import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
+import org.sosy_lab.solver.api.UfDeclaration;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Optional;
@@ -174,7 +174,7 @@ public class CtoFormulaConverter {
   // Index to be used for first assignment to a variable (must be higher than VARIABLE_UNINITIALIZED!)
   private static final int VARIABLE_FIRST_ASSIGNMENT = 2;
 
-  private final UninterpretedFunctionDeclaration<?> stringUfDecl;
+  private final UfDeclaration<?> stringUfDecl;
 
   protected final HashSet<CVariableDeclaration> globalDeclarations = new HashSet<>();
 

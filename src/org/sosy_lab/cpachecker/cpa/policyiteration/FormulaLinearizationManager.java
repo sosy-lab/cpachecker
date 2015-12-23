@@ -134,7 +134,7 @@ public class FormulaLinearizationManager {
         mapping.put(ifmgr.makeVariable(termName), ifmgr.makeNumber(value));
       }
     }
-    BooleanFormula pathSelected = ufmgr.substitute(input, mapping);
+    BooleanFormula pathSelected = (BooleanFormula)ufmgr.substitute(input, mapping);
     pathSelected = fmgr.simplify(pathSelected);
     return pathSelected;
   }
@@ -219,7 +219,7 @@ public class FormulaLinearizationManager {
     }
 
     // Get rid of UFs.
-    BooleanFormula formulaNoUFs = ufmgr.substitute(f, substitution);
+    BooleanFormula formulaNoUFs = (BooleanFormula) ufmgr.substitute(f, substitution);
     return bfmgr.and(
         formulaNoUFs, bfmgr.and(extraConstraints)
     );

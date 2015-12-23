@@ -55,7 +55,7 @@ final class SMGConsistencyVerifier {
    *
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
-   * @return True, if {@link pSmg} satisfies all consistency criteria
+   * @return True, if pSmg satisfies all consistency criteria
    */
   static private boolean verifyNullObject(LogManager pLogger, SMG pSmg) {
     Integer null_value = null;
@@ -115,7 +115,7 @@ final class SMGConsistencyVerifier {
    *
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
-   * @return True, if {@link pSmg} satisfies all consistency criteria.
+   * @return True, if pSmg satisfies all consistency criteria.
    */
   static private boolean verifyInvalidRegionsHaveNoHVEdges(LogManager pLogger, SMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
@@ -141,7 +141,7 @@ final class SMGConsistencyVerifier {
    * @param pLogger A logger to record results
    * @param pObject An object to verify
    * @param pSmg A SMG to verify
-   * @return True, if {@link pObject} in {@link pSmg} satisfies all consistency criteria. False otherwise.
+   * @return True, if Object in pSmg satisfies all consistency criteria. False otherwise.
    */
   static private boolean checkSingleFieldConsistency(LogManager pLogger, SMGObject pObject, SMG pSmg) {
 
@@ -163,7 +163,7 @@ final class SMGConsistencyVerifier {
    * Verify all objects satisfy the Field Consistency criteria
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
-   * @return True, if {@link pSmg} satisfies all consistency criteria. False otherwise.
+   * @return True, if pSmg satisfies all consistency criteria. False otherwise.
    */
   static private boolean verifyFieldConsistency(LogManager pLogger, SMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
@@ -181,7 +181,7 @@ final class SMGConsistencyVerifier {
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
    * @param pEdges A set of edges for consistency verification
-   * @return True, if all edges in {@link pEdges} satisfy consistency criteria. False otherwise.
+   * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
   static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
     List<SMGEdge> to_verify = new ArrayList<>();
@@ -250,7 +250,7 @@ final class SMGConsistencyVerifier {
    * Verify a single SMG if it meets all consistency criteria.
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
-   * @return True, if {@link pSmg} satisfies all consistency criteria
+   * @return True, if pSmg satisfies all consistency criteria
    */
   static public boolean verifySMG(LogManager pLogger, SMG pSmg) {
     boolean toReturn = true;

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -39,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
@@ -55,8 +55,6 @@ public class ValueAnalysisFeasibilityChecker
    *
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
-   * @param pInitial the initial state for starting the exploration
-   * @throws InvalidConfigurationException
    */
   public ValueAnalysisFeasibilityChecker(
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,

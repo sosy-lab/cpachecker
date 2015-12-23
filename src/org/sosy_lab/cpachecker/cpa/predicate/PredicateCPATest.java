@@ -68,7 +68,7 @@ public class PredicateCPATest {
 
   /**
    * This tests that the BDD library is loaded by PredicateCPA if it is necessary
-   * (if this test fails, the {@link #loadBDDLibraryOnlyIfNecessary} test
+   * (if this test fails, the {@link #loadBDDLibraryIfNecessary} test
    * won't work).
    */
   @Test

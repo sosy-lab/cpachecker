@@ -223,12 +223,15 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
         final NumericValue negatedValue = (NumericValue) AbstractExpressionValueVisitor.castCValue(
             value.negate(), exprType, machineModel, logger, loc);
         switch (((CSimpleType)operandType).getType()) {
+        case BOOL: // negation of zero is zero, other values should be irrelevant
         case CHAR:
         case INT:
           return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(negatedValue.longValue()));
         case FLOAT:
         case DOUBLE:
           return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(negatedValue.doubleValue()));
+        default:
+          // fall-through and return the original expression
         }
 
       } else if (unaryOperator == UnaryOperator.TILDE && ((CSimpleType)operandType).getType().isIntegerType()) {
@@ -273,6 +276,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
 
         if (v != null && decl.getType() instanceof CSimpleType) {
           switch (((CSimpleType) type).getType()) {
+            case BOOL:
             case CHAR:
             case INT:
               return new CIntegerLiteralExpression(expr.getFileLocation(),
@@ -281,6 +285,8 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
             case DOUBLE:
               return new CFloatLiteralExpression(expr.getFileLocation(),
                       type, BigDecimal.valueOf(v.doubleValue()));
+            default:
+              // fall-through and return the original expression
           }
         }
       }

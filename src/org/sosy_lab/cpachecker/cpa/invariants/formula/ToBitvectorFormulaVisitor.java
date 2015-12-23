@@ -64,8 +64,7 @@ public class ToBitvectorFormulaVisitor implements
 
   /**
    * Creates a new visitor for converting compound state invariants formulae to
-   * bit vector formulae by using the given formula manager,
-   * {@link ToBooleanFormulaVisitor} and evaluation visitor.
+   * bit vector formulae by using the given formula manager, and evaluation visitor.
    *
    * @param pFmgr the formula manager used.
    * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
