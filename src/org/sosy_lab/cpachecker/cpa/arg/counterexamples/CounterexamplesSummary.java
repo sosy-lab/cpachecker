@@ -38,7 +38,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -82,21 +81,15 @@ import com.google.common.collect.Sets;
  * Summary of all (so far) feasible counterexamples
  * that can be found in the current set 'reached'.
  */
-@Options
 public class CounterexamplesSummary implements IterationStatistics {
 
   private final static class ViolationInfo {
     final CounterexampleInfo info;
-    final Map<Property, AutomatonInternalState> properties; // There might multiple violations on one (target) abstract state
 
-    public ViolationInfo(CounterexampleInfo pInfo,
-        Map<Property, AutomatonInternalState> pProperty) {
+    public ViolationInfo(CounterexampleInfo pInfo) {
       info = pInfo;
-      properties = pProperty;
     }
   }
-
-  private final LogManager logger;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final Map<ARGState, ViolationInfo> feasibleViolations = new WeakHashMap<>();
@@ -107,9 +100,7 @@ public class CounterexamplesSummary implements IterationStatistics {
 
   public CounterexamplesSummary(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
 
-    this.logger = pLogger;
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
   }
 
@@ -168,7 +159,7 @@ public class CounterexamplesSummary implements IterationStatistics {
       }
     }
 
-    final ViolationInfo vi = new ViolationInfo(pCounterexample, violatedProperties);
+    final ViolationInfo vi = new ViolationInfo(pCounterexample);
     feasibleViolations.put(pTargetState, vi);
     feasibleCexFor.addAll(violatedProperties.keySet());
   }
