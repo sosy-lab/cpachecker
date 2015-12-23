@@ -1252,8 +1252,9 @@ public class CtoFormulaConverter {
     BooleanFormula result = bfmgr.not(fmgr.makeEqual(pF, zero));
 
     // simplify some simple cases like "0!=ITE(cond,1,0)".
+    // TODO simplification does not work for these cases, it only works bottom-up.
     // TODO do we need this? performance benefit?
-    result = fmgr.simplify(result);
+    // result = fmgr.simplify(result);
 
     return result;
   }
