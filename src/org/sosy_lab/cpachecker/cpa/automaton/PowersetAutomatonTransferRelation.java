@@ -28,9 +28,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,15 +41,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 
-@Options(prefix="cpa.compositeautomaton")
 public final class PowersetAutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   private final AutomatonTransferRelation componentTransfer;
 
-  public PowersetAutomatonTransferRelation(AutomatonTransferRelation pComponentTransferRelation,
-      Configuration pConfig) throws InvalidConfigurationException {
-
-    pConfig.inject(this);
+  public PowersetAutomatonTransferRelation(AutomatonTransferRelation pComponentTransferRelation)
+      throws InvalidConfigurationException {
 
     this.componentTransfer = pComponentTransferRelation;
   }

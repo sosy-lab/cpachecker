@@ -27,7 +27,6 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -51,7 +50,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
-@Options(prefix="cpa.loopstats")
 public class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   protected final LoopStructure loopStructure;
@@ -71,7 +69,6 @@ public class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProv
   public LoopstatsCPA(Configuration pConfig, CFA pCfa, LogManager pLogger)
       throws InvalidConfigurationException, CPAException {
 
-    pConfig.inject(this);
     logger = pLogger;
 
     if (!pCfa.getLoopStructure().isPresent()) {
@@ -85,8 +82,7 @@ public class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProv
     domain = new FlatLatticeDomain();
     stopop = new StopAlwaysOperator();
     precop = StaticPrecisionAdjustment.getInstance();
-
-    stats = new LoopstatsStatistics(pConfig);
+    stats = new LoopstatsStatistics();
   }
 
   @Override

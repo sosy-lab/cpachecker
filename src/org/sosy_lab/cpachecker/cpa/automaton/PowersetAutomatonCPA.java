@@ -74,7 +74,7 @@ public class PowersetAutomatonCPA implements ConfigurableProgramAnalysis, Statis
 
     automatonCpa = new ControlAutomatonCPA(pAutomaton, pConfig, pLogger, pCFA);
     domain = new PowersetAutomatonDomain(PowersetAutomatonState.TOP);
-    transfer = new PowersetAutomatonTransferRelation(automatonCpa.getTransferRelation(), pConfig);
+    transfer = new PowersetAutomatonTransferRelation(automatonCpa.getTransferRelation());
     prec = new PowersetAutomatonPrecisionAdjustent(automatonCpa.getPrecisionAdjustment());
     merge = new MergeJoinOperator(domain);
     stop = new StopSepOperator(domain);

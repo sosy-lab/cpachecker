@@ -28,28 +28,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-@Options
 class LoopstatsStatistics extends AbstractStatistics implements Statistics, LoopStatisticsReceiver {
 
   private final Map<ImmutableLoopStack, Integer> maxFinishedUnrollingsPerLoopStack = Maps.newHashMap();
   private final Map<ImmutableLoopStack, Integer> maxUnrollingsPerLoopStack = Maps.newHashMap();
 
-  public LoopstatsStatistics(Configuration pConfig) throws InvalidConfigurationException {
-    Preconditions.checkNotNull(pConfig);
-    pConfig.inject(this);
+  public LoopstatsStatistics() {
   }
 
   private <E> void putMax (Map<E, Integer> pTo, E pKey, int pValue ) {
