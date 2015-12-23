@@ -350,7 +350,9 @@ public class AutomatonState
 
   @Override
   public String toString() {
-    return (automatonCPA != null ? automatonCPA.getAutomaton().getName() + ": " : "") + internalState.getName() + ' '
+    return (automatonCPA != null ? automatonCPA.getAutomaton().getName() + ": " : "")
+        + internalState.getName() + ' '
+        + assumptions.toString() + ' '
         + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
   }
 
