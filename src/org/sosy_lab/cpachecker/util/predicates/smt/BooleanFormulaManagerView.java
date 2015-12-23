@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
@@ -154,21 +151,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Deprecated
   public <T extends Formula> boolean isIfThenElse(T pF) {
     return manager.isIfThenElse(unwrap(pF));
-  }
-
-  public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
-    checkArgument(isIfThenElse(pF));
-    Formula f = unwrap(pF);
-
-    assert unsafe.getArity(f) == 3;
-
-    BooleanFormula cond = (BooleanFormula)unsafe.getArg(f, 0);
-    Formula thenBranch = unsafe.getArg(f, 1);
-    Formula elseBranch = unsafe.getArg(f, 2);
-
-    FormulaType<T> targetType = getFormulaType(pF);
-    return Triple.of(cond, wrap(targetType, thenBranch),
-        wrap(targetType, elseBranch));
   }
 
   @Override
