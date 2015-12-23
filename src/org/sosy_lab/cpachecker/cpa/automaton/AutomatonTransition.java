@@ -157,7 +157,7 @@ class AutomatonTransition {
 
     this(pTrigger, pAssertions,
         pAssumption, pAssumeTruth,
-        ImmutableList.<AAstNode>of(),
+        pShadowCode,
         pActions,
         pFollowState.getName(), pFollowState,
         Preconditions.checkNotNull(pViolatedWhenEnteringTarget),
