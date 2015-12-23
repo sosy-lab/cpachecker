@@ -27,7 +27,6 @@ import java.util.Collection;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,7 +55,6 @@ import com.google.common.collect.ImmutableSet;
  * Represents one automaton.
  *  One abstract state consists of a set of different automata states (power set).
  */
-@Options(prefix="cpa.automaton")
 public class PowersetAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM {
 
   public static CPAFactory factory() {
