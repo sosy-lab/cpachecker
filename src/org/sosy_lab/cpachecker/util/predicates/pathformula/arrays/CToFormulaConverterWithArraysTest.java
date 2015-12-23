@@ -417,10 +417,10 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.simplify(result))
-    .isEqualTo(mkBoolean(bmgr.not(
+    .isEqualTo(bmgr.not(
         imgr.equal(
             amgr.select(_smt_a_ssa1, imgr.makeNumber(2)),
-            imgr.makeNumber(0)))));
+            imgr.makeNumber(0))));
   }
 
   @Test
@@ -555,9 +555,9 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.simplify(result))
-        .isEqualTo(mkBoolean(bmgr.not(imgr.equal(
+        .isEqualTo(bmgr.not(imgr.equal(
             amgr.select(_smt_a_ssa1, amgr.select(_smt_a_ssa1, imgr.makeNumber(2))),
-            imgr.makeNumber(0)))));
+            imgr.makeNumber(0))));
   }
 
   @Test
@@ -788,20 +788,13 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
         "foo", ssa);
 
     assertThat(mgr.simplify(result))
-    .isEqualTo(mkBoolean(
+    .isEqualTo(
         imgr.equal(
             amgr.select(
                 amgr.select(
                     _smt_a2d, imgr.makeNumber(3)),
                     imgr.makeNumber(7)),
-            imgr.makeNumber(23))));
-  }
-
-  /** a small wrapper for formulas, because the CtoFormulaConverter build them this way. */
-  private BooleanFormula mkBoolean(BooleanFormula f) {
-    IntegerFormula zero = imgr.makeNumber(0);
-    IntegerFormula one = imgr.makeNumber(1);
-    return mgr.simplify(bmgr.not(imgr.equal(bmgr.ifThenElse(f,one,zero),zero)));
+            imgr.makeNumber(23)));
   }
 
   @Test

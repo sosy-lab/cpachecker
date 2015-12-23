@@ -1249,14 +1249,19 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    BooleanFormula result = bfmgr.not(fmgr.makeEqual(pF, zero));
+    if (bfmgr.isIfThenElse(pF)) {
+      Triple<BooleanFormula, T, T> parts = bfmgr.splitIfThenElse(pF);
 
-    // simplify some simple cases like "0!=ITE(cond,1,0)".
-    // TODO simplification does not work for these cases, it only works bottom-up.
-    // TODO do we need this? performance benefit?
-    // result = fmgr.simplify(result);
+      T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
 
-    return result;
+      if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
+        return parts.getFirst();
+      } else if (parts.getSecond().equals(zero) && parts.getThird().equals(one)) {
+        return bfmgr.not(parts.getFirst());
+      }
+    }
+
+    return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
   /**
