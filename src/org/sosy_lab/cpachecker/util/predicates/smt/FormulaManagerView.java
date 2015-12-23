@@ -72,20 +72,18 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.UfDeclaration;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -1214,27 +1212,6 @@ public class FormulaManagerView {
     return res;
   }
 
-  private final Predicate<Formula> FILTER_VARIABLES = new Predicate<Formula>() {
-    @Override
-    public boolean apply(Formula input) {
-      return unsafeManager.isVariable(input);
-    }
-  };
-
-  private final Predicate<Formula> FILTER_UF = new Predicate<Formula>() {
-    @Override
-    public boolean apply(Formula input) {
-      return unsafeManager.isUF(input);
-    }
-  };
-
-  private final Function<Formula, String> GET_NAME = new Function<Formula, String>() {
-    @Override
-    public String apply(Formula pInput) {
-      return unsafeManager.getName(pInput);
-    }
-  };
-
   /**
    * Extract the names of all free variables in a formula.
    *
@@ -1242,9 +1219,7 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    return Sets.newHashSet(Collections2.transform(
-        myExtractSubformulas(unwrap(f), FILTER_VARIABLES, true),
-        GET_NAME));
+    return myExtractSubformulas(unwrap(f), false, true).keySet();
   }
 
   /**
@@ -1258,10 +1233,7 @@ public class FormulaManagerView {
    */
   public Set<String> extractFunctionNames(Formula f,
       boolean recurseIntoFunctions) {
-    return Sets.newHashSet(Collections2.transform(
-        myExtractSubformulas(unwrap(f),
-            Predicates.or(FILTER_UF, FILTER_VARIABLES), recurseIntoFunctions),
-        GET_NAME));
+    return myExtractSubformulas(unwrap(f), true, recurseIntoFunctions).keySet();
   }
 
   /**
@@ -1275,62 +1247,43 @@ public class FormulaManagerView {
    */
   @Deprecated
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    Map<String, Formula> result = Maps.newHashMap();
-
-    for (Formula v: myExtractSubformulas(unwrap(pF), FILTER_VARIABLES, true)) {
-      result.put(unsafeManager.getName(v), v);
-    }
-
-    return result;
+    return myExtractSubformulas(unwrap(pF), false, true);
   }
 
-  private Collection<Formula> myExtractSubformulas(final Formula pFormula,
-      Predicate<Formula> filter, boolean recurseIntoFunctions) {
-    // TODO The FormulaType of returned formulas may not be correct,
-    // because we cannot determine if for example a Rational formula
-    // is really rational, or should be wrapped as a Bitvector formula
-    Set<Formula> seen = new HashSet<>();
-    List<Formula> result = new ArrayList<>();
+  /**
+   * NOTE: FormulaType of traversed formulas does not include wrapping.
+   */
+  private Map<String, Formula> myExtractSubformulas(
+      final Formula pFormula,
+      final boolean extractUF,
+      final boolean recurseIntoFunctions) {
 
-    Deque<Formula> toProcess = new ArrayDeque<>();
-    toProcess.push(pFormula);
-    seen.add(pFormula);
+    final Map<String, Formula> found = new HashMap<>();
+    new RecursiveFormulaVisitor(manager) {
 
-    while (!toProcess.isEmpty()) {
-      Formula f = toProcess.pop();
-      assert seen.contains(f);
-
-      if (unsafeManager.isBoundVariable(f)) {
-        // Do nothing for variables that are bound by a quantifier!
-        continue;
+      @Override
+      public Void visitUF(
+          String functionName,
+          UfDeclaration<?> declaration,
+          List<Formula> args) {
+        if (recurseIntoFunctions) {
+          super.visitUF(functionName, declaration, args);
+        }
+        if (extractUF) {
+          found.put(functionName,
+              functionFormulaManager.callUninterpretedFunction(
+              declaration, args));
+        }
+        return null;
       }
 
-      if (filter.apply(f)) {
-        result.add(f);
-        if (!recurseIntoFunctions) {
-          continue;
-        }
+      @Override
+      public Void visitFreeVariable(String name, FormulaType<?> type) {
+        found.put(name, makeVariable(type, name));
+        return null;
       }
-
-      if (unsafeManager.isQuantification(f)) {
-        Formula body = unsafeManager.getQuantifiedBody(f);
-        if (seen.add(body)) {
-          toProcess.push(body);
-        }
-
-      } else {
-        // Go into this formula.
-        for (int i = 0; i < unsafeManager.getArity(f); ++i) {
-          Formula c = unsafeManager.getArg(f, i);
-
-          if (seen.add(c)) {
-            toProcess.push(c);
-          }
-        }
-      }
-    }
-
-    return result;
+    }.visit(pFormula);
+    return found;
   }
 
   public Appender dumpFormula(BooleanFormula pT) {
@@ -1487,22 +1440,20 @@ public class FormulaManagerView {
    * is different from the index in the SSA map.
    */
   public Set<String> getDeadVariableNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa, FILTER_VARIABLES);
+    return getDeadFunctionNames(pFormula, pSsa, false);
   }
 
   /**
    * Same as {@link #getDeadVariableNames}, but returns UF's as well.
    */
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa,
-        Predicates.or(FILTER_VARIABLES, FILTER_UF));
+    return getDeadFunctionNames(pFormula, pSsa, true);
   }
 
   private Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa,
-      Predicate<Formula> filter) {
+      boolean extractUFs) {
     Set<String> result = Sets.newHashSet();
-    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa,
-        filter);
+    List<Formula> varFormulas = myGetDeadVariables(pFormula, pSsa, extractUFs);
     for (Formula f : varFormulas) {
       result.add(unsafeManager.getName(f));
     }
@@ -1515,12 +1466,15 @@ public class FormulaManagerView {
    * types (they are not appropriately wrapped).
    */
   private List<Formula> myGetDeadVariables(BooleanFormula pFormula, SSAMap pSsa,
-      Predicate<Formula> searchPredicate) {
+      boolean extractUF) {
     List<Formula> result = Lists.newArrayList();
 
-    for (Formula varFormula: myExtractSubformulas(unwrap(pFormula),
-        searchPredicate, true)) {
-      Pair<String, Integer> fullName = parseName(unsafeManager.getName(varFormula));
+    for (Entry<String, Formula> entry: myExtractSubformulas(unwrap(pFormula),
+        extractUF, true).entrySet()) {
+
+      String name = entry.getKey();
+      Formula varFormula = entry.getValue();
+      Pair<String, Integer> fullName = parseName(name);
       String varName = fullName.getFirst();
       Integer varSsaIndex = fullName.getSecond();
 
@@ -1558,8 +1512,7 @@ public class FormulaManagerView {
     Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
 
-    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa,
-        FILTER_VARIABLES);
+    List<Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa, false);
 
     BooleanFormula eliminationResult = pF;
 
