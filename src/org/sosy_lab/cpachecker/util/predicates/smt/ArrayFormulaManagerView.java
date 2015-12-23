@@ -201,4 +201,49 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return declareAndCallArray(name, pIntegerFormulaManager, pReturnType, pArgs);
   }
 
+  /**
+   * Returns a formula representing the declaration of an SMT array and a call
+   * to it.
+   *
+   * @param pName The name of the array variable.
+   * @param pIdx An additional index.
+   * @param pArrayIndex The index in the array we want to store the value in.
+   * @param pReturnType The return type of the array call, i.e. the element type of the array.
+   * @param pArgs The formula for the element that gets stored in the array.
+   * @param <T> The formula type of the elements of the array.
+   * @return A formula for the array and the call to it.
+   * @see #declareAndCallArray(String, NumeralFormulaManager, FormulaType, Formula)
+   */
+  public <T extends Formula> T declareAndCallArray(
+      final String pName,
+      final int pIdx,
+      final Formula pArrayIndex,
+      final FormulaType<T> pReturnType,
+      final Formula pArgs) {
+    String name = FormulaManagerView.makeName(pName, pIdx);
+    return declareAndCallArray(name, pArrayIndex, pReturnType, pArgs);
+  }
+
+  /**
+   * Returns a formula representing the declaration of an SMT array and a call
+   * to it.
+   *
+   * @param pName The name of the array variable.
+   * @param pArrayIndex The index in the array we want to store the value in.
+   * @param pReturnType The return type of the array call, i.e. the element type of the array.
+   * @param pArgs The formula for the element that gets stored in the array.
+   * @param <T> The formula type of the elements of the array.
+   * @return A formula for the array and the call to it.
+   * @see #declareAndCallArray(String, NumeralFormulaManager, FormulaType, Formula)
+   */
+  public <T extends Formula> T declareAndCallArray(
+      final String pName,
+      final Formula pArrayIndex,
+      final FormulaType<T> pReturnType,
+      final Formula pArgs) {
+    ArrayFormula<?, ?> arrayFormula = makeArray(pName, FormulaType.IntegerType, pReturnType);
+    arrayFormula = store(arrayFormula, pArrayIndex, pArgs);
+    return wrap(pReturnType, select(arrayFormula, pArrayIndex));
+  }
+
 }
