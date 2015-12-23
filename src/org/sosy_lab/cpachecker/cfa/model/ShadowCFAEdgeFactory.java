@@ -59,12 +59,17 @@ public enum ShadowCFAEdgeFactory {
 
     public ShadowCodeStartNode(String pInFunctionWithName, CFANode pWeavedOnLocation) {
       super(pInFunctionWithName);
-      this.weavedOnLocation = pWeavedOnLocation;
+      weavedOnLocation = Preconditions.checkNotNull(pWeavedOnLocation);
     }
 
     @Override
     public CFANode getWeavedOnLocation() {
       return weavedOnLocation;
+    }
+
+    @Override
+    public int getReversePostorderId() {
+      return weavedOnLocation.getReversePostorderId();
     }
 
   }
