@@ -22,9 +22,9 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * This package contains utilities which provides 
- * tools for cfa changing. These tools are especially 
- * for changing the cfa edge connections and building 
+ * This package contains utilities which provides
+ * tools for cfa changing. These tools are especially
+ * for changing the cfa edge connections and building
  * legal instances of cfa model and ast classes.
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils;

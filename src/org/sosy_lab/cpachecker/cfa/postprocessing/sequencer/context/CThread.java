@@ -13,12 +13,13 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 
 public class CThread extends AThread {
-  
-  
+
+
   public CThread(CFunctionEntryNode threadFunction, String threadName, int threadNumber, @Nullable CFunctionCall pthread_createStatement, CThread creator) {
     super(threadFunction, threadName, threadNumber, pthread_createStatement, HashMultimap.<String, CStatementEdge> create(), creator);
   }
 
+  @Override
   public CFunctionEntryNode getThreadFunction() {
     return (CFunctionEntryNode) super.getThreadFunction();
   }
@@ -34,7 +35,7 @@ public class CThread extends AThread {
   public Optional<CFunctionCall> getThreadCreationStatement() {
     return (Optional<CFunctionCall>) super.getThreadCreationStatement();
   }
-  
+
   @SuppressWarnings("unchecked")
   @Override
   public void addUsedFunction(String usedFunction, AStatementEdge functionCallStatement) {
@@ -42,14 +43,16 @@ public class CThread extends AThread {
     ((SetMultimap<String, CStatementEdge>) usedFunctions).put(usedFunction, (CStatementEdge) functionCallStatement);
   }
 
+  @Override
   @SuppressWarnings("unchecked")
   public SetMultimap<String, CStatementEdge> getUsedFunctions() {
     return (SetMultimap<String, CStatementEdge>) super.getUsedFunctions();
   }
-  
+
+  @Override
   @SuppressWarnings("unchecked")
   public Optional<CThread> getCreator() {
     return (Optional<CThread>) super.getCreator();
   }
-  
+
 }

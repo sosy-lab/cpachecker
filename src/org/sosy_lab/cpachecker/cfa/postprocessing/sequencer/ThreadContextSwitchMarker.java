@@ -50,7 +50,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
   private boolean isInitializingGlobalVar = false;
   private CThread runningThread;
   private CFA cfa;
-  
+
   public ThreadContextSwitchMarker(CThread thread, CFA cfa) {
     super();
     this.runningThread = thread;
@@ -59,7 +59,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     }
     this.cfa = cfa;
   }
-  
+
   @Override
   public TraversalProcess visitEdge(CFAEdge pEdge) {
     if (CFAFunctionUtils.isFunctionCallStatement(pEdge)) {
@@ -76,7 +76,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     if(isInitializingGlobalVar(pEdge)) {
       return TraversalProcess.CONTINUE;
     }
-    
+
     if (isContextSwitch(runningThread, pEdge)) {
       // new context switch possible
       runningThread.addContextSwitch(pEdge);
@@ -86,7 +86,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
   }
 
   /**
-   * returns if the given edge is an edge which triggers a context switch point 
+   * returns if the given edge is an edge which triggers a context switch point
    */
   private boolean isContextSwitch(CThread runningThread, CFAEdge edge) {
     switch (edge.getEdgeType()) {
@@ -102,7 +102,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       return false;
     }
   }
-  
+
   private boolean isContextSwitchPoint(BlankEdge edge) {
     return FORCE_CS.equals(edge.getDescription());
   }
@@ -112,10 +112,10 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       if (!(declaration instanceof CVariableDeclaration)) {
         return false;
       }
-      
+
       CVariableDeclaration variableDec = (CVariableDeclaration) declaration;
-      
-      boolean hasInitializer = variableDec.getInitializer() != null; 
+
+      boolean hasInitializer = variableDec.getInitializer() != null;
       return declaration.isGlobal() && hasInitializer;
   }
 
@@ -126,22 +126,22 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     if (statement instanceof CAssignment) {
       isContextSwitchTrigger = isGlobalVariableAssignement((CAssignment) statement);
     }
-    
+
     if(statement instanceof AFunctionCall) {
       // function can change global parameter
       isContextSwitchTrigger |= canFunctionCallInfluenceGlobalVar((AFunctionCall) statement);
       isContextSwitchTrigger |= isPosixFunction((AFunctionCall) statement);
     }
-    
+
     return isContextSwitchTrigger;
   }
-  
+
   private boolean canFunctionCallInfluenceGlobalVar(AFunctionCall functionCall) {
     if(!CFAFunctionUtils.isExternFunctionCall(functionCall, cfa)) {
-      // a participation of global variable can be located in the function body 
+      // a participation of global variable can be located in the function body
       return false;
     }
-    
+
     CFunctionCallExpression parameter = (CFunctionCallExpression) functionCall.getFunctionCallExpression();
     for(CExpression exp : parameter.getParameterExpressions()) {
       if(exp instanceof CPointerExpression) {
@@ -153,11 +153,11 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
 
   private boolean isGlobalVariableAssignement(CAssignment variableAssignment) {
     CLeftHandSide leftHandSide = variableAssignment.getLeftHandSide();
-    
+
     if(leftHandSide instanceof CPointerExpression) {
       return true;
     }
-    
+
     if (!(leftHandSide instanceof CIdExpression)) {
       return false;
     }
@@ -171,7 +171,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     CVariableDeclaration variableDec = (CVariableDeclaration) a;
     return variableDec.isGlobal();
   }
-  
+
   private boolean isPosixFunction(AFunctionCall statement) {
     AFunctionDeclaration declaration = statement.getFunctionCallExpression().getDeclaration();
     if(declaration == null) {
@@ -194,27 +194,27 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
         isInitializingGlobalVar = false;
       }
     }
-    
+
     return isInitializingGlobalVar;
   }
-  
-  
-  
+
+
+
   private boolean isGlobalVarInvolved(AssumeEdge edge) {
     AExpression assumeExpression = edge.getExpression();
     if (assumeExpression instanceof CExpression) {
       CExpression cAssumeExpression = (CExpression) assumeExpression;
-      
+
       return cAssumeExpression.accept(GlobalExpression.isGlobalExpression);
     } else if (assumeExpression instanceof JExpression) {
       throw new UnsupportedOperationException("Sequentialization is not supported for Java programs!");
     }
     return false;
   }
-  
+
   private static class GlobalExpression implements CExpressionVisitor<Boolean, RuntimeException> {
     public final static GlobalExpression isGlobalExpression = new GlobalExpression();
-    
+
     @Override
     public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
         throws RuntimeException {
@@ -234,7 +234,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       if (!(declaration instanceof CVariableDeclaration)) {
         return false;
       }
-      
+
       CVariableDeclaration variableDec = (CVariableDeclaration) declaration;
       return variableDec.isGlobal();
     }
@@ -251,7 +251,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
 
     @Override
     public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-      return pIastBinaryExpression.getOperand1().accept(this) || pIastBinaryExpression.getOperand2().accept(this); 
+      return pIastBinaryExpression.getOperand1().accept(this) || pIastBinaryExpression.getOperand2().accept(this);
     }
 
     @Override
@@ -304,6 +304,6 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
         throws RuntimeException {
       return false;
     }
-    
+
   }
 }

@@ -32,36 +32,36 @@ public abstract class AThread {
       int threadNumber, @Nullable AFunctionCall threadCreationStatement,
       SetMultimap<String, ? extends AStatementEdge> usedFunctions, @Nullable AThread creator) {
     assert threadNumber >= 0;
-  
+
     this.threadFunction = threadFunction;
     this.threadName = threadName;
     this.threadNumber = threadNumber;
-    this.usedFunctions = usedFunctions;    
+    this.usedFunctions = usedFunctions;
     this.creator = creator == null ? Optional.<AThread>absent() : Optional.<AThread>of(creator);
     this.threadCreationStatement = threadCreationStatement == null ? Optional.<AFunctionCall>absent() : Optional.<AFunctionCall>of(threadCreationStatement);
-    
+
   }
-  
+
   public FunctionEntryNode getThreadFunction() {
     return threadFunction;
   }
-  
+
   public void setThreadFunction(FunctionEntryNode threadFunction) {
     this.threadFunction = threadFunction;
   }
-  
+
   public String getThreadName() {
     return threadName;
   }
-  
+
   public int getThreadNumber() {
     return threadNumber;
   }
-  
+
   public Optional<? extends AFunctionCall> getThreadCreationStatement() {
     return threadCreationStatement;
   }
-  
+
   public Optional<? extends AThread> getCreator() {
     return creator;
   }
@@ -71,22 +71,22 @@ public abstract class AThread {
       ContextSwitch contextSwitchLocation = contextSwitchPoints.get(switchEdge.getSuccessor());
       assert equals(contextSwitchLocation.getThread());
       contextSwitchLocation.addContextStatementCause(switchEdge);
-  
+
     } else {
       ContextSwitch cs = new ContextSwitch(contextSwitchPoints.size() + 1, this, switchEdge);
       contextSwitchPoints.put(switchEdge.getSuccessor(), cs);
     }
-  
+
   }
-  
+
   public abstract void addUsedFunction(String usedFunction, AStatementEdge functionCallStatement);
-  
+
   public SetMultimap<String, ? extends AStatementEdge> getUsedFunctions() {
     return usedFunctions;
   }
-  
+
   public List<ContextSwitch> getContextSwitchPoints() {
-    List<ContextSwitch> sorted = new ArrayList<ContextSwitch>(contextSwitchPoints.values()); 
+    List<ContextSwitch> sorted = new ArrayList<ContextSwitch>(contextSwitchPoints.values());
     Collections.sort(sorted,   new Comparator<ContextSwitch>() {
 
       @Override
@@ -94,11 +94,11 @@ public abstract class AThread {
         return o1.getContextSwitchNumber() - o2.getContextSwitchNumber();
       }
     });
-    
+
     return sorted;
   }
 
-  
+
   @Override
   public String toString() {
     return threadName + "[" + threadFunction.getFunctionName() + "]";

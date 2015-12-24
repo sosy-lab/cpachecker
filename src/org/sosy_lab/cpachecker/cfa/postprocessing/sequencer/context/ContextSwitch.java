@@ -15,14 +15,14 @@ public class ContextSwitch {
    */
   private int contextSwitchNumber;
   private AThread thread;
-  
+
   private CFANode jumpInNode;
   private Collection<CFAEdge> contextStatementCause = new HashSet<CFAEdge>();
-  
+
   public ContextSwitch(int contextSwitchNumber, AThread thread, CFAEdge switchPoint) {
 //    Preconditions.checkArgument(PThreadUtils.isContextSwitchPoint(switchPoint));
-    
-    
+
+
     this.thread = thread;
     this.jumpInNode = switchPoint.getSuccessor();
     this.contextSwitchNumber = contextSwitchNumber;
@@ -32,7 +32,7 @@ public class ContextSwitch {
   public AThread getThread() {
     return thread;
   }
-  
+
   public int getContextSwitchNumber() {
     return contextSwitchNumber;
   }
@@ -44,9 +44,9 @@ public class ContextSwitch {
     }
     return null;
   }
-  
+
   public void setContextSwitchNode(CFANode contextSwitchNode) {
-    assert !getContextSwitchReturnNode().equals(contextSwitchNode) 
+    assert !getContextSwitchReturnNode().equals(contextSwitchNode)
         : "Inconsistent state. Cannot set the contextswitch node to the node where the thread jumps back";
     this.jumpInNode = contextSwitchNode;
   }
@@ -54,17 +54,17 @@ public class ContextSwitch {
   public CFANode getContextSwitchReturnNode() {
     return jumpInNode;
   }
-  
+
   public Collection<CFAEdge> getContextStatementCause() {
     return contextStatementCause;
   }
-  
+
   public void addContextStatementCause(CFAEdge contextStatementCause) {
     assert canNewEdgeTriggerContextSwitch(contextStatementCause);
     assert contextStatementCause.getSuccessor().equals(jumpInNode);
     this.contextStatementCause.add(contextStatementCause);
   }
-  
+
   private boolean canNewEdgeTriggerContextSwitch(CFAEdge contextStatementCause) {
     CFANode a = contextStatementCause.getPredecessor();
     CFANode b = contextStatementCause.getSuccessor();
@@ -80,7 +80,7 @@ public class ContextSwitch {
     }
     return true;
   }
-  
+
   //TODO what is with function cloner!
 //  public void addContextStatementCause(CFAEdge contextStatementCause) {
 //    this.contextStatementCause.add(contextStatementCause);
@@ -93,7 +93,7 @@ public class ContextSwitch {
     return rep;
   }
 
-  
+
   // FIXME find better solution for this
   public void replaceContextSwitchCause(CFAEdge toReplace, CFAEdge replace) {
     assert contextStatementCause.contains(toReplace);

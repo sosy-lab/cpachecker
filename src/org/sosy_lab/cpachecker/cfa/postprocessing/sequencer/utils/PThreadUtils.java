@@ -47,7 +47,7 @@ public class PThreadUtils {
     Collection<AStatementEdge> threadCreationCalls = CFAFunctionUtils
         .getAllFunctionCallEdgesReachableBy(cfa, entryNode, 0);
     threadCreationCalls = PThreadUtils.filterPthreadFunctionCallStatements(threadCreationCalls);
-    
+
     return Collections2.transform(threadCreationCalls,
         new Function<AStatementEdge, CStatementEdge>() {
 
@@ -67,21 +67,21 @@ public class PThreadUtils {
         ALL_PTHREAD_FUNCTIONS);
   }
 
-  
+
   public static void stubPOSIXFunctions(MutableCFA cfa) {
     // just to be sure
     for (FunctionEntryNode function : PThreadUtils.getPthreadFunctionHeads(cfa)) {
       CFAFunctionUtils.stubFunction(function);
     }
   }
-  
 
-  
+
+
   public static CThread getCThreadByPThread_Create(AFunctionCall functionCall, CThreadContainer threads) {
     functionCall.getFunctionCallExpression().getParameterExpressions();
-    
+
     String functionName = getCThreadStartFunctionName(functionCall);
-    
+
     for (CThread thread : threads.getAllThreads()) {
       if(thread.getThreadFunction().getFunctionName().equals(functionName)) {
         return thread;
@@ -89,12 +89,12 @@ public class PThreadUtils {
     }
     return null;
   }
-  
+
 
   /**
    * Returns all FunctionEntryNodes of function which must be stubbed in order
    * to prevent real thread creation
-   * 
+   *
    * @param cfa
    *          the cfa where the pthread functions should be searched
    */
@@ -116,7 +116,7 @@ public class PThreadUtils {
       AFunctionCall functionCallStatement) {
     assert PTHREAD_CREATE_NAME.equals(CFAFunctionUtils.getFunctionName(functionCallStatement));
     assert functionCallStatement instanceof CFunctionCall;
-    
+
     AFunctionCallExpression exp = functionCallStatement
         .getFunctionCallExpression();
     List<? extends AExpression> parameterExpressions = exp
@@ -124,7 +124,7 @@ public class PThreadUtils {
 
     assert parameterExpressions.size() > 2;
     Preconditions.checkElementIndex(2, parameterExpressions.size());
-    
+
     // third parameter of pthread_create is the function pointer
     AExpression p = parameterExpressions.get(2);
 

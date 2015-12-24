@@ -24,14 +24,14 @@
 /**
  * This package contains implementations which provides a cfa sequencing
  * {@link org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.Sequencer}.
- * 
+ *
  * <p>
  * Post-processings for the CFA that change the CFA structure,
  * executed (optionally) between parsing and returning the finished CFA.
  * The post-processings in this package all work on the full CFA,
- * potentially adds context switch edges between functions. Adds new 
+ * potentially adds context switch edges between functions. Adds new
  * functions and potentially clones them which follows a naming convention
  * (original name + count).
- * </p> 
+ * </p>
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
