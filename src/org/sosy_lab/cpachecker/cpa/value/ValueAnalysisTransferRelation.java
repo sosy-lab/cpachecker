@@ -39,7 +39,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -152,6 +151,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -349,7 +349,8 @@ public class ValueAnalysisTransferRelation
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
               || "skipped unnecessary edges".equals(cfaEdge.getDescription())
-              || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription());
+              || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription())
+              || "context switch".equals(cfaEdge.getDescription());
 
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);
