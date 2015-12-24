@@ -72,12 +72,9 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UfDeclaration;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -1242,87 +1239,7 @@ public class FormulaManagerView {
       final Formula pFormula,
       final boolean extractUF,
       final boolean recurseIntoFunctions) {
-
-    final Set<String> found = new HashSet<>();
-    final Set<Formula> seen = new HashSet<>();
-    final Deque<Formula> toProcess = new ArrayDeque<>();
-    FormulaVisitor<Void> collector = new DefaultFormulaVisitor<Void>(manager) {
-
-      @Override
-      protected Void visitDefault() {
-        return null;
-      }
-
-      @Override
-      public Void visitUF(
-          String functionName,
-          UfDeclaration<?> declaration,
-          List<Formula> args) {
-        if (recurseIntoFunctions) {
-          for (Formula arg : args) {
-            if (seen.add(arg)) {
-              toProcess.push(arg);
-            }
-          }
-        }
-        if (extractUF) {
-          found.add(functionName);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitFunction(
-          String functionName,
-          List<Formula> args,
-          FormulaType<?> type,
-          Function<List<Formula>, Formula> newApplicationConstructor) {
-        for (Formula arg : args) {
-          if (seen.add(arg)) {
-            toProcess.push(arg);
-          }
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitFreeVariable(String name, FormulaType<?> type) {
-        found.add(name);
-        return null;
-      }
-
-      @Override
-      public Void visitExists(List<Formula> pVariables, BooleanFormula pBody) {
-        if (seen.add(pBody)) {
-          toProcess.push(pBody);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitForAll(List<Formula> pVariables, BooleanFormula pBody) {
-        if (seen.add(pBody)) {
-          toProcess.push(pBody);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitBoundVariable(String pName, FormulaType<?> pType) {
-        // TODO remove after DefaultFormulaVisitor is fixed
-        return null;
-      }
-    };
-
-    toProcess.push(pFormula);
-    seen.add(pFormula);
-    while (!toProcess.isEmpty()) {
-      Formula f = toProcess.pop();
-      assert seen.contains(f);
-      collector.visit(f);
-    }
-
-    return found;
+    return myExtractSubformulas(pFormula, extractUF, recurseIntoFunctions).keySet();
   }
 
   /**
@@ -1351,24 +1268,19 @@ public class FormulaManagerView {
     new RecursiveFormulaVisitor(manager) {
 
       @Override
-      public Void visitUF(
-          String functionName,
-          UfDeclaration<?> declaration,
-          List<Formula> args) {
+      public Void visitUF(Formula f, List<Formula> args, String functionName) {
         if (recurseIntoFunctions) {
-          super.visitUF(functionName, declaration, args);
+          super.visitUF(f, args, functionName);
         }
         if (extractUF) {
-          found.put(functionName,
-              functionFormulaManager.callUninterpretedFunction(
-              declaration, args));
+          found.put(functionName, f);
         }
         return null;
       }
 
       @Override
-      public Void visitFreeVariable(String name, FormulaType<?> type) {
-        found.put(name, makeVariable(type, name));
+      public Void visitFreeVariable(Formula f, String name) {
+        found.put(name, f);
         return null;
       }
     }.visit(pFormula);

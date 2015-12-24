@@ -195,8 +195,7 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation(
-        false);
+    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation();
 
     // in the case we do not already have a prover environment with assumptions
     // we add a wrapper to it
