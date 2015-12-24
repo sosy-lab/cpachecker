@@ -76,6 +76,7 @@ public class POSIXStubs {
 
     // create edges
     CPointerExpression threadID = POINTER_OF.apply(firstParameter);
+
     CIdExpression threadNumber = CID_EXPRESSION_OF.apply(thirdParameter);
     CArraySubscriptExpression creationArgument =
         getArrayVarOfIndex(threadCreationArgumentStorage, threadNumber);
@@ -109,6 +110,7 @@ public class POSIXStubs {
 
   public void buildPThreadJoinBody() {
     // TODO review
+    // TODO return value is buggy
     CVariableDeclaration retVal = new CVariableDeclaration(FileLocation.DUMMY, false,
         CStorageClass.AUTO, CNumericTypes.INT, "__temp_retval_", "__temp_retval_",
         "__temp_retval_", new CInitializerExpression(FileLocation.DUMMY, null));

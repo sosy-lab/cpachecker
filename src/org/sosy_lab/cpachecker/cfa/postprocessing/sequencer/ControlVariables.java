@@ -34,25 +34,25 @@ public class ControlVariables {
 
 
   private final static Function<String, String> GLOBAL_NAME = new Function<String, String>() {
-    
+
     @Override
     public String apply(String arg0) {
-      return "static__" + MAIN_FUNCTION_NAME + "__" + arg0;
+      return arg0;
     }
   };
 
 
   private final static Function<String, String> GLOBAL_QUALIFIER_NAME = new Function<String, String>() {
-  
+
     @Override
     public String apply(String arg0) {
-      return MAIN_FUNCTION_NAME +"::" + GLOBAL_NAME.apply(arg0);
+      return GLOBAL_NAME.apply(arg0);
     }
   };
-  
-  
-  
-  /** 
+
+
+
+  /**
    * The declaration of the global variable <i>int currentThread;</i>
    */
   private CVariableDeclaration currentThreadDeclaration;
@@ -61,25 +61,25 @@ public class ControlVariables {
    * threadCreationArguments[T];</i>
    */
   private CVariableDeclaration threadCreationArgumentsArrayDeclaration;
-  
+
   private CVariableDeclaration threadReturnValueArrayDeclaration;
-  /** 
-   * The declaration of the global variable <i>bool isThreadActive[T];</i> 
+  /**
+   * The declaration of the global variable <i>bool isThreadActive[T];</i>
    */
   private CVariableDeclaration isThreadActiveArrayDeclaration;
   private CVariableDeclaration isThreadFinishedDeclaration;
-  
-  
+
+
   public ControlVariables(CThreadContainer threads) {
     this.THREAD_COUNT = threads.getThreadCount();
     this.threads = threads;
     buildGlobalVariableDeclaration();
   }
-  
+
   /**
    * Creates global variables to the cfa which will be used to manage the thread
    * scheduling.
-   * 
+   *
    * <ul>
    * <li>int contextSwitch[THREADS] = {0};</li>
    * <li>int currentThread = 0;</li>
@@ -89,7 +89,7 @@ public class ControlVariables {
    * <li>bool isThreadActive[THREADS] = {0};</li>
    * <li>int THREADS = --number of threads--;</li>
    * </ul>
-   * 
+   *
    */
   private void buildGlobalVariableDeclaration() {
     currentThreadDeclaration = createCurrentThreadDeclaration();
@@ -98,22 +98,22 @@ public class ControlVariables {
     isThreadActiveArrayDeclaration = createIsThreadActiveArrayDeclaration();
     isThreadFinishedDeclaration = createIsThreadFinishedDeclaration();
   }
-  
+
 
   private CVariableDeclaration createCurrentThreadDeclaration() {
     String variableName = "currentThreadNumber";
     CVariableDeclaration currentThreadDeclaration = new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO, CNumericTypes.INT, GLOBAL_NAME.apply(variableName), variableName, GLOBAL_QUALIFIER_NAME.apply(variableName),
         CDefaults.forType(CNumericTypes.INT, FileLocation.DUMMY));
-    
+
     return currentThreadDeclaration;
   }
 
   @Deprecated
   private CVariableDeclaration createProgramCounterOfThreadArrayDeclaration() {
-    String variableName = "programCounterOfThread"; 
+    String variableName = "programCounterOfThread";
     CVariableDeclaration programCounterOfThreadArrayDeclaration = ArrayDeclarationUtils.buildStaticNumericArrayDeclaration(CNumericTypes.INT, THREAD_COUNT,
         0, variableName);
-  
+
     return programCounterOfThreadArrayDeclaration;
   }
 
@@ -121,42 +121,42 @@ public class ControlVariables {
     CType voidPointerType = new CPointerType(false, false, CVoidType.VOID);
     return ArrayDeclarationUtils.buildStaticGlobalArrayDeclarationWithInitializer(voidPointerType, size, null, name);
   }
-  
+
   private CVariableDeclaration createThreadCreationArgumentsArrayDeclaration() {
     String variableName = "threadCreationArguments";
 
     CVariableDeclaration threadCreationArgumentsDeclaration = buildStaticVoidPointerArrayDeclaration(THREAD_COUNT, variableName);
     return threadCreationArgumentsDeclaration;
   }
-  
+
   private CVariableDeclaration createThreadReturnValueArrayDeclaration() {
     String variableName = "threadReturnValue";
-    
+
     CVariableDeclaration threadReturnValueArrayDeclaration = ArrayDeclarationUtils.buildStaticNumericArrayDeclaration(CNumericTypes.INT, THREAD_COUNT, 0, variableName);
     return threadReturnValueArrayDeclaration;
   }
-  
+
   private CVariableDeclaration createIsThreadActiveArrayDeclaration() {
     assert THREAD_COUNT > 0;
     String variableName = "isThreadActive";
-    
+
     List<CInitializer> arrayInitializers = new ArrayList<CInitializer>();
     arrayInitializers.add(new CInitializerExpression(FileLocation.DUMMY, new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.BOOL, BigInteger.valueOf(1))));
     for(int i = 0; i < THREAD_COUNT - 1; i++) {
       arrayInitializers.add(new CInitializerExpression(FileLocation.DUMMY, new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.BOOL, BigInteger.valueOf(0))));
     }
-    
+
     CInitializerList arrayInitializer = new CInitializerList(FileLocation.DUMMY, arrayInitializers);
-    
-    
+
+
     CVariableDeclaration isThreadActiveArrayDeclaration = ArrayDeclarationUtils.buildStaticGlobalArrayDeclarationWithInitializer(CNumericTypes.BOOL, THREAD_COUNT, arrayInitializer, variableName);
-    
+
     return isThreadActiveArrayDeclaration;
   }
-  
+
   private CVariableDeclaration createIsThreadFinishedDeclaration() {
     String variableName = "isThreadFinished";
-  
+
     CVariableDeclaration isThreadFinishedDeclaration= ArrayDeclarationUtils.buildStaticBoolArrayDeclaration(THREAD_COUNT, false, variableName);
     return isThreadFinishedDeclaration;
   }
@@ -201,12 +201,12 @@ public class ControlVariables {
   public CFAEdge getDummyIsThreadFinishedDeclarationEdge() {
     return getDummyDeclarationEdge(isThreadFinishedDeclaration);
   }
-  
-  
+
+
   private CDeclarationEdge getDummyDeclarationEdge(CVariableDeclaration variableDeclaration) {
     return new CDeclarationEdge(variableDeclaration.toString(), FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE,
         CFASequenceBuilder.DUMMY_NODE, variableDeclaration);
   }
-  
+
 
 }

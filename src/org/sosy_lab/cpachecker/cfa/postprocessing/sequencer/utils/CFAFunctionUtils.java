@@ -41,9 +41,47 @@ import com.google.common.collect.Collections2;
 
 public class CFAFunctionUtils {
 
+
+
   public final static String INIT_GLOBAL_VARS = "INIT GLOBAL VARS";
 
   public final static String DEFAULT_RETURN = "default return";
+
+  public final static String FUNCTION_DUMMY_START = "Function start dummy edge";
+
+  public final static Predicate<CFAEdge> IS_INIT_GLOBAL_VARS = new Predicate<CFAEdge>() {
+
+    @Override
+    public boolean apply(CFAEdge pArg0) {
+      if (pArg0 instanceof BlankEdge) {
+      return ((BlankEdge) pArg0).getDescription().equals(INIT_GLOBAL_VARS);
+      }
+      return false;
+    }
+  };
+
+  public final static Predicate<CFAEdge> IS_DEFAULT_RETURN = new Predicate<CFAEdge>() {
+
+    @Override
+    public boolean apply(CFAEdge pArg0) {
+      if (pArg0 instanceof BlankEdge) {
+      return ((BlankEdge) pArg0).getDescription().equals(DEFAULT_RETURN);
+      }
+      return false;
+    }
+  };
+
+  public final static Predicate<CFAEdge> IS_FUNCTION_START_EDGE = new Predicate<CFAEdge>() {
+
+    @Override
+    public boolean apply(CFAEdge pArg0) {
+      if (pArg0 instanceof BlankEdge) {
+      return ((BlankEdge) pArg0).getDescription().equals(FUNCTION_DUMMY_START);
+      }
+      return false;
+    }
+  };
+
 
   public final static Predicate<FunctionEntryNode> isFunctionEntryName(
       final String... functionNames) {

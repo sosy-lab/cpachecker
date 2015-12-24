@@ -56,14 +56,15 @@ public class Sequencer {
   // TODO replace declaration of function calls of stubbed functions!!!!!
   // TODO assert edges in threaedIdentificator were not replaced !!
   public void sequenceCFA() {
-    StubDeclaration stubDeclaration = new StubDeclaration();
+    StubDeclaration stubDeclaration = new StubDeclaration(logger);
+    stubDeclaration.replaceDeclarationEdges(cfa);
     SequencePreparator threadIdentificator = new SequencePreparator(stubDeclaration, cfa);
     CThreadContainer threads = threadIdentificator.traverseAndReplaceFunctions();
     ControlVariables controlVariables = new ControlVariables(threads);
     POSIXStubs posixStubs = new POSIXStubs(controlVariables, stubDeclaration, cfa, logger);
 
     //TODO this stub or the posixStub stub
-//    StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
+    StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
 
     // create context switches
     for(CThread thread : threads.getAllThreads()) {

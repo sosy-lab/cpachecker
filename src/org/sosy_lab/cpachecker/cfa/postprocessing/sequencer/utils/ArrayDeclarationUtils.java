@@ -23,11 +23,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import com.google.common.base.Preconditions;
 
 public class ArrayDeclarationUtils {
-  
+
   /**
    * Creates a new CVariableDeclaration of an static array with a numeric
    * initialization value. Initializes all array values with this value.
-   * 
+   *
    * @param arrayType
    *          - the type the array should have
    * @param size
@@ -55,48 +55,47 @@ public class ArrayDeclarationUtils {
       arrayInitializer = new CInitializerList(FileLocation.DUMMY,
           arrayInitializers);
     }
-    
+
     return buildStaticGlobalArrayDeclarationWithInitializer(arrayType, size, arrayInitializer, name);
   }
-  
+
   public static CVariableDeclaration buildStaticGlobalArrayDeclarationWithInitializer(CType arrayType, int size, @Nullable CInitializerList initializer,
       String name) {
     Preconditions.checkArgument(initializer == null || size == initializer.getInitializers().size());
     assert initializer == null || checkTypeTogetherness(arrayType, initializer);
 //    Preconditions.checkArgument(initializer == null || checkTypeTogetherness(arrayType, initializer));
-    
+
     CExpression arraySize = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(size));
-    
+
     /*
      * storage class static is the same as auto, just with reduced visibility to
      * a single compilation unit, and as we only handle single compilation
      * units, we can ignore it.
      */
     CArrayType array = new CArrayType(false, false, arrayType, arraySize);
-    
+
     CVariableDeclaration arrayDeclatation = new CVariableDeclaration(
-        FileLocation.DUMMY, true, CStorageClass.AUTO, array, "main__"
-            + name, name, "static__main__" + name, initializer);
+        FileLocation.DUMMY, true, CStorageClass.AUTO, array, name, name, name, initializer);
 
     return arrayDeclatation;
   }
-  
+
   private static boolean checkTypeTogetherness(CType arrayType, CInitializerList initializer) {
     assert initializer != null;
-    
+
     for(CInitializer init : initializer.getInitializers()) {
       assert init instanceof CInitializerExpression;
-            
+
       CInitializerExpression initializerExpression = (CInitializerExpression) init;
       CType initializerType = initializerExpression.getExpression().getExpressionType();
-      
+
       if(!arrayType.getCanonicalType().equals(initializerType.getCanonicalType())) {
         return false;
       }
     }
     return true;
   }
-  
+
   public static CVariableDeclaration buildStaticBoolArrayDeclaration(int size, @Nullable Boolean initializerValue, String name) {
     CInitializerExpression singleInitializer;
     if (initializerValue == null) { // no initializer
@@ -110,14 +109,14 @@ public class ArrayDeclarationUtils {
     }
     return buildStaticArrayDeclaration(CNumericTypes.BOOL, size, singleInitializer, name);
   }
-  
+
   public static CVariableDeclaration buildStaticNumericArrayDeclaration(CSimpleType type, int size, long initializerValue, String name) {
     if(!CBasicType.INT.equals(type.getType())) {
       throw new IllegalArgumentException("" + type + " is no numeric type! Cannot instantiate with " + initializerValue);
     }
-    
+
     CInitializerExpression singleInitialization = new CInitializerExpression(FileLocation.DUMMY, new CIntegerLiteralExpression(FileLocation.DUMMY, type, BigInteger.valueOf(initializerValue)));
-    
+
     return buildStaticArrayDeclaration(type, size, singleInitialization, name);
   }
 }
