@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
@@ -72,12 +73,9 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UfDeclaration;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
-import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -922,8 +920,6 @@ public class FormulaManagerView {
 
   // various caches for speeding up expensive tasks
   //
-  // cache for splitting arithmetic equalities in extractAtoms
-  private final Map<Formula, Boolean> arithCache = new HashMap<>();
 
   // cache for uninstantiating terms (see uninstantiate() below)
   private final Map<Formula, Formula> uninstantiateCache = new HashMap<>();
@@ -1093,8 +1089,10 @@ public class FormulaManagerView {
   /**
    * Extract all atoms of a given boolean formula.
    */
-  public Collection<BooleanFormula> extractAtoms(BooleanFormula f, boolean splitArithEqualities) {
-    return myExtractAtoms(f, splitArithEqualities,
+  public Collection<BooleanFormula> extractAtoms(BooleanFormula pFormula, final boolean splitArithEqualities) {
+    final List<BooleanFormula> result = new ArrayList<>();
+
+    final BooleanFormulaVisitor<Boolean> isLowestLevel =
         new DefaultBooleanFormulaVisitor<Boolean>(this) {
           @Override
           public Boolean visitDefault() {
@@ -1104,8 +1102,31 @@ public class FormulaManagerView {
           public Boolean visitAtom(BooleanFormula atom) {
             return true;
           }
+        };
+
+    new RecursiveFormulaVisitor(manager) {
+      @Override
+      public Void visitOperator(
+          Formula f,
+          List<Formula> args,
+          String functionName, Function<List<Formula>, Formula> constructor) {
+
+        if (getFormulaType(f).isBooleanType() &&
+            isLowestLevel.visit((BooleanFormula) f)) {
+
+          if (splitArithEqualities && myIsPurelyArithmetic(f)) {
+            List<BooleanFormula> split =
+                unsafeManager.splitNumeralEqualityIfPossible((BooleanFormula)f);
+            visit(split.get(0));
+          }
+          result.add((BooleanFormula) f);
+        } else {
+          super.visitOperator(f, args, functionName, constructor);
         }
-    );
+        return null;
+      }
+    }.visit(unwrap(pFormula));
+    return result;
   }
 
   /**
@@ -1142,76 +1163,31 @@ public class FormulaManagerView {
     return unsafeManager.splitNumeralEqualityIfPossible(formula);
   }
 
-  private Collection<BooleanFormula> myExtractAtoms(BooleanFormula pFormula, boolean splitArithEqualities,
-      BooleanFormulaVisitor<Boolean> isLowestLevel) {
-    Set<BooleanFormula> seen = new HashSet<>();
-    List<BooleanFormula> result = new ArrayList<>();
+  /**
+   * Cache for splitting arithmetic equalities in extractAtoms.
+   */
+  private final Map<Formula, Boolean> arithCache = new HashMap<>();
 
-    Deque<BooleanFormula> toProcess = new ArrayDeque<>();
-    toProcess.push(pFormula);
-    seen.add(pFormula);
-
-    while (!toProcess.isEmpty()) {
-      BooleanFormula f = toProcess.pop();
-      assert seen.contains(f);
-
-      if (unsafeManager.isBoundVariable(f)) {
-        // Do nothing for variables that are bound by a quantifier!
-        continue;
-      }
-
-      if (isLowestLevel.visit(f)) {
-        if (splitArithEqualities && myIsPurelyArithmetic(f)) {
-          List<BooleanFormula> split = unsafeManager.splitNumeralEqualityIfPossible(f);
-          // some solvers might produce non-atomic formulas for split,
-          // thus push it instead of adding it directly to result
-          if (seen.add(split.get(0))) {
-            toProcess.push(split.get(0));
-          }
-        }
-        result.add(f);
-
-      } else if (unsafeManager.isQuantification(f)) {
-        BooleanFormula body = unsafeManager.getQuantifiedBody(f);
-        if (seen.add(body)) {
-          toProcess.push(body);
-        }
-
-      } else {
-        // Go into this formula.
-        for (int i = 0; i < unsafeManager.getArity(f); ++i) {
-          Formula c = unsafeManager.getArg(f, i);
-          assert getRawFormulaType(c).isBooleanType();
-          if (seen.add((BooleanFormula)c)) {
-            toProcess.push((BooleanFormula)c);
-          }
-        }
-      }
-    }
-
-    return result;
-  }
-
-  // returns true if the given term is a pure arithmetic term
+  /**
+   * Returns true if the given term is a pure arithmetic term.
+   */
   private boolean myIsPurelyArithmetic(Formula f) {
     Boolean result = arithCache.get(f);
     if (result != null) { return result; }
 
-    boolean res = true;
-    if (unsafeManager.isUF(f)) {
-      res = false;
-
-    } else {
-      int arity = unsafeManager.getArity(f);
-      for (int i = 0; i < arity; ++i) {
-        res = myIsPurelyArithmetic(unsafeManager.getArg(f, i));
-        if (!res) {
-          break;
-        }
+    // Stays at zero unless a UF is found.
+    final AtomicInteger isPurelyAtomic = new AtomicInteger(0);
+    new RecursiveFormulaVisitor(manager) {
+      @Override
+      public Void visitUF(
+          Formula f2, List<Formula> args, String functionName) {
+        isPurelyAtomic.incrementAndGet();
+        return null;
       }
-    }
-    arithCache.put(f, res);
-    return res;
+    }.visit(f);
+    result = (isPurelyAtomic.get() == 0);
+    arithCache.put(f, result);
+    return result;
   }
 
   /**
@@ -1242,87 +1218,7 @@ public class FormulaManagerView {
       final Formula pFormula,
       final boolean extractUF,
       final boolean recurseIntoFunctions) {
-
-    final Set<String> found = new HashSet<>();
-    final Set<Formula> seen = new HashSet<>();
-    final Deque<Formula> toProcess = new ArrayDeque<>();
-    FormulaVisitor<Void> collector = new DefaultFormulaVisitor<Void>(manager) {
-
-      @Override
-      protected Void visitDefault() {
-        return null;
-      }
-
-      @Override
-      public Void visitUF(
-          String functionName,
-          UfDeclaration<?> declaration,
-          List<Formula> args) {
-        if (recurseIntoFunctions) {
-          for (Formula arg : args) {
-            if (seen.add(arg)) {
-              toProcess.push(arg);
-            }
-          }
-        }
-        if (extractUF) {
-          found.add(functionName);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitFunction(
-          String functionName,
-          List<Formula> args,
-          FormulaType<?> type,
-          Function<List<Formula>, Formula> newApplicationConstructor) {
-        for (Formula arg : args) {
-          if (seen.add(arg)) {
-            toProcess.push(arg);
-          }
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitFreeVariable(String name, FormulaType<?> type) {
-        found.add(name);
-        return null;
-      }
-
-      @Override
-      public Void visitExists(List<Formula> pVariables, BooleanFormula pBody) {
-        if (seen.add(pBody)) {
-          toProcess.push(pBody);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitForAll(List<Formula> pVariables, BooleanFormula pBody) {
-        if (seen.add(pBody)) {
-          toProcess.push(pBody);
-        }
-        return null;
-      }
-
-      @Override
-      public Void visitBoundVariable(String pName, FormulaType<?> pType) {
-        // TODO remove after DefaultFormulaVisitor is fixed
-        return null;
-      }
-    };
-
-    toProcess.push(pFormula);
-    seen.add(pFormula);
-    while (!toProcess.isEmpty()) {
-      Formula f = toProcess.pop();
-      assert seen.contains(f);
-      collector.visit(f);
-    }
-
-    return found;
+    return myExtractSubformulas(pFormula, extractUF, recurseIntoFunctions).keySet();
   }
 
   /**
@@ -1351,24 +1247,19 @@ public class FormulaManagerView {
     new RecursiveFormulaVisitor(manager) {
 
       @Override
-      public Void visitUF(
-          String functionName,
-          UfDeclaration<?> declaration,
-          List<Formula> args) {
+      public Void visitUF(Formula f, List<Formula> args, String functionName) {
         if (recurseIntoFunctions) {
-          super.visitUF(functionName, declaration, args);
+          super.visitUF(f, args, functionName);
         }
         if (extractUF) {
-          found.put(functionName,
-              functionFormulaManager.callUninterpretedFunction(
-              declaration, args));
+          found.put(functionName, f);
         }
         return null;
       }
 
       @Override
-      public Void visitFreeVariable(String name, FormulaType<?> type) {
-        found.put(name, makeVariable(type, name));
+      public Void visitFreeVariable(Formula f, String name) {
+        found.put(name, f);
         return null;
       }
     }.visit(pFormula);

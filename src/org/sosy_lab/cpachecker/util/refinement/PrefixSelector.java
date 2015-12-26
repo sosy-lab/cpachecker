@@ -126,9 +126,6 @@ public class PrefixSelector {
     WIDTH_MIN,
     WIDTH_MAX,
 
-    // heuristics based on width of interpolant sequences without loops (identical to WIDTH_NARROW_NO_LOOP_SHORT)
-    WIDTH_MIN_LOOPS_MIN,
-
     // heuristic based on counting the number of assignments over variables in the interpolant sequence
     ASSIGNMENTS_MIN,
     ASSIGNMENTS_MAX,
@@ -171,8 +168,6 @@ public class PrefixSelector {
           return new LoopScorer(classification, loopStructure).invert();
         case WIDTH_MIN:
           return new WidthScorer();
-        case WIDTH_MIN_LOOPS_MIN:
-          return new WidthScorer(new LoopScorer(classification, loopStructure));
         case WIDTH_MAX:
           return new WidthScorer().invert();
         case PIVOT_MIN:
@@ -262,27 +257,8 @@ public class PrefixSelector {
 
   private static class WidthScorer extends Scorer {
 
-    private Scorer wrappedScorer = null;
-
-    public WidthScorer() {
-    }
-
-    // the only scorer that can wrap another one
-    // it would possible to allow that for others too,
-    // but it hardly makes sense in more cases,
-    // in this one also only exists for legacy, i.e., benchmarking reasons
-    public WidthScorer(Scorer pChildScorer) {
-      wrappedScorer = pChildScorer;
-    }
-
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      int score = wrappedScorer == null ? 1 : wrappedScorer.computeScore(pPrefix);
-
-      if (score == Integer.MAX_VALUE) {
-        return Integer.MAX_VALUE;
-      }
-
       return sign * pPrefix.getNonTrivialLength();
     }
   }
