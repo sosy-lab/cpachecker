@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.AThread;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -74,6 +75,16 @@ public class ExpressionUtils {
         }
 
    };
+
+  public static final Function<CExpression, CAssumeEdge> ASSUME_EDGE_OF =
+      new Function<CExpression, CAssumeEdge>() {
+
+        @Override
+        public CAssumeEdge apply(CExpression pArg0) {
+          return new CAssumeEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE,
+              CFASequenceBuilder.DUMMY_NODE, pArg0, true);
+        }
+      };
 
 
   public static CArraySubscriptExpression getArrayVarOfIndex(CVariableDeclaration arrayDec,
@@ -140,4 +151,5 @@ public class ExpressionUtils {
   public static CIntegerLiteralExpression getThreadNumberNumberExpression(AThread thread) {
     return new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(thread.getThreadNumber()));
   }
+
 }

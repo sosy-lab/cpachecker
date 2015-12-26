@@ -12,8 +12,11 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -23,15 +26,29 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThread;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunctionUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFASequenceBuilder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.ExpressionUtils;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 // TODO static posix stub functions. Add to POSIX Stub function
+@Deprecated
 public class StubPosixFunctions {
+
+  private static CBinaryExpressionBuilder BINARY_BUILDER;
+
+  public static final CExpression FREE = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(-1));
+  public static final CExpression DESTROY = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(-2));
+
+  public StubPosixFunctions(MachineModel machineModel, LogManager logger) {
+
+  }
 
   /**
    * Don't use this due it can only handle special cases
@@ -72,12 +89,12 @@ public class StubPosixFunctions {
 
     CFAEdge edge2 = getSavePThreadArgument(thread, threadCreationArgument, controlVariables);
     CFAEdge edge3 = getActivateThreadStatement(thread, controlVariables);
-    CFAEdge edge5 = getNotFinishedThreadStatement(thread, controlVariables); // TODO only for test purpose
+//    CFAEdge edge5 = getNotFinishedThreadStatement(thread, controlVariables); // TODO only for test purpose
     CFAEdge edge4 = new BlankEdge("", FileLocation.DUMMY, CFASequenceBuilder.DUMMY_NODE, CFASequenceBuilder.DUMMY_NODE, "THREAD CREATION");
 
     builder.addChainLink(edge2);
     builder.addChainLink(edge3);
-    builder.addChainLink(edge5);
+//    builder.addChainLink(edge5);
     builder.addChainLink(edge4, successor);
 
     CFACreationUtils.removeEdgeFromNodes(functionCallEdge);
@@ -204,5 +221,205 @@ public class StubPosixFunctions {
       }
     }
   }
+
+  @Deprecated
+  public static void stubMutexIntoFunction(SequencePreparator threadIdentificator,
+      ControlVariables controlVariables, MutableCFA cfa, LogManager logger) {
+
+    for(AStatementEdge mutexInit : threadIdentificator.getMutexInitEdges()) {
+      try {
+        StubPosixFunctions.stubThreadMutexInitNoFunction(mutexInit, cfa, logger);
+      } catch (UnrecognizedCCodeException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
+  }
+
+  @Deprecated
+  public static void stubMutexLocktoFunction(SequencePreparator threadIdentificator,
+      MutableCFA cfa, LogManager logger) {
+
+    for(Entry<CThread, CStatementEdge> mutexLock : threadIdentificator.getMutexLockEdges().entrySet()) {
+      try {
+        StubPosixFunctions.stubThreadMutexLockNoFunction(mutexLock.getKey(), mutexLock.getValue(), cfa, logger);
+      } catch (UnrecognizedCCodeException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
+  }
+
+  @Deprecated
+  public static void stubMutexUnlocktoFunction(SequencePreparator threadIdentificator,
+      MutableCFA cfa, LogManager logger) {
+    for(Entry<CThread, CStatementEdge> mutexUnlock : threadIdentificator.getMutexUnlockEdges().entrySet()) {
+      try {
+        StubPosixFunctions.stubThreadMutexUnlockNoFunction(mutexUnlock.getKey(), mutexUnlock.getValue(), cfa, logger);
+      } catch (UnrecognizedCCodeException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
+  }
+
+  private static void stubThreadMutexUnlockNoFunction(CThread thread, CStatementEdge functionCall,
+      MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
+
+    assert CFAFunctionUtils.isFunctionCallStatement(functionCall);
+    CFunctionCall functionCallStatement = (CFunctionCall) functionCall.getStatement();
+
+    List<CExpression> usedParameter = functionCallStatement
+        .getFunctionCallExpression().getParameterExpressions();
+
+    if (usedParameter.size() != 1) { throw new UnrecognizedCCodeException(
+        "pthread_mutex_init function must have 1 parameters in expression",
+        functionCallStatement); }
+
+
+    CFANode predecessor = functionCall.getPredecessor();
+    CFANode successor = functionCall.getSuccessor();
+    String functionName = successor.getFunctionName();
+
+    CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
+
+    CIdExpression givenMutexVariable;
+
+    givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
+    assert givenMutexVariable instanceof CLeftHandSide;
+
+    if (givenMutexVariable == null) {
+      throw new UnrecognizedCCodeException("Given parameter must be a valid mutex", functionCallStatement);
+    }
+
+    ALeftHandSide flag = getMutexFlag(givenMutexVariable);
+
+    CFAEdge freeMutex = ExpressionUtils.getDummyAssignement(flag, FREE);
+
+    // TODO add assertion. only locking thread can unlock
+
+    builder.addChainLink(freeMutex, successor);
+
+    CFACreationUtils.removeEdgeFromNodes(functionCall);
+  }
+
+  @Deprecated
+  private static void stubThreadMutexLockNoFunction(CThread threadContext, CStatementEdge functionCall,
+      MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
+
+    assert CFAFunctionUtils.isFunctionCallStatement(functionCall);
+    CFunctionCall functionCallStatement = (CFunctionCall) functionCall.getStatement();
+
+    List<CExpression> usedParameter = functionCallStatement
+        .getFunctionCallExpression().getParameterExpressions();
+
+    if (usedParameter.size() != 1) { throw new UnrecognizedCCodeException(
+        "pthread_mutex_init function must have 1 parameters in expression",
+        functionCallStatement); }
+
+
+    CFANode predecessor = functionCall.getPredecessor();
+    CFANode successor = functionCall.getSuccessor();
+    String functionName = successor.getFunctionName();
+
+    CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
+
+    CIdExpression givenMutexVariable;
+
+    givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
+    assert givenMutexVariable instanceof CLeftHandSide;
+
+    if (givenMutexVariable == null) {
+      throw new UnrecognizedCCodeException("Given parameter must be a valid mutex", functionCallStatement);
+    }
+
+    //TODO add assertion. only not destroyed mutex can be locked
+    ALeftHandSide flag = getMutexFlag(givenMutexVariable);
+
+    CExpression mutexFree = BINARY_BUILDER.buildBinaryExpression((CExpression) flag, FREE, BinaryOperator.EQUALS);
+
+    CAssumeEdge edge1 = ExpressionUtils.ASSUME_EDGE_OF.apply(mutexFree);
+    CFAEdge edge2 = ExpressionUtils.getDummyAssignement(flag, ExpressionUtils.getThreadNumberNumberExpression(threadContext));
+
+    CFANode infeasableState = new CFATerminationNode(functionName);
+
+    CFASequenceBuilder feasableBuilder = builder.addAssumeEdge(edge1, new CFANode(functionName), infeasableState);
+    builder.lockSequenceBuilder();
+    feasableBuilder.addChainLink(edge2, successor);
+
+    CFACreationUtils.removeEdgeFromNodes(functionCall);
+  }
+
+  @Deprecated
+  private static void stubThreadMutexInitNoFunction(AStatementEdge pMutexInit,
+      MutableCFA cfa, LogManager logger) throws UnrecognizedCCodeException {
+
+
+    assert CFAFunctionUtils.isFunctionCallStatement(pMutexInit);
+    CFunctionCall functionCallStatement = (CFunctionCall) pMutexInit.getStatement();
+
+    List<CExpression> usedParameter = functionCallStatement
+        .getFunctionCallExpression().getParameterExpressions();
+
+    if (usedParameter.size() != 2) { throw new UnrecognizedCCodeException(
+        "pthread_mutex_init function must have 2 parameters in expression",
+        functionCallStatement); }
+
+
+    CFANode predecessor = pMutexInit.getPredecessor();
+    CFANode successor = pMutexInit.getSuccessor();
+
+    CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
+
+    CIdExpression givenMutexVariable;
+    CExpression threadCreationArgument;
+
+    givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
+    assert givenMutexVariable instanceof CLeftHandSide;
+
+    if (givenMutexVariable == null) {
+      throw new UnrecognizedCCodeException("Given parameter must be a valid mutex", functionCallStatement);
+    }
+
+    ALeftHandSide flag = getMutexFlag(givenMutexVariable);
+    CFAEdge edge1 = ExpressionUtils.getDummyAssignement(flag, FREE);
+
+    builder.addChainLink(edge1, successor);
+
+    CFACreationUtils.removeEdgeFromNodes(pMutexInit);
+  }
+
+  private static CFieldReference getMutexFlag(CIdExpression mutexDeclaration) {
+    return new CFieldReference(FileLocation.DUMMY, CNumericTypes.LONG_INT, "__align", mutexDeclaration, false);
+  }
+
+  private static CIdExpression getGivenMutexVariable(CFunctionCall functionCallStatement, int pos,
+      LogManager pLogger) throws UnrecognizedCCodeException {
+
+    List<CExpression> parameter =
+        functionCallStatement.getFunctionCallExpression().getParameterExpressions();
+
+    CExpression mutext = parameter.get(pos);
+
+    return checkIfMutex(mutext);
+  }
+
+  private static CIdExpression checkIfMutex(AExpression pMutext) {
+    assert pMutext instanceof CExpression;
+
+    // remove the cast expression to get the plain leftHandSide
+    pMutext = unpackClassCast(pMutext);
+
+    // remove the first AMPER to get the plain leftHandSide
+    if (pMutext instanceof AUnaryExpression) {
+      return (CIdExpression) getVariableFromPointer((AUnaryExpression) pMutext);
+    } else {
+      return null;
+    }
+
+  }
+
+  public static void setBinaryBuilder(CBinaryExpressionBuilder pCBinaryExpressionBuilder) {
+    BINARY_BUILDER =  pCBinaryExpressionBuilder;
+  }
+
+
 
 }

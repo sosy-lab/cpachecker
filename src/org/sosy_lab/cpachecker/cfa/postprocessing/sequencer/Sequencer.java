@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.context.CThread;
@@ -56,15 +57,19 @@ public class Sequencer {
   // TODO replace declaration of function calls of stubbed functions!!!!!
   // TODO assert edges in threaedIdentificator were not replaced !!
   public void sequenceCFA() {
-    StubDeclaration stubDeclaration = new StubDeclaration(logger);
-    stubDeclaration.replaceDeclarationEdges(cfa);
+    StubDeclaration stubDeclaration = new StubDeclaration(logger, cfa);
+    stubDeclaration.replaceDecWithStub();
     SequencePreparator threadIdentificator = new SequencePreparator(stubDeclaration, cfa);
     CThreadContainer threads = threadIdentificator.traverseAndReplaceFunctions();
     ControlVariables controlVariables = new ControlVariables(threads);
     POSIXStubs posixStubs = new POSIXStubs(controlVariables, stubDeclaration, cfa, logger);
 
     //TODO this stub or the posixStub stub
+    StubPosixFunctions.setBinaryBuilder(new CBinaryExpressionBuilder(cfa.getMachineModel(), logger));
     StubPosixFunctions.stubThreadCreationIntoFunction(threadIdentificator, controlVariables, cfa, logger);
+    StubPosixFunctions.stubMutexIntoFunction(threadIdentificator, controlVariables, cfa, logger);
+    StubPosixFunctions.stubMutexLocktoFunction(threadIdentificator, cfa, logger);
+    StubPosixFunctions.stubMutexUnlocktoFunction(threadIdentificator, cfa, logger);
 
     // create context switches
     for(CThread thread : threads.getAllThreads()) {

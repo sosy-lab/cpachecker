@@ -104,7 +104,7 @@ public class POSIXStubs {
     builder.addChainLink(saveCreationArgument);
     builder.addChainLink(activateThread);
     //debug only
-    builder.addChainLink(setUnfinished);  // normally not necessary, because set in initializer
+//    builder.addChainLink(setUnfinished);  // normally not necessary, because set in initializer
     builder.addChainLink(defaultReturn, entryNode.getExitNode());
   }
 

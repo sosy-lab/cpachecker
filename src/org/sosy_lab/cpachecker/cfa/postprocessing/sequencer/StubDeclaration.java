@@ -27,7 +27,9 @@ import static org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.CFAFunc
 import static org.sosy_lab.cpachecker.cfa.postprocessing.sequencer.utils.PThreadUtils.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -47,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
 /**
@@ -63,20 +64,34 @@ public class StubDeclaration {
 
 
 
-  public final static CTypedefType THREAD_TYPE = new CTypedefType(false, false, "pthread_t", CNumericTypes.UNSIGNED_LONG_INT);
+  private static CTypedefType THREAD_TYPE = null;
+  private static CTypedefType MUTEXT_TYPE = null;
 
-  private final CFunctionDeclaration pthreadCreateStubDeclaration = buildPthreadStubDeclaration();
-  private final CFunctionDeclaration pthreadJoinDeclaration = buildPthreadJoinDeclaration();
-  private CFunctionDeclaration pthreadMutexInitDeclaration = buildPthreadMutexInitDeclaraion();
+  private Set<CDeclarationEdge> originalPthreadDeclarations;
+
+  private CFunctionDeclaration pthreadCreateStubDeclaration;
+  private CFunctionDeclaration pthreadJoinDeclaration;
+  private CFunctionDeclaration pthreadMutexInitDeclaration;
 
   private LogManager logger;
 
-  public StubDeclaration(LogManager logger) {
+  public StubDeclaration(LogManager logger, MutableCFA pCfa) {
     this.logger = logger;
+    originalPthreadDeclarations = findDeclarationEdges(pCfa);
+
+    // TODO types may not be defined!!
+    if(THREAD_TYPE != null) {
+      pthreadCreateStubDeclaration = buildPthreadStubDeclaration();
+    }
+    if(MUTEXT_TYPE != null) {
+      pthreadJoinDeclaration = buildPthreadJoinDeclaration();
+      pthreadMutexInitDeclaration = buildPthreadMutexInitDeclaraion();
+    }
+
   }
 
   private CFunctionDeclaration buildPthreadMutexInitDeclaraion() {
-    String parameterName = "__mutex"; //TODO check param name
+    String parameterName = "__mutex";
 
     CParameterDeclaration firstParam = new CParameterDeclaration(FileLocation.DUMMY,
         THREAD_TYPE, parameterName);
@@ -144,27 +159,16 @@ public class StubDeclaration {
     return pthreadMutexInitDeclaration;
   }
 
-  public void replaceDeclarationEdges(MutableCFA pCfa) {
-    CFAVisitor declarationRepl = new DeclarationVisitor();
+  private static Set<CDeclarationEdge> findDeclarationEdges(MutableCFA pCfa) {
+    DeclarationVisitor declarationRepl = new DeclarationVisitor();
       CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), declarationRepl);
+      return declarationRepl.getPthreadDeclaration();
   }
 
-  public class DeclarationVisitor extends CFATraversal.DefaultCFAVisitor {
+  public void replaceDecWithStub() {
+    assert !originalPthreadDeclarations.isEmpty();
+    for (CDeclarationEdge pEdge : originalPthreadDeclarations) {
 
-    @Override
-    public TraversalProcess visitEdge(CFAEdge pEdge) {
-      assert isGlobalVar(pEdge) : "The declaration repacement is not done in the global var";
-
-      if (IS_FUNCTION_START_EDGE.apply(pEdge)) {
-        return TraversalProcess.ABORT;
-      } else if (pEdge instanceof CDeclarationEdge) {
-        repaceDeclaration((CDeclarationEdge) pEdge);
-      }
-      return TraversalProcess.CONTINUE;
-
-    }
-
-    private void repaceDeclaration(CDeclarationEdge pEdge) {
       CDeclaration declaration = pEdge.getDeclaration();
       if (declaration instanceof CFunctionDeclaration) {
         CFunctionDeclaration functionDec = (CFunctionDeclaration) declaration;
@@ -191,6 +195,48 @@ public class StubDeclaration {
           CFAEdgeUtils.replaceCEdgeWith(pEdge, newDeclaration);
         }
       }
+
+    }
+  }
+
+  public static class DeclarationVisitor extends CFATraversal.DefaultCFAVisitor {
+
+    private final Set<CDeclarationEdge> pthreadFunctionDecs =
+        new HashSet<>();
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      assert isGlobalVar(pEdge) : "The declaration repacement is not done in the global var";
+
+      if (IS_FUNCTION_START_EDGE.apply(pEdge)) {
+        return TraversalProcess.ABORT;
+      } else if (pEdge instanceof CDeclarationEdge) {
+        pthreadFunctionDecs.add((CDeclarationEdge) pEdge);
+        getSpecialTypedefs((CDeclarationEdge) pEdge);
+      }
+      return TraversalProcess.CONTINUE;
+
+    }
+
+    private void getSpecialTypedefs(CDeclarationEdge pEdge) {
+      CDeclaration declaration = pEdge.getDeclaration();
+      if (declaration instanceof CFunctionDeclaration) {
+        CFunctionDeclaration functionDec = (CFunctionDeclaration) declaration;
+        switch (functionDec.getName()) {
+          case PTHREAD_CREATE_NAME:
+            THREAD_TYPE = (CTypedefType) ((CPointerType) functionDec.getParameters().get(0).getType()).getType();
+            break;
+          case PTHREAD_MUTEX_INIT_NAME:
+            MUTEXT_TYPE = (CTypedefType) ((CPointerType) functionDec.getParameters().get(0).getType()).getType();
+            break;
+          default:
+            break;
+        }
+      }
+    }
+
+    public Set<CDeclarationEdge> getPthreadDeclaration() {
+      return pthreadFunctionDecs;
     }
 
   }
@@ -201,8 +247,8 @@ public class StubDeclaration {
   }
 
   // assertion only
-  private boolean globalVar = false;
-  private boolean isGlobalVar(CFAEdge pEdge) {
+  private static boolean globalVar = false;
+  private static boolean isGlobalVar(CFAEdge pEdge) {
     if(IS_INIT_GLOBAL_VARS.apply(pEdge)) {
       globalVar = true;
     }
@@ -210,5 +256,14 @@ public class StubDeclaration {
     return true;
   }
 
+  public final static CTypedefType getThreadType() {
+    assert THREAD_TYPE != null;
+    return THREAD_TYPE;
+  }
+
+  public final static CTypedefType getMutexType() {
+    assert MUTEXT_TYPE != null;
+    return MUTEXT_TYPE;
+  }
 
 }

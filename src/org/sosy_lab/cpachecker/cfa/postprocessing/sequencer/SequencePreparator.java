@@ -52,6 +52,8 @@ public class SequencePreparator {
 
   private final Map<CThread, CStatementEdge> creationEdges = new HashMap<>();
   private final Set<AStatementEdge> mutexEdges = new HashSet<>();
+  private final Map<CThread, CStatementEdge> mutexLocks = new HashMap<>();
+  private final Map<CThread, CStatementEdge> mutexUnlocks = new HashMap<>();
   private final MutableCFA cfa;
 
 
@@ -263,15 +265,21 @@ public class SequencePreparator {
           handlePthreadCreate((CStatementEdge) edge, functionCallStatement);
           break;
         case PThreadUtils.PTHREAD_JOIN_NAME:
+//          handlePthreadJoin((CStatementEdge) edge, functionCallStatement);
           // nothing to stub
           break;
         case PThreadUtils.PTHREAD_MUTEX_INIT_NAME:
           mutexEdges.add(edge);
 
           break;
-        case PThreadUtils.PTHREAD_MUTEX_DESTROY_NAME:
         case PThreadUtils.PTHREAD_MUTEX_LOCK_NAME:
+          mutexLocks.put(creatorThread, (CStatementEdge) edge);
+          break;
         case PThreadUtils.PTHREAD_MUTEX_UNLOCK_NAME:
+          mutexUnlocks.put(creatorThread, (CStatementEdge) edge);
+          break;
+        case PThreadUtils.PTHREAD_MUTEX_DESTROY_NAME:
+
           // Will be stubbed by cpa
           break;
         default:
@@ -290,6 +298,11 @@ public class SequencePreparator {
       }
     }
 
+    private void handlePthreadJoin(CStatementEdge edge, CFunctionCall functionCallStatement) {
+      List<CExpression> parameterExp = getPThreadJoinParameterExp(functionCallStatement);
+      CFAEdgeUtils.replaceCEdgeWith(edge, changeToStubParameterCall(functionCallStatement, parameterExp));
+    }
+
     private void handlePthreadCreate(CStatementEdge edge, CFunctionCall functionCallStatement) {
       CThread thread = createCThread(threadCounter, creatorThread, functionCallStatement);
 
@@ -299,6 +312,11 @@ public class SequencePreparator {
       threadsToProcess.add(thread);
       allThreads.add(thread);
       threadCounter++;
+    }
+
+    private List<CExpression> getPThreadJoinParameterExp(CFunctionCall pFunctionCallStatement) {
+
+      return null;
     }
 
     private List<CExpression> getPThreadCreationParameterExp(CFunctionCall pFunctionCallStatement,
@@ -386,5 +404,13 @@ public class SequencePreparator {
 
 
 
+  }
+
+  public Map<CThread, CStatementEdge> getMutexLockEdges() {
+    return mutexLocks;
+  }
+
+  public Map<CThread, CStatementEdge> getMutexUnlockEdges() {
+    return mutexUnlocks;
   }
 }
