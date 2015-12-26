@@ -573,8 +573,9 @@ class AssignmentHandler {
 //      final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
 //          formulaManager.getIntegerFormulaManager(), targetType,
 //          pLvalue.asAliased().getAddress());
+      // TODO array calls
       if (rhs != null) {
-        final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex, 
+        final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
             pLvalue.asAliased().getAddress(), targetType, rhs);
         result = formulaManager.assignment(lhs, rhs);
       } else {
@@ -683,6 +684,7 @@ class AssignmentHandler {
         final BooleanFormula updateCondition = formulaManager.makeEqual(
             targetAddress, pLvalue);
 
+        // TODO array calls
         final BooleanFormula retention = formulaManager.makeEqual(
             afmgr.declareAndCallArray(pUfName, pNewIndex,
                 formulaManager.getIntegerFormulaManager(), pReturnType,
@@ -706,6 +708,7 @@ class AssignmentHandler {
           formulaManager.makeNumber(converter.voidPointerFormulaType,
               target.getOffset()), IS_POINTER_SIGNED);
 
+      // TODO array calls
       constraints.addConstraint(formulaManager.makeEqual(
           afmgr.declareAndCallArray(pUfName, pNewIndex,
               formulaManager.getIntegerFormulaManager(), pReturnType,
@@ -759,6 +762,7 @@ class AssignmentHandler {
                   spurious.getBaseName()),
               formulaManager.makeNumber(converter.voidPointerFormulaType,
                   spurious.getOffset()), IS_POINTER_SIGNED);
+          // TODO array calls
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(
               afmgr.declareAndCallArray(ufName, newIndex,
                   formulaManager.getIntegerFormulaManager(), returnType,
@@ -804,6 +808,7 @@ class AssignmentHandler {
             formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1),
             IS_POINTER_SIGNED);
 
+        // TODO array calls
         constraints.addConstraint(bfmgr.or(bfmgr.and(
             formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
             formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),

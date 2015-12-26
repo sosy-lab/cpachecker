@@ -212,6 +212,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @return The base address for the formula.
    */
   Formula makeBaseAddressOfTerm(final Formula pAddress) {
+    // TODO array calls
     return afmgr.declareAndCallArray("__BASE_ADDRESS_OF__",
         formulaManager.getIntegerFormulaManager(), voidPointerFormulaType,
         pAddress);
@@ -326,6 +327,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final String ufName = getUFName(pType);
     final int index = getIndex(ufName, pType, pSSAMapBuilder);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
+    // TODO array calls
     return afmgr.declareAndCallArray(ufName, index,
         formulaManager.getIntegerFormulaManager(), returnType, pAddress);
   }
