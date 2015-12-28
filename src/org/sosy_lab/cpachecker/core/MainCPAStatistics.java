@@ -276,9 +276,17 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
     printMemoryStatistics(out);
     
-    if (generateNewCounterexampleReport) { 
+    if (generateNewCounterexampleReport) {
+      int amountOfErrorPaths = GenerateReportWithoutGraphs.getErrorpathFiles();
+      GenerateReportWithoutGraphs.getSourceFiles();
       GenerateReportWithoutGraphs.fillOutHTMLTemplate("Counterexample_Report/index_template.html", "Counterexample_Report/index_WithoutGraphs.html");
-      GenerateReportWithoutGraphs.fillOutJSTemplate("Counterexample_Report/app/app_template.js","Counterexample_Report/app/app.js");
+      if(amountOfErrorPaths != 0) {
+        for(int i = 0; i < amountOfErrorPaths; i++) {
+          GenerateReportWithoutGraphs.fillOutJSTemplate("Counterexample_Report/app/app_template.js","Counterexample_Report/app/app" + i + ".js", i);
+        }
+      } else {
+        GenerateReportWithoutGraphs.fillOutJSTemplate("Counterexample_Report/app/app_template.js","Counterexample_Report/app/app.js", -1);
+      }
     }
   }
 

@@ -7,17 +7,18 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.logging.Level;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.ArrayList;
 import org.sosy_lab.common.log.LogManager;
 
 public class GenerateReportWithoutGraphs {
   private static LogManager logger;
-  static String sourceFile = "";
   static String configFile = "output/UsedConfiguration.properties";
   static String statisticsFile = "output/Statistics.txt";
   static String logFile = "output/CPALog.txt";
-  static String errorPathFile = "output/ErrorPath.0.json";
+  static List<String> errorPathFiles = new ArrayList();
+  static List <String> sourceFiles = new ArrayList();
   static String combinedNodesFile ="output/combinednodes.json";
   static String cfaInfoFile ="output/cfainfo.json";
   static String fCallEdgesFile = "output/fcalledges.json";
@@ -26,15 +27,17 @@ public class GenerateReportWithoutGraphs {
   public GenerateReportWithoutGraphs(LogManager plogger) { 
     logger = plogger;
   }
-
-  public static void writeSource(String source) {
-    sourceFile = source;
-  }
-  public static void writeSources(List<String> sources){
-    //TODO: handle more than one sourcefile
+  
+  public static int getErrorpathFiles(){
+    errorPathFiles.add("output/ErrorPath.0.json");
+    return errorPathFiles.size();
   }
 
-  public static void fillOutHTMLTemplate(String inputPath, String outputPath) { 
+  public static void getSourceFiles() {
+    sourceFiles.add("output/example.c");
+  }
+
+  public static void fillOutHTMLTemplate(String inputPath, String outputPath) {
     BufferedReader bufferedTemplateReader = null;
     BufferedWriter bufferedWriter = null;
     File inputFile = new File(inputPath);
@@ -49,7 +52,7 @@ public class GenerateReportWithoutGraphs {
         } else if (line.contains("STATISTICS")) { 
           insertStatistics(statisticsFile, bufferedWriter);
         } else if (line.contains("SOURCE")) { 
-          insertSource(sourceFile, bufferedWriter);
+          insertSource(sourceFiles.get(0), bufferedWriter);
         } else if (line.contains("LOG")) { 
           insertLog(logFile, bufferedWriter);
         } else { 
@@ -74,6 +77,7 @@ public class GenerateReportWithoutGraphs {
         }
       }
     }
+    
   }
 
   private static void insertStatistics(String filePath, BufferedWriter bufferedWriter) { 
@@ -192,7 +196,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  public static void fillOutJSTemplate(String inputPath, String outputPath) { 
+  public static void fillOutJSTemplate(String inputPath, String outputPath, int round) {
     BufferedReader bufferedTemplateReader = null;
     BufferedWriter bufferedWriter = null;
     File inputFile = new File(inputPath);
@@ -202,8 +206,10 @@ public class GenerateReportWithoutGraphs {
       bufferedWriter = new BufferedWriter(new FileWriter(outputFile));
       String line;
       while (null != (line = bufferedTemplateReader.readLine())) { 
-        if (line.contains("ERRORPATH")) { 
-          insertErrorPathData(errorPathFile, bufferedWriter);
+        if (line.contains("ERRORPATH") && round != -1) { 
+          insertErrorPathData(errorPathFiles.get(round), bufferedWriter);
+        } else if (line.contains("ERRORPATH") && round == -1) {
+          //TODO: Set the left panel to width 0 and disable evtl search functionality
         } else if (line.contains("FUNCTIONS")) { 
           insertFunctionNames(outputDir, bufferedWriter);
         } else if (line.contains("COMBINEDNODES")) { 
