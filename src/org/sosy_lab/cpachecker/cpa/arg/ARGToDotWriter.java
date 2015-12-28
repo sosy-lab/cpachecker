@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
@@ -238,10 +239,10 @@ public class ARGToDotWriter {
     final String hintNodeId = stateNodeId + "hint";
 
     String hintLabel = "";
-    AutomatonState abstraction = AbstractStates.extractStateByType(currentElement, AutomatonState.class);
-    if (abstraction != null) {
+    Collection<AutomatonState> abstraction = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
+    for (AutomatonState e: abstraction) {
       final StringBuilder labelBuilder = new StringBuilder();
-      labelBuilder.append(abstraction.toString());
+      labelBuilder.append(e.toString() + "\n");
       hintLabel = labelBuilder.toString();
     }
 
