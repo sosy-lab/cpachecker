@@ -104,7 +104,17 @@ public class Partitions implements Partitioning {
 
   @Override
   public boolean isEmpty() {
-    return partitions.isEmpty();
+    if (partitions.isEmpty()) {
+      return true;
+    }
+
+    for (ImmutableSet<Property> p: partitions) {
+      if (!p.isEmpty()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @Override

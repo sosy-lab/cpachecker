@@ -136,7 +136,7 @@ public class Precisions {
     return result;
   }
 
-  public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
+  public static void updatePropertyBlacklistOnWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
 
     final HashSet<SafetyProperty> toBlacklist = Sets.newHashSet(
       Collections2.transform(pToBlacklist, new Function<Property, SafetyProperty>() {
@@ -153,7 +153,7 @@ public class Precisions {
     for (AbstractState e: pReachedSet.getWaitlist()) {
 
       final Precision pi = pReachedSet.getPrecision(e);
-      final Precision piPrime = blacklistProperties(pi, toBlacklist);
+      final Precision piPrime = withPropertyBlacklist(pi, toBlacklist);
 
       if (piPrime != null) {
         pReachedSet.updatePrecision(e, piPrime);
@@ -165,13 +165,12 @@ public class Precisions {
     }
   }
 
-  public static Precision blacklistProperties(final Precision pi, final HashSet<SafetyProperty> toBlacklist) {
+  public static Precision withPropertyBlacklist(final Precision pi, final HashSet<SafetyProperty> toBlacklist) {
     final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
       @Override
       public Precision apply(Precision pPrecision) {
         if (pPrecision instanceof AutomatonPrecision) {
-          AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
-          return pi.cloneAndAddBlacklisted(toBlacklist);
+          return AutomatonPrecision.initBlacklist(toBlacklist);
         }
         return null;
       }

@@ -33,12 +33,16 @@ public class AutomatonPrecision implements Precision {
 
   private ImmutableSet<SafetyProperty> blacklist = ImmutableSet.of();
 
-  private AutomatonPrecision(ImmutableSet<SafetyProperty> pBlacklist) {
-    this.blacklist = pBlacklist;
+  private AutomatonPrecision(Set<SafetyProperty> pBlacklist) {
+    this.blacklist = ImmutableSet.copyOf(pBlacklist);
   }
 
   public static AutomatonPrecision emptyBlacklist() {
     return new AutomatonPrecision(ImmutableSet.<SafetyProperty>of());
+  }
+
+  public static AutomatonPrecision initBlacklist(Set<SafetyProperty> pBlacklist) {
+    return new AutomatonPrecision(pBlacklist);
   }
 
   public AutomatonPrecision cloneAndAddBlacklisted(Set<SafetyProperty> pProperty) {

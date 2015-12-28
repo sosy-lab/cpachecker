@@ -418,6 +418,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     try {
 
       int totalObservingAutomata = 0;
+      int totalControlingAutomata = 0;
       int totalInactiveObservingAutomata = 0;
 
       Set<AutomatonInternalState> activeStates = Sets.newHashSet();
@@ -439,6 +440,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           } else {
             activeStates.add(q);
           }
+        } else {
+          totalControlingAutomata++;
         }
       }
 
@@ -446,6 +449,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         if (totalInactiveObservingAutomata == totalObservingAutomata) {
           // STOP exploring the path if all observing
           // automata are DISABLED/INACTIVE or have done their work.
+          assert totalControlingAutomata == 0;
           return Collections.emptyList();
         }
 

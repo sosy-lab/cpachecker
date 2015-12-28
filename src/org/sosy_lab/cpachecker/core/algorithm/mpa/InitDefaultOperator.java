@@ -72,7 +72,7 @@ public class InitDefaultOperator implements InitOperator {
     ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
 
     SetView<Property> toBlacklist = Sets.difference(allProperties, partitionToChcek);
-    Precisions.disablePropertiesForWaitlist(argCpa, pReached, toBlacklist);
+    Precisions.updatePropertyBlacklistOnWaitlist(argCpa, pReached, toBlacklist);
 
     // Check
     ImmutableSet<Property> active = MultiPropertyAlgorithm.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);

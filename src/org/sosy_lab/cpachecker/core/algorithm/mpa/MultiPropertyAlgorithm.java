@@ -321,6 +321,10 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       CPAEnabledAnalysisPropertyViolationException, InterruptedException {
 
     final ImmutableSet<Property> all = getActiveProperties(pReachedSet.getFirstState(), pReachedSet);
+
+    logger.logf(Level.INFO, "Checking %d properties.", all.size());
+    Preconditions.checkState(all.size() > 0, "At least one property must get checked!");
+
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
     final Set<Property> exhausted = Sets.newHashSet();
@@ -429,7 +433,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           //    checkPartitions = checkPartitions.substract(ImmutableSet.<Property>copyOf(runViolated.values()));
 
           // Just adjust the precision of the states in the waitlist
-          Precisions.disablePropertiesForWaitlist(cpa, pReachedSet, violated);
+          Precisions.updatePropertyBlacklistOnWaitlist(cpa, pReachedSet, violated);
 
         } else {
 
@@ -442,7 +446,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
                 Sets.union(violated, getInactiveProperties(pReachedSet)));
             satisfied.addAll(active);
 
-            logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s", pReachedSet.size(), active.toString());
+            Set<Property> remain = remaining(all, violated, satisfied, exhausted);
+
+            logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s. %d properties remain to be checked.", pReachedSet.size(), active.toString(), remain.size());
             Preconditions.checkState(pReachedSet.size() >= 10, "The set reached has too few states for a correct analysis run! Bug?");
 
           } else {
@@ -598,6 +604,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   private Partitioning initReached(final ReachedSet pReachedSet,
       final AbstractState pE0, final Precision pPi0,
       final Partitioning pCheckPartitions) {
+
+    Preconditions.checkState(!pCheckPartitions.isEmpty(), "A non-empty set of properties must be checked in a verification run!");
 
     Partitioning result = Partitions.none();
 
