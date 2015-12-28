@@ -280,7 +280,7 @@ public class StubPosixFunctions {
 
     CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
 
-    CIdExpression givenMutexVariable;
+    ALeftHandSide givenMutexVariable;
 
     givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
     assert givenMutexVariable instanceof CLeftHandSide;
@@ -321,7 +321,7 @@ public class StubPosixFunctions {
 
     CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
 
-    CIdExpression givenMutexVariable;
+    ALeftHandSide givenMutexVariable;
 
     givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
     assert givenMutexVariable instanceof CLeftHandSide;
@@ -368,7 +368,7 @@ public class StubPosixFunctions {
 
     CFASequenceBuilder builder = new CFASequenceBuilder(predecessor, cfa);
 
-    CIdExpression givenMutexVariable;
+    ALeftHandSide givenMutexVariable;
     CExpression threadCreationArgument;
 
     givenMutexVariable = getGivenMutexVariable(functionCallStatement, 0, logger);
@@ -386,11 +386,14 @@ public class StubPosixFunctions {
     CFACreationUtils.removeEdgeFromNodes(pMutexInit);
   }
 
-  private static CFieldReference getMutexFlag(CIdExpression mutexDeclaration) {
-    return new CFieldReference(FileLocation.DUMMY, CNumericTypes.LONG_INT, "__align", mutexDeclaration, false);
+  private static CFieldReference getMutexFlag(ALeftHandSide mutexDeclaration) {
+    if(mutexDeclaration instanceof AExpression) {
+      return new CFieldReference(FileLocation.DUMMY, CNumericTypes.LONG_INT, "__align", (CExpression) mutexDeclaration, false);
+    }
+    throw new UnsupportedOperationException("The given mutext type is not supported");
   }
 
-  private static CIdExpression getGivenMutexVariable(CFunctionCall functionCallStatement, int pos,
+  private static ALeftHandSide getGivenMutexVariable(CFunctionCall functionCallStatement, int pos,
       LogManager pLogger) throws UnrecognizedCCodeException {
 
     List<CExpression> parameter =
@@ -401,7 +404,7 @@ public class StubPosixFunctions {
     return checkIfMutex(mutext);
   }
 
-  private static CIdExpression checkIfMutex(AExpression pMutext) {
+  private static ALeftHandSide checkIfMutex(AExpression pMutext) {
     assert pMutext instanceof CExpression;
 
     // remove the cast expression to get the plain leftHandSide
@@ -409,7 +412,7 @@ public class StubPosixFunctions {
 
     // remove the first AMPER to get the plain leftHandSide
     if (pMutext instanceof AUnaryExpression) {
-      return (CIdExpression) getVariableFromPointer((AUnaryExpression) pMutext);
+      return getVariableFromPointer((AUnaryExpression) pMutext);
     } else {
       return null;
     }
