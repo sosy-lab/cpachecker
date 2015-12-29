@@ -78,24 +78,24 @@ public class AutomatonInternalState {
   /** Outgoing transitions of this state.  */
   private final ImmutableList<AutomatonTransition> transitions;
 
-  private final boolean mIsTarget;
+  private final boolean isTarget;
 
   /**
    * determines if all transitions of the state are considered or only the first that matches
    */
-  private final boolean mAllTransitions;
+  private final boolean allTransitions;
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pIsTarget, boolean pAllTransitions) {
     this.name = pName;
     this.transitions = ImmutableList.copyOf(pTransitions);
-    this.mIsTarget = pIsTarget;
-    this.mAllTransitions = pAllTransitions;
+    this.isTarget = pIsTarget;
+    this.allTransitions = pAllTransitions;
   }
 
   public AutomatonInternalState(String pName, AutomatonBoolExpr pSelfTransitionExpr) {
     this.name = pName;
-    this.mIsTarget = false;
-    this.mAllTransitions = false;
+    this.isTarget = false;
+    this.allTransitions = false;
     this.transitions = ImmutableList.<AutomatonTransition>of(new AutomatonTransition(
         pSelfTransitionExpr,
         null,
@@ -111,7 +111,7 @@ public class AutomatonInternalState {
   }
 
   public boolean isNonDetState() {
-    return mAllTransitions;
+    return allTransitions;
   }
 
   /** Lets all outgoing transitions of this state resolve their "sink" states.
@@ -133,7 +133,7 @@ public class AutomatonInternalState {
   }
 
   public boolean isTarget() {
-    return mIsTarget;
+    return isTarget;
   }
 
   /**
@@ -152,7 +152,7 @@ public class AutomatonInternalState {
   }
 
   public boolean getDoesMatchAll() {
-    return mAllTransitions;
+    return allTransitions;
   }
 
   ImmutableList<AutomatonTransition> getTransitions() {
