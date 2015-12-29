@@ -76,7 +76,7 @@ public class AutomatonInternalState {
   /** Name of this State.  */
   private final String name;
   /** Outgoing transitions of this state.  */
-  private final List<AutomatonTransition> transitions;
+  private final ImmutableList<AutomatonTransition> transitions;
 
   private final boolean mIsTarget;
 
@@ -87,7 +87,7 @@ public class AutomatonInternalState {
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions, boolean pIsTarget, boolean pAllTransitions) {
     this.name = pName;
-    this.transitions = pTransitions;
+    this.transitions = ImmutableList.copyOf(pTransitions);
     this.mIsTarget = pIsTarget;
     this.mAllTransitions = pAllTransitions;
   }
@@ -96,7 +96,7 @@ public class AutomatonInternalState {
     this.name = pName;
     this.mIsTarget = false;
     this.mAllTransitions = false;
-    this.transitions = Collections.<AutomatonTransition>singletonList(new AutomatonTransition(
+    this.transitions = ImmutableList.<AutomatonTransition>of(new AutomatonTransition(
         pSelfTransitionExpr,
         null,
         true,
@@ -155,7 +155,7 @@ public class AutomatonInternalState {
     return mAllTransitions;
   }
 
-  List<AutomatonTransition> getTransitions() {
+  ImmutableList<AutomatonTransition> getTransitions() {
     return transitions;
   }
 
