@@ -240,7 +240,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     // SINK state: Do not compute successor states for
     //  states without outgoing transitions!
-    if (pState.getInternalState().getTransitions().isEmpty()) {
+    if (pState.getLeavingTransitions().isEmpty()) {
       // shortcut
       return Collections.singleton(pState);
     }
@@ -261,7 +261,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     // Following lists holds a Transition and the corresponding TransitionVariables generated during its match
     List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken = new ArrayList<>(2);
 
-    for (final AutomatonTransition t : pState.getInternalState().getTransitions()) {
+    for (final AutomatonTransition t : pState.getLeavingTransitions()) {
 
       exprArgs.clearTransitionVariables();
 

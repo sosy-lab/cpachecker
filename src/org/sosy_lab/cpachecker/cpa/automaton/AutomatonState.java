@@ -541,6 +541,14 @@ public class AutomatonState
     return shadowCode;
   }
 
+  /**
+   * @return  The list of outgoing automata transitions.
+   *    This is a subset of, or equal to, {@code AutomatonInternalState.getTransitions}.
+   */
+  public List<AutomatonTransition> getLeavingTransitions() {
+    return internalState.getTransitions();
+  }
+
   @Override
   public List<AAstNode> getOutgoingShadowCode(CFANode pContinueTo) {
     return shadowCode;
