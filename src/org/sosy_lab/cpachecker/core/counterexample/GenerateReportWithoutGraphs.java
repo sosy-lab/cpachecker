@@ -8,34 +8,91 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.ArrayList;
+import java.util.HashMap;
 import org.sosy_lab.common.log.LogManager;
 
 public class GenerateReportWithoutGraphs {
   private static LogManager logger;
-  static String configFile = "output/UsedConfiguration.properties";
-  static String statisticsFile = "output/Statistics.txt";
-  static String logFile = "output/CPALog.txt";
+  static String cpaOutDir = "";
+  static String configFile = "";
+  static String statisticsFile = "";
+  static String logFile = "";
   static List<String> errorPathFiles = new ArrayList();
   static List <String> sourceFiles = new ArrayList();
-  static String combinedNodesFile ="output/combinednodes.json";
-  static String cfaInfoFile ="output/cfainfo.json";
-  static String fCallEdgesFile = "output/fcalledges.json";
-  static String outputDir = "output";
+  static String combinedNodesFile ="";
+  static String cfaInfoFile ="";
+  static String fCallEdgesFile = "";
   
   public GenerateReportWithoutGraphs(LogManager plogger) { 
     logger = plogger;
   }
   
-  public static int getErrorpathFiles(){
-    errorPathFiles.add("output/ErrorPath.0.json");
+  public static int getErrorpathFiles() {
+    int i = 0;
+    while(true){
+      File errPath = new File(cpaOutDir + "ErrorPath." + i + ".json");
+      if(errPath.exists()) { 
+        errorPathFiles.add(cpaOutDir + "ErrorPath." + i + ".json");
+      } else {
+        break;
+      }
+    i++;
+    }
     return errorPathFiles.size();
   }
 
-  public static void getSourceFiles() {
-    sourceFiles.add("output/example.c");
+  public static void getFiles(String configPath) {
+    BufferedReader bufferedConfigReader = null;
+    File inputFile = new File(configPath);
+    Map<String, String> config = new HashMap<String, String>();
+    String line;
+    try {
+      bufferedConfigReader = new BufferedReader(new FileReader(inputFile));
+      while (null != (line = bufferedConfigReader.readLine())) {
+        String[] keyValue = line.split("=", 2); 
+        config.put(keyValue[0].trim(), keyValue[1].trim());
+      }
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "getSourceFiles: configFile could not have been reached");
+    } finally {
+      if (null != bufferedConfigReader) {
+        try { 
+          bufferedConfigReader.close();
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "getSourceFiles: BufferdReader could not have been closed");
+        }
+      }
+    }
+    if(config.containsKey("output.path")){
+      cpaOutDir = config.get("output.path").toString();
+    } else {
+      cpaOutDir = "output/";
+    }
+    if(config.containsKey("analysis.programNames")){
+      String[] sources = config.get("analysis.programNames").toString().split(",");
+      for(int i = 0; i < sources.length; i++){
+        sourceFiles.add(sources[i].trim());
+      }
+    }
+    if(config.containsKey("statistics.file")){
+      statisticsFile = config.get("statistics.file");
+    } else {
+      statisticsFile = cpaOutDir + "Statistics.txt";
+    }
+    if(config.containsKey("log.file")){
+      logFile = config.get("log.file");
+    } else {
+      logFile = cpaOutDir + "CPALog.txt";
+    }
+    configFile = configPath;
+    combinedNodesFile = cpaOutDir + "combinednodes.json";
+    cfaInfoFile = cpaOutDir + "cfainfo.json";
+    fCallEdgesFile = "output/fcalledges.json";
   }
+
 
   public static void fillOutHTMLTemplate(String inputPath, String outputPath) {
     BufferedReader bufferedTemplateReader = null;
@@ -51,8 +108,10 @@ public class GenerateReportWithoutGraphs {
           insertConfiguration(configFile, bufferedWriter);
         } else if (line.contains("STATISTICS")) { 
           insertStatistics(statisticsFile, bufferedWriter);
-        } else if (line.contains("SOURCE")) { 
-          insertSource(sourceFiles.get(0), bufferedWriter);
+        } else if (line.contains("SOURCE")) {
+          for(int j = 0; j < sourceFiles.size(); j++){
+            insertSource(sourceFiles.get(j), bufferedWriter, j);
+          }
         } else if (line.contains("LOG")) { 
           insertLog(logFile, bufferedWriter);
         } else { 
@@ -109,7 +168,7 @@ public class GenerateReportWithoutGraphs {
     }
   }
 
-  private static void insertSource(String filePath, BufferedWriter bufferedWriter) { 
+  private static void insertSource(String filePath, BufferedWriter bufferedWriter, int sourceFileNumber) {
     BufferedReader bufferedReader = null;
     File file = new File(filePath);
     int iterator = 0;
@@ -117,11 +176,13 @@ public class GenerateReportWithoutGraphs {
       if (file.exists()) { 
         bufferedReader = new BufferedReader(new FileReader(file));
         String line;
+        bufferedWriter.write("<table class=\"sourceContent\" ng-show = \"report.sourceFileIsSet(" + sourceFileNumber + ")\">\n");
         while (null != (line = bufferedReader.readLine())) { 
           line = "<td><pre class=\"prettyprint\">" + line + "</pre></td>";
           bufferedWriter.write("<tr id=\"source-" + iterator + "\"><td><pre>" + iterator + "</pre></td>" + line + "</tr>\n");
           iterator++;
         }
+        bufferedWriter.write("</table>\n");
       } else { 
         bufferedWriter.write("<p>No Source-File available</p>");
       }
@@ -137,6 +198,7 @@ public class GenerateReportWithoutGraphs {
       }
     }
   }
+
 
   private static void insertConfiguration(String filePath, BufferedWriter bufferedWriter) { 
     BufferedReader bufferedReader = null;
@@ -211,7 +273,9 @@ public class GenerateReportWithoutGraphs {
         } else if (line.contains("ERRORPATH") && round == -1) {
           //TODO: Set the left panel to width 0 and disable evtl search functionality
         } else if (line.contains("FUNCTIONS")) { 
-          insertFunctionNames(outputDir, bufferedWriter);
+          insertFunctionNames(cpaOutDir, bufferedWriter);
+        } else if (line.contains("SOURCEFILES")) {
+          insertSourceFileNames(sourceFiles, bufferedWriter);
         } else if (line.contains("COMBINEDNODES")) { 
           insertCombinedNodesData(combinedNodesFile, bufferedWriter);
         } else if (line.contains("CFAINFO")) { 
@@ -241,6 +305,7 @@ public class GenerateReportWithoutGraphs {
       }
     }
   }
+  
 
   private static void insertFCallEdges(String filePath, BufferedWriter bufferedWriter) { 
     BufferedReader bufferedReader = null;
@@ -370,6 +435,24 @@ public class GenerateReportWithoutGraphs {
       } catch (IOException e) { 
         logger.logUserException(Level.WARNING, e, "insertFunctionNames: BufferdReader couldn't have been closed");
       }
+    }
+  }
+  
+  private static void insertSourceFileNames(List<String> filePaths, BufferedWriter bufferedWriter){
+    boolean firstFile = true;
+    try{
+      bufferedWriter.write("var sourceFiles = [");
+      for(int i = 0; i < filePaths.size(); i++){
+        if(firstFile){
+          bufferedWriter.write("\""  + filePaths.get(i) + "\"");
+          firstFile = false;
+        } else {
+          bufferedWriter.write(", \""  + filePaths.get(i) + "\"");
+        }
+      }
+      bufferedWriter.write("];\n");
+    } catch (IOException e) { 
+      logger.logUserException(Level.WARNING, e, "insertSourceFileNames: file couldn't have been reached");
     }
   }
 }

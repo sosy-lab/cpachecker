@@ -232,6 +232,9 @@ td:first-child {
     /* This is very important - otherwise right margin is not shown (and nodes cannot be centered) */
     display: inline-block;
 }
+.sourceContent{
+    margin-top: 45px;
+}
 .edit-line{
     position: fixed;
     background-color: white;

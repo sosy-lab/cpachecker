@@ -117,9 +117,19 @@
                 </div>
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(3)">
-		<table class="sourceContent">
-            <!--SOURCE-->
-		</table>
+                <div class="edit-line">
+                    <div class="dropdown">
+                        <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                            Displayed Sourcefile
+                            <span class="caret"></span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li ng-repeat="file in report.sourceFiles"><a ng-click="report.setSourceFile($index)">{{file}}</a></li>
+                        </ul>
+                    </div>
+                    <label>{{report.sourceFiles[report.selectedSourceFile]}}</label>
+                </div>
+                <!--SOURCE-->
             </div>
             <div class="fileContent" ng-show="report.tabIsSet(4)">
                 <!--LOG-->

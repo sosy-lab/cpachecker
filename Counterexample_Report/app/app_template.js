@@ -4,7 +4,7 @@
 //(function(){})() --> this notation makes a function in JS "self-invoking"
 (function() {
     var app = angular.module('report', []);
-    app.controller('ReportController', ['$anchorScroll', '$location', function($anchorScroll, $location){
+    app.controller('ReportController', function(){
         this.date = date;
         this.logo = logo;
 
@@ -16,6 +16,10 @@
 
         //available functions (cfa-graphs)
         this.functions = functions;
+
+        //available sourcefiles
+        this.sourceFiles = sourceFiles;
+        this.selectedSourceFile = 0;
 
         //help-button-content
         this.help_errorpath = help_errorpath;
@@ -241,8 +245,13 @@
                 document.getElementsByClassName("markedSourceLine")[0].className = "prettyprint";
             }
             document.getElementById("source-" + line).getElementsByTagName("pre")[1].className = "markedSourceLine";
-            $location.hash("source-" + line);
-            $anchorScroll();
+            var element = document.getElementById("source-" + line);
+            var box = document.getElementsByClassName("sourceContent")[0].parentNode.getBoundingClientRect();
+            var bcr = element.getBoundingClientRect();
+            var sourceContent = document.getElementsByClassName("sourceContent")[0];
+            var yScroll =  sourceContent.parentNode.scrollTop;
+            var yMargin = Math.round((document.getElementById("externalFiles_section").offsetHeight/ 2)-50);
+            sourceContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin;
             this.lineMarked = true;
         };
 
@@ -312,8 +321,8 @@
             var yScroll =  cfaContent.parentNode.scrollTop;
             var xMargin = (cfaContent.style.marginLeft).split("px")[0];
             var yMargin = (cfaContent.style.marginTop).split("px")[0];
-            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + bcr.width/2;
-            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin + bcr.height/2;
+            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin;
+            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin;
         };
 
         //mark correct ARG-node
@@ -337,8 +346,8 @@
             var bcr = element.getBoundingClientRect();
             var xMargin = (argContent.style.marginLeft).split("px")[0];
             var yMargin = (argContent.style.marginTop).split("px")[0];
-            argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + bcr.width/2;
-            argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin + bcr.height/2;
+            argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin;
+            argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin;
         };
 
         //CFA-Controller
@@ -350,6 +359,14 @@
         };
         this.cfaFunctionIsSet = function(value){
             return value === this.selectedCFAFunction;
+        };
+
+        //Source-Controller
+        this.setSourceFile = function(value){
+            this.selectedSourceFile = value;
+        };
+        this.sourceFileIsSet = function(value){
+            return value === this.selectedSourceFile;
         };
 
 
@@ -415,7 +432,7 @@
             this.zoomFactorCFA = 100;
             document.getElementById("cfaGraph-" + this.selectedCFAFunction).transform.baseVal.getItem(0).setScale(this.zoomFactorCFA/100, this.zoomFactorCFA/100);
         };
-    }]);
+    });
 })();
 
 
@@ -428,6 +445,7 @@ var fCallEdges = {}; //FCALLEDGES
 var cfaInfo = {}; //CFAINFO
 var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
+var sourceFiles = []; //SOURCEFILES
 
 var help_externalFiles = "CFA (control flow automaton) shows the control flow of the program (one cfa for one function in the source-code)\n" +
     " - the errorpath is highlighted in red\n" +
@@ -540,8 +558,12 @@ function init(){
   var height = (Math.round(document.getElementById("externalFiles_section").offsetHeight/ 2) + "px");
   var cfaContent = document.getElementsByClassName("cfaContent")[0];
   var argContent = document.getElementsByClassName("argContent")[0];
-  cfaContent.style.marginLeft, cfaContent.style.marginRight = (width);
-  cfaContent.style.marginTop, cfaContent.style.marginBottom = (height);
-  argContent.style.marginLeft, argContent.style.marginRight = (width);
-  argContent.style.marginTop, argContent.style.marginBottom = (height);
+  cfaContent.style.marginLeft = (width);
+  cfaContent.style.marginRight = (width);
+  cfaContent.style.marginTop = (height);
+  cfaContent.style.marginBottom = (height);
+  argContent.style.marginLeft = (width);
+  argContent.style.marginRight = (width);
+  argContent.style.marginTop = (height);
+  argContent.style.marginBottom = (height);
 };
