@@ -155,7 +155,7 @@ public class AutomatonInternalState {
     return mAllTransitions;
   }
 
-  public List<AutomatonTransition> getTransitions() {
+  List<AutomatonTransition> getTransitions() {
     return transitions;
   }
 
