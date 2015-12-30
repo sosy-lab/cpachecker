@@ -519,6 +519,12 @@ function init(){
     edge.id = "arg-" + fromto[0] + "->" + fromto[1];
   }
 
+  //If we do not have an Errorpath
+  if(errorPathData.length == undefined){
+    document.getElementById("errorpath_section").style.display = "none";
+    document.getElementById("externalFiles_section").style.width = "100%";
+  }
+
   //prepare Errorpath-Data for marking in the cfa
   var returnedges = {};
   for(key in fCallEdges){

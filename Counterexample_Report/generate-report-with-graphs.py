@@ -71,7 +71,7 @@ def call_dot(infile, outpath):
     return True
 
 
-def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath):
+def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, index):
     fin = open(tplfilepath, 'r')
     fout = open(outfilepath, 'w')
     for line in fin:
@@ -79,6 +79,8 @@ def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath):
             writeCFA(cpaoutdir, functions, fout)
         elif 'ARGGRAPHS' in line:
             writeARG(argfilepath, fout)
+        elif 'SCRIPT' in line and index != -1:
+            fout.write('<script type ="text/javascript" src="app/app' + str(index) + '.js"></script>\n')
         else:
             fout.write(line)
 
@@ -156,9 +158,9 @@ def main():
     # extract paths to all necessary files from config
     cpaoutdir      = config.get('output.path', 'output/')
     argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
+    errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
 
     countexdir = os.path.dirname(__file__)
-    countexdir   = os.path.dirname(__file__)
     tplfilepath = os.path.join(countexdir, 'index_WithoutGraphs.html')
 
 
@@ -169,14 +171,18 @@ def main():
 
     print ('Generating SVGs for CFA')
     functions = [x[5:-4] for x in os.listdir(cpaoutdir) if x.startswith('cfa__') and x.endswith('.dot')]
+    errorpathcount = len(glob.glob(errorpath.replace('%d', '*')))
     functions = sorted(functions)
     for func in functions:
         call_dot(os.path.join(cpaoutdir, 'cfa__' + func + '.dot'), cpaoutdir)
 
-
-    outfilepath = os.path.join(countexdir, 'index.html')
-    generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath)
-
+    if errorpathcount != 0:
+      for index in range(errorpathcount):
+        outfilepath = os.path.join(countexdir, 'index' + str(index) + '.html')
+        generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, index)
+    else:
+      outfilepath = os.path.join(countexdir, 'index.html')
+      generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, -1)
 
 if __name__ == '__main__':
     main()

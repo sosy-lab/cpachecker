@@ -41,7 +41,7 @@ public class GenerateReportWithoutGraphs {
       }
     i++;
     }
-    return errorPathFiles.size();
+    return i;
   }
 
   public static void getFiles(String configPath) {
@@ -270,8 +270,6 @@ public class GenerateReportWithoutGraphs {
       while (null != (line = bufferedTemplateReader.readLine())) { 
         if (line.contains("ERRORPATH") && round != -1) { 
           insertErrorPathData(errorPathFiles.get(round), bufferedWriter);
-        } else if (line.contains("ERRORPATH") && round == -1) {
-          //TODO: Set the left panel to width 0 and disable evtl search functionality
         } else if (line.contains("FUNCTIONS")) { 
           insertFunctionNames(cpaOutDir, bufferedWriter);
         } else if (line.contains("SOURCEFILES")) {
