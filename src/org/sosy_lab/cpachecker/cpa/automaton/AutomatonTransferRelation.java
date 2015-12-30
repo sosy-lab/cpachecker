@@ -390,7 +390,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return result;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
-      AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(pState.getVars(), pState.getInternalState(), cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, null);
+      final AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(
+          pState.getVars(), pState.getInternalState(),
+          cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, null);
       return Collections.singleton(stateNewCounters);
     }
   }

@@ -81,6 +81,7 @@ public class AutomatonState
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.TOP,
+          AutomatonInternalState.TOP.getTransitions(),
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
@@ -105,6 +106,7 @@ public class AutomatonState
     public INACTIVE(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.INACTIVE,
+          AutomatonInternalState.INACTIVE.getTransitions(),
           pAutomatonCPA,
           ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
@@ -129,6 +131,7 @@ public class AutomatonState
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(Collections.<String, AutomatonVariable> emptyMap(),
           AutomatonInternalState.BOTTOM,
+          AutomatonInternalState.BOTTOM.getTransitions(),
           pAutomatonCPA, ImmutableList.<Pair<AStatement, Boolean>> of(),
           ImmutableList.<AAstNode> of(),
           0, 0, null);
@@ -149,6 +152,8 @@ public class AutomatonState
 
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
+  private final ImmutableList<AutomatonTransition> leavingTransitions;
+
   private final ImmutableList<Pair<AStatement, Boolean>> assumptions;
   private final ImmutableList<AAstNode> shadowCode;
 
@@ -167,7 +172,8 @@ public class AutomatonState
     if (pInternalState == AutomatonInternalState.BOTTOM) {
       return pAutomatonCPA.getBottomState();
     } else {
-      return new AutomatonState(pVars, pInternalState, pAutomatonCPA,
+      return new AutomatonState(pVars, pInternalState, pInternalState.getTransitions(),
+          pAutomatonCPA,
           pInstantiatedAssumes, pShadowCode,
           successfulMatches, failedMatches,
           pViolatedProperties);
@@ -187,20 +193,22 @@ public class AutomatonState
 
   private AutomatonState(Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
+      List<AutomatonTransition> pOutgoingTransitions,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes,
       List<AAstNode> pShadowCode,
-      int successfulMatches,
-      int failedMatches,
+      int pSuccessfulMatches,
+      int pFailedMatches,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
 
-    this.vars = checkNotNull(pVars);
-    this.internalState = checkNotNull(pInternalState);
-    this.automatonCPA = checkNotNull(pAutomatonCPA);
-    this.matches = successfulMatches;
-    this.failedMatches = failedMatches;
-    this.assumptions = pInstantiatedAssumes;
-    this.shadowCode = ImmutableList.copyOf(pShadowCode);
+    vars = checkNotNull(pVars);
+    internalState = checkNotNull(pInternalState);
+    leavingTransitions = ImmutableList.copyOf(checkNotNull(pOutgoingTransitions));
+    automatonCPA = checkNotNull(pAutomatonCPA);
+    matches = pSuccessfulMatches;
+    failedMatches = pFailedMatches;
+    assumptions = pInstantiatedAssumes;
+    shadowCode = ImmutableList.copyOf(pShadowCode);
 
     if (isTarget()) {
       checkArgument(pViolatedProperties.size() > 0);
@@ -234,6 +242,7 @@ public class AutomatonState
 
     return this.internalState.equals(otherState.internalState)
         && this.vars.equals(otherState.vars)
+        && this.leavingTransitions.equals(otherState.leavingTransitions)
         // the same state of the internal automata might be instantiated with different assumptions.
         && this.assumptions.equals(otherState.assumptions);
   }
@@ -381,8 +390,8 @@ public class AutomatonState
     private final AutomatonState previousState;
 
     AutomatonUnknownState(AutomatonState pPreviousState) {
-      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.automatonCPA,
-          pPreviousState.getAssumptions(), pPreviousState.getShadowCode(), -1, -1, null);
+      super(pPreviousState.getVars(), pPreviousState.getInternalState(), pPreviousState.getLeavingTransitions(),
+          pPreviousState.automatonCPA, pPreviousState.getAssumptions(), pPreviousState.getShadowCode(), -1, -1, null);
       previousState = pPreviousState;
     }
 
@@ -536,7 +545,6 @@ public class AutomatonState
     matches = pMatches;
   }
 
-
   public ImmutableList<AAstNode> getShadowCode() {
     return shadowCode;
   }
@@ -545,8 +553,8 @@ public class AutomatonState
    * @return  The list of outgoing automata transitions.
    *    This is a subset of, or equal to, {@code AutomatonInternalState.getTransitions}.
    */
-  public List<AutomatonTransition> getLeavingTransitions() {
-    return internalState.getTransitions();
+  public ImmutableList<AutomatonTransition> getLeavingTransitions() {
+    return leavingTransitions;
   }
 
   @Override
