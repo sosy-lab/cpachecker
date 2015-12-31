@@ -55,6 +55,9 @@ body {
     font-weight: bold;
     stroke-width: 2;
 }
+.functionNode polygon{
+    fill: transparent;
+}
 
 .header h3 img{
 height: 25px;
@@ -158,32 +161,31 @@ td:first-child {
     background-color: #f3f3f3;
 }
 .markedSourceLine{
-    background-color: #ff9c00;
+    background-color: #df80ff;
 }
 .markedCFAEdge path{
-    stroke: #ff9c00;
+    stroke: #df80ff;
 }
 .markedCFAEdge polygon{
-    fill: #ff9c00;
-    stroke: #ff9c00;
+    fill: #df80ff;
+    stroke: #df80ff;
 }
 .markedCFAEdge text{
-    fill: #ff9c00;
+    fill: #df80ff;
 }
 
 .markedCFANode text{
-    fill: #ff9c00;
+    fill: #df80ff;
 }
 .markedCFANode ellipse{
-    stroke: #ff9c00;
+    stroke: #df80ff;
 }
 .markedCFANode polygon{
-    stroke: #ff9c00;
+    stroke: #df80ff;
 }
 
 .markedARGNode polygon{
-    fill: #ff9c00;
-
+    fill: #df80ff;
 }
 .markedTableElement{
     border: solid 2px;

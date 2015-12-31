@@ -43,7 +43,6 @@
             if(val != "") {
                 var singleStatements = val.split("\n");
                 for (var i = 0; i < singleStatements.length-1; i++) {
-                    //WHY SLICE-METHOD?
                     values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
                 }
             }
@@ -107,7 +106,8 @@
                 this.markSource(this.errorPathData[line].line);
                 this.markCFAedge(line);
                 this.markARGnode(line);
-            } else if (button == "Start") {
+            } else if (button == "Start" || button == "Next" && this.selected_ErrLine == null) {
+                document.getElementById("err_table").parentNode.scrollTop = 0;
                 this.setLine("errpath-" + 0);
                 this.markSource(this.errorPathData[0].line);
                 this.markCFAedge(0);
@@ -417,7 +417,7 @@
             if (this.selected_ErrLine != null) {
                 document.getElementById(this.selected_ErrLine).style.outline = "none";
             }
-            document.getElementById(id).style.outline = "red solid 1px";
+            document.getElementById(id).style.outline = "#df80ff solid 1px";
             this.selected_ErrLine = id;
         };
 
