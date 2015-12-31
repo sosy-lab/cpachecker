@@ -382,19 +382,9 @@
             mouseDown = false;
             document.onselectstart = null;
             document.onmousedown = null;
-            // Adjust margin of cfaContent
-            var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-20) + "px");
-            var height = (Math.round((document.getElementById("externalFiles_section").offsetHeight/ 2)-50) + "px");
-            var cfaContent = document.getElementsByClassName("cfaContent")[0];
-            var argContent = document.getElementsByClassName("argContent")[0];
-            cfaContent.style.marginLeft = width;
-            cfaContent.style.marginRight = width;
-            cfaContent.style.marginTop = height;
-            cfaContent.style.marginBottom = height;
-            argContent.style.marginLeft = width;
-            argContent.style.marginRight = width;
-            argContent.style.marginTop = height;
-            argContent.style.marginBottom = height;
+            if(this.selected_ErrLine != null) {
+              this.setMarginForGraphs();
+            }
         };
 
         //Tab-Controller
@@ -416,9 +406,27 @@
         this.setLine = function(id){
             if (this.selected_ErrLine != null) {
                 document.getElementById(this.selected_ErrLine).style.outline = "none";
+            } else {
+              //The first time a line is selected
+              this.setMarginForGraphs();
             }
             document.getElementById(id).style.outline = "#df80ff solid 1px";
             this.selected_ErrLine = id;
+        };
+
+        this.setMarginForGraphs = function(){
+            var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-10) + "px");
+            var height = (Math.round(document.getElementById("externalFiles_section").offsetHeight/ 2) + "px");
+            var cfaContent = document.getElementsByClassName("cfaContent")[0];
+            var argContent = document.getElementsByClassName("argContent")[0];
+            cfaContent.style.marginLeft = (width);
+            cfaContent.style.marginRight = (width);
+            cfaContent.style.marginTop = (height);
+            cfaContent.style.marginBottom = (height);
+            argContent.style.marginLeft = (width);
+            argContent.style.marginRight = (width);
+            argContent.style.marginTop = (height);
+            argContent.style.marginBottom = (height);
         };
 
         this.setZoom = function(id){
@@ -558,18 +566,4 @@ function init(){
       text.setAttribute("fill", "red");
     }
   }
-
-  //Set margin for CFAs
-  var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-10) + "px");
-  var height = (Math.round(document.getElementById("externalFiles_section").offsetHeight/ 2) + "px");
-  var cfaContent = document.getElementsByClassName("cfaContent")[0];
-  var argContent = document.getElementsByClassName("argContent")[0];
-  cfaContent.style.marginLeft = (width);
-  cfaContent.style.marginRight = (width);
-  cfaContent.style.marginTop = (height);
-  cfaContent.style.marginBottom = (height);
-  argContent.style.marginLeft = (width);
-  argContent.style.marginRight = (width);
-  argContent.style.marginTop = (height);
-  argContent.style.marginBottom = (height);
 };
