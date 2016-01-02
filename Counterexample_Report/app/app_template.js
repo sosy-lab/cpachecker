@@ -455,13 +455,19 @@ var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
 var sourceFiles = []; //SOURCEFILES
 
-var help_externalFiles = "CFA (control flow automaton) shows the control flow of the program (one cfa for one function in the source-code)\n" +
-    " - the errorpath is highlighted in red\n" +
-    " - click on the 'function'-nodes to jump to CFA of this function\n - click on edges to jump to the relating line in the source-code\n\n" +
-    "ARG shows the errorpath as a graph\n" +
-    " - the errorpath is highlighted in red\n" +
-    "- click on nodes to jump to the relating node in the CFA\n " +
-    "- click on edge to jump to the relating line in the source-code";
+var help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one cfa for one function in the source-code)</p>" +
+    "<p>- the errorpath is highlighted in red</p>" +
+    "<p>- click on the 'function'-nodes to jump to CFA of this function</p>" +
+    "<p>- click on edges to jump to the relating line in the source-code</p>" +
+    "<p><img src='app/circle.png' width='17px' height='17px'> normal element  <img src='app/box.png' width='25px' height='17px'> more normal elements</p>" +
+    "<p><img src='app/diamond.png' width='25px' height='17px'> condition  <img src='app/function.png' width='25px' height='17px'> function (different CFA)</p>" +
+    "<p><img src='app/doubleCircle.png' width='17px' height='17px'> loop head (graph-based)  <img src='app/doubleOctagon.png' width='25px' height='17px'> loop head (syntactic)</p>\n" +
+    "<p><b>ARG</b> shows the errorpath as a graph</p>" +
+    "<p>- the errorpath is highlighted in red</p>" +
+    "<p>- click on nodes to jump to the relating node in the CFA</p>" +
+    "<p>- click on edge to jump to the relating line in the source-code</p>" +
+    "<p><img src='app/green.png' width='8px' height='8px'> covered state  <img src='app/orange.png' width='8px' height='8px'> not yet processed</p>" +
+    "<p><img src='app/cornflowerblue.png' width='8px' height='8px'> important (depending on used analysis)  <img src='app/red.png' width='8px' height='8px'> target state</p>";
 var help_errorpath = "The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)\n\n" +
     "left column: the source-node of the relating edge in the CFA\n" +
     " - click on the number : show all initialized variables and their values at that point\n\n" +
@@ -472,7 +478,7 @@ var help_errorpath = "The errorpath leads to the error 'line by line' (Source) o
     "tip: if you search for the (full) name of a variable, add a blank space at the end";
 
 $(function () {
-  $('[data-toggle="popover"]').popover()
+  $('[data-toggle="popover"]').popover({ html : true })
 })
 
 function init(){

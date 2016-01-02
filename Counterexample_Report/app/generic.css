@@ -143,6 +143,8 @@ table {
 }
 td:first-child {
     background-color: #ccc;
+    border-radius: 6px;
+
 }
 #err_table td pre {
     padding: 0px;
@@ -276,4 +278,8 @@ div pre{
     margin:0px;
     display: inline-block;
     float: right;
+}
+#externalFiles_section .help_button{
+    margin-left: 10px;
+    float: left;
 }

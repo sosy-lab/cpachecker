@@ -47,8 +47,8 @@
                     Find only exact matches</label>
             </div>
             <div id="matches">
-                <p class="markedValues">Matches in 'values': {{report.numOfValueMatches}}</p>
-                <p class="markedDescriptions">Matches in 'description': {{report.numOfDescriptionMatches}}</p>
+                <p class="markedValues">Matches in 'value-assignements': {{report.numOfValueMatches}}</p>
+                <p class="markedDescriptions">Matches in 'edge-description': {{report.numOfDescriptionMatches}}</p>
             </div>
         </header>
         <div class="fileContent">
@@ -80,7 +80,7 @@
             <li ng-class="{active: report.tabIsSet(6)}">
                 <a href ng-click="report.setTab(6)">Configurations</a>
             </li>
-            <button data-toggle="popover" data-placement="left" data-trigger="click" data-content="{{report.help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{report.help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
         </ul>
