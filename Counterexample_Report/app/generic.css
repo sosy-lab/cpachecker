@@ -143,8 +143,9 @@ table {
 }
 td:first-child {
     background-color: #ccc;
+}
+#err_table td:first-child{
     border-radius: 6px;
-
 }
 #err_table td pre {
     padding: 0px;

@@ -16,27 +16,27 @@
 <body ng-controller="ReportController as report" onload="prettyPrint(); init()">
 <header class="header">
 
-    <h3><img ng-src="{{report.logo}}"/> Report</h3>
+    <h3><img ng-src="{{logo}}"/> Report</h3>
 
-    <em> Generated: {{report.date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
+    <em> Generated: {{date | date:'yyyy-MM-dd HH:mm:ss'}}</em>
 </header>
 
-<div class="sections" ng-mousemove="report.setWidth($event)" ng-mouseup="report.setMouseUp()">
+<div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">
     <section id="errorpath_section">
-        <div id="middleLine" ng-mousedown="report.setMouseDown()"></div>
+        <div id="middleLine" ng-mousedown="setMouseDown()"></div>
         <header>
             <div class="btn-group">
-                <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Prev</button>
-                <button class="btn btn-warning" ng-click="report.clickedErrpathButton($event)">Start</button>
-                <button class="btn btn-success" ng-click="report.clickedErrpathButton($event)">Next</button>
+                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Prev</button>
+                <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
+                <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Next</button>
             </div>
-            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{report.help_errorpath}}" class="btn btn-default btn-lg help_button" type="button">
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_errorpath}}" class="btn btn-default btn-lg help_button" type="button">
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
             <div class="input-group input-group-sm">
-                <input type="text" ng-keydown="report.checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
+                <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input" placeholder="Search for...">
                     <span class="input-group-btn">
-                        <button ng-click="report.searchFor()" class="btn btn-default" type="button">
+                        <button ng-click="searchFor()" class="btn btn-default" type="button">
                             <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
                         </button>
                     </span>
@@ -47,44 +47,44 @@
                     Find only exact matches</label>
             </div>
             <div id="matches">
-                <p class="markedValues">Matches in value-assignements (V): {{report.numOfValueMatches}}</p>
-                <p class="markedDescriptions">Matches in edge-description: {{report.numOfDescriptionMatches}}</p>
+                <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
+                <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
             </div>
         </header>
         <div class="fileContent">
             <table id="err_table">
-                <tr id="errpath-{{$index}}" ng-repeat="line in report.errorPathData">
-                    <td ng-click="report.showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
-                    <td ng-click="report.clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
+                <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
+                    <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
+                    <td ng-click="clickedErrpathElement($event)"><pre class="prettyprint">{{line.desc}}</pre></td>
                 </tr>
             </table>
         </div>
     </section>
     <section id="externalFiles_section">
         <ul class="nav nav-pills">
-            <li ng-class="{active: report.tabIsSet(1)}">
-                <a href ng-click="report.setTab(1)">CFA</a>
+            <li ng-class="{active: tabIsSet(1)}">
+                <a href ng-click="setTab(1)">CFA</a>
             </li>
-            <li ng-class="{active: report.tabIsSet(2)}">
-                <a href ng-click="report.setTab(2)">ARG</a>
+            <li ng-class="{active: tabIsSet(2)}">
+                <a href ng-click="setTab(2)">ARG</a>
             </li>
-            <li ng-class="{active: report.tabIsSet(3)}">
-                <a href ng-click="report.setTab(3)">Source</a>
+            <li ng-class="{active: tabIsSet(3)}">
+                <a href ng-click="setTab(3)">Source</a>
             </li>
-            <li ng-class="{active: report.tabIsSet(4)}">
-                <a href ng-click="report.setTab(4)">Log</a>
+            <li ng-class="{active: tabIsSet(4)}">
+                <a href ng-click="setTab(4)">Log</a>
             </li>
-            <li ng-class="{active: report.tabIsSet(5)}">
-                <a href ng-click="report.setTab(5)">Statistics</a>
+            <li ng-class="{active: tabIsSet(5)}">
+                <a href ng-click="setTab(5)">Statistics</a>
             </li>
-            <li ng-class="{active: report.tabIsSet(6)}">
-                <a href ng-click="report.setTab(6)">Configurations</a>
+            <li ng-class="{active: tabIsSet(6)}">
+                <a href ng-click="setTab(6)">Configurations</a>
             </li>
-            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{report.help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
+            <button data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{help_externalFiles}}" class="btn btn-default btn-lg help_button" type="button">
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
         </ul>
-        <div class="fileContent" ng-show="report.tabIsSet(1)">
+        <div class="fileContent" ng-show="tabIsSet(1)">
             <div class="edit-line">
                 <div class="dropdown">
                     <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -92,31 +92,31 @@
                         <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu">
-                        <li ng-repeat="func in report.functions"><a ng-click="report.setCFAFunction($index)">{{func}}</a></li>
+                        <li ng-repeat="func in functions"><a ng-click="setCFAFunction($index)">{{func}}</a></li>
                     </ul>
                 </div>
-                <label>{{report.functions[report.selectedCFAFunction]}}</label>
+                <label>{{functions[selectedCFAFunction]}}</label>
                 <div>
                     <p>Zoom Factor (%)</p>
-                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorCFA" ng-change="report.setZoom('cfa-scalingField')"/>
+                    <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA" ng-change="setZoom('cfa-scalingField')"/>
                 </div>
             </div>
             <div class="cfaContent">
                     <!--CFAFUNCTIONGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent" ng-show="report.tabIsSet(2)">
+            <div class="fileContent" ng-show="tabIsSet(2)">
                 <div class="edit-line">
                     <div>
                         <p>Zoom Factor (%)</p>
-                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="report.zoomFactorARG" ng-change="report.setZoom('arg-scalingField')"/>
+                        <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG" ng-change="setZoom('arg-scalingField')"/>
                     </div>
                 </div>
                 <div class="argContent">
                     <!--ARGGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent" ng-show="report.tabIsSet(3)">
+            <div class="fileContent" ng-show="tabIsSet(3)">
                 <div class="edit-line">
                     <div class="dropdown">
                         <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -124,20 +124,20 @@
                             <span class="caret"></span>
                         </button>
                         <ul class="dropdown-menu">
-                            <li ng-repeat="file in report.sourceFiles"><a ng-click="report.setSourceFile($index)">{{file}}</a></li>
+                            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a></li>
                         </ul>
                     </div>
-                    <label>{{report.sourceFiles[report.selectedSourceFile]}}</label>
+                    <label>{{sourceFiles[selectedSourceFile]}}</label>
                 </div>
                 <!--SOURCE-->
             </div>
-            <div class="fileContent" ng-show="report.tabIsSet(4)">
+            <div class="fileContent" ng-show="tabIsSet(4)">
                 <!--LOG-->
             </div>
-            <div class="fileContent"  ng-show="report.tabIsSet(5)">
+            <div class="fileContent"  ng-show="tabIsSet(5)">
                 <!--STATISTICS-->
             </div>
-            <div class="fileContent" ng-show="report.tabIsSet(6)">
+            <div class="fileContent" ng-show="tabIsSet(6)">
                 <!--CONFIGURATION-->
             </div>
         </section>

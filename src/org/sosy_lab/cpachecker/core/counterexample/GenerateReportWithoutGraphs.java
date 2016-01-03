@@ -176,9 +176,9 @@ public class GenerateReportWithoutGraphs {
       if (file.exists()) { 
         bufferedReader = new BufferedReader(new FileReader(file));
         String line;
-        bufferedWriter.write("<table class=\"sourceContent\" ng-show = \"report.sourceFileIsSet(" + sourceFileNumber + ")\">\n");
+        bufferedWriter.write("<table class=\"sourceContent\" ng-show = \"sourceFileIsSet(" + sourceFileNumber + ")\">\n");
         while (null != (line = bufferedReader.readLine())) { 
-          line = "<td><pre class=\"prettyprint\">" + line + "</pre></td>";
+          line = "<td><pre class=\"prettyprint\">" + line + "  </pre></td>";
           bufferedWriter.write("<tr id=\"source-" + iterator + "\"><td><pre>" + iterator + "</pre></td>" + line + "</tr>\n");
           iterator++;
         }

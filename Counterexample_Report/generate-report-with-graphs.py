@@ -102,11 +102,11 @@ def writeCFA(cpaoutdir, functions, outf):
         cfafile = open(os.path.join(cpaoutdir, 'cfa__' + func + '.svg'))
         for line in cfafile:
             if start:
-                line = line.replace('class="node"','class="node" ng-dblclick="report.clickedCFAElement($event)"')
-                line = line.replace('class="edge"','class="edge" ng-dblclick="report.clickedCFAElement($event)"')
+                line = line.replace('class="node"','class="node" ng-dblclick="clickedCFAElement($event)"')
+                line = line.replace('class="edge"','class="edge" ng-dblclick="clickedCFAElement($event)"')
                 outf.write(line)
             if '<svg' in line:
-                outf.write(line[:5] + " ng-show = \"report.cfaFunctionIsSet(" + str(i) + ")\" " + line[5:])
+                outf.write(line[:5] + " ng-show = \"cfaFunctionIsSet(" + str(i) + ")\" " + line[5:])
                 start = True
         i = i+1
     cfafile.close()
@@ -118,8 +118,8 @@ def writeARG(argfilepath, outf):
         if '<svg' in line:
             start = True
         if start:
-            line = line.replace('class="node"','class="node" ng-dblclick="report.clickedARGElement($event)"')
-            line = line.replace('class="edge"','class="edge" ng-dbllclick="report.clickedARGElement($event)"')
+            line = line.replace('class="node"','class="node" ng-dblclick="clickedARGElement($event)"')
+            line = line.replace('class="edge"','class="edge" ng-dbllclick="clickedARGElement($event)"')
             outf.write(line)
     argfile.close()
 
