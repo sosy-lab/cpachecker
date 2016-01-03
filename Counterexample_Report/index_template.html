@@ -13,7 +13,7 @@
     <meta charset="UTF-8">
     <title>CPAchecker Report</title>
 </head>
-<body ng-controller="ReportController as report" onload="prettyPrint(); init()">
+<body ng-controller="ReportController" onload="prettyPrint(); init()">
 <header class="header">
 
     <h3><img ng-src="{{logo}}"/> Report</h3>
@@ -84,7 +84,7 @@
                 <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
             </button>
         </ul>
-        <div class="fileContent" ng-show="tabIsSet(1)">
+        <div class="fileContent" ng-show="tabIsSet(1)" ng-controller="CFAController">
             <div class="edit-line">
                 <div class="dropdown">
                     <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -96,7 +96,7 @@
                     </ul>
                 </div>
                 <label>{{functions[selectedCFAFunction]}}</label>
-                <div>
+                <div ng-controller="ZoomController">
                     <p>Zoom Factor (%)</p>
                     <input id="cfa-scalingField" type="number" min="0" max="200" ng-model="zoomFactorCFA" ng-change="setZoom('cfa-scalingField')"/>
                 </div>
@@ -107,7 +107,7 @@
             </div>
             <div class="fileContent" ng-show="tabIsSet(2)">
                 <div class="edit-line">
-                    <div>
+                    <div ng-controller="ZoomController">
                         <p>Zoom Factor (%)</p>
                         <input id="arg-scalingField" type="number" min="0" max="200" ng-model="zoomFactorARG" ng-change="setZoom('arg-scalingField')"/>
                     </div>
@@ -116,7 +116,7 @@
                     <!--ARGGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent" ng-show="tabIsSet(3)">
+            <div class="fileContent" ng-show="tabIsSet(3)" ng-controller="SourceController">
                 <div class="edit-line">
                     <div class="dropdown">
                         <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">

@@ -14,26 +14,16 @@
         //the line (errorpath) that is selected
         $scope.selected_ErrLine = null;
 
-        //available functions (cfa-graphs)
-        $scope.functions = functions;
-
-        //available sourcefiles
-        $scope.sourceFiles = sourceFiles;
-        $scope.selectedSourceFile = 0;
-
         //help-button-content
         $scope.help_errorpath = help_errorpath;
         $scope.help_externalFiles = help_externalFiles;
 
-        //selected cfa-graph (index = -1 means the function does not exist)
-        if (functions.indexOf("main" != -1)) {
-            $rootScope.selectedCFAFunction = functions.indexOf("main");
-        } else {
-            $rootScope.selectedCFAFunction = 0;
-        }
-
         //preprocess errorpath-data for left content
-        $scope.errorPathData = [];
+        $rootScope.errorPathData = [];
+
+        $scope.$on("ChangeTab", function(event, tab){
+            $scope.setTab(tab);
+        });
 
         $scope.getValues = function(val){
             var values = {};
@@ -59,8 +49,8 @@
                 errPathElem["valDict"] = {};
                 errPathElem["valString"] = "";
                 if (a > 0) {
-                    for (key in $scope.errorPathData[$scope.errorPathData.length - 1].valDict) {
-                        errPathElem.valDict[key] = $scope.errorPathData[$scope.errorPathData.length - 1].valDict[key];
+                    for (key in $rootScope.errorPathData[$rootScope.errorPathData.length - 1].valDict) {
+                        errPathElem.valDict[key] = $rootScope.errorPathData[$rootScope.errorPathData.length - 1].valDict[key];
                     }
                 }
                 if (newValues != {}) {
@@ -75,7 +65,7 @@
                 for(var b = 1; b <= level; b++) {
                     errPathElem.desc = "   " + errPathElem.desc;
                 }
-                $scope.errorPathData.push(errPathElem);
+                $rootScope.errorPathData.push(errPathElem);
             } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
                 level -= 1;
             } else if(errPathElem.desc == "Function start dummy edge"){
@@ -88,8 +78,7 @@
         $scope.clickedErrpathElement = function($event){
             var y = $event.currentTarget.parentElement.id;
             $scope.setLine(y);
-            $scope.markSource($scope.errorPathData[y.substring("errpath-".length)].line);
-            $scope.markCFAedge(y.substring("errpath-".length));
+            $rootScope.$broadcast('clickedErrorpathElement', y.substring("errpath-".length));
             $scope.markARGnode(y.substring("errpath-".length));
         };
 
@@ -100,21 +89,18 @@
             } else if (button == "Prev") {
                 line = parseInt($scope.selected_ErrLine.substring("errpath-".length)) - 1;
                 $scope.setLine("errpath-" + line);
-                $scope.markSource($scope.errorPathData[line].line);
-                $scope.markCFAedge(line);
+                $rootScope.$broadcast("clickedErrorpathButton", line);
                 $scope.markARGnode(line);
             } else if (button == "Start" || button == "Next" && $scope.selected_ErrLine == null) {
                 document.getElementById("err_table").parentNode.scrollTop = 0;
                 $scope.setLine("errpath-" + 0);
-                $scope.markSource($scope.errorPathData[0].line);
-                $scope.markCFAedge(0);
+                $rootScope.$broadcast("clickedErrorpathButton", 0);
                 $scope.markARGnode(0);
-            } else if (button == "Next" && ($scope.selected_ErrLine.substring("errpath-".length) == $scope.errorPathData.length -1)) {
+            } else if (button == "Next" && ($scope.selected_ErrLine.substring("errpath-".length) == $rootScope.errorPathData.length -1)) {
             } else if (button == "Next") {
                 line = parseInt($scope.selected_ErrLine.substring("errpath-".length)) + 1;
                 $scope.setLine("errpath-" + line);
-                $scope.markSource($scope.errorPathData[line].line);
-                $scope.markCFAedge(line);
+                $rootScope.$broadcast("clickedErrorpathButton", line);
                 $scope.markARGnode(line);
             }
         };
@@ -134,7 +120,7 @@
             if($event.keyCode == 13){
                 $scope.searchFor();
             }
-        }
+        };
 
         $scope.numOfValueMatches = 0;
         $scope.numOfDescriptionMatches = 0;
@@ -148,25 +134,22 @@
             $scope.numOfValueMatches = 0;
             $scope.numOfDescriptionMatches = 0;
             var allMarkedValueElements = document.getElementsByClassName("markedValueElement");
-            //window.alert(allMarkedValueElements.length);
             while(allMarkedValueElements.length != 0){
                 allMarkedValueElements[0].classList.remove("markedValueElement");
             }
             var allMarkedDescElements = document.getElementsByClassName("markedDescElement");
-            //window.alert(allMarkedDescElements.length);
             while(allMarkedDescElements.length != 0){
                 allMarkedDescElements[0].classList.remove("markedDescElement");
             }
             var allMarkedValueDescElements = document.getElementsByClassName("markedValueDescElement");
-            //window.alert(allMarkedValueDescElements.length);
             while(allMarkedValueDescElements.length != 0){
                 allMarkedValueDescElements[0].classList.remove("markedValueDescElement");
             }
             var searchedString = document.getElementsByClassName("search-input")[0].value;
 
             if (searchedString.trim() != "" && !document.getElementById("optionExactMatch").checked) {
-                for (var l = 0; l < $scope.errorPathData.length; l++) {
-                    var errorPathElem = $scope.errorPathData[l];
+                for (var l = 0; l < $rootScope.errorPathData.length; l++) {
+                    var errorPathElem = $rootScope.errorPathData[l];
                     if (errorPathElem.val.contains(searchedString) && errorPathElem.desc.contains(searchedString)) {
                         $scope.numOfValueMatches = $scope.numOfValueMatches + 1;
                         $scope.numOfDescriptionMatches = $scope.numOfDescriptionMatches + 1;
@@ -180,8 +163,8 @@
                     }
                 }
             } else if (searchedString.trim() != "" && document.getElementById("optionExactMatch").checked) {
-                for (var l = 0; l < $scope.errorPathData.length; l++) {
-                    var errorPathElem = $scope.errorPathData[l];
+                for (var l = 0; l < $rootScope.errorPathData.length; l++) {
+                    var errorPathElem = $rootScope.errorPathData[l];
                     if (searchedString in errorPathElem.newValDict && errorPathElem.desc == searchedString) {
                         $scope.numOfValueMatches = $scope.numOfValueMatches + 1;
                         $scope.numOfDescriptionMatches = $scope.numOfDescriptionMatches + 1;
@@ -197,135 +180,28 @@
             }
         };
 
-        //Behaviour for Click-Elements in CFA
-        $scope.clickedCFAElement = function($event){
-            var y = $event.currentTarget.id;
-            if (document.getElementById(y).classList.contains("edge")){
-                $scope.setTab(3);
-                var line;
-                var source;
-                if (y.split("->")[1] > 100000 || y.split("->")[0].substring("cfa-".length) > 100000){
-                    source = y.split("->")[0].substring("cfa-".length);
-                    line = cfaInfo["edges"][source + "->" + fCallEdges[source][1]]["line"];
-                } else if (y.split("->")[0].substring("cfa-".length) in combinedNodes){
-                    var textfields = document.getElementById("cfa-" + y.split("->")[0].substring("cfa-".length)).getElementsByTagName("text");
-                    source = textfields[textfields.length - 2].innerHTML;
-                    line = cfaInfo["edges"][source + "->" + y.split("->")[1]]["line"];
-                } else {
-                    line = cfaInfo["edges"][y.substring("cfa-".length)]["line"];
-                }
-                $scope.markSource(line);
-            } else if (document.getElementById(y).classList.contains("node") && (y.substring("cfa-".length) > 100000)) {
-                var func = document.getElementById(y).getElementsByTagName("text")[0].innerHTML;
-                $scope.setCFAFunction(functions.indexOf(func));
-            }
-        };
-
         //Behaviour for Click-Elements in ARG
         $scope.clickedARGElement = function($event){
+            window.alert("Clicked ARG");
             var y = $event.currentTarget.id;
             if (document.getElementById(y).classList.contains("edge")){
                 $scope.setTab(3);
                 var line = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split(":")[0].substring("Line ".length);
-                $scope.markSource(line);
+                $rootScope.$broadcast("clickedARGEdge", line);
+                //$scope.markSource(line);
             } else if (document.getElementById(y).classList.contains("node")){
                 var cfaNodeNumber = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split("N")[1];
                 $scope.setTab(1);
-                $scope.markCFANode(cfaNodeNumber);
+                $rootScope.$broadcast("clickedARGElement", cfaNodeNumber);
             }
         };
 
-        //mark correct line in the Source-Tab
-        $scope.lineMarked = false;
-        $scope.markSource = function(line){
-            if ($scope.lineMarked) {
-                document.getElementsByClassName("markedSourceLine")[0].className = "prettyprint";
-            }
-            document.getElementById("source-" + line).getElementsByTagName("pre")[1].className = "markedSourceLine";
-            var element = document.getElementById("source-" + line);
-            var box = document.getElementsByClassName("sourceContent")[0].parentNode.getBoundingClientRect();
-            var bcr = element.getBoundingClientRect();
-            var sourceContent = document.getElementsByClassName("sourceContent")[0];
-            var yScroll =  sourceContent.parentNode.scrollTop;
-            var yMargin = Math.round((document.getElementById("externalFiles_section").offsetHeight/ 2)-50);
-            sourceContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin;
-            $scope.lineMarked = true;
-        };
 
-        //mark correct CFA-edge
-        $scope.cfaEdgeMarked = false;
-        $scope.markCFAedge = function(index){
-            var source = $scope.errorPathData[index].source;
-            var target = $scope.errorPathData[index].target;
-            var funcIndex = $scope.functions.indexOf(cfaInfo["nodes"][source]["func"]);
-            /*var funcChanged = false;
-             if (!($scope.cfaFunctionIsSet(funcIndex))){
-             funcChanged = true;
-             }*/
-            if(funcIndex != $rootScope.selectedCFAFunction) {
-                $scope.setCFAFunction(funcIndex);
-            }
-            if(!(source in combinedNodes && target in combinedNodes)) {
-                if(source in combinedNodes){
-                    source = combinedNodes[source];
-                }
-                if ($scope.cfaEdgeMarked) {
-                    document.getElementsByClassName("markedCFAEdge")[0].classList.remove("markedCFAEdge");
-                }
-                if ($scope.cfaNodeMarked) {
-                    document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
-                    $scope.cfaNodeMarked = false;
-                }
-                document.getElementById("cfa-" + source + "->" + target).classList.add("markedCFAEdge");
-                $scope.scrollToCFAElement("cfa-" + source + "->" + target);
-                $scope.cfaEdgeMarked = true;
-            } else {
-                $scope.markCFANode(combinedNodes[source]);
-            }
-        };
-        //mark correct CFA-node
-        $scope.cfaNodeMarked = false;
-        $scope.markCFANode = function(nodenumber){
-            if($scope.cfaNodeMarked){
-                document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
-            }
-            if($scope.cfaEdgeMarked){
-                document.getElementsByClassName("markedCFAEdge")[0].classList.remove("markedCFAEdge");
-                $scope.cfaEdgeMarked = false;
-            }
-            $scope.setCFAFunction($scope.functions.indexOf(cfaInfo["nodes"][nodenumber]["func"]));
-            if(!(nodenumber in combinedNodes)) {
-                document.getElementById("cfa-" + nodenumber).classList.add("markedCFANode");
-                $scope.scrollToCFAElement("cfa-" + nodenumber);
-            } else {
-                document.getElementById("cfa-" + combinedNodes[nodenumber]).classList.add("markedCFANode");
-                $scope.scrollToCFAElement("cfa-" + combinedNodes[nodenumber]);
-            }
-            $scope.cfaNodeMarked = true;
-        };
-        //scroll to correct CFA-element
-        $scope.scrollToCFAElement = function(id){
-            var element = document.getElementById(id);
-            var box = document.getElementsByClassName("cfaContent")[0].parentNode.getBoundingClientRect();
-            /*if (funcChanged) {
-             xScroll = 0;
-             yScroll = 0;
-             }
-             *///PROBLEM: Coordinates of element are 0, if it is not visible
-            var bcr = element.getBoundingClientRect();
-            var cfaContent = document.getElementsByClassName("cfaContent")[0];
-            var xScroll = cfaContent.parentNode.scrollLeft;
-            var yScroll =  cfaContent.parentNode.scrollTop;
-            var xMargin = (cfaContent.style.marginLeft).split("px")[0];
-            var yMargin = (cfaContent.style.marginTop).split("px")[0];
-            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + 20;
-            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin + 20;
-        };
 
         //mark correct ARG-node
         $scope.argNodeMarked = false;
         $scope.markARGnode = function(index){
-            var argElement = $scope.errorPathData[index].argelem;
+            var argElement = $rootScope.errorPathData[index].argelem;
             if($scope.argNodeMarked){
                 document.getElementsByClassName("markedARGNode")[0].classList.remove("markedARGNode");
             }
@@ -345,25 +221,6 @@
             var yMargin = (argContent.style.marginTop).split("px")[0];
             argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + 20;
             argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin + 20;
-        };
-
-        //CFA-Controller
-        $scope.setCFAFunction = function(value){
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = 0;
-            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = 0;
-            $rootScope.$broadcast("clearCFAZoom");
-            $rootScope.selectedCFAFunction = value;
-        };
-        $scope.cfaFunctionIsSet = function(value){
-            return value === $rootScope.selectedCFAFunction;
-        };
-
-        //Source-Controller
-        $scope.setSourceFile = function(value){
-            $scope.selectedSourceFile = value;
-        };
-        $scope.sourceFileIsSet = function(value){
-            return value === $scope.selectedSourceFile;
         };
 
 
@@ -428,6 +285,175 @@
 
     }]);
 
+
+    app.controller('CFAController', ["$rootScope", "$scope", function($rootScope, $scope){
+        //available functions (cfa-graphs)
+        $rootScope.functions = functions;
+        //selected cfa-graph (index = -1 means the function does not exist)
+        if (functions.indexOf("main" != -1)) {
+            $rootScope.selectedCFAFunction = functions.indexOf("main");
+        } else {
+            $rootScope.selectedCFAFunction = 0;
+        }
+        $scope.cfaEdgeMarked = false;
+        $scope.cfaNodeMarked = false;
+
+        $scope.$on('clickedErrorpathElement', function(event, line){
+            $scope.markCFAedge(line);
+        });
+        $scope.$on("clickedErrorpathButton", function(event, line){
+            $scope.markCFAedge(line);
+        });
+        $scope.$on("clickedARGElement", function(event, nodeNumber){
+            $scope.markCFANode(nodeNumber);
+        });
+
+        $scope.setCFAFunction = function(value){
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollTop = 0;
+            document.getElementsByClassName("cfaContent")[0].parentNode.scrollLeft = 0;
+            $rootScope.$broadcast("clearCFAZoom");
+            $rootScope.selectedCFAFunction = value;
+        };
+        $scope.cfaFunctionIsSet = function(value){
+            return value === $rootScope.selectedCFAFunction;
+        };
+
+        //Behaviour for Click-Elements in CFA
+        $scope.clickedCFAElement = function($event){
+            var y = $event.currentTarget.id;
+            if (document.getElementById(y).classList.contains("edge")){
+                $rootScope.$broadcast("ChangeTab", 3);
+                var line;
+                var source;
+                if (y.split("->")[1] > 100000 || y.split("->")[0].substring("cfa-".length) > 100000){
+                    source = y.split("->")[0].substring("cfa-".length);
+                    line = cfaInfo["edges"][source + "->" + fCallEdges[source][1]]["line"];
+                } else if (y.split("->")[0].substring("cfa-".length) in combinedNodes){
+                    var textfields = document.getElementById("cfa-" + y.split("->")[0].substring("cfa-".length)).getElementsByTagName("text");
+                    source = textfields[textfields.length - 2].innerHTML;
+                    line = cfaInfo["edges"][source + "->" + y.split("->")[1]]["line"];
+                } else {
+                    line = cfaInfo["edges"][y.substring("cfa-".length)]["line"];
+                }
+                $rootScope.$broadcast("clickedCFAEdge", line);
+            } else if (document.getElementById(y).classList.contains("node") && (y.substring("cfa-".length) > 100000)) {
+                var func = document.getElementById(y).getElementsByTagName("text")[0].innerHTML;
+                $scope.setCFAFunction(functions.indexOf(func));
+            }
+        };
+
+        $scope.markCFAedge = function(index){
+            var source = $rootScope.errorPathData[index].source;
+            var target = $rootScope.errorPathData[index].target;
+            var funcIndex = $rootScope.functions.indexOf(cfaInfo["nodes"][source]["func"]);
+            if(funcIndex != $rootScope.selectedCFAFunction) {
+                $scope.setCFAFunction(funcIndex);
+            }
+            if(!(source in combinedNodes && target in combinedNodes)) {
+                if(source in combinedNodes){
+                    source = combinedNodes[source];
+                }
+                if ($scope.cfaEdgeMarked) {
+                    document.getElementsByClassName("markedCFAEdge")[0].classList.remove("markedCFAEdge");
+                }
+                if ($scope.cfaNodeMarked) {
+                    document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
+                    $scope.cfaNodeMarked = false;
+                }
+                document.getElementById("cfa-" + source + "->" + target).classList.add("markedCFAEdge");
+                $scope.scrollToCFAElement("cfa-" + source + "->" + target);
+                $scope.cfaEdgeMarked = true;
+            } else {
+                $scope.markCFANode(combinedNodes[source]);
+            }
+        };
+        //mark correct CFA-node
+        $scope.markCFANode = function(nodenumber){
+            if($scope.cfaNodeMarked){
+                document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
+            }
+            if($scope.cfaEdgeMarked){
+                document.getElementsByClassName("markedCFAEdge")[0].classList.remove("markedCFAEdge");
+                $scope.cfaEdgeMarked = false;
+            }
+            $scope.setCFAFunction($rootScope.functions.indexOf(cfaInfo["nodes"][nodenumber]["func"]));
+            if(!(nodenumber in combinedNodes)) {
+                document.getElementById("cfa-" + nodenumber).classList.add("markedCFANode");
+                $scope.scrollToCFAElement("cfa-" + nodenumber);
+            } else {
+                document.getElementById("cfa-" + combinedNodes[nodenumber]).classList.add("markedCFANode");
+                $scope.scrollToCFAElement("cfa-" + combinedNodes[nodenumber]);
+            }
+            $scope.cfaNodeMarked = true;
+        };
+        //scroll to correct CFA-element
+        $scope.scrollToCFAElement = function(id){
+            var element = document.getElementById(id);
+            var box = document.getElementsByClassName("cfaContent")[0].parentNode.getBoundingClientRect();
+            /*if (funcChanged) {
+             xScroll = 0;
+             yScroll = 0;
+             }
+             *///PROBLEM: Coordinates of element are 0, if it is not visible
+            var bcr = element.getBoundingClientRect();
+            var cfaContent = document.getElementsByClassName("cfaContent")[0];
+            var xScroll = cfaContent.parentNode.scrollLeft;
+            var yScroll =  cfaContent.parentNode.scrollTop;
+            var xMargin = (cfaContent.style.marginLeft).split("px")[0];
+            var yMargin = (cfaContent.style.marginTop).split("px")[0];
+            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + 20;
+            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin + 20;
+        };
+
+    }]);
+
+
+
+    app.controller('SourceController', ['$rootScope', '$scope', function($rootScope, $scope){
+        //available sourcefiles
+        $scope.sourceFiles = sourceFiles;
+        $scope.selectedSourceFile = 0;
+        $scope.lineMarked = false;
+
+        $scope.$on('clickedErrorpathElement', function(event, lineNumber){
+            $scope.markSource($rootScope.errorPathData[lineNumber].line);
+        });
+        $scope.$on('clickedErrorpathButton', function(event, lineNumber){
+            $scope.markSource($rootScope.errorPathData[lineNumber].line);
+        });
+        $scope.$on('clickedCFAEdge', function(event, line){
+            $scope.markSource(line);
+        });
+        $scope.$on('clickedARGEdge', function(event, line){
+            $scope.markSource(line);
+        });
+
+        $scope.setSourceFile = function(value){
+            $scope.selectedSourceFile = value;
+        };
+        $scope.sourceFileIsSet = function(value){
+            return value === $scope.selectedSourceFile;
+        };
+
+        //mark correct line in the Source-Tab
+        $scope.markSource = function(line){
+            if ($scope.lineMarked) {
+                document.getElementsByClassName("markedSourceLine")[0].className = "prettyprint";
+            }
+            document.getElementById("source-" + line).getElementsByTagName("pre")[1].className = "markedSourceLine";
+            var element = document.getElementById("source-" + line);
+            var box = document.getElementsByClassName("sourceContent")[0].parentNode.getBoundingClientRect();
+            var bcr = element.getBoundingClientRect();
+            var sourceContent = document.getElementsByClassName("sourceContent")[0];
+            var yScroll =  sourceContent.parentNode.scrollTop;
+            var yMargin = Math.round((document.getElementById("externalFiles_section").offsetHeight/ 2)-50);
+            sourceContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin;
+            $scope.lineMarked = true;
+        };
+    }]);
+
+
+
     app.controller('ZoomController', ['$rootScope', '$scope', function($rootScope, $scope){
         $scope.zoomFactorCFA = 100;
         $scope.zoomFactorARG = 100;
@@ -438,7 +464,7 @@
             if (id.contains("cfa")) {
                 document.getElementById("cfaGraph-" + $rootScope.selectedCFAFunction).transform.baseVal.getItem(0).setScale($scope.zoomFactorCFA / 100, $scope.zoomFactorCFA / 100);
             } else if (id.contains("arg")){
-                document.getElementById("argGraph-" + $scope.functions.length).transform.baseVal.getItem(0).setScale($scope.zoomFactorARG / 100, $scope.zoomFactorARG / 100);
+                document.getElementById("argGraph-" + $rootScope.functions.length).transform.baseVal.getItem(0).setScale($scope.zoomFactorARG / 100, $scope.zoomFactorARG / 100);
             }
         };
 
