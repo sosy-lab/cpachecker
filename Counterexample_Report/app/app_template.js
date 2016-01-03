@@ -1,5 +1,5 @@
 /**
- * Created by magdalena on 06.07.15.
+ * Created by Magdalena Murr on 06.07.15.
  */
 //(function(){})() --> this notation makes a function in JS "self-invoking"
 (function() {
@@ -321,8 +321,8 @@
             var yScroll =  cfaContent.parentNode.scrollTop;
             var xMargin = (cfaContent.style.marginLeft).split("px")[0];
             var yMargin = (cfaContent.style.marginTop).split("px")[0];
-            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin;
-            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin;
+            cfaContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + 20;
+            cfaContent.parentNode.scrollTop = bcr.top + yScroll - box.top - yMargin + 20;
         };
 
         //mark correct ARG-node
@@ -346,8 +346,8 @@
             var bcr = element.getBoundingClientRect();
             var xMargin = (argContent.style.marginLeft).split("px")[0];
             var yMargin = (argContent.style.marginTop).split("px")[0];
-            argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin;
-            argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin;
+            argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + 20;
+            argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin + 20;
         };
 
         //CFA-Controller
@@ -455,9 +455,9 @@ var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
 var sourceFiles = []; //SOURCEFILES
 
-var help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one cfa for one function in the source-code)</p>" +
+var help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one CFA for one function in the source-code)</p>" +
     "<p>- the errorpath is highlighted in red</p>" +
-    "<p>- click on the 'function'-nodes to jump to CFA of this function</p>" +
+    "<p>- click on the function-nodes to jump to CFA of this function</p>" +
     "<p>- click on edges to jump to the relating line in the source-code</p>" +
     "<p><img src='app/circle.png' width='17px' height='17px'> normal element  <img src='app/box.png' width='25px' height='17px'> more normal elements</p>" +
     "<p><img src='app/diamond.png' width='25px' height='17px'> condition  <img src='app/function.png' width='25px' height='17px'> function (different CFA)</p>" +
@@ -465,17 +465,15 @@ var help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the contr
     "<p><b>ARG</b> shows the errorpath as a graph</p>" +
     "<p>- the errorpath is highlighted in red</p>" +
     "<p>- click on nodes to jump to the relating node in the CFA</p>" +
-    "<p>- click on edge to jump to the relating line in the source-code</p>" +
+    "<p>- click on edges to jump to the relating line in the source-code</p>" +
     "<p><img src='app/green.png' width='8px' height='8px'> covered state  <img src='app/orange.png' width='8px' height='8px'> not yet processed</p>" +
     "<p><img src='app/cornflowerblue.png' width='8px' height='8px'> important (depending on used analysis)  <img src='app/red.png' width='8px' height='8px'> target state</p>";
-var help_errorpath = "The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)\n\n" +
-    "left column: the source-node of the relating edge in the CFA\n" +
-    " - click on the number : show all initialized variables and their values at that point\n\n" +
-    "right column: the description (what is executed at this point)\n" +
-    " - click on the text : jump to the relating edge in the CFA or node in the ARG or line in Source (depending on active tab)\n\n" +
-    "Buttons (Prev, Start, Next) : click to navigate through the errorpath and jump to the relating position in the active tab\n\n" +
-    "Search : you can search for words or numbers in the 'description'-part (blue)\n  and you can search for variables and their value - it will only show you, where the variable has been initialized or where it has changed its value (green)\n" +
-    "tip: if you search for the (full) name of a variable, add a blank space at the end";
+var help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)</p>\n" +
+    "<p><b>-V-</b> Click to show all initialized variables and their values at that point</p>\n" +
+    "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab)</p>\n" +
+    "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
+    "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
+    "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
 
 $(function () {
   $('[data-toggle="popover"]').popover({ html : true })
