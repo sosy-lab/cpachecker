@@ -119,7 +119,7 @@ def writeARG(argfilepath, outf):
             start = True
         if start:
             line = line.replace('class="node"','class="node" ng-dblclick="report.clickedARGElement($event)"')
-            line = line.replace('class="edge"','class="edge" ng-dblclick="report.clickedARGElement($event)"')
+            line = line.replace('class="edge"','class="edge" ng-dbllclick="report.clickedARGElement($event)"')
             outf.write(line)
     argfile.close()
 
