@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
 
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface InitOperator {
 
-  public Partitioning init(ReachedSet pReached, AbstractState pE0, Precision pPi0, Partitioning pPartitioning);
+  public Partitioning init(ConfigurableProgramAnalysis pCPA, ReachedSet pReached,
+      Partitioning pPartitioning, CFA pCfa)
+          throws CPAException, InterruptedException;
 
 }

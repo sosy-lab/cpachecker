@@ -185,6 +185,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
       result = new BreakOnTargetsPrecisionAdjustment(result, pFoundTargetLimit, pExtraIterationsLimit);
     }
 
+    result = new AdjustAutomatonPrecisionAdjustment(result);
+
     return result;
   }
 

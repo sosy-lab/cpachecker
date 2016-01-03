@@ -214,6 +214,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   }
 
   void setInitialLocation(CFANode initialLocation) {
-    invariantGenerator.start(initialLocation);
+    if (invariantGenerator != null) {
+      invariantGenerator.start(initialLocation);
+    }
   }
 }

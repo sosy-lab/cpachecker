@@ -56,8 +56,7 @@ public interface PrecisionAdjustment {
    * @return The new abstract state, new precision and the action flag
    * encapsulated in a {@link PrecisionAdjustmentResult} instance OR
    * Optional.absent() if the newly produced abstract states corresponds
-   * to BOTTOM.
-   */
+   * to BOTTOM.   */
   Optional<PrecisionAdjustmentResult> prec(
       AbstractState state,
       Precision precision,

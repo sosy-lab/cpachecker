@@ -23,22 +23,25 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
+import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -47,12 +50,13 @@ import com.google.common.collect.Sets.SetView;
 public class InitDefaultOperator implements InitOperator {
 
   @Override
-  public Partitioning init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
-      Partitioning pPartitioning) {
+  public Partitioning init(ConfigurableProgramAnalysis pCPA, ReachedSet pReached,
+      Partitioning pPartitioning, CFA pCFA)
+          throws CPAException, InterruptedException {
 
-    ARGReachedSet reached = new ARGReachedSet(pReached);
+    final ARGCPA argCpa = CPAs.retrieveCPA(pCPA, ARGCPA.class);
 
-    ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getAllProperties(pE0, pReached);
+    ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getAllProperties(pReached.getFirstState(), pReached);
 
     Preconditions.checkArgument(!pPartitioning.isEmpty(), "This init operator requires at least one partition of properties!");
     Preconditions.checkState(allProperties.size() > 0, "There must be a set of properties that get checked!");
@@ -60,19 +64,33 @@ public class InitDefaultOperator implements InitOperator {
     // At the moment we check the first partition in the list
     ImmutableSet<Property> partitionToChcek = pPartitioning.getFirstPartition();
 
+    final CFANode initLocation = pCFA.getMainFunction();
+    final AbstractState initialState = pCPA.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
+    final Precision initialPrecision = pCPA.getInitialPrecision(initLocation, StateSpacePartition.getDefaultPartition());
+
     // Reset the sets 'reached' and 'waitlist' to contain only
     //  the initial state and its initial precision
-    ARGState e0 = AbstractStates.extractStateByType(pE0, ARGState.class);
-    ImmutableList<ARGState> childs = ImmutableList.copyOf(e0.getChildren());
-    for (ARGState e: childs) {
-      reached.removeSubtree(e);
-    }
+    pReached.clear();
+    pReached.add(initialState, initialPrecision);
 
     // Modify the 'waitlist': Blacklist those properties that are not in the partition!
-    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
-
     SetView<Property> toBlacklist = Sets.difference(allProperties, partitionToChcek);
     Precisions.updatePropertyBlacklistOnWaitlist(argCpa, pReached, toBlacklist);
+
+    // Perform a precision adjustment on all states of the waitlist to
+    //  reflect the changed precision.
+
+    Preconditions.checkState(pReached.size() == 1);
+
+    Precision pi = pReached.getPrecision(initialState);
+    Optional<PrecisionAdjustmentResult> precResult = pCPA.getPrecisionAdjustment().prec(initialState, pi, pReached,
+        Functions.<AbstractState>identity(), initialState);
+
+    AbstractState ePrime = precResult.isPresent()
+        ? precResult.get().abstractState()
+            : initialState;
+    pReached.remove(initialState);
+    pReached.add(ePrime, pi);
 
     // Check
     ImmutableSet<Property> active = MultiPropertyAlgorithm.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);

@@ -45,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
@@ -100,6 +101,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   private final LogManager logger;
   private final InterruptProvider interruptNotifier;
   private final ARGCPA cpa;
+  private final CFA cfa;
 
   @Option(secure=true, name="partition.operator",
       description = "Operator for determining the partitions of properties that have to be checked.")
@@ -207,13 +209,14 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   };
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
-    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier)
+    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
 
     pConfig.inject(this);
 
     this.wrapped = pAlgorithm;
     this.logger = pLogger;
+    this.cfa = pCfa;
 
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARGCPA needed for MultiPropertyAlgorithm");
@@ -336,9 +339,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       Preconditions.checkArgument(pReachedSet.size() == 1, "Please ensure that analysis.stopAfterError=true!");
       Preconditions.checkArgument(pReachedSet.getWaitlist().size() == 1);
 
-      final AbstractState e0 = pReachedSet.getFirstState();
-      final Precision pi0 = pReachedSet.getPrecision(e0);
-
       final Partitioning noPartitioning = Partitions.none();
       Partitioning remainingPartitions = Partitions.none();
       Partitioning checkPartitions;
@@ -355,7 +355,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       initAndStartLimitChecker();
 
       // Initialize the waitlist
-      initReached(pReachedSet, e0, pi0, checkPartitions);
+      initReached(pReachedSet, checkPartitions);
 
       do {
         Stats.incCounter("Multi-Property Verification Iterations", 1);
@@ -497,7 +497,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
           // Re-initialize the sets 'waitlist' and 'reached'
           stats.numberOfRestarts++;
-          remainingPartitions = initReached(pReachedSet, e0, pi0, checkPartitions);
+          remainingPartitions = initReached(pReachedSet, checkPartitions);
           // -- Reset the resource limit checker
           initAndStartLimitChecker();
         }
@@ -602,8 +602,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   }
 
   private Partitioning initReached(final ReachedSet pReachedSet,
-      final AbstractState pE0, final Precision pPi0,
-      final Partitioning pCheckPartitions) {
+      final Partitioning pCheckPartitions) throws CPAException, InterruptedException {
 
     Preconditions.checkState(!pCheckPartitions.isEmpty(), "A non-empty set of properties must be checked in a verification run!");
 
@@ -616,7 +615,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
     try (StatCpuTimer t = Stats.startTimer("Re-initialization of 'reached'")) {
       // Delegate the initialization of the set reached (and the waitlist) to the init operator
-      result = initOperator.init(pReachedSet, pE0, pPi0, pCheckPartitions);
+      result = initOperator.init(cpa, pReachedSet, pCheckPartitions, cfa);
 
       logger.log(Level.WARNING, String.format("%d states in reached.", pReachedSet.size()));
       logger.log(Level.WARNING, String.format("%d states in waitlist.", pReachedSet.getWaitlist().size()));

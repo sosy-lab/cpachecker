@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 
 public class InitPartitionedOperator implements InitOperator {
 
   @Override
-  public Partitioning init(ReachedSet pReached, AbstractState pE0, Precision pPi0,
-      Partitioning pLastPartitioning) {
+  public Partitioning init(ConfigurableProgramAnalysis pCPA,
+      ReachedSet pReached, Partitioning pLastPartitioning, CFA pCfa) {
 
     // Use the PartitioningCPA to completely separate each partition during the analysis.
     throw new RuntimeException("Implement me!");
