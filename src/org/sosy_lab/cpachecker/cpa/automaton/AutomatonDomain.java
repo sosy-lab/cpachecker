@@ -71,10 +71,6 @@ public class AutomatonDomain implements AbstractDomain {
       return true;
     }
 
-    if (reachedState.equals(inactiveState)) {
-      return true;
-    }
-
     return false;
   }
 

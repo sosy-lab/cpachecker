@@ -43,9 +43,6 @@ public class AutomatonMergeOperator implements MergeOperator {
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")
   private boolean onTop  = false;
 
-  @Option(secure=true, description="Merge two automata states if one of them is INACTIVE.")
-  private boolean onInactive  = false;
-
   public AutomatonMergeOperator(Configuration pConfig,
       ControlAutomatonCPA pCpa,
       AbstractDomain pAutomatonDomain,
@@ -66,9 +63,6 @@ public class AutomatonMergeOperator implements MergeOperator {
     AutomatonState e1 = (AutomatonState) pE1;
     AutomatonState e2 = (AutomatonState) pE2;
 
-    AutomatonInternalState e1state = e1.getInternalState();
-    AutomatonInternalState e2state = e2.getInternalState();
-
     if (onTop) {
       boolean anyAutomatonTop =
           domain.isLessOrEqual(topState, e1)
@@ -76,16 +70,6 @@ public class AutomatonMergeOperator implements MergeOperator {
 
       if (anyAutomatonTop) {
         return new AutomatonState.TOP(cpa);
-      }
-    }
-
-    if (onInactive) {
-      boolean anyAutomatonInactive =
-          e1state.equals(AutomatonInternalState.INACTIVE)
-          || e2state.equals(AutomatonInternalState.INACTIVE);
-
-      if (anyAutomatonInactive) {
-        return new AutomatonState.INACTIVE(cpa);
       }
     }
 
