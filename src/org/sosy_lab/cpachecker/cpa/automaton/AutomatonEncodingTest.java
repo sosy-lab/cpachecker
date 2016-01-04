@@ -28,16 +28,16 @@ import java.util.Map;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.StatisticsParser;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
 import com.google.common.collect.ImmutableMap;
 
 public class AutomatonEncodingTest {
 
   @Test
-  public void cyclicInclusionTest() throws Exception {
+  public void testEncodingOfLdvRule118_Safe() throws Exception {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/ldv_118_test.c";
 
@@ -56,10 +56,12 @@ public class AutomatonEncodingTest {
       TestResults results = CPATestRunner.run(cfg, programFile, false);
       results.assertIsSafe();
 
-      StatisticsParser tgt = new StatisticsParser();
+      TestRunStatisticsParser tgt = new TestRunStatisticsParser();
       results.getCheckerResult().printStatistics(tgt.getPrintStream());
 
-      tgt.dumpStatistics(System.out);
+      tgt.assertThatNumber("Number of times merged").isAtLeast(2);
+      tgt.assertThatNumber("Number of refinements").isAtMost(3);
+      tgt.assertThatNumber("Max states per location").isAtMost(2);
   }
 
 }
