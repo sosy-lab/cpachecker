@@ -121,7 +121,6 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   final Timer creationTime = new Timer();
   final Timer cpaCreationTime = new Timer();
   private final Timer analysisTime = new Timer();
-  final Timer resultAnalysisTime = new Timer();
 
   private long programCpuTime;
   private long analysisCpuTime = 0;
@@ -471,9 +470,6 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     }
     out.println("Time for Analysis:            " + analysisTime);
     out.println("CPU time for analysis:        " + TimeSpan.ofNanos(analysisCpuTime).formatAs(TimeUnit.SECONDS));
-    if (resultAnalysisTime.getNumberOfIntervals() > 0) {
-      out.println("Time for analyzing result:    " + resultAnalysisTime);
-    }
     out.println("Total time for CPAchecker:    " + programTime);
     out.println("Total CPU time for CPAchecker:" + TimeSpan.ofNanos(programCpuTime).formatAs(TimeUnit.SECONDS));
     out.println("Time for statistics:          " + statisticsTime);

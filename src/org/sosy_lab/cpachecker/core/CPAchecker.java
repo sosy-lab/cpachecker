@@ -310,7 +310,6 @@ public class CPAchecker {
 
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-      stats.resultAnalysisTime.stop();
 
       } catch (InterruptedException e) {
         // Get intermediate verification results
