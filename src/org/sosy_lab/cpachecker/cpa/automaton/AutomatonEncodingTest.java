@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -41,11 +43,44 @@ public class AutomatonEncodingTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/ldv_118_test.c";
 
+    TestResults results = runWithAutomataEncoding(specFile, programFile);
+
+    results.assertIsSafe();
+
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+
+    stat.assertThatNumber("Number of times merged").isAtLeast(2);
+    stat.assertThatNumber("Number of refinements").isAtMost(3);
+    stat.assertThatNumber("Max states per location").isAtMost(2);
+  }
+
+  @Test
+  public void testEncodingOfLdvRule118_Unsafe() throws Exception {
+    final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
+    final String programFile = "test/config/automata/encode/ldv_118_test_false.c";
+
+    TestResults results = runWithAutomataEncoding(specFile, programFile);
+
+    results.assertIsUnsafe();
+
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+
+    stat.assertThatNumber("Number of times merged").isAtLeast(0);
+    stat.assertThatNumber("Number of successful refinements").isAtMost(3);
+    stat.assertThatNumber("Max states per location").isAtMost(2);
+  }
+
+  private TestResults runWithAutomataEncoding(final String specFile, final String programFile)
+      throws InvalidConfigurationException, IOException, Exception {
+
     Map<String, String> prop = ImmutableMap.of(
         "specification",                    specFile,
         "cpa.predicate.ignoreIrrelevantVariables", "FALSE",
         "cfa.useMultiEdges",                "FALSE",
-        "automata.properties.granularity",  "BASENAME"
+        "automata.properties.granularity",  "BASENAME",
+        "analysis.checkCounterexamples", "FALSE"
       );
 
     Configuration cfg = TestDataTools.configurationForTest()
@@ -53,15 +88,9 @@ public class AutomatonEncodingTest {
         .setOptions(prop)
         .build();
 
-      TestResults results = CPATestRunner.run(cfg, programFile, false);
-      results.assertIsSafe();
+    TestResults results = CPATestRunner.run(cfg, programFile, false);
 
-      TestRunStatisticsParser stat = new TestRunStatisticsParser();
-      results.getCheckerResult().printStatistics(stat.getPrintStream());
-
-      stat.assertThatNumber("Number of times merged").isAtLeast(2);
-      stat.assertThatNumber("Number of refinements").isAtMost(3);
-      stat.assertThatNumber("Max states per location").isAtMost(2);
+    return results;
   }
 
 }

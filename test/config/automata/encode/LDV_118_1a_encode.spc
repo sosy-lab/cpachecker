@@ -5,7 +5,7 @@ STATE USEALL Init :
   MATCH ENTRY -> ENCODE {int rlock = 1; int wlock = 1;} GOTO Init;
 
   MATCH CALL {ldv_read_lock($?)} -> SPLIT {wlock == 1;} ENCODE {rlock=rlock+1;} GOTO Init NEGATION ERROR;
-  MATCH CALL {ldv_read_unlock($?)} -> SPLIT {rlock != 1;} ENCODE {rlock=rlock-1;} GOTO Init NEGATION ERROR;
+  MATCH CALL {ldv_read_unlock($?)} -> SPLIT {rlock > 1;} ENCODE {rlock=rlock-1;} GOTO Init NEGATION ERROR;
 
   MATCH CALL {ldv_write_lock($?)} -> SPLIT {wlock == 1;} ENCODE {wlock=wlock+1;} GOTO Init NEGATION ERROR;
   MATCH CALL {ldv_write_unlock($?)} -> SPLIT {wlock == 2;} ENCODE {wlock=wlock-1;} GOTO Init NEGATION ERROR;
