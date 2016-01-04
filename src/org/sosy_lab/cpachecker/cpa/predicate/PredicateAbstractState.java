@@ -228,9 +228,10 @@ public abstract class PredicateAbstractState implements AbstractState, Partition
 
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
-    this.pathFormula = pf;
-    this.abstractionFormula = a;
-    this.abstractionLocations = pAbstractionLocations;
+
+    this.pathFormula = Preconditions.checkNotNull(pf);
+    this.abstractionFormula = Preconditions.checkNotNull(a);
+    this.abstractionLocations = Preconditions.checkNotNull(pAbstractionLocations);
   }
 
   public abstract boolean isAbstractionState();

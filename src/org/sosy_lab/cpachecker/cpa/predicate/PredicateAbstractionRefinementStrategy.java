@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
@@ -303,22 +304,29 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
+  protected boolean performRefinementForState(BooleanFormula pInterpolant, ARGState pInterpolationPoint) {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
     predicateCreation.start();
-    PredicateAbstractState predicateState = getPredicateState(interpolationPoint);
-    PathFormula blockFormula = predicateState.getAbstractionFormula().getBlockFormula();
+    {
+      final CFANode loc = AbstractStates.extractLocation(pInterpolationPoint);
+      final PredicateAbstractState state = getPredicateState(pInterpolationPoint);
+      final PathFormula blockFormula = state.getAbstractionFormula().getBlockFormula();
 
-    Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
-    CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-    int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
+      Preconditions.checkNotNull(state);
+      Preconditions.checkNotNull(loc);
 
-    newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
+      final Integer locInstance = state.getAbstractionLocationsOnPath().get(loc);
+      Preconditions.checkNotNull(locInstance, "The instance of an abstraction location must always be known!");
+
+      Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
+
+      newPredicates.putAll(Pair.of(loc, locInstance), localPreds);
+    }
     predicateCreation.stop();
 
-    return false;
+    return false; // 'fa'se', because we have performed a refinement of this state
   }
 
   /**
