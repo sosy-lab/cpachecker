@@ -22,9 +22,9 @@
 </header>
 
 <div class="sections" ng-mousemove="setWidth($event)" ng-mouseup="setMouseUp()">
-    <section id="errorpath_section">
+    <section id="errorpath_section" ng-controller="ErrorpathController">
         <div id="middleLine" ng-mousedown="setMouseDown()"></div>
-        <header>
+        <header ng-controller="SearchController">
             <div class="btn-group">
                 <button class="btn btn-success" ng-click="clickedErrpathButton($event)">Prev</button>
                 <button class="btn btn-warning" ng-click="clickedErrpathButton($event)">Start</button>
@@ -51,7 +51,7 @@
                 <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
             </div>
         </header>
-        <div class="fileContent">
+        <div class="fileContent" ng-controller="ValueAssignmentsController">
             <table id="err_table">
                 <tr id="errpath-{{$index}}" ng-repeat="line in errorPathData">
                     <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}"><pre>-V-</pre></td>
@@ -105,7 +105,7 @@
                     <!--CFAFUNCTIONGRAPHS-->
                 </div>
             </div>
-            <div class="fileContent" ng-show="tabIsSet(2)">
+            <div class="fileContent" ng-show="tabIsSet(2)" ng-controller="ARGController">
                 <div class="edit-line">
                     <div ng-controller="ZoomController">
                         <p>Zoom Factor (%)</p>

@@ -5,127 +5,100 @@
 (function() {
     var app = angular.module('report', []);
     app.controller('ReportController', ['$rootScope', '$scope', function($rootScope, $scope){
-        $scope.date = date;
-        $scope.logo = logo;
+        $scope.date = Date.now();
+        $scope.logo = "http://cpachecker.sosy-lab.org/logo.svg";
+        $scope.help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one CFA for one function in the source-code)</p>" +
+            "<p>- the errorpath is highlighted in red</p>" +
+            "<p>- click on the function-nodes to jump to CFA of this function</p>" +
+            "<p>- click on edges to jump to the relating line in the source-code</p>" +
+            "<p><img src='app/circle.png' width='17px' height='17px'> normal element  <img src='app/box.png' width='25px' height='17px'> more normal elements</p>" +
+            "<p><img src='app/diamond.png' width='25px' height='17px'> condition  <img src='app/function.png' width='25px' height='17px'> function (different CFA)</p>" +
+            "<p><img src='app/doubleCircle.png' width='17px' height='17px'> loop head (graph-based)  <img src='app/doubleOctagon.png' width='25px' height='17px'> loop head (syntactic)</p>\n" +
+            "<p><b>ARG</b> shows the errorpath as a graph</p>" +
+            "<p>- the errorpath is highlighted in red</p>" +
+            "<p>- click on nodes to jump to the relating node in the CFA</p>" +
+            "<p>- click on edges to jump to the relating line in the source-code</p>" +
+            "<p><img src='app/green.png' width='8px' height='8px'> covered state  <img src='app/orange.png' width='8px' height='8px'> not yet processed</p>" +
+            "<p><img src='app/cornflowerblue.png' width='8px' height='8px'> important (depending on used analysis)  <img src='app/red.png' width='8px' height='8px'> target state</p>";
+        $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)</p>\n" +
+            "<p><b>-V-</b> Click to show all initialized variables and their values at that point</p>\n" +
+            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab)</p>\n" +
+            "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
+            "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
+            "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
 
-        //the tab that is shown
-        $scope.tab = 1;
-
-        //the line (errorpath) that is selected
-        $scope.selected_ErrLine = null;
-
-        //help-button-content
-        $scope.help_errorpath = help_errorpath;
-        $scope.help_externalFiles = help_externalFiles;
-
-        //preprocess errorpath-data for left content
-        $rootScope.errorPathData = [];
-
+        $scope.$on("FirstTimeErrorpathElementIsSelected", function(event){
+            $scope.setMarginForGraphs();
+        });
         $scope.$on("ChangeTab", function(event, tab){
             $scope.setTab(tab);
         });
 
-        $scope.getValues = function(val){
-            var values = {};
-            if(val != "") {
-                var singleStatements = val.split("\n");
-                for (var i = 0; i < singleStatements.length-1; i++) {
-                    values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
-                }
-            }
-            return values;
+        //the tab that is shown
+        $scope.tab = 1;
+
+        $scope.setTab = function(value){
+            $scope.tab = value;
+        };
+        $scope.tabIsSet = function(value){
+            return $scope.tab === value;
         };
 
-        var level = 0;
-        for(var a = 0; a<errorPathData.length; a++) {
-            var errPathElem = errorPathData[a];
-            //do not show start, return and blank edges
-            if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
-                if (errPathElem.source in fCallEdges) {
-                    errPathElem.target = fCallEdges[errPathElem.source][0];
-                }
-                var newValues = $scope.getValues(errPathElem.val);
-                errPathElem["newValDict"] = newValues;
-                errPathElem["valDict"] = {};
-                errPathElem["valString"] = "";
-                if (a > 0) {
-                    for (key in $rootScope.errorPathData[$rootScope.errorPathData.length - 1].valDict) {
-                        errPathElem.valDict[key] = $rootScope.errorPathData[$rootScope.errorPathData.length - 1].valDict[key];
-                    }
-                }
-                if (newValues != {}) {
-                    for (key in newValues) {
-                        errPathElem.valDict[key] = newValues[key];
-                    }
-                }
-                // if I do it in one of the for-loops before, I get the new values doubled
-                for (key in errPathElem.valDict){
-                    errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.valDict[key] + "\n";
-                }
-                for(var b = 1; b <= level; b++) {
-                    errPathElem.desc = "   " + errPathElem.desc;
-                }
-                $rootScope.errorPathData.push(errPathElem);
-            } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
-                level -= 1;
-            } else if(errPathElem.desc == "Function start dummy edge"){
-                level += 1;
+
+        $scope.setWidth = function(event) {
+            if (mouseDown) {
+                var wholeWidth = document.getElementById("externalFiles_section").offsetWidth + document.getElementById("errorpath_section").offsetWidth;
+                document.getElementById("errorpath_section").style.width = (Math.round(event.clientX/wholeWidth*100) + "%");
+                document.getElementById("externalFiles_section").style.width = (Math.round((wholeWidth - event.clientX)/wholeWidth*100) + "%");
             }
-        }
-
-
-        //Behaviour for Click-Elements in Errorpath
-        $scope.clickedErrpathElement = function($event){
-            var y = $event.currentTarget.parentElement.id;
-            $scope.setLine(y);
-            $rootScope.$broadcast('clickedErrorpathElement', y.substring("errpath-".length));
-            $scope.markARGnode(y.substring("errpath-".length));
         };
-
-        $scope.clickedErrpathButton = function($event){
-            var button = $event.currentTarget.innerHTML;
-            var line;
-            if (button == "Prev" && ($scope.selected_ErrLine.substring("errpath-".length) == 0 || $scope.selected_ErrLine == null)) {
-            } else if (button == "Prev") {
-                line = parseInt($scope.selected_ErrLine.substring("errpath-".length)) - 1;
-                $scope.setLine("errpath-" + line);
-                $rootScope.$broadcast("clickedErrorpathButton", line);
-                $scope.markARGnode(line);
-            } else if (button == "Start" || button == "Next" && $scope.selected_ErrLine == null) {
-                document.getElementById("err_table").parentNode.scrollTop = 0;
-                $scope.setLine("errpath-" + 0);
-                $rootScope.$broadcast("clickedErrorpathButton", 0);
-                $scope.markARGnode(0);
-            } else if (button == "Next" && ($scope.selected_ErrLine.substring("errpath-".length) == $rootScope.errorPathData.length -1)) {
-            } else if (button == "Next") {
-                line = parseInt($scope.selected_ErrLine.substring("errpath-".length)) + 1;
-                $scope.setLine("errpath-" + line);
-                $rootScope.$broadcast("clickedErrorpathButton", line);
-                $scope.markARGnode(line);
+        $scope.setMouseUp = function(){
+            mouseDown = false;
+            document.onselectstart = null;
+            document.onmousedown = null;
+            if($rootScope.selected_ErrLine != null) {
+                $scope.setMarginForGraphs();
             }
         };
 
-        //gets called when '-V-'button in errorpath is clicked
-        $scope.showValues = function($event){
-            var element = $event.currentTarget;
-            if (element.classList.contains("markedTableElement")) {
-                element.classList.remove("markedTableElement");
-            } else {
-                element.classList.add("markedTableElement");
-            }
+        //Code-Controller
+        $scope.setMouseDown = function(){
+            mouseDown = true;
+            //we need this so that no text gets marked when moving middleline
+            document.onselectstart = function(){return false;};
+            document.onmousedown = function(){return false;};
         };
 
-        //this is for the search-functionality
+
+        $scope.setMarginForGraphs = function(){
+            var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-10) + "px");
+            var height = (Math.round(document.getElementById("externalFiles_section").offsetHeight/ 2) + "px");
+            var cfaContent = document.getElementsByClassName("cfaContent")[0];
+            var argContent = document.getElementsByClassName("argContent")[0];
+            cfaContent.style.marginLeft = (width);
+            cfaContent.style.marginRight = (width);
+            cfaContent.style.marginTop = (height);
+            cfaContent.style.marginBottom = (height);
+            argContent.style.marginLeft = (width);
+            argContent.style.marginRight = (width);
+            argContent.style.marginTop = (height);
+            argContent.style.marginBottom = (height);
+        };
+
+    }]);
+
+    app.controller("SearchController", ['$rootScope', '$scope', function($rootScope, $scope){
+        $scope.numOfValueMatches = 0;
+        $scope.numOfDescriptionMatches = 0;
+
         $scope.checkIfEnter = function($event){
             if($event.keyCode == 13){
                 $scope.searchFor();
             }
         };
 
-        $scope.numOfValueMatches = 0;
-        $scope.numOfDescriptionMatches = 0;
         $scope.searchFor = function(){
-            //you have to get the element this way, because display:none does not allow direct search
+            //you have to get the matches-element this way, because display:none does not allow direct search
             var matchesDiv = document.getElementsByClassName("markedValues")[0].parentNode;
             if(matchesDiv.style.display != "inline"){
                 matchesDiv.style.display = "inline";
@@ -179,28 +152,137 @@
                 }
             }
         };
+    }]);
 
-        //Behaviour for Click-Elements in ARG
+    app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope){
+        //gets called when '-V-'button in errorpath is clicked
+        $scope.showValues = function($event){
+            var element = $event.currentTarget;
+            if (element.classList.contains("markedTableElement")) {
+                element.classList.remove("markedTableElement");
+            } else {
+                element.classList.add("markedTableElement");
+            }
+        };
+    }]);
+
+
+    app.controller("ErrorpathController", ['$rootScope', '$scope', function($rootScope, $scope){
+        $rootScope.errorPathData = [];
+        //the line (errorpath) that is selected
+        $rootScope.selected_ErrLine = null;
+
+        $scope.getValues = function(val){
+            var values = {};
+            if(val != "") {
+                var singleStatements = val.split("\n");
+                for (var i = 0; i < singleStatements.length-1; i++) {
+                    values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
+                }
+            }
+            return values;
+        };
+
+        var indentationlevel = 0;
+        for(var a = 0; a<errorPathData.length; a++) {
+            var errPathElem = errorPathData[a];
+            //do not show start, return and blank edges
+            if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
+                if (errPathElem.source in fCallEdges) {
+                    errPathElem.target = fCallEdges[errPathElem.source][0];
+                }
+                var newValues = $scope.getValues(errPathElem.val);
+                errPathElem["newValDict"] = newValues;
+                errPathElem["valDict"] = {};
+                errPathElem["valString"] = "";
+                if (a > 0) {
+                    for (key in $rootScope.errorPathData[$rootScope.errorPathData.length - 1].valDict) {
+                        errPathElem.valDict[key] = $rootScope.errorPathData[$rootScope.errorPathData.length - 1].valDict[key];
+                    }
+                }
+                if (newValues != {}) {
+                    for (key in newValues) {
+                        errPathElem.valDict[key] = newValues[key];
+                    }
+                }
+                // if I do it in one of the for-loops before, I get the new values doubled
+                for (key in errPathElem.valDict){
+                    errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.valDict[key] + "\n";
+                }
+                //add indentation
+                for(var b = 1; b <= indentationlevel; b++) {
+                    errPathElem.desc = "   " + errPathElem.desc;
+                }
+                $rootScope.errorPathData.push(errPathElem);
+            } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
+                indentationlevel -= 1;
+            } else if(errPathElem.desc == "Function start dummy edge"){
+                indentationlevel += 1;
+            }
+        }
+
+        $scope.clickedErrpathElement = function($event){
+            var lineNumber = $event.currentTarget.parentElement.id;
+            $scope.setLine(lineNumber);
+            $rootScope.$broadcast('clickedErrorpathElement', lineNumber.substring("errpath-".length));
+        };
+
+        $scope.clickedErrpathButton = function($event){
+            var button = $event.currentTarget.innerHTML;
+            var line;
+            if (button == "Prev" && ($rootScope.selected_ErrLine.substring("errpath-".length) == 0 || $rootScope.selected_ErrLine == null)) {
+            } else if (button == "Prev") {
+                line = parseInt($rootScope.selected_ErrLine.substring("errpath-".length)) - 1;
+                $scope.setLine("errpath-" + line);
+                $rootScope.$broadcast("clickedErrorpathButton", line);
+            } else if (button == "Start" || button == "Next" && $rootScope.selected_ErrLine == null) {
+                document.getElementById("err_table").parentNode.scrollTop = 0;
+                $scope.setLine("errpath-" + 0);
+                $rootScope.$broadcast("clickedErrorpathButton", 0);
+            } else if (button == "Next" && ($rootScope.selected_ErrLine.substring("errpath-".length) == $rootScope.errorPathData.length -1)) {
+            } else if (button == "Next") {
+                line = parseInt($rootScope.selected_ErrLine.substring("errpath-".length)) + 1;
+                $scope.setLine("errpath-" + line);
+                $rootScope.$broadcast("clickedErrorpathButton", line);
+            }
+        };
+
+        $scope.setLine = function(id){
+            if ($rootScope.selected_ErrLine != null) {
+                document.getElementById($rootScope.selected_ErrLine).style.outline = "none";
+            } else {
+                //The first time a line is selected
+                $rootScope.$broadcast("FirstTimeErrorpathElementIsSelected");
+            }
+            document.getElementById(id).style.outline = "#df80ff solid 1px";
+            $rootScope.selected_ErrLine = id;
+        };
+    }]);
+
+    app.controller('ARGController', ['$rootScope', '$scope', function($rootScope, $scope){
+        $scope.argNodeMarked = false;
+
+        $scope.$on('clickedErrorpathElement', function(event, index){
+            $scope.markARGNode(index);
+        });
+        $scope.$on("clickedErrorpathButton", function(event, index){
+            $scope.markARGNode(index);
+        });
+
         $scope.clickedARGElement = function($event){
-            window.alert("Clicked ARG");
             var y = $event.currentTarget.id;
             if (document.getElementById(y).classList.contains("edge")){
-                $scope.setTab(3);
+                $rootScope.$broadcast("ChangeTab", 3);
                 var line = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split(":")[0].substring("Line ".length);
                 $rootScope.$broadcast("clickedARGEdge", line);
-                //$scope.markSource(line);
             } else if (document.getElementById(y).classList.contains("node")){
                 var cfaNodeNumber = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split("N")[1];
-                $scope.setTab(1);
+                $rootScope.$broadcast("ChangeTab", 1);
                 $rootScope.$broadcast("clickedARGElement", cfaNodeNumber);
             }
         };
 
-
-
-        //mark correct ARG-node
-        $scope.argNodeMarked = false;
-        $scope.markARGnode = function(index){
+        $scope.markARGNode = function(index){
             var argElement = $rootScope.errorPathData[index].argelem;
             if($scope.argNodeMarked){
                 document.getElementsByClassName("markedARGNode")[0].classList.remove("markedARGNode");
@@ -209,7 +291,7 @@
             $scope.argNodeMarked = true;
             $scope.scrollToARGElement("arg-" + argElement);
         };
-        // scroll to correct ARG-node
+
         $scope.scrollToARGElement = function(id){
             var element = document.getElementById(id);
             var argContent = document.getElementsByClassName("argContent")[0];
@@ -222,67 +304,6 @@
             argContent.parentNode.scrollLeft = bcr.left + xScroll - box.left - xMargin + 20;
             argContent.parentNode.scrollTop =  bcr.top + yScroll - box.top - yMargin + 20;
         };
-
-
-        //Sections-Controller
-        $scope.setWidth = function(event) {
-            if (mouseDown) {
-                wholeWidth = document.getElementById("externalFiles_section").offsetWidth + document.getElementById("errorpath_section").offsetWidth;
-                document.getElementById("errorpath_section").style.width = (Math.round(event.clientX/wholeWidth*100) + "%");
-                document.getElementById("externalFiles_section").style.width = (Math.round((wholeWidth - event.clientX)/wholeWidth*100) + "%");
-            }
-        };
-        $scope.setMouseUp = function(){
-            mouseDown = false;
-            document.onselectstart = null;
-            document.onmousedown = null;
-            if($scope.selected_ErrLine != null) {
-                $scope.setMarginForGraphs();
-            }
-        };
-
-        //Tab-Controller
-        $scope.setTab = function(value){
-            $scope.tab = value;
-        };
-        $scope.tabIsSet = function(value){
-            return $scope.tab === value;
-        };
-
-        //Code-Controller
-        $scope.setMouseDown = function(){
-            mouseDown = true;
-            //we need this so that no text gets marked when moving middleline
-            document.onselectstart = function(){return false;};
-            document.onmousedown = function(){return false;};
-        };
-
-        $scope.setLine = function(id){
-            if ($scope.selected_ErrLine != null) {
-                document.getElementById($scope.selected_ErrLine).style.outline = "none";
-            } else {
-                //The first time a line is selected
-                $scope.setMarginForGraphs();
-            }
-            document.getElementById(id).style.outline = "#df80ff solid 1px";
-            $scope.selected_ErrLine = id;
-        };
-
-        $scope.setMarginForGraphs = function(){
-            var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-10) + "px");
-            var height = (Math.round(document.getElementById("externalFiles_section").offsetHeight/ 2) + "px");
-            var cfaContent = document.getElementsByClassName("cfaContent")[0];
-            var argContent = document.getElementsByClassName("argContent")[0];
-            cfaContent.style.marginLeft = (width);
-            cfaContent.style.marginRight = (width);
-            cfaContent.style.marginTop = (height);
-            cfaContent.style.marginBottom = (height);
-            argContent.style.marginLeft = (width);
-            argContent.style.marginRight = (width);
-            argContent.style.marginTop = (height);
-            argContent.style.marginBottom = (height);
-        };
-
     }]);
 
 
@@ -476,9 +497,6 @@
 })();
 
 
-var date = Date.now();
-var logo = "http://cpachecker.sosy-lab.org/logo.svg";
-var wholeWidth;
 var mouseDown = false;
 var functions = []; //FUNCTIONS
 var fCallEdges = {}; //FCALLEDGES
@@ -486,26 +504,6 @@ var cfaInfo = {}; //CFAINFO
 var errorPathData = {}; //ERRORPATH
 var combinedNodes = {}; //COMBINEDNODES
 var sourceFiles = []; //SOURCEFILES
-
-var help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one CFA for one function in the source-code)</p>" +
-    "<p>- the errorpath is highlighted in red</p>" +
-    "<p>- click on the function-nodes to jump to CFA of this function</p>" +
-    "<p>- click on edges to jump to the relating line in the source-code</p>" +
-    "<p><img src='app/circle.png' width='17px' height='17px'> normal element  <img src='app/box.png' width='25px' height='17px'> more normal elements</p>" +
-    "<p><img src='app/diamond.png' width='25px' height='17px'> condition  <img src='app/function.png' width='25px' height='17px'> function (different CFA)</p>" +
-    "<p><img src='app/doubleCircle.png' width='17px' height='17px'> loop head (graph-based)  <img src='app/doubleOctagon.png' width='25px' height='17px'> loop head (syntactic)</p>\n" +
-    "<p><b>ARG</b> shows the errorpath as a graph</p>" +
-    "<p>- the errorpath is highlighted in red</p>" +
-    "<p>- click on nodes to jump to the relating node in the CFA</p>" +
-    "<p>- click on edges to jump to the relating line in the source-code</p>" +
-    "<p><img src='app/green.png' width='8px' height='8px'> covered state  <img src='app/orange.png' width='8px' height='8px'> not yet processed</p>" +
-    "<p><img src='app/cornflowerblue.png' width='8px' height='8px'> important (depending on used analysis)  <img src='app/red.png' width='8px' height='8px'> target state</p>";
-var help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)</p>\n" +
-    "<p><b>-V-</b> Click to show all initialized variables and their values at that point</p>\n" +
-    "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab)</p>\n" +
-    "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
-    "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
-    "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
 
 $(function () {
   $('[data-toggle="popover"]').popover({ html : true })
