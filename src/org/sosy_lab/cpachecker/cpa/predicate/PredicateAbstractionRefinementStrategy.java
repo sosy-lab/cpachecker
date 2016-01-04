@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -310,7 +311,12 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     predicateCreation.start();
     {
-      final CFANode loc = AbstractStates.extractLocation(pInterpolationPoint);
+      final Iterator<CFANode> locs = AbstractStates.extractWeavedOnLocations(pInterpolationPoint).iterator();
+      Preconditions.checkState(locs.hasNext());
+
+      final CFANode loc = locs.next();
+      Preconditions.checkState(!locs.hasNext());
+
       final PredicateAbstractState state = getPredicateState(pInterpolationPoint);
       final PathFormula blockFormula = state.getAbstractionFormula().getBlockFormula();
 
