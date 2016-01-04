@@ -54,13 +54,9 @@ public class CPATestRunner {
   }
 
   public static TestResults run(
-      Map<String, String> pProperties,
+      Configuration pConfig,
       String pSourceCodeFilePath,
       boolean writeLogToSTDOUT) throws Exception {
-
-    Configuration config = TestDataTools.configurationForTest()
-        .setOptions(pProperties)
-        .build();
 
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
 
@@ -71,16 +67,28 @@ public class CPATestRunner {
       h = stringLogHandler;
     }
 
-    LogManager logger = new BasicLogManager(config, h);
+    LogManager logger = new BasicLogManager(pConfig, h);
     ShutdownManager shutdownManager = ShutdownManager.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
+    CPAchecker cpaChecker = new CPAchecker(pConfig, logger, shutdownManager);
+
     try {
       CPAcheckerResult results = cpaChecker.run(pSourceCodeFilePath);
       return new TestResults(stringLogHandler.getLog(), results);
     } finally {
       logger.flush();
-
     }
 
+  }
+
+  public static TestResults run(
+      Map<String, String> pProperties,
+      String pSourceCodeFilePath,
+      boolean writeLogToSTDOUT) throws Exception {
+
+    Configuration config = TestDataTools.configurationForTest()
+        .setOptions(pProperties)
+        .build();
+
+    return run(config, pSourceCodeFilePath, writeLogToSTDOUT);
   }
 }
