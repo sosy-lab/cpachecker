@@ -56,12 +56,12 @@ public class AutomatonEncodingTest {
       TestResults results = CPATestRunner.run(cfg, programFile, false);
       results.assertIsSafe();
 
-      TestRunStatisticsParser tgt = new TestRunStatisticsParser();
-      results.getCheckerResult().printStatistics(tgt.getPrintStream());
+      TestRunStatisticsParser stat = new TestRunStatisticsParser();
+      results.getCheckerResult().printStatistics(stat.getPrintStream());
 
-      tgt.assertThatNumber("Number of times merged").isAtLeast(2);
-      tgt.assertThatNumber("Number of refinements").isAtMost(3);
-      tgt.assertThatNumber("Max states per location").isAtMost(2);
+      stat.assertThatNumber("Number of times merged").isAtLeast(2);
+      stat.assertThatNumber("Number of refinements").isAtMost(3);
+      stat.assertThatNumber("Max states per location").isAtMost(2);
   }
 
 }
