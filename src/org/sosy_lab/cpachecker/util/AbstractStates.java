@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.WeavingLocation;
@@ -197,6 +198,15 @@ public final class AbstractStates {
       }
     });
 
+  }
+
+  public static CFANode extractLocationMaybeWeaved(AbstractState pState) {
+    Iterator<CFANode> locs = extractWeavedOnLocations(pState).iterator();
+    if (!locs.hasNext()) {
+      return null;
+    } else {
+      return locs.next();
+    }
   }
 
   public static CFANode extractLocation(AbstractState pState) {

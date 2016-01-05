@@ -621,7 +621,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private PredicateAbstractState strengthenSatCheck(
-      PredicateAbstractState pElement, CFANode loc)
+      PredicateAbstractState pElement, CFANode pLoc)
           throws SolverException, InterruptedException {
     logger.log(Level.FINEST, "Checking for feasibility of path because error has been found");
 
@@ -646,8 +646,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       // update abstraction locations map
       PersistentMap<CFANode, Integer> abstractionLocations = pElement.getAbstractionLocationsOnPath();
-      Integer newLocInstance = firstNonNull(abstractionLocations.get(loc), 0) + 1;
-      abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
+      Integer newLocInstance = firstNonNull(abstractionLocations.get(pLoc), 0) + 1;
+      abstractionLocations = abstractionLocations.putAndCopy(pLoc, newLocInstance);
 
       return PredicateAbstractState.mkAbstractionState(newPathFormula,
           abs, abstractionLocations);

@@ -445,7 +445,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
       Deque<Block> openBlocks = new ArrayDeque<>();
       openBlocks.push(partitioning.getMainBlock());
       for (ARGState pathElement : abstractionStatesTrace) {
-        CFANode currentNode = AbstractStates.extractLocation(pathElement);
+        CFANode currentNode = AbstractStates.extractLocationMaybeWeaved(pathElement);
         Integer currentNodeInstance = getPredicateState(pathElement)
                                       .getAbstractionLocationsOnPath().get(currentNode);
 

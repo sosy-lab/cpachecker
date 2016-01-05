@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.*;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.*;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -437,7 +436,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location
-      CFANode loc = extractLocation(pUnreachableState);
+      CFANode loc = AbstractStates.extractLocationMaybeWeaved(pUnreachableState);
       int locInstance = getPredicateState(pUnreachableState)
                                        .getAbstractionLocationsOnPath().get(loc);
       newPredicates.put(Pair.of(loc, locInstance),
