@@ -43,6 +43,7 @@ public class InductiveWeakeningManagerTest {
 
             // For easier debugging.
             "cpa.predicate.handlePointerAliasing", "false",
+            "cpa.predicate.ignoreIrrelevantVariables", "false",
 
             "analysis.interprocedural", "false"
         )

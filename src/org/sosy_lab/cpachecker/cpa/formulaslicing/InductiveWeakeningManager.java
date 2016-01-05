@@ -116,7 +116,8 @@ public class InductiveWeakeningManager {
 
     // Selection variables -> atoms.
     Map<BooleanFormula, BooleanFormula> selectionVarsInfo = new HashMap<>();
-    BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVarsInfo).visit(
+    BooleanFormula annotated = new ConjunctionAnnotator(
+        fmgr, new HashMap<BooleanFormula, BooleanFormula>(), selectionVarsInfo).visit(
         noIntermediateNNF);
 
     // This is possible since the formula does not have any intermediate
@@ -462,7 +463,7 @@ public class InductiveWeakeningManager {
    * -> gets converted to ->
    * (and (or p_1 a_1) ...)
    */
-  private static class ConjunctionAnnotator
+  private class ConjunctionAnnotator
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     private final UniqueIdGenerator controllerIdGenerator =
         new UniqueIdGenerator();
@@ -482,17 +483,12 @@ public class InductiveWeakeningManager {
       selectionVars = pSelectionVars;
     }
 
-    public static ConjunctionAnnotator of(FormulaManagerView pFmgr,
-        Map<BooleanFormula, BooleanFormula> selectionVars) {
-      return new ConjunctionAnnotator(pFmgr,
-          new HashMap<BooleanFormula, BooleanFormula>(),
-          selectionVars);
-    }
-
     @Override
     public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
       List<BooleanFormula> args = new ArrayList<>(pOperands.size());
       for (BooleanFormula arg : pOperands) {
+
+        // todo: BUG, missing things inside the argument.
         BooleanFormula controller = makeFreshSelector(arg);
         args.add(bfmgr.or(controller, arg));
       }

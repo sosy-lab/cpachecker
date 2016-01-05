@@ -270,7 +270,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Formulas reported by other CPAs.
       BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
-      logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
+      logger.log(Level.INFO, "Reported formulas: ", extraInvariant);
+      logger.flush();
 
       Optional<PolicyAbstractedState> sibling =
           getSiblings(iState, extraInvariant, states.getReached(pArgState));
@@ -634,7 +635,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyIntermediateState state,
       final Optional<PolicyAbstractedState> otherState,
       PolicyPrecision precision,
-      BooleanFormula extraPredicate)
+      BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
 
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
@@ -671,7 +672,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Invariant from other CPAs.
         optEnvironment.addConstraint(
-            fmgr.instantiate(extraPredicate, state.getPathFormula().getSsa())
+            fmgr.instantiate(extraInvariant, state.getPathFormula().getSsa())
         );
       }
 
@@ -814,7 +815,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             stateFormulaConversionManager,
             state.getPathFormula().getSsa(),
             state.getPathFormula().getPointerTargetSet(),
-            extraPredicate,
+            extraInvariant,
             state
         );
   }

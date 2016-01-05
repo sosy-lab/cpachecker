@@ -70,8 +70,8 @@ public class PolicyIterationTest {
   @Test public void pointer_past_abstraction_true_assert() throws Exception {
     check("pointers/pointer_past_abstraction_true_assert.c", ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
-            "cpa.stator.policy.generateOctagons", "true",
-            "cpa.slicing.useCounterexampleBasedSlicing", "true"
+            "cpa.stator.policy.generateOctagons", "true"
+//            "cpa.slicing.useCounterexampleBasedSlicing", "true"
         )
     );
   }
@@ -91,7 +91,8 @@ public class PolicyIterationTest {
         ImmutableMap.of(
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
-            "cpa.slicing.useSyntacticFormulaSlicing", "true"
+            "cpa.slicing.useSyntacticFormulaSlicing", "true",
+            "cpa.slicing.runCounterexampleBasedSlicing", "true"
         ));
   }
 
