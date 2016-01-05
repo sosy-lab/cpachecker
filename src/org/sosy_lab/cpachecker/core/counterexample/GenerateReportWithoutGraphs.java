@@ -94,7 +94,7 @@ public class GenerateReportWithoutGraphs {
   }
 
 
-  public static void fillOutHTMLTemplate(String inputPath, String outputPath) {
+  public static void fillOutHTMLTemplate(String inputPath, String outputPath, int round) {
     BufferedReader bufferedTemplateReader = null;
     BufferedWriter bufferedWriter = null;
     File inputFile = new File(inputPath);
@@ -114,6 +114,8 @@ public class GenerateReportWithoutGraphs {
           }
         } else if (line.contains("LOG")) { 
           insertLog(logFile, bufferedWriter);
+        } else if (line.contains("SCRIPT") && round != -1) {
+          bufferedWriter.write("<script type =\"text/javascript\" src=\"app/app" + round + ".js\"></script>\n");
         } else { 
           bufferedWriter.write(line + "\n");
         }

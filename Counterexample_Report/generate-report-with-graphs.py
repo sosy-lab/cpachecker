@@ -71,7 +71,7 @@ def call_dot(infile, outpath):
     return True
 
 
-def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, index):
+def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath):
     fin = open(tplfilepath, 'r')
     fout = open(outfilepath, 'w')
     for line in fin:
@@ -79,8 +79,6 @@ def generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, 
             writeCFA(cpaoutdir, functions, fout)
         elif 'ARGGRAPHS' in line:
             writeARG(argfilepath, fout)
-        elif 'SCRIPT' in line and index != -1:
-            fout.write('<script type ="text/javascript" src="app/app' + str(index) + '.js"></script>\n')
         else:
             fout.write(line)
 
@@ -161,7 +159,6 @@ def main():
     errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
 
     countexdir = os.path.dirname(__file__)
-    tplfilepath = os.path.join(countexdir, 'index_WithoutGraphs.html')
 
 
     #if there is an ARG.dot create an SVG in the report dir
@@ -178,11 +175,13 @@ def main():
 
     if errorpathcount != 0:
       for index in range(errorpathcount):
-        outfilepath = os.path.join(countexdir, 'index' + str(index) + '.html')
-        generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, index)
+        outfilepath = os.path.join(countexdir, 'report_' + str(index) + '.html')
+        tplfilepath = os.path.join(countexdir, 'report_withoutGraphs_' + str(index) + '.html')
+        generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath)
     else:
-      outfilepath = os.path.join(countexdir, 'index.html')
-      generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath, -1)
+      outfilepath = os.path.join(countexdir, 'report.html')
+      tplfilepath = os.path.join(countexdir, 'report_withoutGraphs.html')
+      generateReport(cpaoutdir, functions, argfilepath, outfilepath, tplfilepath)
 
 if __name__ == '__main__':
     main()
