@@ -73,16 +73,17 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -855,7 +856,7 @@ public class FormulaManagerView {
 
   /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see{@link #instantiate(F extends Formula, SSAMap)}
+   *  @see {@link #instantiate(F extends Formula, SSAMap)}
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
@@ -985,66 +986,54 @@ public class FormulaManagerView {
     Preconditions.checkNotNull(pFormula);
     Preconditions.checkNotNull(pRenameFunction);
 
-    Deque<Formula> toProcess = new ArrayDeque<>();
+    final Deque<Formula> toProcess = new ArrayDeque<>();
 
     // Add the formula to the work queue
     toProcess.push(pFormula);
 
-    // Process the work queue
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
+    FormulaVisitor<Void> process = new FormulaVisitor<Void>(manager) {
 
-      if (pCache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
+      @Override
+      public Void visitFreeVariable(Formula f, String name) {
+        String newName = pRenameFunction.apply(name);
+        Formula renamed = unwrap(makeVariable(getFormulaType(f), newName));
+        pCache.put(f, renamed);
+        return null;
       }
 
-      if (unsafeManager.isFreeVariable(tt)) {
-        String oldName = unsafeManager.getName(tt);
-        String newName = pRenameFunction.apply(oldName);
-        Formula renamed = unsafeManager.replaceArgsAndName(
-            tt, newName, ImmutableList.<Formula>of());
-        pCache.put(tt, renamed);
-
-      } else if (unsafeManager.isBoundVariable(tt)) {
+      @Override
+      public Void visitBoundVariable(Formula f, String name) {
 
         // There is no need for un-instantiating bound variables.
-        pCache.put(tt, tt);
+        pCache.put(f, f);
+        return null;
+      }
 
-      } else if (unsafeManager.isQuantification(tt)) {
+      @Override
+      public Void visitConstant(Formula f, Object value) {
+        pCache.put(f, f);
+        return null;
+      }
 
-        // Quantifications are no function applications,
-        //  i.e., they do not have an arity!
 
-        BooleanFormula ttBody = unsafeManager.getQuantifiedBody(tt);
-        BooleanFormula transformedBody = (BooleanFormula) pCache.get(ttBody);
-
-        if (transformedBody != null) {
-          // make a new quantified formula
-          BooleanFormula newTt = unsafeManager.replaceQuantifiedBody(
-              (BooleanFormula) tt, transformedBody);
-          pCache.put(tt, newTt);
-
-        } else {
-          toProcess.push(ttBody);
-        }
-
-      } else {
+      @Override
+      public Void visitFunction(Formula f, List<Formula> args,
+          String functionName,
+          Function<List<Formula>, Formula> newApplicationConstructor,
+          boolean isUninterpreted) {
 
         boolean allArgumentsTransformed = true;
 
         // Construct a new argument list for the function application.
         // ATTENTION: also boolean operators, like AND, OR, ...
         //             are function applications!
-        int arity = unsafeManager.getArity(tt);
-        List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
+        List<Formula> newArgs = new ArrayList<>(args.size());
 
-        for (int i = 0; i < arity; ++i) {
-          Formula c = unsafeManager.getArg(tt, i);
+        for (Formula c : args) {
           Formula newC = pCache.get(c);
 
           if (newC != null) {
-            newargs.add(newC);
+            newArgs.add(newC);
 
           } else {
             toProcess.push(c);
@@ -1053,30 +1042,51 @@ public class FormulaManagerView {
         }
 
         // The Flag childrenDone indicates whether all arguments
-        // of the function were already un-instantiated, i.e., the
-        // un-instantiated formula of all arguments is in the cache.
-
+        // of the function were already processed.
         if (allArgumentsTransformed) {
-          // Create an un-instantiated version of the
+
+          // Create an processed version of the
           // function application.
-
           toProcess.pop();
-          Formula newt;
-
-          if (unsafeManager.isUF(tt)) {
-            String oldName = unsafeManager.getName(tt);
-            assert oldName != null;
-
-            String newName = pRenameFunction.apply(oldName);
-            newt = unsafeManager.replaceArgsAndName(tt, newName, newargs);
-
-          } else {
-            newt = unsafeManager.replaceArgs(tt, newargs);
-          }
-
-          pCache.put(tt, newt);
+          Formula out = newApplicationConstructor.apply(newArgs);
+          pCache.put(f, out);
         }
+        return null;
       }
+
+      @Override
+      public Void visitQuantifier(Formula f, Quantifier quantifier,
+          List<Formula> boundVars,
+          BooleanFormula body) {
+        BooleanFormula transformedBody = (BooleanFormula) pCache.get(body);
+
+        if (transformedBody != null) {
+
+          BooleanFormula newTt;
+          if (quantifier == Quantifier.FORALL) {
+            newTt = quantifiedFormulaManager.forall(boundVars, body);
+          } else {
+            newTt = quantifiedFormulaManager.exists(boundVars, body);
+          }
+          pCache.put(f, newTt);
+
+        } else {
+          toProcess.push(body);
+        }
+        return null;
+      }
+    };
+
+    // Process the work queue
+    while (!toProcess.isEmpty()) {
+      Formula tt = toProcess.peek();
+
+      if (pCache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+
+      process.visit(tt);
     }
 
     @SuppressWarnings("unchecked")
@@ -1106,10 +1116,11 @@ public class FormulaManagerView {
 
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitOperator(
+      public Void visitFunction(
           Formula f,
           List<Formula> args,
-          String functionName, Function<List<Formula>, Formula> constructor) {
+          String functionName, Function<List<Formula>, Formula> constructor,
+          boolean isUninterpreted) {
 
         if (getFormulaType(f).isBooleanType() &&
             isLowestLevel.visit((BooleanFormula) f)) {
@@ -1121,7 +1132,7 @@ public class FormulaManagerView {
           }
           result.add((BooleanFormula) f);
         } else {
-          super.visitOperator(f, args, functionName, constructor);
+          super.visitFunction(f, args, functionName, constructor, isUninterpreted);
         }
         return null;
       }
@@ -1179,9 +1190,14 @@ public class FormulaManagerView {
     final AtomicInteger isPurelyAtomic = new AtomicInteger(0);
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitUF(
-          Formula f2, List<Formula> args, String functionName) {
-        isPurelyAtomic.incrementAndGet();
+      public Void visitFunction(
+          Formula f,
+          List<Formula> args,
+          String functionName, Function<List<Formula>, Formula> constructor,
+          boolean isUninterpreted) {
+        if (isUninterpreted) {
+          isPurelyAtomic.incrementAndGet();
+        }
         return null;
       }
     }.visit(f);
@@ -1197,7 +1213,7 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    return myExtractFunctionNames(unwrap(f), false, true);
+    return myExtractFunctionNames(unwrap(f), false);
   }
 
   /**
@@ -1213,9 +1229,8 @@ public class FormulaManagerView {
 
   private Set<String> myExtractFunctionNames(
       final Formula pFormula,
-      final boolean extractUF,
-      final boolean recurseIntoFunctions) {
-    return myExtractSubformulas(pFormula, extractUF, recurseIntoFunctions).keySet();
+      final boolean extractUF) {
+    return myExtractSubformulas(pFormula, extractUF).keySet();
   }
 
   /**
@@ -1229,7 +1244,7 @@ public class FormulaManagerView {
    */
   @Deprecated
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    return myExtractSubformulas(unwrap(pF), false, true);
+    return myExtractSubformulas(unwrap(pF), false);
   }
 
   /**
@@ -1237,20 +1252,23 @@ public class FormulaManagerView {
    */
   private Map<String, Formula> myExtractSubformulas(
       final Formula pFormula,
-      final boolean extractUF,
-      final boolean recurseIntoFunctions) {
+      final boolean extractUF) {
 
     final Map<String, Formula> found = new HashMap<>();
     new RecursiveFormulaVisitor(manager) {
 
       @Override
-      public Void visitUF(Formula f, List<Formula> args, String functionName) {
-        if (recurseIntoFunctions) {
-          super.visitUF(f, args, functionName);
-        }
-        if (extractUF) {
+      public Void visitFunction(
+          Formula f,
+          List<Formula> args,
+          String functionName,
+          Function<List<Formula>, Formula> constructor,
+          boolean isUninterpreted) {
+
+        if (isUninterpreted && extractUF) {
           found.put(functionName, f);
         }
+        super.visitFunction(f, args, functionName, constructor, isUninterpreted);
         return null;
       }
 
@@ -1447,7 +1465,7 @@ public class FormulaManagerView {
     List<Formula> result = Lists.newArrayList();
 
     for (Entry<String, Formula> entry: myExtractSubformulas(unwrap(pFormula),
-        extractUF, true).entrySet()) {
+        extractUF).entrySet()) {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
