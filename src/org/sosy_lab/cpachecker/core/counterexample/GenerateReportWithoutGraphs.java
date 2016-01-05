@@ -115,7 +115,7 @@ public class GenerateReportWithoutGraphs {
         } else if (line.contains("LOG")) { 
           insertLog(logFile, bufferedWriter);
         } else if (line.contains("SCRIPT") && round != -1) {
-          bufferedWriter.write("<script type =\"text/javascript\" src=\"app/app" + round + ".js\"></script>\n");
+          bufferedWriter.write("<script type =\"text/javascript\" src=\"app/app_" + round + ".js\"></script>\n");
         } else { 
           bufferedWriter.write(line + "\n");
         }
