@@ -404,7 +404,7 @@ public class InductiveWeakeningManager {
   ) {
 
     final Set<String> transitionVars = fmgr.extractFunctionNames(
-        fmgr.uninstantiate(transitionRelation), true);
+        fmgr.uninstantiate(transitionRelation));
     List<BooleanFormula> selectorVars = new ArrayList<>(inductiveSlice);
     Collections.sort(selectorVars, new Comparator<BooleanFormula>() {
       @Override
@@ -413,10 +413,8 @@ public class InductiveWeakeningManager {
         BooleanFormula a2 = selectors.get(s2);
 
         // todo: incessant re-uninstantiation is inefficient.
-        Set<String> a1Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a1),
-            true);
-        Set<String> a2Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a2),
-            true);
+        Set<String> a1Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a1));
+        Set<String> a2Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a2));
 
         Set<String> intersection1 = Sets.intersection(a1Vars, transitionVars);
         Set<String> intersection2 = Sets.intersection(a2Vars, transitionVars);

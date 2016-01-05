@@ -49,7 +49,7 @@ public class FormulaInductivenessCheck {
     final Set<String> intermediateVariables = new HashSet<>();
 
     // Rename all non-final variables.
-    for (String var : fmgr.extractFunctionNames(slice, true)) {
+    for (String var : fmgr.extractFunctionNames(slice)) {
       Pair<String, Integer> fullName = FormulaManagerView.parseName(var);
       String varName = fullName.getFirst();
       Integer ssaIndex = fullName.getSecond();

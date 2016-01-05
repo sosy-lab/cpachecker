@@ -1204,14 +1204,11 @@ public class FormulaManagerView {
    * Extract the names of all free variables + UFs in a formula.
    *
    * @param f   The input formula
-   * @param recurseIntoFunctions Whether to return arguments which only appear
-   * inside functions.
    *
    * @return    Set of variable names (might be instantiated)
    */
-  public Set<String> extractFunctionNames(Formula f,
-      boolean recurseIntoFunctions) {
-    return myExtractFunctionNames(unwrap(f), true, recurseIntoFunctions);
+  public Set<String> extractFunctionNames(Formula f) {
+    return myExtractFunctionNames(unwrap(f), true);
   }
 
   private Set<String> myExtractFunctionNames(
