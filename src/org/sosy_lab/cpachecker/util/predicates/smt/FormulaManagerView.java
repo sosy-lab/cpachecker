@@ -1002,9 +1002,9 @@ public class FormulaManagerView {
       }
 
       @Override
-      public Void visitBoundVariable(Formula f, String name) {
+      public Void visitBoundVariable(Formula f, String name, int deBruijnIdx) {
 
-        // There is no need for un-instantiating bound variables.
+        // Bound variables have to stay as-is.
         pCache.put(f, f);
         return null;
       }
@@ -1025,8 +1025,6 @@ public class FormulaManagerView {
         boolean allArgumentsTransformed = true;
 
         // Construct a new argument list for the function application.
-        // ATTENTION: also boolean operators, like AND, OR, ...
-        //             are function applications!
         List<Formula> newArgs = new ArrayList<>(args.size());
 
         for (Formula c : args) {
@@ -1034,7 +1032,6 @@ public class FormulaManagerView {
 
           if (newC != null) {
             newArgs.add(newC);
-
           } else {
             toProcess.push(c);
             allArgumentsTransformed = false;
@@ -1055,19 +1052,14 @@ public class FormulaManagerView {
       }
 
       @Override
-      public Void visitQuantifier(Formula f, Quantifier quantifier,
-          List<Formula> boundVars,
-          BooleanFormula body) {
+      public Void visitQuantifier(BooleanFormula f, Quantifier quantifier,
+          BooleanFormula body,
+          Function<BooleanFormula, BooleanFormula> bodyTransformer) {
         BooleanFormula transformedBody = (BooleanFormula) pCache.get(body);
 
         if (transformedBody != null) {
 
-          BooleanFormula newTt;
-          if (quantifier == Quantifier.FORALL) {
-            newTt = quantifiedFormulaManager.forall(boundVars, body);
-          } else {
-            newTt = quantifiedFormulaManager.exists(boundVars, body);
-          }
+          BooleanFormula newTt = bodyTransformer.apply(transformedBody);
           pCache.put(f, newTt);
 
         } else {
