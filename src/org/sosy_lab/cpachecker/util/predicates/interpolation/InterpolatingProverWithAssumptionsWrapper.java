@@ -36,6 +36,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 
 import com.google.common.collect.Lists;
 
@@ -257,14 +258,8 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    public BooleanFormula visitForAll(
-        List<Formula> pVariables, BooleanFormula pBody) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public BooleanFormula visitExists(
-        List<Formula> pVariables, BooleanFormula pBody) {
+    public BooleanFormula visitQuantifier(List<Formula> pVariables, BooleanFormula pBody,
+        Quantifier pQuantifier) {
       throw new UnsupportedOperationException();
     }
   }

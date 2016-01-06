@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -546,12 +547,8 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitForAll(List<Formula> pVariables, BooleanFormula pBody) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Long visitExists(List<Formula> pVariables, BooleanFormula pBody) {
+    public Long visitQuantifier(List<Formula> pVariables, BooleanFormula pBody,
+        Quantifier pQuantifier) {
       throw new UnsupportedOperationException();
     }
   }
