@@ -51,7 +51,7 @@ public class MultiCallstackCPA extends AbstractCPA implements ConfigurableProgra
     ReachedSetAdjustingCPA {
 
   @Option(secure=false, description = "TODO")
-  private boolean useMultithreadedCallstack = false;   // TODO 
+  private boolean useMultithreadedCallstack = false;   // TODO
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(MultiCallstackCPA.class);
@@ -82,7 +82,7 @@ public class MultiCallstackCPA extends AbstractCPA implements ConfigurableProgra
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     boolean is = getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
-    
+
     return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 

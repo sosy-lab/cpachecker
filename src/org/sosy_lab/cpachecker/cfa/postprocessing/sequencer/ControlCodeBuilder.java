@@ -100,7 +100,7 @@ public class ControlCodeBuilder {
     assert CFAFunctionUtils.INIT_GLOBAL_VARS.equals(initGlobalVarsEdge
         .getDescription());
 
-    CFANode startSequence = new CFANode("main");
+    CFANode startSequence = new CFANode(cfa.getMainFunction().getFunctionName());
     CFANode injectionPoint = initGlobalVarsEdge.getSuccessor();
 
     CFASequenceBuilder globalVarBuilder = new CFASequenceBuilder(startSequence,
@@ -366,8 +366,12 @@ public class ControlCodeBuilder {
       for (ContextSwitch contextSwitch : thread.getContextSwitchPoints()) {
         CFANode contextSwitchPosition = contextSwitch.getContextSwitchReturnNode();
 
+        // across the new node the context switch will be "done"
         CFANode newNode = new CFANode(contextSwitchPosition.getFunctionName());
         cfa.addNode(newNode);
+
+        // entering edges which could cause a context switch will point to
+        // the new created node
         for(CFAEdge edge: contextSwitch.getContextStatementCause()) {
           CFAEdgeUtils.bypassCEdgeNodes(edge, edge.getPredecessor(), newNode);
         }

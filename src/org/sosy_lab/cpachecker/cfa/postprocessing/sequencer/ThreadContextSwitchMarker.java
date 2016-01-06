@@ -47,6 +47,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
   private final static String FUNCTION_DUMMY_START_NAME = "Function start dummy edge";
   private final static String INIT_GLOBAL_VARS = "INIT GLOBAL VARS";
   private final static String FORCE_CS = "THREAD CREATION";
+
   private boolean isInitializingGlobalVar = false;
   private CThread runningThread;
   private CFA cfa;
@@ -59,6 +60,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     }
     this.cfa = cfa;
   }
+
 
   @Override
   public TraversalProcess visitEdge(CFAEdge pEdge) {

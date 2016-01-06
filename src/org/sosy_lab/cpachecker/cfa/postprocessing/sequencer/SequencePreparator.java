@@ -62,12 +62,15 @@ public class SequencePreparator {
   private final List<CThread> allThreads = new ArrayList<>();
   private final Multiset<FunctionEntryNode> functionUsedCounter = HashMultiset.<FunctionEntryNode> create();
 
+  private final Set<String> originalFunctionNames = new HashSet<>();
+
   private int threadCounter = 1;
 
   private final StubDeclaration stubDeclaration;
 
   public SequencePreparator(StubDeclaration stubDeclaration, MutableCFA cfa) {
     this.cfa = cfa;
+    originalFunctionNames.addAll(cfa.getAllFunctionNames());
     this.stubDeclaration = stubDeclaration;
   }
 
@@ -100,6 +103,14 @@ public class SequencePreparator {
       ThreadPreparator threadProcessing = new ThreadPreparator(creatorThread);
       threadProcessing.processThread();
     }
+
+
+    // delete main function?!!
+    for(String functionName : originalFunctionNames) {
+      cfa.removeFunction(functionName);
+    }
+
+    cfa.setMainFunction(cMainThread.getThreadFunction());
 
     assert checkContextSwitchConsistency(allThreads);
 
@@ -226,12 +237,12 @@ public class SequencePreparator {
         handleFunctionCallsInFunction = Lists.<FunctionEntryNode> newArrayList();
         FunctionEntryNode regularThreadEntry = creatorThread.getThreadFunction();
 
-
+        // side effect! adds function to usedFunctions
         FunctionEntryNode uniqueFunctionEntry = getUniqueFunctionCopyForThread(regularThreadEntry);
         creatorThread.setThreadFunction(uniqueFunctionEntry);
       }
 
-      while (!handleFunctionCallsInFunction.isEmpty()) {
+      while (!handleFunctionCallsInFunction.isEmpty()) {//TODO add function to thread as used
         FunctionEntryNode regularFunctionEntry = handleFunctionCallsInFunction.remove(0);
         FunctionEntryNode clonedFunctionEntry = usedRegularFunctions.get(regularFunctionEntry);
         assert clonedFunctionEntry != null;
@@ -260,6 +271,8 @@ public class SequencePreparator {
 
       if (!CFAFunctionUtils.isFunctionDeclared(functionCallStatement)) { return; }
       String regularFunctionName = CFAFunctionUtils.getFunctionName(edge);
+      cfa.getFunctionHead(regularFunctionName);
+
 
       switch (regularFunctionName) {
         case PThreadUtils.PTHREAD_CREATE_NAME:
@@ -363,6 +376,7 @@ public class SequencePreparator {
 
 
     private FunctionEntryNode getUniqueFunctionCopyForThread(FunctionEntryNode regularFunction) {
+      assert originalFunctionNames.contains(regularFunction.getFunctionName());
 
       // If already clone for this thread
       if (usedRegularFunctions.containsKey(regularFunction)) {
@@ -370,18 +384,26 @@ public class SequencePreparator {
       }
       // If not cloned for this thread
       else {
-        FunctionEntryNode uniqueFunctionEntry;
-        // clone function if used already
-        if (functionUsedCounter.count(regularFunction) != 0) {
-          String newFunctionName = regularFunction.getFunctionName() + "__"
-              + functionUsedCounter.count(regularFunction);
+        String newFunctionName = regularFunction.getFunctionName() + "__"
+            + functionUsedCounter.count(regularFunction);
 
-          uniqueFunctionEntry = cloneFunctionIntoCFA(regularFunction, newFunctionName);
-        } else {
-          // take original function if never used.
-          assert functionUsedCounter.count(regularFunction) == 0;
-          uniqueFunctionEntry = regularFunction;
-        }
+        FunctionEntryNode uniqueFunctionEntry = cloneFunctionIntoCFA(regularFunction, newFunctionName);
+
+        /* removed origial function reuse. Using original function and changing
+         * the functionCallStatements will cause an error if the original is
+         * cloned with its replaced functionCallStatements*/
+
+//        // clone function if used already
+//        if (functionUsedCounter.count(regularFunction) != 0) {
+//          String newFunctionName = regularFunction.getFunctionName() + "__"
+//              + functionUsedCounter.count(regularFunction);
+//
+//          uniqueFunctionEntry = cloneFunctionIntoCFA(regularFunction, newFunctionName);
+//        } else {
+//          // take original function if never used.
+//          assert functionUsedCounter.count(regularFunction) == 0;
+//          uniqueFunctionEntry = regularFunction;
+//        }
 
         functionUsedCounter.add(regularFunction);
         usedRegularFunctions.put(regularFunction, uniqueFunctionEntry);

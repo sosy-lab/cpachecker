@@ -49,7 +49,7 @@ public class MutableCFA implements CFA {
   private final MachineModel machineModel;
   private final SortedMap<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
-  private final FunctionEntryNode mainFunction;
+  private FunctionEntryNode mainFunction;
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.absent();
   private Optional<LiveVariables> liveVariables = Optional.absent();
@@ -92,6 +92,23 @@ public class MutableCFA implements CFA {
     functions.put(functionName, pNode);
   }
 
+  public void removeFunction(FunctionEntryNode pNode) {
+    removeFunction(pNode.getFunctionName());
+  }
+
+  public void removeFunction(String functionName) {
+    assert functions.containsKey(functionName);
+
+    functions.remove(functionName);
+    allNodes.removeAll(functionName);
+  }
+
+  public void setMainFunction(FunctionEntryNode pNode) {
+    assert functions.containsKey(pNode.getFunctionName());
+
+    mainFunction = pNode;
+  }
+
   public void clear() {
     functions.clear();
     allNodes.clear();
@@ -106,6 +123,8 @@ public class MutableCFA implements CFA {
       functions.remove(pNode.getFunctionName());
     }
   }
+
+
 
   @Override
   public MachineModel getMachineModel() {
