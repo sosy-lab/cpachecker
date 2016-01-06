@@ -32,16 +32,21 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.base.Predicate;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -55,29 +60,30 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
   private final Map<CFAEdge, Loop> loopEntryEdges;
   private final Map<CFAEdge, Loop> loopExitEdges;
 
-  private static Predicate<CFAEdge> edgeLeavingLoopHead = new Predicate<CFAEdge>() {
-
-    @Override
-    public boolean apply(CFAEdge pArg0) {
-      return pArg0.getPredecessor().isLoopStart();
-    }
-
-  };
-
   public LoopstatsTransferRelation(LoopStructure pLoops) {
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
 
-    for (Loop l : pLoops.getAllLoops()) {
+    for (final Loop l : pLoops.getAllLoops()) {
+      Iterable<CFAEdge> edgesToLoopBody = Collections2.transform(l.getLoopHeads(), new Function<CFANode, CFAEdge>() {
 
-      Iterable<CFAEdge> edgesToLoopBody = filter(l.getInnerLoopEdges(), edgeLeavingLoopHead);
+        @Override
+        public CFAEdge apply(CFANode pArg0) {
+          FluentIterable<CFAEdge> enteringEdges = CFAUtils.leavingEdges(pArg0).filter(in(l.getInnerLoopEdges()));
+          Preconditions.checkState(enteringEdges.size() == 1);
+          return enteringEdges.first().get();
+        }
+
+      });
+
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
                                                not(instanceOf(CFunctionCallEdge.class)));
 
       for (CFAEdge e : edgesToLoopBody) {
         entryEdges.put(e, l);
       }
+
       for (CFAEdge e : outgoingEdges) {
         exitEdges.put(e, l);
       }
@@ -126,7 +132,7 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       return pPredState;
     }
 
-    // We are entering a loop body
+    // We are entering a loop body (edge that leaves a loop head into the loop body)
     {
       final Loop enteringLoop = loopEntryEdges.get(pCfaEdge);
       if (enteringLoop != null) {
