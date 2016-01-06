@@ -41,10 +41,9 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import com.google.common.base.Splitter;
 
@@ -453,7 +452,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView pMgr, PathFormulaManager pPfmgr) {
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> nfmgr = pMgr.getIntegerFormulaManager();
+    IntegerFormulaManager nfmgr = pMgr.getIntegerFormulaManager();
     List<BooleanFormula> result = new ArrayList<>();
     for (Entry<String, Interval> entry : intervals.entrySet()) {
       Interval interval = entry.getValue();

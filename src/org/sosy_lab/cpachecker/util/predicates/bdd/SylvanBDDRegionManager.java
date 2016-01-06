@@ -547,8 +547,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitQuantifier(List<Formula> pVariables, BooleanFormula pBody,
-        Quantifier pQuantifier) {
+    public Long visitQuantifier(Quantifier q, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

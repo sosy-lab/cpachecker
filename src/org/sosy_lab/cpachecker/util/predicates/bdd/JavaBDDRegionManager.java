@@ -755,8 +755,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitQuantifier(List<Formula> pVariables, BooleanFormula pBody,
-        Quantifier pQuantifier) {
+    public BDD visitQuantifier(Quantifier q, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

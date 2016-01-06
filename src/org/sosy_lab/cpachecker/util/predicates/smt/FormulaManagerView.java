@@ -69,11 +69,13 @@ import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.api.RationalFormulaManager;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
@@ -130,8 +132,8 @@ public class FormulaManagerView {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
-  private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
+  private IntegerFormulaManagerView integerFormulaManager;
+  private RationalFormulaManagerView rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
   private QuantifiedFormulaManagerView quantifiedFormulaManager;
   private ArrayFormulaManagerView arrayFormulaManager;
@@ -175,7 +177,7 @@ public class FormulaManagerView {
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
-    integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getIntegerFormulaManager0());
+    integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
   }
 
   /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
@@ -786,13 +788,13 @@ public class FormulaManagerView {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+  public IntegerFormulaManagerView getIntegerFormulaManager() {
     return integerFormulaManager;
   }
 
-  public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
+  public RationalFormulaManagerView getRationalFormulaManager() {
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getRationalFormulaManager0());
+      rationalFormulaManager = new RationalFormulaManagerView(wrappingHandler, getRationalFormulaManager0());
     }
     return rationalFormulaManager;
   }
@@ -815,7 +817,12 @@ public class FormulaManagerView {
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
     if (quantifiedFormulaManager == null) {
-      quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, getIntegerFormulaManager());
+      quantifiedFormulaManager = new QuantifiedFormulaManagerView(
+          wrappingHandler,
+          manager.getQuantifiedFormulaManager(),
+          booleanFormulaManager,
+          getIntegerFormulaManager()
+      );
     }
     return quantifiedFormulaManager;
   }
@@ -1347,8 +1354,6 @@ public class FormulaManagerView {
         if (unsafeManager.getName(tt).equals(BitwiseAndUfName) && !andFound) {
           andFound = true;
         }
-//        FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();
-//        andFound = bitwiseAndUfDecl.equals(funcSym.getName());
       }
       int arity = unsafeManager.getArity(tt);
       for (int i = 0; i < arity; ++i) {

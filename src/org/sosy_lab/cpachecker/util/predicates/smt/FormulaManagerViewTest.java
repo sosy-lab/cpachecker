@@ -74,7 +74,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   private FormulaManagerView mgrv;
   private BooleanFormulaManagerView bmgrv;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgrv;
+  private IntegerFormulaManagerView imgrv;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
