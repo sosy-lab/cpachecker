@@ -191,9 +191,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
         explicitFeasibilityChecker,
         explicitPathInterpolator,
         config,
-        logger,
-        shutdownNotifier,
-        cfa);
+        logger);
   }
 
 
@@ -203,10 +201,7 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
       final FeasibilityChecker<ForgettingCompositeState> pExplicitFeasibilityChecker,
       final PathInterpolator<SymbolicInterpolant> pExplicitInterpolator,
       final Configuration pConfig,
-      final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final LogManager pLogger) throws InvalidConfigurationException {
 
     // Two different instances of PathExtractor have to be used, otherwise,
     // RepeatedCounterexample error will occur when symbolicRefiner starts refinement.

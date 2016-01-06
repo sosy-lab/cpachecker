@@ -26,14 +26,10 @@ package org.sosy_lab.cpachecker.cpa.coverage;
 import java.io.PrintStream;
 import java.util.Map;
 
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.FileCoverage;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 class CoverageReportStdoutSummary {
-
-  public CoverageReportStdoutSummary(LogManager pLogger) {
-  }
 
   public void write(CoverageData pData, PrintStream pStdOut) {
 

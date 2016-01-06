@@ -49,150 +49,6 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = []
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = []
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = []
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = []
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
-# Possible log levels in descending order 
-# (lower levels include higher ones):
-# OFF:      no logs published
-# SEVERE:   error messages
-# WARNING:  warnings
-# INFO:     messages
-# FINE:     logs on main application level
-# FINER:    logs on central CPA algorithm level
-# FINEST:   logs published by specific CPAs
-# ALL:      debugging information
-# Care must be taken with levels of FINER or lower, as output files may
-# become quite large and memory usage might become an issue.
-
-# single levels to be excluded from being logged
-log.consoleExclude = []
-
-# log level of console output
-log.consoleLevel = Level.INFO
-
-# name of the log file
-log.file = "CPALog.txt"
-
-# single levels to be excluded from being logged
-log.fileExclude = []
-
-# log level of file output
-log.level = Level.OFF
-
-# maximum size of log output strings before they will be truncated
-log.truncateSize = 10000
-
-# use colors for log messages on console
-log.useColors = true
-
-# all used options are printed
-log.usedOptions.export = false
-
-# disable all default output files
-# (any explicitly given file will still be written)
-output.disable = false
-
-# directory to put all output files in
-output.path = "output/"
-
-# base directory for all input & output files
-# (except for the configuration file itself)
-rootDirectory = "."
-
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
@@ -936,9 +792,6 @@ cpa.automaton.extraIterationsLimit = -1
 # ControlAutomatonCPA
 cpa.automaton.inputFile = no default value
 
-# Merge two automata states if one of them is INACTIVE.
-cpa.automaton.merge.onInactive = false
-
 # Merge two automata states if one of them is TOP.
 cpa.automaton.merge.onTop = false
 
@@ -1357,10 +1210,6 @@ cpa.predicate.abstraction.computation = BOOLEAN
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
-
-# Eliminate propositions about dead variables in abstraction predicates by
-# running a generalization procedure.
-cpa.predicate.abstraction.elimDeadVariablePreds = false
 
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
@@ -2623,16 +2472,6 @@ precision.variableBlacklist = ""
 # whitelist regex for variables that will always be tracked by the CPA using
 # this precision
 precision.variableWhitelist = ""
-
-# Where should the precondition be exported to?
-precondition.export.target = "precondition.txt"
-
-# (How) should the precondition be exported?
-precondition.export.type = NONE
-  enum:     [NONE, SMTLIB]
-
-# Use the refiner that uses a solver-based interpolation mechanism.
-precondition.solverbasedInterpolation = false
 
 # List of property files (INTERNAL USAGE ONLY - DO NOT USE)
 properties = []

@@ -40,17 +40,21 @@ import javax.annotation.concurrent.Immutable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -76,6 +80,12 @@ public class ARGPath implements Appender {
 
   private final ImmutableList<ARGState> states;
   private final List<CFAEdge> edges; // immutable, but may contain null
+
+  @SuppressFBWarnings(
+      value="JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
+      justification="This variable is only used for caching the full path for later use"
+          + " without having to compute it again.")
+  private ImmutableList<CFAEdge> fullPath = null;
 
   ARGPath(List<ARGState> pStates) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
@@ -142,43 +152,48 @@ public class ARGPath implements Appender {
    * which are null while using getInnerEdges or the pathIterator will be resolved
    * and the complete path from the first {@link ARGState} to the last ARGState
    * is created. This is done by filling up the wholes in the path.
+   *
+   * Background:
+   *    One abstract state may encode several transitions (from a basic block).
    */
-  public List<CFAEdge> getFullPath() {
-    List<CFAEdge> fullPath = new ArrayList<>();
+  public ImmutableList<CFAEdge> getFullPath() {
+    if (fullPath != null) {
+      return fullPath;
+    }
 
-    PathIterator it = pathIterator();
-    CFANode curNode = AbstractStates.extractLocation(it.getAbstractState());
+    Builder<CFAEdge> pathBuilder = ImmutableList.<CFAEdge>builder();
+
+    final PathIterator it = pathIterator();
+
+    Preconditions.checkState(it.hasNext());
     CFAEdge curOutgoingEdge = it.getOutgoingEdge();
+    CFANode predLoc = AbstractStates.extractLocation(it.getAbstractState());
+
+    // This method has to consider that we can also have
+    //    'weaved' CFA transitions, i.e., the CFANode of the abstract state
+    //    might not correspond to the successor of the CFAEdge.
+    //
 
     while (it.hasNext()) {
       it.advance();
-      CFANode nextNode = AbstractStates.extractLocation(it.getAbstractState());
+      CFANode succLoc = AbstractStates.extractLocation(it.getAbstractState());
 
       // compute path between cur and next node
       if (curOutgoingEdge == null) {
-        while (curNode != nextNode) {
-          assert curNode.getNumLeavingEdges() == 1
-                 && curNode.getLeavingSummaryEdge() == null;
-
-          CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
-          fullPath.add(intermediateEdge);
-          curNode = intermediateEdge.getSuccessor();
-        }
+        throw new RuntimeException("Not implemented for this branch of CPAchecker!");
 
       // we have a normal connection without whole in the edges
       } else {
-        assert curOutgoingEdge.getPredecessor() == curNode
-               && curOutgoingEdge.getSuccessor() == nextNode;
-        fullPath.add(curOutgoingEdge);
+        pathBuilder.add(curOutgoingEdge);
       }
 
       if (it.hasNext()) {
         curOutgoingEdge = it.getOutgoingEdge();
       }
-      curNode = nextNode;
+      predLoc = succLoc;
     }
 
-    return fullPath;
+    return pathBuilder.build();
   }
 
   public ImmutableSet<ARGState> getStateSet() {
@@ -298,12 +313,12 @@ public class ARGPath implements Appender {
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on('\n').skipNulls().appendTo(appendable, getInnerEdges());
+    Joiner.on('\n').skipNulls().appendTo(appendable, getFullPath());
   }
 
   @Override
   public String toString() {
-    return Joiner.on('\n').skipNulls().join(getInnerEdges());
+    return Joiner.on('\n').skipNulls().join(getFullPath());
   }
 
   /**
@@ -312,22 +327,25 @@ public class ARGPath implements Appender {
    * @param pathWithAssignments A list of {@link CFAEdgeWithAssumptions} with additional information, may be empty.
    */
   public void toJSON(Appendable sb, List<CFAEdgeWithAssumptions> pathWithAssignments) throws IOException {
-    List<Map<?, ?>> path = new ArrayList<>(getInnerEdges().size());
+    int pathLength = getFullPath().size();
+    List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
-    if (getInnerEdges().size() != pathWithAssignments.size()) {
+    if (pathLength != pathWithAssignments.size()) {
       // TODO: Probably pathWithAssignments should always be empty or have same size
       // add assert?
       pathWithAssignments = ImmutableList.of();
     }
 
-    PathIterator iterator = pathIterator();
+    PathIterator iterator = fullPathIterator();
     while (iterator.hasNext()) {
       Map<String, Object> elem = new HashMap<>();
       CFAEdge edge = iterator.getOutgoingEdge();
       if (edge == null) {
         continue; // in this case we do not need the edge
       }
-      elem.put("argelem", iterator.getAbstractState().getStateId());
+      if (iterator.isPositionWithState()) {
+        elem.put("argelem", iterator.getAbstractState().getStateId());
+      }
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
@@ -807,12 +825,15 @@ public class ARGPath implements Appender {
     @Override
     public void advance() throws IllegalStateException {
       checkState(hasNext(), "No more states in PathIterator.");
-      if (fullPath.get(overallOffset).getSuccessor().equals(extractLocation(getNextAbstractState()))) {
+      CFANode nextLoc = AbstractStates.extractLocationMaybeWeaved(getNextAbstractState());
+
+      if (fullPath.get(overallOffset).getSuccessor().equals(nextLoc)) {
         pos++;
         currentPositionHasState = true;
       } else {
         currentPositionHasState = false;
       }
+
       overallOffset++;
     }
 

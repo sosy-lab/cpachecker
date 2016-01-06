@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
@@ -54,8 +53,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   private final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
-      FormulaManagerView pFmgr, FormulaEncodingWithPointerAliasingOptions pOptions) {
-    super(pLogger, pOptions, pMachineModel, pFmgr);
+      FormulaEncodingWithPointerAliasingOptions pOptions) {
+    super(pLogger, pMachineModel);
 
     sizeofVisitor = new CSizeofVisitor(pMachineModel, pOptions);
   }

@@ -520,7 +520,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
-        BooleanFormula result = loader.handleExternModelFunction(e, parameters, ssa);
+        BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 

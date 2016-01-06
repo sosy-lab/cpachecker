@@ -46,7 +46,6 @@ import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -56,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
@@ -112,8 +112,7 @@ public class ARGStatistics implements IterationStatistics {
   private final CounterexamplesSummary cexSummary;
 
   public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
-      MachineModel pMachineModel, Language pLanguage,
-      @Nullable CEXExporter pCexExporter,
+      MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
       ARGPathExporter pARGPathExporter,
       CounterexamplesSummary pCexSummary)
           throws InvalidConfigurationException {

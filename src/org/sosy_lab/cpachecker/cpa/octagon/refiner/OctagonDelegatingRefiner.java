@@ -132,7 +132,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
 
-  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws CPAException, InvalidConfigurationException {
+  public static OctagonDelegatingRefiner create(ConfigurableProgramAnalysis cpa) throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(OctagonDelegatingRefiner.class.getSimpleName() + " could not find the OctagonCPA");
     }
@@ -262,7 +262,7 @@ public class OctagonDelegatingRefiner extends AbstractARGBasedRefiner implements
     Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
     VariableTrackingPrecision octPrecision         = (VariableTrackingPrecision) Precisions.asIterable(precision).filter(VariableTrackingPrecision.isMatchingCPAClass(OctagonCPA.class)).get(0);
 
-    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement(octPrecision);
+    Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
     // no newly tracked variables, so the refinement was not successful, TODO why is this code commented out?
     if (increment.isEmpty()) {
     //  return false;

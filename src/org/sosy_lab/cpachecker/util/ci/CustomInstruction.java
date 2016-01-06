@@ -484,7 +484,7 @@ public class CustomInstruction{
         // no additional check needed.
         return;
       case AssumeEdge:
-        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar, outVariables);
+        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
         return;
       case StatementEdge:
         compareStatementEdge((CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
@@ -493,10 +493,10 @@ public class CustomInstruction{
         compareDeclarationEdge((CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
         return;
       case ReturnStatementEdge:
-        compareReturnStatementEdge((CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar, outVariables);
+        compareReturnStatementEdge((CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
         return;
       case FunctionCallEdge:
-        compareFunctionCallEdge((CFunctionCallEdge)ciEdge, (CFunctionCallEdge)aciEdge, ciVarToAciVar, outVariables);
+        compareFunctionCallEdge((CFunctionCallEdge)ciEdge, (CFunctionCallEdge)aciEdge, ciVarToAciVar);
         return;
       case FunctionReturnEdge:
         // no additional check needed.
@@ -506,11 +506,14 @@ public class CustomInstruction{
         return;
       case CallToReturnEdge:
         compareStatementsOfStatementEdge(((CFunctionSummaryEdge) ciEdge).getExpression(), ((CFunctionSummaryEdge) aciEdge).getExpression(), ciVarToAciVar, outVariables);
+        return;
+      default:
+        throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
   }
 
   private void compareAssumeEdge(final CAssumeEdge ciEdge, final CAssumeEdge aciEdge,
-      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+      final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getTruthAssumption() != aciEdge.getTruthAssumption()) {
       throw new AppliedCustomInstructionParsingFailedException("The truthAssumption of the CAssumeEdges " + ciEdge + " and " + aciEdge + "are different!");
@@ -567,14 +570,14 @@ public class CustomInstruction{
       ciStmt.getLeftHandSide().accept(new StructureExtendedComparisonVisitor(aciStmt.getLeftHandSide(), ciVarToAciVar, currentCiVarToAciVar));
       outVariables.addAll(currentCiVarToAciVar.values());
 
-      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
+      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
     }
 
     else if (ci instanceof CFunctionCallStatement && aci instanceof CFunctionCallStatement) {
       CFunctionCallStatement ciStmt = (CFunctionCallStatement) ci;
       CFunctionCallStatement aciStmt = (CFunctionCallStatement) aci;
 
-      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar, outVariables);
+      compareFunctionCallExpressions(ciStmt.getFunctionCallExpression(), aciStmt.getFunctionCallExpression(), ciVarToAciVar);
     }
 
     else {
@@ -583,8 +586,7 @@ public class CustomInstruction{
   }
 
   private void compareFunctionCallExpressions(final CFunctionCallExpression exp,
-      final CFunctionCallExpression aexp, final Map<String, String> ciVarToAciVar,
-      final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+      final CFunctionCallExpression aexp, final Map<String, String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
     if (!exp.getExpressionType().equals(aexp.getExpressionType())){
       throw new AppliedCustomInstructionParsingFailedException("The expressionType of the CStatementEdges " + exp + " and " + aexp + " are different!");
     }
@@ -688,8 +690,7 @@ public class CustomInstruction{
   }
 
   private void compareReturnStatementEdge(final CReturnStatementEdge ciEdge,
-      final CReturnStatementEdge aciEdge, final Map<String,String> ciVarToAciVar,
-      final Collection<String> outVariables)
+      final CReturnStatementEdge aciEdge, final Map<String,String> ciVarToAciVar)
           throws AppliedCustomInstructionParsingFailedException {
 
     if (ciEdge.getExpression().isPresent() && aciEdge.getExpression().isPresent()){
@@ -702,7 +703,7 @@ public class CustomInstruction{
   }
 
   private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
-      final Map<String,String> ciVarToAciVar, final Collection<String> outVariables) throws AppliedCustomInstructionParsingFailedException {
+      final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
     if(ciEdge.getSuccessor() != aciEdge.getSuccessor()) {
       throw new AppliedCustomInstructionParsingFailedException("Applied custom instruction calls different method than custom instruction.");

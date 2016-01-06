@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.precondition.PreconditionRefinerAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -189,7 +188,7 @@ public class CoreComponentsFactory {
       algorithm = new RestartAlgorithm(config, logger, shutdownNotifier, programDenotation, cfa);
 
       if (useARGCombiningAlgorithm) {
-        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier, cfa);
+        algorithm = new PartialARGsCombiner(algorithm, config, logger, shutdownNotifier);
       }
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -224,7 +223,7 @@ public class CoreComponentsFactory {
       }
 
       if (useBDDCPARestriction) {
-        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+        algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (checkMultipleProperties) {
@@ -256,9 +255,6 @@ public class CoreComponentsFactory {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
-      if (usePreconditionRefinementAlgorithm) {
-        algorithm = new PreconditionRefinerAlgorithm(algorithm, cpa, cfa, config, logger, shutdownNotifier);
-      }
     }
 
     if (stats != null && algorithm instanceof StatisticsProvider) {

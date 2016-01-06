@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
@@ -102,7 +103,7 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
     if (logger.wouldBeLogged(Level.ALL) && path != null) {
       logger.log(Level.ALL, "Error path:\n", path);
       logger.log(Level.ALL, "Function calls on Error path:\n",
-          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getInnerEdges(), pathToFunctionCalls)));
+          Joiner.on("\n ").skipNulls().join(Collections2.transform(path.getFullPath(), pathToFunctionCalls)));
     }
 
     final CounterexampleInfo counterexample;
@@ -180,10 +181,11 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
    * @see org.sosy_lab.cpachecker.cpa.arg.ARGUtils
    * @return
    * @throws InterruptedException
+   * @throws CPATransferException
    */
   @ForOverride
   @Nullable
-  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPAException {
+  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pReached) throws InterruptedException, CPATransferException {
     return ARGUtils.getOnePathTo(pLastElement);
   }
 }

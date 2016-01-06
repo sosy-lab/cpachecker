@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -70,7 +69,7 @@ public class RepetitionsInPathCondition implements PathCondition, Statistics {
 
 
 
-  public RepetitionsInPathCondition(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public RepetitionsInPathCondition(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 

@@ -228,7 +228,7 @@ public class SourceLocationMapper {
     }
   }
 
-  public static Set<String> matchTokenNumbersToTokenStrings(final Set<Integer> tokenNumbers) {
+  public static Set<String> matchTokenNumbersToTokenStrings() {
     return Collections.emptySet();
   }
 
@@ -313,7 +313,7 @@ public class SourceLocationMapper {
     }
   }
 
-  public static synchronized Set<RowAndColumn> collectRowsAndColsFrom(CAstNode astNode, boolean overApproximateTokens) {
+  public static synchronized Set<RowAndColumn> collectRowsAndColsFrom(CAstNode astNode) {
     final TreeSet<RowAndColumn> result = Sets.newTreeSet();
     Set<FileLocation> locs = collectFileLocationsFrom(astNode);
 
@@ -406,12 +406,12 @@ public class SourceLocationMapper {
     return result;
   }
 
-  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge, boolean overApproximateTokens) {
+  public static synchronized Set<RowAndColumn> getRowsAndColsFromCFAEdge(CFAEdge pEdge) {
     final TreeSet<RowAndColumn> result = Sets.newTreeSet();
     final Set<CAstNode> astNodes = getAstNodesFromCfaEdge(pEdge);
 
     for (CAstNode n: astNodes) {
-      result.addAll(collectRowsAndColsFrom(n, overApproximateTokens));
+      result.addAll(collectRowsAndColsFrom(n));
     }
 
     RowAndColumn rc = new RowAndColumn(

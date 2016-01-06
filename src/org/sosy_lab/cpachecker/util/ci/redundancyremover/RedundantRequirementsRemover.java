@@ -88,8 +88,7 @@ public class RedundantRequirementsRemover {
     }
 
     private V[][] getAbstractValuesForSignature(final ARGState start,
-        final Collection<ARGState> ends, final List<String> inputVarsAndConsts,
-        final List<String> outputVars) throws CPAException {
+        final Collection<ARGState> ends, final List<String> inputVarsAndConsts) throws CPAException {
       V[][] result = emptyMatrixOfSize(1 + ends.size());
       List<V[]> intermediate = new ArrayList<>(ends.size());
 
@@ -157,8 +156,7 @@ public class RedundantRequirementsRemover {
         for (int i = 0; i < requirements.size(); i++) {
           sortList.add(Pair.of(
               getAbstractValuesForSignature(requirements.get(i).getFirst(), requirements.get(i)
-                  .getSecond(), inputOutputSignatures.get(i).getFirst(),
-                  inputOutputSignatures.get(i).getSecond()), requirements.get(i)));
+                  .getSecond(), inputOutputSignatures.get(i).getFirst()), requirements.get(i)));
         }
         // sort according to signature values
         Collections.sort(sortList, new SortingHelper());

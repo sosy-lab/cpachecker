@@ -52,7 +52,7 @@ public class AutomatonEncodingTest {
 
     stat.assertThatNumber("Number of times merged").isAtLeast(2);
     stat.assertThatNumber("Number of refinements").isAtMost(3);
-    stat.assertThatNumber("Max states per location").isAtMost(2);
+    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(2);
   }
 
   @Test

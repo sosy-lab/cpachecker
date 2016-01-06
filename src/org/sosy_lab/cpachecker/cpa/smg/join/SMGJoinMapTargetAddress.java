@@ -36,9 +36,9 @@ final class SMGJoinMapTargetAddress {
   private SMGNodeMapping mapping2;
   private Integer value;
 
-  public SMGJoinMapTargetAddress(SMG pSMG1, SMG pSMG2, SMG destSMG,
-                             SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
-                             Integer pAddress1, Integer pAddress2) {
+  public SMGJoinMapTargetAddress(SMG pSMG1, SMG destSMG, SMGNodeMapping pMapping1,
+                             SMGNodeMapping pMapping2, Integer pAddress1,
+                             Integer pAddress2) {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;

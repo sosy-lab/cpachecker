@@ -29,11 +29,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -42,8 +40,7 @@ public abstract class CartesianRequirementsTranslator<T extends AbstractState> e
 
   protected final LogManager logger;
 
-  public CartesianRequirementsTranslator(final Class<T> pAbstractStateClass, final Configuration config,
-      final ShutdownNotifier shutdownNotifier, final LogManager log) {
+  public CartesianRequirementsTranslator(final Class<T> pAbstractStateClass, final LogManager log) {
     super(pAbstractStateClass);
     logger = log;
   }

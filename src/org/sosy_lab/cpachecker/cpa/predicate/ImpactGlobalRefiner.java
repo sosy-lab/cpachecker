@@ -98,7 +98,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
   private final Timer coverTime = new Timer();
   private final Timer argUpdate = new Timer();
 
-  private void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+  private void printStatistics(PrintStream out) {
     if (refinementCalls > 0) {
       out.println("Avg. number of iterations per refinement:   " + div(refinementIterations, refinementCalls));
       out.println("Avg. number of target states per iteration: " + div(totalNumberOfTargetStates, refinementIterations));
@@ -462,7 +462,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
 
       @Override
       public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        ImpactGlobalRefiner.this.printStatistics(pOut, pResult, pReached);
+        ImpactGlobalRefiner.this.printStatistics(pOut);
       }
     });
   }

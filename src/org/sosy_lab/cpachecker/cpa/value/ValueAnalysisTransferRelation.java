@@ -39,7 +39,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -152,6 +151,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -1715,7 +1715,7 @@ public class ValueAnalysisTransferRelation
     return newState;
   }
 
-  private Type getLeftHandType(CFAEdge pEdge) throws UnrecognizedCodeException {
+  private Type getLeftHandType(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
@@ -1731,7 +1731,7 @@ public class ValueAnalysisTransferRelation
     return null;
   }
 
-  private String getLeftHandVariable(CFAEdge pEdge) throws UnrecognizedCodeException {
+  private String getLeftHandVariable(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge) {
       ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
       if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
@@ -2034,8 +2034,7 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private Collection<ValueAnalysisState> strengthen(RTTState rttState)
-      throws UnrecognizedCCodeException {
+  private Collection<ValueAnalysisState> strengthen(RTTState rttState) {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
 

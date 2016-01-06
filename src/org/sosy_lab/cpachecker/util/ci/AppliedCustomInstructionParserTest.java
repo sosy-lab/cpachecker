@@ -115,7 +115,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
+  public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException {
     try {
       aciParser.getCFANode("N57", cfaInfo);
     } catch (CPAException e) {
@@ -132,7 +132,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, NoSuchFieldException, SecurityException {
+  public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
     try {
       aciParser.readCustomInstruction("test4");
     } catch (CPAException e) {
@@ -218,7 +218,7 @@ public class AppliedCustomInstructionParserTest {
   }
 
   @Test
-  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, NoSuchFieldException, SecurityException, ParserException, InvalidConfigurationException {
+  public void testParse() throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException, SecurityException, ParserException, InvalidConfigurationException {
     String testProgram = ""
         + "void main() {"
           + "int x;"

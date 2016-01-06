@@ -38,7 +38,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -140,6 +140,10 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     proofStream.getFirst().close();
   }
 
+  /**
+   * @param pOut the outputstream to which should be written
+   * @throws IOException
+   */
   protected boolean writeAdditionalProofStream(final ObjectOutputStream pOut) throws IOException {
     return false;
   }

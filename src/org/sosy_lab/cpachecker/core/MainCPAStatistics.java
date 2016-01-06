@@ -249,7 +249,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
       printSubStatistics(out, result, reached);
 
       if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, result, reached, cfa);
+        coverageReport.writeCoverageReport(out, reached, cfa);
       }
     }
 

@@ -114,7 +114,11 @@ public final class PathFormula implements Serializable {
     return new SerializationProxy(this);
   }
 
-  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
 

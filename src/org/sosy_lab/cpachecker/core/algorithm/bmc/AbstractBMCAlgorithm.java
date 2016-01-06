@@ -423,6 +423,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * The formula is still on the solver stack.
    * Subclasses can use this method to further analyze the counterexample
    * if necessary.
+   *
+   * @param pReachedSet the reached used for analyzing
+   * @param pProver the prover that should be used
+   * @throws CPATransferException
+   * @throws InterruptedException
    */
   protected void analyzeCounterexample(final ReachedSet pReachedSet, final ProverEnvironment pProver)
       throws CPATransferException, InterruptedException {

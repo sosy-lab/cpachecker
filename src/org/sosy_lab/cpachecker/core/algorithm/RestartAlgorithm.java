@@ -408,7 +408,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     } else {
       ReachedSetFactory singleReachedSetFactory = new ReachedSetFactory(singleConfig);
       cpa = createCPA(singleReachedSetFactory, singleConfig, singleLogger, singleShutdownManager.getNotifier(), stats);
-      algorithm = createAlgorithm(cpa, singleConfig, singleLogger, singleShutdownManager, stats, singleReachedSetFactory, singleOptions);
+      algorithm = createAlgorithm(cpa, singleConfig, singleLogger, singleShutdownManager, singleReachedSetFactory, singleOptions);
       reached = createInitialReachedSetForRestart(cpa, mainFunction, singleReachedSetFactory, singleLogger);
     }
 
@@ -448,7 +448,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
       final ConfigurableProgramAnalysis cpa, Configuration pConfig,
       final LogManager singleLogger,
       final ShutdownManager singleShutdownManager,
-      final RestartAlgorithmStatistics stats, ReachedSetFactory singleReachedSetFactory,
+      ReachedSetFactory singleReachedSetFactory,
       RestartAlgorithmOptions pOptions)
   throws InvalidConfigurationException, CPAException {
     ShutdownNotifier singleShutdownNotifier = singleShutdownManager.getNotifier();
@@ -473,7 +473,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     if (pOptions.unknownIfUnrestrictedProgram) {
-      algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cpa, cfa, singleLogger, pConfig, shutdownNotifier);
+      algorithm = new RestrictedProgramDomainAlgorithm(algorithm, cfa);
     }
 
     return algorithm;

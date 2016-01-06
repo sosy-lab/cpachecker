@@ -452,8 +452,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
         return compoundIntervalFormulaManager.union(forPositiveLeft, forNegativeLeft);
       case STRING_CONCATENATION:
         return allPossibleValues(pBinaryExpression);
+      default:
+        throw new AssertionError("Unhandled enum value in switch: " + pBinaryExpression.getOperator());
     }
-    return allPossibleValues(pBinaryExpression);
   }
 
   private NumeralFormula<CompoundInterval> truncateShiftOperand(JType pExpressionType, NumeralFormula<CompoundInterval> pOperand) {

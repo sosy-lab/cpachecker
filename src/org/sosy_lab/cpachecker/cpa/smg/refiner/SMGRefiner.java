@@ -101,7 +101,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     SMGState initialState = smgCpa.getInitialState(cfa.getMainFunction());
 
     final SMGFeasibilityChecker checker =
-        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, initialState, pCpa);
+        new SMGFeasibilityChecker(strongestPostOp, logger, cfa, config, initialState);
 
     SMGState emptyState = smgCpa.getInitialState(cfa.getMainFunction());
 

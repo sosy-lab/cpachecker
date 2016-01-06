@@ -10,7 +10,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.solver.AssignableTerm;
@@ -67,7 +67,8 @@ public class FormulaLinearizationManager {
         new HashMap<BooleanFormula, BooleanFormula>()).visit(input);
   }
 
-  private class LinearizationManager extends BooleanFormulaTransformationVisitor {
+  private class LinearizationManager
+      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     // todo: shouldn't we just convert to NNF instead?
 
     protected LinearizationManager(
@@ -76,7 +77,7 @@ public class FormulaLinearizationManager {
     }
 
     @Override
-    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+    public BooleanFormula visitNot(BooleanFormula pOperand) {
       List<BooleanFormula> split = fmgr.splitNumeralEqualityIfPossible(pOperand);
 
       // Pattern matching on (NOT (= A B)).
@@ -89,7 +90,8 @@ public class FormulaLinearizationManager {
     }
   }
 
-  private class DisjunctionAnnotationVisitor extends BooleanFormulaTransformationVisitor {
+  private class DisjunctionAnnotationVisitor
+      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     // todo: fail fast if the disjunction is inside NOT operator.
 
     protected DisjunctionAnnotationVisitor(
@@ -99,16 +101,13 @@ public class FormulaLinearizationManager {
     }
 
     @Override
-    protected BooleanFormula visitOr(BooleanFormula... pOperands) {
+    public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
       IntegerFormula choiceVar = getFreshVar();
       List<BooleanFormula> newArgs = new ArrayList<>();
-      for (int i=0; i < pOperands.length; i++) {
+      for (int i = 0; i < pOperands.size(); i++) {
         newArgs.add(
             bfmgr.and(
-                visitIfNotSeen(pOperands[i]),
-                fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))
-            )
-        );
+                visitIfNotSeen(pOperands.get(i)), fmgr.makeEqual(choiceVar, ifmgr.makeNumber(i))));
       }
       return bfmgr.or(newArgs);
     }
@@ -162,14 +161,15 @@ public class FormulaLinearizationManager {
     return out;
   }
 
-  private class ReplaceITEVisitor extends BooleanFormulaTransformationVisitor {
+  private class ReplaceITEVisitor
+      extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
 
     private ReplaceITEVisitor() {
       super(fmgr, new HashMap<BooleanFormula, BooleanFormula>());
     }
 
     @Override
-    protected BooleanFormula visitIfThenElse(
+    public BooleanFormula visitIfThenElse(
         BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
 
       BooleanFormula cond = fmgr.simplify(environment.evaluate(pCondition));

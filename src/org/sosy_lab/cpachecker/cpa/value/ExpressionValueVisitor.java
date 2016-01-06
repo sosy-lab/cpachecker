@@ -177,8 +177,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public MemoryLocation evaluateMemLocForArraySlot(
       final MemoryLocation pArrayStartLocation,
       final int pSlotNumber,
-      final CArrayType pArrayType
-  ) throws UnrecognizedCCodeException {
+      final CArrayType pArrayType) {
     MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
 
     return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
@@ -328,8 +327,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     protected MemoryLocation getArraySlotLocationFromArrayStart(
         final MemoryLocation pArrayStartLocation,
         final int pSlotNumber,
-        final CArrayType pArrayType
-    ) throws UnrecognizedCCodeException {
+        final CArrayType pArrayType) {
 
       long typeSize = evv.getSizeof(pArrayType.getType());
       long offset = typeSize * pSlotNumber;

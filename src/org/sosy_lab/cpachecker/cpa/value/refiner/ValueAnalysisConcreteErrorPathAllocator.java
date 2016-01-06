@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcerteStatePathNode;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
@@ -139,7 +139,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
-    List<ConcerteStatePathNode> result = new ArrayList<>(pPath.size());
+    List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
     /*"We generate addresses for our memory locations.
      * This avoids needing to get the CDeclaration
@@ -154,7 +154,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       ValueAnalysisState valueState = edgeStatePair.getFirst();
       CFAEdge edge = edgeStatePair.getSecond();
 
-      ConcerteStatePathNode node;
+      ConcreteStatePathNode node;
 
       if (edge.getEdgeType() == CFAEdgeType.MultiEdge) {
 
@@ -176,7 +176,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteState(pValueState, variableAddresses);
   }
 
-  private ConcerteStatePathNode createMultiEdge(ValueAnalysisState pValueState, MultiEdge multiEdge,
+  private ConcreteStatePathNode createMultiEdge(ValueAnalysisState pValueState, MultiEdge multiEdge,
       Map<LeftHandSide, Address> pVariableAddresses) {
 
     int size = multiEdge.getEdges().size();

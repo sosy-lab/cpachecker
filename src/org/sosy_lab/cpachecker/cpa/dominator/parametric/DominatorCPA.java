@@ -89,7 +89,7 @@ public class DominatorCPA {
     return initialState;
   }
 
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+  public Precision getInitialPrecision() {
     return null;
   }
 }

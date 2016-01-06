@@ -96,7 +96,7 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testValueTranslator() throws InvalidConfigurationException {
+  public void testValueTranslator() {
     PersistentMap<MemoryLocation, Value> constantsMap = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
 
@@ -110,10 +110,7 @@ public class TranslatorTest {
     ValueAnalysisState vStateTest = new ValueAnalysisState(constantsMap, locToTypeMap);
     Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
     ValueRequirementsTranslator vReqTransTest =
-        new ValueRequirementsTranslator(
-            TestDataTools.configurationForTest().build(),
-            ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance());
+        new ValueRequirementsTranslator(TestLogManager.getInstance());
 
     // Test of method getVarsInRequirements()
     List<String> varsInRequirements = vReqTransTest.getVarsInRequirements(vStateTest);
@@ -135,7 +132,7 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testSignTranslator() throws InvalidConfigurationException {
+  public void testSignTranslator() {
     SignState sStateTest = SignState.TOP;
     sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
     sStateTest = sStateTest.assignSignToVariable("var2", SIGN.MINUS);
@@ -144,10 +141,7 @@ public class TranslatorTest {
     sStateTest = sStateTest.assignSignToVariable("fun::varB", SIGN.PLUS0);
     sStateTest = sStateTest.assignSignToVariable("fun::varC", SIGN.MINUS0);
     SignRequirementsTranslator sReqTransTest =
-        new SignRequirementsTranslator(
-            TestDataTools.configurationForTest().build(),
-            ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance());
+        new SignRequirementsTranslator(TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInReq = sReqTransTest.getVarsInRequirements(sStateTest);
@@ -182,7 +176,7 @@ public class TranslatorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testIntervalAndCartesianTranslator() throws InvalidConfigurationException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public void testIntervalAndCartesianTranslator() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 
@@ -195,10 +189,7 @@ public class TranslatorTest {
 
     IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
     IntervalRequirementsTranslator iReqTransTest =
-        new IntervalRequirementsTranslator(
-            TestDataTools.configurationForTest().build(),
-            ShutdownNotifier.createDummy(),
-            TestLogManager.getInstance());
+        new IntervalRequirementsTranslator(TestLogManager.getInstance());
 
     // Test method getVarsInRequirements()
     List<String> varsInRequirements = iReqTransTest.getVarsInRequirements(iStateTest);

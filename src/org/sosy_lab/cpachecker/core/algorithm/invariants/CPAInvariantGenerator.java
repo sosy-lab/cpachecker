@@ -230,7 +230,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
             if (adjustConditions(logger, conditionCPAs)) {
               result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pToAdjust.iteration + 1, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
             }
-          } catch (InvalidConfigurationException | CPAException e) {
+          } catch (InvalidConfigurationException e) {
             pLogger.logUserException(Level.WARNING, e, "Creating adjusted invariant generator failed");
           } finally {
             if (result == pToAdjust) {
@@ -318,7 +318,7 @@ public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProv
       final int pIteration,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
-      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException, CPAException {
+      CPAAlgorithm pAlgorithm) throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownManager = pShutdownManager;

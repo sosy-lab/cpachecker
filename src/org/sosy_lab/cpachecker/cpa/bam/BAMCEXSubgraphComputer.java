@@ -250,10 +250,6 @@ public class BAMCEXSubgraphComputer {
       return super.isOlderThan(other);
     }
 
-    void updateDecreaseId() {
-      decreasingStateID = nextDecreaseID--;
-    }
-
     @Override
     public String toString() {
       return "BackwardARGState {{" + super.toString() + "}}";

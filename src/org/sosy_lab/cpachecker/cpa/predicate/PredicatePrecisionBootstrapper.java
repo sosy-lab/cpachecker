@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
@@ -71,7 +70,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final PrecisionBootstrapStatistics statistics = new PrecisionBootstrapStatistics();
 
   public PredicatePrecisionBootstrapper(Configuration config, LogManager logger, CFA cfa,
-      PathFormulaManager pathFormulaManager, AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
+      AbstractionManager abstractionManager, FormulaManagerView formulaManagerView) throws InvalidConfigurationException {
     this.config = config;
     this.logger = logger;
     this.cfa = cfa;

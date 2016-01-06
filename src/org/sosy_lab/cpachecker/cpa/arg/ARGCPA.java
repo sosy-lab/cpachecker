@@ -170,7 +170,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     cexExporter = new CEXExporter(config, logger, argPathExporter);
     machineModel = cfa.getMachineModel();
     cexSummary = new CounterexamplesSummary(config, logger, machineModel);
-    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(), cfa.getLanguage(),
+    stats = new ARGStatistics(config, logger, this, cfa.getMachineModel(),
         dumpErrorPathImmediately ? null : cexExporter, argPathExporter, cexSummary);
   }
 

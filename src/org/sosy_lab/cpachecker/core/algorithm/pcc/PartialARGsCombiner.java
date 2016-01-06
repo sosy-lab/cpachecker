@@ -48,7 +48,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -93,7 +92,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
 
   public PartialARGsCombiner(Algorithm pAlgorithm, Configuration pConfig, LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa) {
+      ShutdownNotifier pShutdownNotifier) {
     restartAlgorithm = pAlgorithm;
     logger = new LogManagerWithoutDuplicates(pLogger);
     shutdown = pShutdownNotifier;

@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaVisitor;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -149,7 +148,8 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     solverAssumptionsFromPush.clear();
   }
 
-  class RemoveAssumptionsFromFormulaVisitor extends BooleanFormulaVisitor<BooleanFormula> {
+  class RemoveAssumptionsFromFormulaVisitor
+      extends BooleanFormulaManagerView.BooleanFormulaVisitor<BooleanFormula> {
 
     private final Set<BooleanFormula> seen = new HashSet<>();
     private final BooleanFormulaManagerView bmgr;
@@ -167,7 +167,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    protected BooleanFormula visitNot(BooleanFormula pOperand) {
+    public BooleanFormula visitNot(BooleanFormula pOperand) {
       BooleanFormula tmp = visitIfNotSeen(pOperand);
       if (tmp == null) {
         return null;
@@ -176,7 +176,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    protected BooleanFormula visitAnd(BooleanFormula... pOperands) {
+    public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
       List<BooleanFormula> necessaryParts = new ArrayList<>();
       for (BooleanFormula operand : pOperands) {
         BooleanFormula tmp = visitIfNotSeen(operand);
@@ -188,7 +188,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    protected BooleanFormula visitOr(BooleanFormula... pOperands) {
+    public BooleanFormula visitOr(List<BooleanFormula> pOperands) {
       List<BooleanFormula> necessaryParts = new ArrayList<>();
       for (BooleanFormula operand : pOperands) {
         BooleanFormula tmp = visitIfNotSeen(operand);
@@ -200,21 +200,22 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    protected BooleanFormula visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    public BooleanFormula visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       BooleanFormula tmp1 = visitIfNotSeen(pOperand1);
       BooleanFormula tmp2 = visitIfNotSeen(pOperand2);
       return bmgr.equivalence(tmp1, tmp2);
     }
 
     @Override
-    protected BooleanFormula visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    public BooleanFormula visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       BooleanFormula tmp1 = visitIfNotSeen(pOperand1);
       BooleanFormula tmp2 = visitIfNotSeen(pOperand2);
       return bmgr.implication(tmp1, tmp2);
     }
 
     @Override
-    protected BooleanFormula visitIfThenElse(BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
+    public BooleanFormula visitIfThenElse(
+        BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       BooleanFormula cond = visitIfNotSeen(pCondition);
       BooleanFormula ifClause = visitIfNotSeen(pThenFormula);
       BooleanFormula thenClause = visitIfNotSeen(pElseFormula);
@@ -222,17 +223,17 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    protected BooleanFormula visitTrue() {
+    public BooleanFormula visitTrue() {
       return bmgr.makeBoolean(true);
     }
 
     @Override
-    protected BooleanFormula visitFalse() {
+    public BooleanFormula visitFalse() {
       return bmgr.makeBoolean(false);
     }
 
     @Override
-    protected BooleanFormula visitAtom(BooleanFormula pAtom) {
+    public BooleanFormula visitAtom(BooleanFormula pAtom) {
       if (solverAssumptionsContainEqualVariable(pAtom)) {
         return null;
       }
@@ -253,6 +254,18 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
         }
       }
       return false;
+    }
+
+    @Override
+    public BooleanFormula visitForallQuantifier(
+        List<? extends Formula> pVariables, BooleanFormula pBody) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BooleanFormula visitExistsQuantifier(
+        List<? extends Formula> pVariables, BooleanFormula pBody) {
+      throw new UnsupportedOperationException();
     }
   }
 }

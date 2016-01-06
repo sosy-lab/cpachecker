@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.FormulaType;
 
 
@@ -46,9 +45,7 @@ public class CtoFormulaTypeHandler {
 
   private final FormulaType<?> pointerType;
 
-  public CtoFormulaTypeHandler(LogManager pLogger,
-      FormulaEncodingOptions pOptions,
-      MachineModel pMachineModel, FormulaManagerView pFmgr) {
+  public CtoFormulaTypeHandler(LogManager pLogger, MachineModel pMachineModel) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
 
