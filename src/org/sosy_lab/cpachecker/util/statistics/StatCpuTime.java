@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.management.JMException;
 
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.interfaces.TimeMeasurementListener;
 
@@ -93,6 +96,8 @@ public class StatCpuTime implements TimeMeasurementListener {
     }
   }
 
+  private long maxCpuTimeSumMsec = Long.MIN_VALUE;
+  private long minCpuTimeSumMsec = Long.MAX_VALUE;
   private long cpuTimeSumMsec = 0;
   private long wallTimeSumMsec = 0;
   private long intervals = 0;
@@ -107,25 +112,59 @@ public class StatCpuTime implements TimeMeasurementListener {
 
   private synchronized void incrementByMSecs(long pSpentCpuTimeMSecs, long pSpentWallTimeMSecs) {
 
-    this.intervals += 1;
+    intervals += 1;
 
     if (pSpentCpuTimeMSecs < 0) {
-      this.cpuTimeSumMsec = Long.MIN_VALUE;
+      maxCpuTimeSumMsec = Long.MIN_VALUE;
+      minCpuTimeSumMsec = Long.MAX_VALUE;
+      cpuTimeSumMsec = Long.MIN_VALUE;
     } else {
-      this.cpuTimeSumMsec += pSpentCpuTimeMSecs;
+      cpuTimeSumMsec += pSpentCpuTimeMSecs;
+      minCpuTimeSumMsec = Math.min(minCpuTimeSumMsec, pSpentCpuTimeMSecs);
+      maxCpuTimeSumMsec = Math.max(maxCpuTimeSumMsec, pSpentCpuTimeMSecs);
     }
 
-    this.wallTimeSumMsec += pSpentWallTimeMSecs;
+    wallTimeSumMsec += pSpentWallTimeMSecs;
   }
 
-  public long getCpuTimeSumMilliSecs()
+  public TimeSpan getCpuTimeSum()
       throws NoTimeMeasurement {
 
     if (cpuTimeSumMsec < 0) {
       throw new NoTimeMeasurement("No time measurement available!");
     }
 
-    return cpuTimeSumMsec;
+    return TimeSpan.ofMillis(cpuTimeSumMsec);
+  }
+
+  public TimeSpan getMinCpuTimeSum()
+      throws NoTimeMeasurement {
+
+    if (minCpuTimeSumMsec == Long.MAX_VALUE) {
+      throw new NoTimeMeasurement("No time measurement available!");
+    }
+
+    return TimeSpan.ofMillis(minCpuTimeSumMsec);
+  }
+
+  public TimeSpan getMaxCpuTimeSum()
+      throws NoTimeMeasurement {
+
+    if (maxCpuTimeSumMsec == Long.MIN_VALUE) {
+      throw new NoTimeMeasurement("No time measurement available!");
+    }
+
+    return TimeSpan.ofMillis(maxCpuTimeSumMsec);
+  }
+
+  public TimeSpan getAvgCpuTimeSum()
+      throws NoTimeMeasurement {
+
+    if (intervals == 0) {
+      throw new NoTimeMeasurement("No time measurement available!");
+    }
+
+    return TimeSpan.ofMillis(cpuTimeSumMsec / intervals);
   }
 
   public long getWallTimeSumMsec() {
@@ -135,8 +174,8 @@ public class StatCpuTime implements TimeMeasurementListener {
   @Override
   public String toString() {
     try {
-      long time = getCpuTimeSumMilliSecs();
-      return String.format("%.4f", time / 1000.0); // Print seconds
+      TimeSpan time = getCpuTimeSum();
+      return time.formatAs(TimeUnit.SECONDS);
     } catch (NoTimeMeasurement e) {
       return "NA";
     }

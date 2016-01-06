@@ -153,9 +153,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
         if (t.isPresent()) {
           StatCpuTime s = t.get();
           if (s.getIntervals() > 0) {
-            final long avgMsec = s.getCpuTimeSumMilliSecs()  / s.getIntervals();
+            final long avgMsec = s.getCpuTimeSum().asMillis()  / s.getIntervals();
             logger.logf(Level.INFO, "Precision refinement time (msec) for %s: %d avg, %d total",
-                pProperty.toString(), avgMsec, s.getCpuTimeSumMilliSecs());
+                pProperty.toString(), avgMsec, s.getCpuTimeSum().asMillis());
 
             if (avgRefineTimeLimit.asMillis() > 0
                 && avgMsec > avgRefineTimeLimit.asMillis() * hackyLimitFactor) {
@@ -164,7 +164,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
             }
 
             if (totalRefineTimeLimit.asMillis() > 0
-                && s.getCpuTimeSumMilliSecs() > totalRefineTimeLimit.asMillis() * hackyLimitFactor) {
+                && s.getCpuTimeSum().asMillis() > totalRefineTimeLimit.asMillis() * hackyLimitFactor) {
               logger.log(Level.INFO, "Exhausted total refine. time of property " + pProperty.toString());
               return true;
             }

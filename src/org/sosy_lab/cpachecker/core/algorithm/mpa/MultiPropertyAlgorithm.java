@@ -131,12 +131,23 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   private class MPAStatistics extends AbstractStatistics {
     int numberOfRestarts = 0;
     int numberOfPartitionExhaustions = 0;
+    final StatCpuTime pureAnalysisTime = new StatCpuTime();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
       super.printStatistics(pOut, pResult, pReached);
 
       put(pOut, 0, "Number of restarts", numberOfRestarts);
+      put(pOut, 0, "Number of exhaustions", numberOfPartitionExhaustions);
+      put(pOut, 0, "Number of analysis runs", pureAnalysisTime.getIntervals());
+
+      try {
+        put(pOut, 0, "Min. analysis run CPU time", pureAnalysisTime.getMinCpuTimeSum().formatAs(TimeUnit.SECONDS));
+        put(pOut, 0, "Max. analysis run CPU time", pureAnalysisTime.getMaxCpuTimeSum().formatAs(TimeUnit.SECONDS));
+        put(pOut, 0, "Avg. analysis run CPU time", pureAnalysisTime.getAvgCpuTimeSum().formatAs(TimeUnit.SECONDS));
+        put(pOut, 0, "Total analysis run CPU time", pureAnalysisTime.getCpuTimeSum().formatAs(TimeUnit.SECONDS));
+      } catch (NoTimeMeasurement e) {
+      }
     }
   }
 
@@ -182,9 +193,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
         }
 
         try {
-          if (p1refTime.get().getCpuTimeSumMilliSecs() < p2refTime.get().getCpuTimeSumMilliSecs()) {
+          if (p1refTime.get().getCpuTimeSum().asMillis() < p2refTime.get().getCpuTimeSum().asMillis()) {
             return -1;
-          } else if (p1refTime.get().getCpuTimeSumMilliSecs() > p2refTime.get().getCpuTimeSumMilliSecs()) {
+          } else if (p1refTime.get().getCpuTimeSum().asMillis() > p2refTime.get().getCpuTimeSum().asMillis()) {
             return 1;
           }
         } catch (NoTimeMeasurement e) {
@@ -362,8 +373,15 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
         try {
 
-          // Run the wrapped algorithm (for example, CEGAR)
-          status = status.update(wrapped.run(pReachedSet));
+          StatCpuTimer timer = stats.pureAnalysisTime.start();
+          try {
+
+            // Run the wrapped algorithm (for example, CEGAR)
+            status = status.update(wrapped.run(pReachedSet));
+
+          } finally {
+            timer.stop();
+          }
 
         } catch (InterruptedException ie) {
           // The shutdown notifier might trigger the interrupted exception
