@@ -76,7 +76,7 @@ public class MutableCFA implements CFA {
     assert functions.containsKey(pNode.getFunctionName());
     allNodes.put(pNode.getFunctionName(), pNode);
   }
-  
+
   public void addFunction(FunctionEntryNode pNode) {
     String functionName = pNode.getFunctionName();
 
@@ -88,9 +88,8 @@ public class MutableCFA implements CFA {
     assert pNode.getExitNode() != null;
     assert pNode.getExitNode().getEntryNode().equals(pNode);
     assert pNode.getFunctionName().equals(pNode.getExitNode().getFunctionName());
-    
+
     functions.put(functionName, pNode);
-    addNode(pNode.getExitNode());
   }
 
   public void clear() {
@@ -202,12 +201,12 @@ public class MutableCFA implements CFA {
     assert threads != null;
     threads = Optional.of(pThreads);
   }
-  
+
   @Override
   public Optional<AThreadContainer> getThreads() {
     return threads;
   }
-  
-  
+
+
 
 }

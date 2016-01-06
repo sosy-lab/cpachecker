@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCloner;
@@ -397,6 +398,13 @@ public class SequencePreparator {
       cfa.addFunction(clonedStart);
       for(CFANode nodeOfFunction : clonedFunction.getSecondNotNull()) {
         cfa.addNode(nodeOfFunction);
+      }
+
+      // function exit nodes may be not reachable by function start node and
+      // therefore won't be added to the cfa
+      FunctionExitNode functionExit = clonedStart.getExitNode();
+      if(functionExit.getNumEnteringEdges() > 0) {
+        cfa.addNode(functionExit);
       }
 
       return clonedStart;

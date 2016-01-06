@@ -387,6 +387,7 @@ public class ControlCodeBuilder {
         assert CFAUtils.leavingEdges(summaryEdge.getPredecessor()).size() == 1;
         assert CFAUtils.leavingEdges(summaryEdge.getPredecessor()).get(0) instanceof ContextSwitchEdge;
 
+
         // there is no context switch edge at this moment
 //        assert CFAUtils.enteringEdges(summaryEdge.getSuccessor()).size() == 0; //TODO dont forget to uncomment!!!
       }
