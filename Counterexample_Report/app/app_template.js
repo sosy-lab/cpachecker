@@ -4,6 +4,7 @@
 //(function(){})() --> this notation makes a function in JS "self-invoking"
 (function() {
     var app = angular.module('report', []);
+
     app.controller('ReportController', ['$rootScope', '$scope', function($rootScope, $scope){
         $scope.date = Date.now();
         $scope.logo = "http://cpachecker.sosy-lab.org/logo.svg";
@@ -26,6 +27,8 @@
             "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
             "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
             "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
+        //the tab that is shown
+        $scope.tab = 1;
 
         $scope.$on("FirstTimeErrorpathElementIsSelected", function(event){
             $scope.setMarginForGraphs();
@@ -34,16 +37,12 @@
             $scope.setTab(tab);
         });
 
-        //the tab that is shown
-        $scope.tab = 1;
-
-        $scope.setTab = function(value){
-            $scope.tab = value;
+        $scope.setTab = function(tab){
+            $scope.tab = tab;
         };
-        $scope.tabIsSet = function(value){
-            return $scope.tab === value;
+        $scope.tabIsSet = function(tab){
+            return $scope.tab === tab;
         };
-
 
         $scope.setWidth = function(event) {
             if (mouseDown) {
@@ -52,6 +51,7 @@
                 document.getElementById("externalFiles_section").style.width = (Math.round((wholeWidth - event.clientX)/wholeWidth*100) + "%");
             }
         };
+
         $scope.setMouseUp = function(){
             mouseDown = false;
             document.onselectstart = null;
@@ -61,14 +61,12 @@
             }
         };
 
-        //Code-Controller
         $scope.setMouseDown = function(){
             mouseDown = true;
             //we need this so that no text gets marked when moving middleline
             document.onselectstart = function(){return false;};
             document.onmousedown = function(){return false;};
         };
-
 
         $scope.setMarginForGraphs = function(){
             var width = (Math.round((document.getElementById("externalFiles_section").offsetWidth/ 2)-10) + "px");
@@ -86,6 +84,7 @@
         };
 
     }]);
+
 
     app.controller("SearchController", ['$rootScope', '$scope', function($rootScope, $scope){
         $scope.numOfValueMatches = 0;
@@ -153,6 +152,7 @@
             }
         };
     }]);
+
 
     app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope){
         //gets called when '-V-'button in errorpath is clicked
@@ -259,6 +259,7 @@
         };
     }]);
 
+
     app.controller('ARGController', ['$rootScope', '$scope', function($rootScope, $scope){
         $scope.argNodeMarked = false;
 
@@ -278,7 +279,7 @@
             } else if (document.getElementById(y).classList.contains("node")){
                 var cfaNodeNumber = document.getElementById(y).getElementsByTagName("text")[0].innerHTML.split("N")[1];
                 $rootScope.$broadcast("ChangeTab", 1);
-                $rootScope.$broadcast("clickedARGElement", cfaNodeNumber);
+                $rootScope.$broadcast("clickedARGNode", cfaNodeNumber);
             }
         };
 
@@ -319,13 +320,13 @@
         $scope.cfaEdgeMarked = false;
         $scope.cfaNodeMarked = false;
 
-        $scope.$on('clickedErrorpathElement', function(event, line){
-            $scope.markCFAedge(line);
+        $scope.$on('clickedErrorpathElement', function(event, nodeNumber){
+            $scope.markCFAedge(nodeNumber);
         });
-        $scope.$on("clickedErrorpathButton", function(event, line){
-            $scope.markCFAedge(line);
+        $scope.$on("clickedErrorpathButton", function(event, nodeNumber){
+            $scope.markCFAedge(nodeNumber);
         });
-        $scope.$on("clickedARGElement", function(event, nodeNumber){
+        $scope.$on("clickedARGNode", function(event, nodeNumber){
             $scope.markCFANode(nodeNumber);
         });
 
@@ -341,24 +342,24 @@
 
         //Behaviour for Click-Elements in CFA
         $scope.clickedCFAElement = function($event){
-            var y = $event.currentTarget.id;
-            if (document.getElementById(y).classList.contains("edge")){
+            var element = $event.currentTarget.id;
+            if (document.getElementById(element).classList.contains("edge")){
                 $rootScope.$broadcast("ChangeTab", 3);
                 var line;
                 var source;
-                if (y.split("->")[1] > 100000 || y.split("->")[0].substring("cfa-".length) > 100000){
-                    source = y.split("->")[0].substring("cfa-".length);
+                if (element.split("->")[1] > 100000 || element.split("->")[0].substring("cfa-".length) > 100000){
+                    source = element.split("->")[0].substring("cfa-".length);
                     line = cfaInfo["edges"][source + "->" + fCallEdges[source][1]]["line"];
-                } else if (y.split("->")[0].substring("cfa-".length) in combinedNodes){
-                    var textfields = document.getElementById("cfa-" + y.split("->")[0].substring("cfa-".length)).getElementsByTagName("text");
+                } else if (element.split("->")[0].substring("cfa-".length) in combinedNodes){
+                    var textfields = document.getElementById("cfa-" + element.split("->")[0].substring("cfa-".length)).getElementsByTagName("text");
                     source = textfields[textfields.length - 2].innerHTML;
-                    line = cfaInfo["edges"][source + "->" + y.split("->")[1]]["line"];
+                    line = cfaInfo["edges"][source + "->" + element.split("->")[1]]["line"];
                 } else {
-                    line = cfaInfo["edges"][y.substring("cfa-".length)]["line"];
+                    line = cfaInfo["edges"][element.substring("cfa-".length)]["line"];
                 }
                 $rootScope.$broadcast("clickedCFAEdge", line);
-            } else if (document.getElementById(y).classList.contains("node") && (y.substring("cfa-".length) > 100000)) {
-                var func = document.getElementById(y).getElementsByTagName("text")[0].innerHTML;
+            } else if (document.getElementById(element).classList.contains("node") && (element.substring("cfa-".length) > 100000)) {
+                var func = document.getElementById(element).getElementsByTagName("text")[0].innerHTML;
                 $scope.setCFAFunction(functions.indexOf(func));
             }
         };
@@ -388,7 +389,7 @@
                 $scope.markCFANode(combinedNodes[source]);
             }
         };
-        //mark correct CFA-node
+
         $scope.markCFANode = function(nodenumber){
             if($scope.cfaNodeMarked){
                 document.getElementsByClassName("markedCFANode")[0].classList.remove("markedCFANode");
@@ -407,15 +408,10 @@
             }
             $scope.cfaNodeMarked = true;
         };
-        //scroll to correct CFA-element
+
         $scope.scrollToCFAElement = function(id){
             var element = document.getElementById(id);
             var box = document.getElementsByClassName("cfaContent")[0].parentNode.getBoundingClientRect();
-            /*if (funcChanged) {
-             xScroll = 0;
-             yScroll = 0;
-             }
-             *///PROBLEM: Coordinates of element are 0, if it is not visible
             var bcr = element.getBoundingClientRect();
             var cfaContent = document.getElementsByClassName("cfaContent")[0];
             var xScroll = cfaContent.parentNode.scrollLeft;
@@ -427,7 +423,6 @@
         };
 
     }]);
-
 
 
     app.controller('SourceController', ['$rootScope', '$scope', function($rootScope, $scope){
@@ -456,7 +451,6 @@
             return value === $scope.selectedSourceFile;
         };
 
-        //mark correct line in the Source-Tab
         $scope.markSource = function(line){
             if ($scope.lineMarked) {
                 document.getElementsByClassName("markedSourceLine")[0].className = "prettyprint";
@@ -472,7 +466,6 @@
             $scope.lineMarked = true;
         };
     }]);
-
 
 
     app.controller('ZoomController', ['$rootScope', '$scope', function($rootScope, $scope){

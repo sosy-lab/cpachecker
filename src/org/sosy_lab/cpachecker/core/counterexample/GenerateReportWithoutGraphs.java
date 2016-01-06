@@ -88,6 +88,7 @@ public class GenerateReportWithoutGraphs {
       logFile = cpaOutDir + "CPALog.txt";
     }
     configFile = configPath;
+    
     combinedNodesFile = cpaOutDir + "combinednodes.json";
     cfaInfoFile = cpaOutDir + "cfainfo.json";
     fCallEdgesFile = "output/fcalledges.json";
