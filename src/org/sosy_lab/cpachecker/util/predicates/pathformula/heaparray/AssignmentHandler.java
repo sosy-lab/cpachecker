@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.*;
 
 import java.util.Collections;
@@ -679,7 +678,7 @@ class AssignmentHandler {
             formulaManager.makeVariable(converter.voidPointerFormulaType,
                 target.getBaseName()),
             formulaManager.makeNumber(converter.voidPointerFormulaType,
-                target.getOffset()), IS_POINTER_SIGNED);
+                target.getOffset()));
 
         final BooleanFormula updateCondition = formulaManager.makeEqual(
             targetAddress, pLvalue);
@@ -706,7 +705,7 @@ class AssignmentHandler {
           formulaManager.makeVariable(converter.voidPointerFormulaType,
               target.getBaseName()),
           formulaManager.makeNumber(converter.voidPointerFormulaType,
-              target.getOffset()), IS_POINTER_SIGNED);
+              target.getOffset()));
 
       // TODO array calls
       constraints.addConstraint(formulaManager.makeEqual(
@@ -744,7 +743,7 @@ class AssignmentHandler {
           formulaManager.makeVariable(converter.voidPointerFormulaType,
               target.getBaseName()),
           formulaManager.makeNumber(converter.voidPointerFormulaType,
-              target.getOffset()), IS_POINTER_SIGNED);
+              target.getOffset()));
       final BooleanFormula negAntecedent = bfmgr.not(
           formulaManager.makeEqual(candidateAddress, pStartAddress));
       exact.setBase(target.getBase());
@@ -761,7 +760,7 @@ class AssignmentHandler {
               formulaManager.makeVariable(converter.voidPointerFormulaType,
                   spurious.getBaseName()),
               formulaManager.makeNumber(converter.voidPointerFormulaType,
-                  spurious.getOffset()), IS_POINTER_SIGNED);
+                  spurious.getOffset()));
           // TODO array calls
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(
               afmgr.declareAndCallArray(ufName, newIndex,
@@ -802,11 +801,10 @@ class AssignmentHandler {
             formulaManager.makeVariable(converter.voidPointerFormulaType,
                 target.getBaseName()),
             formulaManager.makeNumber(converter.voidPointerFormulaType,
-                target.getOffset()), IS_POINTER_SIGNED);
+                target.getOffset()));
 
         final Formula endAddress = formulaManager.makePlus(pStartAddress,
-            formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1),
-            IS_POINTER_SIGNED);
+            formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1));
 
         // TODO array calls
         constraints.addConstraint(bfmgr.or(bfmgr.and(
@@ -852,7 +850,7 @@ class AssignmentHandler {
     final Formula offsetFormula = formulaManager
         .makeNumber(converter.voidPointerFormulaType, pOffset);
     final AliasedLocation newLvalue = Location.ofAddress(formulaManager
-        .makePlus(pLvalue.getAddress(), offsetFormula, IS_POINTER_SIGNED));
+        .makePlus(pLvalue.getAddress(), offsetFormula));
     return Pair.of(newLvalue, pLvalueElementType);
   }
 
@@ -880,7 +878,7 @@ class AssignmentHandler {
           converter.voidPointerFormulaType, pOffset);
       final AliasedLocation newRvalue = Location.ofAddress(
           formulaManager.makePlus(pRvalue.asAliasedLocation().getAddress(),
-              offsetFormula, IS_POINTER_SIGNED));
+              offsetFormula));
       final CType newRvalueType = CTypeUtils.simplifyType(
           ((CArrayType) pRvalueType).getType());
       return Pair.of(newRvalue, newRvalueType);
@@ -920,7 +918,7 @@ class AssignmentHandler {
           converter.voidPointerFormulaType, pOffset);
       final AliasedLocation newLvalue = Location.ofAddress(
           formulaManager.makePlus(pLvalue.asAliased().getAddress(),
-              offsetFormula, IS_POINTER_SIGNED));
+              offsetFormula));
       return Pair.of(newLvalue, newLvalueType);
 
     } else {
@@ -958,7 +956,7 @@ class AssignmentHandler {
           converter.voidPointerFormulaType, pOffset);
       final AliasedLocation newRvalue = Location.ofAddress(
           formulaManager.makePlus(pRvalue.asAliasedLocation().getAddress(),
-              offsetFormula, IS_POINTER_SIGNED));
+              offsetFormula));
       return Pair.of(newRvalue, newLvalueType);
     }
     case UNALIASED_LOCATION: {

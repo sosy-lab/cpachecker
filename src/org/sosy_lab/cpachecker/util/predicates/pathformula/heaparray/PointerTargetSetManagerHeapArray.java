@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -541,8 +540,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
               makeValueImportConstraints(
                   formulaManager.makePlus(pAddress,
                       formulaManager.makeNumber(
-                          typeHandler.getPointerType(), offset),
-                      IS_POINTER_SIGNED),
+                          typeHandler.getPointerType(), offset)),
                   prefix, type, pSharedFields, pSSAMapBuilder));
         }
 
@@ -628,8 +626,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final Formula rhs = formulaManager.makePlus(
           formulaManager.makeVariable(pointerType,
               PointerTargetSet.getBaseName(pLastBase)),
-          formulaManager.makeNumber(pointerType, lastSize),
-          IS_POINTER_SIGNED);
+          formulaManager.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return formulaManager.makeAnd(
           formulaManager.makeGreaterThan(rhs,

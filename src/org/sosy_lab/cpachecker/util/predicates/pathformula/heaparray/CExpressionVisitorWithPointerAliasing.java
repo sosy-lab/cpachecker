@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -323,8 +321,7 @@ class CExpressionVisitorWithPointerAliasing
         converter.voidPointerFormulaType, converter.getSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = converter.formulaManager.makePlus(baseAddress,
-        converter.formulaManager.makeMultiply(coeff, index, IS_POINTER_SIGNED),
-        IS_POINTER_SIGNED);
+        converter.formulaManager.makeMultiply(coeff, index));
     addEqualBaseAddressConstraint(baseAddress, address);
     return AliasedLocation.ofAddress(address);
   }
@@ -366,7 +363,7 @@ class CExpressionVisitorWithPointerAliasing
                 fieldName));
 
         final Formula address = converter.formulaManager.makePlus(
-            base.getAddress(), offset, IS_POINTER_SIGNED);
+            base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
         return AliasedLocation.ofAddress(address);
       } else {
@@ -554,8 +551,7 @@ class CExpressionVisitorWithPointerAliasing
                 converter.voidPointerFormulaType,
                 converter.ptsMgr.getOffset(compositeType, fieldName));
             addressExpression = AliasedLocation.ofAddress(
-                converter.formulaManager
-                    .makePlus(base, offset, IS_POINTER_SIGNED));
+                converter.formulaManager.makePlus(base, offset));
             addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
         }

@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import java.math.BigInteger;
@@ -482,7 +481,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
           pFields.add(Pair.of(compositeType, memberName));
           addValueImportConstraints(pCFAEdge, formulaManager.makePlus(
               pAddress, formulaManager.makeNumber(
-                  voidPointerFormulaType, offset), IS_POINTER_SIGNED), newBase,
+                  voidPointerFormulaType, offset)), newBase,
               pFields, pSSAMapBuilder, pConstraints);
         }
 
