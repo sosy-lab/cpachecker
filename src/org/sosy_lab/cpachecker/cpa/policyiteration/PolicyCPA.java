@@ -101,9 +101,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
-      pathFormulaManager = new CachingPathFormulaManager(
-          pathFormulaManager
-      );
+      pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
 
     InvariantGenerator invariantGenerator;
