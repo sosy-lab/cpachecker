@@ -73,6 +73,7 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.api.UfDeclaration;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
@@ -1045,7 +1046,24 @@ public class FormulaManagerView {
           // Create an processed version of the
           // function application.
           toProcess.pop();
-          Formula out = newApplicationConstructor.apply(newArgs);
+          Formula out;
+          if (isUninterpreted) {
+
+            List<FormulaType<?>> argumentTypes = new ArrayList<>(args.size());
+            for (Formula arg: args) {
+              argumentTypes.add(getFormulaType(arg));
+            }
+            UfDeclaration<?> decl = functionFormulaManager.declareUninterpretedFunction(
+                pRenameFunction.apply(functionName),
+                getFormulaType(f),
+                argumentTypes);
+            out = functionFormulaManager.callUninterpretedFunction(
+                decl, newArgs
+            );
+
+          } else {
+            out = newApplicationConstructor.apply(newArgs);
+          }
           pCache.put(f, out);
         }
         return null;
