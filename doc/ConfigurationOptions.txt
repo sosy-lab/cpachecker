@@ -391,9 +391,9 @@ cbmc.timelimit = 0ms
 # will be refined
 cegar.domainScoreThreshold = 1024
 
+# whether or not global refinement is performed
 # Whether to do refinement immediately after finding an error state, or
 # globally after the ARG has been unrolled completely.
-# whether or not global refinement is performed
 cegar.globalRefinement = false
 
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
@@ -1152,8 +1152,8 @@ cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
 # Use multiple partitions for predicates
 cpa.predicate.abs.predicateOrdering.partitions = false
 
-# use caching of abstractions
 # use caching of region to formula conversions
+# use caching of abstractions
 cpa.predicate.abs.useCache = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
@@ -2364,10 +2364,10 @@ pcc.proofFile = "arg.obj"
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
-# Qualified name for class which implements certification strategy, hence
-# proof writing, to be used.
 # Qualified name for class which implements proof checking strategy to be
 # used.
+# Qualified name for class which implements certification strategy, hence
+# proof writing, to be used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking
