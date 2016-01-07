@@ -36,6 +36,7 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
 
@@ -119,9 +120,9 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
 
   @Override
   public void visitRecursively(
-      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> pRFormulaVisitor,
-      BooleanFormula pF) {
-    manager.visitRecursively(pRFormulaVisitor, pF);
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor,
+      BooleanFormula f) {
+    manager.visitRecursively(rFormulaVisitor, f);
   }
 
   @Override
@@ -203,44 +204,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
 
   public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
     return not(equivalence(p, q));
-  }
-
-  public static abstract class BooleanFormulaVisitor<R>
-      implements org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> {
-
-    protected final FormulaManagerView fmgr;
-
-    protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      fmgr = pFmgr;
-    }
-  }
-
-  public static abstract class DefaultBooleanFormulaVisitor<R>
-      extends org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor<R> {
-
-    protected DefaultBooleanFormulaVisitor() {
-      super();
-    }
-  }
-
-  /**
-   * Base class for visitors for boolean formulas that traverse recursively
-   * through the full formula (at least the boolean part, not inside atoms).
-   * This class ensures that each identical subtree of the formula
-   * is visited only once to avoid the exponential explosion.
-   *
-   * Subclasses of this class should call super.visit...() to ensure recursive
-   * traversal. If such a call is omitted, the respective part of the formula
-   * is not visited.
-   *
-   * No guarantee on iteration order is made.
-   */
-  public static abstract class RecursiveBooleanFormulaVisitor
-      extends org.sosy_lab.solver.visitors.RecursiveBooleanFormulaVisitor {
-
-    protected RecursiveBooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager());
-    }
   }
 
   /**

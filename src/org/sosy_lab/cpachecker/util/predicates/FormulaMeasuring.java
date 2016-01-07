@@ -27,9 +27,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.collect.ImmutableSortedSet;
 
@@ -62,36 +64,37 @@ public class FormulaMeasuring {
 
   public FormulaMeasures measure(BooleanFormula formula) {
     FormulaMeasures result = new FormulaMeasures();
-    managerView.getBooleanFormulaManager().visit(new FormulaMeasuringVisitor(managerView, result), formula);
+    managerView.getBooleanFormulaManager().visitRecursively(
+        new FormulaMeasuringVisitor(managerView, result), formula
+    );
     return result;
   }
 
   private static class FormulaMeasuringVisitor
-      extends BooleanFormulaManagerView.RecursiveBooleanFormulaVisitor {
+      implements BooleanFormulaVisitor<TraversalProcess> {
 
     private final FormulaMeasures measures;
     private final FormulaManagerView fmgr;
 
     FormulaMeasuringVisitor(FormulaManagerView pFmgr, FormulaMeasures pMeasures) {
-      super(pFmgr);
       measures = pMeasures;
       fmgr = pFmgr;
     }
 
     @Override
-    public Void visitFalse() {
+    public TraversalProcess visitFalse() {
       measures.falses++;
       return null;
     }
 
     @Override
-    public Void visitTrue() {
+    public TraversalProcess visitTrue() {
       measures.trues++;
       return null;
     }
 
     @Override
-    public Void visitAtom(BooleanFormula pAtom) {
+    public TraversalProcess visitAtom(BooleanFormula pAtom) {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);
@@ -100,40 +103,46 @@ public class FormulaMeasuring {
     }
 
     @Override
-    public Void visitNot(BooleanFormula pOperand) {
+    public TraversalProcess visitNot(BooleanFormula pOperand) {
       measures.negations++;
-      return super.visitNot(pOperand);
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
-    public Void visitAnd(List<BooleanFormula> pOperands) {
+    public TraversalProcess visitAnd(List<BooleanFormula> pOperands) {
       measures.conjunctions++;
-      return super.visitAnd(pOperands);
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
-    public Void visitOr(List<BooleanFormula> pOperands) {
+    public TraversalProcess visitOr(List<BooleanFormula> pOperands) {
       measures.disjunctions++;
-      return super.visitOr(pOperands);
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
-    public Void visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    public TraversalProcess visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       // TODO count?
-      return super.visitEquivalence(pOperand1, pOperand2);
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
-    public Void visitIfThenElse(
+    public TraversalProcess visitIfThenElse(
         BooleanFormula pCondition, BooleanFormula pThenFormula, BooleanFormula pElseFormula) {
       // TODO count?
-      return super.visitIfThenElse(pCondition, pThenFormula, pElseFormula);
+      return TraversalProcess.CONTINUE;
     }
 
     @Override
-    public Void visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
+    public TraversalProcess visitQuantifier(Quantifier quantifier,
+        BooleanFormula body) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitImplication(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       // TODO count?
-      return super.visitImplication(pOperand1, pOperand2);
+      return TraversalProcess.CONTINUE;
     }
   }
 }

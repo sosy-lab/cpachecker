@@ -56,7 +56,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
@@ -77,8 +76,10 @@ import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -1077,7 +1078,8 @@ public class FormulaManagerView {
         continue;
       }
 
-      unsafeManager.visit(process, tt);
+      //noinspection ResultOfMethodCallIgnored
+      visit(process, tt);
     }
 
     @SuppressWarnings("unchecked")
@@ -1409,10 +1411,10 @@ public class FormulaManagerView {
   }
 
   public BooleanFormula substitute(
-      BooleanFormula f, Map<BooleanFormula, BooleanFormula> replacements) {
+      BooleanFormula f, Map<? extends Formula, ? extends Formula> replacements) {
     Map<Formula, Formula> m = new HashMap<>();
-    for (Entry<BooleanFormula, BooleanFormula> e : replacements.entrySet()) {
-      m.put(e.getKey(), e.getValue());
+    for (Entry<? extends Formula, ? extends Formula> e : replacements.entrySet()) {
+      m.put(unwrap(e.getKey()), unwrap(e.getValue()));
     }
     return (BooleanFormula)unsafeManager.substitute(f, m);
   }
@@ -1517,5 +1519,27 @@ public class FormulaManagerView {
    */
   public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
     return manager.applyTactic(input, tactic);
+  }
+
+  /**
+   * Visit the formula with a given visitor.
+   */
+  public <R> R visit(FormulaVisitor<R> rFormulaVisitor, Formula f) {
+    return manager.visit(rFormulaVisitor, unwrap(f));
+  }
+
+  /**
+   * Visit the formula recursively with a given {@link FormulaVisitor}.
+   *
+   * <p>This method guarantees that the traversal is done iteratively,
+   * without using Java recursion, and thus is not prone to StackOverflowErrors.
+   *
+   * <p>Furthermore, this method also guarantees that every equal part of the formula
+   * is visited only once. Thus it can be used to traverse DAG-like formulas efficiently.
+   */
+  public void visitRecursively(
+      FormulaVisitor<TraversalProcess> rFormulaVisitor,
+      Formula f) {
+    manager.visitRecursively(rFormulaVisitor, unwrap(f));
   }
 }

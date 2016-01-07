@@ -37,6 +37,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.collect.Lists;
 
@@ -151,13 +152,12 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
   }
 
   class RemoveAssumptionsFromFormulaVisitor
-      extends BooleanFormulaManagerView.BooleanFormulaVisitor<BooleanFormula> {
+      implements BooleanFormulaVisitor<BooleanFormula> {
 
     private final Set<BooleanFormula> seen = new HashSet<>();
     private final BooleanFormulaManagerView bmgr;
 
     private RemoveAssumptionsFromFormulaVisitor() {
-      super(formulaManagerView);
       bmgr = formulaManagerView.getBooleanFormulaManager();
     }
 

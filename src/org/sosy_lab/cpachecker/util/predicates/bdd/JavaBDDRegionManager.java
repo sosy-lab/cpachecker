@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
@@ -642,15 +644,17 @@ class JavaBDDRegionManager implements RegionManager {
    * cleanupReferences() would be too big.
    */
   private class FormulaToRegionConverter
-      extends BooleanFormulaManagerView.BooleanFormulaVisitor<BDD> implements AutoCloseable {
+      implements AutoCloseable,
+                BooleanFormulaVisitor<BDD> {
 
     private final Function<BooleanFormula, Region> atomToRegion;
     private final Map<BooleanFormula, BDD> cache = new HashMap<>();
+    private final BooleanFormulaManager bfmgr;
 
     FormulaToRegionConverter(FormulaManagerView pFmgr,
         Function<BooleanFormula, Region> pAtomToRegion) {
-      super(pFmgr);
       atomToRegion = pAtomToRegion;
+      bfmgr = pFmgr.getBooleanFormulaManager();
     }
 
     @Override
@@ -671,7 +675,7 @@ class JavaBDDRegionManager implements RegionManager {
     private BDD convert(BooleanFormula pOperand) {
       BDD operand = cache.get(pOperand);
       if (operand == null) {
-        operand = fmgr.getBooleanFormulaManager().visit(this, pOperand);
+        operand = bfmgr.visit(this, pOperand);
         cache.put(pOperand, operand);
       }
       return operand.id(); // copy BDD so the one in the cache won't be consumed

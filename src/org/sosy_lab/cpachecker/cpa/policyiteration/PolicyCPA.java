@@ -48,8 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.FormulaManagerFactory;
-import org.sosy_lab.solver.api.FormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -96,11 +94,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     logger = pLogger;
     config = pConfig;
 
-    FormulaManagerFactory formulaManagerFactory = new FormulaManagerFactory(
-        pConfig, pLogger, shutdownNotifier);
-
-    FormulaManager realFormulaManager = formulaManagerFactory.getFormulaManager();
-    Solver solver = new Solver(formulaManagerFactory, pConfig, pLogger);
+    Solver solver = Solver.create(config, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
         formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
@@ -141,7 +135,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
             stateFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
         FormulaLinearizationManager(
-          realFormulaManager.getUnsafeFormulaManager(),
           formulaManager.getBooleanFormulaManager(),
           formulaManager,
         formulaManager.getIntegerFormulaManager(), statistics);

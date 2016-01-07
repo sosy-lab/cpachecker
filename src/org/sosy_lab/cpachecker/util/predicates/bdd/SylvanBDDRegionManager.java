@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
@@ -448,19 +450,19 @@ class SylvanBDDRegionManager implements RegionManager {
    * <p/>
    * All visit* methods from this class return methods that have not been ref'ed.
    */
-  private class FormulaToRegionConverter extends
-      BooleanFormulaManagerView.BooleanFormulaVisitor<Long> implements
-      AutoCloseable {
+  private class FormulaToRegionConverter
+      implements BooleanFormulaVisitor<Long>, AutoCloseable {
 
     private final Function<BooleanFormula, Region> atomToRegion;
+    private final BooleanFormulaManager bfmgr;
 
     // All BDDs in cache are ref'ed and are deref'ed in the close() method.
     private final Map<BooleanFormula, Long> cache = new HashMap<>();
 
     FormulaToRegionConverter(FormulaManagerView pFmgr,
         Function<BooleanFormula, Region> pAtomToRegion) {
-      super(pFmgr);
       atomToRegion = pAtomToRegion;
+      bfmgr = pFmgr.getBooleanFormulaManager();
     }
 
     @Override
@@ -483,7 +485,7 @@ class SylvanBDDRegionManager implements RegionManager {
     private long convert(BooleanFormula pOperand) {
       Long operand = cache.get(pOperand);
       if (operand == null) {
-        operand = ref(fmgr.getBooleanFormulaManager().visit(this, pOperand));
+        operand = ref(bfmgr.visit(this, pOperand));
         cache.put(pOperand, operand);
       }
       return operand;
