@@ -128,7 +128,7 @@ public class ToBitvectorFormulaVisitor implements
     if (summand1 == null || summand2 == null) {
       return evaluate(pAdd, pEnvironment);
     }
-    return this.bvfmgr.add(summand1, summand2, true);
+    return this.bvfmgr.add(summand1, summand2);
   }
 
   @Override
@@ -189,7 +189,7 @@ public class ToBitvectorFormulaVisitor implements
     if (factor1 == null || factor2 == null) {
       return evaluate(pMultiply, pEnvironment);
     }
-    return this.bvfmgr.multiply(factor1, factor2, true);
+    return this.bvfmgr.multiply(factor1, factor2);
   }
 
   @Override

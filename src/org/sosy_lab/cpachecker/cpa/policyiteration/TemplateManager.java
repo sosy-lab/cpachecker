@@ -398,11 +398,10 @@ public class TemplateManager {
       if (coeff == Rational.ZERO) {
         continue;
       } else if (coeff == Rational.NEG_ONE) {
-        multipliedItem = fmgr.makeNegate(item, true);
+        multipliedItem = fmgr.makeNegate(item);
       } else if (coeff != Rational.ONE){
         multipliedItem = fmgr.makeMultiply(
-            item, fmgr.makeNumber(item, entry.getValue()), true
-        );
+            item, fmgr.makeNumber(item, entry.getValue()));
       } else {
         multipliedItem = item;
       }
@@ -410,7 +409,7 @@ public class TemplateManager {
       if (sum == null) {
         sum = multipliedItem;
       } else {
-        sum = fmgr.makePlus(sum, multipliedItem, true);
+        sum = fmgr.makePlus(sum, multipliedItem);
       }
     }
 
