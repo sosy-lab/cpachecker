@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -401,7 +400,7 @@ public class PointerTargetSetManager {
         if (ssa.getIndex(newPrefix) > 0) {
           sharedFields.add(Pair.of(compositeType, memberName));
           result = bfmgr.and(result, makeValueImportConstraints(
-                                       formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset), IS_POINTER_SIGNED),
+                                       formulaManager.makePlus(address, formulaManager.makeNumber(typeHandler.getPointerType(), offset)),
                                        newPrefix,
                                        memberType,
                                        sharedFields,
@@ -459,8 +458,7 @@ public class PointerTargetSetManager {
     if (lastBase != null) {
       final int lastSize = typeHandler.getSizeof(bases.get(lastBase));
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
-                                                  formulaManager.makeNumber(pointerType, lastSize),
-                                                  IS_POINTER_SIGNED);
+                                                  formulaManager.makeNumber(pointerType, lastSize));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
                                     formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));

@@ -29,6 +29,7 @@ import java.util.List;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
@@ -42,13 +43,13 @@ public class QuantifiedFormulaManagerView
 
   private final QuantifiedFormulaManager manager;
   private final BooleanFormulaManagerView bfm;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+  private final IntegerFormulaManager ifm;
 
   QuantifiedFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
       QuantifiedFormulaManager pManager,
       BooleanFormulaManagerView pBmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pImgr) {
+      IntegerFormulaManager pImgr) {
     super(pWrappingHandler);
     this.manager = pManager;
     this.bfm = pBmgr;

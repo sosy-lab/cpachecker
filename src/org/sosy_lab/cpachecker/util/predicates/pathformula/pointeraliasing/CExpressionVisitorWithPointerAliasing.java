@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -182,7 +180,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
-    final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index, IS_POINTER_SIGNED), IS_POINTER_SIGNED);
+    final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAdressConstraint(baseAddress, address);
     return AliasedLocation.ofAddress(address);
   }
@@ -209,7 +207,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                     conv.ptsMgr.getOffset((CCompositeType) fieldOwnerType, fieldName));
 
-        final Formula address = conv.fmgr.makePlus(base.getAddress(), offset, IS_POINTER_SIGNED);
+        final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAdressConstraint(base.getAddress(), address);
         return AliasedLocation.ofAddress(address);
       } else {
@@ -336,7 +334,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             usedFields.add(Pair.of(compositeType, fieldName));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
                                                         conv.ptsMgr.getOffset(compositeType, fieldName));
-            addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset, IS_POINTER_SIGNED));
+            addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addEqualBaseAdressConstraint(base, addressExpression.getAddress());
           }
         }

@@ -270,7 +270,8 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
       // Formulas reported by other CPAs.
       BooleanFormula extraInvariant = extractReportedFormulas(pArgState);
-      logger.log(Level.FINE, "Reported formulas: ", extraInvariant);
+      logger.log(Level.INFO, "Reported formulas: ", extraInvariant);
+      logger.flush();
 
       Optional<PolicyAbstractedState> sibling =
           getSiblings(iState, extraInvariant, states.getReached(pArgState));
@@ -634,7 +635,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       final PolicyIntermediateState state,
       final Optional<PolicyAbstractedState> otherState,
       PolicyPrecision precision,
-      BooleanFormula extraPredicate)
+      BooleanFormula extraInvariant)
       throws CPAException, InterruptedException {
 
     logger.log(Level.FINE, "Performing abstraction at node: ", state.getNode());
@@ -671,7 +672,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         // Invariant from other CPAs.
         optEnvironment.addConstraint(
-            fmgr.instantiate(extraPredicate, state.getPathFormula().getSsa())
+            fmgr.instantiate(extraInvariant, state.getPathFormula().getSsa())
         );
       }
 
@@ -684,7 +685,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       );
 
       Set<String> formulaVars = fmgr.extractFunctionNames(
-          state.getPathFormula().getFormula(), true);
+          state.getPathFormula().getFormula());
       for (Template template : precision) {
         shutdownNotifier.shutdownIfNecessary();
 
@@ -814,7 +815,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             stateFormulaConversionManager,
             state.getPathFormula().getSsa(),
             state.getPathFormula().getPointerTargetSet(),
-            extraPredicate,
+            extraInvariant,
             state
         );
   }
@@ -862,7 +863,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     PolicyAbstractedState backpointer = inputState.getGeneratingState()
         .getLatestVersion();
 
-    Set<String> policyVars = fmgr.extractFunctionNames(policyFormula, true);
+    Set<String> policyVars = fmgr.extractFunctionNames(policyFormula);
     Set<Template> dependencies;
     if (!dependsOnInitial) {
       dependencies = ImmutableSet.of();
@@ -875,7 +876,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
             pfmgr, fmgr, t,
             stateFormulaConversionManager.getPathFormula(backpointer, fmgr,
                 false)
-        ), true);
+        ));
         if (!Sets.intersection(fVars, policyVars).isEmpty()) {
           dependencies.add(t);
         }
@@ -930,9 +931,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
   ) {
     PolicyAbstractedState generatingState = state.getGeneratingState().getLatestVersion();
     Set<String> templateVars = fmgr.extractFunctionNames(
-        templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()),
-        true
-    );
+        templateManager.toFormula(pfmgr, fmgr, pTemplate, state.getPathFormula()));
 
     if (!Sets.intersection(formulaVars, templateVars).isEmpty()) {
       return Optional.absent();

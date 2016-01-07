@@ -82,6 +82,7 @@ import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
@@ -334,7 +335,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   public void testArrayView1() {
     // TODO This just tests if the view creates the string we expect. It's not
     // real test, as we have different views for different solvers.
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
     IntegerFormula _i = imgv.makeVariable("i");
@@ -357,7 +358,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   public void testArrayView2() {
     // TODO This just tests if the view creates the string we expect. It's not
     // real test, as we have different views for different solvers.
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
     IntegerFormula _i = imgv.makeVariable("i");
@@ -383,7 +384,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   public void testArrayView3() {
     // TODO This just tests if the view creates the string we expect. It's not
     // real test, as we have different views for different solvers.
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
     IntegerFormula _i = imgv.makeVariable("i");

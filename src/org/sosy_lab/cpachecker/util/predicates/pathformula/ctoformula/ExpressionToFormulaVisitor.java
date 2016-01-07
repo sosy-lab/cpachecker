@@ -177,33 +177,33 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     switch (op) {
     case PLUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-        ret = mgr.makePlus(f1, f2, signed);
+        ret = mgr.makePlus(f1, f2);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
         ret =  mgr.makePlus(f1, mgr.makeMultiply(f2,
                                                              getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                             calculationType), false), signed);
+                                                             calculationType)));
       } else if (!(promT1 instanceof CPointerType)) {
         // operand2 is a pointer => we should multiply the first summand by the size of the pointer target
         ret =  mgr.makePlus(f2, mgr.makeMultiply(f1,
                                                              getPointerTargetSizeLiteral((CPointerType) promT2,
-                                                             calculationType), false), signed);
+                                                             calculationType)));
       } else {
         throw new UnrecognizedCCodeException("Can't add pointers", edge, exp);
       }
       break;
     case MINUS:
       if (!(promT1 instanceof CPointerType) && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-        ret =  mgr.makeMinus(f1, f2, signed);
+        ret =  mgr.makeMinus(f1, f2);
       } else if (!(promT2 instanceof CPointerType)) {
         // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
         ret =  mgr.makeMinus(f1, mgr.makeMultiply(f2,
                                                               getPointerTargetSizeLiteral((CPointerType) promT1,
-                                                                                            calculationType), false), signed);
+                                                                                            calculationType)));
       } else if (promT1 instanceof CPointerType) {
         // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
         if (promT1.equals(promT2)) {
-          ret = mgr.makeDivide(mgr.makeMinus(f1, f2, signed),
+          ret = mgr.makeDivide(mgr.makeMinus(f1, f2),
                                      getPointerTargetSizeLiteral((CPointerType) promT1, calculationType),
                                      true);
         } else {
@@ -214,7 +214,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       }
       break;
     case MULTIPLY:
-      ret =  mgr.makeMultiply(f1, f2, signed);
+      ret =  mgr.makeMultiply(f1, f2);
       break;
     case DIVIDE:
       ret = mgr.makeDivide(f1, f2, signed);
@@ -455,7 +455,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         } else {
           signed = false;
         }
-        ret = mgr.makeNegate(operandFormula, signed);
+        ret = mgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE
               : "This case should be impossible because of switch";
@@ -573,7 +573,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula zero = mgr.getFloatingPointFormulaManager().makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
             BooleanFormula isNegative = mgr.makeLessThan(param, zero, true);
             return mgr.getBooleanFormulaManager().ifThenElse(isNegative,
-                mgr.makeNegate(param, true), param);
+                mgr.makeNegate(param), param);
           }
         }
 

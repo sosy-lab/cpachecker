@@ -36,6 +36,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
 import com.google.common.collect.Lists;
 
@@ -67,7 +69,8 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
     // remove assumption variables from the rawInterpolant if necessary
     if (!solverAssumptionsAsFormula.isEmpty()) {
-      interpolant = new RemoveAssumptionsFromFormulaVisitor().visit(interpolant);
+      interpolant = formulaManagerView.getBooleanFormulaManager().visit(
+          new RemoveAssumptionsFromFormulaVisitor(), interpolant);
     }
 
     return interpolant;
@@ -149,19 +152,18 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
   }
 
   class RemoveAssumptionsFromFormulaVisitor
-      extends BooleanFormulaManagerView.BooleanFormulaVisitor<BooleanFormula> {
+      implements BooleanFormulaVisitor<BooleanFormula> {
 
     private final Set<BooleanFormula> seen = new HashSet<>();
     private final BooleanFormulaManagerView bmgr;
 
     private RemoveAssumptionsFromFormulaVisitor() {
-      super(formulaManagerView);
       bmgr = formulaManagerView.getBooleanFormulaManager();
     }
 
     private BooleanFormula visitIfNotSeen(BooleanFormula f) {
       if (seen.add(f)) {
-        return visit(f);
+        return bmgr.visit(this, f);
       }
       return null;
     }
@@ -257,14 +259,8 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
     }
 
     @Override
-    public BooleanFormula visitForAll(
-        List<Formula> pVariables, BooleanFormula pBody) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public BooleanFormula visitExists(
-        List<Formula> pVariables, BooleanFormula pBody) {
+    public BooleanFormula visitQuantifier(
+        Quantifier quantifier, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

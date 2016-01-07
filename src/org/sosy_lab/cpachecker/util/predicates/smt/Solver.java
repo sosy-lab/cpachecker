@@ -49,7 +49,6 @@ import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.logging.LoggingInterpolatingProverEnvironment;
 import org.sosy_lab.solver.logging.LoggingOptEnvironment;
 import org.sosy_lab.solver.logging.LoggingProverEnvironment;
@@ -277,7 +276,7 @@ public final class Solver implements AutoCloseable {
    * Helper function for UNSAT core generation.
    * Takes a single API call to perform.
    *
-   * Additionally, tries to give a "better" UNSAT core, by breaking up AND-
+   * <p>Additionally, tries to give a "better" UNSAT core, by breaking up AND-
    * nodes into multiple constraints (thus an UNSAT core can contain only a
    * subset of some AND node).
    */
@@ -286,8 +285,7 @@ public final class Solver implements AutoCloseable {
 
     try (ProverEnvironment prover = newProverEnvironmentWithUnsatCoreGeneration()) {
       for (BooleanFormula constraint : constraints) {
-        addConstraint(constraint, prover,
-            solvingFormulaManager.getUnsafeFormulaManager());
+        addConstraint(constraint);
       }
       Verify.verify(prover.isUnsat());
       return prover.getUnsatCore();
@@ -298,17 +296,16 @@ public final class Solver implements AutoCloseable {
    * Helper function: add the constraint, OR, if the constraint is an AND-node,
    * add children one by one. Keep going recursively.
    */
-  private void addConstraint(BooleanFormula constraint,
-      ProverEnvironment prover, UnsafeFormulaManager ufmgr) {
+  private void addConstraint(BooleanFormula constraint) {
 
-    List<BooleanFormula> splittedConjunction = new ConjunctionSplitter(fmgr).visit(constraint);
+    List<BooleanFormula> splittedConjunction = bfmgr.visit(new ConjunctionSplitter(fmgr), constraint);
     if (splittedConjunction == null) {
       // in this case, we could not split the constraint and use it "as is".
       splittedConjunction = Collections.singletonList(constraint);
     }
 
     for (BooleanFormula f : splittedConjunction) {
-      addConstraint(f, prover, ufmgr);
+      addConstraint(f);
     }
   }
 

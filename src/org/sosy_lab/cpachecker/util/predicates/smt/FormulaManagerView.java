@@ -56,7 +56,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
@@ -73,16 +72,20 @@ import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.solver.api.UfDeclaration;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -114,12 +117,6 @@ public class FormulaManagerView {
     ;
   }
 
-  /* TODO the integer-type corresponding to a pointer-type should be unsigned?
-   * TODO are there negative pointers?
-   * TODO distinguish pointer-int-type from pointer-diff-type (which is SIGNED!). currently we use this flag for both cases.
-   * TODO currently just 'decoration' until we know the exact needed signess. */
-  public static final boolean IS_POINTER_SIGNED = false;
-
   private final LogManager logger;
 
   private final FormulaManager manager;
@@ -129,8 +126,8 @@ public class FormulaManagerView {
   private final BooleanFormulaManagerView booleanFormulaManager;
   private final BitvectorFormulaManagerView bitvectorFormulaManager;
   private final FloatingPointFormulaManagerView floatingPointFormulaManager;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> integerFormulaManager;
-  private NumeralFormulaManagerView<NumeralFormula, RationalFormula> rationalFormulaManager;
+  private IntegerFormulaManagerView integerFormulaManager;
+  private RationalFormulaManagerView rationalFormulaManager;
   private final FunctionFormulaManagerView functionFormulaManager;
   private QuantifiedFormulaManagerView quantifiedFormulaManager;
   private ArrayFormulaManagerView arrayFormulaManager;
@@ -174,7 +171,7 @@ public class FormulaManagerView {
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
-    integerFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getIntegerFormulaManager0());
+    integerFormulaManager = new IntegerFormulaManagerView(wrappingHandler, getIntegerFormulaManager0());
   }
 
   /** Returns the BitvectorFormulaManager or a Replacement based on the Option 'encodeBitvectorAs'. */
@@ -417,14 +414,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeNegate(T pNum, boolean signed) {
+  public  <T extends Formula> T makeNegate(T pNum) {
     Formula t;
     if (pNum instanceof IntegerFormula) {
       t = integerFormulaManager.negate((IntegerFormula)pNum);
     } else if (pNum instanceof RationalFormula) {
       t = getRationalFormulaManager().negate((RationalFormula)pNum);
     } else if (pNum instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.negate((BitvectorFormula)pNum, signed);
+      t = bitvectorFormulaManager.negate((BitvectorFormula)pNum);
     } else if (pNum instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.negate((FloatingPointFormula)pNum);
     } else {
@@ -435,14 +432,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makePlus(T pF1, T pF2, boolean signed) {
+  public  <T extends Formula> T makePlus(T pF1, T pF2) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.add((IntegerFormula)pF1, (IntegerFormula)pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = rationalFormulaManager.add((NumeralFormula)pF1, (NumeralFormula)pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2, signed);
+      t = bitvectorFormulaManager.add((BitvectorFormula)pF1, (BitvectorFormula)pF2);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.add((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -453,14 +450,14 @@ public class FormulaManagerView {
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeMinus(T pF1, T pF2, boolean signed) {
+  public <T extends Formula> T makeMinus(T pF1, T pF2) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.subtract((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = getRationalFormulaManager().subtract((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2, signed);
+      t = bitvectorFormulaManager.subtract((BitvectorFormula) pF1, (BitvectorFormula) pF2);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.subtract((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -470,14 +467,14 @@ public class FormulaManagerView {
     return (T) t;
   }
   @SuppressWarnings("unchecked")
-  public  <T extends Formula> T makeMultiply(T pF1, T pF2, boolean signed) {
+  public  <T extends Formula> T makeMultiply(T pF1, T pF2) {
     Formula t;
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.multiply((IntegerFormula) pF1, (IntegerFormula) pF2);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
       t = getRationalFormulaManager().multiply((NumeralFormula) pF1, (NumeralFormula) pF2);
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
-      t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2, signed);
+      t = bitvectorFormulaManager.multiply((BitvectorFormula) pF1, (BitvectorFormula) pF2);
     } else if (pF1 instanceof FloatingPointFormula && pF2 instanceof FloatingPointFormula) {
       t = floatingPointFormulaManager.multiply((FloatingPointFormula)pF1, (FloatingPointFormula)pF2);
     } else {
@@ -785,13 +782,13 @@ public class FormulaManagerView {
     return makeVariable(formulaType, makeName(name, idx));
   }
 
-  public NumeralFormulaManagerView<IntegerFormula, IntegerFormula> getIntegerFormulaManager() {
+  public IntegerFormulaManagerView getIntegerFormulaManager() {
     return integerFormulaManager;
   }
 
-  public NumeralFormulaManagerView<NumeralFormula, RationalFormula> getRationalFormulaManager() {
+  public RationalFormulaManagerView getRationalFormulaManager() {
     if (rationalFormulaManager == null) {
-      rationalFormulaManager = new NumeralFormulaManagerView<>(wrappingHandler, getRationalFormulaManager0());
+      rationalFormulaManager = new RationalFormulaManagerView(wrappingHandler, getRationalFormulaManager0());
     }
     return rationalFormulaManager;
   }
@@ -814,7 +811,12 @@ public class FormulaManagerView {
 
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager() {
     if (quantifiedFormulaManager == null) {
-      quantifiedFormulaManager = new QuantifiedFormulaManagerView(wrappingHandler, manager.getQuantifiedFormulaManager(), booleanFormulaManager, getIntegerFormulaManager());
+      quantifiedFormulaManager = new QuantifiedFormulaManagerView(
+          wrappingHandler,
+          manager.getQuantifiedFormulaManager(),
+          booleanFormulaManager,
+          getIntegerFormulaManager()
+      );
     }
     return quantifiedFormulaManager;
   }
@@ -855,7 +857,7 @@ public class FormulaManagerView {
 
   /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see{@link #instantiate(F extends Formula, SSAMap)}
+   *  @see {@link #instantiate(F extends Formula, SSAMap)}
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
@@ -985,67 +987,52 @@ public class FormulaManagerView {
     Preconditions.checkNotNull(pFormula);
     Preconditions.checkNotNull(pRenameFunction);
 
-    Deque<Formula> toProcess = new ArrayDeque<>();
+    final Deque<Formula> toProcess = new ArrayDeque<>();
 
     // Add the formula to the work queue
     toProcess.push(pFormula);
 
-    // Process the work queue
-    while (!toProcess.isEmpty()) {
-      final Formula tt = toProcess.peek();
+    FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
 
-      if (pCache.containsKey(tt)) {
-        toProcess.pop();
-        continue;
+      @Override
+      public Void visitFreeVariable(Formula f, String name) {
+        String newName = pRenameFunction.apply(name);
+        Formula renamed = unwrap(makeVariable(getFormulaType(f), newName));
+        pCache.put(f, renamed);
+        return null;
       }
 
-      if (unsafeManager.isFreeVariable(tt)) {
-        String oldName = unsafeManager.getName(tt);
-        String newName = pRenameFunction.apply(oldName);
-        Formula renamed = unsafeManager.replaceArgsAndName(
-            tt, newName, ImmutableList.<Formula>of());
-        pCache.put(tt, renamed);
+      @Override
+      public Void visitBoundVariable(Formula f, String name, int deBruijnIdx) {
 
-      } else if (unsafeManager.isBoundVariable(tt)) {
+        // Bound variables have to stay as-is.
+        pCache.put(f, f);
+        return null;
+      }
 
-        // There is no need for un-instantiating bound variables.
-        pCache.put(tt, tt);
+      @Override
+      public Void visitConstant(Formula f, Object value) {
+        pCache.put(f, f);
+        return null;
+      }
 
-      } else if (unsafeManager.isQuantification(tt)) {
 
-        // Quantifications are no function applications,
-        //  i.e., they do not have an arity!
-
-        BooleanFormula ttBody = unsafeManager.getQuantifiedBody(tt);
-        BooleanFormula transformedBody = (BooleanFormula) pCache.get(ttBody);
-
-        if (transformedBody != null) {
-          // make a new quantified formula
-          BooleanFormula newTt = unsafeManager.replaceQuantifiedBody(
-              (BooleanFormula) tt, transformedBody);
-          pCache.put(tt, newTt);
-
-        } else {
-          toProcess.push(ttBody);
-        }
-
-      } else {
+      @Override
+      public Void visitFunction(Formula f, List<Formula> args,
+          String functionName,
+          Function<List<Formula>, Formula> newApplicationConstructor,
+          boolean isUninterpreted) {
 
         boolean allArgumentsTransformed = true;
 
         // Construct a new argument list for the function application.
-        // ATTENTION: also boolean operators, like AND, OR, ...
-        //             are function applications!
-        int arity = unsafeManager.getArity(tt);
-        List<Formula> newargs = Lists.newArrayListWithExpectedSize(arity);
+        List<Formula> newArgs = new ArrayList<>(args.size());
 
-        for (int i = 0; i < arity; ++i) {
-          Formula c = unsafeManager.getArg(tt, i);
+        for (Formula c : args) {
           Formula newC = pCache.get(c);
 
           if (newC != null) {
-            newargs.add(newC);
-
+            newArgs.add(newC);
           } else {
             toProcess.push(c);
             allArgumentsTransformed = false;
@@ -1053,30 +1040,64 @@ public class FormulaManagerView {
         }
 
         // The Flag childrenDone indicates whether all arguments
-        // of the function were already un-instantiated, i.e., the
-        // un-instantiated formula of all arguments is in the cache.
-
+        // of the function were already processed.
         if (allArgumentsTransformed) {
-          // Create an un-instantiated version of the
+
+          // Create an processed version of the
           // function application.
-
           toProcess.pop();
-          Formula newt;
+          Formula out;
+          if (isUninterpreted) {
 
-          if (unsafeManager.isUF(tt)) {
-            String oldName = unsafeManager.getName(tt);
-            assert oldName != null;
-
-            String newName = pRenameFunction.apply(oldName);
-            newt = unsafeManager.replaceArgsAndName(tt, newName, newargs);
+            List<FormulaType<?>> argumentTypes = new ArrayList<>(args.size());
+            for (Formula arg: args) {
+              argumentTypes.add(getFormulaType(arg));
+            }
+            UfDeclaration<?> decl = functionFormulaManager.declareUninterpretedFunction(
+                pRenameFunction.apply(functionName),
+                getFormulaType(f),
+                argumentTypes);
+            out = functionFormulaManager.callUninterpretedFunction(
+                decl, newArgs
+            );
 
           } else {
-            newt = unsafeManager.replaceArgs(tt, newargs);
+            out = newApplicationConstructor.apply(newArgs);
           }
-
-          pCache.put(tt, newt);
+          pCache.put(f, out);
         }
+        return null;
       }
+
+      @Override
+      public Void visitQuantifier(BooleanFormula f, Quantifier quantifier,
+          BooleanFormula body,
+          Function<BooleanFormula, BooleanFormula> bodyTransformer) {
+        BooleanFormula transformedBody = (BooleanFormula) pCache.get(body);
+
+        if (transformedBody != null) {
+
+          BooleanFormula newTt = bodyTransformer.apply(transformedBody);
+          pCache.put(f, newTt);
+
+        } else {
+          toProcess.push(body);
+        }
+        return null;
+      }
+    };
+
+    // Process the work queue
+    while (!toProcess.isEmpty()) {
+      Formula tt = toProcess.peek();
+
+      if (pCache.containsKey(tt)) {
+        toProcess.pop();
+        continue;
+      }
+
+      //noinspection ResultOfMethodCallIgnored
+      visit(process, tt);
     }
 
     @SuppressWarnings("unchecked")
@@ -1093,7 +1114,7 @@ public class FormulaManagerView {
     final List<BooleanFormula> result = new ArrayList<>();
 
     final BooleanFormulaVisitor<Boolean> isLowestLevel =
-        new DefaultBooleanFormulaVisitor<Boolean>(this) {
+        new DefaultBooleanFormulaVisitor<Boolean>() {
           @Override
           public Boolean visitDefault() {
             return false;
@@ -1106,13 +1127,14 @@ public class FormulaManagerView {
 
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitOperator(
+      public Void visitFunction(
           Formula f,
           List<Formula> args,
-          String functionName, Function<List<Formula>, Formula> constructor) {
+          String functionName, Function<List<Formula>, Formula> constructor,
+          boolean isUninterpreted) {
 
         if (getFormulaType(f).isBooleanType() &&
-            isLowestLevel.visit((BooleanFormula) f)) {
+            booleanFormulaManager.visit(isLowestLevel, (BooleanFormula) f)) {
 
           if (splitArithEqualities && myIsPurelyArithmetic(f)) {
             List<BooleanFormula> split =
@@ -1121,7 +1143,7 @@ public class FormulaManagerView {
           }
           result.add((BooleanFormula) f);
         } else {
-          super.visitOperator(f, args, functionName, constructor);
+          super.visitFunction(f, args, functionName, constructor, isUninterpreted);
         }
         return null;
       }
@@ -1141,7 +1163,8 @@ public class FormulaManagerView {
    * @return An optional formula.
    */
   public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
-    return new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>(this) {
+    return booleanFormulaManager.visit(
+        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
       @Override
       protected Optional<BooleanFormula> visitDefault() {
         return Optional.absent();
@@ -1151,7 +1174,7 @@ public class FormulaManagerView {
       public Optional<BooleanFormula> visitNot(BooleanFormula negated) {
         return Optional.of(negated);
       }
-    }.visit(f);
+    }, f);
   }
 
   /**
@@ -1179,9 +1202,14 @@ public class FormulaManagerView {
     final AtomicInteger isPurelyAtomic = new AtomicInteger(0);
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitUF(
-          Formula f2, List<Formula> args, String functionName) {
-        isPurelyAtomic.incrementAndGet();
+      public Void visitFunction(
+          Formula f,
+          List<Formula> args,
+          String functionName, Function<List<Formula>, Formula> constructor,
+          boolean isUninterpreted) {
+        if (isUninterpreted) {
+          isPurelyAtomic.incrementAndGet();
+        }
         return null;
       }
     }.visit(f);
@@ -1197,28 +1225,24 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    return myExtractFunctionNames(unwrap(f), false, true);
+    return myExtractFunctionNames(unwrap(f), false);
   }
 
   /**
    * Extract the names of all free variables + UFs in a formula.
    *
    * @param f   The input formula
-   * @param recurseIntoFunctions Whether to return arguments which only appear
-   * inside functions.
    *
    * @return    Set of variable names (might be instantiated)
    */
-  public Set<String> extractFunctionNames(Formula f,
-      boolean recurseIntoFunctions) {
-    return myExtractFunctionNames(unwrap(f), true, recurseIntoFunctions);
+  public Set<String> extractFunctionNames(Formula f) {
+    return myExtractFunctionNames(unwrap(f), true);
   }
 
   private Set<String> myExtractFunctionNames(
       final Formula pFormula,
-      final boolean extractUF,
-      final boolean recurseIntoFunctions) {
-    return myExtractSubformulas(pFormula, extractUF, recurseIntoFunctions).keySet();
+      final boolean extractUF) {
+    return myExtractSubformulas(pFormula, extractUF).keySet();
   }
 
   /**
@@ -1232,7 +1256,7 @@ public class FormulaManagerView {
    */
   @Deprecated
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    return myExtractSubformulas(unwrap(pF), false, true);
+    return myExtractSubformulas(unwrap(pF), false);
   }
 
   /**
@@ -1240,20 +1264,23 @@ public class FormulaManagerView {
    */
   private Map<String, Formula> myExtractSubformulas(
       final Formula pFormula,
-      final boolean extractUF,
-      final boolean recurseIntoFunctions) {
+      final boolean extractUF) {
 
     final Map<String, Formula> found = new HashMap<>();
     new RecursiveFormulaVisitor(manager) {
 
       @Override
-      public Void visitUF(Formula f, List<Formula> args, String functionName) {
-        if (recurseIntoFunctions) {
-          super.visitUF(f, args, functionName);
-        }
-        if (extractUF) {
+      public Void visitFunction(
+          Formula f,
+          List<Formula> args,
+          String functionName,
+          Function<List<Formula>, Formula> constructor,
+          boolean isUninterpreted) {
+
+        if (isUninterpreted && extractUF) {
           found.put(functionName, f);
         }
+        super.visitFunction(f, args, functionName, constructor, isUninterpreted);
         return null;
       }
 
@@ -1272,7 +1299,7 @@ public class FormulaManagerView {
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
     t = applyTactic(t, Tactic.NNF);
-    return (new DefaultBooleanFormulaVisitor<Boolean>(this) {
+    return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
 
       @Override public Boolean visitDefault() {
         return false;
@@ -1287,17 +1314,17 @@ public class FormulaManagerView {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
-        return visit(operand);
+        return booleanFormulaManager.visit(this, operand);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
-          if (!visit(operand)) {
+          if (!booleanFormulaManager.visit(this, operand)) {
             return false;
           }
         }
         return true;
       }
-    }).visit(t);
+    }, t);
   }
 
   private boolean containsIfThenElse(Formula f) {
@@ -1340,8 +1367,6 @@ public class FormulaManagerView {
         if (unsafeManager.getName(tt).equals(BitwiseAndUfName) && !andFound) {
           andFound = true;
         }
-//        FunctionSymbol funcSym = ((ApplicationTerm) t).getFunction();
-//        andFound = bitwiseAndUfDecl.equals(funcSym.getName());
       }
       int arity = unsafeManager.getArity(tt);
       for (int i = 0; i < arity; ++i) {
@@ -1404,10 +1429,10 @@ public class FormulaManagerView {
   }
 
   public BooleanFormula substitute(
-      BooleanFormula f, Map<BooleanFormula, BooleanFormula> replacements) {
+      BooleanFormula f, Map<? extends Formula, ? extends Formula> replacements) {
     Map<Formula, Formula> m = new HashMap<>();
-    for (Entry<BooleanFormula, BooleanFormula> e : replacements.entrySet()) {
-      m.put(e.getKey(), e.getValue());
+    for (Entry<? extends Formula, ? extends Formula> e : replacements.entrySet()) {
+      m.put(unwrap(e.getKey()), unwrap(e.getValue()));
     }
     return (BooleanFormula)unsafeManager.substitute(f, m);
   }
@@ -1450,7 +1475,7 @@ public class FormulaManagerView {
     List<Formula> result = Lists.newArrayList();
 
     for (Entry<String, Formula> entry: myExtractSubformulas(unwrap(pFormula),
-        extractUF, true).entrySet()) {
+        extractUF).entrySet()) {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
@@ -1512,5 +1537,27 @@ public class FormulaManagerView {
    */
   public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
     return manager.applyTactic(input, tactic);
+  }
+
+  /**
+   * Visit the formula with a given visitor.
+   */
+  public <R> R visit(FormulaVisitor<R> rFormulaVisitor, Formula f) {
+    return manager.visit(rFormulaVisitor, unwrap(f));
+  }
+
+  /**
+   * Visit the formula recursively with a given {@link FormulaVisitor}.
+   *
+   * <p>This method guarantees that the traversal is done iteratively,
+   * without using Java recursion, and thus is not prone to StackOverflowErrors.
+   *
+   * <p>Furthermore, this method also guarantees that every equal part of the formula
+   * is visited only once. Thus it can be used to traverse DAG-like formulas efficiently.
+   */
+  public void visitRecursively(
+      FormulaVisitor<TraversalProcess> rFormulaVisitor,
+      Formula f) {
+    manager.visitRecursively(rFormulaVisitor, unwrap(f));
   }
 }

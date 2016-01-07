@@ -178,9 +178,14 @@ def _handle_results(result_futures, output_handler, benchmark):
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]
-        result = result_future.result()
-        f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
-        f.add_done_callback(_log_future_exception)
+        try:
+            result = result_future.result()
+            f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+            f.add_done_callback(_log_future_exception)
+        
+        except WebClientError as e:
+            logging.warning("Execution of %s failed: %s", run.identifier, e)
+            
     executor.shutdown(wait=True)
 
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
