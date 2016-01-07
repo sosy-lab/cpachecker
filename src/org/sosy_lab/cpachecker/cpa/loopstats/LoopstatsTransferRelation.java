@@ -69,10 +69,28 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
       Iterable<CFAEdge> edgesToLoopBody = Collections2.transform(l.getLoopHeads(), new Function<CFANode, CFAEdge>() {
 
         @Override
-        public CFAEdge apply(CFANode pArg0) {
-          FluentIterable<CFAEdge> enteringEdges = CFAUtils.leavingEdges(pArg0).filter(in(l.getInnerLoopEdges()));
-          Preconditions.checkState(enteringEdges.size() == 1);
-          return enteringEdges.first().get();
+        public CFAEdge apply(CFANode pNode) {
+          FluentIterable<CFAEdge> leaving = CFAUtils.leavingEdges(pNode).filter(in(l.getInnerLoopEdges()));
+
+          // Two leaving edges might enter a loop (or at least stay in the same loop)
+          //
+          //    Example:
+          //
+          //          goto label2;
+          //          label1:
+          //          foo(m + (unsigned long ) i);
+          //          i = i + 1;
+          //          label2: ;
+          //          if (k > i) {
+          //            goto ldv_22165;
+          //          } else {}
+
+          // TODO: The following condition will fail for several program.
+          //    It is here as a TODO-Marker.
+          //    Program for which it fails: kernel-locking-locktorture.c
+          Preconditions.checkState(leaving.size() == 1);
+
+          return leaving.first().get();
         }
 
       });

@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.loopstats;
 
 import java.util.Collection;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -66,8 +64,7 @@ public class LoopstatsCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return new LoopstatsCPAFactory();
   }
 
-  public LoopstatsCPA(Configuration pConfig, CFA pCfa, LogManager pLogger)
-      throws InvalidConfigurationException, CPAException {
+  public LoopstatsCPA(CFA pCfa, LogManager pLogger) throws CPAException {
 
     logger = pLogger;
 

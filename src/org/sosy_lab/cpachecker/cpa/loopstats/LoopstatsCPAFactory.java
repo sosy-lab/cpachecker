@@ -40,7 +40,7 @@ public class LoopstatsCPAFactory extends AbstractCPAFactory {
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
     checkNotNull(cfa, "CFA instance needed to create LoopstackCPA");
-    return new LoopstatsCPA(getConfiguration(), cfa, getLogger());
+    return new LoopstatsCPA(cfa, getLogger());
   }
 
   @Override
