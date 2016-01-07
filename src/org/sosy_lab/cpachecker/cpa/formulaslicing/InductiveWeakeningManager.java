@@ -100,8 +100,8 @@ public class InductiveWeakeningManager {
     // Step 1: get rid of intermediate variables in "input".
 
     // ...remove atoms containing intermediate variables.
-    BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
-        .of(fmgr, input.getSsa()).visit(input.getFormula()));
+    BooleanFormula noIntermediate = fmgr.simplify(bfmgr.visit(
+        SlicingPreprocessor.of(fmgr, input.getSsa()), input.getFormula()));
 
     BooleanFormula noIntermediateNNF = fmgr.applyTactic(noIntermediate,
         Tactic.NNF);
@@ -116,8 +116,8 @@ public class InductiveWeakeningManager {
 
     // Selection variables -> atoms.
     Map<BooleanFormula, BooleanFormula> selectionVarsInfo = new HashMap<>();
-    BooleanFormula annotated = new ConjunctionAnnotator(
-        fmgr, new HashMap<BooleanFormula, BooleanFormula>(), selectionVarsInfo).visit(
+    BooleanFormula annotated = bfmgr.visit(new ConjunctionAnnotator(
+        fmgr, new HashMap<BooleanFormula, BooleanFormula>(), selectionVarsInfo),
         noIntermediateNNF);
 
     // This is possible since the formula does not have any intermediate
@@ -467,7 +467,6 @@ public class InductiveWeakeningManager {
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     private final UniqueIdGenerator controllerIdGenerator =
         new UniqueIdGenerator();
-    private final BooleanFormulaManager bfmgr;
     private final Map<BooleanFormula, BooleanFormula> selectionVars;
 
     private static final String PROP_VAR = "_FS_SEL_VAR_";
@@ -479,7 +478,6 @@ public class InductiveWeakeningManager {
         // Selection variable -> controlled atom.
         Map<BooleanFormula, BooleanFormula> pSelectionVars) {
       super(pFmgr, pCache);
-      bfmgr = pFmgr.getBooleanFormulaManager();
       selectionVars = pSelectionVars;
     }
 

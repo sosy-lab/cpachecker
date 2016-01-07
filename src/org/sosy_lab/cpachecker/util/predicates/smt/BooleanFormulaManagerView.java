@@ -36,6 +36,7 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -113,7 +114,14 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   public <R> R visit(
       org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor,
       BooleanFormula formula) {
-    return null;
+    return manager.visit(visitor, formula);
+  }
+
+  @Override
+  public void visitRecursively(
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> pRFormulaVisitor,
+      BooleanFormula pF) {
+    manager.visitRecursively(pRFormulaVisitor, pF);
   }
 
   @Override
@@ -198,18 +206,20 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   public static abstract class BooleanFormulaVisitor<R>
-      extends org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> {
+      implements org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> {
+
+    protected final FormulaManagerView fmgr;
 
     protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager());
+      fmgr = pFmgr;
     }
   }
 
   public static abstract class DefaultBooleanFormulaVisitor<R>
       extends org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor<R> {
 
-    protected DefaultBooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager());
+    protected DefaultBooleanFormulaVisitor() {
+      super();
     }
   }
 
@@ -263,8 +273,11 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   public static class ConjunctionSplitter
       extends DefaultBooleanFormulaVisitor<List<BooleanFormula>> {
 
+    protected final FormulaManagerView fmgr;
+
     protected ConjunctionSplitter(FormulaManagerView pFmgr) {
-      super(pFmgr);
+      super();
+      fmgr = pFmgr;
     }
 
     @Override
@@ -276,7 +289,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     public List<BooleanFormula> visitAnd(List<BooleanFormula> conjunction) {
       final List<BooleanFormula> result = new ArrayList<>();
       for (BooleanFormula f : conjunction) {
-        List<BooleanFormula> parts = visit(f);
+        List<BooleanFormula> parts = fmgr.getBooleanFormulaManager().visit(this, f);
         if (parts == null) {
           result.add(f);
         } else {

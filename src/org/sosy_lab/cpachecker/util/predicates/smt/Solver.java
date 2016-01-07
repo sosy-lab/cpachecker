@@ -49,7 +49,6 @@ import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.logging.LoggingInterpolatingProverEnvironment;
 import org.sosy_lab.solver.logging.LoggingOptEnvironment;
 import org.sosy_lab.solver.logging.LoggingProverEnvironment;
@@ -299,7 +298,7 @@ public final class Solver implements AutoCloseable {
    */
   private void addConstraint(BooleanFormula constraint) {
 
-    List<BooleanFormula> splittedConjunction = new ConjunctionSplitter(fmgr).visit(constraint);
+    List<BooleanFormula> splittedConjunction = bfmgr.visit(new ConjunctionSplitter(fmgr), constraint);
     if (splittedConjunction == null) {
       // in this case, we could not split the constraint and use it "as is".
       splittedConjunction = Collections.singletonList(constraint);

@@ -68,7 +68,8 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
     // remove assumption variables from the rawInterpolant if necessary
     if (!solverAssumptionsAsFormula.isEmpty()) {
-      interpolant = new RemoveAssumptionsFromFormulaVisitor().visit(interpolant);
+      interpolant = formulaManagerView.getBooleanFormulaManager().visit(
+          new RemoveAssumptionsFromFormulaVisitor(), interpolant);
     }
 
     return interpolant;
@@ -162,7 +163,7 @@ public class InterpolatingProverWithAssumptionsWrapper<T> implements Interpolati
 
     private BooleanFormula visitIfNotSeen(BooleanFormula f) {
       if (seen.add(f)) {
-        return visit(f);
+        return bmgr.visit(this, f);
       }
       return null;
     }

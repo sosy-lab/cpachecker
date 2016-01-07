@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 
 import com.google.common.base.Function;
@@ -329,7 +328,7 @@ class SylvanBDDRegionManager implements RegionManager {
 
     try (FormulaToRegionConverter converter =
              new FormulaToRegionConverter(fmgr, atomToRegion)) {
-      return wrap(converter.visit(pF));
+      return wrap(bfmgr.visit(converter, pF));
     }
   }
 
@@ -484,7 +483,7 @@ class SylvanBDDRegionManager implements RegionManager {
     private long convert(BooleanFormula pOperand) {
       Long operand = cache.get(pOperand);
       if (operand == null) {
-        operand = ref(visit(pOperand));
+        operand = ref(fmgr.getBooleanFormulaManager().visit(this, pOperand));
         cache.put(pOperand, operand);
       }
       return operand;

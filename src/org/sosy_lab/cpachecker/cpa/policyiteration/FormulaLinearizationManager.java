@@ -54,17 +54,17 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return new LinearizationManager(
+    return bfmgr.visit(new LinearizationManager(
         fmgr, new HashMap<BooleanFormula, BooleanFormula>()
-    ).visit(input);
+    ), input);
   }
 
   /**
    * Annotate disjunctions with choice variables.
    */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return new DisjunctionAnnotationVisitor(fmgr,
-        new HashMap<BooleanFormula, BooleanFormula>()).visit(input);
+    return bfmgr.visit(new DisjunctionAnnotationVisitor(fmgr,
+        new HashMap<BooleanFormula, BooleanFormula>()), input);
   }
 
   private class LinearizationManager
@@ -155,7 +155,7 @@ public class FormulaLinearizationManager {
     BooleanFormula noUFs = processUFs(f);
 
     // Get rid of ite-expressions.
-    BooleanFormula out = new ReplaceITEVisitor().visit(noUFs);
+    BooleanFormula out = bfmgr.visit(new ReplaceITEVisitor(), noUFs);
     statistics.ackermannizationTimer.stop();
 
     return out;

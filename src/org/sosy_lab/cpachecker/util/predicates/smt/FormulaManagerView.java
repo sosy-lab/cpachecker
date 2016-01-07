@@ -990,7 +990,7 @@ public class FormulaManagerView {
     // Add the formula to the work queue
     toProcess.push(pFormula);
 
-    FormulaVisitor<Void> process = new FormulaVisitor<Void>(manager) {
+    FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
 
       @Override
       public Void visitFreeVariable(Formula f, String name) {
@@ -1077,7 +1077,7 @@ public class FormulaManagerView {
         continue;
       }
 
-      process.visit(tt);
+      unsafeManager.visit(process, tt);
     }
 
     @SuppressWarnings("unchecked")
@@ -1094,7 +1094,7 @@ public class FormulaManagerView {
     final List<BooleanFormula> result = new ArrayList<>();
 
     final BooleanFormulaVisitor<Boolean> isLowestLevel =
-        new DefaultBooleanFormulaVisitor<Boolean>(this) {
+        new DefaultBooleanFormulaVisitor<Boolean>() {
           @Override
           public Boolean visitDefault() {
             return false;
@@ -1114,7 +1114,7 @@ public class FormulaManagerView {
           boolean isUninterpreted) {
 
         if (getFormulaType(f).isBooleanType() &&
-            isLowestLevel.visit((BooleanFormula) f)) {
+            booleanFormulaManager.visit(isLowestLevel, (BooleanFormula) f)) {
 
           if (splitArithEqualities && myIsPurelyArithmetic(f)) {
             List<BooleanFormula> split =
@@ -1143,7 +1143,8 @@ public class FormulaManagerView {
    * @return An optional formula.
    */
   public Optional<BooleanFormula> stripNegation(BooleanFormula f) {
-    return new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>(this) {
+    return booleanFormulaManager.visit(
+        new DefaultBooleanFormulaVisitor<Optional<BooleanFormula>>() {
       @Override
       protected Optional<BooleanFormula> visitDefault() {
         return Optional.absent();
@@ -1153,7 +1154,7 @@ public class FormulaManagerView {
       public Optional<BooleanFormula> visitNot(BooleanFormula negated) {
         return Optional.of(negated);
       }
-    }.visit(f);
+    }, f);
   }
 
   /**
@@ -1278,7 +1279,7 @@ public class FormulaManagerView {
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
     t = applyTactic(t, Tactic.NNF);
-    return (new DefaultBooleanFormulaVisitor<Boolean>(this) {
+    return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
 
       @Override public Boolean visitDefault() {
         return false;
@@ -1293,17 +1294,17 @@ public class FormulaManagerView {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
-        return visit(operand);
+        return booleanFormulaManager.visit(this, operand);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
-          if (!visit(operand)) {
+          if (!booleanFormulaManager.visit(this, operand)) {
             return false;
           }
         }
         return true;
       }
-    }).visit(t);
+    }, t);
   }
 
   private boolean containsIfThenElse(Formula f) {

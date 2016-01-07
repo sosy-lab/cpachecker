@@ -62,7 +62,7 @@ public class FormulaMeasuring {
 
   public FormulaMeasures measure(BooleanFormula formula) {
     FormulaMeasures result = new FormulaMeasures();
-    new FormulaMeasuringVisitor(managerView, result).visit(formula);
+    managerView.getBooleanFormulaManager().visit(new FormulaMeasuringVisitor(managerView, result), formula);
     return result;
   }
 
