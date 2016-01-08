@@ -163,8 +163,7 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
     unsafeManager = manager.getUnsafeFormulaManager();
     wrappingHandler = new FormulaWrappingHandler(manager, encodeBitvectorAs, encodeFloatAs);
-    booleanFormulaManager =
-        new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager);
+    booleanFormulaManager = new BooleanFormulaManagerView(wrappingHandler, manager.getBooleanFormulaManager(), manager.getUnsafeFormulaManager());
     functionFormulaManager = new FunctionFormulaManagerView(wrappingHandler, manager.getFunctionFormulaManager());
 
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
@@ -1346,12 +1345,7 @@ public class FormulaManagerView {
    * and does not caches results.
    */
   private final FormulaVisitor<Boolean> CONTAINS_IF_THEN_ELSE =
-      new ExtendedFormulaVisitor<Boolean>() {
-        @Override
-        protected Boolean visitDefault(Formula pF) {
-          throw new AssertionError();
-        }
-
+      new FormulaVisitor<Boolean>() {
         @Override
         public Boolean visitBoundVariable(Formula pF, String pName, int pDeBruijnIdx) {
           return false;
@@ -1368,25 +1362,23 @@ public class FormulaManagerView {
         }
 
         @Override
-        protected Boolean visitIfThenElse(
-            Formula pF, BooleanFormula pCondition, Formula pThenBranch, Formula pElseBranch) {
-          return true;
-        }
-
-        @Override
         public Boolean visitFunction(
             Formula pF,
             List<Formula> pArgs,
             String pFunctionName,
             Function<List<Formula>, Formula> pNewApplicationConstructor,
             boolean pIsUninterpreted) {
+          // constant "ite" is defined by SMTLib standard
+          if (!pIsUninterpreted && pFunctionName.equals("ite")) {
+            return true;
+          }
+
           for (Formula arg : pArgs) {
             if (manager.visit(this, arg)) {
               return true;
             }
           }
-          return super.visitFunction(
-              pF, pArgs, pFunctionName, pNewApplicationConstructor, pIsUninterpreted);
+          return false;
         }
 
         @Override
