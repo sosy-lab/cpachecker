@@ -73,11 +73,11 @@ import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.solver.api.UfDeclaration;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
 import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
@@ -1049,16 +1049,10 @@ public class FormulaManagerView {
           Formula out;
           if (isUninterpreted) {
 
-            List<FormulaType<?>> argumentTypes = new ArrayList<>(args.size());
-            for (Formula arg: args) {
-              argumentTypes.add(getFormulaType(arg));
-            }
-            UfDeclaration<?> decl = functionFormulaManager.declareUninterpretedFunction(
+            out = functionFormulaManager.declareAndCallUninterpretedFunction(
                 pRenameFunction.apply(functionName),
                 getFormulaType(f),
-                argumentTypes);
-            out = functionFormulaManager.callUninterpretedFunction(
-                decl, newArgs
+                newArgs
             );
 
           } else {
@@ -1225,7 +1219,7 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    return myExtractFunctionNames(unwrap(f), false);
+    return manager.extractFunctionNames(unwrap(f));
   }
 
   /**
@@ -1236,13 +1230,7 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractFunctionNames(Formula f) {
-    return myExtractFunctionNames(unwrap(f), true);
-  }
-
-  private Set<String> myExtractFunctionNames(
-      final Formula pFormula,
-      final boolean extractUF) {
-    return myExtractSubformulas(pFormula, extractUF).keySet();
+    return manager.extractFunctionNames(unwrap(f));
   }
 
   /**
@@ -1266,11 +1254,18 @@ public class FormulaManagerView {
       final Formula pFormula,
       final boolean extractUF) {
 
+    // todo: code duplication with JavaSMT, pending extractFreeVariableMap
+    // removal.
     final Map<String, Formula> found = new HashMap<>();
-    new RecursiveFormulaVisitor(manager) {
+    manager.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
 
       @Override
-      public Void visitFunction(
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
           String functionName,
@@ -1280,16 +1275,15 @@ public class FormulaManagerView {
         if (isUninterpreted && extractUF) {
           found.put(functionName, f);
         }
-        super.visitFunction(f, args, functionName, constructor, isUninterpreted);
-        return null;
+        return TraversalProcess.CONTINUE;
       }
 
       @Override
-      public Void visitFreeVariable(Formula f, String name) {
+      public TraversalProcess visitFreeVariable(Formula f, String name) {
         found.put(name, f);
-        return null;
+        return TraversalProcess.CONTINUE;
       }
-    }.visit(pFormula);
+    }, pFormula);
     return found;
   }
 

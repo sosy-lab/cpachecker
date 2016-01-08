@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.ConjunctionSplitter;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
@@ -50,9 +49,6 @@ import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
-import org.sosy_lab.solver.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.solver.logging.LoggingOptEnvironment;
-import org.sosy_lab.solver.logging.LoggingProverEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
@@ -72,13 +68,10 @@ import com.google.common.collect.Maps;
 @Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
 public final class Solver implements AutoCloseable {
 
-  @Option(secure=true, name="useLogger",
-      description="log some solver actions, this may be slow!")
-  private boolean useLogger = false;
-
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
+
   private final UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
@@ -181,10 +174,6 @@ public final class Solver implements AutoCloseable {
     ProverEnvironment pe = solvingContext
         .newProverEnvironment(generateModels, generateUnsatCore);
 
-    if (useLogger) {
-      pe = new LoggingProverEnvironment(logger, pe);
-    }
-
     if (checkUFs) {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
     }
@@ -201,12 +190,6 @@ public final class Solver implements AutoCloseable {
   public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
     InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
 
-    // in the case we do not already have a prover environment with assumptions
-    // we add a wrapper to it
-    if (!(ipe instanceof InterpolatingProverEnvironmentWithAssumptions)) {
-      ipe = new InterpolatingProverWithAssumptionsWrapper<>(ipe, fmgr);
-    }
-
     InterpolatingProverEnvironmentWithAssumptions<?> ipeA = (InterpolatingProverEnvironmentWithAssumptions<?>) ipe;
 
     if (solvingContext != interpolatingContext) {
@@ -219,10 +202,6 @@ public final class Solver implements AutoCloseable {
           interpolatingContext.getFormulaManager(),
           ipeA
       );
-    }
-
-    if (useLogger) {
-      ipeA = new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
     }
 
     if (checkUFs) {
@@ -241,12 +220,7 @@ public final class Solver implements AutoCloseable {
   public OptEnvironment newOptEnvironment() {
     OptEnvironment environment = solvingContext.newOptEnvironment();
     environment = new OptEnvironmentView(environment, fmgr);
-
-    if (useLogger) {
-      return new LoggingOptEnvironment(logger, environment);
-    } else {
-      return environment;
-    }
+    return environment;
   }
 
   /**
