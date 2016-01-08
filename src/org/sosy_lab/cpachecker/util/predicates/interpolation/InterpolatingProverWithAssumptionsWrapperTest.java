@@ -41,9 +41,9 @@ public class InterpolatingProverWithAssumptionsWrapperTest extends SolverFormula
   @Override
   @SuppressWarnings({ "unchecked", "rawtypes" })
   protected <T> InterpolatingProverEnvironmentWithAssumptions<T> newEnvironmentForTest() throws InvalidConfigurationException {
-    FormulaManagerView formulaView = new FormulaManagerView(factory.getFormulaManager(),
+    FormulaManagerView formulaView = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
         config, logger);
-    final InterpolatingProverEnvironment<?> proverEnvironment = mgr.newProverEnvironmentWithInterpolation();
+    final InterpolatingProverEnvironment<?> proverEnvironment = context.newProverEnvironmentWithInterpolation();
     return new InterpolatingProverWithAssumptionsWrapper(proverEnvironment, formulaView);
   }
 }

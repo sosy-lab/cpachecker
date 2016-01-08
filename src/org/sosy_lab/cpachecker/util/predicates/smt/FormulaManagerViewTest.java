@@ -40,7 +40,7 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
@@ -84,7 +84,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.encodeBitvectorAs", "INTEGER")
         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
         .build();
-    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();

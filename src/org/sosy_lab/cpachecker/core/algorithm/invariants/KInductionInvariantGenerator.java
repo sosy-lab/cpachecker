@@ -167,7 +167,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
     if (predicateCPA == null) {
       throw new InvalidConfigurationException("Predicate CPA required");
     }
-    if (async && !predicateCPA.getSolver().getFormulaManager().getVersion().toLowerCase().contains("smtinterpol")) {
+    if (async && !predicateCPA.getSolver().getVersion().toLowerCase().contains("smtinterpol")) {
       throw new InvalidConfigurationException("Solver does not support concurrent execution, use SMTInterpol instead.");
     }
   }

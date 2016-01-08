@@ -74,9 +74,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -224,7 +223,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     requireRationals();
-    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
         config, logger);
 
     FormulaEncodingOptions opts = new FormulaEncodingOptions(

@@ -1410,12 +1410,6 @@ public class FormulaManagerView {
       return myGetBitwiseAxioms(f);
     }
 
-
-  public String getVersion() {
-    return manager.getVersion();
-  }
-
-
   public boolean useBitwiseAxioms() {
     return useBitwiseAxioms;
   }
