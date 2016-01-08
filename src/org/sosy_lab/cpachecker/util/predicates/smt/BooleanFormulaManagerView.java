@@ -23,19 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
@@ -43,14 +43,15 @@ import org.sosy_lab.solver.visitors.TraversalProcess;
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
 
   private final BooleanFormulaManager manager;
-  private final UnsafeFormulaManager unsafe;
+  private final FormulaManager formulaManager;
 
-  BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+  BooleanFormulaManagerView(
+      FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pManager,
-      UnsafeFormulaManager pUnsafe) {
+      FormulaManager pFormulaManager) {
     super(pWrappingHandler);
     this.manager = pManager;
-    this.unsafe = pUnsafe;
+    this.formulaManager = pFormulaManager;
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {
@@ -165,19 +166,28 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     return manager.isIfThenElse(unwrap(pF));
   }
 
-  public <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElse(T pF) {
-    checkArgument(isIfThenElse(pF));
-    Formula f = unwrap(pF);
+  /**
+   * If the given formula has if-then-else as its top-level operator,
+   * return a triple of the three operands, otherwise return null.
+   */
+  public @Nullable <T extends Formula> Triple<BooleanFormula, T, T> splitIfThenElseIfPossible(
+      final T pInput) {
+    return formulaManager.visit(
+        new ExtendedFormulaVisitor<Triple<BooleanFormula, T, T>>() {
+          @Override
+          protected Triple<BooleanFormula, T, T> visitDefault(Formula pF) {
+            return null;
+          }
 
-    assert unsafe.getArity(f) == 3;
-
-    BooleanFormula cond = (BooleanFormula)unsafe.getArg(f, 0);
-    Formula thenBranch = unsafe.getArg(f, 1);
-    Formula elseBranch = unsafe.getArg(f, 2);
-
-    FormulaType<T> targetType = getFormulaType(pF);
-    return Triple.of(cond, wrap(targetType, thenBranch),
-        wrap(targetType, elseBranch));
+          @Override
+          protected Triple<BooleanFormula, T, T> visitIfThenElse(
+              Formula pF, BooleanFormula pCondition, Formula pThenBranch, Formula pElseBranch) {
+            FormulaType<T> targetType = getFormulaType(pInput);
+            return Triple.of(
+                pCondition, wrap(targetType, pThenBranch), wrap(targetType, pElseBranch));
+          }
+        },
+        unwrap(pInput));
   }
 
   @Override

@@ -1247,10 +1247,9 @@ public class CtoFormulaConverter {
     assert !fmgr.getFormulaType(pF).isBooleanType();
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
+    Triple<BooleanFormula, T, T> parts = bfmgr.splitIfThenElseIfPossible(pF);
 
-    if (bfmgr.isIfThenElse(pF)) {
-      Triple<BooleanFormula, T, T> parts = bfmgr.splitIfThenElse(pF);
-
+    if (parts != null) {
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
 
       if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
