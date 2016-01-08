@@ -37,7 +37,6 @@ import threading
 import time
 import urllib.request as urllib2
 
-from benchexec.systeminfo import SystemInfo
 import benchexec.util as util
 
 
@@ -82,7 +81,7 @@ def execute_benchmark(benchmark, output_handler):
     tasksetKey = _getTasksetKeyForAppEngine(benchmark)
     logging.debug('Using taskset with key: '+tasksetKey)
 
-    (cpu_model, numberOfRuns, runQueue, sourceFiles, absWorkingDir) = _getBenchmarkDataForAppEngine(benchmark)
+    (numberOfRuns, runQueue) = _getBenchmarkDataForAppEngine(benchmark)
 
     logging.debug('Will execute {} runs.'.format(str(numberOfRuns)))
 
@@ -120,17 +119,8 @@ def stop():
 
 
 def _getBenchmarkDataForAppEngine(benchmark):
-    # TODO default CPU model??
-    cpu_model = benchmark.requirements.cpu_model
-
     numberOfRuns = sum(len(runSet.runs) for runSet in benchmark.run_sets if runSet.should_be_executed())
 
-    workingDir = benchmark.working_directory()
-    if not os.path.isdir(workingDir):
-        sys.exit("Missing working directory {}, cannot run tool.".format(workingDir))
-    absWorkingDir = os.path.abspath(workingDir)
-
-    sourceFiles = []
     runQueue = queue.Queue(maxsize=0)
     for runSet in benchmark.run_sets:
         if not runSet.should_be_executed(): continue
@@ -155,11 +145,8 @@ def _getBenchmarkDataForAppEngine(benchmark):
                           'logFile':os.path.abspath(run.log_file),
                           'debug':benchmark.config.debug,
                           'maxLogfileSize':benchmark.config.maxLogfileSize})
-            sourceFiles.append(run.identifier)
 
-    if not sourceFiles: sys.exit("Benchmark has nothing to run.")
-
-    return (cpu_model, numberOfRuns, runQueue, sourceFiles, absWorkingDir)
+    return (numberOfRuns, runQueue)
 
 
 def _getTasksetKeyForAppEngine(benchmark):
