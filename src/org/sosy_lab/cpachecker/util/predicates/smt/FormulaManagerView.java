@@ -1298,46 +1298,98 @@ public class FormulaManagerView {
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    t = applyTactic(t, Tactic.NNF);
-    return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
+    return booleanFormulaManager.visit(
+        new DefaultBooleanFormulaVisitor<Boolean>() {
 
-      @Override public Boolean visitDefault() {
-        return false;
-      }
-      @Override public Boolean visitTrue() {
-        return true;
-      }
-      @Override public Boolean visitFalse() {
-        return true;
-      }
-      @Override public Boolean visitAtom(BooleanFormula atom) {
-        return !containsIfThenElse(atom);
-      }
-      @Override public Boolean visitNot(BooleanFormula operand) {
-        return booleanFormulaManager.visit(this, operand);
-      }
-      @Override public Boolean visitAnd(List<BooleanFormula> operands) {
-        for (BooleanFormula operand : operands) {
-          if (!booleanFormulaManager.visit(this, operand)) {
+          @Override
+          public Boolean visitDefault() {
             return false;
           }
-        }
-        return true;
-      }
-    }, t);
+
+          @Override
+          public Boolean visitTrue() {
+            return true;
+          }
+
+          @Override
+          public Boolean visitFalse() {
+            return true;
+          }
+
+          @Override
+          public Boolean visitAtom(BooleanFormula atom) {
+            return !manager.visit(CONTAINS_IF_THEN_ELSE, atom);
+          }
+
+          @Override
+          public Boolean visitNot(BooleanFormula operand) {
+            return booleanFormulaManager.visit(this, operand);
+          }
+
+          @Override
+          public Boolean visitAnd(List<BooleanFormula> operands) {
+            for (BooleanFormula operand : operands) {
+              if (!booleanFormulaManager.visit(this, operand)) {
+                return false;
+              }
+            }
+            return true;
+          }
+        },
+        t);
   }
 
-  private boolean containsIfThenElse(Formula f) {
-    if (booleanFormulaManager.isIfThenElse(f)) {
-      return true;
-    }
-    for (int i = 0; i < unsafeManager.getArity(f); ++i) {
-      if (containsIfThenElse(unsafeManager.getArg(f, i))) {
-        return true;
-      }
-    }
-    return false;
-  }
+  /**
+   * Visitor that checks recursively whether a formula contains the "if-then-else" SMT function.
+   * Use only on small formulas such as atoms, because it uses recursion
+   * and does not caches results.
+   */
+  private final FormulaVisitor<Boolean> CONTAINS_IF_THEN_ELSE =
+      new FormulaVisitor<Boolean>() {
+        @Override
+        public Boolean visitBoundVariable(Formula pF, String pName, int pDeBruijnIdx) {
+          return false;
+        }
+
+        @Override
+        public Boolean visitFreeVariable(Formula pF, String pName) {
+          return false;
+        }
+
+        @Override
+        public Boolean visitConstant(Formula pF, Object pValue) {
+          return false;
+        }
+
+        @Override
+        public Boolean visitFunction(
+            Formula pF,
+            List<Formula> pArgs,
+            String pFunctionName,
+            Function<List<Formula>, Formula> pNewApplicationConstructor,
+            boolean pIsUninterpreted) {
+          // constant "ite" is defined by SMTLib standard
+          if (!pIsUninterpreted && pFunctionName.equals("ite")) {
+            return true;
+          }
+
+          for (Formula arg : pArgs) {
+            if (manager.visit(this, arg)) {
+              return true;
+            }
+          }
+          return false;
+        }
+
+        @Override
+        public Boolean visitQuantifier(
+            BooleanFormula pF,
+            Quantifier pQuantifier,
+            BooleanFormula pBody,
+            Function<BooleanFormula, BooleanFormula> pNewBodyConstructor) {
+          return manager.visit(this, pBody);
+        }
+      };
 
   static final String BitwiseAndUfName = "_&_";
   static final String BitwiseOrUfName ="_!!_"; // SMTInterpol does not allow "|" to be used
