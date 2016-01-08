@@ -117,4 +117,41 @@
     <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
   </rundefinition>
+
+
+  <rundefinition name="UF-Analysis">
+    <tasks>
+      <includesfile>../programs/benchmarks/Simple.set</includesfile>
+      <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.01_true-unreach-call.i.cil.c</exclude>
+      <exclude>../programs/benchmarks/ssh/s3_srvr.blast.02_true-unreach-call.i.cil.c</exclude>
+    </tasks>
+    <tasks>
+      <includesfile>../programs/simple/simple.set</includesfile>
+    </tasks>
+    <tasks>
+      <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+      <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+      <includesfile>../programs/benchmarks/Loops.set</includesfile>
+      <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+      <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+      <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+      <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call.cil.c</exclude>
+      <exclude>../programs/benchmarks/systemc/token_ring.03_true-unreach-call_false-termination.cil.c</exclude>
+    </tasks>
+    <tasks>
+      <includesfile>integration-DeviceDriversLinux64.set</includesfile>
+      <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-isdn-mISDN-mISDN_core.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
+      <option name="-skipRecursion"/>
+      <option name="-64"/>
+      <!-- SV-Comp files assume that malloc always succeeds -->
+      <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    </tasks>
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=false</option>
+  </rundefinition>
 </benchmark>
