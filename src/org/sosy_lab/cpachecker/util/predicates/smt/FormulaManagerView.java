@@ -857,7 +857,7 @@ public class FormulaManagerView {
 
   /**
    * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see {@link #instantiate(F extends Formula, SSAMap)}
+   *  @see #instantiate(Formula, SSAMap)
    */
   public <F extends Formula> List<F> instantiate(List<F> pFormulas, final SSAMap pSsa) {
     return Lists.transform(pFormulas,
