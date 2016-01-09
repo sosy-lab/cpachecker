@@ -571,7 +571,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       Set<Property> remaining,
       ImmutableSet<Property> disabledProperties) throws PartitioningException {
 
-    Partitioning result = partitionOperator.partition(lastPartitioning, remaining, disabledProperties, propertyExplosionComparator);
+    Partitioning result = partitionOperator.partition(lastPartitioning, remaining,
+        disabledProperties, propertyRefinementComparator);
 
     logger.log(Level.WARNING, String.format("New partitioning with %d partitions.", result.partitionCount()));
     {
