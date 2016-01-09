@@ -722,9 +722,13 @@ public class PredicateAbstractionManager {
       ProverEnvironment thmProver, Collection<AbstractionPredicate> predicates)
           throws SolverException, InterruptedException {
 
+    final boolean feasibility;
     stats.abstractionSolveTime.start();
-    boolean feasibility = !thmProver.isUnsat();
-    stats.abstractionSolveTime.stop();
+    try {
+      feasibility = !thmProver.isUnsat();
+    } finally {
+      stats.abstractionSolveTime.stop();
+    }
 
     if (!feasibility) {
       // abstract post leads to false, we can return immediately
@@ -856,19 +860,29 @@ public class PredicateAbstractionManager {
       predVars.add(var);
     }
 
+    final Region result;
+
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
-    AllSatCallbackImpl callback = new AllSatCallbackImpl();
-    Region result = thmProver.allSat(callback, predVars);
+    try {
+      AllSatCallbackImpl callback = new AllSatCallbackImpl();
+      result = thmProver.allSat(callback, predVars);
 
-    // pop() is actually costly sometimes, and we delete the environment anyway
-    // thmProver.pop();
+      // pop() is actually costly sometimes, and we delete the environment anyway
+      // thmProver.pop();
 
-    // update statistics
-    int numModels = callback.getCount();
-    if (numModels < Integer.MAX_VALUE) {
-      stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
-      stats.allSatCount += numModels;
+      // update statistics
+      int numModels = callback.getCount();
+      if (numModels < Integer.MAX_VALUE) {
+        stats.maxAllSatCount = Math.max(numModels, stats.maxAllSatCount);
+        stats.allSatCount += numModels;
+      }
+
+    } finally {
+      // The AllSat callback might have been interrupted without stopping the timer
+      if (stats.abstractionSolveTime.isRunning()) {
+        stats.abstractionSolveTime.stop();
+      }
     }
 
     return result;
