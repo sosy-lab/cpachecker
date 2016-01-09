@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
 
 /**
  * CPA that defines symbolic predicate abstraction.
@@ -114,7 +115,6 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   protected final Configuration config;
   protected final LogManager logger;
-  protected final ShutdownNotifier shutdownNotifier;
 
   private final PredicateAbstractDomain domain;
   private final PredicateTransferRelation transfer;
@@ -134,6 +134,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final AbstractionManager abstractionManager;
   private final InvariantGenerator invariantGenerator;
 
+  protected ShutdownNotifier shutdownNotifier;
+  private class ShutdownNotifierSupplier implements Supplier<ShutdownNotifier> {
+    @Override
+    public ShutdownNotifier get() {
+      return shutdownNotifier;
+    }
+  }
+  protected ShutdownNotifierSupplier shutdownNotifierSupplier = new ShutdownNotifierSupplier();
+
   protected PredicateCPA(Configuration config, LogManager logger,
       BlockOperator blk, CFA pCfa, ShutdownNotifier pShutdownNotifier)
           throws InvalidConfigurationException, CPAException {
@@ -151,7 +160,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
     }
     blk.setCFA(cfa);
 
-    solver = Solver.create(config, logger, pShutdownNotifier);
+    solver = Solver.create(config, logger, shutdownNotifierSupplier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
@@ -358,5 +367,9 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public AbstractionManager getAbstractionManager() {
     return abstractionManager;
+  }
+
+  public void setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
+    shutdownNotifier = pShutdownNotifier;
   }
 }

@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -613,6 +614,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           limits);
 
       reschecker.start();
+
+      PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+      if (predCpa != null) {
+        predCpa.setShutdownNotifier(interruptNotifier.getReversibleManager().getNotifier());
+      }
 
     } catch (JMException e) {
       throw new RuntimeException("Initialization of ResourceLimitChecker failed!", e);

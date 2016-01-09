@@ -59,6 +59,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.Lists;
 
 public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
@@ -101,7 +102,8 @@ public class PathFormulaManagerImplArraysTest0 extends SolverBasedTest0 {
         .setOption("cpa.predicate.handleArrays", "true")
         .build();
 
-    solver = new Solver(factory, config, TestLogManager.getInstance());
+    solver = new Solver(factory, config, TestLogManager.getInstance(),
+        Suppliers.ofInstance(ShutdownNotifier.createDummy()));
     mgv = solver.getFormulaManager();
 
     pfmgrFwd =

@@ -51,6 +51,7 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Supplier;
 import com.google.common.base.Verify;
 import com.google.common.collect.Maps;
 
@@ -73,6 +74,8 @@ public final class Solver implements AutoCloseable {
   private boolean checkUFs = false;
 
   private final UFCheckingProverOptions ufCheckingProverOptions;
+
+  private final Supplier<ShutdownNotifier> notifierSupplier;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -99,8 +102,12 @@ public final class Solver implements AutoCloseable {
    */
   @VisibleForTesting
   public Solver(SolverContextFactory pSolverFactory,
-      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+      Configuration config, LogManager pLogger,
+      Supplier<ShutdownNotifier> pNotifierSupplier) throws InvalidConfigurationException {
+
     config.inject(this);
+
+    notifierSupplier = pNotifierSupplier;
     solvingContext = pSolverFactory.getSolverContext();
     interpolatingContext = pSolverFactory.getSolverContextForInterpolation();
     fmgr = new FormulaManagerView(solvingContext.getFormulaManager(),
@@ -122,10 +129,24 @@ public final class Solver implements AutoCloseable {
    * The returned instance should be closed by calling {@link #close}
    * when it is not used anymore.
    */
+  public static Solver create(Configuration pConfig, LogManager pLogger,
+      Supplier<ShutdownNotifier> pNotifierSupplier)
+          throws InvalidConfigurationException {
+
+    SolverContextFactory factory = new SolverContextFactory(pConfig, pLogger, pNotifierSupplier.get());
+    return new Solver(factory, pConfig, pLogger, pNotifierSupplier);
+  }
+
   public static Solver create(Configuration config, LogManager logger,
-      ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
-    SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
-    return new Solver(factory, config, logger);
+      final ShutdownNotifier pShutdownNotifier)
+          throws InvalidConfigurationException {
+
+    return create(config, logger, new Supplier<ShutdownNotifier>() {
+      @Override
+      public ShutdownNotifier get() {
+        return pShutdownNotifier;
+      }
+    });
   }
 
   /**
@@ -143,7 +164,7 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public ProverEnvironment newProverEnvironment() {
-    return newProverEnvironment(false, false);
+    return newProverEnvironment(false, false, notifierSupplier.get());
   }
 
   /**
@@ -155,7 +176,7 @@ public final class Solver implements AutoCloseable {
    * The solver is told to enable model generation.
    */
   public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return newProverEnvironment(true, false);
+    return newProverEnvironment(true, false, notifierSupplier.get());
   }
 
   /**
@@ -167,12 +188,14 @@ public final class Solver implements AutoCloseable {
    * The solver is told to enable unsat-core generation.
    */
   public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
-    return newProverEnvironment(false, true);
+    return newProverEnvironment(false, true, notifierSupplier.get());
   }
 
-  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
+  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore,
+      ShutdownNotifier pNotifier) {
+
     ProverEnvironment pe = solvingContext
-        .newProverEnvironment(generateModels, generateUnsatCore);
+        .newProverEnvironment(pNotifier, generateModels, generateUnsatCore);
 
     if (checkUFs) {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
