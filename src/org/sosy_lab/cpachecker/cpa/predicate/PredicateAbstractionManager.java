@@ -755,18 +755,21 @@ public class PredicateAbstractionManager {
           stats.numCartesianAbsPredicatesCached++;
 
           stats.abstractionEnumTime.getCurentInnerTimer().start();
-          Region v = p.getAbstractVariable();
-          if (predVal == -1) { // pred is false
-            stats.numCartesianAbsPredicates++;
-            v = rmgr.makeNot(v);
-            absbdd = rmgr.makeAnd(absbdd, v);
-          } else if (predVal == 1) { // pred is true
-            stats.numCartesianAbsPredicates++;
-            absbdd = rmgr.makeAnd(absbdd, v);
-          } else {
-            assert predVal == 0 : "predicate value is neither false, true, nor unknown";
+          try {
+            Region v = p.getAbstractVariable();
+            if (predVal == -1) { // pred is false
+              stats.numCartesianAbsPredicates++;
+              v = rmgr.makeNot(v);
+              absbdd = rmgr.makeAnd(absbdd, v);
+            } else if (predVal == 1) { // pred is true
+              stats.numCartesianAbsPredicates++;
+              absbdd = rmgr.makeAnd(absbdd, v);
+            } else {
+              assert predVal == 0 : "predicate value is neither false, true, nor unknown";
+            }
+          } finally {
+            stats.abstractionEnumTime.getCurentInnerTimer().stop();
           }
-          stats.abstractionEnumTime.getCurentInnerTimer().stop();
 
         } else {
           logger.log(Level.ALL, "DEBUG_1",
@@ -780,31 +783,45 @@ public class PredicateAbstractionManager {
           // state
           byte predVal = 0; // pred is neither true nor false
 
+          final boolean isTrue;
           thmProver.push(predFalse);
-          boolean isTrue = thmProver.isUnsat();
-          thmProver.pop();
+          try {
+            isTrue = thmProver.isUnsat();
+          } finally {
+            thmProver.pop();
+          }
 
           if (isTrue) {
             stats.numCartesianAbsPredicates++;
             stats.abstractionEnumTime.getCurentInnerTimer().start();
-            Region v = p.getAbstractVariable();
-            absbdd = rmgr.makeAnd(absbdd, v);
-            stats.abstractionEnumTime.getCurentInnerTimer().stop();
+            try {
+              Region v = p.getAbstractVariable();
+              absbdd = rmgr.makeAnd(absbdd, v);
+            } finally {
+              stats.abstractionEnumTime.getCurentInnerTimer().stop();
+            }
 
             predVal = 1;
           } else {
             // check whether it's false...
+            final boolean isFalse;
             thmProver.push(predTrue);
-            boolean isFalse = thmProver.isUnsat();
-            thmProver.pop();
+            try {
+              isFalse = thmProver.isUnsat();
+            } finally {
+              thmProver.pop();
+            }
 
             if (isFalse) {
               stats.numCartesianAbsPredicates++;
               stats.abstractionEnumTime.getCurentInnerTimer().start();
-              Region v = p.getAbstractVariable();
-              v = rmgr.makeNot(v);
-              absbdd = rmgr.makeAnd(absbdd, v);
-              stats.abstractionEnumTime.getCurentInnerTimer().stop();
+              try {
+                Region v = p.getAbstractVariable();
+                v = rmgr.makeNot(v);
+                absbdd = rmgr.makeAnd(absbdd, v);
+              } finally {
+                stats.abstractionEnumTime.getCurentInnerTimer().stop();
+              }
 
               predVal = -1;
             }
