@@ -56,7 +56,7 @@ class Vertex extends AbstractSingleWrapperState {
 
   /**
    * javadoc to remove unused parameter warning
-   * @param out
+   * @param out the output stream
    */
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     throw new NotSerializableException();

@@ -29,6 +29,7 @@ import java.util.List;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager;
 
@@ -42,13 +43,13 @@ public class QuantifiedFormulaManagerView
 
   private final QuantifiedFormulaManager manager;
   private final BooleanFormulaManagerView bfm;
-  private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifm;
+  private final IntegerFormulaManager ifm;
 
   QuantifiedFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
       QuantifiedFormulaManager pManager,
       BooleanFormulaManagerView pBmgr,
-      NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pImgr) {
+      IntegerFormulaManager pImgr) {
     super(pWrappingHandler);
     this.manager = pManager;
     this.bfm = pBmgr;
@@ -110,7 +111,7 @@ public class QuantifiedFormulaManagerView
 
   /**
    * @return  An (restricted) existential quantified formula.
-   * @see {@link #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)}
+   * @see{@link #all(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)}
    */
   public <R extends IntegerFormula> BooleanFormula exists (
       final R pVariable,
@@ -145,31 +146,37 @@ public class QuantifiedFormulaManagerView
   }
 
   @Override
+  @Deprecated
   public boolean isQuantifier(BooleanFormula pF) {
     return manager.isQuantifier(pF);
   }
 
   @Override
+  @Deprecated
   public boolean isForall(BooleanFormula pF) {
     return manager.isForall(pF);
   }
 
   @Override
+  @Deprecated
   public boolean isExists(BooleanFormula pF) {
     return manager.isExists(pF);
   }
 
   @Override
+  @Deprecated
   public int numQuantifierBound(BooleanFormula pF) {
     return manager.numQuantifierBound(pF);
   }
 
   @Override
+  @Deprecated
   public BooleanFormula getQuantifierBody(BooleanFormula pF) {
     return manager.getQuantifierBody(pF);
   }
 
   @Override
+  @Deprecated
   public boolean isBoundByQuantifier(Formula pF) {
     return manager.isBoundByQuantifier(pF);
   }

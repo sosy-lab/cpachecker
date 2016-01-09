@@ -129,7 +129,12 @@ def _submitRunsParallel(runSet, benchmark):
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
-    cpu_model = benchmark.config.cpu_model
+    if CORELIMIT in limits and limits[CORELIMIT] != benchmark.requirements.cpu_cores:
+        logging.warning("CPU core requirement is not supported by the WebInterface.")
+    if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
+        logging.warning("Memory requirement is not supported by the WebInterface.")
+        
+    cpu_model = benchmark.requirements.cpu_model
     result_files_pattern = benchmark.result_files_pattern
     priority = benchmark.config.cloudPriority
 
@@ -173,9 +178,14 @@ def _handle_results(result_futures, output_handler, benchmark):
 
     for result_future in as_completed(result_futures.keys()):
         run = result_futures[result_future]
-        result = result_future.result()
-        f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
-        f.add_done_callback(_log_future_exception)
+        try:
+            result = result_future.result()
+            f = executor.submit(_unzip_and_handle_result, result, run, output_handler, benchmark)
+            f.add_done_callback(_log_future_exception)
+        
+        except WebClientError as e:
+            logging.warning("Execution of %s failed: %s", run.identifier, e)
+            
     executor.shutdown(wait=True)
 
 def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):

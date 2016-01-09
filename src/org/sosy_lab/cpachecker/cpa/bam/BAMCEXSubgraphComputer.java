@@ -70,7 +70,6 @@ public class BAMCEXSubgraphComputer {
    *
    * @param target a state from the reachedSet, is used as the last state of the returned subgraph.
    * @param reachedSet contains the target-state.
-   * @param newTreeTarget a copy of the target, should contain the same information as target.
    *
    * @return root of a subgraph, that contains all states on all paths to newTreeTarget.
    *         The subgraph contains only copies of the real ARG states,

@@ -41,7 +41,6 @@ import java.util.Stack;
 import java.util.regex.Pattern;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -61,6 +60,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
@@ -116,7 +116,6 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
    *
    * @param pPath The path.
    * @return An appender that generates C code.
-   * @throws InvalidConfigurationException
    */
   public static Appender translateSinglePath(ARGPath pPath, CFA cfa, Configuration config) throws InvalidConfigurationException {
     PathToCTranslator translator = new PathToCTranslator();
@@ -227,9 +226,6 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
   /**
    * Processes an edge of the CFA and will write code to the output function body.
-   * @param childElement
-   * @param edge
-   * @param functionStack
    */
   private final void processEdge0(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();

@@ -336,7 +336,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   /**
    * Get the predicates out of an interpolant.
-   * @param interpolant The interpolant formula.
+   * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
   protected final Collection<AbstractionPredicate> convertInterpolant(

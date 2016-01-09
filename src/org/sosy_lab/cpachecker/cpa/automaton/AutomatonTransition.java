@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 
 /**
- * A transition in the automaton implements one of the {@link PATTERN_MATCHING_METHODS}.
+ * A transition in the automaton implements one of the pattern matching methods.
  * This determines if the transition matches on a certain {@link CFAEdge}.
  */
 class AutomatonTransition {
@@ -283,7 +283,6 @@ class AutomatonTransition {
   /** Determines if this Transition matches on the current State of the CPA.
    * This might return a <code>MaybeBoolean.MAYBE</code> value if the method cannot determine if the transition matches.
    * In this case more information (e.g. more AbstractStates of other CPAs) are needed.
-   * @throws CPATransferException
    */
   public ResultValue<Boolean> match(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return trigger.eval(pArgs);
@@ -292,7 +291,6 @@ class AutomatonTransition {
   /**
    * Checks if all assertions of this transition are fulfilled
    * in the current configuration of the automaton this method is called.
-   * @throws CPATransferException
    */
   public ResultValue<Boolean> assertionsHold(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return assertion.eval(pArgs);
@@ -300,7 +298,6 @@ class AutomatonTransition {
 
   /**
    * Executes all actions of this transition in the order which is defined in the automaton definition file.
-   * @throws CPATransferException
    */
   public void executeActions(AutomatonExpressionArguments pArgs) throws CPATransferException {
     for (AutomatonAction action : actions) {
@@ -317,9 +314,6 @@ class AutomatonTransition {
 
   /** Returns if the actions of this transiton can be executed on these AutomatonExpressionArguments.
    * If false is returned more Information is needed (probably more AbstractStates from other CPAs).
-   * @param pArgs
-   * @return
-   * @throws CPATransferException
    */
   public boolean canExecuteActionsOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     for (AutomatonAction action : actions) {
@@ -370,7 +364,6 @@ class AutomatonTransition {
 
   /**
    * Returns true if this Transition fulfills the requirements of an ObserverTransition (does not use MODIFY or STOP).
-   * @return
    */
   boolean meetsObserverRequirements() {
     // assert followstate != BOTTOM

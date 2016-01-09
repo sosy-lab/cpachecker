@@ -29,7 +29,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -273,12 +273,11 @@ public abstract class RefinementStrategy {
    * Do any necessary work after one path has been refined.
    *
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
-   * @param path The error trace
    * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
    * @param reached The reached set.
    * @param repeatedCounterexample Whether the counterexample has been found before.
-   * @throws CPAException
-   * @throws InterruptedException
+   * @throws CPAException may be thrown in subclasses
+   * @throws InterruptedException may be thrown in subclasses
    */
   @ForOverride
   protected abstract void finishRefinementOfPath(

@@ -31,7 +31,6 @@ public class PointerTarget implements Serializable {
 
   /**
    * This constructor is for variables of simple types (e.g. long, char etc.)
-   * @param base
    */
   PointerTarget(String base) {
     this.base = base;
@@ -43,9 +42,6 @@ public class PointerTarget implements Serializable {
   /**
    * This constructor is for structure fields (e.g. s->f) and array elements (e.g. p[5])
    * NOTE: The container (structure or array) must not be contained in any other structure or array
-   * @param base
-   * @param containerType
-   * @param properOffset
    */
   PointerTarget(String base, CType containerType, int properOffset) {
     this.base = base;
@@ -56,10 +52,6 @@ public class PointerTarget implements Serializable {
 
   /**
    * This constructor is for fields of nested structures and arrays
-   * @param base
-   * @param containerType
-   * @param properOffset
-   * @param containerOffset
    */
   PointerTarget(String base, CType containerType, int properOffset, int containerOffset) {
     this.base = base;

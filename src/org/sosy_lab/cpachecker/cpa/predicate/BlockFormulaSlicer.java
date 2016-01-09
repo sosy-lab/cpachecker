@@ -438,8 +438,7 @@ public class BlockFormulaSlicer {
     return true;
   }
 
-  /** This function handles statements like "a = 0;" and calls of external functions.
-   * @param pImportantVars */
+  /** This function handles statements like "a = 0;" and calls of external functions. */
   private boolean handleStatement(CStatementEdge edge,
       Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();

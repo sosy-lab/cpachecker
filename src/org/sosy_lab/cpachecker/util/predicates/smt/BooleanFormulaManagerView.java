@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.util.Triple;
@@ -34,6 +36,8 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.UnsafeFormulaManager;
+import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
 
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
@@ -84,21 +88,25 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  @Deprecated
   public boolean isNot(BooleanFormula pBits) {
     return manager.isNot(pBits);
   }
 
   @Override
+  @Deprecated
   public boolean isAnd(BooleanFormula pBits) {
     return manager.isAnd(pBits);
   }
 
   @Override
+  @Deprecated
   public boolean isOr(BooleanFormula pBits) {
     return manager.isOr(pBits);
   }
 
   @Override
+  @Deprecated
   public boolean isXor(BooleanFormula pBits) {
     return manager.isXor(pBits);
   }
@@ -107,7 +115,14 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   public <R> R visit(
       org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor,
       BooleanFormula formula) {
-    return null;
+    return manager.visit(visitor, formula);
+  }
+
+  @Override
+  public void visitRecursively(
+      org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor,
+      BooleanFormula f) {
+    manager.visitRecursively(rFormulaVisitor, f);
   }
 
   @Override
@@ -145,6 +160,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  @Deprecated
   public <T extends Formula> boolean isIfThenElse(T pF) {
     return manager.isIfThenElse(unwrap(pF));
   }
@@ -165,11 +181,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
+  @Deprecated
   public boolean isEquivalence(BooleanFormula pFormula) {
     return manager.isEquivalence(pFormula);
   }
 
   @Override
+  @Deprecated
   public boolean isImplication(BooleanFormula pFormula) {
     return manager.isImplication(pFormula);
   }
@@ -188,50 +206,13 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     return not(equivalence(p, q));
   }
 
-  public static abstract class BooleanFormulaVisitor<R>
-      extends org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> {
-
-    protected BooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager());
-    }
-  }
-
-  public static abstract class DefaultBooleanFormulaVisitor<R>
-      extends org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor<R> {
-
-    protected DefaultBooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager());
-    }
-  }
-
-  /**
-   * Base class for visitors for boolean formulas that traverse recursively
-   * through the full formula (at least the boolean part, not inside atoms).
-   * This class ensures that each identical subtree of the formula
-   * is visited only once to avoid the exponential explosion.
-   *
-   * Subclasses of this class should call super.visit...() to ensure recursive
-   * traversal. If such a call is omitted, the respective part of the formula
-   * is not visited.
-   *
-   * No guarantee on iteration order is made.
-   */
-  public static abstract class RecursiveBooleanFormulaVisitor
-      extends org.sosy_lab.solver.visitors.RecursiveBooleanFormulaVisitor {
-
-    protected RecursiveBooleanFormulaVisitor(FormulaManagerView pFmgr) {
-      super(pFmgr.getRawFormulaManager());
-    }
-  }
-
   /**
    * Base class for visitors for boolean formulas that traverse recursively
    * through the formula and somehow transform it (i.e., return a boolean formula).
    * This class ensures that each identical subtree of the formula
    * is visited only once to avoid the exponential explosion.
    * When a subclass wants to traverse into a subtree of the formula,
-   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} or
-   * {@link #visitIfNotSeen(BooleanFormula...)} to ensure this.
+   * it needs to call {@link #visitIfNotSeen(BooleanFormula)} to ensure this.
    *
    * By default this class implements the identity function.
    *
@@ -243,6 +224,43 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr,
         Map<BooleanFormula, BooleanFormula> pCache) {
       super(pFmgr.getRawFormulaManager(), pCache);
+    }
+  }
+
+  /**
+   * This visitor visits a formula and splits it (recursively) in case of a
+   * conjunction. Otherwise it returns NULL.
+   *
+   * Example: AND(x,AND(y,z)) -> [x,y,z], NOT(x) -> NULL
+   */
+  public static class ConjunctionSplitter
+      extends DefaultBooleanFormulaVisitor<List<BooleanFormula>> {
+
+    protected final FormulaManagerView fmgr;
+
+    protected ConjunctionSplitter(FormulaManagerView pFmgr) {
+      super();
+      fmgr = pFmgr;
+    }
+
+    @Override
+    protected List<BooleanFormula> visitDefault() {
+      return null;
+    }
+
+    @Override
+    public List<BooleanFormula> visitAnd(List<BooleanFormula> conjunction) {
+      final List<BooleanFormula> result = new ArrayList<>();
+      for (BooleanFormula f : conjunction) {
+        List<BooleanFormula> parts = fmgr.getBooleanFormulaManager().visit(this, f);
+        if (parts == null) {
+          result.add(f);
+        } else {
+          // recursive conjunction found
+          result.addAll(parts);
+        }
+      }
+      return result;
     }
   }
 }

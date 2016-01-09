@@ -179,7 +179,7 @@ public class CFAEdgeWithAssumptions {
   /**
    * Try to merge two different edges {@link CFAEdgeWithAssumptions}.
    *
-   * @param CFAEdgeWithAssumptions the other edge to be merged with this edge.
+   * @param pEdge the other edge to be merged with this edge.
    * @return A Edge that contain both assumptions of the merged edges.
    */
   public CFAEdgeWithAssumptions mergeEdge(CFAEdgeWithAssumptions pEdge) {

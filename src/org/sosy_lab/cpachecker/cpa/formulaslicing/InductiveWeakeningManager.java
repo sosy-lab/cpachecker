@@ -100,8 +100,8 @@ public class InductiveWeakeningManager {
     // Step 1: get rid of intermediate variables in "input".
 
     // ...remove atoms containing intermediate variables.
-    BooleanFormula noIntermediate = fmgr.simplify(SlicingPreprocessor
-        .of(fmgr, input.getSsa()).visit(input.getFormula()));
+    BooleanFormula noIntermediate = fmgr.simplify(bfmgr.visit(
+        SlicingPreprocessor.of(fmgr, input.getSsa()), input.getFormula()));
 
     BooleanFormula noIntermediateNNF = fmgr.applyTactic(noIntermediate,
         Tactic.NNF);
@@ -116,7 +116,8 @@ public class InductiveWeakeningManager {
 
     // Selection variables -> atoms.
     Map<BooleanFormula, BooleanFormula> selectionVarsInfo = new HashMap<>();
-    BooleanFormula annotated = ConjunctionAnnotator.of(fmgr, selectionVarsInfo).visit(
+    BooleanFormula annotated = bfmgr.visit(new ConjunctionAnnotator(
+        fmgr, new HashMap<BooleanFormula, BooleanFormula>(), selectionVarsInfo),
         noIntermediateNNF);
 
     // This is possible since the formula does not have any intermediate
@@ -404,7 +405,7 @@ public class InductiveWeakeningManager {
   ) {
 
     final Set<String> transitionVars = fmgr.extractFunctionNames(
-        fmgr.uninstantiate(transitionRelation), true);
+        fmgr.uninstantiate(transitionRelation));
     List<BooleanFormula> selectorVars = new ArrayList<>(inductiveSlice);
     Collections.sort(selectorVars, new Comparator<BooleanFormula>() {
       @Override
@@ -413,10 +414,8 @@ public class InductiveWeakeningManager {
         BooleanFormula a2 = selectors.get(s2);
 
         // todo: incessant re-uninstantiation is inefficient.
-        Set<String> a1Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a1),
-            true);
-        Set<String> a2Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a2),
-            true);
+        Set<String> a1Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a1));
+        Set<String> a2Vars = fmgr.extractFunctionNames(fmgr.uninstantiate(a2));
 
         Set<String> intersection1 = Sets.intersection(a1Vars, transitionVars);
         Set<String> intersection2 = Sets.intersection(a2Vars, transitionVars);
@@ -464,11 +463,10 @@ public class InductiveWeakeningManager {
    * -> gets converted to ->
    * (and (or p_1 a_1) ...)
    */
-  private static class ConjunctionAnnotator
+  private class ConjunctionAnnotator
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
     private final UniqueIdGenerator controllerIdGenerator =
         new UniqueIdGenerator();
-    private final BooleanFormulaManager bfmgr;
     private final Map<BooleanFormula, BooleanFormula> selectionVars;
 
     private static final String PROP_VAR = "_FS_SEL_VAR_";
@@ -480,21 +478,15 @@ public class InductiveWeakeningManager {
         // Selection variable -> controlled atom.
         Map<BooleanFormula, BooleanFormula> pSelectionVars) {
       super(pFmgr, pCache);
-      bfmgr = pFmgr.getBooleanFormulaManager();
       selectionVars = pSelectionVars;
-    }
-
-    public static ConjunctionAnnotator of(FormulaManagerView pFmgr,
-        Map<BooleanFormula, BooleanFormula> selectionVars) {
-      return new ConjunctionAnnotator(pFmgr,
-          new HashMap<BooleanFormula, BooleanFormula>(),
-          selectionVars);
     }
 
     @Override
     public BooleanFormula visitAnd(List<BooleanFormula> pOperands) {
       List<BooleanFormula> args = new ArrayList<>(pOperands.size());
       for (BooleanFormula arg : pOperands) {
+
+        // todo: BUG, missing things inside the argument.
         BooleanFormula controller = makeFreshSelector(arg);
         args.add(bfmgr.or(controller, arg));
       }

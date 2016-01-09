@@ -29,7 +29,7 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FunctionFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UninterpretedFunctionDeclaration;
+import org.sosy_lab.solver.api.UfDeclaration;
 
 import com.google.common.collect.ImmutableList;
 
@@ -50,9 +50,9 @@ public class NonLinearUFNumeralFormulaManager
   private static final String UF_DIVIDE_NAME = "_/_";
   private static final String UF_MODULO_NAME = "_%_";
 
-  private final UninterpretedFunctionDeclaration<ResultFormulaType> multUfDecl;
-  private final UninterpretedFunctionDeclaration<ResultFormulaType> divUfDecl;
-  private final UninterpretedFunctionDeclaration<ResultFormulaType> modUfDecl;
+  private final UfDeclaration<ResultFormulaType> multUfDecl;
+  private final UfDeclaration<ResultFormulaType> divUfDecl;
+  private final UfDeclaration<ResultFormulaType> modUfDecl;
 
   private final FunctionFormulaManager functionManager;
 
@@ -68,14 +68,14 @@ public class NonLinearUFNumeralFormulaManager
     modUfDecl = createBinaryFunction(UF_MODULO_NAME, formulaType);
   }
 
-  private UninterpretedFunctionDeclaration<ResultFormulaType> createBinaryFunction(
+  private UfDeclaration<ResultFormulaType> createBinaryFunction(
       String name, FormulaType<ResultFormulaType> formulaType) {
     return functionManager.declareUninterpretedFunction(
         formulaType + "_" + name, formulaType, formulaType, formulaType);
   }
 
   private ResultFormulaType makeUf(
-      UninterpretedFunctionDeclaration<ResultFormulaType> decl, ParamFormulaType t1, ParamFormulaType t2) {
+      UfDeclaration<ResultFormulaType> decl, ParamFormulaType t1, ParamFormulaType t2) {
     return functionManager.callUninterpretedFunction(decl, ImmutableList.of(t1, t2));
   }
 

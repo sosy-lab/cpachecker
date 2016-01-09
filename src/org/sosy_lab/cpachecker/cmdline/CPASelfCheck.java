@@ -67,7 +67,7 @@ public class CPASelfCheck {
   private static Configuration config;
 
   /**
-   * @param args
+   * @param args cmdline parameters, unused here
    */
   public static void main(String[] args) throws Exception {
     config = Configuration.defaultConfiguration();

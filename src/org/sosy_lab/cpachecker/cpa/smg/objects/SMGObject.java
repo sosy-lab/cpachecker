@@ -71,7 +71,7 @@ public abstract class SMGObject {
   }
 
   /**
-   * @param visitor
+   * @param visitor the visitor to accept
    */
   public void accept(SMGObjectVisitor visitor) {
     throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");

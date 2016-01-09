@@ -163,7 +163,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       logger.log(Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
 
-      reAddStatesForFixPointIteration(pHeadOfMainFunctionState);
+      reAddStatesForFixPointIteration();
 
       // continue;
     }
@@ -172,7 +172,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /** update waitlists of all reachedsets to re-explore the previously found recursive function-call. */
-  private void reAddStatesForFixPointIteration(final AbstractState pHeadOfMainFunctionState) {
+  private void reAddStatesForFixPointIteration() {
     for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates.keySet()) {
       for (final ReachedSet reachedSet : data.bamCache.getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {

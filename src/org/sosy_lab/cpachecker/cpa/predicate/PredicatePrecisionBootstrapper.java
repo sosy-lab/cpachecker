@@ -110,9 +110,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
   /**
    * Read the (initial) precision (predicates to track) from a file.
-   *
-   * @return      Precision
-   * @throws      InvalidConfigurationException
    */
   public PredicatePrecision prepareInitialPredicates() throws InvalidConfigurationException {
     PredicatePrecision result = internalPrepareInitialPredicates();

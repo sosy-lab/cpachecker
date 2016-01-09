@@ -114,7 +114,6 @@ parser code {:
 /* Predefined Symbols */
 terminal String DECLAREFUN, DEFINEFUN, ASSERT;
 terminal String SYMBOL, NUMERAL, DECIMAL;
-terminal String STRING;
 terminal String LPAR, RPAR;
 
 non terminal String symbol, numeral;

@@ -414,8 +414,6 @@ public class ValueAnalysisRefiner
    *
    * @param errorPath the error path for which to create the model
    * @return the model for the given error path
-   * @throws InterruptedException
-   * @throws CPAException
    */
   @Override
   protected RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {

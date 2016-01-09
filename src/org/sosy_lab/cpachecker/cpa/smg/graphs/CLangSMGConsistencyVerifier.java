@@ -58,7 +58,7 @@ public class CLangSMGConsistencyVerifier {
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndGlobal(LogManager pLogger, CLangSMG pSmg) {
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
@@ -78,7 +78,7 @@ public class CLangSMGConsistencyVerifier {
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG pSmg) {
     Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
@@ -103,7 +103,7 @@ public class CLangSMGConsistencyVerifier {
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG pSmg) {
     Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
@@ -128,7 +128,7 @@ public class CLangSMGConsistencyVerifier {
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyStackGlobalHeapUnion(LogManager pLogger, CLangSMG pSmg) {
     HashSet<SMGObject> object_union = new HashSet<>();
@@ -155,7 +155,7 @@ public class CLangSMGConsistencyVerifier {
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
    *
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG pSmg) {
     // Verify that there is no NULL object in global scope
@@ -204,7 +204,7 @@ public class CLangSMGConsistencyVerifier {
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyGlobalNamespace(LogManager pLogger, CLangSMG pSmg) {
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();
@@ -225,8 +225,8 @@ public class CLangSMGConsistencyVerifier {
    * labeled object
    *
    * @param pLogger Logger to log the message
-   * @param pSmg
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @param pSmg the current smg
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyStackNamespaces(LogManager pLogger, CLangSMG pSmg) {
     HashSet<SMGObject> stack_objects = new HashSet<>();
@@ -249,7 +249,7 @@ public class CLangSMGConsistencyVerifier {
    *
    * @param pLogger Logger to log results
    * @param pSmg SMG to check
-   * @return True if {@link pSmg} is consistent w.r.t. this criteria. False otherwise.
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static public boolean verifyCLangSMG(LogManager pLogger, CLangSMG pSmg) {
     boolean toReturn = SMGConsistencyVerifier.verifySMG(pLogger, pSmg);

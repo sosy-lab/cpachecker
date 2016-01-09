@@ -40,7 +40,7 @@ import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormulaManager;
@@ -74,7 +74,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
   private FormulaManagerView mgrv;
   private BooleanFormulaManagerView bmgrv;
-  private NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgrv;
+  private IntegerFormulaManagerView imgrv;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
@@ -84,48 +84,15 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.encodeBitvectorAs", "INTEGER")
         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
         .build();
-    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();
   }
 
-  private BooleanFormula stripNot(BooleanFormula f) {
-    return bmgrv.isNot(f) ? (BooleanFormula)mgr.getUnsafeFormulaManager().getArg(f, 0) : f;
-  }
-
-  @Test
-  public void testExtractDisjuncts() {
-    BooleanFormula atom1 = imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(1));
-    BooleanFormula atom2 = imgr.greaterThan(imgr.makeVariable("b"), imgr.makeNumber(2));
-    BooleanFormula atom3 = imgr.greaterOrEquals(imgr.makeVariable("c"), imgr.makeNumber(3));
-    BooleanFormula atom4 = imgr.lessThan(imgr.makeVariable("d"), imgr.makeNumber(4));
-    BooleanFormula atom5 = imgr.lessOrEquals(imgr.makeVariable("e"), imgr.makeNumber(5));
-
-    BooleanFormula f = bmgrv.and(ImmutableList.of(
-        bmgrv.or(atom1, atom2), bmgrv.not(bmgrv.or(atom1, atom3)), atom4, atom5));
-
-    assertThat(mgrv.extractDisjuncts(f))
-        .containsExactly(bmgrv.or(atom1, atom2), bmgrv.or(atom1, atom3), stripNot(atom4), stripNot(atom5));
-  }
-
-  @Test
-  public void testExtractLiterals() {
-    BooleanFormula atom1 = imgr.equal(imgr.makeVariable("a"), imgr.makeNumber(1));
-    BooleanFormula atom2 = imgr.greaterThan(imgr.makeVariable("b"), imgr.makeNumber(2));
-    BooleanFormula atom3 = imgr.greaterOrEquals(imgr.makeVariable("c"), imgr.makeNumber(3));
-    BooleanFormula atom4 = imgr.lessThan(imgr.makeVariable("d"), imgr.makeNumber(4));
-    BooleanFormula atom5 = imgr.lessOrEquals(imgr.makeVariable("e"), imgr.makeNumber(5));
-
-    BooleanFormula f = bmgrv.and(ImmutableList.of(
-        bmgrv.or(atom1, atom2), bmgrv.or(atom1, bmgrv.not(atom3)), atom4, atom5));
-
-    assertThat(mgrv.extractLiterals(f))
-        .containsExactly(atom1, atom2, bmgrv.not(atom3), atom4, atom5);
-
-    // TODO: this should really be the following (c.f. FormulaManagerView.extractLiterals)
-//    assertThat(mgrv.extractLiterals(f, false))
-//        .containsExactly(atom1, atom2, atom3, atom4, atom5);
+  /** strip the most outer NOT, if there is one, else return the formula unchanged. */
+  private BooleanFormula stripNot(final BooleanFormula f) {
+    return mgrv.stripNegation(f).or(f);
   }
 
   @Test

@@ -476,7 +476,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
    * children of this element, and it will also cover all elements which are
    * currently covered by this element.
    *
-   * @param replacement
+   * @param replacement the replacement for this state
    */
   public void replaceInARGWith(ARGState replacement) {
     assert !destroyed : "Don't use destroyed ARGState " + this;

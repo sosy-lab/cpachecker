@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.predicates.matching;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import org.sosy_lab.solver.api.IntegerFormulaManager;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
 
-public interface SmtAstPatternSelectionElement {
-
+public class IntegerFormulaManagerView
+    extends NumeralFormulaManagerView<IntegerFormula, IntegerFormula>
+    implements IntegerFormulaManager {
+  IntegerFormulaManagerView(
+      FormulaWrappingHandler pWrappingHandler,
+      NumeralFormulaManager<IntegerFormula, IntegerFormula> pManager) {
+    super(pWrappingHandler, pManager);
+  }
 }

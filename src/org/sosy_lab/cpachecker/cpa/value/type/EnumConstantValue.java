@@ -37,7 +37,6 @@ public class EnumConstantValue implements Value {
   /**
    * Creates a new <code>EnumValue</code>.
    *
-   * @param pEnumType the type of the enum constant.
    * @param pFullyQualifiedName the fully qualified name of this constant
    */
   public EnumConstantValue(String pFullyQualifiedName) {

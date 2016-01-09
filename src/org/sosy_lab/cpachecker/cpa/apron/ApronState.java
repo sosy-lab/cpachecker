@@ -211,7 +211,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
    * by the Transferrelation)
    * @param oldState the ApronState which has the preferred size, is the parameter,
    *                 so we can check if the variables are matching if not an Exception is thrown
-   * @return
+   * @return a pair of the shrinked caller and the shrinked stated
    */
   public Pair<ApronState, ApronState> shrinkToFittingSize(ApronState oldState) {
     int maxEqualIntIndex = 0;
@@ -635,11 +635,11 @@ logger.log(Level.FINEST, "apron state: isEqual");
       switch(pNode.getOperation()) {
 
       // real operations
-      case Texpr0BinNode.OP_ADD: return bitFmgr.add(left, right, true);
+      case Texpr0BinNode.OP_ADD: return bitFmgr.add(left, right);
       case Texpr0BinNode.OP_DIV: return bitFmgr.divide(left, right, true);
       case Texpr0BinNode.OP_MOD: return bitFmgr.modulo(left, right, true);
-      case Texpr0BinNode.OP_SUB: return bitFmgr.subtract(left, right, true);
-      case Texpr0BinNode.OP_MUL: return bitFmgr.multiply(left, right, true);
+      case Texpr0BinNode.OP_SUB: return bitFmgr.subtract(left, right);
+      case Texpr0BinNode.OP_MUL: return bitFmgr.multiply(left, right);
       case Texpr0BinNode.OP_POW: throw new AssertionError("Pow not implemented in this visitor");
       default:
         throw new AssertionError("Unhandled operator for binary nodes.");
@@ -689,7 +689,7 @@ logger.log(Level.FINEST, "apron state: isEqual");
     BitvectorFormula visit(Texpr0UnNode pNode) {
       BitvectorFormula operand = visit(pNode.getArgument());
       switch(pNode.getOperation()) {
-      case Texpr0UnNode.OP_NEG: return bitFmgr.negate(operand, true);
+      case Texpr0UnNode.OP_NEG: return bitFmgr.negate(operand);
       case Texpr0UnNode.OP_SQRT: throw new AssertionError("sqrt not implemented in this visitor");
       default:
         // nothing to do here, we ignore casts

@@ -781,7 +781,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @param pAssumptions the assumptions to be made.
    * @param pEvaluationVisitor the evaluation visitor to use for evaluating the assumptions' correctness.
-   * @param pNewVariableSelection
+   * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>false</code> otherwise.
    */
   private InvariantsState assumeInternal(Collection<? extends BooleanFormula<CompoundInterval>> pAssumptions,
@@ -801,7 +801,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
    *
    * @param pAssumption the assumption to be made.
    * @param pEvaluationVisitor the evaluation visitor to use for evaluating the assumptions' correctness.
-   * @param pNewVariableSelection
+   * @param pNewVariableSelection the new variable selection
    * @return <code>true</code> if the state is still valid after the assumptions are made, <code>false</code> otherwise.
    */
   private InvariantsState assumeInternal(BooleanFormula<CompoundInterval> pAssumption,

@@ -560,7 +560,6 @@ public final class LoopStructure {
    * @param nodes The set of nodes to look for loops in.
    * @param language The source language.
    * @return A collection of found loops.
-   * @throws ParserException
    */
   private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 

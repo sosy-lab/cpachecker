@@ -153,7 +153,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     solver = Solver.create(config, logger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    String libraries = formulaManager.getVersion();
+    String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
     if (useCache) {
@@ -176,9 +176,15 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     assumesStore = new PredicateAssumeStore(formulaManager);
 
-    predicateManager = new PredicateAbstractionManager(
-        abstractionManager, formulaManager, pathFormulaManager,
-        solver, config, logger, pShutdownNotifier, cfa.getLiveVariables());
+    predicateManager =
+        new PredicateAbstractionManager(
+            abstractionManager,
+            formulaManager,
+            pathFormulaManager,
+            solver,
+            config,
+            logger,
+            pShutdownNotifier);
 
     transfer = new PredicateTransferRelation(this, blk, config, direction, cfa);
 

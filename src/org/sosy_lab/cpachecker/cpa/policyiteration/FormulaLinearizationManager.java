@@ -19,11 +19,13 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
-import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.solver.visitors.TraversalProcess;
+
+import com.google.common.base.Function;
 
 public class FormulaLinearizationManager {
-  private final UnsafeFormulaManager ufmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
   private final NumeralFormulaManagerView<IntegerFormula, IntegerFormula> ifmgr;
@@ -35,11 +37,10 @@ public class FormulaLinearizationManager {
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
   private final UniqueIdGenerator choiceVarCounter = new UniqueIdGenerator();
 
-  public FormulaLinearizationManager(UnsafeFormulaManager pUfmgr,
+  public FormulaLinearizationManager(
       BooleanFormulaManager pBfmgr, FormulaManagerView pFmgr,
       NumeralFormulaManagerView<IntegerFormula, IntegerFormula> pIfmgr,
       PolicyIterationStatistics pStatistics) {
-    ufmgr = pUfmgr;
     bfmgr = pBfmgr;
     fmgr = pFmgr;
     ifmgr = pIfmgr;
@@ -54,17 +55,17 @@ public class FormulaLinearizationManager {
    *  x NOT(EQ(A, B)) => (A > B) \/ (A < B)
    */
   public BooleanFormula linearize(BooleanFormula input) {
-    return new LinearizationManager(
+    return bfmgr.visit(new LinearizationManager(
         fmgr, new HashMap<BooleanFormula, BooleanFormula>()
-    ).visit(input);
+    ), input);
   }
 
   /**
    * Annotate disjunctions with choice variables.
    */
   public BooleanFormula annotateDisjunctions(BooleanFormula input) {
-    return new DisjunctionAnnotationVisitor(fmgr,
-        new HashMap<BooleanFormula, BooleanFormula>()).visit(input);
+    return bfmgr.visit(new DisjunctionAnnotationVisitor(fmgr,
+        new HashMap<BooleanFormula, BooleanFormula>()), input);
   }
 
   private class LinearizationManager
@@ -134,7 +135,8 @@ public class FormulaLinearizationManager {
         mapping.put(ifmgr.makeVariable(termName), ifmgr.makeNumber(value));
       }
     }
-    BooleanFormula pathSelected = ufmgr.substitute(input, mapping);
+
+    BooleanFormula pathSelected = fmgr.substitute(input, mapping);
     pathSelected = fmgr.simplify(pathSelected);
     return pathSelected;
   }
@@ -155,7 +157,7 @@ public class FormulaLinearizationManager {
     BooleanFormula noUFs = processUFs(f);
 
     // Get rid of ite-expressions.
-    BooleanFormula out = new ReplaceITEVisitor().visit(noUFs);
+    BooleanFormula out = bfmgr.visit(new ReplaceITEVisitor(), noUFs);
     statistics.ackermannizationTimer.stop();
 
     return out;
@@ -219,40 +221,37 @@ public class FormulaLinearizationManager {
     }
 
     // Get rid of UFs.
-    BooleanFormula formulaNoUFs = ufmgr.substitute(f, substitution);
+    BooleanFormula formulaNoUFs = fmgr.substitute(f, substitution);
     return bfmgr.and(
         formulaNoUFs, bfmgr.and(extraConstraints)
     );
   }
 
+
+
   private Set<Formula> findUFs(Formula f) {
-    Set<Formula> UFs = new HashSet<>();
-    recFindUFs(f, new HashSet<Formula>(), new HashSet<Formula>());
-    return UFs;
-  }
+    final Set<Formula> UFs = new HashSet<>();
 
-  private void recFindUFs(Formula f, Set<Formula> visited, Set<Formula> UFs) {
-    if (visited.contains(f)) {
-      return;
-    }
-    if (ufmgr.isUF(f)) {
-      UFs.add(f);
-    } else {
-      for (Formula child : children(f)) {
-        recFindUFs(child, visited, UFs);
+    fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
       }
-    }
 
-    visited.add(f);
-  }
+      @Override
+      public TraversalProcess visitFunction(Formula f, List<Formula> args,
+          String functionName,
+          Function<List<Formula>, Formula> newApplicationConstructor,
+          boolean isUninterpreted) {
+        if (isUninterpreted) {
+          UFs.add(f);
 
-  private Iterable<Formula> children(Formula f) {
-    int arity = ufmgr.getArity(f);
-    List<Formula> out = new ArrayList<>(arity);
-    for (int i=0; i<arity; i++) {
-      out.add(ufmgr.getArg(f, i));
-    }
-    return out;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+    }, f);
+
+    return UFs;
   }
 
   private Formula evaluate(Formula f) {

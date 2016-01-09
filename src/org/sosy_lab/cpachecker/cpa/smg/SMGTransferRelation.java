@@ -3230,7 +3230,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     /**
      * Return an address with (offset + pAddedOffset).
      *
-     * @param offset The offset added to this address.
+     * @param pAddedOffset The offset added to this address.
      */
     public final SMGAddress add(SMGExplicitValue pAddedOffset) {
 

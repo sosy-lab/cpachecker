@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
@@ -84,14 +85,18 @@ public class ARGPathTest {
     // mock location states for ARGPath
     LocationState firstState = Mockito.mock(LocationState.class);
     Mockito.when(firstState.getLocationNode()).thenReturn(edges.get(STATE_POS_1).getPredecessor());
+    Mockito.when(firstState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(STATE_POS_1).getPredecessor()));
     LocationState secondState = Mockito.mock(LocationState.class);
     Mockito.when(secondState.getLocationNode()).thenReturn(edges.get(STATE_POS_2).getPredecessor());
+    Mockito.when(secondState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(STATE_POS_2).getPredecessor()));
     LocationState thirdState = Mockito.mock(LocationState.class);
     Mockito.when(thirdState.getLocationNode()).thenReturn(edges.get(STATE_POS_3).getPredecessor());
+    Mockito.when(thirdState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(STATE_POS_3).getPredecessor()));
 
     // last ARGState is the end of the CFA-path we created before
     LocationState lastState = Mockito.mock(LocationState.class);
     Mockito.when(lastState.getLocationNode()).thenReturn(edges.get(edges.size()-1).getSuccessor());
+    Mockito.when(lastState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(edges.size()-1).getSuccessor()));
 
     // build argPath
     ARGPathBuilder builder = ARGPath.builder();

@@ -81,8 +81,6 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
   /**
    * This method serves as factory method for an initial, i.e. an interpolant representing "true"
-   *
-   * @return
    */
   public static ValueAnalysisInterpolant createInitial() {
     return new ValueAnalysisInterpolant();

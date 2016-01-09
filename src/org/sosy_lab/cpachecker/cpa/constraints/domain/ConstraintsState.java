@@ -273,8 +273,6 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
    * A state without constraints (that is, an empty state), is always satisfiable.
    *
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
-   * @throws SolverException
-   * @throws InterruptedException
    */
   public boolean isUnsat() throws SolverException, InterruptedException, UnrecognizedCCodeException {
     boolean unsat = false;

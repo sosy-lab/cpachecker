@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,24 +21,19 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.refinement;
+package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Map;
+import org.sosy_lab.solver.api.NumeralFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.solver.api.NumeralFormulaManager;
+import org.sosy_lab.solver.api.RationalFormulaManager;
 
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-/**
- * Classes implementing this interface derive interpolants of a whole path.
- *
- * @param <I> the type of interpolant created by the implementation
- */
-public interface PathInterpolator<I extends Interpolant<?>> extends Statistics {
-
-   Map<ARGState, I> performInterpolation(
-      ARGPath errorPath,
-      I interpolant
-  ) throws CPAException, InterruptedException;
+public class RationalFormulaManagerView
+  extends NumeralFormulaManagerView<NumeralFormula, RationalFormula>
+  implements RationalFormulaManager{
+  RationalFormulaManagerView(
+      FormulaWrappingHandler pWrappingHandler,
+      NumeralFormulaManager<NumeralFormula, RationalFormula> pManager) {
+    super(pWrappingHandler, pManager);
+  }
 }

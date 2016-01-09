@@ -426,8 +426,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    *
    * @param pReachedSet the reached used for analyzing
    * @param pProver the prover that should be used
-   * @throws CPATransferException
-   * @throws InterruptedException
+   * @throws CPATransferException may be thrown in subclasses
+   * @throws InterruptedException may be thrown in subclasses
    */
   protected void analyzeCounterexample(final ReachedSet pReachedSet, final ProverEnvironment pProver)
       throws CPATransferException, InterruptedException {

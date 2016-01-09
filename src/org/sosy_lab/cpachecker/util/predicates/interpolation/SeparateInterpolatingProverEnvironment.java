@@ -29,8 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
@@ -91,10 +91,10 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
     itpEnv.close();
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public <E extends Formula> E evaluate(E f) {
     if (f instanceof BooleanFormula) {
-      //noinspection unchecked
       return (E)itpEnv.evaluate(convertToItp((BooleanFormula) f));
     }
     throw new UnsupportedOperationException("Evaluation in interpolating "

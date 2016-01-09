@@ -120,8 +120,6 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
    * Compiles the program given in the global variable "dumpFile" and saves the
    * output in the file given in the global variable "executable". The return
    * value indicates the success of the compilation process.
-   * @throws IOException
-   * @throws TimeoutException
    */
   private void compilePathProgram(String absFilePath) throws CounterexampleAnalysisFailed, InterruptedException, IOException, TimeoutException {
     logger.log(Level.FINE, "Compiling concrete error path.");

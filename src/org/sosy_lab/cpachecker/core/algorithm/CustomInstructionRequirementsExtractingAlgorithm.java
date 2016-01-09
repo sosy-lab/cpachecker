@@ -350,8 +350,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param root ARGState
    * @param pCustomIA CustomInstructionApplication
    * @return ImmutableSet of ARGState
-   * @throws InterruptedException
-   * @throws CPAException
    */
   private Collection<ARGState> getCustomInstructionStartNodes(final ARGState root, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException{
@@ -391,7 +389,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param ciStart ARGState
    * @return Collection of ARGState
    * @throws InterruptedException if a shutdown was requested
-   * @throws CPAException
    */
   private Collection<ARGState> findEndStatesFor(final ARGState ciStart, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {

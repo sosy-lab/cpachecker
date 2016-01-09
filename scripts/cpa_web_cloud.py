@@ -39,6 +39,8 @@ import urllib.request as request
 for egg in glob.glob(os.path.join(os.path.dirname(__file__), os.pardir, 'lib', 'python-benchmark', '*.whl')):
     sys.path.insert(0, egg)
 
+from benchexec import util
+
 from benchmark.webclient import *  # @UnusedWildImport
 
 __version__ = '1.0'
@@ -105,13 +107,15 @@ def _create_argument_parser():
 
     parser.add_argument("-T", "--timelimit",
                       dest="timelimit", default=None,
+                      type=util.parse_timespan_value,
                       help="Time limit in seconds",
                       metavar="SECONDS")
 
     parser.add_argument("-M", "--memorylimit",
                       dest="memorylimit", default=None,
-                      help="Memory limit in MB",
-                      metavar="MB")
+                      type=util.parse_memory_value,
+                      help="Memory limit",
+                      metavar="BYTES")
 
     parser.add_argument("-c", "--corelimit", dest="corelimit",
                       type=int, default=None,
@@ -177,7 +181,7 @@ def _submit_run(webclient, config, cpachecker_args, counter=0):
     """
     limits = {}
     if config.memorylimit:
-        limits['memlimit'] = config.memorylimit + "MB"
+        limits['memlimit'] = config.memorylimit
     if config.timelimit:
         limits['timelimit'] = config.timelimit
     if config.corelimit:

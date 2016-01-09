@@ -108,7 +108,7 @@ public abstract class PathTranslator {
 
   /**
    * Translate a single linear path to code.
-   * @param pPath
+   * @param pPath the path to translate
    * @param callback A callback that receives each <code>ARGState</code>
    * along with their edges and can then determine what code to generate
    * from it. The default behavior of a <code>ProcessEdgeFunction</code>
@@ -167,9 +167,9 @@ public abstract class PathTranslator {
   /**
    * Start the function, puts another body on the function stack.
    *
-   * @param firstFunctionElement
-   * @param functionStack
-   * @param predecessor
+   * @param firstFunctionElement the first state inside the function
+   * @param functionStack the current callstack
+   * @param predecessor the previous node
    */
   protected String startFunction(ARGState pFirstFunctionElement,
       Stack<FunctionBody> pFunctionStack, CFANode pPredecessor) {
@@ -199,9 +199,9 @@ public abstract class PathTranslator {
   /**
    * Processes an edge of the CFA and will write code to the output function body.
    *
-   * @param childElement
-   * @param edge
-   * @param functionStack
+   * @param childElement the state after the given edge
+   * @param edge the edge to process
+   * @param functionStack the current callstack
    */
   void processEdge(ARGState childElement, CFAEdge edge, Stack<FunctionBody> functionStack) {
     FunctionBody currentFunction = functionStack.peek();

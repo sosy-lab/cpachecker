@@ -36,8 +36,8 @@ public interface Algorithm {
    *
    * @param reachedSet Input.
    * @return information about how reliable the result is
-   * @throws CPAException
-   * @throws InterruptedException
+   * @throws CPAException may be thrown by implementors
+   * @throws InterruptedException may be thrown by implementors
    */
   AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException;
 

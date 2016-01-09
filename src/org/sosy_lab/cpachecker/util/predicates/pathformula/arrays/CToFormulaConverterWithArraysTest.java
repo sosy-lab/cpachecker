@@ -74,14 +74,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-import org.sosy_lab.solver.FormulaManagerFactory.Solvers;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
@@ -223,7 +223,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     requireRationals();
-    mgrv = new FormulaManagerView(factory.getFormulaManager(),
+    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
         config, logger);
 
     FormulaEncodingOptions opts = new FormulaEncodingOptions(
@@ -334,7 +334,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   public void testArrayView1() {
     // TODO This just tests if the view creates the string we expect. It's not
     // real test, as we have different views for different solvers.
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
     IntegerFormula _i = imgv.makeVariable("i");
@@ -357,7 +357,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   public void testArrayView2() {
     // TODO This just tests if the view creates the string we expect. It's not
     // real test, as we have different views for different solvers.
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
     IntegerFormula _i = imgv.makeVariable("i");
@@ -383,7 +383,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   public void testArrayView3() {
     // TODO This just tests if the view creates the string we expect. It's not
     // real test, as we have different views for different solvers.
-    NumeralFormulaManagerView<IntegerFormula, IntegerFormula> imgv = mgrv.getIntegerFormulaManager();
+    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
     ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
 
     IntegerFormula _i = imgv.makeVariable("i");

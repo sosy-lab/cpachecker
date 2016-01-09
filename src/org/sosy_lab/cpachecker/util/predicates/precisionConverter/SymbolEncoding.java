@@ -199,7 +199,7 @@ public class SymbolEncoding {
   }
 
   /** write out the current symbol encoding in a format,
-   * that can be read again via {@link readSymbolEncoding}. */
+   * that can be read again. */
   public void dump(Path symbolEncodingFile) throws IOException {
     if (symbolEncodingFile != null) {
       Files.writeFile(symbolEncodingFile, new Appender() {

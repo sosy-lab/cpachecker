@@ -29,7 +29,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 public class UFCheckingProverEnvironment
@@ -54,10 +53,5 @@ public class UFCheckingProverEnvironment
       List<BooleanFormula> important)
       throws InterruptedException, SolverException {
     return delegate.allSat(callback, important);
-  }
-
-  @Override
-  public <E extends Formula> E evaluate(E f) {
-    return delegate.evaluate(f);
   }
 }

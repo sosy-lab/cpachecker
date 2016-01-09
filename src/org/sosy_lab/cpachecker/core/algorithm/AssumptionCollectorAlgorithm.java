@@ -303,9 +303,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * @param relevantStates A set with all states with non-trivial assumptions (all others will have assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
    * @param branchingThreshold After branchingThreshold many branches on a path the automaton will be ignored (0 to disable)")
-   * @param If set to true, the automaton does not add assumption which is considered to continue path with corresponding this edge.
+   * @param ignoreAssumptions if set to true, the automaton does not add assumption which is considered to continue path with corresponding this edge.
    * @return the number of states contained in the written automaton
-   * @throws IOException
    */
   public static int writeAutomaton(Appendable sb, ARGState initialState,
       Set<ARGState> relevantStates, Set<AbstractState> falseAssumptionStates, int branchingThreshold,
@@ -451,8 +450,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * This method transitively finds all parents of a given state and adds
    * them to a given set.
    * Covering nodes are considered to be parents of the covered nodes.
-   * @param s
-   * @param parentSet
+   * @param s the ARGSTate whose parents should be found
+   * @param parentSet the set of ARGStates the parents should be added to
    */
   private static void findAllParents(ARGState s, Set<ARGState> parentSet) {
     Deque<ARGState> toAdd = new ArrayDeque<>();

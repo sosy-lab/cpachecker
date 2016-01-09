@@ -245,7 +245,7 @@ public class CFAUtils {
    * Returns a predicate for CFA edges with the given edge type.
    * The predicate is not null safe.
    *
-   * @param pEdgeType the edge type matched on.
+   * @param pType the edge type matched on.
    */
   public static Predicate<CFAEdge> edgeHasType(final CFAEdgeType pType) {
     checkNotNull(pType);
@@ -346,7 +346,7 @@ public class CFAUtils {
 
   /**
    * Searches for backwards edges from a given starting node
-   * @param actNode The node where the search is started
+   * @param rootNode The node where the search is started
    * @return indicates if a backwards edge was found
    */
   static boolean hasBackWardsEdges(CFANode rootNode) {

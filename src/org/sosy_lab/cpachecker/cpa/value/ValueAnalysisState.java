@@ -57,8 +57,8 @@ import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -556,7 +556,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    NumeralFormulaManager<IntegerFormula, IntegerFormula> nfmgr = manager.getIntegerFormulaManager();
+    IntegerFormulaManager nfmgr = manager.getIntegerFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {

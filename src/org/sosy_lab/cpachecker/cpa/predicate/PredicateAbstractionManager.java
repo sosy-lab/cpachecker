@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
-import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -76,7 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment.AllSatCallback;
 
@@ -192,8 +190,6 @@ public class PredicateAbstractionManager {
 
   private final PredicateAbstractionsStorage abstractionStorage;
 
-  private Optional<LiveVariables> liveVars;
-
   public PredicateAbstractionManager(
       AbstractionManager pAmgr,
       FormulaManagerView pFmgr,
@@ -201,8 +197,8 @@ public class PredicateAbstractionManager {
       Solver pSolver,
       Configuration config,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      Optional<LiveVariables> pLiveVars) throws InvalidConfigurationException, PredicateParsingFailedException {
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
 
     config.inject(this, PredicateAbstractionManager.class);
@@ -214,7 +210,6 @@ public class PredicateAbstractionManager {
     rmgr = amgr.getRegionCreator();
     pfmgr = pPfmgr;
     solver = pSolver;
-    liveVars = pLiveVars;
 
     if (cartesianAbstraction) {
       abstractionType = AbstractionType.CARTESIAN;
@@ -251,10 +246,9 @@ public class PredicateAbstractionManager {
    * so the indices there should match those from the PathFormula.
    * @param abstractionFormula An AbstractionFormula that is used as input.
    * @param pathFormula A PathFormula that is used as input.
-   * @param predicates The set of predicates used for abstraction.
+   * @param pPredicates The set of predicates used for abstraction.
    * @return An AbstractionFormula instance representing an abstraction of
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
-   * @throws InterruptedException
    */
   public AbstractionFormula buildAbstraction(CFANode location,
       AbstractionFormula abstractionFormula, PathFormula pathFormula,
@@ -579,17 +573,14 @@ public class PredicateAbstractionManager {
    * @param pPredicates The set of predicates.
    * @param f The formula that determines which variables and predicates are relevant.
    * @param ssa The SSA map to use for instantiating predicates.
-   * @param pPathFormula
+   * @param pLocation the location that should be used
    * @return A subset of pPredicates.
-   *
-   * @throws InterruptedException
-   * @throws SolverException
    */
   private ImmutableSet<AbstractionPredicate> getRelevantPredicates(
       final Collection<AbstractionPredicate> pPredicates,
       final BooleanFormula f,
       final SSAMap ssa,
-      final CFANode pLocation) throws SolverException, InterruptedException {
+      final CFANode pLocation) {
 
     Set<String> variables = fmgr.extractVariableNames(f);
     ImmutableSet.Builder<AbstractionPredicate> predicateBuilder = ImmutableSet.builder();
@@ -604,16 +595,16 @@ public class PredicateAbstractionManager {
       }
 
       BooleanFormula instantiatedPredicate = fmgr.instantiate(predicateTerm, ssa);
-      Map<String, Formula> predVariables = fmgr.extractFreeVariableMap(instantiatedPredicate);
+      Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (predVariables.isEmpty()
-          || !Sets.intersection(predVariables.keySet(), variables).isEmpty()) {
+          || !Sets.intersection(predVariables, variables).isEmpty()) {
         // Predicates without variables occur (for example, talking about UFs).
         // We do not know whether they are relevant, so we have to add them.
         predicateBuilder.add(predicate);
 
       } else {
-        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables.keySet());
+        logger.log(Level.FINEST, "Ignoring predicate about variables", predVariables);
       }
     }
     return predicateBuilder.build();
@@ -883,9 +874,7 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private class AllSatCallbackImpl
-      extends BooleanFormulaManagerView.DefaultBooleanFormulaVisitor<BooleanFormula>
-      implements AllSatCallback<Region> {
+  private class AllSatCallbackImpl implements AllSatCallback<Region> {
 
     private final RegionBuilder builder;
 
@@ -896,7 +885,6 @@ public class PredicateAbstractionManager {
     private Region formula;
 
     private AllSatCallbackImpl() {
-      super(fmgr);
       builder = rmgr.builder(shutdownNotifier);
 
       stats.abstractionSolveTime.start();
@@ -917,11 +905,13 @@ public class PredicateAbstractionManager {
       // first, let's create the BDD corresponding to the model
       builder.startNewConjunction();
       for (BooleanFormula f : model) {
-        if (bfmgr.isNot(f)) { // todo: possible bug if the predicate contains
-                             // the negation.
-          builder.addNegativeRegion(amgr.getPredicate(visit(f)).getAbstractVariable());
+        Optional<BooleanFormula> inner = fmgr.stripNegation(f);
+        Region region = amgr.getPredicate(inner.or(f)).getAbstractVariable();
+        if (inner.isPresent()) {
+          // TODO: possible bug if the predicate itself contains the negation.
+          builder.addNegativeRegion(region);
         } else {
-          builder.addPositiveRegion(amgr.getPredicate(f).getAbstractVariable());
+          builder.addPositiveRegion(region);
         }
       }
       builder.finishConjunction();
@@ -930,11 +920,6 @@ public class PredicateAbstractionManager {
 
       regionTime.stop();
 
-    }
-
-    @Override
-    public BooleanFormula visitNot(BooleanFormula negated) {
-      return negated;
     }
 
     @Override
@@ -959,11 +944,6 @@ public class PredicateAbstractionManager {
 
     private int getCount() {
       return count;
-    }
-
-    @Override
-    public BooleanFormula visitDefault() {
-      throw new UnsupportedOperationException();
     }
   }
 
@@ -992,8 +972,8 @@ public class PredicateAbstractionManager {
 
   /**
    * Checks if an abstraction formula and a pathFormula are unsatisfiable.
-   * @param pAbstractionFormula the abstraction formula
-   * @param pPathFormula the path formula
+   * @param abstractionFormula the abstraction formula
+   * @param pathFormula the path formula
    * @return unsat(pAbstractionFormula & pPathFormula)
    */
   public boolean unsat(AbstractionFormula abstractionFormula, PathFormula pathFormula)

@@ -59,17 +59,17 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   }
 
   @Override
-  public BitvectorFormula negate(BitvectorFormula pNumber, boolean signed) {
-    return manager.negate(pNumber, signed);
+  public BitvectorFormula negate(BitvectorFormula pNumber) {
+    return manager.negate(pNumber);
   }
 
   @Override
-  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return manager.add(pNumber1, pNumbe2, signed);
+  public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
+    return manager.add(pNumber1, pNumbe2);
   }
   @Override
-  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return manager.subtract(pNumber1, pNumbe2, signed);
+  public BitvectorFormula subtract(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {
+    return manager.subtract(pNumber1, pNumbe2);
   }
 
   /**
@@ -102,8 +102,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
     return manager.modularCongruence(pNumber1, pNumber2, pModulo);
   }
   @Override
-  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumbe2, boolean signed) {
-    return manager.multiply(pNumber1, pNumbe2, signed);
+  public BitvectorFormula multiply(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
+    return manager.multiply(pNumber1, pNumber2);
   }
   @Override
   public BooleanFormula equal(BitvectorFormula pNumber1, BitvectorFormula pNumbe2) {

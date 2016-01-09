@@ -113,7 +113,7 @@ public class ARGReachedSet {
   /**
    * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see
-   * {@link #adaptPrecision(ARGState, Precision)}).
+   * {@link #adaptPrecision(Precision, Precision, Predicate)}).
    * @param e The root of the removed subtree, may not be the initial element.
    * @param p The new precision.
    */
@@ -127,12 +127,13 @@ public class ARGReachedSet {
   /**
    * Like {@link #removeSubtree(ARGState)}, but when re-adding elements to the
    * waitlist adapts precisions with respect to the supplied precision p (see
-   * {@link #adaptPrecision(ARGState, Precision)}).
+   * {@link #adaptPrecision(Precision, Precision, Predicate)}).
    * If multiple precisions are given,
    * adapt all matching sub-precisions of a WrappedPrecision.
    *
-   * @param e The root of the removed subtree, may not be the initial element.
-   * @param p The new precision.
+   * @param pState The root of the removed subtree, may not be the initial element.
+   * @param pPrecisions The new precisions.
+   * @param pPrecTypes the types of the precisions.
    */
   public void removeSubtree(ARGState pState, List<Precision> pPrecisions,
       List<Predicate<? super Precision>> pPrecTypes) {
@@ -169,7 +170,6 @@ public class ARGReachedSet {
    * unreachable. This method takes care of the coverage relationships of the
    * removed nodes, re-adding covered nodes to the waitlist if necessary.
    * @param rootOfInfeasiblePart The root of the subtree to remove.
-   * @param pReached The reached set.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
     Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph();
@@ -208,7 +208,7 @@ public class ARGReachedSet {
    * precision of the state to the supplied precision.
    *
    * @param state the state to (re)add to the waitlist
-   * @param the new precision to apply at this state
+   * @param precision the new precision to apply at this state
    * @param pPrecisionType the type of the precision
    */
   public void readdToWaitlist(ARGState state, Precision precision, Predicate<? super Precision> pPrecisionType) {
@@ -222,7 +222,9 @@ public class ARGReachedSet {
 
   /**
    * Set a new precision for each single state in the reached set.
-   * @param p The new precision, may be for a single CPA (c.f. {@link #adaptPrecision(ARGState, Precision)}).
+   * @param pNewPrecision The new precision, may be for a single CPA
+   *                      (c.f. {@link #adaptPrecision(Precision, Precision, Predicate)}).
+   * @param pPrecisionType the type of the precision
    */
   public void updatePrecisionGlobally(Precision pNewPrecision,
       Predicate<? super Precision> pPrecisionType) {
@@ -392,7 +394,6 @@ public class ARGReachedSet {
    * which means that all states in this subtree do not cover any states anymore.
    * @param v The state which should be covered if possible.
    * @return whether the covering was successful
-   * @throws CPAException
    */
   public boolean tryToCover(ARGState v) throws CPAException, InterruptedException {
     assert v.mayCover();
@@ -446,7 +447,6 @@ public class ARGReachedSet {
    * @param v the state which should be covered if possible
    * @param beUnsound whether or not the be unsound
    * @return whether the covering was successful
-   * @throws CPAException
    */
   public boolean tryToCover(ARGState v, boolean beUnsound) throws CPAException, InterruptedException {
     assert v.mayCover();

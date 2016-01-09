@@ -128,8 +128,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * Handles return from one function to another function.
    *
-   * @param state previous abstract state.
-   * @param functionReturnEdge return edge from a function to its call site.
+   * @param cfaEdge return edge from a function to its call site.
    * @return new abstract state.
    */
   @Override
@@ -164,10 +163,8 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles function calls.
    *
-   * @param previousState the previous state of the analysis, before the function call
    * @param callEdge the respective CFA edge
    * @return the successor state
-   * @throws UnrecognizedCCodeException
    */
   @Override
   protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
@@ -198,9 +195,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles the statement edge which leads the function to the last node of its CFA (not same as a return edge).
    *
-   * @param state the analysis state
-   * @param expression the expression
-   * @param CReturnStatementEdge the CFA edge corresponding to this statement
+   * @param returnEdge the CFA edge corresponding to this statement
    * @return the successor states
    */
   @Override
@@ -223,7 +218,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles assumptions.
    *
-   * @param state the analysis state
    * @param expression the expression containing the assumption
    * @param cfaEdge the CFA edge corresponding to this expression
    * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
@@ -379,7 +373,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method return the negated counter part for a given operator
    *
-   * @param operator
+   * @param operator the operator to negate
    * @return the negated counter part of the given operator
    */
   private static BinaryOperator negateOperator(BinaryOperator operator) {
@@ -412,7 +406,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
    *
    * So far, only primitive types are supported, pointers are not supported either.
    *
-   * @param state the analysis state
    * @param declarationEdge the CFA edge
    * @return the successor state
    */
@@ -449,7 +442,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   /**
    * This method handles unary and binary statements.
    *
-   * @param state the analysis state
    * @param expression the current expression
    * @param cfaEdge the CFA edge
    * @return the successor

@@ -222,7 +222,10 @@ try:
 
                 logging.debug("Creating Server-Send Event connection.")
                 try:
-                    self._sse_client = ShouldReconnectSeeClient(self._run_finished_url, self._should_reconnect, headers=headers, data=params)
+                    self._sse_client = ShouldReconnectSeeClient(
+                        self._run_finished_url, self._should_reconnect,
+                        verify='/etc/ssl/certs',
+                        headers=headers, data=params)
 
                 except Exception as e:
                     logging.warning("Creating SSE connection failed: %s", e)
@@ -492,7 +495,7 @@ class WebInterface:
                 params['propertyText'] = propertyText
 
         if MEMLIMIT in limits:
-            params['memoryLimitation'] = str(limits[MEMLIMIT]) + "MB"
+            params['memoryLimitation'] = limits[MEMLIMIT]
         if TIMELIMIT in limits:
             params['timeLimitation'] = limits[TIMELIMIT]
         if SOFTTIMELIMIT in limits:

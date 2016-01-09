@@ -49,9 +49,8 @@ abstract class AutomatonAction {
   /**
    * Returns if the action can execute on the given AutomatonExpressionArguments.
    * If it cannot execute this is probably because of missing AbstractStates (from other CPAs).
-   * @param pArgs
-   * @return
-   * @throws CPATransferException
+   * @param pArgs the arguments that should be used for execution
+   * @throws CPATransferException may be thrown in subclasses
    */
   boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
     return true;

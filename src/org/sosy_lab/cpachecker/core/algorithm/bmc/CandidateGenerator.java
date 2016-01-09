@@ -41,7 +41,7 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
    * Checks if there are candidates currently available.
    *
    * If no candidates are available, more can be requested to be produced by
-   * calling {@link produceMoreCandidates}.
+   * calling {@link #produceMoreCandidates}.
    *
    * @return {@code true} if there are any candidates,
    * {@code false} if more need to be produced first.
@@ -51,8 +51,6 @@ public interface CandidateGenerator extends Iterable<CandidateInvariant> {
   /**
    * Confirms the given candidates, so that they are no longer provided as
    * candidates.
-   *
-   * @param pCandidates
    */
   void confirmCandidates(Iterable<CandidateInvariant> pCandidates);
 

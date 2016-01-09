@@ -379,7 +379,7 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
   /**
    * Resolves the variable with the given name.
    *
-   * @param pVarName the name of the variable.
+   * @param pVariable the name of the variable.
    *
    * @return the expression formula assigned to the variable.
    */
