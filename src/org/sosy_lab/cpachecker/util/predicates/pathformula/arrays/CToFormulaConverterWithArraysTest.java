@@ -36,9 +36,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -64,6 +62,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -72,18 +72,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.NumeralType;
-import org.sosy_lab.solver.api.IntegerFormulaManager;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.test.SolverBasedTest0;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -329,81 +325,6 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
     _a_at_i_assign_b_at_i = makeAssignment(_a_at_i, _b_at_i);
   }
 
-
-  @Test
-  public void testArrayView1() {
-    // TODO This just tests if the view creates the string we expect. It's not
-    // real test, as we have different views for different solvers.
-    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
-    ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
-
-    IntegerFormula _i = imgv.makeVariable("i");
-    IntegerFormula _1 = imgv.makeNumber(1);
-    IntegerFormula _i_plus_1 = imgv.add(_i, _1);
-
-    ArrayFormula<IntegerFormula, IntegerFormula> _b = amgv.makeArray("b", NumeralType.IntegerType, NumeralType.IntegerType);
-    IntegerFormula _b_at_i_plus_1 = amgv.select(_b, _i_plus_1);
-
-    if (solver == Solvers.MATHSAT5) {
-      assertThat(_b_at_i_plus_1.toString()).isEqualTo(
-          "(`read_int_int` b (`+_int` i 1))");
-    } else {
-      assertThat(_b_at_i_plus_1.toString()).isEqualTo(
-          "(select b (+ i 1))"); // Compatibility to all solvers not guaranteed
-    }
-  }
-
-  @Test
-  public void testArrayView2() {
-    // TODO This just tests if the view creates the string we expect. It's not
-    // real test, as we have different views for different solvers.
-    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
-    ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
-
-    IntegerFormula _i = imgv.makeVariable("i");
-
-    ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, RationalFormula>> multi
-      = amgv.makeArray("multi",
-        NumeralType.IntegerType,
-        FormulaType.getArrayType(
-            NumeralType.IntegerType, NumeralType.RationalType));
-
-    RationalFormula valueInMulti = amgv.select(amgv.select(multi, _i), _i);
-
-    if (solver == Solvers.MATHSAT5) {
-      assertThat(valueInMulti.toString()).isEqualTo(
-          "(`read_int_rat` (`read_int_<Array, Int, Real, >` multi i) i)");
-    } else {
-      assertThat(valueInMulti.toString()).isEqualTo(
-          "(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
-    }
-  }
-
-  @Test
-  public void testArrayView3() {
-    // TODO This just tests if the view creates the string we expect. It's not
-    // real test, as we have different views for different solvers.
-    IntegerFormulaManager imgv = mgrv.getIntegerFormulaManager();
-    ArrayFormulaManagerView amgv = mgrv.getArrayFormulaManager();
-
-    IntegerFormula _i = imgv.makeVariable("i");
-
-    ArrayFormula<IntegerFormula, ArrayFormula<IntegerFormula, BitvectorFormula>> multi
-      = amgv.makeArray("multi",
-        NumeralType.IntegerType,
-        FormulaType.getArrayType(
-            NumeralType.IntegerType, FormulaType.getBitvectorTypeWithSize(32)));
-
-    BitvectorFormula valueInMulti = amgv.select(amgv.select(multi, _i), _i);
-
-    if (solver == Solvers.MATHSAT5) {
-      assertThat(valueInMulti.toString()).isEqualTo(
-          "(`read_int_int` (`read_int_<Array, Int, Int, >` multi i) i)");
-    } else {
-      assertThat(valueInMulti.toString()).isEqualTo(
-          "(select (select multi i) i)"); // Compatibility to all solvers not guaranteed
-    }
-  }
 
   @Test
   public void testSimpleArrayAssume()
