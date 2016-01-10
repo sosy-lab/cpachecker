@@ -233,55 +233,56 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @Override
   public CounterexampleInfo performRefinement(final ARGReachedSet pReached, final ARGPath allStatesTrace) throws CPAException, InterruptedException {
     totalRefinement.start();
-    logger.log(Level.FINEST, "Starting interpolation-based refinement");
+    try {
+      logger.log(Level.FINEST, "Starting interpolation-based refinement");
 
-    Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
+      Set<ARGState> elementsOnPath = extractElementsOnPath(allStatesTrace);
 
-    // No branches/merges in path, it is precise.
-    // We don't need to care about creating extra predicates for branching etc.
-    boolean branchingOccurred = true;
-    if (elementsOnPath.size() == allStatesTrace.size()) {
-      elementsOnPath = Collections.emptySet();
-      branchingOccurred = false;
-    }
-
-    // create path with all abstraction location elements (excluding the initial element)
-    // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
-    totalPathLength.setNextValue(abstractionStatesTrace.size());
-
-    logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
-
-    final List<BooleanFormula> formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
-
-
-    final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
-    final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
-    lastErrorPath = errorPath;
-
-    CounterexampleTraceInfo counterexample = buildCounterexampleTrace(elementsOnPath,
-        abstractionStatesTrace, formulas, strategy.needsInterpolants());
-
-    // if error is spurious refine
-    if (counterexample.isSpurious()) {
-      logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
-
-      if (strategy instanceof PredicateAbstractionRefinementStrategy) {
-        ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(atomicInterpolants);
+      // No branches/merges in path, it is precise.
+      // We don't need to care about creating extra predicates for branching etc.
+      boolean branchingOccurred = true;
+      if (elementsOnPath.size() == allStatesTrace.size()) {
+        elementsOnPath = Collections.emptySet();
+        branchingOccurred = false;
       }
 
-      strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
+      // create path with all abstraction location elements (excluding the initial element)
+      // the last element is the element corresponding to the error location
+      final List<ARGState> abstractionStatesTrace = transformPath(allStatesTrace);
+      totalPathLength.setNextValue(abstractionStatesTrace.size());
 
+      logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
+
+      final List<BooleanFormula> formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
+
+      final List<CFANode> errorPath = Lists.transform(allStatesTrace.asStatesList(), AbstractStates.EXTRACT_LOCATION);
+      final boolean repeatedCounterexample = errorPath.equals(lastErrorPath);
+      lastErrorPath = errorPath;
+
+      CounterexampleTraceInfo counterexample = buildCounterexampleTrace(elementsOnPath,
+          abstractionStatesTrace, formulas, strategy.needsInterpolants());
+
+      // if error is spurious refine
+      if (counterexample.isSpurious()) {
+        logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+
+        if (strategy instanceof PredicateAbstractionRefinementStrategy) {
+          ((PredicateAbstractionRefinementStrategy)strategy).setUseAtomicPredicates(atomicInterpolants);
+        }
+
+        strategy.performRefinement(pReached, abstractionStatesTrace, counterexample.getInterpolants(), repeatedCounterexample);
+
+        return CounterexampleInfo.spurious();
+
+      } else {
+        // we have a real error
+        logger.log(Level.FINEST, "Error trace is not spurious");
+        CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
+
+        return cex;
+      }
+    } finally {
       totalRefinement.stop();
-      return CounterexampleInfo.spurious();
-
-    } else {
-      // we have a real error
-      logger.log(Level.FINEST, "Error trace is not spurious");
-      CounterexampleInfo cex = handleRealError(allStatesTrace, branchingOccurred, counterexample);
-
-      totalRefinement.stop();
-      return cex;
     }
   }
 
@@ -312,30 +313,33 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     final ARGPath targetPath;
     final CounterexampleTraceInfo preciseCounterexample;
 
-    preciseCouterexampleTime.start();
     boolean isPreciseErrorPath = true;
-    if (branchingOccurred) {
-      Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
+    preciseCouterexampleTime.start();
+    try {
+      if (branchingOccurred) {
+        Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
 
-      if (preciseInfo != null) {
-        targetPath = preciseInfo.getFirst();
-        if (preciseInfo.getSecond() != null) {
-          preciseCounterexample = preciseInfo.getSecond();
+        if (preciseInfo != null) {
+          targetPath = preciseInfo.getFirst();
+          if (preciseInfo.getSecond() != null) {
+            preciseCounterexample = preciseInfo.getSecond();
+          } else {
+            logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
+            preciseCounterexample = counterexample;
+          }
         } else {
-          logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
+          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+          targetPath = allStatesTrace;
           preciseCounterexample = counterexample;
+          isPreciseErrorPath = false;
         }
       } else {
-        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
         targetPath = allStatesTrace;
-        preciseCounterexample = counterexample;
-        isPreciseErrorPath = false;
+        preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
       }
-    } else {
-      targetPath = allStatesTrace;
-      preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
+    } finally {
+      preciseCouterexampleTime.stop();
     }
-    preciseCouterexampleTime.stop();
 
     CounterexampleInfo cex;
     if (isPreciseErrorPath) {
@@ -453,9 +457,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final List<ARGState> pAbstractionStatesTrace)
       throws InterruptedException, CPAException, SolverException {
 
+    final List<InfeasiblePrefix> infeasiblePrefixes;
     prefixExtractionTime.start();
-    List<InfeasiblePrefix> infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(pAllStatesTrace);
-    prefixExtractionTime.stop();
+    try {
+      infeasiblePrefixes = prefixProvider.extractInfeasiblePrefixes(pAllStatesTrace);
+    } finally {
+      prefixExtractionTime.stop();
+    }
 
     totalPrefixes.setNextValue(infeasiblePrefixes.size());
 
@@ -466,9 +474,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     else {
       PrefixSelector selector = new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure());
 
+      final InfeasiblePrefix selectedPrefix;
       prefixSelectionTime.start();
-      InfeasiblePrefix selectedPrefix = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
-      prefixSelectionTime.stop();
+      try {
+        selectedPrefix = selector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
+      } finally {
+        prefixSelectionTime.stop();
+      }
 
       List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
       while (formulas.size() < pAbstractionStatesTrace.size()) {

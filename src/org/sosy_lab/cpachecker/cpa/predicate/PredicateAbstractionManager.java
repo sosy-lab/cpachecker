@@ -900,6 +900,9 @@ public class PredicateAbstractionManager {
       if (stats.abstractionSolveTime.isRunning()) {
         stats.abstractionSolveTime.stop();
       }
+      if (stats.abstractionEnumTime.isRunning()) {
+        stats.abstractionEnumTime.stopBoth();
+      }
     }
 
     return result;
