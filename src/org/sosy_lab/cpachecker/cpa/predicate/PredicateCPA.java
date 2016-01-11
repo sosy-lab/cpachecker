@@ -153,7 +153,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
     solver = Solver.create(config, logger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    String libraries = formulaManager.getVersion();
+    String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, direction);
     if (useCache) {

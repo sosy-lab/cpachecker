@@ -28,6 +28,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 
 import com.google.common.base.Verify;
@@ -249,7 +250,7 @@ public class InductiveWeakeningManager {
     query = fmgr.simplify(query);
     Set<BooleanFormula> out = new HashSet<>();
 
-    try (ProverEnvironment env = solver.newProverEnvironmentWithModelGeneration()) {
+    try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       //noinspection ResultOfMethodCallIgnored
       env.push(query);
 

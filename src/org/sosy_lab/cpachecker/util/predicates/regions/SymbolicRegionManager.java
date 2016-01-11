@@ -249,7 +249,7 @@ public class SymbolicRegionManager implements RegionManager {
 
   @Override
   public String getVersion() {
-    return fmgr.getVersion();
+    return solver.getVersion();
   }
 
   @Override

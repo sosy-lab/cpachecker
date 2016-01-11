@@ -449,12 +449,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
       if (op == UnaryOperator.MINUS) {
-        final boolean signed;
-        if (promoted instanceof CSimpleType) {
-          signed = conv.machineModel.isSigned((CSimpleType)promoted);
-        } else {
-          signed = false;
-        }
         ret = mgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE

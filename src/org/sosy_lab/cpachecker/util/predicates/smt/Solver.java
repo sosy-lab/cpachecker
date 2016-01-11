@@ -34,13 +34,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolatingProverWithAssumptionsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.ConjunctionSplitter;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
-import org.sosy_lab.solver.FormulaManagerFactory;
+import org.sosy_lab.solver.SolverContextFactory;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -49,9 +48,8 @@ import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
-import org.sosy_lab.solver.logging.LoggingInterpolatingProverEnvironment;
-import org.sosy_lab.solver.logging.LoggingOptEnvironment;
-import org.sosy_lab.solver.logging.LoggingProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
@@ -71,20 +69,17 @@ import com.google.common.collect.Maps;
 @Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
 public final class Solver implements AutoCloseable {
 
-  @Option(secure=true, name="useLogger",
-      description="log some solver actions, this may be slow!")
-  private boolean useLogger = false;
-
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
+
   private final UFCheckingProverOptions ufCheckingProverOptions;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
 
-  private final FormulaManager solvingFormulaManager;
-  private final FormulaManager interpolationFormulaManager;
+  private final SolverContext solvingContext;
+  private final SolverContext interpolatingContext;
 
   private final Map<BooleanFormula, Boolean> unsatCache = Maps.newHashMap();
 
@@ -101,15 +96,18 @@ public final class Solver implements AutoCloseable {
    * This constructor is primarily for test code.
    *
    * Please note that calling {@link #close()} on the returned instance
-   * will also close the formula managers created by the passed {@link FormulaManagerFactory}.
+   * will also close the formula managers created by the passed {@link SolverContextFactory}.
    */
   @VisibleForTesting
-  public Solver(FormulaManagerFactory pFactory,
+  public Solver(SolverContextFactory pSolverFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
-    solvingFormulaManager = pFactory.getFormulaManager();
-    interpolationFormulaManager = pFactory.getFormulaManagerForInterpolation();
-    fmgr = new FormulaManagerView(solvingFormulaManager, config, pLogger);
+    solvingContext = pSolverFactory.getSolverContext();
+    interpolatingContext = pSolverFactory.getSolverContextForInterpolation();
+    fmgr = new FormulaManagerView(solvingContext.getFormulaManager(),
+        config,
+        pLogger
+    );
     bfmgr = fmgr.getBooleanFormulaManager();
     logger = pLogger;
 
@@ -127,7 +125,7 @@ public final class Solver implements AutoCloseable {
    */
   public static Solver create(Configuration config, LogManager logger,
       ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
-    FormulaManagerFactory factory = new FormulaManagerFactory(config, logger, shutdownNotifier);
+    SolverContextFactory factory = new SolverContextFactory(config, logger, shutdownNotifier);
     return new Solver(factory, config, logger);
   }
 
@@ -141,44 +139,18 @@ public final class Solver implements AutoCloseable {
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
-   */
-  public ProverEnvironment newProverEnvironment() {
-    return newProverEnvironment(false, false);
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for more complicated queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
    *
-   * The solver is told to enable model generation.
-   */
-  public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return newProverEnvironment(true, false);
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for more complicated queries.
    * This creates a fresh, new, environment in the solver.
    * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
-   *
-   * The solver is told to enable unsat-core generation.
    */
-  public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
-    return newProverEnvironment(false, true);
+  public ProverEnvironment newProverEnvironment(ProverOptions... options) {
+    return newProverEnvironment0(options);
   }
 
-  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
-    ProverEnvironment pe = solvingFormulaManager.newProverEnvironment(generateModels, generateUnsatCore);
-
-    if (useLogger) {
-      pe = new LoggingProverEnvironment(logger, pe);
-    }
+  private ProverEnvironment newProverEnvironment0(ProverOptions... options) {
+    ProverEnvironment pe = solvingContext
+        .newProverEnvironment(options);
 
     if (checkUFs) {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
@@ -194,26 +166,20 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public InterpolatingProverEnvironmentWithAssumptions<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolationFormulaManager.newProverEnvironmentWithInterpolation();
-
-    // in the case we do not already have a prover environment with assumptions
-    // we add a wrapper to it
-    if (!(ipe instanceof InterpolatingProverEnvironmentWithAssumptions)) {
-      ipe = new InterpolatingProverWithAssumptionsWrapper<>(ipe, fmgr);
-    }
+    InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
 
     InterpolatingProverEnvironmentWithAssumptions<?> ipeA = (InterpolatingProverEnvironmentWithAssumptions<?>) ipe;
 
-    if (solvingFormulaManager != interpolationFormulaManager) {
-      // If interpolationFormulaManager is not the normal solver,
+    if (solvingContext != interpolatingContext) {
+      // If interpolatingContext is not the normal solver,
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipeA = new SeparateInterpolatingProverEnvironment<>(solvingFormulaManager, interpolationFormulaManager, ipeA);
-    }
-
-    if (useLogger) {
-      ipeA = new LoggingInterpolatingProverEnvironment<>(logger, ipeA);
+      ipeA = new SeparateInterpolatingProverEnvironment<>(
+          solvingContext.getFormulaManager(),
+          interpolatingContext.getFormulaManager(),
+          ipeA
+      );
     }
 
     if (checkUFs) {
@@ -230,14 +196,9 @@ public final class Solver implements AutoCloseable {
    * It is recommended to use the try-with-resources syntax.
    */
   public OptEnvironment newOptEnvironment() {
-    OptEnvironment environment = solvingFormulaManager.newOptEnvironment();
+    OptEnvironment environment = solvingContext.newOptEnvironment();
     environment = new OptEnvironmentView(environment, fmgr);
-
-    if (useLogger) {
-      return new LoggingOptEnvironment(logger, environment);
-    } else {
-      return environment;
-    }
+    return environment;
   }
 
   /**
@@ -283,7 +244,7 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(Iterable<BooleanFormula> constraints)
       throws SolverException, InterruptedException {
 
-    try (ProverEnvironment prover = newProverEnvironmentWithUnsatCoreGeneration()) {
+    try (ProverEnvironment prover = newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
       for (BooleanFormula constraint : constraints) {
         addConstraint(constraint);
       }
@@ -350,27 +311,32 @@ public final class Solver implements AutoCloseable {
     // Guava has Closer, but it does not yet support AutoCloseables.
     Throwable t = null;
     try {
-      if (solvingFormulaManager instanceof AutoCloseable) {
-        ((AutoCloseable)solvingFormulaManager).close();
-      }
+      solvingContext.close();
     } catch (Throwable t1) {
       t = t1;
       throw t1;
     } finally {
-      if (solvingFormulaManager != interpolationFormulaManager
-          && interpolationFormulaManager instanceof AutoCloseable) {
+      if (solvingContext != interpolatingContext) {
 
         if (t != null) {
           try {
-            ((AutoCloseable)interpolationFormulaManager).close();
+            interpolatingContext.close();
           } catch (Throwable t2) {
             t.addSuppressed(t2);
           }
         } else {
-          ((AutoCloseable)interpolationFormulaManager).close();
+          interpolatingContext.close();
         }
       }
     }
+  }
+
+  public String getVersion() {
+    return solvingContext.getVersion();
+  }
+
+  public String getInterpolatingVersion() {
+    return interpolatingContext.getVersion();
   }
 
   /**

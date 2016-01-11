@@ -247,7 +247,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       PathFormulaManager pmgr = this.pmgr;
 
       // SMTInterpol does not support reusing the same solver
-      if (solver.getFormulaManager().getVersion().toLowerCase().contains("smtinterpol")) {
+      if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
         try {
           solver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = solver.getFormulaManager();

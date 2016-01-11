@@ -56,6 +56,7 @@ import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.collect.Lists;
 
@@ -279,7 +280,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
 
     try {
       if (!constraints.isEmpty()) {
-        prover = solver.newProverEnvironmentWithModelGeneration();
+        prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
         BooleanFormula constraintsAsFormula = getFullFormula();
 
         prover.push(constraintsAsFormula);

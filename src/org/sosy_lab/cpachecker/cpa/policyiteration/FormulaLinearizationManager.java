@@ -227,8 +227,6 @@ public class FormulaLinearizationManager {
     );
   }
 
-
-
   private Set<Formula> findUFs(Formula f) {
     final Set<Formula> UFs = new HashSet<>();
 
