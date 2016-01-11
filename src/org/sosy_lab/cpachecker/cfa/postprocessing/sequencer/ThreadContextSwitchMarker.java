@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -47,6 +46,8 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
   private final static String FUNCTION_DUMMY_START_NAME = "Function start dummy edge";
   private final static String INIT_GLOBAL_VARS = "INIT GLOBAL VARS";
   private final static String FORCE_CS = "THREAD CREATION";
+
+  private boolean isAtomic = false;
 
   private boolean isInitializingGlobalVar = false;
   private CThread runningThread;
@@ -79,6 +80,16 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       return TraversalProcess.CONTINUE;
     }
 
+    /* In sv-comp benchmark definitions and rules several statements can be
+     * summarized to an atomic statement by a special notation, see
+     * <a href="http://sv-comp.sosy-lab.org/" />
+     *
+     * (__VERIFIER_atomic_begin(), __VERIFIER_atomic_end() )
+     */
+    if(isAtomic) {
+      // TODO implement
+    }
+
     if (isContextSwitch(runningThread, pEdge)) {
       // new context switch possible
       runningThread.addContextSwitch(pEdge);
@@ -98,8 +109,6 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       return isInitializingGlobalVar((ADeclarationEdge) edge);
     case BlankEdge:
       return isContextSwitchPoint((BlankEdge) edge);
-//    case AssumeEdge:
-//      return isGlobalVarInvolved((AssumeEdge) edge);
     default:
       return false;
     }
@@ -130,7 +139,7 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     }
 
     if(statement instanceof AFunctionCall) {
-      // function can change global parameter
+      // function may change global variables by side effect.
       isContextSwitchTrigger |= canFunctionCallInfluenceGlobalVar((AFunctionCall) statement);
       isContextSwitchTrigger |= isPosixFunction((AFunctionCall) statement);
     }
@@ -146,10 +155,18 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
 
     CFunctionCallExpression parameter = (CFunctionCallExpression) functionCall.getFunctionCallExpression();
     for(CExpression exp : parameter.getParameterExpressions()) {
-      if(exp instanceof CPointerExpression) {
+      if(isGlobalVarInvolved(exp)) {
         return true;
       }
+//
+//      //TODO structs typedefs, casts etc.
+//      if(exp instanceof CPointerExpression) {
+//        return true;
+//      } else if (exp instanceof CArraySubscriptExpression) {
+//        return true;
+//      }
     }
+    // parameter called by value and therefore hasn't effect on global var
     return false;
   }
 
@@ -202,26 +219,32 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
 
 
 
-  private boolean isGlobalVarInvolved(AssumeEdge edge) {
-    AExpression assumeExpression = edge.getExpression();
-    if (assumeExpression instanceof CExpression) {
-      CExpression cAssumeExpression = (CExpression) assumeExpression;
+  private boolean isGlobalVarInvolved(AExpression expression) {
+    if (expression instanceof CExpression) {
+      CExpression cExpression = (CExpression) expression;
 
-      return cAssumeExpression.accept(GlobalExpression.isGlobalExpression);
-    } else if (assumeExpression instanceof JExpression) {
-      throw new UnsupportedOperationException("Sequentialization is not supported for Java programs!");
+      return cExpression.accept(GlobalExpression.isGlobalExpression);
+    } else if (expression instanceof JExpression) {
+      throw new UnsupportedOperationException("Sequentialization is not yet supported for Java programs!");
     }
     return false;
   }
 
+  /**
+   * Checks if an expression can affect any global variables. This is the case
+   * if a global variable or a pointer is involved which could hold an address
+   * to a global variable. Beyond that such objects as structs can hold pointer
+   * also.
+   */
   private static class GlobalExpression implements CExpressionVisitor<Boolean, RuntimeException> {
     public final static GlobalExpression isGlobalExpression = new GlobalExpression();
 
     @Override
     public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
         throws RuntimeException {
-      return pIastArraySubscriptExpression.getArrayExpression().accept(this) ||
-      pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
+      // handle like a pointer because a subscript which overflows the reserved
+      // memory can access unallocated/global memory
+      return true;
     }
 
     @Override
