@@ -1289,6 +1289,10 @@ public class TigerAlgorithm
   }
 
   private void dumpAutomaton(Automaton pA) {
+    if (dumpGoalAutomataTo == null) {
+      return;
+    }
+
     try (Writer w = Files.openOutputFile(dumpGoalAutomataTo.getPath(pA.getName()))) {
 
       pA.writeDotFile(w);
