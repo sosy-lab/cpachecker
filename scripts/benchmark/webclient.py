@@ -471,7 +471,7 @@ class WebInterface:
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
         @param cpu_model: substring of CPU model to use or 'None' for no restriction
-        @param result_files_pattern: the result is filtered with the given glob pattern, defaults to no restriction
+        @param result_files_pattern: the result is filtered with the given glob pattern, defaults to no result files
         @param priority: the priority of the submitted run, defaults to 'IDLE'
         @param user_pwd: overrides the user name and password given in the constructor (optional)
         @param svn_branch: overrids the svn branch given in the constructor (optional)
@@ -509,6 +509,8 @@ class WebInterface:
             params['resultFilesPattern'] = result_files_pattern;
         else:
             params['resultFilesPattern'] = ''
+            logging.warning("No result files pattern is given and the result will not contain any result files.")
+        
         if priority:
             params['priority'] = priority
 
