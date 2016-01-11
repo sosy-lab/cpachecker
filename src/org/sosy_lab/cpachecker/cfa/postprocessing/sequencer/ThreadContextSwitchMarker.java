@@ -114,8 +114,11 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     // This is deprecated but valid convention
     String currentFunctionName = pEdge.getSuccessor().getFunctionName();
     if (currentFunctionName.matches(ATOMIC_BLOCK)) {
-      logger.log(Level.WARNING, "The program uses the convention label " + functionName
-          + " which is deprecated!");
+      if(!isAtomic) { // print only once
+        logger.log(Level.WARNING, "The program uses the convention label " + functionName
+            + " which is deprecated!");
+      }
+
 
       isAtomic = true;
     }
