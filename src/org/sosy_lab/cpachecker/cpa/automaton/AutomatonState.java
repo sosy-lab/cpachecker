@@ -244,7 +244,8 @@ public class AutomatonState
     return this.internalState.equals(otherState.internalState)
         && this.vars.equals(otherState.vars)
         // the same state of the internal automata might be instantiated with different assumptions.
-        && this.assumptions.equals(otherState.assumptions);
+        && this.assumptions.equals(otherState.assumptions)
+        && this.checkFeasibility == otherState.checkFeasibility;
   }
 
   @Override

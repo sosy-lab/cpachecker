@@ -823,16 +823,6 @@ public class TigerAlgorithm
         runAlgorithm(pUncoveredGoals, pTestGoalsToBeProcessed, cpa, pInfeasibilityPropagation,
             presenceConditionToCover, shutdownManager, algorithm);
 
-//    if (dumpARGperPartition) {
-//      Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId) + ".dot");
-//
-//      try (Writer w = Files.openOutputFile(argFile)) {
-//        ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
-//      } catch (IOException e) {
-//        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-//      }
-//    }
-
     return algorithmStatus;
   }
 
@@ -877,6 +867,8 @@ public class TigerAlgorithm
                     + lastState.getViolatedProperties(),
                 lastState.getStateId());
           } else {
+            dumpArgForCex(cexi);
+
             Set<Goal> coveredGoals = null;
             if (allCoveredGoalsPerTestCase) {
               coveredGoals = addTestToSuite(testsuite.getGoals(), cexi, pInfeasibilityPropagation);
@@ -927,6 +919,21 @@ public class TigerAlgorithm
     }
 
     return algorithmStatus;
+  }
+
+  private void dumpArgForCex(CounterexampleInfo cexi) {
+//    Path argFile = Paths.get("output", "ARG_goal_" + Integer.toString(partitionId)  + ".dot");
+//    try (Writer w = Files.openOutputFile(argFile)) {
+//      final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+//      allTargetPathEdges.addAll(cexi.getTargetPath().getStatePairs());
+//
+//      ARGToDotWriter.write(w, AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class),
+//          ARGUtils.CHILDREN_OF_STATE,
+//          Predicates.alwaysTrue(),
+//          Predicates.in(allTargetPathEdges));
+//    } catch (IOException e) {
+//      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+//    }
   }
 
   private ReachabilityAnalysisResult runAlgorithmWithLimit(

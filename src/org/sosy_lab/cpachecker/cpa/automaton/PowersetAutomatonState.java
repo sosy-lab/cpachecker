@@ -34,6 +34,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
@@ -42,7 +43,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 public class PowersetAutomatonState implements AbstractWrapperState,
-    Targetable, Serializable, Graphable, Iterable<AutomatonState> {
+    Targetable, IntermediateTargetable, Serializable, Graphable, Iterable<AutomatonState> {
 
   private static class TopPowersetAutomatonState extends PowersetAutomatonState {
 
@@ -163,6 +164,16 @@ public class PowersetAutomatonState implements AbstractWrapperState,
   @Override
   public Iterator<AutomatonState> iterator() {
     return states.iterator();
+  }
+
+  @Override
+  public boolean isIntermediateTarget() {
+    for (AutomatonState e : states) {
+      if (e.isIntermediateTarget()) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }
