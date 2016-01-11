@@ -3,33 +3,15 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -153,27 +135,17 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       return false;
     }
 
-    CFunctionCallExpression parameter = (CFunctionCallExpression) functionCall.getFunctionCallExpression();
-    for(CExpression exp : parameter.getParameterExpressions()) {
-      if(isGlobalVarInvolved(exp)) {
-        return true;
-      }
-//
-//      //TODO structs typedefs, casts etc.
-//      if(exp instanceof CPointerExpression) {
-//        return true;
-//      } else if (exp instanceof CArraySubscriptExpression) {
-//        return true;
-//      }
-    }
-    // parameter called by value and therefore hasn't effect on global var
-    return false;
+    // An external function may use an pointer in an unsave way and change a
+    // global variable. No assumptions can be made by the parameters
+    return true;
   }
 
   private boolean isGlobalVariableAssignement(CAssignment variableAssignment) {
+    // check only writes
     CLeftHandSide leftHandSide = variableAssignment.getLeftHandSide();
 
     if(leftHandSide instanceof CPointerExpression) {
+      // influence of global variable cannot be excluded
       return true;
     }
 
@@ -217,118 +189,4 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
     return isInitializingGlobalVar;
   }
 
-
-
-  private boolean isGlobalVarInvolved(AExpression expression) {
-    if (expression instanceof CExpression) {
-      CExpression cExpression = (CExpression) expression;
-
-      return cExpression.accept(GlobalExpression.isGlobalExpression);
-    } else if (expression instanceof JExpression) {
-      throw new UnsupportedOperationException("Sequentialization is not yet supported for Java programs!");
-    }
-    return false;
-  }
-
-  /**
-   * Checks if an expression can affect any global variables. This is the case
-   * if a global variable or a pointer is involved which could hold an address
-   * to a global variable. Beyond that such objects as structs can hold pointer
-   * also.
-   */
-  private static class GlobalExpression implements CExpressionVisitor<Boolean, RuntimeException> {
-    public final static GlobalExpression isGlobalExpression = new GlobalExpression();
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-        throws RuntimeException {
-      // handle like a pointer because a subscript which overflows the reserved
-      // memory can access unallocated/global memory
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CFieldReference pIastFieldReference) throws RuntimeException {
-      // TODO what is this. check if global is involved
-      throw new UnsupportedOperationException("TODO CTypeIdExpression");
-    }
-
-    @Override
-    public Boolean visit(CIdExpression pIastIdExpression) throws RuntimeException {
-      CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
-      if (!(declaration instanceof CVariableDeclaration)) {
-        return false;
-      }
-
-      CVariableDeclaration variableDec = (CVariableDeclaration) declaration;
-      return variableDec.isGlobal();
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression pointerExpression) throws RuntimeException {
-      return true;
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression complexCastExpression) throws RuntimeException {
-      return complexCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
-      return pIastBinaryExpression.getOperand1().accept(this) || pIastBinaryExpression.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
-      return pIastCastExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression) throws RuntimeException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-        throws RuntimeException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-        throws RuntimeException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression)
-        throws RuntimeException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
-      // TODO what is this. check if global is involved
-      throw new UnsupportedOperationException("TODO CTypeIdExpression");
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
-      return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression)
-        throws RuntimeException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-        throws RuntimeException {
-      return false;
-    }
-
-  }
 }
