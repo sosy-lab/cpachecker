@@ -410,7 +410,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (AbstractStates.isIntermediateTargetState(lElement)) {
-          // targetOrIntermediateTargetStateFound = true;
+          targetOrIntermediateTargetStateFound = true;
         }
       }
 

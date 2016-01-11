@@ -298,7 +298,7 @@ Actions   ::= Action:a Actions:lst {: lst.add(0,a); RESULT = lst; :} // insert a
 Action    ::= DO  IDENTIFIER:var EQ InnerInt:i   {: RESULT = new AutomatonAction.Assignment(var.toString(), i); :}
                         // InnerInt in this position allows for x = EVAL(..) Statements
             | PRINT PrintArguments:args {: RESULT = new AutomatonAction.Print(args); :}
-            | CHECKFEASIBILITY {: RESULT = new AutomatonAction.CheckFeasibility(); :}
+            | CHECKFEASIBILITY {: RESULT = AutomatonAction.CheckFeasibility.getInstance(); :}
 /*next statement is deprecated*/            
             | MODIFY OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonAction.CPAModification(cpa.toString(), query.toString()); :}
