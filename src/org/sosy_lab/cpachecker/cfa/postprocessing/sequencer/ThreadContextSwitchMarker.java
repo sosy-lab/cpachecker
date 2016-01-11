@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.sequencer;
 
 
+import java.util.logging.Level;
+
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -29,15 +32,23 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
   private final static String INIT_GLOBAL_VARS = "INIT GLOBAL VARS";
   private final static String FORCE_CS = "THREAD CREATION";
 
-  private boolean isAtomic = false;
+  private final static String ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
+  private final static String ATOMIC_END = "__VERIFIER_atomic_end";
 
+  /** deprecated but still value: Due to sv-comp rules 2016 */
+  private final static String ATOMIC_BLOCK = "__VERIFIER_atomic_.*";
+
+  private boolean isAtomic = false;
   private boolean isInitializingGlobalVar = false;
+
   private CThread runningThread;
   private CFA cfa;
+  private LogManager logger;
 
-  public ThreadContextSwitchMarker(CThread thread, CFA cfa) {
+  public ThreadContextSwitchMarker(CThread thread, CFA cfa, LogManager logger) {
     super();
     this.runningThread = thread;
+    this.logger = logger;
     if(runningThread.getThreadName().equals("thread0")) {
       isInitializingGlobalVar = true;
     }
@@ -62,22 +73,52 @@ public class ThreadContextSwitchMarker extends CFATraversal.DefaultCFAVisitor {
       return TraversalProcess.CONTINUE;
     }
 
-    /* In sv-comp benchmark definitions and rules several statements can be
-     * summarized to an atomic statement by a special notation, see
-     * <a href="http://sv-comp.sosy-lab.org/" />
-     *
-     * (__VERIFIER_atomic_begin(), __VERIFIER_atomic_end() )
-     */
+    resovleAtomicContext(pEdge);
     if(isAtomic) {
-      // TODO implement
+      // inside an artificial atomic statement. No context switch will occur
+      return TraversalProcess.CONTINUE;
     }
 
     if (isContextSwitch(runningThread, pEdge)) {
-      // new context switch possible
       runningThread.addContextSwitch(pEdge);
     }
 
     return TraversalProcess.CONTINUE;
+  }
+
+
+  /**
+   * <p>Sets the atomic flag, which means the following statements behave like one
+   * atomic statement.</p>
+   *
+   * <p>Note: Due to sv-compilation rules some conventions influence the behavior
+   * of atomic statements</p>
+   *
+   * @param pEdge - the next edge. Will be tested for sv-comp convention edges
+   */
+  private void resovleAtomicContext(CFAEdge pEdge) {
+    if(!CFAFunctionUtils.isFunctionCallStatement(pEdge)) {
+      return;
+    }
+    String functionName = CFAFunctionUtils.getFunctionName((AStatementEdge) pEdge);
+
+    // TODO assert nesting or interleaving are not allowed
+    if(ATOMIC_BEGIN.equals(functionName)) {
+      assert !isAtomic : "Was already in atomic context. Cannot begin new atomic context. See sv-compition rules for " + ATOMIC_BEGIN;
+      isAtomic = true;
+    } else if(ATOMIC_END.equals(functionName)) {
+        assert isAtomic : "Was not in atomic context yet. Cannot end atomic context. See sv-compition rules for " + ATOMIC_END;
+      isAtomic = false;
+    }
+
+    // This is deprecated but valid convention
+    String currentFunctionName = pEdge.getSuccessor().getFunctionName();
+    if (currentFunctionName.matches(ATOMIC_BLOCK)) {
+      logger.log(Level.WARNING, "The program uses the convention label " + functionName
+          + " which is deprecated!");
+
+      isAtomic = true;
+    }
   }
 
   /**

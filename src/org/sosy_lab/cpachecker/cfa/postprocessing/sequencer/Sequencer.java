@@ -93,7 +93,7 @@ public class Sequencer {
     assert entryNode != null;
     alreadyVisited.add(entryNode);
 
-    CFAVisitor contextswtichMarker = new ThreadContextSwitchMarker(thread, cfa);
+    CFAVisitor contextswtichMarker = new ThreadContextSwitchMarker(thread, cfa, logger);
     FunctionCallCollector collector = new FunctionCallCollector();
     CompositeCFAVisitor visitor = new CompositeCFAVisitor(contextswtichMarker,
         collector);
