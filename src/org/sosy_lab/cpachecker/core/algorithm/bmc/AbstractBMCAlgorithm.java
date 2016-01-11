@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
@@ -251,8 +252,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
       AlgorithmStatus status;
 
-      try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration();
-          @SuppressWarnings("resource")
+      try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+           @SuppressWarnings("resource")
           KInductionProver kInductionProver = createInductionProver()) {
 
         do {

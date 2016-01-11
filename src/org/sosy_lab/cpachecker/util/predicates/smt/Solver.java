@@ -49,6 +49,7 @@ import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
@@ -138,41 +139,18 @@ public final class Solver implements AutoCloseable {
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
-   */
-  public ProverEnvironment newProverEnvironment() {
-    return newProverEnvironment(false, false);
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for more complicated queries.
-   * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
-   * It is recommended to use the try-with-resources syntax.
    *
-   * The solver is told to enable model generation.
-   */
-  public ProverEnvironment newProverEnvironmentWithModelGeneration() {
-    return newProverEnvironment(true, false);
-  }
-
-  /**
-   * Direct reference to the underlying SMT solver for more complicated queries.
    * This creates a fresh, new, environment in the solver.
    * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
-   *
-   * The solver is told to enable unsat-core generation.
    */
-  public ProverEnvironment newProverEnvironmentWithUnsatCoreGeneration() {
-    return newProverEnvironment(false, true);
+  public ProverEnvironment newProverEnvironment(ProverOptions... options) {
+    return newProverEnvironment0(options);
   }
 
-  private ProverEnvironment newProverEnvironment(boolean generateModels, boolean generateUnsatCore) {
+  private ProverEnvironment newProverEnvironment0(ProverOptions... options) {
     ProverEnvironment pe = solvingContext
-        .newProverEnvironment(generateModels, generateUnsatCore);
+        .newProverEnvironment(options);
 
     if (checkUFs) {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
@@ -266,7 +244,7 @@ public final class Solver implements AutoCloseable {
   public List<BooleanFormula> unsatCore(Iterable<BooleanFormula> constraints)
       throws SolverException, InterruptedException {
 
-    try (ProverEnvironment prover = newProverEnvironmentWithUnsatCoreGeneration()) {
+    try (ProverEnvironment prover = newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
       for (BooleanFormula constraint : constraints) {
         addConstraint(constraint);
       }

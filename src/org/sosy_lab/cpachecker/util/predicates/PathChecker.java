@@ -52,6 +52,7 @@ import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -98,7 +99,7 @@ public class PathChecker {
 
     BooleanFormula f = pathFormula.getFormula();
 
-    try (ProverEnvironment thmProver = solver.newProverEnvironmentWithModelGeneration()) {
+    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasibleNoItp();

@@ -108,6 +108,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements Funct
   }
 
 
+  @Override
   public <T extends Formula> T declareAndCallUninterpretedFunction(
       String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
 

@@ -79,6 +79,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -203,7 +204,7 @@ class KInductionProver implements AutoCloseable {
    */
   private ProverEnvironment getProver() {
     if (!isProverInitialized()) {
-      prover = solver.newProverEnvironmentWithModelGeneration();
+      prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
     }
     assert isProverInitialized();
     return prover;

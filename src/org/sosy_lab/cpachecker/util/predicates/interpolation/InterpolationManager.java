@@ -83,6 +83,7 @@ import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
@@ -334,7 +335,7 @@ public final class InterpolationManager {
         logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+        try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
