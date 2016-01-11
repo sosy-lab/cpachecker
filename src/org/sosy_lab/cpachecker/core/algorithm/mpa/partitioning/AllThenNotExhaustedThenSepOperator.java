@@ -45,12 +45,14 @@ public class AllThenNotExhaustedThenSepOperator extends AbstractPartitioningOper
 
     final Set<Property> cheapProperties = Sets.difference(pToCheck, pExpensiveProperties);
 
-    switch(pLastCheckedPartitioning.getStatus()) {
-    case ALL_IN_ONE:
-      return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
-    case NOT_EXHAUSTED_ONLY:
+    if (pLastCheckedPartitioning.getStatus().equals(PartitioningStatus.ALL_IN_ONE)
+        && cheapProperties.size() > 0) {
+        return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
+
+    } else if (pLastCheckedPartitioning.getStatus().equals(PartitioningStatus.ALL_IN_ONE)) {
       return create(PartitioningStatus.ONE_FOR_EACH, singletonPartitions(pToCheck, pPropertyExpenseComparator));
-    default:
+
+    } else {
       return create(PartitioningStatus.ALL_IN_ONE, ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 
