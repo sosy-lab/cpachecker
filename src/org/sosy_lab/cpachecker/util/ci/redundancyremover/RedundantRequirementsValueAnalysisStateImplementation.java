@@ -25,7 +25,13 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
 
@@ -34,14 +40,28 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
 
   @Override
   public int compare(Value pO1, Value pO2) {
-    // TODO
     // one of arguments null -> NullPointerException
     // ClassCastException if p01 or p02 instanceof ArrayValue, BooleanValue, EnumConstantValue, NullValue
     // 0 if both are unknown Value
     // -1 if p02 unknown Value
     // 1 if p01 unknown value
     // otherwise p01.doubleValues()-pO2.doubleValues()
-    return 0;
+    if (pO1 == null || pO2 == null) {
+      throw new NullPointerException("At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
+    } else if (pO1 instanceof ArrayValue || pO2 instanceof ArrayValue ||
+        pO1 instanceof BooleanValue || pO2 instanceof BooleanValue ||
+        pO1 instanceof EnumConstantValue || pO2 instanceof EnumConstantValue ||
+        pO1 instanceof NullValue || pO2 instanceof NullValue) {
+      throw new ClassCastException(); // TODO
+    } else if (pO1.isUnknown() && pO2.isUnknown()) {
+      return 0;
+    } else if (pO2.isUnknown()) {
+      return -1;
+    } else if (pO1.isUnknown()) {
+      return 1;
+    }
+
+    return (int) (pO1.asNumericValue().getNumber().doubleValue() - pO2.asNumericValue().getNumber().doubleValue()); // TODO
   }
 
   @Override
@@ -49,34 +69,48 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
     // TODO
     // return true if pCovering UnknownValue, pCovering equals pCovered
     // otherwise false
+    if (pCovering.isUnknown() || pCovering.equals(pCovered)) {
+      return true;
+    }
+
     return false;
   }
 
   @Override
   protected Value getAbstractValue(ValueAnalysisState pAbstractState, String pVarOrConst) {
-    // TODO
     // if pVarOrConst number, return NumericValue
     // if state contains pVarOrConst return value saved in state
     // otherwise unknown
-    return null;
+
+    int constant;
+    try {
+      constant = Integer.parseInt(pVarOrConst);
+      return new NumericValue(constant);
+    } catch (NumberFormatException e) {
+      if (pAbstractState.contains(pVarOrConst)) {
+        return pAbstractState.getValueFor(pVarOrConst);
+      }
+    }
+
+    return Value.UnknownValue.getInstance();
   }
 
   @Override
   protected Value[] emptyArrayOfSize(int pSize) {
-    // TODO similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return null;
+    // similar to RedundantRequirementsRemoverIntervalStateImplementation
+    return new Value[pSize];
   }
 
   @Override
   protected Value[][] emptyMatrixOfSize(int pSize) {
-    // TODO similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return null;
+    // similar to RedundantRequirementsRemoverIntervalStateImplementation
+    return new Value[pSize][];
   }
 
   @Override
   protected ValueAnalysisState extractState(AbstractState pWrapperState) {
     // TODO AbstractStates.extractStateByType....
-    return null;
+    return AbstractStates.extractStateByType(pWrapperState, ValueAnalysisState.class);
   }
 
 }

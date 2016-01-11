@@ -73,6 +73,13 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
+  protected List<String> getVarsInRequirements(final ApronState pRequirement, final @Nullable Collection<String> pRequiredVars) {
+    Collection<String> result = getConvexHullRequiredVars(pRequirement, pRequiredVars);
+    stateToRequiredVars = Pair.of(pRequirement, result);
+    return new ArrayList<>(result);
+  }
+
+  @Override
   protected List<String> getListOfIndependentRequirements(ApronState pRequirement, SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> result = new ArrayList<>();
     List<String> varNames = getAllVarNames(pRequirement);
