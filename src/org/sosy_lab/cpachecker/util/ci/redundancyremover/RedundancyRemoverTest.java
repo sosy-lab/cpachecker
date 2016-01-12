@@ -404,7 +404,7 @@ public class RedundancyRemoverTest {
 
 
 
-    result = RedundantRequirementsRemover.removeRedundantRequirements(requirements, inputOutputSignatures, ValueAnalysisState.class);
+    //result = RedundantRequirementsRemover.removeRedundantRequirements(requirements, inputOutputSignatures, ValueAnalysisState.class);
 //     test Truth.assertThat(result).containsExactlyElementsIn(expectedResult);
 
   }
