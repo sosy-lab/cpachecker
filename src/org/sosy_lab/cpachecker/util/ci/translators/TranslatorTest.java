@@ -426,14 +426,14 @@ public class TranslatorTest {
 //    BiMap<MemoryLocation, Integer> map = HashBiMap.create();
 //    Class<?> enumType = OctagonState.class.getDeclaredClasses()[1];//.getEnumConstants()[0];
 //    // TODO: geht nicht so einfach
-////    Map<MemoryLocation, enumType> typeMap = new HashMap<>();
+//    Map<MemoryLocation, enumType> typeMap = new HashMap<>();
 //    Collection<String> c = new ArrayList<>();
 //    c.add("var1");
 //    c.add("fun::var1");
 //    c.add("fun::varB");
 //    FluentIterable<MemoryLocation> memLocs = FluentIterable.from(c).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
 //    map.put(memLocs.get(0), 0);
-////    typeMap.put(memLocs.get(0), enumType.Int);
+//    typeMap.put(memLocs.get(0), enumType.Int);
 //    map.put(memLocs.get(1), 1);
 //
 //    map.put(memLocs.get(2), 2);

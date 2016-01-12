@@ -97,7 +97,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
   @Override
   protected IntervalAnalysisState extractState(AbstractState pWrapperState) {
     // AbstractStates.extractState..
-    return AbstractStates.extractStateByType(pWrapperState, IntervalAnalysisState.class); // TODO so?;
+    return AbstractStates.extractStateByType(pWrapperState, IntervalAnalysisState.class); // TODO so?
   }
 
 }

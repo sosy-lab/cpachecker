@@ -52,7 +52,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
         pO1 instanceof BooleanValue || pO2 instanceof BooleanValue ||
         pO1 instanceof EnumConstantValue || pO2 instanceof EnumConstantValue ||
         pO1 instanceof NullValue || pO2 instanceof NullValue) {
-      throw new ClassCastException(); // TODO
+      throw new ClassCastException("Expected NumericValue.");
     } else if (pO1.isUnknown() && pO2.isUnknown()) {
       return 0;
     } else if (pO2.isUnknown()) {
@@ -66,7 +66,6 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
 
   @Override
   protected boolean covers(Value pCovering, Value pCovered) {
-    // TODO
     // return true if pCovering UnknownValue, pCovering equals pCovered
     // otherwise false
     if (pCovering.isUnknown() || pCovering.equals(pCovered)) {
@@ -109,7 +108,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
 
   @Override
   protected ValueAnalysisState extractState(AbstractState pWrapperState) {
-    // TODO AbstractStates.extractStateByType....
+    // AbstractStates.extractStateByType....
     return AbstractStates.extractStateByType(pWrapperState, ValueAnalysisState.class);
   }
 

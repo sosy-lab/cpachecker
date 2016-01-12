@@ -76,9 +76,9 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
     // if pVarOrConst number, number<0 MINUS, number=0 ZERO, number>0 PLUS
     // otherwise getSignForVariable
 
-    int constant;
+    double constant;
     try {
-      constant = Integer.parseInt(pVarOrConst);
+      constant = Double.parseDouble(pVarOrConst);
       if (constant < 0) {
         return SIGN.MINUS;
       } else if (constant == 0) {
@@ -87,7 +87,7 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
         return SIGN.PLUS;
       }
     } catch (NumberFormatException e) {
-      // TODO
+      // pVarOrConst is var and handled in next return
     }
 
     return pAbstractState.getSignForVariable(pVarOrConst);
