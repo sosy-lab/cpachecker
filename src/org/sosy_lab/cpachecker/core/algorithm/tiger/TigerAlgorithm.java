@@ -436,12 +436,14 @@ public class TigerAlgorithm
     assert (goalsToCover.isEmpty());
 
     // write generated test suite and mapping to file system
-    try (Writer writer =
-        new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
-      writer.write(testsuite.toString());
-      writer.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    if (testsuiteFile != null) {
+      try (Writer writer =
+          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
+        writer.write(testsuite.toString());
+        writer.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     if (wasSound) {
