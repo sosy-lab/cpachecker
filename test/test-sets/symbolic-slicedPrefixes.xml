@@ -253,7 +253,7 @@
 
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">reached set</column>
+    <column title="reached">Size of reached set</column>
     <column title="refiners">Number of refinements</column>
     <column title="time_refiners">Time for refinements</column>
     <column title="merges">Number of constraints removed in merge</column>
