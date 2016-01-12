@@ -159,7 +159,7 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    ERROR_WITNESS("traces automaton"),
+    ERROR_WITNESS("false"),
     PROOF_WITNESS("assumptions automaton");
 
     public final String text;
@@ -171,6 +171,15 @@ public class AutomatonGraphmlCommon {
     @Override
     public String toString() {
       return text;
+    }
+
+    public static GraphType parse(String pTextualRepresentation) {
+      for (GraphType element : values()) {
+        if (element.text.equals(pTextualRepresentation)) {
+          return element;
+        }
+      }
+      throw new IllegalArgumentException("No such enumeration element: " + pTextualRepresentation);
     }
   }
 
