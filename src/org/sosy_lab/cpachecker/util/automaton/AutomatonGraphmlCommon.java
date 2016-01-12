@@ -112,7 +112,7 @@ public class AutomatonGraphmlCommon {
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
     CFAPREDECESSORNODE("predecessor", "edge", "predecessor", "string"),
     CFASUCCESSORNODE("successor", "edge", "successor", "string"),
-    GRAPH_TYPE("type", "graph", "graphtype", "string");
+    GRAPH_TYPE("type", "graph", "witness-type", "string");
 
     public final String id;
     public final String keyFor;
