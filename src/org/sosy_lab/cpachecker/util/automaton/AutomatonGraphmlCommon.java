@@ -159,8 +159,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    ERROR_WITNESS("false"),
-    PROOF_WITNESS("assumptions automaton");
+    ERROR_WITNESS("FALSE"),
+    PROOF_WITNESS("TRUE");
 
     public final String text;
 
