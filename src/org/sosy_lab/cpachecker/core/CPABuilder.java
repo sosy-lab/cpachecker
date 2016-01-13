@@ -23,9 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -182,6 +184,15 @@ public class CPABuilder {
       for (Path specFile : specAutomatonFiles) {
         List<Automaton> automata = Collections.emptyList();
         Scope scope = createScope(cfa);
+
+        // Check that the automaton file exists and is not empty
+        try {
+          if (specFile.asCharSource(StandardCharsets.UTF_8).isEmpty()) {
+            throw new InvalidConfigurationException("The specification file is empty: " + specFile);
+          }
+        } catch (IOException e) {
+          throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
+        }
 
         if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
           AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
