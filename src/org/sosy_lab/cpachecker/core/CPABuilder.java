@@ -191,6 +191,10 @@ public class CPABuilder {
           automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
         }
 
+        if (automata.isEmpty()) {
+          throw new InvalidConfigurationException("Specification file contains no automata.");
+        }
+
         for (Automaton automaton : automata) {
           String cpaAlias = automaton.getName();
 
