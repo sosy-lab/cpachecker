@@ -1270,7 +1270,12 @@ class ASTConverter {
       return simplifyUnaryNotExpression(operand);
 
     default:
-      CType type = typeConverter.convert(e.getExpressionType());
+      CType type;
+      if (e.getOperator() == IASTUnaryExpression.op_alignOf) {
+        type = CNumericTypes.INT;
+      } else {
+        type = typeConverter.convert(e.getExpressionType());
+      }
       return new CUnaryExpression(fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
     }
   }

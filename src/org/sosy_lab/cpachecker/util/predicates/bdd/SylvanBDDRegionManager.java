@@ -58,6 +58,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FuncDecl;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
@@ -476,7 +478,12 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitAtom(BooleanFormula pAtom) {
+    public Long visitBoundVar(BooleanFormula var, int deBruijnIdx) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Long visitAtom(BooleanFormula pAtom, FuncDecl decl) {
       return unwrap(atomToRegion.apply(pAtom));
     }
 
@@ -531,6 +538,11 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
+    public Long visitXor(BooleanFormula operand1, BooleanFormula operand2) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public Long visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return JSylvan.makeEquals(convert(pOperand1), convert(pOperand2));
     }
@@ -548,7 +560,7 @@ class SylvanBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public Long visitQuantifier(Quantifier q, BooleanFormula pBody) {
+    public Long visitQuantifier(Quantifier q, List<Formula> boundVars, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }

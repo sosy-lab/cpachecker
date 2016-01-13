@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
 
@@ -34,7 +35,6 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
 
   @Override
   public int compare(SIGN pO1, SIGN pO2) {
-    // TODO
     // one of arguments null -> NullPointerException
     // 0 if sign values identical
     // -1 if p02 covers p01
@@ -44,39 +44,71 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
     // -1 if p01=PLUSMINUS p02=PLUS0
    // -1 if p01=MINUS0 p02=PLUS,PLUS0,PLUSMINUS
     // otherwise 1
-    return 0;
+
+    if (pO1 == null || pO2 == null) {
+      throw new NullPointerException("At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
+    } else if (pO1.equals(pO2)) {
+      return 0;
+    } else if (pO2.covers(pO1)) {
+      return -1;
+    } else if (pO1.covers(pO2)) {
+      return 1;
+    } else if (pO1 == SIGN.MINUS && (pO2 == SIGN.ZERO || pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0)) {
+      return -1;
+    } else if (pO1 == SIGN.ZERO && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUSMINUS)) {
+      return -1;
+    } else if (pO1 == SIGN.PLUSMINUS && pO2 == SIGN.PLUS0) {
+      return -1;
+    } else if (pO1 == SIGN.MINUS0 && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0 || pO2 == SIGN.PLUSMINUS)) {
+      return -1;
+    }
+    return 1;
   }
 
   @Override
   protected boolean covers(SIGN pCovering, SIGN pCovered) {
-    // TODO return pCovering.covers(pCovered)
-    return false;
+    // return pCovering.covers(pCovered)
+    return pCovering.covers(pCovered);
   }
 
   @Override
   protected SIGN getAbstractValue(SignState pAbstractState, String pVarOrConst) {
-    // TODO
     // if pVarOrConst number, number<0 MINUS, number=0 ZERO, number>0 PLUS
     // otherwise getSignForVariable
-    return null;
+
+    double constant;
+    try {
+      constant = Double.parseDouble(pVarOrConst);
+      if (constant < 0) {
+        return SIGN.MINUS;
+      } else if (constant == 0) {
+        return SIGN.ZERO;
+      } else if (constant > 0) {
+        return SIGN.PLUS;
+      }
+    } catch (NumberFormatException e) {
+      // pVarOrConst is var and handled in next return
+    }
+
+    return pAbstractState.getSignForVariable(pVarOrConst);
   }
 
   @Override
   protected SIGN[] emptyArrayOfSize(int pSize) {
-    // TODO similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return null;
+    // similar to RedundantRequirementsRemoverIntervalStateImplementation
+    return new SIGN[pSize];
   }
 
   @Override
   protected SIGN[][] emptyMatrixOfSize(int pSize) {
-    // TODO similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return null;
+    // similar to RedundantRequirementsRemoverIntervalStateImplementation
+    return new SIGN[pSize][];
   }
 
   @Override
   protected SignState extractState(AbstractState pWrapperState) {
-    // TODO AbstractStates.extractStateByType....
-    return null;
+    // AbstractStates.extractStateByType....
+    return AbstractStates.extractStateByType(pWrapperState, SignState.class); // TODO
   }
 
 }

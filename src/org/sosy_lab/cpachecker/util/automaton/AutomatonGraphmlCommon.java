@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -38,6 +40,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -55,7 +59,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
+import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
 
 
@@ -96,6 +105,7 @@ public class AutomatonGraphmlCommon {
     VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
     SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", "graph", "programFile", "string"),
+    PROGRAMHASH("programhash", "graph", "programHash", "string"),
     SPECIFICATION("specification", "graph", "specification", "string"),
     MEMORYMODEL("memorymodel", "graph", "memoryModel", "string"),
     ARCHITECTURE("architecture", "graph", "architecture", "string"),
@@ -112,7 +122,7 @@ public class AutomatonGraphmlCommon {
     FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
     CFAPREDECESSORNODE("predecessor", "edge", "predecessor", "string"),
     CFASUCCESSORNODE("successor", "edge", "successor", "string"),
-    GRAPH_TYPE("type", "graph", "graphtype", "string");
+    GRAPH_TYPE("type", "graph", "witness-type", "string");
 
     public final String id;
     public final String keyFor;
@@ -159,8 +169,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    ERROR_WITNESS("traces automaton"),
-    PROOF_WITNESS("assumptions automaton");
+    ERROR_WITNESS("FALSE"),
+    PROOF_WITNESS("TRUE");
 
     public final String text;
 
@@ -171,6 +181,15 @@ public class AutomatonGraphmlCommon {
     @Override
     public String toString() {
       return text;
+    }
+
+    public static GraphType parse(String pTextualRepresentation) {
+      for (GraphType element : values()) {
+        if (element.text.equals(pTextualRepresentation)) {
+          return element;
+        }
+      }
+      throw new IllegalArgumentException("No such enumeration element: " + pTextualRepresentation);
     }
   }
 
@@ -321,7 +340,14 @@ public class AutomatonGraphmlCommon {
       for (String specification : pSpecifications) {
         appendDataElement(KeyDef.SPECIFICATION, specification);
       }
+
+      /*
+       * TODO: We should allow multiple program files here.
+       * As soon as we do, we should also hash each file separately.
+       */
       appendDataElement(KeyDef.PROGRAMFILE, pProgramNames);
+      appendDataElement(KeyDef.PROGRAMHASH, computeProgramHash(pProgramNames));
+
       appendDataElement(KeyDef.MEMORYMODEL, pMemoryModel);
       switch (pMachineModel) {
         case LINUX32:
@@ -334,6 +360,17 @@ public class AutomatonGraphmlCommon {
           appendDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString());
           break;
       }
+    }
+
+    private String computeProgramHash(String pProgramDenotations) throws IOException {
+      List<ByteSource> sources = new ArrayList<>(1);
+      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
+      for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
+        Path programPath = Paths.get(programDenotation);
+        sources.add(programPath.asByteSource());
+      }
+      HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
+      return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
     }
 
     public void appendNewKeyDef(KeyDef keyDef, @Nullable String defaultValue) {

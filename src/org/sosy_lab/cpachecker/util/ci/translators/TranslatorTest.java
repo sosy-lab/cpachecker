@@ -389,4 +389,178 @@ public class TranslatorTest {
     s = "(define-fun post () Bool (or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0))))";
     Truth.assertThat(convertedRequirements.getSecond().getSecond()).isEqualTo(s);
   }
+
+  @Test
+  public void testOctagonTranslator() throws InvalidConfigurationException {
+//    int numVars = 3;
+//    OctagonIntManager manager = new OctagonIntManager();
+//    Configuration config = TestDataTools.configurationForTest().build();
+//    OctagonState octState = new OctagonState(new BasicLogManager(config), manager);
+//    Octagon oct = manager.universe(numVars);
+//    NumArray n = manager.init_num_t(4*numVars);
+//
+//    manager.num_set_int(n, 0, 1);
+//    manager.num_set_int(n, 1,  0);
+//    manager.num_set_int(n, 2,  -1);
+//    manager.num_set_int(n, 3, 5);
+//
+//    manager.num_set_int(n, 4,1);
+//    manager.num_set_int(n, 5, 1);
+//    manager.num_set_int(n, 6, -1);
+//    manager.num_set_int(n, 7,-7);
+//
+//    manager.num_set_int(n, 8, 0);
+//    manager.num_set_int(n, 9,1);
+//    manager.num_set_int(n, 10,-1 );
+//    manager.num_set_int(n, 11, -3);
+//
+//    manager.num_set_int(n, 12, 0);
+//    manager.num_set_int(n, 13, 2);
+//    manager.num_set_int(n, 14,  -1);
+//    manager.num_set_int(n, 15, 0);
+//
+//
+//    oct = manager.addBinConstraint(oct, numVars, n);
+//    manager.num_clear_n(n, 4*numVars);
+//
+//    BiMap<MemoryLocation, Integer> map = HashBiMap.create();
+//    Class<?> enumType = OctagonState.class.getDeclaredClasses()[1];//.getEnumConstants()[0];
+//    // TODO: geht nicht so einfach
+//    Map<MemoryLocation, enumType> typeMap = new HashMap<>();
+//    Collection<String> c = new ArrayList<>();
+//    c.add("var1");
+//    c.add("fun::var1");
+//    c.add("fun::varB");
+//    FluentIterable<MemoryLocation> memLocs = FluentIterable.from(c).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
+//    map.put(memLocs.get(0), 0);
+//    typeMap.put(memLocs.get(0), enumType.Int);
+//    map.put(memLocs.get(1), 1);
+//
+//    map.put(memLocs.get(2), 2);
+//
+//    OctagonRequirementsTranslator octReqTranslator = new OctagonRequirementsTranslator(OctagonState.class, TestLogManager.getInstance());
+//
+//    // Test getVarsInRequirements
+//    List<String> varsInRequirements = octReqTranslator.getVarsInRequirements(octState, null);
+//    List<String> list = new ArrayList<>();
+//    list.add("var1");
+//    list.add("fun::var1");
+//    list.add("fun::varB");
+//    Truth.assertThat(varsInRequirements).containsExactlyElementsIn(list);
+//
+//    Collection<String> col = new ArrayList<>();
+//    col.add("var1");
+//    col.add("fun::var1");
+//    col.add("var");
+//    varsInRequirements = octReqTranslator.getVarsInRequirements(octState, col);
+//    list = new ArrayList<>();
+//    list.add("var1");
+//    list.add("fun::var1");
+//    Truth.assertThat(varsInRequirements).containsExactlyElementsIn(list);
+//
+//    // Test getListOfIndependentRequirements
+//    List<String> listOfIndependentRequirements = octReqTranslator.getListOfIndependentRequirements(octState, ssaTest, null);
+//    list = new ArrayList<>();
+//    list.add("(>= |var1@1| 5)");
+//    list.add("(and (>= |fun::var1| -7) (<= |fun::var1| -3");
+//    list.add("(<= |fun::varB@1| 0)");
+//    Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(list);
+//
+//    col = new ArrayList<>();
+//    col.add("var1");
+//    col.add("fun::var1");
+//    col.add("var");
+//    listOfIndependentRequirements = octReqTranslator.getListOfIndependentRequirements(octState, ssaTest, col);
+//    list = new ArrayList<>();
+//    list.add("(>= |var1@1| 5)");
+//    list.add("(and (>= |fun::var1| -7) (<= |fun::var1| -3");
+//    Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(list);
+  }
+
+  @Test
+  public void testApronTranslator() throws InvalidConfigurationException {
+//    ApronManager apronManager = new ApronManager(TestDataTools.configurationForTest().build());
+//
+//    List<MemoryLocation> intMap = new ArrayList<>();
+//    Collection<String> c = new ArrayList<>();
+//    c.add("var1");
+//    c.add("var2");
+//    c.add("var3");
+//    c.add("fun::var1");
+//    c.add("fun::varC");
+//    c.add("x");
+//    FluentIterable<MemoryLocation> memLocs = FluentIterable.from(c).transform(MemoryLocation.FROM_STRING_TO_MEMORYLOCATION);
+//    intMap.add(memLocs.get(0));
+//    intMap.add(memLocs.get(1));
+//    intMap.add(memLocs.get(2));
+//    intMap.add(memLocs.get(3));
+//    intMap.add(memLocs.get(4));
+//    intMap.add(memLocs.get(5));
+//
+//    List<MemoryLocation> realMap = new ArrayList<>();
+//
+//    Map<MemoryLocation, ApronState.Type> typeMap = new HashMap<>(); // TODO
+//    // TODO
+//
+//    ApronRequirementsTranslator apronReqTranslator = new ApronRequirementsTranslator(ApronState.class, TestLogManager.getInstance());
+//
+//    Abstract0 aprUni = new Abstract0(apronManager.getManager(), 6, 0);
+//    Tcons0[] constraints = new Tcons0[5];
+//    Texpr0Node node = new Texpr0BinNode(Texpr0BinNode.OP_MUL, new Texpr0UnNode(Texpr0UnNode.OP_NEG, new Texpr0CstNode(new DoubleScalar(10))), new Texpr0DimNode(0));
+//    constraints[0] = new Tcons0(Tcons0.EQ, node);
+//    node = new Texpr0BinNode(Texpr0BinNode.OP_ADD, new Texpr0DimNode(0), new Texpr0DimNode(3));
+//    constraints[1] = new Tcons0(Tcons0.SUPEQ, node);
+//    node = new Texpr0BinNode(Texpr0BinNode.OP_MOD, new Texpr0DimNode(1), new Texpr0DimNode(4));
+//    constraints[2] = new Tcons0(Tcons0.DISEQ, node);
+//    node = new Texpr0BinNode(Texpr0BinNode.OP_SUB, new Texpr0DimNode(2), new Texpr0BinNode(Texpr0BinNode.OP_DIV, new Texpr0DimNode(0), new Texpr0DimNode(3)));
+//    constraints[3] = new Tcons0(Tcons0.SUP, node);
+//    node = new Texpr0DimNode(0);
+//    constraints[4] = new Tcons0(Tcons0.EQMOD, node, new DoubleScalar(5));
+//    Abstract0 apr = aprUni.meetCopy(apronManager.getManager(), constraints);
+//
+//    ApronState aprState = new ApronState(apr, apronManager, intMap, realMap, typeMap, false, TestLogManager.getInstance());
+//
+//    List<String> varsInReq = apronReqTranslator.getVarsInRequirements(aprState, null);
+//    List<String>list = new ArrayList<>();
+//    list.add("var1");
+//    list.add("var2");
+//    list.add("var3");
+//    list.add("fun::var1");
+//    list.add("fun::varC");
+//    Truth.assertThat(varsInReq).containsExactlyElementsIn(list);
+//
+//    c = new ArrayList<>();
+//    c.add("var1");
+//    c.add("fun::var1");
+//    c.add("x");
+//    varsInReq = apronReqTranslator.getVarsInRequirements(aprState, c);
+//    list = new ArrayList<>();
+//    list.add("var1");
+//    list.add("var2");
+//    list.add("var3");
+//    list.add("fun::var1");
+//    list.add("fun::varC");
+//    Truth.assertThat(varsInReq).containsExactlyElementsIn(list);
+//
+//    List<String> listOfIndependentReq = apronReqTranslator.getListOfIndependentRequirements(aprState, ssaTest, null);
+//    list = new ArrayList<>();
+//    list.add("(= (* (-10) |var1@1|) 0)");
+//    list.add("(>= (+ |var1@1| |fun::var1|) 0)");
+//    list.add("(not (= (mod |var2| |fun::varB|) 0)");
+//    list.add("(> (- |var3| (/ |var1@1| |un::var1|)) 0)");
+//    list.add("(= (mod |fun::var1| 5) 0)");
+//    Truth.assertThat(listOfIndependentReq).containsExactlyElementsIn(list);
+//
+//    c = new ArrayList<>();
+//    c.add("var1");
+//    c.add("fun::var1");
+//    c.add("x");
+//    listOfIndependentReq = apronReqTranslator.getVarsInRequirements(aprState, c);
+//    list = new ArrayList<>();
+//    list.add("(= (* (-10) |var1@1|) 0)");
+//    list.add("(>= (+ |var1@1| |fun::var1|) 0)");
+//    list.add("(> (- |var3| (/ |var1@1| |un::var1|)) 0)");
+//    list.add("(= (mod |fun::var1| 5) 0)");
+//    Truth.assertThat(listOfIndependentReq).containsExactlyElementsIn(list);
+  }
 }

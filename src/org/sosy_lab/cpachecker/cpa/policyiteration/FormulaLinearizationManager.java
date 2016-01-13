@@ -17,6 +17,8 @@ import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FuncDecl;
+import org.sosy_lab.solver.api.FuncDeclKind;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.OptEnvironment;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
@@ -163,6 +165,10 @@ public class FormulaLinearizationManager {
     return out;
   }
 
+  /**
+   * TODO!! This does not correctly replace if-then-else
+   * which occurs INSIDE the formula.
+   */
   private class ReplaceITEVisitor
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
 
@@ -237,11 +243,11 @@ public class FormulaLinearizationManager {
       }
 
       @Override
-      public TraversalProcess visitFunction(Formula f, List<Formula> args,
-          String functionName,
-          Function<List<Formula>, Formula> newApplicationConstructor,
-          boolean isUninterpreted) {
-        if (isUninterpreted) {
+      public TraversalProcess visitFuncApp(Formula f,
+          List<Formula> args,
+          FuncDecl decl,
+          Function<List<Formula>, Formula> newApplicationConstructor) {
+        if (decl.getKind() == FuncDeclKind.UF) {
           UFs.add(f);
 
         }

@@ -68,6 +68,8 @@ import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FuncDecl;
+import org.sosy_lab.solver.api.FuncDeclKind;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
@@ -1003,7 +1005,7 @@ public class FormulaManagerView {
       }
 
       @Override
-      public Void visitBoundVariable(Formula f, String name, int deBruijnIdx) {
+      public Void visitBoundVariable(Formula f, int deBruijnIdx) {
 
         // Bound variables have to stay as-is.
         pCache.put(f, f);
@@ -1018,10 +1020,9 @@ public class FormulaManagerView {
 
 
       @Override
-      public Void visitFunction(Formula f, List<Formula> args,
-          String functionName,
-          Function<List<Formula>, Formula> newApplicationConstructor,
-          boolean isUninterpreted) {
+      public Void visitFuncApp(Formula f, List<Formula> args,
+          FuncDecl decl,
+          Function<List<Formula>, Formula> newApplicationConstructor) {
 
         boolean allArgumentsTransformed = true;
 
@@ -1047,10 +1048,10 @@ public class FormulaManagerView {
           // function application.
           toProcess.pop();
           Formula out;
-          if (isUninterpreted) {
+          if (decl.getKind() == FuncDeclKind.UF) {
 
             out = functionFormulaManager.declareAndCallUninterpretedFunction(
-                pRenameFunction.apply(functionName),
+                pRenameFunction.apply(decl.getName()),
                 getFormulaType(f),
                 newArgs
             );
@@ -1065,13 +1066,14 @@ public class FormulaManagerView {
 
       @Override
       public Void visitQuantifier(BooleanFormula f, Quantifier quantifier,
-          BooleanFormula body,
-          Function<BooleanFormula, BooleanFormula> bodyTransformer) {
+          List<Formula> args,
+          BooleanFormula body) {
         BooleanFormula transformedBody = (BooleanFormula) pCache.get(body);
 
         if (transformedBody != null) {
-
-          BooleanFormula newTt = bodyTransformer.apply(transformedBody);
+          BooleanFormula newTt = quantifiedFormulaManager.mkQuantifier(
+              quantifier, args, transformedBody
+          );
           pCache.put(f, newTt);
 
         } else {
@@ -1114,18 +1116,17 @@ public class FormulaManagerView {
             return false;
           }
           @Override
-          public Boolean visitAtom(BooleanFormula atom) {
+          public Boolean visitAtom(BooleanFormula atom, FuncDecl decl) {
             return true;
           }
         };
 
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitFunction(
+      public Void visitFuncApp(
           Formula f,
           List<Formula> args,
-          String functionName, Function<List<Formula>, Formula> constructor,
-          boolean isUninterpreted) {
+          FuncDecl decl, Function<List<Formula>, Formula> constructor) {
 
         if (getFormulaType(f).isBooleanType() &&
             booleanFormulaManager.visit(isLowestLevel, (BooleanFormula) f)) {
@@ -1137,7 +1138,7 @@ public class FormulaManagerView {
           }
           result.add((BooleanFormula) f);
         } else {
-          super.visitFunction(f, args, functionName, constructor, isUninterpreted);
+          super.visitFuncApp(f, args, decl, constructor);
         }
         return null;
       }
@@ -1196,12 +1197,11 @@ public class FormulaManagerView {
     final AtomicInteger isPurelyAtomic = new AtomicInteger(0);
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitFunction(
+      public Void visitFuncApp(
           Formula f,
           List<Formula> args,
-          String functionName, Function<List<Formula>, Formula> constructor,
-          boolean isUninterpreted) {
-        if (isUninterpreted) {
+          FuncDecl decl, Function<List<Formula>, Formula> constructor) {
+        if (decl.getKind() == FuncDeclKind.UF) {
           isPurelyAtomic.incrementAndGet();
         }
         return null;
@@ -1265,15 +1265,14 @@ public class FormulaManagerView {
       }
 
       @Override
-      public TraversalProcess visitFunction(
+      public TraversalProcess visitFuncApp(
           Formula f,
           List<Formula> args,
-          String functionName,
-          Function<List<Formula>, Formula> constructor,
-          boolean isUninterpreted) {
+          FuncDecl decl,
+          Function<List<Formula>, Formula> constructor) {
 
-        if (isUninterpreted && extractUF) {
-          found.put(functionName, f);
+        if (decl.getKind() == FuncDeclKind.UF && extractUF) {
+          found.put(decl.getName(), f);
         }
         return TraversalProcess.CONTINUE;
       }
@@ -1304,7 +1303,7 @@ public class FormulaManagerView {
       @Override public Boolean visitFalse() {
         return true;
       }
-      @Override public Boolean visitAtom(BooleanFormula atom) {
+      @Override public Boolean visitAtom(BooleanFormula atom, FuncDecl decl) {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {

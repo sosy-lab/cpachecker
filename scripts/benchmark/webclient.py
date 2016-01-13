@@ -461,7 +461,7 @@ class WebInterface:
 
         return self._create_and_add_run_future(run_id)
 
-    def submit(self, run, limits, cpu_model, result_files_pattern=None, priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
+    def submit(self, run, limits, cpu_model, result_files_pattern, priority='IDLE', user_pwd=None, svn_branch=None, svn_revision=None):
         """
         Submits a single run to the VerifierCloud.
         @note: flush() should be called after the submission of the last run.
@@ -471,7 +471,7 @@ class WebInterface:
                                             identifier for error messages (run.identifier)
         @param limits: dict of limitations for the run (memlimit, timelimit, corelimit, softtimelimit)
         @param cpu_model: substring of CPU model to use or 'None' for no restriction
-        @param result_files_pattern: the result is filtered with the given glob pattern, defaults to no restriction
+        @param result_files_pattern: the result is filtered with the given glob pattern, '**' is no restriction and None or the empty string do not match any file.
         @param priority: the priority of the submitted run, defaults to 'IDLE'
         @param user_pwd: overrides the user name and password given in the constructor (optional)
         @param svn_branch: overrids the svn branch given in the constructor (optional)
@@ -509,6 +509,7 @@ class WebInterface:
             params['resultFilesPattern'] = result_files_pattern;
         else:
             params['resultFilesPattern'] = ''
+        
         if priority:
             params['priority'] = priority
 

@@ -58,6 +58,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
+import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.FuncDecl;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 
@@ -668,7 +670,12 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitAtom(BooleanFormula pAtom) {
+    public BDD visitBoundVar(BooleanFormula var, int deBruijnIdx) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BDD visitAtom(BooleanFormula pAtom, FuncDecl decl) {
       return ((JavaBDDRegion)atomToRegion.apply(pAtom)).getBDD().id();
     }
 
@@ -732,6 +739,11 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
+    public BDD visitXor(BooleanFormula operand1, BooleanFormula operand2) {
+      return visitBinary(operand1, operand2, BDDFactory.xor);
+    }
+
+    @Override
     public BDD visitEquivalence(BooleanFormula pOperand1, BooleanFormula pOperand2) {
       return visitBinary(pOperand1, pOperand2, BDDFactory.biimp);
     }
@@ -757,7 +769,7 @@ class JavaBDDRegionManager implements RegionManager {
     }
 
     @Override
-    public BDD visitQuantifier(Quantifier q, BooleanFormula pBody) {
+    public BDD visitQuantifier(Quantifier q, List<Formula> args, BooleanFormula pBody) {
       throw new UnsupportedOperationException();
     }
   }
