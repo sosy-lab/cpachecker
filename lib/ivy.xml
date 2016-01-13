@@ -107,11 +107,11 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.1-295-g414fbd5" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.1-338-g5ca5bd5" conf="runtime->runtime; contrib->sources" />
 
         <!-- Solver Binaries -->
         <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="z3-4.4.1-87-gad58226" conf="runtime->solver-z3" />
-        <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.3.7" conf="runtime->solver-mathsat" />
+        <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.3.10" conf="runtime->solver-mathsat" />
         <dependency org="org.sosy_lab" name="javasmt-solver-optimathsat" rev="1.3.5" conf="runtime->solver-optimathsat" />
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->

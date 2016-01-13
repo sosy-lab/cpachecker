@@ -70,6 +70,12 @@ public class QuantifiedFormulaManagerView
     return manager.forall(unwrap(pVariables), pBody);
   }
 
+  @Override
+  public BooleanFormula mkQuantifier(Quantifier q,
+      List<? extends Formula> pVariables, BooleanFormula pBody) {
+    return manager.mkQuantifier(q, unwrap(pVariables), pBody);
+  }
+
   public <T extends Formula> BooleanFormula forall(T pVariable, BooleanFormula pBody) {
     return manager.forall(Collections.singletonList(unwrap(pVariable)), pBody);
   }
