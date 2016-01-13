@@ -135,8 +135,10 @@ def _submitRunsParallel(runSet, benchmark):
         logging.warning("Memory requirement is not supported by the WebInterface.")
         
     cpu_model = benchmark.requirements.cpu_model
-    result_files_pattern = benchmark.result_files_pattern
     priority = benchmark.config.cloudPriority
+    result_files_pattern = benchmark.result_files_pattern
+    if result_files_pattern is None:
+        logging.warning("No result files pattern is given and the result will not contain any result files.")
 
     for run in runSet.runs:
         submisson_future = executor.submit(_webclient.submit, run, limits, cpu_model, result_files_pattern, priority)
