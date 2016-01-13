@@ -203,7 +203,7 @@ public class CPABuilder {
         }
 
         if (automata.isEmpty()) {
-          throw new InvalidConfigurationException("Specification file contains no automata.");
+          throw new InvalidConfigurationException("Specification file contains no automata: " + specFile);
         }
 
         for (Automaton automaton : automata) {
