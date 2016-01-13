@@ -247,10 +247,27 @@ public class CtoFormulaConverter {
     }
   }
 
+  /**
+   * This is a workaround for handling 'weaved' variables.
+   *  See {@code org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory}}
+   */
+  private boolean isAlwaysRelevantVariable(final CSimpleDeclaration var) {
+
+    if (var.getFileLocation() == null) {
+      return true;
+    }
+    if (var.getFileLocation().getFileName().isEmpty()) {
+      return true;
+    }
+
+    return false;
+  }
+
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      return var.getName().equals(RETURN_VARIABLE_NAME) ||
-           variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      return var.getName().equals(RETURN_VARIABLE_NAME)
+          || isAlwaysRelevantVariable(var)
+          || variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
     }
     return true;
   }

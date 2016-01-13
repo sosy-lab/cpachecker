@@ -76,7 +76,7 @@ public class AutomatonEncodingTest {
 
     Map<String, String> prop = ImmutableMap.of(
         "specification",                    specFile,
-        "cpa.predicate.ignoreIrrelevantVariables", "FALSE",
+        "cpa.predicate.ignoreIrrelevantVariables", "TRUE",
         "cfa.useMultiEdges",                "FALSE",
         "automata.properties.granularity",  "BASENAME",
         "analysis.checkCounterexamples", "FALSE"
