@@ -186,6 +186,11 @@ try:
             self._new_runs = False
             self._state_receive_executor = ThreadPoolExecutor(max_workers=1)
 
+        def _log_future_exception_and_fallback(self, result):
+            if result.exception() is not None:
+                logging.warning('Error during result processing.', exc_info=True)
+                self._fall_back()
+
         def _should_reconnect(self, error):
             if self._new_runs:
                 return False
@@ -280,7 +285,7 @@ try:
                 self._sse_client.resp.close()
             else:
                 future = self._state_receive_executor.submit(self._start_sse_connection)
-                future.add_done_callback(_log_future_exception)
+                future.add_done_callback(self._log_future_exception_and_fallback)
 
         def shutdown(self, wait=True):
             self._shutdown = True
@@ -949,7 +954,3 @@ def _parse_cloud_file(file):
         values[key] = value
 
     return values
-
-def _log_future_exception(result):
-    if result.exception() is not None:
-        logging.warning('Error during result processing.', exc_info=True)
