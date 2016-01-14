@@ -39,6 +39,19 @@ import com.google.common.collect.ImmutableMap;
 public class AutomatonEncodingTest {
 
   @Test
+  public void testEncodingOfLdvRule100_Safe() throws Exception {
+    final String specFile = "test/config/automata/encode/LDV_100_1a.spc";
+    final String programFile = "test/config/automata/encode/true_100_1a_1.c";
+
+    TestResults results = runWithAutomataEncoding(specFile, programFile);
+
+    results.assertIsSafe();
+
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+  }
+
+  @Test
   public void testEncodingOfLdvRule8_Safe() throws Exception {
     final String specFile = "test/config/automata/encode/LDV_08_1a_encode.spc";
     final String programFile = "test/config/automata/encode/true_08_1a_2.c";
