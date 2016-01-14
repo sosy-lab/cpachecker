@@ -39,6 +39,22 @@ import com.google.common.collect.ImmutableMap;
 public class AutomatonEncodingTest {
 
   @Test
+  public void testEncodingOfLdvRule8_Safe() throws Exception {
+    final String specFile = "test/config/automata/encode/LDV_08_1a_encode.spc";
+    final String programFile = "test/config/automata/encode/true_08_1a_2.c";
+
+    TestResults results = runWithAutomataEncoding(specFile, programFile);
+
+    results.assertIsSafe();
+
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+
+    stat.assertThatNumber("Number of times merged").isAtLeast(2);
+    stat.assertThatNumber("Number of refinements").isAtMost(3);
+  }
+
+  @Test
   public void testEncodingOfLdvRule118_Safe() throws Exception {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/ldv_118_test.c";

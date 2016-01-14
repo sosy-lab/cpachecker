@@ -346,6 +346,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
     if (edgeMatched) {
       // execute Transitions
       for (Pair<AutomatonTransition, Map<Integer, AAstNode>> pair : transitionsToBeTaken) {
+
         // this transition will be taken. copy the variables
         AutomatonTransition t = pair.getFirst();
         Map<Integer, AAstNode> transitionVariables = pair.getSecond();

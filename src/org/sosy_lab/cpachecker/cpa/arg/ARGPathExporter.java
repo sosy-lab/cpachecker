@@ -232,23 +232,6 @@ public class ARGPathExporter {
     writer.writePath(pTarget, pRootState, pIsRelevantState, pIsRelevantEdge, Optional.of(pCounterExample), GraphBuilder.ARG_PATH);
   }
 
-  public void writeProofWitness(Appendable pTarget,
-      final ARGState pRootState,
-      final Predicate<? super ARGState> pIsRelevantState,
-      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
-      throws IOException {
-
-    String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName);
-    writer.writePath(
-        pTarget,
-        pRootState,
-        pIsRelevantState,
-        pIsRelevantEdge,
-        Optional.<CounterexampleInfo>absent(),
-        GraphBuilder.PROOF);
-  }
-
   private String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
 

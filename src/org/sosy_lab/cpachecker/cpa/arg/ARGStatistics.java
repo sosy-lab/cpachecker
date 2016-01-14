@@ -82,11 +82,6 @@ public class ARGStatistics implements IterationStatistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("ARG.dot");
 
-  @Option(secure=true, name="proofWitness",
-      description="export a proof as .graphml file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path proofWitness = Paths.get("ARG.graphml");
-
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -124,7 +119,7 @@ public class ARGStatistics implements IterationStatistics {
     cexExporter = pCexExporter;
     argPathExporter = pARGPathExporter;
 
-    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
+    if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null) {
       exportARG = false;
     }
   }
@@ -235,16 +230,6 @@ public class ARGStatistics implements IterationStatistics {
   private void exportARG(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation = ARGUtils.projectARG(rootState, ARGUtils.CHILDREN_OF_STATE, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
-
-    if (proofWitness != null) {
-      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, proofWitness))) {
-        argPathExporter.writeProofWitness(w, rootState,
-            Predicates.alwaysTrue(),
-            Predicates.alwaysTrue());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-      }
-    }
 
     if (argFile != null) {
       try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, argFile))) {
