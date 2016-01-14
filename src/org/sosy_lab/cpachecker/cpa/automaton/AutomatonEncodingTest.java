@@ -49,9 +49,6 @@ public class AutomatonEncodingTest {
 
     TestRunStatisticsParser stat = new TestRunStatisticsParser();
     results.getCheckerResult().printStatistics(stat.getPrintStream());
-
-    stat.assertThatNumber("Number of times merged").isAtLeast(2);
-    stat.assertThatNumber("Number of refinements").isAtMost(3);
   }
 
   @Test

@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -244,21 +245,22 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
       return false;
     }
 
-    private boolean isReturnCall(final CFAEdge pCFAEdge) {
+    private Optional<?> getFunctionReturnAst(final CFAEdge pCFAEdge) {
       if (pCFAEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        return true;
+        FunctionReturnEdge edge = (FunctionReturnEdge) pCFAEdge;
+        return Optional.of(edge.getSummaryEdge().getExpression());
       }
 
       if (pCFAEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         if (pCFAEdge instanceof AStatementEdge) {
           if (((AStatementEdge) pCFAEdge).getStatement() instanceof
               AFunctionCallAssignmentStatement) {
-            return true;
+            return pCFAEdge.getRawAST();
           }
         }
       }
 
-      return false;
+      return Optional.absent();
     }
 
     @Override
@@ -274,10 +276,8 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
         }
         break;
       case RETURN:
-        if (isReturnCall(pArgs.getCfaEdge())) {
-          // Match the function summary edge of the call!!
-          ast = pArgs.getCfaEdge().getRawAST();
-        } else {
+        ast = getFunctionReturnAst(pArgs.getCfaEdge());
+        if (!ast.isPresent()) {
           return CONST_FALSE;
         }
         break;
