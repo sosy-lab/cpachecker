@@ -277,9 +277,6 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
         break;
       case RETURN:
         ast = getFunctionReturnAst(pArgs.getCfaEdge());
-        if (!ast.isPresent()) {
-          return CONST_FALSE;
-        }
         break;
       default:
         ast = pArgs.getCfaEdge().getRawAST();
