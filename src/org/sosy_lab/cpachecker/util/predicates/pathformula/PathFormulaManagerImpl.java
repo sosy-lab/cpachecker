@@ -500,6 +500,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
       final BooleanFormula retention;
       if (useArrayHeap) {
+        // TODO array call
         retention = fmgr.assignment(
             afmgr.declareAndCallArray(functionName, newIndex,
                 fmgr.getIntegerFormulaManager(), returnFormulaType,

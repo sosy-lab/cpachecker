@@ -323,6 +323,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final SSAMapBuilder pSSAMapBuilder) {
 
     pType = CTypeUtils.simplifyType(pType);
+    // TODO getUFName
     final String ufName = getUFName(pType);
     final int index = getIndex(ufName, pType, pSSAMapBuilder);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);

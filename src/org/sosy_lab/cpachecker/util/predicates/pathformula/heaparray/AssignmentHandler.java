@@ -542,6 +542,7 @@ class AssignmentHandler {
 
     assert !(pLvalueType instanceof CFunctionType) : "Can't assign to functions";
 
+    // TODO getUFName
     final String targetName = !pLvalue.isAliased()
         ? pLvalue.asUnaliased().getVariableName()
         : CToFormulaConverterWithHeapArray.getUFName(pLvalueType);
@@ -608,6 +609,7 @@ class AssignmentHandler {
     if (isSimpleType(pLvalueType)) {
       Preconditions.checkArgument(pStartAddress != null, "Start address is "
           + "mandatory for assigning to lvalues of simple types");
+      // TODO getUFName
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(
           pLvalueType);
       final int oldIndex = converter.getIndex(ufName, pLvalueType, ssa);
@@ -620,6 +622,7 @@ class AssignmentHandler {
     } else if (pPattern.isExact()) {
       pPattern.setRange(size);
       for (final CType type : pTypesToRetain) {
+        // TODO getUFName
         final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
         final int oldIndex = converter.getIndex(ufName, type, ssa);
         final int newIndex = converter.getFreshIndex(ufName, type, ssa);
@@ -751,6 +754,7 @@ class AssignmentHandler {
       BooleanFormula consequent = bfmgr.makeBoolean(true);
 
       for (final CType type : pTypes) {
+        // TODO getUFName
         final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
         final int oldIndex = converter.getIndex(ufName, type, ssa);
         final int newIndex = converter.getFreshIndex(ufName, type, ssa);
@@ -790,6 +794,7 @@ class AssignmentHandler {
 
     final PointerTargetPattern any = PointerTargetPatternHeapArray.any();
     for (final CType type : pTypes) {
+      // TODO getUFName
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       final int oldIndex = converter.getIndex(ufName, type, ssa);
       final int newIndex = converter.getFreshIndex(ufName, type, ssa);
@@ -830,6 +835,7 @@ class AssignmentHandler {
   private void updateSSA(final @Nonnull Set<CType> pTypes,
       final SSAMapBuilder pSSAMapBuilder) {
     for (final CType type : pTypes) {
+      // TODO getUFName
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       converter.makeFreshIndex(ufName, type, pSSAMapBuilder);
     }
