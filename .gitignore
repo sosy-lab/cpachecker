@@ -227,6 +227,7 @@
 .idea/findbugs-idea.xml
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
+.idea/checkstyle-idea.xml
 
 # Generated files.
 src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.java
