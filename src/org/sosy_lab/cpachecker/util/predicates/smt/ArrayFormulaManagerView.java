@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -162,10 +164,10 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * @return A formula for the array and the call to it.
    */
   public <T extends Formula> T declareAndCallArray(
-      final String pName,
-      final NumeralFormulaManager<?, ?> pIntegerFormulaManager,
-      final FormulaType<T> pReturnType,
-      final Formula pArgs) {
+      final @Nonnull String pName,
+      final @Nonnull NumeralFormulaManager<?, ?> pIntegerFormulaManager,
+      final @Nonnull FormulaType<T> pReturnType,
+      final @Nonnull Formula pArgs) {
 
     // TODO evaluate correctness of these statements. They seem to be working in most cases but
     // not when there is a cast involved, e.g. if pReturnType is a Rational type and the formula
