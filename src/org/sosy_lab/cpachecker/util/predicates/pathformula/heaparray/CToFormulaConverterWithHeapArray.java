@@ -794,7 +794,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   @Override
   protected BooleanFormula makeAssignment(final CLeftHandSide pLhs,
       final CLeftHandSide pLhsForChecking,
-      final CRightHandSide pRhs,
+      CRightHandSide pRhs,
       final CFAEdge pCFAEdge,
       final String pFunction,
       final SSAMapBuilder pSSAMapBuilder,
@@ -803,6 +803,10 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCCodeException, InterruptedException {
 
+    if (pRhs instanceof CExpression) {
+      pRhs = makeCastFromArrayToPointerIfNecessary((CExpression) pRhs, pLhs.getExpressionType());
+    }
+    
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, pCFAEdge,
         pFunction, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
         pErrorConditions);
