@@ -92,7 +92,10 @@ public class PolicyIterationTest {
             "CompositeCPA.cpas", CPAS_W_SLICING,
             "cpa.stator.policy.generateOctagons", "true",
             "cpa.slicing.useSyntacticFormulaSlicing", "true",
-            "cpa.slicing.runCounterexampleBasedSlicing", "true"
+            "cpa.slicing.runCounterexampleBasedSlicing", "true",
+
+            // TODO: temporary fix.
+            "cpa.stator.policy.linearizePolicy", "false"
         ));
   }
 

@@ -84,7 +84,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.encodeBitvectorAs", "INTEGER")
         .setOption("cpa.predicate.encodeFloatAs", "INTEGER")
         .build();
-    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
+    mgrv = new FormulaManagerView(context.getFormulaManager(),
         viewConfig, TestLogManager.getInstance());
     bmgrv = mgrv.getBooleanFormulaManager();
     imgrv = mgrv.getIntegerFormulaManager();

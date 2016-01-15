@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,6 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicP
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
 import org.sosy_lab.solver.SolverContextFactory;
+import org.sosy_lab.solver.SolverContextFactory.Solvers;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -54,6 +57,8 @@ import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Verify;
 import com.google.common.collect.Maps;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Encapsulation of an SMT solver.
@@ -72,6 +77,17 @@ public final class Solver implements AutoCloseable {
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
+
+  @Option(secure = true, description = "Which SMT solver to use.")
+  private Solvers solver = Solvers.SMTINTERPOL;
+
+  @Option(
+      secure = true,
+      description =
+          "Which solver to use specifically for interpolation (default is to use the main one)."
+  )
+  @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
+  private @Nullable Solvers interpolationSolver = null;
 
   private final UFCheckingProverOptions ufCheckingProverOptions;
 
@@ -102,8 +118,26 @@ public final class Solver implements AutoCloseable {
   public Solver(SolverContextFactory pSolverFactory,
       Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     config.inject(this);
-    solvingContext = pSolverFactory.getSolverContext();
-    interpolatingContext = pSolverFactory.getSolverContextForInterpolation();
+
+    if (solver.equals(interpolationSolver)) {
+      // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
+      // which copies formula from and to the main solver using string serialization.
+      // We don't need this if the solvers are the same anyway.
+      interpolationSolver = null;
+    }
+
+    solvingContext = pSolverFactory.generateContext(solver);
+
+    // Instantiate another SMT solver for interpolation if requested.
+    if (interpolationSolver != null) {
+
+      // todo: new config?
+      // new factory?
+      interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
+    } else {
+      interpolatingContext = solvingContext;
+    }
+
     fmgr = new FormulaManagerView(solvingContext.getFormulaManager(),
         config,
         pLogger

@@ -49,11 +49,6 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
-# Which solver to use specifically for interpolation (default is to use the
-# main one).
-solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
-
 # Export solver queries in SmtLib format into a file.
 solver.logAllQueries = false
 solver.logfile = no default value
@@ -2435,6 +2430,15 @@ restartAlgorithmWithARGReplay.configFiles = no default value
 
 # improve sat-checks with additional constraints for UFs
 solver.checkUFs = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
