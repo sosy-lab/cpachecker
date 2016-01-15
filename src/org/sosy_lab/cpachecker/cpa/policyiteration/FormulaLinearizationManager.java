@@ -3,13 +3,12 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
@@ -26,6 +25,9 @@ import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 public class FormulaLinearizationManager {
   private final BooleanFormulaManager bfmgr;
@@ -195,33 +197,47 @@ public class FormulaLinearizationManager {
    * First removes UFs with no arguments, etc.
    */
   private BooleanFormula processUFs(BooleanFormula f) {
-    List<Formula> UFs = new ArrayList<>(findUFs(f));
+    Multimap<String, Pair<Formula, List<Formula>>> UFs = findUFs(f);
 
     Map<Formula, Formula> substitution = new HashMap<>();
-
     List<BooleanFormula> extraConstraints = new ArrayList<>();
 
-    for (int idx1=0; idx1<UFs.size(); idx1++) {
-      Formula uf = UFs.get(idx1);
-      Formula freshVar = fmgr.makeVariable(fmgr.getFormulaType(uf),
-          freshUFName(idx1));
-      substitution.put(uf, freshVar);
+    for (String funcName : UFs.keySet()) {
+      List<Pair<Formula, List<Formula>>> ufList = new ArrayList<>(UFs.get(funcName));
+      for (int idx1=0; idx1<ufList.size(); idx1++) {
+        Pair<Formula, List<Formula>> p = ufList.get(idx1);
 
-      for (int idx2=idx1+1; idx2<UFs.size(); idx2++) {
-        Formula otherUF = UFs.get(idx2);
-        if (uf == otherUF) {
-          continue;
-        }
+        Formula uf = p.getFirst();
+        List<Formula> args = p.getSecondNotNull();
 
-        Formula otherFreshVar = fmgr.makeVariable(fmgr.getFormulaType(otherUF),
-            freshUFName(idx2));
+        Formula freshVar = fmgr.makeVariable(fmgr.getFormulaType(uf),
+            freshUFName(idx1));
+        substitution.put(uf, freshVar);
 
-        /**
-         * If UFs are equal _under_given_model_, make them equal in the
-         * resulting policy bound.
-         */
-        if (evaluate(uf).equals(evaluate(otherUF))) {
-          extraConstraints.add(fmgr.makeEqual(freshVar, otherFreshVar));
+        for (int idx2=idx1+1; idx2<ufList.size(); idx2++) {
+          Pair<Formula, List<Formula>> p2 = ufList.get(idx2);
+          List<Formula> otherArgs = p2.getSecondNotNull();
+
+          Formula otherUF = p2.getFirst();
+
+          /**
+           * If UFs are equal under the given model, force them to be equal in
+           * the resulting policy bound.
+           */
+          Preconditions.checkState(args.size() == otherArgs.size());
+          boolean argsEqual = true;
+          for (int i = 0; i<args.size(); i++) {
+            if (!evaluate(args.get(i)).equals(evaluate(otherArgs.get(i)))) {
+              argsEqual = false;
+            }
+          }
+          if (argsEqual) {
+            Formula otherFreshVar = fmgr.makeVariable(
+                fmgr.getFormulaType(otherUF),
+                freshUFName(idx2)
+            );
+            extraConstraints.add(fmgr.makeEqual(freshVar, otherFreshVar));
+          }
         }
       }
     }
@@ -233,8 +249,8 @@ public class FormulaLinearizationManager {
     );
   }
 
-  private Set<Formula> findUFs(Formula f) {
-    final Set<Formula> UFs = new HashSet<>();
+  private Multimap<String, Pair<Formula, List<Formula>>> findUFs(Formula f) {
+    final Multimap<String, Pair<Formula, List<Formula>>> UFs = HashMultimap.create();
 
     fmgr.visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
@@ -248,7 +264,7 @@ public class FormulaLinearizationManager {
           FuncDecl decl,
           Function<List<Formula>, Formula> newApplicationConstructor) {
         if (decl.getKind() == FuncDeclKind.UF) {
-          UFs.add(f);
+          UFs.put(decl.getName(), Pair.of(f, args));
 
         }
         return TraversalProcess.CONTINUE;

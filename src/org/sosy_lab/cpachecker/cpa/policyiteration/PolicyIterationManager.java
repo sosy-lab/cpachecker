@@ -653,12 +653,14 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final PathFormula p = state.getPathFormula();
 
     // Linearize.
+    statistics.linearizationTimer.start();
     final BooleanFormula linearizedFormula = linearizationManager.linearize(
         p.getFormula());
 
     // Add choice variables.
     BooleanFormula annotatedFormula = linearizationManager.annotateDisjunctions(
         linearizedFormula);
+    statistics.linearizationTimer.stop();
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
     final BooleanFormula startConstraints =
@@ -766,8 +768,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
               }
 
               if (linearizePolicy) {
+                statistics.linearizationTimer.start();
                 annotatedFormula = linearizationManager.convertToPolicy(
                     annotatedFormula, optEnvironment);
+                statistics.linearizationTimer.stop();
               }
 
               PolicyBound policyBound = modelToPolicyBound(
@@ -834,8 +838,10 @@ public class PolicyIterationManager implements IPolicyIterationManager {
       Map<AssignableTerm, Object> model,
       Rational bound) throws SolverException, InterruptedException {
 
+    statistics.linearizationTimer.start();
     final BooleanFormula policyFormula = linearizationManager.enforceChoice(
         annotatedFormula, model);
+    statistics.linearizationTimer.stop();
     final boolean dependsOnInitial;
 
     if (checkPolicyInitialCondition) {
