@@ -219,7 +219,7 @@ public class CToFormulaConverterWithArraysTest extends SolverBasedTest0 {
   @Before
   public void setUp() throws Exception {
     requireRationals();
-    mgrv = new FormulaManagerView(factory.getSolverContext().getFormulaManager(),
+    mgrv = new FormulaManagerView(context.getFormulaManager(),
         config, logger);
 
     FormulaEncodingOptions opts = new FormulaEncodingOptions(
