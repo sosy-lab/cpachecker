@@ -27,8 +27,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -194,7 +196,7 @@ public class AssumptionToEdgeAllocator {
    */
   public CFAEdgeWithAssumptions allocateAssumptionsToEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
 
-    List<AExpressionStatement> assignmentsAtEdge = createAssignmentsAtEdge(pCFAEdge, pConcreteState);
+    Collection<AExpressionStatement> assignmentsAtEdge = createAssignmentsAtEdge(pCFAEdge, pConcreteState);
     String comment = createComment(pCFAEdge, pConcreteState);
 
     return new CFAEdgeWithAssumptions(pCFAEdge, assignmentsAtEdge, comment);
@@ -266,9 +268,9 @@ public class AssumptionToEdgeAllocator {
   }
 
   @Nullable
-  private List<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
+  private Collection<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
 
-    List<AExpressionStatement> result = new ArrayList<>();
+    Set<AExpressionStatement> result = new LinkedHashSet<>();
 
     // Get all Assumptions of this edge
     if (pCFAEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
