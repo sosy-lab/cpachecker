@@ -99,7 +99,7 @@ class LoopstatsStatistics extends AbstractStatistics implements Statistics, Loop
           loopWithMaxUnrollings.getLoopHeads().toString(),
           loopWithMaxUnrollings.getIncomingEdges().iterator().next().getLineNumber()));
     }
-    put(pOut, 0, "Max. nesting of loops", maxNestingLevel);
+    put(pOut, 0, "Max. nesting of loops", maxNesting.size() - 1);
 
   }
 
