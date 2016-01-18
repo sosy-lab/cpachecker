@@ -291,7 +291,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public boolean isGlobalScope() {
-    return false;
+    return functionName != null;
   }
 
   @Override
@@ -304,8 +304,8 @@ public class CProgramScope implements Scope {
 
     CSimpleDeclaration result;
 
-    if (simulatesFunctionScope()) {
-      result = qualifiedDeclarations.get(getCurrentFunctionName() + "::" + pName);
+    if (!isGlobalScope()) {
+      result = qualifiedDeclarations.get(createScopedNameOf(pName));
       if (result != null) {
         return result;
       }
@@ -331,8 +331,8 @@ public class CProgramScope implements Scope {
   @Override
   public CComplexType lookupType(String pName) {
     CComplexType result = null;
-    if (simulatesFunctionScope()) {
-      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
+    if (!isGlobalScope()) {
+      String functionQualifiedName = createScopedNameOf(pName);
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypes);
       if (result != null) {
         return result;
@@ -360,8 +360,8 @@ public class CProgramScope implements Scope {
   @Override
   public CType lookupTypedef(String pName) {
     CType result = null;
-    if (simulatesFunctionScope()) {
-      String functionQualifiedName = getCurrentFunctionName() + "::" + pName;
+    if (!isGlobalScope()) {
+      String functionQualifiedName = createScopedNameOf(pName);
       result = lookupQualifiedComplexType(functionQualifiedName, qualifiedTypeDefs);
       if (result != null) {
         return result;
@@ -391,7 +391,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public String createScopedNameOf(String pName) {
-    if (simulatesFunctionScope()) {
+    if (!isGlobalScope()) {
       return getCurrentFunctionName() + "::" + pName;
     }
     return pName;
@@ -428,12 +428,8 @@ public class CProgramScope implements Scope {
     return new CProgramScope(this, pFunctionName);
   }
 
-  public boolean simulatesFunctionScope() {
-    return functionName != null;
-  }
-
   public String getCurrentFunctionName() {
-    Preconditions.checkState(simulatesFunctionScope());
+    Preconditions.checkState(!isGlobalScope());
     return functionName;
   }
 
