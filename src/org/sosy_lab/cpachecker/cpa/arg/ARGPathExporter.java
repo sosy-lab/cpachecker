@@ -109,7 +109,6 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 import org.w3c.dom.Element;
 
 import com.google.common.base.Charsets;
@@ -228,7 +227,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.ERROR_WITNESS);
     writer.writePath(pTarget, pRootState, pIsRelevantState, pIsRelevantEdge, Optional.of(pCounterExample), GraphBuilder.ARG_PATH);
   }
 
@@ -239,7 +238,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS);
     writer.writePath(
         pTarget,
         pRootState,
@@ -279,10 +278,13 @@ public class ARGPathExporter {
     private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
 
     private final String defaultSourcefileName;
+    private final GraphType graphType;
+
     private boolean isFunctionScope = false;
 
-    public WitnessWriter(@Nullable String pDefaultSourcefileName) {
+    public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
       this.defaultSourcefileName = pDefaultSourcefileName;
+      this.graphType = pGraphType;
     }
 
     @Override
@@ -465,15 +467,15 @@ public class ARGPathExporter {
           }
         }
 
-        if (exportAssumptions && !code.isEmpty()) {
-          result.put(KeyDef.ASSUMPTION, Or.of(code).accept(ToCodeVisitor.INSTANCE));
+        if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+          result.put(KeyDef.ASSUMPTION, Or.of(code).toString());
           if (isFunctionScope) {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
         }
       }
 
-      if (pFromState.isPresent()) {
+      if (graphType != GraphType.ERROR_WITNESS && pFromState.isPresent()) {
         // TODO interface for extracting the information from states, similar to FormulaReportingState
         Set<ExpressionTree> stateInvariants = new HashSet<>();
         for (ARGState state : pFromState.get()) {
@@ -490,7 +492,7 @@ public class ARGPathExporter {
         }
         ExpressionTree invariant = Or.of(stateInvariants);
         if (!invariant.equals(ExpressionTree.TRUE)) {
-          result.put(KeyDef.INVARIANT, invariant.accept(ToCodeVisitor.INSTANCE));
+          result.put(KeyDef.INVARIANT, invariant.toString());
           if (isFunctionScope) {
             result.put(KeyDef.INVARIANTSCOPE, functionName);
           }
