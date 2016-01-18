@@ -43,9 +43,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 
@@ -66,41 +63,17 @@ public class LoopstatsTransferRelation extends SingleEdgeTransferRelation {
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
 
     for (final Loop l : pLoops.getAllLoops()) {
-      Iterable<CFAEdge> edgesToLoopBody = Collections2.transform(l.getLoopHeads(), new Function<CFANode, CFAEdge>() {
-
-        @Override
-        public CFAEdge apply(CFANode pNode) {
-          FluentIterable<CFAEdge> leaving = CFAUtils.leavingEdges(pNode).filter(in(l.getInnerLoopEdges()));
-
-          // Two leaving edges might enter a loop (or at least stay in the same loop)
-          //
-          //    Example:
-          //
-          //          goto label2;
-          //          label1:
-          //          foo(m + (unsigned long ) i);
-          //          i = i + 1;
-          //          label2: ;
-          //          if (k > i) {
-          //            goto ldv_22165;
-          //          } else {}
-
-          // TODO: The following condition will fail for several program.
-          //    It is here as a TODO-Marker.
-          //    Program for which it fails: kernel-locking-locktorture.c
-          Preconditions.checkState(leaving.size() == 1);
-
-          return leaving.first().get();
+      for (CFANode loopHead : l.getLoopHeads()) {
+        FluentIterable<CFAEdge> edges = CFAUtils.leavingEdges(loopHead).filter(
+            in(l.getInnerLoopEdges()));
+        for (CFAEdge edge : edges) {
+          entryEdges.put(edge, l);
         }
-
-      });
+      }
 
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
                                                not(instanceOf(CFunctionCallEdge.class)));
 
-      for (CFAEdge e : edgesToLoopBody) {
-        entryEdges.put(e, l);
-      }
 
       for (CFAEdge e : outgoingEdges) {
         exitEdges.put(e, l);
