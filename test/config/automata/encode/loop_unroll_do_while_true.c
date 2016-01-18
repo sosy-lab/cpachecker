@@ -20,9 +20,9 @@ int main(void) {
         ldv_read_unlock(l2);
       }
       ++j;
-    } while (j < 13);
+    } while (j < 2);
     ++i;
-  } while (i < 7);
+  } while (i < 3);
 
   return 0;
 }
