@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -164,7 +165,10 @@ class EclipseCParser implements CParser {
       }
     }
 
-    return buildCFA(astUnits, new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping));
+    return buildCFA(
+        astUnits,
+        new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping),
+        Optional.<Scope>absent());
   }
 
   @Override
@@ -206,7 +210,8 @@ class EclipseCParser implements CParser {
 
     return buildCFA(
         ImmutableList.of(unit),
-        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
+        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping),
+        Optional.<Scope>absent());
   }
 
   /**
@@ -217,13 +222,28 @@ class EclipseCParser implements CParser {
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
 
+    return parseString(pFileName, pCode, sourceOriginMapping, Optional.<Scope>absent());
+  }
+
+  /**
+   * This method parses a single string, where no prefix for static variables is needed.
+   */
+  @Override
+  public ParseResult parseString(
+      String pFileName,
+      String pCode,
+      CSourceOriginMapping sourceOriginMapping,
+      Optional<Scope> pScope)
+      throws CParserException, InvalidConfigurationException {
+
     String fileName = fixPath(pFileName);
     Map<String, String> fileNameMapping = ImmutableMap.of(fileName, pFileName);
     IASTTranslationUnit unit = parse(wrapCode(fileName, pCode));
 
     return buildCFA(
         ImmutableList.of(unit),
-        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping));
+        new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping),
+        pScope);
   }
 
   private IASTStatement[] parseCodeFragmentReturnBody(String pCode) throws CParserException {
@@ -349,8 +369,11 @@ class EclipseCParser implements CParser {
    *
    * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
    */
-  private ParseResult buildCFA(List<IASTTranslationUnit> asts,
-      CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException {
+  private ParseResult buildCFA(
+      List<IASTTranslationUnit> asts,
+      CSourceOriginMapping sourceOriginMapping,
+      Optional<Scope> pScope)
+      throws CParserException, InvalidConfigurationException {
 
     checkArgument(!asts.isEmpty());
     cfaTimer.start();
@@ -361,7 +384,7 @@ class EclipseCParser implements CParser {
 
       // we don't need any file prefix if we only have one file
       if (asts.size() == 1) {
-        builder.analyzeTranslationUnit(asts.get(0), "");
+        builder.analyzeTranslationUnit(asts.get(0), "", pScope);
 
         // in case of several files we need to add a file prefix to global variables
         // as there could be several equally named files in different directories
@@ -369,7 +392,13 @@ class EclipseCParser implements CParser {
         // the prefix
       } else {
         for (IASTTranslationUnit ast : asts) {
-          builder.analyzeTranslationUnit(ast, niceFileNameFunction.apply(ast.getFilePath()).replace("/", "_").replaceAll("\\W", "_"));
+          builder.analyzeTranslationUnit(
+              ast,
+              niceFileNameFunction
+                  .apply(ast.getFilePath())
+                  .replace("/", "_")
+                  .replaceAll("\\W", "_"),
+              pScope);
         }
       }
 

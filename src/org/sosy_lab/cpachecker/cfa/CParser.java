@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
+import com.google.common.base.Optional;
+
 /**
  * Abstraction of a C parser that creates CFAs from C code.
  *
@@ -96,6 +98,24 @@ public interface CParser extends Parser {
    * @throws CParserException If parser or CFA builder cannot handle the C code.
    */
   ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException;
+
+  /**
+   * Parse the content of a String into a CFA.
+   *
+   * @param pFileName the file name.
+   * @param pCode the code to parse.
+   * @param pSourceOriginMapping a mapping from real input file locations to original file locations (before pre-processing).
+   * @param pScope an optional external scope to be used.
+   * @return the parse result.
+   * @throws CParserException if the parser cannot handle the C code.
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
+  ParseResult parseString(
+      String pFileName,
+      String pCode,
+      CSourceOriginMapping pSourceOriginMapping,
+      Optional<Scope> pScope)
+      throws CParserException, InvalidConfigurationException;
 
   /**
    * Method for parsing a string that contains exactly one function with exactly
