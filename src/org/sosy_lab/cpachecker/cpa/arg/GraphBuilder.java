@@ -181,25 +181,16 @@ enum GraphBuilder {
         CFANode current = waitlist.poll();
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
+          final Collection<ARGState> locationStates;
           if (subProgramNodes.contains(successor)) {
-            appendEdge(
-                pDocument,
-                pEdgeAppender,
-                leavingEdge,
-                Optional.of(states.get(successor)),
-                pValueMap);
+            locationStates = states.get(successor);
             if (visited.add(successor)) {
               waitlist.offer(successor);
             }
           } else {
-            String sourceId = current.toString();
-            pEdgeAppender.appendNewEdgeToSink(
-                pDocument,
-                sourceId,
-                leavingEdge,
-                Optional.<Collection<ARGState>>absent(),
-                pValueMap);
+            locationStates = Collections.<ARGState>emptySet();
           }
+          appendEdge(pDocument, pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
         }
       }
     }
