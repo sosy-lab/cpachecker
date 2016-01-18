@@ -165,7 +165,7 @@ public class LoopstatsState implements AbstractState, Partitionable {
 
     Loop activeLoop = pPreviousState.peekLoop();
 
-    if (activeLoop == null || !pLeavingLoop.equals(activeLoop)) {
+    if (activeLoop == null || pLeavingLoop.equals(activeLoop)) {
       // Was not active, just track the information that the loop was reached
       //  but the loop body was not entered.
 
