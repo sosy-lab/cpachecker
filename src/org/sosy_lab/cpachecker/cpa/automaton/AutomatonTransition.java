@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -51,6 +51,7 @@ class AutomatonTransition {
   private final AutomatonBoolExpr trigger;
   private final AutomatonBoolExpr assertion;
   private final ImmutableList<AStatement> assumption;
+  private final ExpressionTree candidateInvariants;
   private final ImmutableList<AutomatonAction> actions;
   private final StringExpression violatedPropertyDescription;
 
@@ -67,33 +68,114 @@ class AutomatonTransition {
       List<AutomatonBoolExpr> pAssertions,
       List<AutomatonAction> pActions,
       String pFollowStateName) {
-    this(pTrigger, pAssertions, ImmutableList.copyOf(new ArrayList<CStatement>()), pActions, pFollowStateName, null, null);
+    this(
+        pTrigger,
+        pAssertions,
+        ImmutableList.<CStatement>of(),
+        ExpressionTree.TRUE,
+        pActions,
+        pFollowStateName,
+        null,
+        null);
   }
 
   public AutomatonTransition(AutomatonBoolExpr pTrigger,
       List<AutomatonBoolExpr> pAssertions, List<AutomatonAction> pActions,
       AutomatonInternalState pFollowState) {
 
-    this(pTrigger, pAssertions, ImmutableList.copyOf(new ArrayList<CStatement>()), pActions, pFollowState.getName(), pFollowState, null);
+    this(
+        pTrigger,
+        pAssertions,
+        ImmutableList.<CStatement>of(),
+        ExpressionTree.TRUE,
+        pActions,
+        pFollowState.getName(),
+        pFollowState,
+        null);
   }
 
-  public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption,
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
       List<AutomatonAction> pActions,
       String pFollowStateName) {
-    this(pTrigger, pAssertions, pAssumption, pActions, pFollowStateName, null, null);
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        ExpressionTree.TRUE,
+        pActions,
+        pFollowStateName,
+        null,
+        null);
   }
 
-  public AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption, List<AutomatonAction> pActions,
-      AutomatonInternalState pFollowState, StringExpression pViolatedPropertyDescription) {
-
-    this(pTrigger, pAssertions, pAssumption, pActions, pFollowState.getName(), pFollowState, pViolatedPropertyDescription);
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      ExpressionTree pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      String pFollowStateName) {
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        pCandidateInvariants,
+        pActions,
+        pFollowStateName,
+        null,
+        null);
   }
 
-  private AutomatonTransition(AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions, List<CStatement> pAssumption, List<AutomatonAction> pActions,
-      String pFollowStateName, AutomatonInternalState pFollowState,
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState,
+      StringExpression pViolatedPropertyDescription) {
+
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        ExpressionTree.TRUE,
+        pActions,
+        pFollowState.getName(),
+        pFollowState,
+        pViolatedPropertyDescription);
+  }
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      ExpressionTree pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState,
+      StringExpression pViolatedPropertyDescription) {
+
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        pCandidateInvariants,
+        pActions,
+        pFollowState.getName(),
+        pFollowState,
+        pViolatedPropertyDescription);
+  }
+
+  private AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      ExpressionTree pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      String pFollowStateName,
+      AutomatonInternalState pFollowState,
       StringExpression pViolatedPropertyDescription) {
 
     this.trigger = checkNotNull(pTrigger);
@@ -103,6 +185,8 @@ class AutomatonTransition {
     } else {
       this.assumption = ImmutableList.<AStatement>copyOf(pAssumption);
     }
+
+    this.candidateInvariants = checkNotNull(pCandidateInvariants);
 
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
@@ -242,5 +326,9 @@ class AutomatonTransition {
 
   public ImmutableList<AStatement> getAssumptions() {
     return assumption;
+  }
+
+  public ExpressionTree getCandidateInvariants() {
+    return candidateInvariants;
   }
 }

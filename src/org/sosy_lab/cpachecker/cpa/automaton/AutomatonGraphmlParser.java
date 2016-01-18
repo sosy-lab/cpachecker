@@ -27,6 +27,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,25 +60,44 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.LocationDescriptor;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OffsetDescriptor;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper.OriginLineDescriptor;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -89,8 +109,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -134,9 +156,11 @@ public class AutomatonGraphmlParser {
   private Path automatonDumpFile = null;
 
   private Scope scope;
-  private LogManager logger;
-  private Configuration config;
-  private MachineModel machine;
+  private final LogManager logger;
+  private final Configuration config;
+  private final MachineModel machine;
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+  private final Function<AStatement, ExpressionTree> fromStatement;
 
   public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -145,6 +169,16 @@ public class AutomatonGraphmlParser {
     this.machine = pMachine;
     this.logger = pLogger;
     this.config = pConfig;
+
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
+    fromStatement =
+        new Function<AStatement, ExpressionTree>() {
+
+          @Override
+          public ExpressionTree apply(AStatement pStatement) {
+            return LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
+          }
+        };
   }
 
   /**
@@ -158,7 +192,8 @@ public class AutomatonGraphmlParser {
    * Parses a specification from a ByteSource and returns the Automata found in the file.
    */
   public List<Automaton> parseAutomatonFile(ByteSource pInputFile) throws InvalidConfigurationException {
-    CParser cparser = CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
+    final CParser cparser =
+        CParser.Factory.getParser(config, logger, CParser.Factory.getOptions(config), machine);
     try (InputStream input = pInputFile.openStream()) {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -170,8 +205,18 @@ public class AutomatonGraphmlParser {
 
       // (The one) root node of the graph ----
       NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
-      Preconditions.checkArgument(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
+      checkParsable(graphs.getLength() == 1, "The graph file must describe exactly one automaton.");
       Node graphNode = graphs.item(0);
+
+      Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.GRAPH_TYPE);
+      final GraphType graphType;
+      if (graphTypeText.isEmpty()) {
+        graphType = GraphType.ERROR_WITNESS;
+      } else if (graphTypeText.size() > 1) {
+        throw new WitnessParseException("Only one graph type is allowed.");
+      } else {
+        graphType = GraphType.parse(graphTypeText.iterator().next());
+      }
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
@@ -257,6 +302,11 @@ public class AutomatonGraphmlParser {
         String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
         String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
 
+        if (graphType == GraphType.PROOF_WITNESS
+            && AutomatonGraphmlCommon.SINK_NODE_ID.equals(targetStateId)) {
+          throw new WitnessParseException("Proof witnesses do not allow sink nodes.");
+        }
+
         for (Node successorEdge : leavingEdges.get(targetStateId)) {
           if (visitedEdges.add(successorEdge)) {
             waitingEdges.add(successorEdge);
@@ -283,6 +333,7 @@ public class AutomatonGraphmlParser {
                 )
             );
         List<CStatement> assumptions = Lists.newArrayList();
+        ExpressionTree candidateInvariants = ExpressionTree.TRUE;
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
@@ -338,35 +389,39 @@ public class AutomatonGraphmlParser {
         if (considerAssumptions) {
           Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
           Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
-          Preconditions.checkArgument(assumptionScopes.size() < 2, "At most one assumption scope must be provided for an edge.");
-          if (!transAssumes.isEmpty()) {
-            Scope scope = this.scope;
-            if (scope instanceof CProgramScope
-                && (!assumptionScopes.isEmpty() || !newStack.isEmpty())) {
-              final String functionName;
-              if (!assumptionScopes.isEmpty()) {
-                functionName = assumptionScopes.iterator().next();
-              } else {
-                functionName = newStack.peek();
-              }
-              scope = ((CProgramScope) scope).createFunctionScope(functionName);
-            }
-            for (String assumeCode : transAssumes) {
-              assumptions.addAll(removeDuplicates(adjustCharAssignments(
-                  AutomatonASTComparator.generateSourceASTOfBlock(
-                      tryFixArrayInitializers(assumeCode),
-                      cparser,
-                      scope))));
-            }
+          assumptions.addAll(
+              parseStatements(transAssumes, determineScope(assumptionScopes, newStack), cparser));
+          if (graphType == GraphType.PROOF_WITNESS && !assumptions.isEmpty()) {
+            throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
           }
+        }
+
+        Set<String> candidates =
+            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.INVARIANT);
+        Set<String> candidateScopes =
+            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.INVARIANTSCOPE);
+        final Scope candidateScope = determineScope(candidateScopes, newStack);
+        if (!candidates.isEmpty()) {
+          if (graphType == GraphType.ERROR_WITNESS) {
+            throw new WitnessParseException("Invariants are not allowed for error witnesses.");
+          }
+          candidateInvariants =
+              And.of(
+                  ImmutableList.<ExpressionTree>of(
+                      candidateInvariants,
+                      parseStatementsAsExpressionTree(candidates, candidateScope, cparser)));
         }
 
         if (matchOriginLine) {
           Set<String> originFileTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
-          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge.");
+          checkParsable(
+              originFileTags.size() < 2,
+              "At most one origin-file data tag must be provided for an edge.");
 
           Set<String> originLineTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
-          Preconditions.checkArgument(originLineTags.size() <  2, "At most one origin-line data tag must be provided for each edge.");
+          checkParsable(
+              originLineTags.size() < 2,
+              "At most one origin-line data tag must be provided for each edge.");
 
           int matchOriginLineNumber = -1;
           if (originLineTags.size() > 0) {
@@ -384,10 +439,13 @@ public class AutomatonGraphmlParser {
 
         if (matchOffset) {
           Set<String> originFileTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
-          Preconditions.checkArgument(originFileTags.size() < 2, "At most one origin-file data tag must be provided for an edge.");
+          checkParsable(
+              originFileTags.size() < 2,
+              "At most one origin-file data tag must be provided for an edge.");
 
           Set<String> offsetTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.OFFSET);
-          Preconditions.checkArgument(offsetTags.size() <  2, "At most one offset data tag must be provided for each edge.");
+          checkParsable(
+              offsetTags.size() < 2, "At most one offset data tag must be provided for each edge.");
 
           int offset = -1;
           if (offsetTags.size() > 0) {
@@ -406,7 +464,8 @@ public class AutomatonGraphmlParser {
 
         if (matchSourcecodeData) {
           Set<String> sourceCodeDataTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.SOURCECODE);
-          Preconditions.checkArgument(sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided.");
+          checkParsable(
+              sourceCodeDataTags.size() < 2, "At most one source-code data tag must be provided.");
           final String sourceCode;
           if (sourceCodeDataTags.isEmpty()) {
             sourceCode = "";
@@ -419,7 +478,7 @@ public class AutomatonGraphmlParser {
 
         // If the triggers do not apply, none of the above transitions is taken
         Collection<AutomatonTransition> nonMatchingTransitions = new ArrayList<>();
-        if (strictMatching) {
+        if (graphType == GraphType.ERROR_WITNESS && strictMatching) {
           // If we are doing strict matching, anything that does not match must go to the sink
           nonMatchingTransitions.add(createAutomatonSinkTransition(
               not(conjunctedTriggers),
@@ -430,20 +489,24 @@ public class AutomatonGraphmlParser {
         } else {
           // If we are more lenient, we just wait in the source state until the witness checker catches up with the witness,
           // i.e. until some CFA edge matches the triggers
-          nonMatchingTransitions.add(createAutomatonTransition(
-              not(conjunctedTriggers),
-              assertions,
-              Collections.<CStatement>emptyList(),
-              Collections.<AutomatonAction>emptyList(),
-              sourceStateId,
-              leadsToViolationNode));
+          nonMatchingTransitions.add(
+              createAutomatonTransition(
+                  not(conjunctedTriggers),
+                  assertions,
+                  Collections.<CStatement>emptyList(),
+                  ExpressionTree.TRUE,
+                  Collections.<AutomatonAction>emptyList(),
+                  sourceStateId,
+                  leadsToViolationNode));
         }
 
         if (matchAssumeCase) {
           Set<String> assumeCaseTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.CONTROLCASE);
 
           if (assumeCaseTags.size() > 0) {
-            Preconditions.checkArgument(assumeCaseTags.size() <  2, "At most one assume case tag must be provided for each edge.");
+            checkParsable(
+                assumeCaseTags.size() < 2,
+                "At most one assume case tag must be provided for each edge.");
             String assumeCaseStr = assumeCaseTags.iterator().next();
             final boolean assumeCase;
             if (assumeCaseStr.equalsIgnoreCase(AssumeCase.THEN.toString())) {
@@ -451,7 +514,7 @@ public class AutomatonGraphmlParser {
             } else if (assumeCaseStr.equalsIgnoreCase(AssumeCase.ELSE.toString())) {
               assumeCase = false;
             } else {
-              throw new IllegalArgumentException("Unrecognized assume case: " + assumeCaseStr);
+              throw new WitnessParseException("Unrecognized assume case: " + assumeCaseStr);
             }
 
             AutomatonBoolExpr assumeCaseMatchingExpr =
@@ -464,13 +527,15 @@ public class AutomatonGraphmlParser {
         Collection<AutomatonTransition> matchingTransitions = new ArrayList<>();
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
-        matchingTransitions.add(createAutomatonTransition(
-            conjunctedTriggers,
-            assertions,
-            assumptions,
-            actions,
-            targetStateId,
-            leadsToViolationNode));
+        matchingTransitions.add(
+            createAutomatonTransition(
+                conjunctedTriggers,
+                assertions,
+                assumptions,
+                candidateInvariants,
+                actions,
+                targetStateId,
+                leadsToViolationNode));
 
         // Multiple CFA edges in a sequence might match the triggers,
         // so in that case we ALSO need a transition back to the source state
@@ -478,14 +543,17 @@ public class AutomatonGraphmlParser {
           Element sourceNode = docDat.getNodeWithId(sourceStateId);
           Set<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceNode);
           boolean sourceIsViolationNode = sourceNodeFlags.contains(NodeFlag.ISVIOLATION);
-          matchingTransitions.add(createAutomatonTransition(
-              and(conjunctedTriggers,
-                  new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
-              assertions,
-              Collections.<CStatement>emptyList(),
-              Collections.<AutomatonAction>emptyList(),
-              sourceStateId,
-              sourceIsViolationNode));
+          matchingTransitions.add(
+              createAutomatonTransition(
+                  and(
+                      conjunctedTriggers,
+                      new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
+                  assertions,
+                  Collections.<CStatement>emptyList(),
+                  ExpressionTree.TRUE,
+                  Collections.<AutomatonAction>emptyList(),
+                  sourceStateId,
+                  sourceIsViolationNode));
         }
         transitions.addAll(matchingTransitions);
         transitions.addAll(nonMatchingTransitions);
@@ -510,13 +578,14 @@ public class AutomatonGraphmlParser {
                   AutomatonBoolExpr.TRUE,
                   assertions,
                   Collections.<CStatement>emptyList(),
+                  ExpressionTree.TRUE,
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true));
         }
 
         if (nodeFlags.contains(NodeFlag.ISENTRY)) {
-          Preconditions.checkArgument(initialStateName == null, "Only one entrynode is supported!");
+          checkParsable(initialStateName == null, "Only one entrynode is supported!");
           initialStateName = stateId;
         }
 
@@ -529,18 +598,26 @@ public class AutomatonGraphmlParser {
 
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every graph needs a specified entry node!");
-      AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
-      Integer initialStateDistance = distances.get(initialStateName);
-      if (initialStateDistance != null) {
-        distanceVariable.setValue(-distances.get(initialStateName));
+      Map<String, AutomatonVariable> automatonVariables;
+      if (graphType == GraphType.ERROR_WITNESS) {
+        AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
+        Integer initialStateDistance = distances.get(initialStateName);
+        if (initialStateDistance != null) {
+          distanceVariable.setValue(-distances.get(initialStateName));
+        } else {
+          logger.log(
+              Level.WARNING,
+              String.format(
+                  "There is no path from the entry state %s"
+                      + " to a state explicitly marked as violation state."
+                      + " Distance-to-violation waitlist order will not work"
+                      + " and witness validation may fail to confirm this witness.",
+                  initialStateName));
+        }
+        automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       } else {
-        logger.log(Level.WARNING,
-            String.format("There is no path from the entry state %s"
-                + " to a state explicitly marked as violation state."
-                + " Distance-to-violation waitlist order will not work"
-                + " and witness validation may fail to confirm this witness.", initialStateName));
+        automatonVariables = Collections.emptyMap();
       }
-      Map<String, AutomatonVariable> automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
       result.add(automaton);
@@ -564,6 +641,180 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  private Scope determineScope(Set<String> pScopes, Deque<String> pFunctionStack) {
+    checkParsable(pScopes.size() <= 1, "At most one scope must be provided for a statement.");
+    Scope result = this.scope;
+    if (result instanceof CProgramScope && (!pScopes.isEmpty() || !pFunctionStack.isEmpty())) {
+      final String functionName;
+      if (!pScopes.isEmpty()) {
+        functionName = pScopes.iterator().next();
+      } else {
+        functionName = pFunctionStack.peek();
+      }
+      result = ((CProgramScope) result).createFunctionScope(functionName);
+    }
+    return result;
+  }
+
+  private Collection<CStatement> parseStatements(
+      Set<String> pStatements, Scope pScope, CParser pCParser)
+      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+    if (!pStatements.isEmpty()) {
+
+      Set<CStatement> result = new HashSet<>();
+      for (String assumeCode : pStatements) {
+        Collection<CStatement> statements =
+            removeDuplicates(
+                adjustCharAssignments(
+                    AutomatonASTComparator.generateSourceASTOfBlock(
+                        tryFixArrayInitializers(assumeCode), pCParser, pScope)));
+        result.addAll(statements);
+      }
+      return result;
+    }
+    return Collections.emptySet();
+  }
+
+  private ExpressionTree parseStatementsAsExpressionTree(
+      Set<String> pStatements, Scope pScope, CParser pCParser)
+      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+    if (!pStatements.isEmpty()) {
+
+      Set<ExpressionTree> result = new HashSet<>();
+      for (String assumeCode : pStatements) {
+        ExpressionTree expressionTree = parseStatement(assumeCode, pScope, pCParser);
+        result.add(expressionTree);
+      }
+      return And.of(result);
+    }
+    return ExpressionTree.TRUE;
+  }
+
+  private ExpressionTree parseStatement(String pAssumeCode, Scope pScope, CParser pCParser)
+      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+    // Try the old method first; it works for simple expressions
+    // and also supports assignment statements and multiple statements easily
+    Collection<CStatement> statements =
+        removeDuplicates(
+            adjustCharAssignments(
+                AutomatonASTComparator.generateSourceASTOfBlock(
+                    tryFixArrayInitializers(pAssumeCode), pCParser, pScope)));
+    // Check that no expressions were split
+    if (!FluentIterable.from(statements)
+        .anyMatch(
+            new Predicate<CStatement>() {
+
+              @Override
+              public boolean apply(CStatement statement) {
+                return statement.toString().toUpperCase().contains("__CPACHECKER_TMP");
+              }
+            })) {
+      return And.of(FluentIterable.from(statements).transform(fromStatement));
+    }
+
+    // For complex expressions, assume we are dealing with expression statements
+    ExpressionTree result = ExpressionTree.TRUE;
+    try {
+      result = parseExpression(pAssumeCode, pScope, pCParser);
+    } catch (CParserException e) {
+      // Try splitting on ';' to support legacy code:
+      Splitter semicolonSplitter = Splitter.on(';').omitEmptyStrings().trimResults();
+      List<String> clausesStrings = semicolonSplitter.splitToList(pAssumeCode);
+      if (clausesStrings.isEmpty()) {
+        throw e;
+      }
+      List<ExpressionTree> clauses = new ArrayList<>(clausesStrings.size());
+      for (String statement : clausesStrings) {
+        clauses.add(parseExpression(statement, pScope, pCParser));
+      }
+      result = And.of(clauses);
+    }
+    return result;
+  }
+
+  private ExpressionTree parseExpression(String pAssumeCode, Scope pScope, CParser pCParser)
+      throws CParserException, InvalidConfigurationException {
+    String assumeCode = pAssumeCode.trim();
+    while (assumeCode.endsWith(";")) {
+      assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();
+    }
+    assumeCode =
+        String.format("int test() { if (%s) { return 1; } else { return 0; } ; }", pAssumeCode);
+
+    final ParseResult parseResult;
+    try {
+      parseResult = pCParser.parseString("", assumeCode, new CSourceOriginMapping(), pScope);
+    } catch (ParserException e) {
+      Throwables.propagateIfInstanceOf(e, CParserException.class);
+      throw new AssertionError();
+    }
+    FunctionEntryNode entryNode = parseResult.getFunctions().values().iterator().next();
+
+    Collection<List<CFAEdge>> paths = new ArrayList<>();
+    Deque<List<CFAEdge>> pathStack = new ArrayDeque<>();
+    Iterables.addAll(
+        pathStack,
+        CFAUtils.leavingEdges(entryNode)
+            .transform(
+                new Function<CFAEdge, List<CFAEdge>>() {
+
+                  @Override
+                  public List<CFAEdge> apply(CFAEdge pEdge) {
+                    return ImmutableList.of(pEdge);
+                  }
+                }));
+    while (!pathStack.isEmpty()) {
+      List<CFAEdge> currentPath = pathStack.pop();
+      CFANode currentEndNode = currentPath.get(currentPath.size() - 1).getSuccessor();
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentEndNode)) {
+        if (currentPath.contains(leavingEdge)) {
+          logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
+          return ExpressionTree.TRUE;
+        } else if (leavingEdge instanceof AReturnStatementEdge) {
+          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
+          Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+          if (!optExpression.isPresent()) {
+            logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
+            return ExpressionTree.TRUE;
+          }
+          AExpression expression = optExpression.get();
+          if (!(expression instanceof AIntegerLiteralExpression)) {
+            logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
+            return ExpressionTree.TRUE;
+          }
+          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+          if (!literal.getValue().equals(BigInteger.ZERO)) {
+            paths.add(currentPath);
+          }
+        } else {
+          List<CFAEdge> newPath =
+              ImmutableList.<CFAEdge>builder().addAll(currentPath).add(leavingEdge).build();
+          pathStack.push(newPath);
+        }
+      }
+    }
+
+    Collection<ExpressionTree> pathsAsExpressions = new ArrayList<>(paths.size());
+    for (List<CFAEdge> path : paths) {
+      Collection<ExpressionTree> leaves = new ArrayList<>(path.size() - 1);
+      for (CFAEdge edge : path) {
+        if (edge instanceof BlankEdge) {
+          continue;
+        }
+        if (edge instanceof AssumeEdge) {
+          AssumeEdge assumeEdge = (AssumeEdge) edge;
+          AExpression expression = assumeEdge.getExpression();
+          leaves.add(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+        } else {
+          logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
+          return ExpressionTree.TRUE;
+        }
+      }
+      pathsAsExpressions.add(And.of(leaves));
+    }
+    return Or.of(pathsAsExpressions);
+  }
+
   private static AutomatonBoolExpr createViolationAssertion() {
     return and(
         not(new AutomatonBoolExpr.ALLCPAQuery(AutomatonState.INTERNAL_STATE_IS_TARGET_PROPERTY))
@@ -574,6 +825,7 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
       List<CStatement> pAssumptions,
+      ExpressionTree pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode) {
@@ -583,18 +835,10 @@ public class AutomatonGraphmlParser {
     if (pLeadsToViolationNode) {
       List<AutomatonBoolExpr> assertions = ImmutableList.<AutomatonBoolExpr>builder().addAll(pAssertions).add(createViolationAssertion()).build();
       return new ViolationCopyingAutomatonTransition(
-              pTriggers,
-              assertions,
-              pAssumptions,
-              pActions,
-              pTargetStateId);
+          pTriggers, assertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);
     }
     return new AutomatonTransition(
-            pTriggers,
-            pAssertions,
-            pAssumptions,
-            pActions,
-            pTargetStateId);
+        pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);
   }
 
   private static AutomatonTransition createAutomatonSinkTransition(
@@ -622,9 +866,10 @@ public class AutomatonGraphmlParser {
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
         List<CStatement> pAssumptions,
+        ExpressionTree pCandidateInvariants,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
-      super(pTriggers, pAssertions, pAssumptions, pActions, pTargetStateId);
+      super(pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);
     }
 
     private ViolationCopyingAutomatonTransition(
@@ -843,7 +1088,9 @@ public class AutomatonGraphmlParser {
           NodeList defaultTags = keyDef.getElementsByTagName(GraphMlTag.DEFAULT.toString());
           result = Optional.absent();
           if (defaultTags.getLength() > 0) {
-            Preconditions.checkArgument(defaultTags.getLength() == 1);
+            checkParsable(
+                defaultTags.getLength() == 1,
+                "There should not be multiple default tags for one key.");
             result = Optional.of(defaultTags.item(0).getTextContent());
           }
           defaultDataValues.put(dataKey.id, result);
@@ -950,6 +1197,22 @@ public class AutomatonGraphmlParser {
       result = and(result, e);
     }
     return result;
+  }
+
+  private static void checkParsable(boolean pParsable, String pMessage) {
+    if (!pParsable) {
+      throw new WitnessParseException(pMessage);
+    }
+  }
+
+  public static class WitnessParseException extends RuntimeException {
+
+    private static final long serialVersionUID = -6357416712866877118L;
+
+    public WitnessParseException(String pMessage) {
+      super(pMessage);
+    }
+
   }
 
 }
