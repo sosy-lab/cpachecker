@@ -117,7 +117,7 @@ public class CEXExporter {
   @Option(secure=true, name="graphml",
       description="export error path to file as GraphML automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAutomatonGraphmlFile = null;
+  private PathTemplate errorPathAutomatonGraphmlFile = PathTemplate.ofFormatString("ErrorPath.%d.graphml");
 
   @Option(secure=true, name="codeStyle",
           description="exports either CMBC format or a concrete path program")

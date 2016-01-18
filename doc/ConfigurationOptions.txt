@@ -688,7 +688,7 @@ cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
 
 # export error path to file as GraphML automaton
-cpa.arg.errorPath.graphml = no default value
+cpa.arg.errorPath.graphml = "ErrorPath.%d.graphml"
 
 # export error path as JSON file
 cpa.arg.errorPath.json = "ErrorPath.%d.json"
