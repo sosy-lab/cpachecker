@@ -65,10 +65,13 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
     }
     String expressionCode =
         ((CExpression) expression).accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+    if (!expressionCode.startsWith("(") || !expressionCode.endsWith(")")) {
+      expressionCode = "(" + expressionCode + ")";
+    }
     if (pLeafExpression.assumeTruth()) {
       return expressionCode;
     }
-    return "!(" + expressionCode + ")";
+    return "!" + expressionCode;
   }
 
   @Override

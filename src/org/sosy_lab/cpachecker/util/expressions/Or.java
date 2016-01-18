@@ -33,7 +33,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public class Or implements ExpressionTree, Iterable<ExpressionTree> {
+public class Or extends AbstractExpressionTree implements Iterable<ExpressionTree> {
 
   private List<ExpressionTree> operands;
 
@@ -69,11 +69,6 @@ public class Or implements ExpressionTree, Iterable<ExpressionTree> {
       return operands.equals(((Or) pObj).operands);
     }
     return false;
-  }
-
-  @Override
-  public String toString() {
-    return ToCodeVisitor.INSTANCE.visit(this);
   }
 
   public static ExpressionTree of(Iterable<? extends ExpressionTree> pOperands) {

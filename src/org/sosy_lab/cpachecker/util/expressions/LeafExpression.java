@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 import com.google.common.base.Function;
 
-public class LeafExpression implements ExpressionTree {
+public class LeafExpression extends AbstractExpressionTree {
 
   public static Function<AExpressionStatement, ExpressionTree> FROM_EXPRESSION_STATEMENT =
       new Function<AExpressionStatement, ExpressionTree>() {
@@ -103,11 +103,6 @@ public class LeafExpression implements ExpressionTree {
       return assumeTruth == other.assumeTruth && expression.equals(other.expression);
     }
     return false;
-  }
-
-  @Override
-  public String toString() {
-    return ToCodeVisitor.INSTANCE.visit(this);
   }
 
   public static ExpressionTree of(AExpression pExpression) {

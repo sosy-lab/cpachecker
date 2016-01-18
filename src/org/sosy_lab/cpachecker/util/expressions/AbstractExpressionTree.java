@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,27 +24,11 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 
+abstract class AbstractExpressionTree implements ExpressionTree {
 
-public interface ExpressionTree {
-
-  public static final ExpressionTree TRUE =
-      new AbstractExpressionTree() {
-
-        @Override
-        public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
-          return pVisitor.visitTrue();
-        }
-      };
-
-  public static final ExpressionTree FALSE =
-      new AbstractExpressionTree() {
-
-        @Override
-        public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
-          return pVisitor.visitFalse();
-        }
-      };
-
-  <T> T accept(ExpressionTreeVisitor<T> pVisitor);
+  @Override
+  public String toString() {
+    return accept(ToCodeVisitor.INSTANCE);
+  }
 
 }
