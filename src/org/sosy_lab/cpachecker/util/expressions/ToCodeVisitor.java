@@ -45,16 +45,28 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
 
   };
 
+  public static final Function<String, String> WRAP_IN_PARENTHESES = new Function<String, String>() {
+
+    @Override
+    public String apply(String pCode) {
+      if (pCode.startsWith("(") && pCode.endsWith(")")) {
+        return pCode;
+      }
+      return "(" + pCode + ")";
+    }
+
+  };
+
   @Override
   public String visit(And pAnd) {
     assert pAnd.iterator().hasNext();
-    return "(" + Joiner.on(" && ").join(FluentIterable.from(pAnd).transform(TO_CODE)) + ")";
+    return Joiner.on(" && ").join(FluentIterable.from(pAnd).transform(TO_CODE).transform(WRAP_IN_PARENTHESES));
   }
 
   @Override
   public String visit(Or pOr) {
     assert pOr.iterator().hasNext();
-    return "(" + Joiner.on(" || ").join(FluentIterable.from(pOr).transform(TO_CODE)) + ")";
+    return Joiner.on(" || ").join(FluentIterable.from(pOr).transform(TO_CODE).transform(WRAP_IN_PARENTHESES));
   }
 
   @Override
@@ -65,13 +77,10 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
     }
     String expressionCode =
         ((CExpression) expression).accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-    if (!expressionCode.startsWith("(") || !expressionCode.endsWith(")")) {
-      expressionCode = "(" + expressionCode + ")";
-    }
     if (pLeafExpression.assumeTruth()) {
       return expressionCode;
     }
-    return "!" + expressionCode;
+    return "!" + WRAP_IN_PARENTHESES.apply(expressionCode);
   }
 
   @Override
