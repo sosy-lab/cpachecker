@@ -63,6 +63,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -73,7 +74,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -168,7 +168,7 @@ class EclipseCParser implements CParser {
     return buildCFA(
         astUnits,
         new FixedPathSourceOriginMapping(pSourceOriginMapping, fileNameMapping),
-        Optional.<Scope>absent());
+        CProgramScope.empty());
   }
 
   @Override
@@ -211,7 +211,7 @@ class EclipseCParser implements CParser {
     return buildCFA(
         ImmutableList.of(unit),
         new FixedPathSourceOriginMapping(sourceOriginMapping, fileNameMapping),
-        Optional.<Scope>absent());
+        CProgramScope.empty());
   }
 
   /**
@@ -222,7 +222,7 @@ class EclipseCParser implements CParser {
       String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException, InvalidConfigurationException {
 
-    return parseString(pFileName, pCode, sourceOriginMapping, Optional.<Scope>absent());
+    return parseString(pFileName, pCode, sourceOriginMapping, CProgramScope.empty());
   }
 
   /**
@@ -230,10 +230,7 @@ class EclipseCParser implements CParser {
    */
   @Override
   public ParseResult parseString(
-      String pFileName,
-      String pCode,
-      CSourceOriginMapping sourceOriginMapping,
-      Optional<Scope> pScope)
+      String pFileName, String pCode, CSourceOriginMapping sourceOriginMapping, Scope pScope)
       throws CParserException, InvalidConfigurationException {
 
     String fileName = fixPath(pFileName);
@@ -370,9 +367,7 @@ class EclipseCParser implements CParser {
    * @param asts a List of Pairs of translation units and the appropriate prefix for static variables
    */
   private ParseResult buildCFA(
-      List<IASTTranslationUnit> asts,
-      CSourceOriginMapping sourceOriginMapping,
-      Optional<Scope> pScope)
+      List<IASTTranslationUnit> asts, CSourceOriginMapping sourceOriginMapping, Scope pScope)
       throws CParserException, InvalidConfigurationException {
 
     checkArgument(!asts.isEmpty());

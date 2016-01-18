@@ -34,8 +34,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.base.Optional;
-
 /**
  * For all languages, where parsing of single or blocks of statements is not yet implemented,
  * use this dummy scope when parsing an automaton {@link AutomatonParser}.
@@ -59,15 +57,12 @@ public class DummyParser implements CParser {
   @Override
   public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping)
       throws ParserException, InvalidConfigurationException {
-    return parseString(pFilename, pCode, pSourceOriginMapping, Optional.<Scope>absent());
+    return parseString(pFilename, pCode, pSourceOriginMapping, CProgramScope.empty());
   }
 
   @Override
   public ParseResult parseString(
-      String pFileName,
-      String pCode,
-      CSourceOriginMapping pSourceOriginMapping,
-      Optional<Scope> pScope)
+      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InvalidConfigurationException {
     throw new UnsupportedOperationException();
   }

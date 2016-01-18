@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -59,7 +60,7 @@ import com.google.common.collect.ImmutableMap;
  */
 class FunctionScope extends AbstractScope {
 
-  private final Optional<Scope> artificialScope;
+  private final Scope artificialScope;
   private final Map<String, CFunctionDeclaration> localFunctions = new HashMap<>();
   private final Map<String, CFunctionDeclaration> globalFunctions;
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
@@ -81,7 +82,7 @@ class FunctionScope extends AbstractScope {
       ImmutableMap<String, CTypeDefDeclaration> pTypedefs,
       ImmutableMap<String, CSimpleDeclaration> pGlobalVars,
       String currentFile,
-      Optional<Scope> pArtificialScope) {
+      Scope pArtificialScope) {
     super(currentFile);
 
     globalFunctions = pFunctions;
@@ -105,7 +106,7 @@ class FunctionScope extends AbstractScope {
         ImmutableMap.<String, CTypeDefDeclaration>of(),
         ImmutableMap.<String, CSimpleDeclaration>of(),
         "",
-        Optional.<Scope>absent());
+        CProgramScope.empty());
   }
 
   @Override
@@ -151,18 +152,18 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public boolean variableNameInUse(String name) {
-      checkNotNull(name);
+    checkNotNull(name);
 
-      Iterator<Map<String, CSimpleDeclaration>> it = varsListWithNewNames.descendingIterator();
-      while (it.hasNext()) {
-        Map<String, CSimpleDeclaration> vars = it.next();
+    Iterator<Map<String, CSimpleDeclaration>> it = varsListWithNewNames.descendingIterator();
+    while (it.hasNext()) {
+      Map<String, CSimpleDeclaration> vars = it.next();
 
-        if (vars.get(name) != null) {
-          return true;
-        }
+      if (vars.get(name) != null) {
+        return true;
       }
-    return artificialScope.isPresent() && artificialScope.get().variableNameInUse(name);
     }
+    return artificialScope.variableNameInUse(name);
+  }
 
   @Override
   public CSimpleDeclaration lookupVariable(String name) {
@@ -178,11 +179,7 @@ class FunctionScope extends AbstractScope {
       }
     }
 
-    if (artificialScope.isPresent()) {
-      return artificialScope.get().lookupVariable(name);
-    }
-
-    return null;
+    return artificialScope.lookupVariable(name);
   }
 
   @Override
@@ -195,11 +192,12 @@ class FunctionScope extends AbstractScope {
       return returnDecl;
     }
 
-    CFunctionDeclaration result = globalFunctions.get(name);
-    if (result == null && artificialScope.isPresent()) {
-      result = artificialScope.get().lookupFunction(name);
+    returnDecl = globalFunctions.get(name);
+    if (returnDecl != null) {
+      return returnDecl;
     }
-    return result;
+
+    return artificialScope.lookupFunction(name);
   }
 
   @Override
@@ -221,11 +219,7 @@ class FunctionScope extends AbstractScope {
       }
     }
 
-    if (artificialScope.isPresent()) {
-      return artificialScope.get().lookupType(name);
-    }
-
-    return null;
+    return artificialScope.lookupType(name);
   }
 
   @Override
@@ -237,17 +231,13 @@ class FunctionScope extends AbstractScope {
       return declaration.getType();
     }
 
-    if (artificialScope.isPresent()) {
-      return artificialScope.get().lookupTypedef(name);
-    }
-
-    return null;
+    return artificialScope.lookupTypedef(name);
   }
 
   @Override
   public String createScopedNameOf(String pName) {
-    if (artificialScope.isPresent()) {
-      return artificialScope.get().createScopedNameOf(pName);
+    if (!artificialScope.isGlobalScope()) {
+      return artificialScope.createScopedNameOf(pName);
     }
     return createQualifiedName(getCurrentFunctionName(), pName);
   }

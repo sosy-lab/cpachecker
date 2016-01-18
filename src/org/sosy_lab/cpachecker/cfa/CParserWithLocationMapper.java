@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 /**
@@ -202,15 +201,12 @@ public class CParserWithLocationMapper implements CParser {
 
   @Override
   public ParseResult parseString(String pFilename, String pCode, CSourceOriginMapping sourceOriginMapping) throws ParserException, InvalidConfigurationException {
-    return parseString(pFilename, pCode, sourceOriginMapping, Optional.<Scope>absent());
+    return parseString(pFilename, pCode, sourceOriginMapping, CProgramScope.empty());
   }
 
   @Override
   public ParseResult parseString(
-      String pFilename,
-      String pCode,
-      CSourceOriginMapping pSourceOriginMapping,
-      Optional<Scope> pScope)
+      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InvalidConfigurationException {
     String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
 

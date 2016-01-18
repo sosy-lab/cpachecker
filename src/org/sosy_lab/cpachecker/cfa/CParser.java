@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-import com.google.common.base.Optional;
-
 /**
  * Abstraction of a C parser that creates CFAs from C code.
  *
@@ -111,10 +109,7 @@ public interface CParser extends Parser {
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
   ParseResult parseString(
-      String pFileName,
-      String pCode,
-      CSourceOriginMapping pSourceOriginMapping,
-      Optional<Scope> pScope)
+      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InvalidConfigurationException;
 
   /**

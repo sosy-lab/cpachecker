@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.cdt.core.dom.ast.IType;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -48,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -59,7 +59,7 @@ import com.google.common.collect.ImmutableMap;
  */
 class GlobalScope extends AbstractScope {
 
-  private final Optional<Scope> fallbackScope;
+  private final Scope fallbackScope;
   private final Map<String, CSimpleDeclaration> globalVars;
   private final Map<String, CSimpleDeclaration> globalVarsWithNewNames;
   private final Map<String, CFunctionDeclaration> functions;
@@ -75,7 +75,7 @@ class GlobalScope extends AbstractScope {
       Map<String, CTypeDefDeclaration> typedefs,
       ProgramDeclarations programDeclarations,
       String currentFile,
-      Optional<Scope> pFallbackScope) {
+      Scope pFallbackScope) {
     super(currentFile);
     this.globalVars = globalVars;
     this.globalVarsWithNewNames = globalVarsWithNewNames;
@@ -95,7 +95,7 @@ class GlobalScope extends AbstractScope {
         new HashMap<String, CTypeDefDeclaration>(),
         new ProgramDeclarations(),
         "",
-        Optional.<Scope>absent());
+        CProgramScope.empty());
   }
 
   @Override
@@ -107,14 +107,14 @@ class GlobalScope extends AbstractScope {
   public boolean variableNameInUse(String name) {
     return globalVarsWithNewNames.containsKey(checkNotNull(name))
         || programDeclarations.variableNameInUse(name)
-        || fallbackScope.isPresent() && fallbackScope.get().variableNameInUse(name);
+        || fallbackScope.variableNameInUse(name);
   }
 
   @Override
   public CSimpleDeclaration lookupVariable(String name) {
     CSimpleDeclaration result = globalVars.get(checkNotNull(name));
-    if (result == null && fallbackScope.isPresent()) {
-      result = fallbackScope.get().lookupVariable(name);
+    if (result == null) {
+      result = fallbackScope.lookupVariable(name);
     }
     return result;
   }
@@ -122,8 +122,8 @@ class GlobalScope extends AbstractScope {
   @Override
   public CFunctionDeclaration lookupFunction(String name) {
     CFunctionDeclaration result = functions.get(checkNotNull(name));
-    if (result == null && fallbackScope.isPresent()) {
-      result = fallbackScope.get().lookupFunction(name);
+    if (result == null) {
+      result = fallbackScope.lookupFunction(name);
     }
     return result;
   }
@@ -156,11 +156,7 @@ class GlobalScope extends AbstractScope {
       }
     }
 
-    if (fallbackScope.isPresent()) {
-      return fallbackScope.get().lookupType(name);
-    }
-
-    return null;
+    return fallbackScope.lookupType(name);
   }
 
   @Override
@@ -177,11 +173,7 @@ class GlobalScope extends AbstractScope {
       }
     }
 
-    if (fallbackScope.isPresent()) {
-      return fallbackScope.get().lookupTypedef(name);
-    }
-
-    return null;
+    return fallbackScope.lookupTypedef(name);
   }
 
   public CTypeDefDeclaration lookupTypedefForTypename(final String name) {

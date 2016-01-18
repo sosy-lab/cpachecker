@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -82,7 +81,7 @@ import com.google.common.collect.TreeMultimap;
  * Builder to traverse AST.
  *
  * After instantiating this class,
- * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String, Optional)}
+ * call {@link #analyzeTranslationUnit(IASTTranslationUnit, String, Scope)}
  * once for each translation unit that should be used
  * and finally call {@link #createCFA()}.
  */
@@ -103,7 +102,7 @@ class CFABuilder extends ASTVisitor {
 
 
   private GlobalScope fileScope = new GlobalScope();
-  private Optional<Scope> artificialScope;
+  private Scope artificialScope;
   private ProgramDeclarations programDeclarations = new ProgramDeclarations();
   private ASTConverter astCreator;
   private final Function<String, String> niceFileNameFunction;
@@ -138,10 +137,10 @@ class CFABuilder extends ASTVisitor {
   }
 
   public void analyzeTranslationUnit(
-      IASTTranslationUnit ast, String staticVariablePrefix, Optional<Scope> pScope)
+      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope)
       throws InvalidConfigurationException {
     sideAssignmentStack = new Sideassignments();
-    artificialScope = pScope;
+    artificialScope = pFallbackScope;
     fileScope =
         new GlobalScope(
             new HashMap<String, CSimpleDeclaration>(),
