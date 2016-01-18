@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -59,7 +60,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -410,6 +413,17 @@ public class AutomatonGraphmlCommon {
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
+    if (edge instanceof MultiEdge) {
+      return FluentIterable.from((MultiEdge) edge)
+          .allMatch(
+              new Predicate<CFAEdge>() {
+
+                @Override
+                public boolean apply(CFAEdge pEdge) {
+                  return handleAsEpsilonEdge(pEdge);
+                }
+              });
+    }
     if (edge instanceof BlankEdge) {
       return !(edge.getSuccessor() instanceof FunctionExitNode);
     } else if (edge instanceof CFunctionReturnEdge) {
