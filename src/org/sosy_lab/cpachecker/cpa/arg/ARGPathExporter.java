@@ -382,10 +382,10 @@ public class ARGPathExporter {
 
           if (cfaEdgeWithAssignments != null) {
 
-            List<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
+            Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
             Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
                 new AssignsParameterOfOtherFunction(pEdge);
-            List<AExpressionStatement> functionValidAssignments =
+            Collection<AExpressionStatement> functionValidAssignments =
                 FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
 
             if (functionValidAssignments.size() < assignments.size()) {
