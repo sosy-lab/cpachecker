@@ -497,7 +497,7 @@ public class AutomatonGraphmlParser {
                   ExpressionTree.TRUE,
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
-                  leadsToViolationNode));
+                  violationStates.contains(sourceStateId)));
         }
 
         if (matchAssumeCase) {
