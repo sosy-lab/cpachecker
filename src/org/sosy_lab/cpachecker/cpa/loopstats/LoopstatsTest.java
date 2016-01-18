@@ -108,9 +108,6 @@ public class LoopstatsTest {
     stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
-  // TODO Loopstats CPA seems not to be capable of do-while loops. We get an exception with the
-  // preconditions on the leaving edges check in LoopstatsTransferRelation.
-  /*
   @Test
   public void testDoWhileUnrollingTrue() throws Exception {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
@@ -127,7 +124,7 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(7);
+    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(0);
     stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
@@ -147,10 +144,10 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(2);
+    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(0);
     stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
-  */
+
 
   @Test
   public void testForUnrollingTrue() throws Exception {
