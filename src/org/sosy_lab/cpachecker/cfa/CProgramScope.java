@@ -291,7 +291,7 @@ public class CProgramScope implements Scope {
 
   @Override
   public boolean isGlobalScope() {
-    return functionName != null;
+    return functionName == null;
   }
 
   @Override
