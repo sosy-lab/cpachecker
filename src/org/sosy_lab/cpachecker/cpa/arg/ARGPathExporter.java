@@ -459,7 +459,7 @@ public class ARGPathExporter {
               code.add(
                   And.of(
                       FluentIterable.from(assignments)
-                          .transform(LeafExpression.FROM_STATEMENT)
+                          .transform(LeafExpression.FROM_EXPRESSION_STATEMENT)
                           .toList()));
             }
           }
@@ -485,13 +485,12 @@ public class ARGPathExporter {
             for (AExpressionStatement expressionStatement : assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState).getExpStmts()) {
               stateInvariantParts.add(LeafExpression.of(expressionStatement.getExpression()));
             }
-            if (!stateInvariantParts.isEmpty()) {
-              stateInvariants.add(And.of(stateInvariantParts));
-            }
+            stateInvariants.add(And.of(stateInvariantParts));
           }
         }
-        if (!stateInvariants.isEmpty()) {
-          result.put(KeyDef.INVARIANT, Or.of(stateInvariants).accept(ToCodeVisitor.INSTANCE));
+        ExpressionTree invariant = Or.of(stateInvariants);
+        if (!invariant.equals(ExpressionTree.TRUE)) {
+          result.put(KeyDef.INVARIANT, invariant.accept(ToCodeVisitor.INSTANCE));
           if (isFunctionScope) {
             result.put(KeyDef.INVARIANTSCOPE, functionName);
           }

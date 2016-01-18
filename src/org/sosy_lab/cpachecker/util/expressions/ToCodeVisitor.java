@@ -63,7 +63,22 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
     if (!(expression instanceof CExpression)) {
       throw new AssertionError("Unsupported expression.");
     }
-    return ((CExpression) expression).accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+    String expressionCode =
+        ((CExpression) expression).accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+    if (pLeafExpression.assumeTruth()) {
+      return expressionCode;
+    }
+    return "!(" + expressionCode + ")";
+  }
+
+  @Override
+  public String visitTrue() {
+    return "1";
+  }
+
+  @Override
+  public String visitFalse() {
+    return "0";
   }
 
 }

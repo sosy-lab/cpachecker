@@ -24,7 +24,26 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 
-public interface ExpressionTree extends Iterable<ExpressionTree> {
+
+public interface ExpressionTree {
+
+  public static final ExpressionTree TRUE =
+      new ExpressionTree() {
+
+        @Override
+        public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+          return pVisitor.visitTrue();
+        }
+      };
+
+  public static final ExpressionTree FALSE =
+      new ExpressionTree() {
+
+        @Override
+        public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+          return pVisitor.visitFalse();
+        }
+      };
 
   <T> T accept(ExpressionTreeVisitor<T> pVisitor);
 
