@@ -84,7 +84,7 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(7);
+    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
     stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
@@ -104,8 +104,9 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(2);
-    stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+    // Actual results might be smaller due to expected result FALSE (if the analysis terminates
+    // before unrolling all loops)
+    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
   @Test
@@ -144,10 +145,10 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(0);
-    stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+    // Actual results might be smaller due to expected result FALSE (if the analysis terminates
+    // before unrolling all loops)
+    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
-
 
   @Test
   public void testForUnrollingTrue() throws Exception {
@@ -165,7 +166,7 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(7);
+    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
     stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
@@ -185,8 +186,9 @@ public class LoopstatsTest {
     stat.assertThatString("Loop with max. unrollings").contains("line 10");
     stat.assertThatNumber("Number of loops").isEqualTo(2);
     stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(2);
-    stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+    // Actual results might be smaller due to expected result FALSE (if the analysis terminates
+    // before unrolling all loops)
+    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
   private TestResults runWithSetup(final String pSpecFile, final String pProgramFile)
