@@ -39,8 +39,8 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
   public static final Function<ExpressionTree, String> TO_CODE = new Function<ExpressionTree, String>() {
 
     @Override
-    public String apply(ExpressionTree pArg0) {
-      return pArg0.accept(INSTANCE);
+    public String apply(ExpressionTree pExpressionTree) {
+      return pExpressionTree.accept(INSTANCE);
     }
 
   };
@@ -49,10 +49,43 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
 
     @Override
     public String apply(String pCode) {
-      if (pCode.startsWith("(") && pCode.endsWith(")")) {
-        return pCode;
-      }
       return "(" + pCode + ")";
+    }
+
+  };
+
+  private static final Function<ExpressionTree, String> TO_PARENTHESIZED_CODE = new Function<ExpressionTree, String>() {
+
+    @Override
+    public String apply(ExpressionTree pExpressionTree) {
+      return pExpressionTree.accept(new ExpressionTreeVisitor<String>() {
+
+        @Override
+        public String visit(And pAnd) {
+          return WRAP_IN_PARENTHESES.apply(pAnd.accept(INSTANCE));
+        }
+
+        @Override
+        public String visit(Or pOr) {
+          return WRAP_IN_PARENTHESES.apply(pOr.accept(INSTANCE));
+        }
+
+        @Override
+        public String visit(LeafExpression pLeafExpression) {
+          return pLeafExpression.accept(INSTANCE);
+        }
+
+        @Override
+        public String visitTrue() {
+          return INSTANCE.visitTrue();
+        }
+
+        @Override
+        public String visitFalse() {
+          return INSTANCE.visitFalse();
+        }
+
+      });
     }
 
   };
@@ -60,13 +93,13 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
   @Override
   public String visit(And pAnd) {
     assert pAnd.iterator().hasNext();
-    return Joiner.on(" && ").join(FluentIterable.from(pAnd).transform(TO_CODE).transform(WRAP_IN_PARENTHESES));
+    return Joiner.on(" && ").join(FluentIterable.from(pAnd).transform(TO_PARENTHESIZED_CODE));
   }
 
   @Override
   public String visit(Or pOr) {
     assert pOr.iterator().hasNext();
-    return Joiner.on(" || ").join(FluentIterable.from(pOr).transform(TO_CODE).transform(WRAP_IN_PARENTHESES));
+    return Joiner.on(" || ").join(FluentIterable.from(pOr).transform(TO_PARENTHESIZED_CODE));
   }
 
   @Override
@@ -80,7 +113,10 @@ public enum ToCodeVisitor implements ExpressionTreeVisitor<String> {
     if (pLeafExpression.assumeTruth()) {
       return expressionCode;
     }
-    return "!" + WRAP_IN_PARENTHESES.apply(expressionCode);
+    if (!expressionCode.startsWith("(") || !expressionCode.endsWith(")")) {
+      expressionCode = WRAP_IN_PARENTHESES.apply(expressionCode);
+    }
+    return "!" + expressionCode;
   }
 
   @Override
