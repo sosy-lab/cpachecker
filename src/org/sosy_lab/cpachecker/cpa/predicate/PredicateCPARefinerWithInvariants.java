@@ -285,8 +285,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
               }
 
               List<CandidateInvariant> invCandidates = new ArrayList<>();
+              // add false as last interpolant for the error location
+              interpolants = new ArrayList<>(interpolants);
+              interpolants.add(bfmgr.makeBoolean(false));
+
               for (Pair<CFANode, BooleanFormula> nodeAndFormula : Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
-                invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(), nodeAndFormula.getSecond()));
+                invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(),
+                                                        solver.getFormulaManager()
+                                                              .dumpFormula(nodeAndFormula.getSecond())
+                                                              .toString()));
               }
               return invCandidates;
             }};
@@ -348,7 +355,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       return invariants;
     }
-
   }
 
   public PredicateCPARefinerWithInvariants(final Configuration pConfig, final LogManager pLogger,
