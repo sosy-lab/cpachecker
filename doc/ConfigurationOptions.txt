@@ -2266,6 +2266,9 @@ memorysafety.config = no default value
 merge = "JOIN"
   allowed values: [SEP, JOIN]
 
+# insert all files except cfa/arg-graphs in html/js-template
+newCounterexampleReport = true
+
 # Whether to check for the overflow property (this can be specified by
 # passing an appropriate .prp file to the -spec parameter).
 overflow.check = false

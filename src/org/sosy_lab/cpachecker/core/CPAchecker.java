@@ -390,7 +390,6 @@ public class CPAchecker {
 
     stats.startAnalysisTimer();
     try {
-
       do {
         status = status.update(algorithm.run(reached));
 
