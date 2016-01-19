@@ -700,8 +700,6 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in an analysis with enabler CPA because then it
-# must behave differntly during merge.
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
@@ -1150,7 +1148,6 @@ cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
 # Use multiple partitions for predicates
 cpa.predicate.abs.predicateOrdering.partitions = false
 
-# use caching of region to formula conversions
 # use caching of abstractions
 cpa.predicate.abs.useCache = true
 
@@ -2362,8 +2359,6 @@ pcc.proofFile = "arg.obj"
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
