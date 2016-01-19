@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -226,6 +227,8 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     private int trieNum = 0;
     private List<CandidateInvariant> candidates = new ArrayList<>();
 
+    private final BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+
     private final ARGPath argPath;
     private final List<CFANode> abstractionNodes;
     private final Set<ARGState> elementsOnPath;
@@ -267,6 +270,12 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
               List<BooleanFormula> interpolants;
               try {
+                List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+                // the prefix is not filled up with trues if it is shorter than
+                // the path so we need to do it ourselves
+                while (pathFormula.size() < abstractionStatesTrace.size()) {
+                  pathFormula.add(bfmgr.makeBoolean(true));
+                }
                 interpolants = buildCounterexampleTrace(elementsOnPath, abstractionStatesTrace,
                     pInput.getPathFormulae(), true).getInterpolants();
 
