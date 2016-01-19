@@ -108,7 +108,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
-  
+
   @Option(secure=true, name="newCounterexampleReport",
     description="insert all files except cfa/arg-graphs in html/js-template")
   private boolean generateNewCounterexampleReport = true;
@@ -279,17 +279,17 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     out.println();
 
     printMemoryStatistics(out);
-    
+
     if (generateNewCounterexampleReport) {
       GenerateReportWithoutGraphs.getFiles("output/UsedConfiguration.properties");
       int amountOfErrorPaths = GenerateReportWithoutGraphs.getErrorpathFiles();
       if(amountOfErrorPaths != 0) {
         for(int i = 0; i < amountOfErrorPaths; i++) {
-          GenerateReportWithoutGraphs.fillOutHTMLTemplate("Counterexample_Report/report_template.html", "Counterexample_Report/report_withoutGraphs_" + i + ".html", i);
+          GenerateReportWithoutGraphs.fillOutHTMLTemplate("Counterexample_Report/index_template.html", "Counterexample_Report/index_withoutGraphs_" + i + ".html", i);
           GenerateReportWithoutGraphs.fillOutJSTemplate("Counterexample_Report/app/app_template.js","Counterexample_Report/app/app_" + i + ".js", i);
         }
       } else {
-        GenerateReportWithoutGraphs.fillOutHTMLTemplate("Counterexample_Report/report_template.html", "Counterexample_Report/report_withoutGraphs.html", -1);
+        GenerateReportWithoutGraphs.fillOutHTMLTemplate("Counterexample_Report/index_template.html", "Counterexample_Report/index_withoutGraphs.html", -1);
         GenerateReportWithoutGraphs.fillOutJSTemplate("Counterexample_Report/app/app_template.js","Counterexample_Report/app/app.js", -1);
       }
     }
