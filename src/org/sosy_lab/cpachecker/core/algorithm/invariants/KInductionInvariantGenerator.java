@@ -131,7 +131,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger, final ShutdownManager pShutdownNotifier,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator)
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator, boolean pAsync)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
@@ -140,7 +140,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
             pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
-            true,
+            pAsync,
             Optional.of(candidateGenerator));
   }
 

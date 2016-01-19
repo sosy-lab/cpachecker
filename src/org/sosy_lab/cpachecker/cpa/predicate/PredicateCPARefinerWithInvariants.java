@@ -560,7 +560,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
       }
 
-      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator);
+      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
 
       invGen.start(cfa.getMainFunction());
       invGen.get(); // let invariant generator do the work
