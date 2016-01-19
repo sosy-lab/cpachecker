@@ -603,7 +603,7 @@ public class AutomatonGraphmlParser {
         AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
         Integer initialStateDistance = distances.get(initialStateName);
         if (initialStateDistance != null) {
-          distanceVariable.setValue(-distances.get(initialStateName));
+          distanceVariable.setValue(-initialStateDistance);
         } else {
           logger.log(
               Level.WARNING,
