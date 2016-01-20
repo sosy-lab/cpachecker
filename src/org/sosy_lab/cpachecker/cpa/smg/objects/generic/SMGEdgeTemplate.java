@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,18 +21,30 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 
-public interface SMGAbstractionCandidate extends Comparable<SMGAbstractionCandidate> {
+public class SMGEdgeTemplate {
 
-  public int getScore();
+  private final SMGObjectTemplate abstractObject;
+  private final int abstractValue;
+  private final int offset;
 
-  public CLangSMG execute(CLangSMG pSMG);
+  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, int pAbstractValue, int pOffset) {
+    abstractObject = pAbstractObject;
+    abstractValue = pAbstractValue;
+    offset = pOffset;
+  }
 
-  public SMG execute(SMG pSMG);
+  public SMGObjectTemplate getAbstractObject() {
+    return abstractObject;
+  }
 
-  public boolean isUnknown();
+  public int getAbstractValue() {
+    return abstractValue;
+  }
+
+  public int getOffset() {
+    return offset;
+  }
 }

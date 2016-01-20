@@ -23,10 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+import java.util.Map;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
-
-public final class SMGRegion extends SMGObject {
+public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   public SMGRegion(int pSize, String pLabel) {
     super(pSize, pLabel);
@@ -83,5 +85,10 @@ public final class SMGRegion extends SMGObject {
       return new SMGRegion(this);
     }
     throw new UnsupportedOperationException("join() called on incompatible SMGObjects");
+  }
+
+  @Override
+  public SMGRegion createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap) {
+    return new SMGRegion(getSize(), getLabel() + " ID " + SMGValueFactory.getNewValue());
   }
 }
