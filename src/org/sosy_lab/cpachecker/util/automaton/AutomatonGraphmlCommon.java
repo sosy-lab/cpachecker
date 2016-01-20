@@ -97,44 +97,44 @@ public class AutomatonGraphmlCommon {
   }
 
   public static enum KeyDef {
-    INVARIANT("invariant", "node", "invariant", "string"),
-    INVARIANTSCOPE("invariant.scope", "node", "invariant.scope", "string"),
-    NAMED("named", "node", "namedValue", "string"),
-    NODETYPE("nodetype", "node", "nodeType", "string"),
-    ISFRONTIERNODE("frontier", "node", "isFrontierNode", "boolean"),
-    ISVIOLATIONNODE("violation", "node", "isViolationNode", "boolean"),
-    ISENTRYNODE("entry", "node", "isEntryNode", "boolean"),
-    ISSINKNODE("sink", "node", "isSinkNode", "boolean"),
-    VIOLATEDPROPERTY("violatedProperty", "node", "violatedProperty", "string"),
-    SOURCECODELANGUAGE("sourcecodelang", "graph", "sourcecodeLanguage", "string"),
-    PROGRAMFILE("programfile", "graph", "programFile", "string"),
-    PROGRAMHASH("programhash", "graph", "programHash", "string"),
-    SPECIFICATION("specification", "graph", "specification", "string"),
-    MEMORYMODEL("memorymodel", "graph", "memoryModel", "string"),
-    ARCHITECTURE("architecture", "graph", "architecture", "string"),
-    PRODUCER("producer", "graph", "producer", "string"),
-    SOURCECODE("sourcecode", "edge", "sourcecode", "string"),
-    ORIGINLINE("startline", "edge", "startline", "int"),
-    OFFSET("startoffset", "edge", "startoffset", "int"),
-    ORIGINFILE("originfile", "edge", "originFileName", "string"),
-    LINECOLS("lineCols", "edge", "lineColSet", "string"),
-    CONTROLCASE("control", "edge", "control", "string"),
-    ASSUMPTION("assumption", "edge", "assumption", "string"),
-    ASSUMPTIONSCOPE("assumption.scope", "edge", "assumption.scope", "string"),
-    FUNCTIONENTRY("enterFunction", "edge", "enterFunction", "string"),
-    FUNCTIONEXIT("returnFrom", "edge", "returnFromFunction", "string"),
-    CFAPREDECESSORNODE("predecessor", "edge", "predecessor", "string"),
-    CFASUCCESSORNODE("successor", "edge", "successor", "string"),
-    GRAPH_TYPE("type", "graph", "witness-type", "string");
+    INVARIANT("invariant", ElementType.NODE, "invariant", "string"),
+    INVARIANTSCOPE("invariant.scope", ElementType.NODE, "invariant.scope", "string"),
+    NAMED("named", ElementType.NODE, "namedValue", "string"),
+    NODETYPE("nodetype", ElementType.NODE, "nodeType", "string"),
+    ISFRONTIERNODE("frontier", ElementType.NODE, "isFrontierNode", "boolean"),
+    ISVIOLATIONNODE("violation", ElementType.NODE, "isViolationNode", "boolean"),
+    ISENTRYNODE("entry", ElementType.NODE, "isEntryNode", "boolean"),
+    ISSINKNODE("sink", ElementType.NODE, "isSinkNode", "boolean"),
+    VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
+    SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
+    PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
+    PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
+    SPECIFICATION("specification", ElementType.GRAPH, "specification", "string"),
+    MEMORYMODEL("memorymodel", ElementType.GRAPH, "memoryModel", "string"),
+    ARCHITECTURE("architecture", ElementType.GRAPH, "architecture", "string"),
+    PRODUCER("producer", ElementType.GRAPH, "producer", "string"),
+    SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
+    ORIGINLINE("startline", ElementType.EDGE, "startline", "int"),
+    OFFSET("startoffset", ElementType.EDGE, "startoffset", "int"),
+    ORIGINFILE("originfile", ElementType.EDGE, "originFileName", "string"),
+    LINECOLS("lineCols", ElementType.EDGE, "lineColSet", "string"),
+    CONTROLCASE("control", ElementType.EDGE, "control", "string"),
+    ASSUMPTION("assumption", ElementType.EDGE, "assumption", "string"),
+    ASSUMPTIONSCOPE("assumption.scope", ElementType.EDGE, "assumption.scope", "string"),
+    FUNCTIONENTRY("enterFunction", ElementType.EDGE, "enterFunction", "string"),
+    FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),
+    CFAPREDECESSORNODE("predecessor", ElementType.EDGE, "predecessor", "string"),
+    CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
+    GRAPH_TYPE("type", ElementType.GRAPH, "witness-type", "string");
 
     public final String id;
-    public final String keyFor;
+    public final ElementType keyFor;
     public final String attrName;
     public final String attrType;
 
-    private KeyDef(String id, String keyFor, String attrName, String attrType) {
+    private KeyDef(String id, ElementType pKeyFor, String attrName, String attrType) {
       this.id = id;
-      this.keyFor = keyFor;
+      this.keyFor = pKeyFor;
       this.attrName = attrName;
       this.attrType = attrType;
     }
@@ -145,7 +145,22 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public enum NodeFlag {
+  public static enum ElementType {
+    GRAPH,
+    EDGE,
+    NODE;
+
+    @Override
+    public String toString() {
+      return name().toLowerCase();
+    }
+
+    public static ElementType parse(String pElementType) {
+      return ElementType.valueOf(pElementType.toUpperCase());
+    }
+  }
+
+  public static enum NodeFlag {
     ISFRONTIER(KeyDef.ISFRONTIERNODE),
     ISVIOLATION(KeyDef.ISVIOLATIONNODE),
     ISENTRY(KeyDef.ISENTRYNODE),
@@ -273,7 +288,11 @@ public class AutomatonGraphmlCommon {
       return createKeyDefElement(keyDef.id, keyDef.keyFor, keyDef.attrName, keyDef.attrType, defaultValue);
     }
 
-    public Element createKeyDefElement(String id, String keyFor, String attrName, String attrType,
+    public Element createKeyDefElement(
+        String id,
+        ElementType keyFor,
+        String attrName,
+        String attrType,
         @Nullable String defaultValue) {
 
       Preconditions.checkNotNull(doc);
@@ -285,7 +304,7 @@ public class AutomatonGraphmlCommon {
       Element result = createElement(GraphMlTag.KEY);
 
       result.setAttribute("id", id);
-      result.setAttribute("for", keyFor);
+      result.setAttribute("for", keyFor.toString());
       result.setAttribute("attr.name", attrName);
       result.setAttribute("attr.type", attrType);
 

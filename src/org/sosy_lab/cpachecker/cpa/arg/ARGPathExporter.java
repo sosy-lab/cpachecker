@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -812,19 +813,20 @@ public class ARGPathExporter {
 
       // Write elements
       {
-        Set<String> visited = Sets.newHashSet();
+        Map<String, Element> nodes = Maps.newHashMap();
         Deque<String> waitlist = Queues.newArrayDeque();
         waitlist.push(entryStateNodeId);
-        visited.add(entryStateNodeId);
-        appendNewNode(doc, entryStateNodeId);
+        nodes.put(entryStateNodeId, appendNewNode(doc, entryStateNodeId));
         while (!waitlist.isEmpty()) {
           String source = waitlist.pop();
           for (Edge edge : leavingEdges.get(source)) {
-            if (visited.add(edge.target)) {
-              appendNewNode(doc, edge.target);
+            Element targetNode = nodes.get(edge.target);
+            if (targetNode == null) {
+              targetNode = appendNewNode(doc, edge.target);
+              nodes.put(edge.target, targetNode);
               waitlist.push(edge.target);
             }
-            newEdge(doc, edge);
+            newEdge(doc, edge, targetNode);
           }
         }
       }
@@ -923,15 +925,21 @@ public class ARGPathExporter {
       return false;
     }
 
-    private void newEdge(GraphMlBuilder pDoc, Edge pEdge) {
-      Element result = pDoc.createEdgeElement(pEdge.source, pEdge.target);
-      for (KeyDef k : pEdge.label.keyValues.keySet())  {
-        pDoc.addDataElementChild(result, k, pEdge.label.keyValues.get(k));
+    private void newEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
+      Element edge = pDoc.createEdgeElement(pEdge.source, pEdge.target);
+      for (Map.Entry<KeyDef, String> entry : pEdge.label.keyValues.entrySet()) {
+        KeyDef keyDef = entry.getKey();
+        String value = entry.getValue();
+        if (keyDef.keyFor.equals(ElementType.EDGE)) {
+          pDoc.addDataElementChild(edge, keyDef, value);
+        } else if (keyDef.keyFor.equals(ElementType.NODE)) {
+          pDoc.addDataElementChild(pTargetNode, keyDef, value);
+        }
       }
-      pDoc.appendToAppendable(result);
+      pDoc.appendToAppendable(edge);
     }
 
-    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
+    private Element appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
       Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
       for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");
@@ -940,6 +948,7 @@ public class ARGPathExporter {
         pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
       }
       pDoc.appendToAppendable(result);
+      return result;
     }
 
     private Collection<NodeFlag> extractNodeFlags(ARGState pState) {
