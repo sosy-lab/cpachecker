@@ -45,6 +45,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 
 public abstract class LocationFormulaInvariant implements CandidateInvariant {
@@ -115,7 +116,7 @@ public abstract class LocationFormulaInvariant implements CandidateInvariant {
       @Override
       public void assumeTruth(ReachedSet pReachedSet) {
         if (isDefinitelyBooleanFalse) {
-          Iterable<AbstractState> targetStates = AbstractStates.filterLocation(pReachedSet, pLocation);
+          Iterable<AbstractState> targetStates = Lists.newArrayList(AbstractStates.filterLocation(pReachedSet, pLocation));
           pReachedSet.removeAll(targetStates);
           for (ARGState s : from(targetStates).filter(ARGState.class)) {
             s.removeFromARG();
@@ -156,7 +157,7 @@ public abstract class LocationFormulaInvariant implements CandidateInvariant {
       @Override
       public void assumeTruth(ReachedSet pReachedSet) {
         if (isDefinitelyBooleanFalse) {
-          Iterable<AbstractState> targetStates = AbstractStates.filterLocation(pReachedSet, pLocation);
+          Iterable<AbstractState> targetStates = Lists.newArrayList(AbstractStates.filterLocation(pReachedSet, pLocation));
           pReachedSet.removeAll(targetStates);
           for (ARGState s : from(targetStates).filter(ARGState.class)) {
             s.removeFromARG();
