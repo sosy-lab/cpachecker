@@ -128,8 +128,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
       if (hasTarget) {
         Builder<AutomatonState> result = ImmutableList.<AutomatonState>builder();
-        result.addAll(basicResult);
+        // The order of the states is important (!!) because
+        //    the CPAAlgorithm terminates after it has found the target state
+        //    --> The target state should not be the first element here!
         result.add(inactiveState);
+        result.addAll(basicResult);
         return result.build();
       }
     }
