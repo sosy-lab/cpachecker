@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGEdgePointsToAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGField;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddVal;
@@ -900,21 +899,6 @@ public class SMGExpressionEvaluator {
         arrayAddress.getAddress().add(subscriptOffset));
   }
 
-  SMGAddressValueAndState createAddress(SMGEdgePointsToAndState pEdgeAndState) {
-
-    SMGEdgePointsTo edge = pEdgeAndState.getValue();
-    SMGState newState = pEdgeAndState.getSmgState();
-
-    if (edge == null) {
-      return SMGAddressValueAndState.of(newState);
-    }
-
-    SMGAddressValue addressVal = SMGKnownAddVal.valueOf(edge.getValue(),
-        edge.getObject(), edge.getOffset());
-
-    return SMGAddressValueAndState.of(newState, addressVal);
-  }
-
   private SMGAddressValueAndState createAddress(SMGState pNewState,
       SMGAddress pAddress) throws SMGInconsistentException {
 
@@ -962,9 +946,9 @@ public class SMGExpressionEvaluator {
       return SMGAddressValueAndState.of(smgState);
     }
 
-    SMGEdgePointsTo edge = smgState.getPointerFromValue(pAddressValue.getAsInt());
+    SMGAddressValue addressValue = smgState.getPointerFromValue(pAddressValue.getAsInt());
 
-    return createAddress(SMGEdgePointsToAndState.of(smgState, edge));
+    return SMGAddressValueAndState.of(smgState, addressValue);
   }
 
   SMGAddressValueAndState createAddress(SMGState pSmgState, SMGObject pTarget,
@@ -998,8 +982,9 @@ public class SMGExpressionEvaluator {
       return SMGAddressValueAndState.of(pSmgState);
     }
 
-    SMGEdgePointsToAndState edgeAndState = SMGEdgePointsToAndState.of(pSmgState, pSmgState.getPointerFromValue(address));
-    return createAddress(edgeAndState);
+    SMGAddressValue addressValue = pSmgState.getPointerFromValue(address);
+
+    return SMGAddressValueAndState.of(pSmgState, addressValue);
   }
 
   /**
@@ -1343,17 +1328,12 @@ public class SMGExpressionEvaluator {
       private SMGAddressValue getAddressOfPointer(SMGSymbolicValue pPointer)
           throws SMGInconsistentException {
 
-        assert !pPointer.isUnknown();
+        assert!pPointer.isUnknown();
 
         if (pPointer instanceof SMGAddressValue) {
           return (SMGAddressValue) pPointer;
         } else {
-
-          SMGEdgePointsTo edge = smgState.getPointerFromValue(pPointer
-              .getAsInt());
-
-          return SMGKnownAddVal.valueOf(edge.getValue(), edge.getObject(),
-              edge.getOffset());
+          return smgState.getPointerFromValue(pPointer.getAsInt());
         }
       }
 
