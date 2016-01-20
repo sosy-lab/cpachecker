@@ -2115,11 +2115,9 @@ public class SMGExpressionEvaluator {
       case NOT_EQUALS:
         //TODO Check, if one of the two operand types is expressed as pointer, e.g. pointer, struct, array, etc
         return true;
-      default:
-        // do nothing
+        default :
+          return false;
       }
-
-      return false;
     }
 
     @Override
