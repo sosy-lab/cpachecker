@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -82,8 +83,12 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "Stop in the automata transfer relation if the analysis identified one feasible path for each target state.")
   private boolean stopAfterOneFeasiblePathPerProperty = false;
 
+  @Option(secure=true, description = "Split to a state 'INACTIVE' when reaching a target state.")
+  private boolean splitOnTargetStatesToInactive = false;
+
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
+  private final AutomatonState inactiveState;
   private @Nullable CounterexamplesSummary cexSummary;
 
   int statNumberOfMatches = 0;
@@ -96,16 +101,43 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
-      LogManager pLogger) throws InvalidConfigurationException {
+      LogManager pLogger, AutomatonState pInactiveState) throws InvalidConfigurationException {
 
     config.inject(this);
 
-    this.cpa = pCpa;
-    this.logger = pLogger;
+    cpa = pCpa;
+    logger = pLogger;
+    inactiveState = pInactiveState;
   }
 
   @Override
   public Collection<AutomatonState> getAbstractSuccessorsForEdge(
+                      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+                      throws CPATransferException {
+
+    final Collection<AutomatonState> basicResult = getAbstractSuccessorsForEdge0(pElement, pPrecision, pCfaEdge);
+
+    if (splitOnTargetStatesToInactive) {
+      boolean hasTarget = false;
+      for (AutomatonState q: basicResult) {
+        if (q.isTarget()) {
+          hasTarget = true;
+          break;
+        }
+      }
+
+      if (hasTarget) {
+        Builder<AutomatonState> result = ImmutableList.<AutomatonState>builder();
+        result.addAll(basicResult);
+        result.add(inactiveState);
+        return result.build();
+      }
+    }
+
+    return basicResult;
+  }
+
+  public Collection<AutomatonState> getAbstractSuccessorsForEdge0(
                       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
 

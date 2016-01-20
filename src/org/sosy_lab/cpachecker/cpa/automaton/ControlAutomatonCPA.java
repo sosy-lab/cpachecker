@@ -128,7 +128,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     this.cfa = pCFA;
     this.logger = pLogger;
 
-    this.transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger);
+    this.transferRelation = new AutomatonTransferRelation(this, pConfig, pLogger, inactiveState);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
     this.mergeOperator = new AutomatonMergeOperator(pConfig, this, automatonDomain, topState);
 
