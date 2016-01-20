@@ -59,6 +59,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
@@ -69,7 +70,6 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
-
 
 public class AutomatonGraphmlCommon {
 
@@ -201,13 +201,13 @@ public class AutomatonGraphmlCommon {
       return text;
     }
 
-    public static GraphType parse(String pTextualRepresentation) {
+    public static Optional<GraphType> tryParse(String pTextualRepresentation) {
       for (GraphType element : values()) {
         if (element.text.equals(pTextualRepresentation)) {
-          return element;
+          return Optional.of(element);
         }
       }
-      throw new IllegalArgumentException("No such enumeration element: " + pTextualRepresentation);
+      return Optional.absent();
     }
   }
 

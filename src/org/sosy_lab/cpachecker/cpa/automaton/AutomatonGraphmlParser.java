@@ -215,7 +215,17 @@ public class AutomatonGraphmlParser {
       } else if (graphTypeText.size() > 1) {
         throw new WitnessParseException("Only one graph type is allowed.");
       } else {
-        graphType = GraphType.parse(graphTypeText.iterator().next());
+        String graphTypeToParse = graphTypeText.iterator().next();
+        Optional<GraphType> parsedGraphType = GraphType.tryParse(graphTypeToParse);
+        if (parsedGraphType.isPresent()) {
+          graphType = parsedGraphType.get();
+        } else {
+          graphType = GraphType.ERROR_WITNESS;
+          logger.log(
+              Level.WARNING,
+              String.format(
+                  "Unknown graph type %s, assuming %s instead.", graphTypeToParse, graphType));
+        }
       }
 
       // Extract the information on the automaton ----
