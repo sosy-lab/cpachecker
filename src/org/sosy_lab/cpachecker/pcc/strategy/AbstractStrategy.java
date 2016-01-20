@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.util.Triple;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -63,6 +64,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected LogManager logger;
   protected PCStrategyStatistics stats;
+  protected ProofStatesInfoCollector proofInfo;
   private Collection<Statistics> pccStats = new ArrayList<>();
 
   @Option(secure=true,
@@ -82,6 +84,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.max(1, numThreads);
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
+    proofInfo = new ProofStatesInfoCollector(pConfig);
     stats = new PCStrategyStatistics();
     pccStats.add(stats);
   }
@@ -125,6 +128,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     } catch (InterruptedException e) {
       logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
     }
+
+    logger.log(Level.INFO, proofInfo.getInfoAsString());
   }
 
   protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached)
