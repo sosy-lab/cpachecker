@@ -284,12 +284,12 @@ public class SMGJoinTest {
     addPointerValueToBoth(l1, 0, 102, 4, l2, 0);
     addPointerValueToBoth(l2, 0, 103, 4, l3, 0);
     addPointerValueToBoth(l3, 0, 104, 4, l4, 0);
-//    addPointerValueToBoth(l4, 0, 109, 4, global, 0);
+    addPointerValueToBoth(l4, 0, 109, 4, global, 0);
     addPointerValueToBoth(global, 4, 105, 4, l4, 0);
     addPointerValueToBoth(l4, 4, 106, 4, l3, 0);
     addPointerValueToBoth(l3, 4, 107, 4, l2, 0);
     addPointerValueToBoth(l2, 4, 108, 4, l1, 0);
-//    addPointerValueToBoth(l1, 0, 110, 4, global, 0);
+    addPointerValueToBoth(l1, 4, 110, 4, global, 0);
     addValueToBoth(l1, 8, 5, 1);
     addValueToBoth(l2, 8, 5, 1);
     addValueToBoth(l3, 8, 5, 1);
