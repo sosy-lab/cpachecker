@@ -261,13 +261,12 @@ public class Automaton {
   }
 
   public ImmutableSet<? extends SafetyProperty> getIsRelevantForProperties(AutomatonTransition pTrans) {
-    return getEncodedProperties();
-//    if (encodedProperties.size() == 1) {
-//      return getEncodedProperties();
-//    } else {
-//      throw new RuntimeException("More than one property encoded in the automaton. Implement this"
-//          + " case for 'getIsRelevantForProperties'!");
-//    }
+    if (encodedProperties.size() == 1) {
+      return getEncodedProperties();
+    } else {
+      throw new RuntimeException("More than one property encoded in the automaton. Implement this"
+          + " case for 'getIsRelevantForProperties'!");
+    }
   }
 
 }
