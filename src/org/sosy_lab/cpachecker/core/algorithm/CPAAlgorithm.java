@@ -237,7 +237,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         cpa.getPrecisionAdjustment();
 
     while (reachedSet.hasWaitingState()) {
-      try {
       shutdownNotifier.shutdownIfNecessary();
 
       stats.countIterations++;
@@ -412,11 +411,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
-    } finally {
       if (iterationListener != null) {
         iterationListener.afterAlgorithmIteration(this, reachedSet);
       }
-    }
     }
     return status;
   }
