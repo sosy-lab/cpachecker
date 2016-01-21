@@ -23,39 +23,28 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Queue;
-import java.util.Set;
+import java.util.Objects;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Verify;
-import com.google.common.collect.Sets;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
-  private final CFA cfa;
-
-  private final Optional<CandidateGenerator> candidateGenerator;
+  private final CandidateGenerator candidateGenerator;
 
   private InvariantSupplier locationInvariantsProvider = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
 
@@ -64,14 +53,13 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
                       ReachedSetFactory pReachedSetFactory,
                       ShutdownManager pShutdownManager, CFA pCFA,
                       BMCStatistics pBMCStatistics,
-                      Optional<CandidateGenerator> pCandidateGenerator)
+                      CandidateGenerator pCandidateGenerator)
                       throws InvalidConfigurationException, CPAException {
     super(pAlgorithm, pCPA, pConfig, pLogger, pReachedSetFactory, pShutdownManager, pCFA,
         pBMCStatistics,
         true /* invariant generator */ );
     Verify.verify(checkIfInductionIsPossible(pCFA, pLogger));
-    cfa = pCFA;
-    candidateGenerator = pCandidateGenerator;
+    candidateGenerator = Objects.requireNonNull(pCandidateGenerator);
   }
 
   public InvariantSupplier getCurrentInvariants() {
@@ -84,41 +72,7 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
   @Override
   protected CandidateGenerator getCandidateInvariants() {
-    if (candidateGenerator.isPresent()) {
-      return candidateGenerator.get();
-    }
-    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
-
-    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(getTargetLocations())) {
-      candidates.add(new EdgeFormulaNegation(cfa.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
-    }
-
-    return new StaticCandidateProvider(candidates);
-  }
-
-  /**
-   * Gets the relevant assume edges.
-   *
-   * @param pTargetLocations the predetermined target locations.
-   *
-   * @return the relevant assume edges.
-   */
-  private Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
-    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
-    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
-    Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
-        CFANode predecessor = enteringEdge.getPredecessor();
-        if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          assumeEdges.add((AssumeEdge)enteringEdge);
-        } else if (visited.add(predecessor)) {
-          waitlist.add(predecessor);
-        }
-      }
-    }
-    return assumeEdges;
+    return candidateGenerator;
   }
 
   @Override

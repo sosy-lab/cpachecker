@@ -190,12 +190,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       propagateSafetyInterrupt = null;
     }
 
+    shutdownNotifier = pShutdownManager.getNotifier();
+    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          invariantGeneratorNotifier, pCFA, pReachedSetFactory);
+          invariantGeneratorNotifier, pCFA, pReachedSetFactory, targetLocationProvider);
     } else if (induction && addInvariantsByAI) {
       invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
     } else {
@@ -210,9 +213,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    shutdownNotifier = pShutdownManager.getNotifier();
 
-    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
