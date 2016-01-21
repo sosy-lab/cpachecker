@@ -188,7 +188,11 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Override
   public Collection<Statistics> getAdditionalProofGenerationStatistics(){
-    // by default do nothing and return the empty set
+    if(proofInfo != null) {
+      Collection<Statistics> stats = new ArrayList<>();
+      stats.add(proofInfo);
+      return stats;
+    }
     return Collections.emptySet();
   }
 

@@ -23,18 +23,25 @@
  */
 package org.sosy_lab.cpachecker.pcc.util;
 
+import java.io.PrintStream;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-@Options(prefix="pcc")
-public class ProofStatesInfoCollector {
+@Options(prefix = "pcc")
+public class ProofStatesInfoCollector implements Statistics {
 
-  @Option(secure=true,
+  @Option(secure = true,
       description = "collects information about value analysis states in proof")
   private boolean collectValueAnalysisStateInfo = false;
 
@@ -70,6 +77,18 @@ public class ProofStatesInfoCollector {
     } else {
       return "No proof state information collected.";
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    pOut.println(getInfoAsString());
+
+  }
+
+  @Override
+  public @Nullable
+  String getName() {
+    return null;
   }
 
 }
