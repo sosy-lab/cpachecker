@@ -30,25 +30,26 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
+import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableSet;
 
-
 public class CachingTargetLocationProvider implements TargetLocationProvider {
 
   private final TargetLocationProvider backingTargetLocationProvider;
 
-  private final LoadingCache<CFANode, ImmutableSet<CFANode>> cache = CacheBuilder
+  private final LoadingCache<CFANode, Optional<ImmutableSet<CFANode>>> cache = CacheBuilder
       .newBuilder()
       .weakKeys()
       .weakValues()
-      .<CFANode, ImmutableSet<CFANode>>build(new CacheLoader<CFANode, ImmutableSet<CFANode>>() {
+      .<CFANode, Optional<ImmutableSet<CFANode>>>build(new CacheLoader<CFANode, Optional<ImmutableSet<CFANode>>>() {
 
         @Override
-        public ImmutableSet<CFANode> load(CFANode pRootNode) {
-          return backingTargetLocationProvider.tryGetAutomatonTargetLocations(pRootNode);
+        public Optional<ImmutableSet<CFANode>> load(CFANode pRootNode) {
+          ImmutableSet<CFANode> result = backingTargetLocationProvider.tryGetAutomatonTargetLocations(pRootNode);
+          return Optional.fromNullable(result);
         }
 
       });
@@ -64,7 +65,7 @@ public class CachingTargetLocationProvider implements TargetLocationProvider {
 
   @Override
   public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
-    return cache.getUnchecked(pRootNode);
+    return cache.getUnchecked(pRootNode).orNull();
   }
 
 }
