@@ -130,7 +130,6 @@ import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
