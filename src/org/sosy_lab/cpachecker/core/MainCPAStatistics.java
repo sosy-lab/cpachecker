@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.GenerateReportWithoutGraphs;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -107,6 +108,10 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
   @Option(secure=true, name="statistics.memory",
     description="track memory usage of JVM during runtime")
   private boolean monitorMemoryUsage = true;
+
+  @Option(secure=true, name="newCounterexampleReport",
+    description="insert all files except cfa/arg-graphs in html/js-template")
+  private boolean generateNewCounterexampleReport = true;
 
   private final LogManager logger;
   private final Collection<Statistics> subStats;
@@ -274,6 +279,12 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
     out.println();
 
     printMemoryStatistics(out);
+
+    if (generateNewCounterexampleReport) {
+      final GenerateReportWithoutGraphs generateReportWithoutGraphs =
+          new GenerateReportWithoutGraphs(logger);
+      generateReportWithoutGraphs.generate();
+    }
   }
 
 

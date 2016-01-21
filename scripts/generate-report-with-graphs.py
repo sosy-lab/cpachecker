@@ -158,7 +158,7 @@ def main():
     argfilepath    = os.path.join(cpaoutdir, config.get('cpa.arg.file', 'ARG.dot'))
     errorpath      = os.path.join(cpaoutdir, config.get('cpa.arg.errorPath.json', 'ErrorPath.%d.json'))
 
-    countexdir = os.path.dirname(__file__)
+    countexdir = "output/report"
 
 
     #if there is an ARG.dot create an SVG in the report dir
