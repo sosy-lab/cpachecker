@@ -183,6 +183,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatTimer argUpdate = new StatTimer(StatKind.SUM, "ARG update");
   private StatTimer itpSimplification = new StatTimer(StatKind.SUM, "Itp simplification with BDDs");
 
+  private final StatCounter numberOfRefinementRootsWithSiblings = new StatCounter("Number of refinement root states with siblings");
+
   private StatInt simplifyDeltaConjunctions = new StatInt(StatKind.SUM, "Conjunctions Delta");
   private StatInt simplifyDeltaDisjunctions = new StatInt(StatKind.SUM, "Disjunctions Delta");
   private StatInt simplifyDeltaNegations = new StatInt(StatKind.SUM, "Negations Delta");
@@ -217,6 +219,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       w1.put(precisionUpdate)
         .put(argUpdate)
         .spacer();
+
+      w0.put(numberOfRefinementRootsWithSiblings).spacer();
 
       basicRefinementStatistics.printStatistics(out, pResult, pReached);
 
@@ -402,8 +406,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     updateARGTree(newPrecision, refinementRoot, pReached);
   }
 
-  private void updateARGTree(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
-      ARGReachedSet pReached) {
+  private void updateARGTree(final PredicatePrecision pNewPrecision,
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+
+    final ARGState refinementRootParent = pRefinementRoot.getParents().iterator().next();
 
     argUpdate.start();
 
@@ -420,7 +426,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
     }
 
-    pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    final ARGState restartFrom = pRefinementRoot;
+    final int siblings = refinementRootParent.getChildren().size();
+    if (siblings > 1) {
+      numberOfRefinementRootsWithSiblings.inc();
+      logger.logf(Level.WARNING, "Refinement on a state with %d siblings!", siblings-1);
+    }
+
+    pReached.removeSubtree(restartFrom, precisions, precisionTypes);
 
     assert (refinementCount > 0) || reached.size() == 1;
 
