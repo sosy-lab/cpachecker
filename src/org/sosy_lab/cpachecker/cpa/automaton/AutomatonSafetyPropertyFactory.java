@@ -56,7 +56,7 @@ class AutomatonSafetyPropertyFactory {
     VIOLATING_EXPRESSION
   }
 
-  @Option(description="Granularity of safety properties that are encoded in automata.")
+  @Option(secure=true, description="Granularity of safety properties that are encoded in automata.")
   private PropertyGranularity granularity = PropertyGranularity.AUTOMATON;
 
   private final String propertyBasename;
