@@ -91,6 +91,7 @@ import com.google.common.collect.Maps;
 
 
 public class ProofSlicer {
+  private int numNotCovered;
 
   public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
     AbstractState first = pReached.getFirstState();
@@ -98,13 +99,13 @@ public class ProofSlicer {
         && AbstractStates.extractStateByType(first, ValueAnalysisState.class) != null
         && AbstractStates.extractStateByType(first, CallstackState.class) != null
         && ((ARGState) first).getWrappedState() instanceof CompositeState) {
-
+      numNotCovered=0;
       HashMap<ARGState, Set<String>> varMap =
           Maps.newHashMapWithExpectedSize(pReached.size());
 
       computeRelevantVariablesPerState((ARGState) first, varMap);
 
-      assert (varMap.size() == pReached.size());
+      assert (numNotCovered == pReached.size());
       return buildSlicedARG(varMap, pReached);
 
     }
@@ -356,7 +357,10 @@ public class ProofSlicer {
       next = waitlist.pop();
 
       if (!next.isCovered()) {
+        numNotCovered++;
         init = initState(next);
+        varMap.put(next, init);
+
         if (!init.isEmpty()) {
           pWaitlist.add(next);
         }
@@ -409,7 +413,7 @@ public class ProofSlicer {
       final UnmodifiableReachedSet pReached) {
     HashMap<ARGState, ARGState> oldToSliced = Maps.newHashMapWithExpectedSize(pVarMap.size());
     ARGState root = (ARGState) pReached.getFirstState();
-    assert (oldToSliced.containsKey(root));
+    assert (pVarMap.containsKey(root));
 
     for (Entry<ARGState, Set<String>> entry : pVarMap.entrySet()) {
       oldToSliced.put(entry.getKey(), getSlicedARGState(entry.getKey(), entry.getValue()));
@@ -431,7 +435,7 @@ public class ProofSlicer {
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements
       for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-        if (entry.getKey() != root) {
+        if (entry.getKey() != root && !entry.getKey().isCovered()) {
           returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
         }
       }
@@ -468,7 +472,7 @@ public class ProofSlicer {
     return returnState;
   }
 
-  private String getVarName(MemoryLocation pMl) {
+  private String getVarName(final MemoryLocation pMl) {
     String prefix = pMl.isOnFunctionStack() ? pMl.getFunctionName() : "";
     return prefix + "::" + pMl.getIdentifier();
   }
