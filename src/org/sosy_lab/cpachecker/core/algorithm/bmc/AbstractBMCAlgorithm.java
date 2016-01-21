@@ -140,8 +140,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final ShutdownRequestListener propagateSafetyInterrupt;
 
-  private Collection<CFANode> targetLocations;
-
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -511,14 +509,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the potential target locations.
    */
   protected Collection<CFANode> getTargetLocations() {
-    if (this.targetLocations != null) {
-      return this.targetLocations;
-    }
-    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
-    if (targetLocations == null) {
-      targetLocations = cfa.getAllNodes();
-    }
-    return this.targetLocations = targetLocations;
+    return targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
 
   }
 }
