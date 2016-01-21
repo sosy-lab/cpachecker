@@ -815,18 +815,25 @@ public class ARGPathExporter {
         Map<String, Element> nodes = Maps.newHashMap();
         Deque<String> waitlist = Queues.newArrayDeque();
         waitlist.push(entryStateNodeId);
-        nodes.put(entryStateNodeId, appendNewNode(doc, entryStateNodeId));
+        List<Element> elementsToWrite = new ArrayList<>();
+        Element entryNode = createNewNode(doc, entryStateNodeId);
+        nodes.put(entryStateNodeId, entryNode);
+        elementsToWrite.add(entryNode);
         while (!waitlist.isEmpty()) {
           String source = waitlist.pop();
           for (Edge edge : leavingEdges.get(source)) {
             Element targetNode = nodes.get(edge.target);
             if (targetNode == null) {
-              targetNode = appendNewNode(doc, edge.target);
+              targetNode = createNewNode(doc, edge.target);
+              elementsToWrite.add(targetNode);
               nodes.put(edge.target, targetNode);
               waitlist.push(edge.target);
             }
-            newEdge(doc, edge, targetNode);
+            elementsToWrite.add(createNewEdge(doc, edge, targetNode));
           }
+        }
+        for (Element element : elementsToWrite) {
+          doc.appendToAppendable(element);
         }
       }
 
@@ -924,7 +931,7 @@ public class ARGPathExporter {
       return false;
     }
 
-    private void newEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
+    private Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
       Element edge = pDoc.createEdgeElement(pEdge.source, pEdge.target);
       for (Map.Entry<KeyDef, String> entry : pEdge.label.keyValues.entrySet()) {
         KeyDef keyDef = entry.getKey();
@@ -935,10 +942,10 @@ public class ARGPathExporter {
           pDoc.addDataElementChild(pTargetNode, keyDef, value);
         }
       }
-      pDoc.appendToAppendable(edge);
+      return edge;
     }
 
-    private Element appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
+    private Element createNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
       Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
       for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");
@@ -946,7 +953,6 @@ public class ARGPathExporter {
       for (Property violation : violatedProperties.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
       }
-      pDoc.appendToAppendable(result);
       return result;
     }
 
