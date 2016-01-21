@@ -129,8 +129,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    Preconditions.checkState(targetStates.size() <= 1, "At most one of the successor states can be a target state!");
-
     // IMPORTAT:
     //    Return non-target states first!!
     firstToReturnStates.addAll(targetStates);
