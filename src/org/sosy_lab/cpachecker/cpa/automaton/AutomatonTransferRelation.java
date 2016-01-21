@@ -41,10 +41,7 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -58,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexamplesSummary;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA.ControlAutomatonOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -77,18 +75,12 @@ import com.google.common.collect.Sets.SetView;
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
  */
-@Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
-
-  @Option(secure=true, description = "Stop in the automata transfer relation if the analysis identified one feasible path for each target state.")
-  private boolean stopAfterOneFeasiblePathPerProperty = false;
-
-  @Option(secure=true, description = "Split to a state 'INACTIVE' when reaching a target state.")
-  private boolean splitOnTargetStatesToInactive = false;
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private final AutomatonState inactiveState;
+  private final ControlAutomatonOptions options;
   private @Nullable CounterexamplesSummary cexSummary;
 
   int statNumberOfMatches = 0;
@@ -100,11 +92,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   Timer totalStrengthenTime = new Timer();
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
-  public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
-      LogManager pLogger, AutomatonState pInactiveState) throws InvalidConfigurationException {
+  public AutomatonTransferRelation(ControlAutomatonCPA pCpa,
+      LogManager pLogger, AutomatonState pInactiveState, ControlAutomatonOptions pOptions)
+          throws InvalidConfigurationException {
 
-    config.inject(this);
-
+    options = pOptions;
     cpa = pCpa;
     logger = pLogger;
     inactiveState = pInactiveState;
@@ -117,7 +109,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     final Collection<AutomatonState> basicResult = getAbstractSuccessorsForEdge0(pElement, pPrecision, pCfaEdge);
 
-    if (splitOnTargetStatesToInactive) {
+    if (options.splitOnTargetStatesToInactive) {
       boolean hasTarget = false;
       for (AutomatonState q: basicResult) {
         if (q.isTarget()) {
@@ -491,7 +483,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           return Collections.emptyList();
         }
 
-        if (stopAfterOneFeasiblePathPerProperty) {
+        if (options.stopAfterOneFeasiblePathPerProperty) {
           if (cexSummary == null) {
             ARGCPA argcpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
             cexSummary = argcpa.getCexSummary();

@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA.ControlAutomatonOptions;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -80,12 +81,6 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
   private TimeSpan totalRefineTimeLimit = TimeSpan.ofNanos(-1);
 
-  public static int hackyLimitFactor = 1;
-
-//@Option(secure=true, description="Disable a property after a specific number of refinements has been performed for it.")
-//private int targetDisabledAfterRefinements = 0;
-
-
   enum TargetStateVisitBehaviour {
     SIGNAL, // Signal the target state (default)
     BOTTOM, // Change to the automata state BOTTOM (when splitting states on a violation)
@@ -94,15 +89,23 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   @Option(secure=true, description="Behaviour on a property that has already been fully handled.")
   private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
 
+  public static int hackyLimitFactor = 1;
+
   public ControlAutomatonPrecisionAdjustment(
       LogManager pLogger,
       Configuration pConfig,
-      AutomatonState pTopState,
+      ControlAutomatonOptions pOptions,
       AutomatonState pBottomState,
       AutomatonState pInactiveState)
           throws InvalidConfigurationException {
 
     pConfig.inject(this);
+
+    if (pOptions.splitOnTargetStatesToInactive
+        && (onHandledTarget != TargetStateVisitBehaviour.SIGNAL
+            && onHandledTarget != TargetStateVisitBehaviour.BOTTOM)) {
+      throw new InvalidConfigurationException("Splitting to INACTIVE requires an adjustment of handled target states to either SIGNAL or BOTTOM!");
+    }
 
     this.logger = pLogger;
     this.bottomState = pBottomState;
