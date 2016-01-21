@@ -43,6 +43,11 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   }
 
   @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
+    return ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+  }
+
+  @Override
   public abstract boolean isProgramSafe();
 
   @Override
