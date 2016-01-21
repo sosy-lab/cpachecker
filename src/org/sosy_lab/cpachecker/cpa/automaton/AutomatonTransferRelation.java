@@ -65,9 +65,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -109,27 +109,32 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
     final Collection<AutomatonState> basicResult = getAbstractSuccessorsForEdge0(pElement, pPrecision, pCfaEdge);
 
-    if (options.splitOnTargetStatesToInactive) {
-      boolean hasTarget = false;
-      for (AutomatonState q: basicResult) {
-        if (q.isTarget()) {
-          hasTarget = true;
-          break;
-        }
-      }
+    List<AutomatonState> targetStates = Lists.newLinkedList();
+    List<AutomatonState> firstToReturnStates = Lists.newLinkedList();
 
-      if (hasTarget) {
-        Builder<AutomatonState> result = ImmutableList.<AutomatonState>builder();
-        // The order of the states is important (!!) because
-        //    the CPAAlgorithm terminates after it has found the target state
-        //    --> The target state should not be the first element here!
-        result.add(inactiveState);
-        result.addAll(basicResult);
-        return result.build();
+    for (AutomatonState q: basicResult) {
+      if (q.isTarget()) {
+        targetStates.add(q);
+      } else {
+        firstToReturnStates.add(q);
       }
     }
 
-    return basicResult;
+    if (options.splitOnTargetStatesToInactive) {
+      if (targetStates.size() > 0) {
+        // The order of the states is important (!!) because
+        //    the CPAAlgorithm terminates after it has found the target state
+        //    --> The target state should not be the first element here!
+        firstToReturnStates.add(inactiveState);
+      }
+    }
+
+    Preconditions.checkState(targetStates.size() <= 1, "At most one of the successor states can be a target state!");
+
+    // IMPORTAT:
+    //    Return non-target states first!!
+    firstToReturnStates.addAll(targetStates);
+    return firstToReturnStates;
   }
 
   public Collection<AutomatonState> getAbstractSuccessorsForEdge0(
