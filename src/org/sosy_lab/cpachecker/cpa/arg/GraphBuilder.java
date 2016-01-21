@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -132,12 +131,8 @@ enum GraphBuilder {
       }
     }
 
-    @Override
-    public GraphType getGraphType() {
-      return GraphType.ERROR_WITNESS;
-    }
   },
-  PROOF {
+  CFA {
 
     @Override
     public String getId(ARGState pState) {
@@ -219,14 +214,7 @@ enum GraphBuilder {
       }
     }
 
-    @Override
-    public GraphType getGraphType() {
-      return GraphType.PROOF_WITNESS;
-    }
-
   };
-
-  public abstract GraphType getGraphType();
 
   public abstract String getId(ARGState pState);
 

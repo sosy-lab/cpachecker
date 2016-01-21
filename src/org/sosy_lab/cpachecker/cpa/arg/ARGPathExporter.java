@@ -236,16 +236,63 @@ public class ARGPathExporter {
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
       throws IOException {
+    writeProofWitness(
+        pTarget,
+        pRootState,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        GraphBuilder.CFA,
+        new InvariantProvider() {
+
+          @Override
+          public ExpressionTree provideInvariantFor(
+              CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
+            // TODO interface for extracting the information from states, similar to FormulaReportingState
+            Set<ExpressionTree> stateInvariants = new HashSet<>();
+            if (!pStates.isPresent()) {
+              return ExpressionTree.TRUE;
+            }
+            for (ARGState state : pStates.get()) {
+              ValueAnalysisState valueAnalysisState =
+                  AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+              if (valueAnalysisState != null) {
+                Set<ExpressionTree> stateInvariantParts = new HashSet<>();
+                ConcreteState concreteState =
+                    ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
+                for (AExpressionStatement expressionStatement :
+                    assumptionToEdgeAllocator
+                        .allocateAssumptionsToEdge(pEdge, concreteState)
+                        .getExpStmts()) {
+                  stateInvariantParts.add(LeafExpression.of(expressionStatement.getExpression()));
+                }
+                stateInvariants.add(And.of(stateInvariantParts));
+              }
+            }
+            ExpressionTree invariant = Or.of(stateInvariants);
+            return invariant;
+          }
+        });
+  }
+
+  public void writeProofWitness(
+      Appendable pTarget,
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      GraphBuilder pGraphBuilder,
+      InvariantProvider pInvariantProvider)
+      throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS);
+    WitnessWriter writer =
+        new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
         Optional.<CounterexampleInfo>absent(),
-        GraphBuilder.PROOF);
+        pGraphBuilder);
   }
 
   private String getInitialFileName(ARGState pRootState) {
@@ -280,11 +327,19 @@ public class ARGPathExporter {
     private final String defaultSourcefileName;
     private final GraphType graphType;
 
+    private final InvariantProvider invariantProvider;
+
     private boolean isFunctionScope = false;
 
     public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
-      this.defaultSourcefileName = pDefaultSourcefileName;
+      this(pDefaultSourcefileName, pGraphType, InvariantProvider.TrueInvariantProvider.INSTANCE);
+    }
+
+    public WitnessWriter(
+        String pDefaultSourceFileName, GraphType pGraphType, InvariantProvider pInvariantProvider) {
+      this.defaultSourcefileName = pDefaultSourceFileName;
       this.graphType = pGraphType;
+      this.invariantProvider = pInvariantProvider;
     }
 
     @Override
@@ -475,22 +530,8 @@ public class ARGPathExporter {
         }
       }
 
-      if (graphType != GraphType.ERROR_WITNESS && pFromState.isPresent()) {
-        // TODO interface for extracting the information from states, similar to FormulaReportingState
-        Set<ExpressionTree> stateInvariants = new HashSet<>();
-        for (ARGState state : pFromState.get()) {
-          ValueAnalysisState valueAnalysisState =
-              AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-          if (valueAnalysisState != null) {
-            Set<ExpressionTree> stateInvariantParts = new HashSet<>();
-            ConcreteState concreteState = ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
-            for (AExpressionStatement expressionStatement : assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState).getExpStmts()) {
-              stateInvariantParts.add(LeafExpression.of(expressionStatement.getExpression()));
-            }
-            stateInvariants.add(And.of(stateInvariantParts));
-          }
-        }
-        ExpressionTree invariant = Or.of(stateInvariants);
+      if (graphType != GraphType.ERROR_WITNESS) {
+        ExpressionTree invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
         if (!invariant.equals(ExpressionTree.TRUE)) {
           result.put(KeyDef.INVARIANT, invariant.toString());
           if (isFunctionScope) {
@@ -692,8 +733,6 @@ public class ARGPathExporter {
           valueMap = model.getExactVariableValues(targetPath);
         }
       }
-
-      GraphType graphType = pGraphBuilder.getGraphType();
 
       GraphMlBuilder doc;
       try {
