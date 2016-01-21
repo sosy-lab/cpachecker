@@ -72,7 +72,7 @@ import com.google.common.base.Throwables;
 /**
  * Generate invariants using k-induction.
  */
-public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
+public class KInductionInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
 

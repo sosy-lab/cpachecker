@@ -91,7 +91,7 @@ import com.google.common.base.Throwables;
  * and continuously-refined invariants.
  */
 @Options(prefix="invariantGeneration")
-public class CPAInvariantGenerator implements InvariantGenerator, StatisticsProvider {
+public class CPAInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
 
   private static class CPAInvariantGeneratorStatistics implements Statistics {
 

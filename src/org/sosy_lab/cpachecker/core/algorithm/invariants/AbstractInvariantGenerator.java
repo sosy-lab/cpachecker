@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,22 +23,32 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Trivial implementation of an invariant generator
- * that does nothing and always returns the invariant true.
- */
-public class DoNothingInvariantGenerator extends AbstractInvariantGenerator {
 
-  @Override
-  public void start(CFANode pInitialLocation) { }
+public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
   @Override
-  public void cancel() { }
+  public abstract void start(CFANode pInitialLocation);
 
   @Override
-  public boolean isProgramSafe() {
-    return false;
+  public abstract void cancel();
+
+  @Override
+  public InvariantSupplier get() throws CPAException, InterruptedException {
+    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
+
+  @Override
+  public abstract boolean isProgramSafe();
+
+  @Override
+  public void injectInvariant(CFANode pLocation, AssumeEdge pAssumption)
+      throws UnrecognizedCodeException {
+    // Do nothing
+  }
+
 }
