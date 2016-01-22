@@ -672,7 +672,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
     for (Map.Entry<? extends MemoryLocation, ? extends Type> typeEntry : variableTypes.entrySet()) {
       MemoryLocation memoryLocation = typeEntry.getKey();
       Type type = typeEntry.getValue();
-      if (BitVectorInfo.isSupported(machineModel, type)) {
+      if (BitVectorInfo.isSupported(type)) {
         BitVectorInfo bitVectorInfo = BitVectorInfo.from(machineModel, typeEntry.getValue());
         CompoundIntervalManager cim = compoundIntervalManagerFactory.createCompoundIntervalManager(bitVectorInfo);
         CompoundInterval range = cim.allPossibleValues();
