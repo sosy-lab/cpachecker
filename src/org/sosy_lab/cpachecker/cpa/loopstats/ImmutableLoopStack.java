@@ -33,6 +33,7 @@ public class ImmutableLoopStack implements ImmutableStack<Loop> {
 
   @Nullable private final ImmutableLoopStack tail;
   @Nullable private final Loop head;
+  private final int hashCode;
   private final int size;
 
   private static ImmutableLoopStack EMPTYSTACK = new ImmutableLoopStack();
@@ -41,12 +42,14 @@ public class ImmutableLoopStack implements ImmutableStack<Loop> {
     head = Preconditions.checkNotNull(pHead);
     tail = Preconditions.checkNotNull(pTail);
     size = pTail.size() + 1;
+    hashCode = hashCode() + pTail.getHashCode();
   }
 
   private ImmutableLoopStack() {
     head = null;
     tail = null;
     size = 0;
+    hashCode = hashCode();
   }
 
   public static ImmutableLoopStack singleton(Loop pElement) {
@@ -91,13 +94,25 @@ public class ImmutableLoopStack implements ImmutableStack<Loop> {
     }
   }
 
+  /**
+   * Used as a trick to mitigate a recursive calculation of {@link #hashCode()} which led to a
+   * {@link StackOverflowError} in some cases. The {@code hashCode} will now be pre-calculated
+   * every time a new element is pushed to the stack (and as it is immutable, a new stack will be
+   * created) using the {@code hashCode} value of the old stack.
+   *
+   * @return The pre-calculated {@code hashCode} of the current stack.
+   */
+  private int getHashCode() {
+    return hashCode;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
     result = prime * result + ((head == null) ? 0 : head.hashCode());
     result = prime * result + size;
-    result = prime * result + ((tail == null) ? 0 : tail.hashCode());
+    result = prime * result + ((hashCode == 0) ? 0 : hashCode);
     return result;
   }
 
