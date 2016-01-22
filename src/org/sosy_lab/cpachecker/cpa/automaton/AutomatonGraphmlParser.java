@@ -408,9 +408,9 @@ public class AutomatonGraphmlParser {
         }
 
         Set<String> candidates =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.INVARIANT);
+            GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANT);
         Set<String> candidateScopes =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.INVARIANTSCOPE);
+            GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
         final Scope candidateScope = determineScope(candidateScopes, newStack);
         if (!candidates.isEmpty()) {
           if (graphType == GraphType.ERROR_WITNESS) {
