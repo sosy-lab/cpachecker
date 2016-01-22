@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
@@ -54,8 +55,9 @@ public class AutomatonStopOperator implements StopOperator {
     throws CPAException, InterruptedException {
 
     AutomatonState state = (AutomatonState) pState;
+    Object[] props = state.getOwningAutomaton().getEncodedProperties().toArray(new Property[state.getOwningAutomaton().getEncodedProperties().size()]);
 
-    try (Contexts stat = Stats.beginRootContext(state.getOwningAutomaton().getEncodedProperties())) {
+    try (Contexts stat = Stats.beginRootContext(props)) {
 
       for (AbstractState reachedState : pReached) {
         if (domain.isLessOrEqual(pState, reachedState)) {
