@@ -1490,6 +1490,9 @@ cpa.predicate.refinement.atomicInterpolants = true
 # invariant
 cpa.predicate.refinement.atomicInvariants = false
 
+# Avoid refinement roots that have several siblings?
+cpa.predicate.refinement.avoidRootsWithSeveralSiblings = false
+
 # configuration file for bmc generation
 cpa.predicate.refinement.bmcConfig = "config/bmc-invgen.properties"
 

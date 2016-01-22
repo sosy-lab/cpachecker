@@ -131,6 +131,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.TARGET;
   private static enum PredicateBasisStrategy {ALL, TARGET, CUTPOINT}
 
+  @Option(secure=true, name="refinement.avoidRootsWithSeveralSiblings",
+      description="Avoid refinement roots that have several siblings?")
+  private boolean avoidRootsWithSeveralSiblings = false;
+
   @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
           + "after N refinements. 0 to disable, 1 for always.")
@@ -184,6 +188,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   private StatTimer itpSimplification = new StatTimer(StatKind.SUM, "Itp simplification with BDDs");
 
   private final StatCounter numberOfRefinementRootsWithSiblings = new StatCounter("Number of refinement root states with siblings");
+  private final StatCounter numberOfRefinementRootsSkippedWithSiblings = new StatCounter("Skipped refinement root states with siblings");
 
   private StatInt simplifyDeltaConjunctions = new StatInt(StatKind.SUM, "Conjunctions Delta");
   private StatInt simplifyDeltaDisjunctions = new StatInt(StatKind.SUM, "Disjunctions Delta");
@@ -220,7 +225,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
         .put(argUpdate)
         .spacer();
 
-      w0.put(numberOfRefinementRootsWithSiblings).spacer();
+      w0.put(numberOfRefinementRootsWithSiblings)
+        .put(numberOfRefinementRootsSkippedWithSiblings)
+        .spacer();
 
       basicRefinementStatistics.printStatistics(out, pResult, pReached);
 
@@ -582,33 +589,52 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       boolean pRepeatedCounterexample) throws RefinementFailedException {
     boolean newPredicatesFound = !targetStatePrecision.getLocalPredicates().entries().containsAll(newPredicates.entries());
 
-    ARGState firstInterpolationPoint = pAffectedStates.get(0);
+    ARGState rootState = pAffectedStates.get(0);
+
     if (!newPredicatesFound) {
       if (pRepeatedCounterexample) {
         throw new RefinementFailedException(RefinementFailedException.Reason.RepeatedCounterexample, null);
       }
       numberOfRefinementsWithStrategy2.inc();
 
-      CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(firstInterpolationPoint);
+      CFANode firstInterpolationPointLocation = AbstractStates.extractLocation(rootState);
 
       logger.log(Level.FINEST, "Found spurious counterexample,",
           "trying strategy 2: remove everything below node", firstInterpolationPointLocation, "from ARG.");
 
       // find top-most element in path with location == firstInterpolationPointLocation,
       // this is not necessary equal to firstInterpolationPoint
-      ARGState current = firstInterpolationPoint;
+      ARGState current = rootState;
       while (!current.getParents().isEmpty()) {
         current = Iterables.get(current.getParents(), 0);
 
         if (getPredicateState(current).isAbstractionState()) {
           CFANode loc = AbstractStates.extractLocation(current);
           if (loc.equals(firstInterpolationPointLocation)) {
-            firstInterpolationPoint = current;
+            rootState = current;
           }
         }
       }
     }
-    return firstInterpolationPoint;
+
+    if (avoidRootsWithSeveralSiblings) {
+      if (!rootState.getParents().isEmpty()) {
+        if (rootState.getParents().iterator().next().getChildren().size() > 1) {
+          ARGState current = rootState;
+          while (!current.getParents().isEmpty()) {
+            current = Iterables.get(current.getParents(), 0);
+
+            if (getPredicateState(current).isAbstractionState()) {
+              numberOfRefinementRootsSkippedWithSiblings.inc();
+              rootState = current;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return rootState;
   }
 
   /**
