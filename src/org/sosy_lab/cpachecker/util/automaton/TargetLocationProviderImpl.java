@@ -27,8 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.logging.Level;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -56,6 +54,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
   private final LogManager logManager;
   private final Configuration config;
   private final CFA cfa;
+  private final ImmutableSet<CFANode> allNodes;
 
   private final static String specificationPropertyName = "specification";
 
@@ -66,13 +65,14 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     logManager = pLogManager.withComponentName("TargetLocationProvider");
     config = pConfig;
     cfa = pCfa;
+    allNodes = ImmutableSet.copyOf(cfa.getAllNodes());
   }
 
   /* (non-Javadoc)
    * @see org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider#tryGetAutomatonTargetLocations(org.sosy_lab.cpachecker.cfa.model.CFANode)
    */
   @Override
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
+  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode) {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
@@ -119,7 +119,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
         logManager.logDebugException(e);
       }
 
-      return null;
+      return allNodes;
 
     } catch (InterruptedException e) {
       if (!shutdownNotifier.shouldShutdown()) {
@@ -127,7 +127,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       } else {
         logManager.logDebugException(e);
       }
-      return null;
+      return allNodes;
     }
   }
 }
