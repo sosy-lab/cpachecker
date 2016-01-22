@@ -127,7 +127,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AStatement> assumptions;
-  private final ExpressionTree candidateInvariants;
+  private transient final ExpressionTree candidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
   private final AutomatonSafetyProperty violatedPropertyDescription;
