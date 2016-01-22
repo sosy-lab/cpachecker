@@ -276,6 +276,12 @@ public class TigerAlgorithm
 
   @Option(
       secure = true,
+      name = "inputInterface",
+      description = "List of input variables: v1,v2,v3...")
+  private String inputInterface = "";
+
+  @Option(
+      secure = true,
       name = "outputInterface",
       description = "List of output variables: v1,v2,v3...")
   private String outputInterface = "";
@@ -304,6 +310,7 @@ public class TigerAlgorithm
   private TestSuite testsuite;
   private ReachedSet reachedSet = null;
   private ReachedSet outsideReachedSet = null;
+  private Set<String> inputVariables;
   private Set<String> outputVariables;
 
   private PredicatePrecision reusedPrecision = null;
@@ -343,9 +350,14 @@ public class TigerAlgorithm
     bddCpaNamedRegionManager = BDDUtils.getBddCpaNamedRegionManagerFromCpa(cpa, useTigerAlgorithm_with_pc);
 
     testsuite = new TestSuite(bddCpaNamedRegionManager, printLabels, useTigerAlgorithm_with_pc);
+    inputVariables = new TreeSet<>();
+    for (String variable : inputInterface.split(",")) {
+      inputVariables.add(variable.trim());
+    }
+
     outputVariables = new TreeSet<>();
     for (String variable : outputInterface.split(",")) {
-      outputVariables.add(variable);
+      outputVariables.add(variable.trim());
     }
 
     assert TigerAlgorithm.originalMainFunction != null;
@@ -1130,6 +1142,7 @@ public class TigerAlgorithm
 
     final RichModel model = pCex.getTargetPathModel();
     final List<BigInteger> inputValues = calculateInputValues(model);
+    final Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs = calculateInputAndOutputValues(model);
     final List<TestStep> testSteps = calculateTestSteps(model, pCex);
 
     TestCase testcase = new TestCase(testCaseId++,
@@ -1139,7 +1152,8 @@ public class TigerAlgorithm
         pPresenceCondition,
         bddCpaNamedRegionManager,
         getCpuTime(),
-        inputValues);
+        inputValues,
+        inputsAndOutputs);
 
     if (useTigerAlgorithm_with_pc) {
       logger.logf(Level.INFO, "Generated new test case %d with PC %s in the last state.", testcase.getId(),
@@ -1295,6 +1309,59 @@ public class TigerAlgorithm
       inputValues.add(new BigInteger(e.getValue().toString()));
     }
     return inputValues;
+  }
+
+  private Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> calculateInputAndOutputValues(
+      RichModel model) {
+    Comparator<Map.Entry<AssignableTerm, Object>> comp =
+        new Comparator<Map.Entry<AssignableTerm, Object>>() {
+
+          @Override
+          public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
+
+            assert pArg0.getKey() instanceof AssignableTerm.Variable;
+            assert pArg1.getKey() instanceof AssignableTerm.Variable;
+
+            Pair<String, Integer> argOneSsaComps = extractSsaComponents(pArg0.getKey().getName());
+            Pair<String, Integer> argTwoSsaComps = extractSsaComponents(pArg1.getKey().getName());
+
+            if (argOneSsaComps.getFirst().compareTo(argTwoSsaComps.getFirst()) == 0) {
+              return argOneSsaComps.getSecond() - argTwoSsaComps.getSecond();
+            } else {
+              return argOneSsaComps.getFirst().compareTo(argTwoSsaComps.getFirst());
+            }
+          }
+
+        };
+
+    TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+    TreeSet<Map.Entry<AssignableTerm, Object>> outputs = new TreeSet<>(comp);
+
+    for (Entry<AssignableTerm, Object> entry : model.entrySet()) {
+      if (!(entry.getKey() instanceof AssignableTerm.Variable)) {
+        continue;
+      }
+
+      AssignableTerm.Variable v = (AssignableTerm.Variable) entry.getKey();
+
+      String variableName;
+      if (v.getName().contains("::")) {
+        variableName = v.getName().substring(
+            v.getName().indexOf("::") + 2,
+            v.getName().indexOf("@"));
+      } else {
+        variableName = v.getName().substring(0, v.getName().indexOf("@"));
+      }
+
+      if (inputVariables.contains(variableName)) {
+        inputs.add(entry);
+      }
+      if(outputVariables.contains(variableName)) {
+        outputs.add(entry);
+      }
+    }
+
+    return Pair.of(inputs, outputs);
   }
 
   private void dumpAutomaton(Automaton pA) {

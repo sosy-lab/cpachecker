@@ -25,17 +25,22 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.solver.AssignableTerm;
 
 
 public class TestCase {
 
   private int id;
   private List<BigInteger> inputs;
+  private Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs;
   private List<TestStep> testSteps;
   private ARGPath argPath;
   private List<CFAEdge> errorPath;
@@ -46,7 +51,8 @@ public class TestCase {
   private int numberOfNewlyPartiallyCoveredGoals;
 
   public TestCase(int pId, List<TestStep> pTestSteps, ARGPath pArgPath, List<CFAEdge> pList, Region pPresenceCondition,
-      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime, List<BigInteger> pInputs) {
+      NamedRegionManager pBddCpaNamedRegionManager, long pGenerationTime, List<BigInteger> pInputs,
+      Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
     id = pId;
     testSteps = pTestSteps;
     argPath = pArgPath;
@@ -55,6 +61,7 @@ public class TestCase {
     presenceCondition = pPresenceCondition;
     generationTime = pGenerationTime;
     inputs = pInputs;
+    inputsAndOutputs = pInputsAndOutputs;
   }
 
   public int getId() {
@@ -99,6 +106,10 @@ public class TestCase {
 
   public List<BigInteger> getInputs() {
     return inputs;
+  }
+
+  public Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> getInputsAndOutputs() {
+    return inputsAndOutputs;
   }
 
   public String toCode() {

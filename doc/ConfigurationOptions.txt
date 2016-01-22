@@ -97,6 +97,599 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Possible log levels in descending order 
+# (lower levels include higher ones):
+# OFF:      no logs published
+# SEVERE:   error messages
+# WARNING:  warnings
+# INFO:     messages
+# FINE:     logs on main application level
+# FINER:    logs on central CPA algorithm level
+# FINEST:   logs published by specific CPAs
+# ALL:      debugging information
+# Care must be taken with levels of FINER or lower, as output files may
+# become quite large and memory usage might become an issue.
+
+# single levels to be excluded from being logged
+log.consoleExclude = []
+
+# log level of console output
+log.consoleLevel = Level.INFO
+
+# name of the log file
+log.file = "CPALog.txt"
+
+# single levels to be excluded from being logged
+log.fileExclude = []
+
+# log level of file output
+log.level = Level.OFF
+
+# maximum size of log output strings before they will be truncated
+log.truncateSize = 10000
+
+# use colors for log messages on console
+log.useColors = true
+
+# all used options are printed
+log.usedOptions.export = false
+
+# disable all default output files
+# (any explicitly given file will still be written)
+output.disable = false
+
+# directory to put all output files in
+output.path = "output/"
+
+# base directory for all input & output files
+# (except for the configuration file itself)
+rootDirectory = "."
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in SmtLib format into a file.
+solver.logAllQueries = false
+solver.logfile = no default value
+
+# Further options that will be passed to Mathsat in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# Further options that will be set to true for SMTInterpol in addition to the
+# default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Use non-linear arithmetic when encoding formulas in corresponding theory.
+# This effects the operations DIV, MOD, and MULT with two non-numeral
+# operands, which are encoded with uninterpreted functions otherwise. If a
+# solver does not support non-linear arithmetic, and this option is set, an
+# exception is thrown.
+solver.useNonLinearIntegerArithmetic = false
+solver.useNonLinearRationalArithmetic = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# Whether to use PhantomReferences for discarding Z3 AST
+solver.z3.usePhantomReferences = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in SmtLib format into a file.
+solver.logAllQueries = false
+solver.logfile = no default value
+
+# Further options that will be passed to Mathsat in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# Further options that will be set to true for SMTInterpol in addition to the
+# default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Use non-linear arithmetic when encoding formulas in corresponding theory.
+# This effects the operations DIV, MOD, and MULT with two non-numeral
+# operands, which are encoded with uninterpreted functions otherwise. If a
+# solver does not support non-linear arithmetic, and this option is set, an
+# exception is thrown.
+solver.useNonLinearIntegerArithmetic = false
+solver.useNonLinearRationalArithmetic = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# Whether to use PhantomReferences for discarding Z3 AST
+solver.z3.usePhantomReferences = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in SmtLib format into a file.
+solver.logAllQueries = false
+solver.logfile = no default value
+
+# Further options that will be passed to Mathsat in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# Further options that will be set to true for SMTInterpol in addition to the
+# default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Use non-linear arithmetic when encoding formulas in corresponding theory.
+# This effects the operations DIV, MOD, and MULT with two non-numeral
+# operands, which are encoded with uninterpreted functions otherwise. If a
+# solver does not support non-linear arithmetic, and this option is set, an
+# exception is thrown.
+solver.useNonLinearIntegerArithmetic = false
+solver.useNonLinearRationalArithmetic = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# Whether to use PhantomReferences for discarding Z3 AST
+solver.z3.usePhantomReferences = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in SmtLib format into a file.
+solver.logAllQueries = false
+solver.logfile = no default value
+
+# Further options that will be passed to Mathsat in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# Further options that will be set to true for SMTInterpol in addition to the
+# default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Use non-linear arithmetic when encoding formulas in corresponding theory.
+# This effects the operations DIV, MOD, and MULT with two non-numeral
+# operands, which are encoded with uninterpreted functions otherwise. If a
+# solver does not support non-linear arithmetic, and this option is set, an
+# exception is thrown.
+solver.useNonLinearIntegerArithmetic = false
+solver.useNonLinearRationalArithmetic = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# Whether to use PhantomReferences for discarding Z3 AST
+solver.z3.usePhantomReferences = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Export solver queries in SmtLib format into a file.
+solver.logAllQueries = false
+solver.logfile = no default value
+
+# Further options that will be passed to Mathsat in addition to the default
+# options. Format is 'key1=value1,key2=value2'
+solver.mathsat5.furtherOptions = ""
+
+# Load less stable optimizing version of mathsat5 solver.
+solver.mathsat5.loadOptimathsat5 = false
+
+# The number of atoms a term has to have before it gets abbreviated if there
+# are more identical terms.
+solver.princess.minAtomsForAbbreviation = 100
+
+# Random seed for SMT solver.
+solver.randomSeed = 42
+
+# Double check generated results like interpolants and models whether they
+# are correct
+solver.smtinterpol.checkResults = false
+
+# Further options that will be set to true for SMTInterpol in addition to the
+# default options. Format is 'option1,option2,option3'
+solver.smtinterpol.furtherOptions = []
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Use non-linear arithmetic when encoding formulas in corresponding theory.
+# This effects the operations DIV, MOD, and MULT with two non-numeral
+# operands, which are encoded with uninterpreted functions otherwise. If a
+# solver does not support non-linear arithmetic, and this option is set, an
+# exception is thrown.
+solver.useNonLinearIntegerArithmetic = false
+solver.useNonLinearRationalArithmetic = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3.log = no default value
+
+# Ordering for objectives in the optimization context
+solver.z3.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3.requireProofs = true
+
+# Whether to use PhantomReferences for discarding Z3 AST
+solver.z3.usePhantomReferences = false
+
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
@@ -129,15 +722,16 @@ analysis.algorithm.proofCheck = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
+# Use Test Input GEneRator algorithm (Information Reuse for Multi-Goal
+# Reachability Analyses, ESOP'13)
+analysis.algorithm.tiger = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
 
 # use counterexample check and the BDDCPA Restriction option
 analysis.checkCounterexamplesWithBDDCPARestriction = false
-
-# check multiple, different, properties in one verification run?
-analysis.checkMultipleProperties = false
 
 # do analysis and then check analysis result
 analysis.checkProof = false
@@ -181,22 +775,6 @@ analysis.machineModel = LINUX32
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
 analysis.memorizeReachedAfterRestart = false
-
-# Operator for initializing the waitlist after the partitioning of properties
-# was performed.
-analysis.mpa.initOperatorClass = InitDefaultOperator.class
-
-# Operator for determining the partitions of properties that have to be
-# checked.
-analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
-
-# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
-analysis.mpa.partition.time.cpu = -1ns
-
-# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
-analysis.mpa.partition.time.wall = -1ns
 
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
@@ -403,11 +981,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-# maximum time limit for CBMC (0 is infinite)
-cbmc.timelimit = 0ms
 cbmc.timelimit = 0
+cbmc.timelimit = 0ms
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
@@ -667,10 +1245,6 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
-# Export statistics on the number of states per level of the ARG to a .csv
-# file.
-cpa.arg.argLevelStatisticsFile = no default value
-
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
@@ -728,10 +1302,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in a CPA enabled analysis because then it
-# mustbehave differntly during merge.
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differntly during merge.
+# inform ARG CPA if it is run in a CPA enabled analysis because then it
+# mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
@@ -793,23 +1367,12 @@ cpa.automaton.merge.onInactive = false
 # Merge two automata states if one of them is TOP.
 cpa.automaton.merge.onTop = false
 
-# Disable a property after the avg. time for refinements was exhausted.
-cpa.automaton.prec.limit.avgRefineTime = -1ns
-
-# Disable a property after a specific time (total) for refinements was
-# exhausted.
-cpa.automaton.prec.limit.totalRefineTime = -1ns
-
 # Handle at most k (> 0) violation of one property.
 cpa.automaton.prec.limit.violations = 1
 
 # Behaviour on a property that has already been fully handled.
 cpa.automaton.prec.onHandledTarget = SIGNAL
   enum:     [SIGNAL, BOTTOM, INACTIVE]
-
-# Stop in the automata transfer relation if the analysis identified one
-# feasible path for each target state.
-cpa.automaton.stopAfterOneFeasiblePathPerProperty = false
 
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
@@ -1737,10 +2300,6 @@ cpa.predicate.useParameterVariables = false
 # variables are also encoded with return-variables at function-exit.
 cpa.predicate.useParameterVariablesForGlobals = false
 
-# Enable fallback to UFs if a solver does not support non-linear arithmetics.
-# This option only effects MULT, MOD and DIV.
-cpa.predicate.useUFsForNonLinearArithmetic = true
-
 # Qualified name for class which checks that the computed abstraction adheres
 # to the desired property.
 cpa.propertychecker.className = "org.sosy_lab.cpachecker.pcc.propertychecker.DefaultPropertyChecker"
@@ -2536,10 +3095,6 @@ spec.strictMatching = false
 # Legacy option for token-based matching with path automatons.
 spec.transitionToStopForNegatedTokensetMatch = false
 
-# Use a powerset domain for representing the current states of the
-# specification automata.
-spec.usepowerset = false
-
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
 specification = no default value
@@ -2589,3 +3144,80 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Configuration file for internal cpa algorithm.
+tiger.algorithmConfigurationFile = "config/tiger-internal-algorithm.properties"
+
+# Returns all test goals covered by a test case.
+tiger.allCoveredGoalsPerTestCase = false
+
+# Checks whether a test case for one goal covers another test goal
+tiger.checkCoverage = true
+
+# File for saving processed goal automata in DOT format (%s will be replaced
+# with automaton name)
+tiger.dumpGoalAutomataTo = "Automaton_%s.dot"
+
+# Coverage criterion given as an FQL query
+tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
+
+# Inverses the order of test goals each time a new round of re-processing of
+# timed-out goals begins.
+tiger.inverseOrder = true
+
+# Time limit per test goal in seconds (-1 for infinity).
+tiger.limitsPerGoal.time.cpu = -1
+
+# Value for which timeout gets incremented if timed-out goals are
+# re-processed.
+tiger.limitsPerGoal.time.cpu.increment = 0
+
+# The number of test goals processed per CPAchecker run (0: all test goals in
+# one run).
+tiger.numberOfTestGoalsPerRun = 1
+
+# Optimize the test goal automata
+tiger.optimizeGoalAutomata = true
+
+# List of output variables: v1,v2,v3...
+tiger.outputInterface = ""
+
+# Print the ARG for each test goal
+tiger.printARGperGoal = false
+
+# Prints labels reached with the error path of a test case.
+tiger.printLabels = false
+
+# Reuse ARG across test goals
+tiger.reuseARG = true
+
+# Reuse predicates across modifications of an ARG.
+tiger.reusePredicates = true
+
+# Filename for output of geneartion times of test cases
+tiger.testcaseGeneartionTimesFile = "generationTimes.csv"
+
+# Filename for output of generated test suite
+tiger.testsuiteFile = "testsuite.txt"
+
+# Use Test Input Generator algorithm with an extension using the BDDCPA to
+# model product line presence conditions
+tiger.tiger_with_presenceConditions = false
+
+# How to proceed with timed-out goals if some time remains after processing
+# all other goals.
+tiger.timeoutStrategy = SKIP_AFTER_TIMEOUT
+  enum:     [SKIP_AFTER_TIMEOUT, RETRY_AFTER_TIMEOUT]
+
+# Compute the cross product of the goal automata?
+tiger.useAutomataCrossProduct = false
+
+# Map information on infeasibility of one test goal to other test goals.
+tiger.useInfeasibilityPropagation = false
+
+# Enforce the original order each time a new round of re-processing of
+# timed-out goals begins.
+tiger.useOrder = true
+
+# Construct the powerset of automata states.
+tiger.usePowerset = true

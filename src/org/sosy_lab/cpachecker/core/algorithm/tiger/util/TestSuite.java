@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.clustering.Infeasibili
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.solver.AssignableTerm;
 
 public class TestSuite extends AlgorithmResult {
 
@@ -230,6 +232,20 @@ public class TestSuite extends AlgorithmResult {
 
     for (TestCase testcase : testcases) {
       str.append(testcase.toString() + "\n");
+      str.append("Inputs:\n");
+      TreeSet<Entry<AssignableTerm, Object>> inputs = testcase.getInputsAndOutputs().getFirst();
+      Collection<Entry<AssignableTerm, Object>> lastInputs = getLastAssignments(inputs);
+      for (Entry<AssignableTerm, Object> input : lastInputs) {
+        Pair<String, Integer> nameAndSsaIndex = parseVariableName(input.getKey().getName());
+        str.append(nameAndSsaIndex.getFirst() + ": " + input.getValue() + "\n");
+      }
+      str.append("Outputs:\n");
+      TreeSet<Entry<AssignableTerm, Object>> outputs = testcase.getInputsAndOutputs().getSecond();
+      Collection<Entry<AssignableTerm, Object>> lastOutputs = getLastAssignments(outputs);
+      for (Entry<AssignableTerm, Object> output : lastOutputs) {
+        Pair<String, Integer> nameAndSsaIndex = parseVariableName(output.getKey().getName());
+        str.append(nameAndSsaIndex.getFirst() + ": " + output.getValue() + "\n");
+      }
       List<CFAEdge> errorPath = testcase.getErrorPath();
       if (testcase.getGenerationTime() != -1) {
         str.append("Generation Time: " + (testcase.getGenerationTime() - getGenerationStartTime()) + "\n");
@@ -307,6 +323,37 @@ public class TestSuite extends AlgorithmResult {
     }
 
     return str.toString().replace("__SELECTED_FEATURE_", "");
+  }
+
+  private Collection<Entry<AssignableTerm, Object>> getLastAssignments(
+      TreeSet<Entry<AssignableTerm, Object>> pInputs) {
+    Map<String,Entry<AssignableTerm, Object>> assignments = new HashMap<>();
+    for (Entry<AssignableTerm, Object> entry : pInputs) {
+      Entry<AssignableTerm, Object> containingVariable =
+          assignments.get(parseVariableName(entry.getKey().getName()).getFirst());
+      if (containingVariable == null) {
+        assignments.put(parseVariableName(entry.getKey().getName()).getFirst(), entry);
+      } else {
+        if (parseVariableName(containingVariable.getKey().getName())
+            .getSecond() < parseVariableName(entry.getKey().getName()).getSecond()) {
+          assignments.put(parseVariableName(entry.getKey().getName()).getFirst(), entry);
+        }
+      }
+    }
+
+    return assignments.values();
+  }
+
+  public Pair<String, Integer> parseVariableName(String name) {
+    String variableName;
+    if (name.contains("::")) {
+      variableName = name.substring(name.indexOf("::") + 2, name.indexOf("@"));
+    } else {
+      variableName = name.substring(0, name.indexOf("@"));
+    }
+    int ssaIndex = new Integer(name.substring(name.indexOf("@") + 1));
+
+    return Pair.of(variableName, ssaIndex);
   }
 
   /**
@@ -404,6 +451,10 @@ public class TestSuite extends AlgorithmResult {
 
   public boolean isGoalTimedout(Goal pGoal) {
     return timedOutGoals.containsKey(pGoal);
+  }
+
+  public int size() {
+    return getTestCases().size();
   }
 
 }
