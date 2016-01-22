@@ -322,7 +322,7 @@ public class ToCodeFormulaVisitor implements
       }
       return null;
     }
-    return operand1 + "<" + operand2;
+    return lessThan(operand1, operand2);
   }
 
   private static final String lessThan(String pLess, String pMore) {
