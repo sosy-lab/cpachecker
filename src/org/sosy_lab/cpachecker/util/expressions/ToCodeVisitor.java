@@ -32,7 +32,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 
 
-public class ToCodeVisitor<LeafType> implements ExpressionTreeVisitor<LeafType, String> {
+public class ToCodeVisitor<LeafType>
+    implements ExpressionTreeVisitor<LeafType, String, RuntimeException> {
 
   private static final Function<String, String> WRAP_IN_PARENTHESES =
       new Function<String, String>() {
@@ -68,7 +69,7 @@ public class ToCodeVisitor<LeafType> implements ExpressionTreeVisitor<LeafType, 
       @Override
       public String apply(ExpressionTree<LeafType> pExpressionTree) {
         return pExpressionTree.accept(
-            new ExpressionTreeVisitor<LeafType, String>() {
+            new ExpressionTreeVisitor<LeafType, String, RuntimeException>() {
 
               @Override
               public String visit(And<LeafType> pAnd) {

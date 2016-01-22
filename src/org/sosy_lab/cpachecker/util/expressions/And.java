@@ -52,7 +52,8 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
   }
 
   @Override
-  public <T> T accept(ExpressionTreeVisitor<LeafType, T> pVisitor) {
+  public <T, E extends Throwable> T accept(ExpressionTreeVisitor<LeafType, T, E> pVisitor)
+      throws E {
     return pVisitor.visit(this);
   }
 
