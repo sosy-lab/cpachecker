@@ -285,13 +285,17 @@ class KInductionProver implements AutoCloseable {
     return invariant;
   }
 
-  public ExpressionTree getCurrentLocationInvariants(CFANode pLocation) throws InterruptedException {
+  public ExpressionTree<Object> getCurrentLocationInvariants(CFANode pLocation)
+      throws InterruptedException {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
-    ExpressionTree invariant = currentInvariantsSupplier.getInvariantFor(pLocation);
+    ExpressionTree<Object> invariant = currentInvariantsSupplier.getInvariantFor(pLocation);
 
     for (ExpressionTreeCandidateInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeCandidateInvariant.class)) {
-      invariant = And.of(ImmutableList.<ExpressionTree>of(invariant, confirmedCandidate.asExpressionTree()));
+      invariant =
+          And.of(
+              ImmutableList.<ExpressionTree<Object>>of(
+                  invariant, confirmedCandidate.asExpressionTree()));
     }
 
     return invariant;

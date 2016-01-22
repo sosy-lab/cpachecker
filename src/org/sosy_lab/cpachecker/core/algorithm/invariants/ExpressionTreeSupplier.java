@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 
 public interface ExpressionTreeSupplier {
@@ -37,14 +38,14 @@ public interface ExpressionTreeSupplier {
    * @param node The CFANode.
    * @return An invariant boolean expression over C expressions.
    */
-  ExpressionTree getInvariantFor(CFANode node);
+  ExpressionTree<Object> getInvariantFor(CFANode node);
 
   static enum TrivialInvariantSupplier implements ExpressionTreeSupplier {
     INSTANCE;
 
     @Override
-    public ExpressionTree getInvariantFor(CFANode pNode) {
-      return ExpressionTree.TRUE;
+    public ExpressionTree<Object> getInvariantFor(CFANode pNode) {
+      return ExpressionTrees.getTrue();
     }
   }
 }

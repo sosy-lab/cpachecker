@@ -28,6 +28,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
 public interface ExpressionTreeCandidateInvariant extends CandidateInvariant {
 
-  ExpressionTree asExpressionTree();
+  ExpressionTree<Object> asExpressionTree();
 
 }

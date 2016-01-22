@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Joiner;
@@ -80,7 +82,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
               "_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
           pAutomatonCPA,
           ImmutableList.<AStatement>of(),
-          ExpressionTree.TRUE,
+          ExpressionTrees.<AExpression>getTrue(),
           0,
           0,
           null);
@@ -106,7 +108,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
           ImmutableList.<AStatement>of(),
-          ExpressionTree.TRUE,
+          ExpressionTrees.<AExpression>getTrue(),
           0,
           0,
           null);
@@ -127,7 +129,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AStatement> assumptions;
-  private transient final ExpressionTree candidateInvariants;
+  private transient final ExpressionTree<AExpression> candidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
   private final AutomatonSafetyProperty violatedPropertyDescription;
@@ -137,7 +139,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<AStatement> pAssumptions,
-      ExpressionTree pCandidateInvariants,
+      ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
       AutomatonSafetyProperty violatedPropertyDescription) {
@@ -165,7 +167,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         pInternalState,
         pAutomatonCPA,
         ImmutableList.<AStatement>of(),
-        ExpressionTree.TRUE,
+        ExpressionTrees.<AExpression>getTrue(),
         successfulMatches,
         failedMatches,
         violatedPropertyDescription);
@@ -176,7 +178,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       AutomatonInternalState pInternalState,
       ControlAutomatonCPA pAutomatonCPA,
       ImmutableList<AStatement> pAssumptions,
-      ExpressionTree pCandidateInvariants,
+      ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
       AutomatonSafetyProperty pViolatedPropertyDescription) {
@@ -461,7 +463,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return assumptions;
   }
 
-  public ExpressionTree getCandidateInvariants() {
+  public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
   }
 

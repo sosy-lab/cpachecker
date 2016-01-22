@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.w3c.dom.Document;
@@ -160,7 +161,7 @@ public class AutomatonGraphmlParser {
   private final Configuration config;
   private final MachineModel machine;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
-  private final Function<AStatement, ExpressionTree> fromStatement;
+  private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
 
   public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -172,10 +173,10 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement =
-        new Function<AStatement, ExpressionTree>() {
+        new Function<AStatement, ExpressionTree<AExpression>>() {
 
           @Override
-          public ExpressionTree apply(AStatement pStatement) {
+          public ExpressionTree<AExpression> apply(AStatement pStatement) {
             return LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
           }
         };
@@ -343,7 +344,7 @@ public class AutomatonGraphmlParser {
                 )
             );
         List<CStatement> assumptions = Lists.newArrayList();
-        ExpressionTree candidateInvariants = ExpressionTree.TRUE;
+        ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
@@ -417,7 +418,7 @@ public class AutomatonGraphmlParser {
           }
           candidateInvariants =
               And.of(
-                  ImmutableList.<ExpressionTree>of(
+                  ImmutableList.<ExpressionTree<AExpression>>of(
                       candidateInvariants,
                       parseStatementsAsExpressionTree(candidates, candidateScope, cparser)));
         }
@@ -504,7 +505,7 @@ public class AutomatonGraphmlParser {
                   not(conjunctedTriggers),
                   assertions,
                   Collections.<CStatement>emptyList(),
-                  ExpressionTree.TRUE,
+                  ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   violationStates.contains(sourceStateId)));
@@ -560,7 +561,7 @@ public class AutomatonGraphmlParser {
                       new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
                   assertions,
                   Collections.<CStatement>emptyList(),
-                  ExpressionTree.TRUE,
+                  ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   sourceIsViolationNode));
@@ -588,7 +589,7 @@ public class AutomatonGraphmlParser {
                   AutomatonBoolExpr.TRUE,
                   assertions,
                   Collections.<CStatement>emptyList(),
-                  ExpressionTree.TRUE,
+                  ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true));
@@ -685,22 +686,23 @@ public class AutomatonGraphmlParser {
     return Collections.emptySet();
   }
 
-  private ExpressionTree parseStatementsAsExpressionTree(
+  private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
       Set<String> pStatements, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
     if (!pStatements.isEmpty()) {
 
-      Set<ExpressionTree> result = new HashSet<>();
+      Set<ExpressionTree<AExpression>> result = new HashSet<>();
       for (String assumeCode : pStatements) {
-        ExpressionTree expressionTree = parseStatement(assumeCode, pScope, pCParser);
+        ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
         result.add(expressionTree);
       }
       return And.of(result);
     }
-    return ExpressionTree.TRUE;
+    return ExpressionTrees.getTrue();
   }
 
-  private ExpressionTree parseStatement(String pAssumeCode, Scope pScope, CParser pCParser)
+  private ExpressionTree<AExpression> parseStatement(
+      String pAssumeCode, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
@@ -723,7 +725,7 @@ public class AutomatonGraphmlParser {
     }
 
     // For complex expressions, assume we are dealing with expression statements
-    ExpressionTree result = ExpressionTree.TRUE;
+    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     try {
       result = parseExpression(pAssumeCode, pScope, pCParser);
     } catch (CParserException e) {
@@ -733,7 +735,7 @@ public class AutomatonGraphmlParser {
       if (clausesStrings.isEmpty()) {
         throw e;
       }
-      List<ExpressionTree> clauses = new ArrayList<>(clausesStrings.size());
+      List<ExpressionTree<AExpression>> clauses = new ArrayList<>(clausesStrings.size());
       for (String statement : clausesStrings) {
         clauses.add(parseExpression(statement, pScope, pCParser));
       }
@@ -742,7 +744,8 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private ExpressionTree parseExpression(String pAssumeCode, Scope pScope, CParser pCParser)
+  private ExpressionTree<AExpression> parseExpression(
+      String pAssumeCode, Scope pScope, CParser pCParser)
       throws CParserException, InvalidConfigurationException {
     String assumeCode = pAssumeCode.trim();
     while (assumeCode.endsWith(";")) {
@@ -779,18 +782,18 @@ public class AutomatonGraphmlParser {
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentEndNode)) {
         if (currentPath.contains(leavingEdge)) {
           logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-          return ExpressionTree.TRUE;
+          return ExpressionTrees.getTrue();
         } else if (leavingEdge instanceof AReturnStatementEdge) {
           AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
           Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
           if (!optExpression.isPresent()) {
             logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-            return ExpressionTree.TRUE;
+            return ExpressionTrees.getTrue();
           }
           AExpression expression = optExpression.get();
           if (!(expression instanceof AIntegerLiteralExpression)) {
             logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-            return ExpressionTree.TRUE;
+            return ExpressionTrees.getTrue();
           }
           AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
           if (!literal.getValue().equals(BigInteger.ZERO)) {
@@ -804,9 +807,9 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    Collection<ExpressionTree> pathsAsExpressions = new ArrayList<>(paths.size());
+    Collection<ExpressionTree<AExpression>> pathsAsExpressions = new ArrayList<>(paths.size());
     for (List<CFAEdge> path : paths) {
-      Collection<ExpressionTree> leaves = new ArrayList<>(path.size() - 1);
+      Collection<ExpressionTree<AExpression>> leaves = new ArrayList<>(path.size() - 1);
       for (CFAEdge edge : path) {
         if (edge instanceof BlankEdge) {
           continue;
@@ -817,7 +820,7 @@ public class AutomatonGraphmlParser {
           leaves.add(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
         } else {
           logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-          return ExpressionTree.TRUE;
+          return ExpressionTrees.getTrue();
         }
       }
       pathsAsExpressions.add(And.of(leaves));
@@ -835,7 +838,7 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
       List<CStatement> pAssumptions,
-      ExpressionTree pCandidateInvariants,
+      ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode) {
@@ -876,7 +879,7 @@ public class AutomatonGraphmlParser {
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
         List<CStatement> pAssumptions,
-        ExpressionTree pCandidateInvariants,
+        ExpressionTree<AExpression> pCandidateInvariants,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
       super(pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);

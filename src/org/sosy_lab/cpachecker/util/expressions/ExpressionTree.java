@@ -25,48 +25,8 @@ package org.sosy_lab.cpachecker.util.expressions;
 
 
 
-public interface ExpressionTree {
+public interface ExpressionTree<LeafType> {
 
-  public static final ExpressionTree TRUE =
-      new AbstractExpressionTree() {
-
-        @Override
-        public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
-          return pVisitor.visitTrue();
-        }
-
-        @Override
-        public int hashCode() {
-          return 1;
-        }
-
-        @Override
-        public boolean equals(Object pObj) {
-          return this == pObj;
-        }
-
-      };
-
-  public static final ExpressionTree FALSE =
-      new AbstractExpressionTree() {
-
-        @Override
-        public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
-          return pVisitor.visitFalse();
-        }
-
-        @Override
-        public int hashCode() {
-          return 0;
-        }
-
-        @Override
-        public boolean equals(Object pObj) {
-          return this == pObj;
-        }
-
-      };
-
-  <T> T accept(ExpressionTreeVisitor<T> pVisitor);
+  <T> T accept(ExpressionTreeVisitor<LeafType, T> pVisitor);
 
 }

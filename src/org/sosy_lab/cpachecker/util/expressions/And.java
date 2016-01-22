@@ -33,25 +33,26 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
-public class And extends AbstractExpressionTree implements Iterable<ExpressionTree> {
+public class And<LeafType> extends AbstractExpressionTree<LeafType>
+    implements Iterable<ExpressionTree<LeafType>> {
 
-  private final List<ExpressionTree> operands;
+  private final List<ExpressionTree<LeafType>> operands;
 
-  private And(Iterable<? extends ExpressionTree> pOperands) {
+  private And(Iterable<? extends ExpressionTree<LeafType>> pOperands) {
     assert Iterables.size(pOperands) >= 2;
-    assert !Iterables.contains(pOperands, ExpressionTree.FALSE);
-    assert !Iterables.contains(pOperands, ExpressionTree.TRUE);
+    assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
+    assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
     assert !FluentIterable.from(pOperands).anyMatch(Predicates.instanceOf(And.class));
     operands = ImmutableList.copyOf(pOperands);
   }
 
   @Override
-  public Iterator<ExpressionTree> iterator() {
+  public Iterator<ExpressionTree<LeafType>> iterator() {
     return operands.iterator();
   }
 
   @Override
-  public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+  public <T> T accept(ExpressionTreeVisitor<LeafType, T> pVisitor) {
     return pVisitor.visit(this);
   }
 
@@ -66,40 +67,42 @@ public class And extends AbstractExpressionTree implements Iterable<ExpressionTr
       return true;
     }
     if (pObj instanceof And) {
-      return operands.equals(((And) pObj).operands);
+      return operands.equals(((And<?>) pObj).operands);
     }
     return false;
   }
 
-  public static ExpressionTree of(Iterable<? extends ExpressionTree> pOperands) {
+  public static <LeafType> ExpressionTree<LeafType> of(
+      Iterable<? extends ExpressionTree<LeafType>> pOperands) {
     // If one of the operands is false, return false
-    if (Iterables.contains(pOperands, ExpressionTree.FALSE)) {
-      return ExpressionTree.FALSE;
+    if (Iterables.contains(pOperands, ExpressionTrees.getFalse())) {
+      return ExpressionTrees.getFalse();
     }
     // Filter out trivial operands and flatten the hierarchy
-    FluentIterable<? extends ExpressionTree> operands =
+    FluentIterable<? extends ExpressionTree<LeafType>> operands =
         FluentIterable.from(pOperands)
-            .filter(Predicates.not(Predicates.equalTo(ExpressionTree.TRUE)))
+            .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getTrue())))
             .transformAndConcat(
-                new Function<ExpressionTree, Iterable<ExpressionTree>>() {
+                new Function<ExpressionTree<LeafType>, Iterable<ExpressionTree<LeafType>>>() {
 
                   @Override
-                  public Iterable<ExpressionTree> apply(ExpressionTree pOperand) {
+                  public Iterable<ExpressionTree<LeafType>> apply(
+                      ExpressionTree<LeafType> pOperand) {
                     if (pOperand instanceof And) {
-                      return (And) pOperand;
+                      return (And<LeafType>) pOperand;
                     }
                     return Collections.singleton(pOperand);
                   }
                 });
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
-      return ExpressionTree.TRUE;
+      return ExpressionTrees.getTrue();
     }
     // If there is only one operand, return it
     if (operands.skip(1).isEmpty()) {
       return operands.iterator().next();
     }
-    return new And(operands);
+    return new And<>(operands);
   }
 
 }

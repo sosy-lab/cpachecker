@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
@@ -108,6 +109,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.w3c.dom.Element;
@@ -245,30 +247,31 @@ public class ARGPathExporter {
         new InvariantProvider() {
 
           @Override
-          public ExpressionTree provideInvariantFor(
+          public ExpressionTree<Object> provideInvariantFor(
               CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
             // TODO interface for extracting the information from states, similar to FormulaReportingState
-            Set<ExpressionTree> stateInvariants = new HashSet<>();
+            Set<ExpressionTree<Object>> stateInvariants = new HashSet<>();
             if (!pStates.isPresent()) {
-              return ExpressionTree.TRUE;
+              return ExpressionTrees.getTrue();
             }
             for (ARGState state : pStates.get()) {
               ValueAnalysisState valueAnalysisState =
                   AbstractStates.extractStateByType(state, ValueAnalysisState.class);
               if (valueAnalysisState != null) {
-                Set<ExpressionTree> stateInvariantParts = new HashSet<>();
+                Set<ExpressionTree<Object>> stateInvariantParts = new HashSet<>();
                 ConcreteState concreteState =
                     ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
                 for (AExpressionStatement expressionStatement :
                     assumptionToEdgeAllocator
                         .allocateAssumptionsToEdge(pEdge, concreteState)
                         .getExpStmts()) {
-                  stateInvariantParts.add(LeafExpression.of(expressionStatement.getExpression()));
+                  stateInvariantParts.add(
+                      LeafExpression.of((Object) expressionStatement.getExpression()));
                 }
                 stateInvariants.add(And.of(stateInvariantParts));
               }
             }
-            ExpressionTree invariant = Or.of(stateInvariants);
+            ExpressionTree<Object> invariant = Or.of(stateInvariants);
             return invariant;
           }
         });
@@ -417,7 +420,7 @@ public class ARGPathExporter {
       String functionName = pEdge.getPredecessor().getFunctionName();
       if (pFromState.isPresent()) {
 
-        List<ExpressionTree> code = new ArrayList<>();
+        List<ExpressionTree<Object>> code = new ArrayList<>();
         boolean isFunctionScope = this.isFunctionScope;
 
         Collection<ARGState> states = pFromState.get();
@@ -522,14 +525,42 @@ public class ARGPathExporter {
               code.add(
                   And.of(
                       FluentIterable.from(assignments)
-                          .transform(LeafExpression.FROM_EXPRESSION_STATEMENT)
+                          .transform(
+                              new Function<AExpressionStatement, ExpressionTree<Object>>() {
+
+                                @Override
+                                public ExpressionTree<Object> apply(
+                                    AExpressionStatement pExpressionStatement) {
+                                  return LeafExpression.of(
+                                      (Object) pExpressionStatement.getExpression());
+                                }
+                              })
                           .toList()));
             }
           }
         }
 
         if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
-          result.put(KeyDef.ASSUMPTION, Or.of(code).toString());
+          ExpressionTree<Object> invariant = Or.of(code);
+          String invariantCode =
+              ExpressionTrees.convert(
+                      invariant,
+                      new Function<Object, String>() {
+
+                        @Override
+                        public String apply(Object pLeafExpression) {
+                          if (pLeafExpression instanceof CExpression) {
+                            return ((CExpression) pLeafExpression)
+                                .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                          }
+                          if (pLeafExpression == null) {
+                            return "(0)";
+                          }
+                          return pLeafExpression.toString();
+                        }
+                      })
+                  .toString();
+          result.put(KeyDef.ASSUMPTION, invariantCode);
           if (isFunctionScope) {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
@@ -537,8 +568,8 @@ public class ARGPathExporter {
       }
 
       if (graphType != GraphType.ERROR_WITNESS) {
-        ExpressionTree invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
-        if (!invariant.equals(ExpressionTree.TRUE)) {
+        ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
+        if (!invariant.equals(ExpressionTrees.getTrue())) {
           result.put(KeyDef.INVARIANT, invariant.toString());
           if (isFunctionScope) {
             result.put(KeyDef.INVARIANTSCOPE, functionName);

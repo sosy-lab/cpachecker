@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 
-public interface ExpressionTreeVisitor<T> {
+public interface ExpressionTreeVisitor<LeafType, T> {
 
-  T visit(And pAnd);
+  T visit(And<LeafType> pAnd);
 
-  T visit(Or pOr);
+  T visit(Or<LeafType> pOr);
 
-  T visit(LeafExpression pLeafExpression);
+  T visit(LeafExpression<LeafType> pLeafExpression);
 
   T visitTrue();
 

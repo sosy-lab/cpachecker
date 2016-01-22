@@ -27,21 +27,22 @@ import java.util.Collection;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 import com.google.common.base.Optional;
 
 public interface InvariantProvider {
 
-  ExpressionTree provideInvariantFor(
+  ExpressionTree<Object> provideInvariantFor(
       CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates);
 
   static enum TrueInvariantProvider implements InvariantProvider {
     INSTANCE;
 
     @Override
-    public ExpressionTree provideInvariantFor(
+    public ExpressionTree<Object> provideInvariantFor(
         CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
-      return ExpressionTree.TRUE;
+      return ExpressionTrees.getTrue();
     }
   }
 }

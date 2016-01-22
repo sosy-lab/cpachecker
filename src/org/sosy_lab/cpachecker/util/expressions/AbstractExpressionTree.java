@@ -23,12 +23,31 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 
-abstract class AbstractExpressionTree implements ExpressionTree {
+import com.google.common.base.Function;
+
+abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafType> {
 
   @Override
   public String toString() {
-    return accept(ToCodeVisitor.INSTANCE);
+    return accept(
+        new ToCodeVisitor<>(
+            new Function<LeafType, String>() {
+
+              @Override
+              public String apply(LeafType pLeafExpression) {
+                if (pLeafExpression instanceof CExpression) {
+                  return ((CExpression) pLeafExpression)
+                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                }
+                if (pLeafExpression == null) {
+                  return "null";
+                }
+                return pLeafExpression.toString();
+              }
+            }));
   }
 
 }

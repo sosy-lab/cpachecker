@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -318,38 +319,49 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     super.collectStatistics(pStatsCollection);
-    pStatsCollection.add(new Statistics() {
+    pStatsCollection.add(
+        new Statistics() {
 
-      @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
-        ARGState rootState = AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
-        if (rootState != null && invariantsExport != null) {
-          try (Writer w = Files.openOutputFile(invariantsExport)) {
-            argPathExporter.writeProofWitness(w, rootState, Predicates.alwaysTrue(), Predicates.alwaysTrue(), GraphBuilder.CFA,
-                  new InvariantProvider() {
+          @Override
+          public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+            ARGState rootState =
+                AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
+            if (rootState != null && invariantsExport != null) {
+              try (Writer w = Files.openOutputFile(invariantsExport)) {
+                argPathExporter.writeProofWitness(
+                    w,
+                    rootState,
+                    Predicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    GraphBuilder.CFA,
+                    new InvariantProvider() {
 
-                    @Override
-                    public ExpressionTree provideInvariantFor(CFAEdge pCFAEdge,
-                        Optional<? extends Collection<? extends ARGState>> pStates) {
-                      try {
-                        return invariantGenerator.getAsExpressionTree().getInvariantFor(pCFAEdge.getSuccessor());
-                      } catch (CPAException e) {
-                        return ExpressionTree.TRUE;
-                      } catch (InterruptedException e) {
-                        return ExpressionTree.TRUE;
+                      @Override
+                      public ExpressionTree<Object> provideInvariantFor(
+                          CFAEdge pCFAEdge,
+                          Optional<? extends Collection<? extends ARGState>> pStates) {
+                        try {
+                          return invariantGenerator
+                              .getAsExpressionTree()
+                              .getInvariantFor(pCFAEdge.getSuccessor());
+                        } catch (CPAException e) {
+                          return ExpressionTrees.getTrue();
+                        } catch (InterruptedException e) {
+                          return ExpressionTrees.getTrue();
+                        }
                       }
-                    }
-                  });
-          } catch (IOException e) {
-            logger.logUserException(Level.WARNING, e, "Could not write invariants to file " + invariantsExport);
+                    });
+              } catch (IOException e) {
+                logger.logUserException(
+                    Level.WARNING, e, "Could not write invariants to file " + invariantsExport);
+              }
+            }
           }
-        }
-      }
 
-      @Override
-      public String getName() {
-        return null; // return null because we do not print statistics
-      }
-    });
+          @Override
+          public String getName() {
+            return null; // return null because we do not print statistics
+          }
+        });
   }
 }

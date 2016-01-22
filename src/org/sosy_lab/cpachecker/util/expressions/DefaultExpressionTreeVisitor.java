@@ -24,33 +24,34 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 
-public abstract class DefaultExpressionTreeVisitor<T> implements ExpressionTreeVisitor<T> {
+public abstract class DefaultExpressionTreeVisitor<LeafType, T>
+    implements ExpressionTreeVisitor<LeafType, T> {
 
-  protected abstract T visitDefault(ExpressionTree pExpressionTree);
+  protected abstract T visitDefault(ExpressionTree<LeafType> pExpressionTree);
 
   @Override
-  public T visit(And pAnd) {
+  public T visit(And<LeafType> pAnd) {
     return visitDefault(pAnd);
   }
 
   @Override
-  public T visit(Or pOr) {
+  public T visit(Or<LeafType> pOr) {
     return visitDefault(pOr);
   }
 
   @Override
-  public T visit(LeafExpression pLeafExpression) {
+  public T visit(LeafExpression<LeafType> pLeafExpression) {
     return visitDefault(pLeafExpression);
   }
 
   @Override
   public T visitTrue() {
-    return visitDefault(ExpressionTree.TRUE);
+    return visitDefault(ExpressionTrees.<LeafType>getTrue());
   }
 
   @Override
   public T visitFalse() {
-    return visitDefault(ExpressionTree.FALSE);
+    return visitDefault(ExpressionTrees.<LeafType>getFalse());
   }
 
 }

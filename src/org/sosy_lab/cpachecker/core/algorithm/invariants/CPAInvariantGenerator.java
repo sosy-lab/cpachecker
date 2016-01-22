@@ -75,6 +75,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -83,6 +86,7 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -411,6 +415,36 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         logger.log(Level.ALL, "Invariant for", pLocation+":", f);
 
         invariant = bfmgr.or(invariant, f);
+      }
+      return invariant;
+    }
+  }
+
+  private static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
+
+    private final UnmodifiableReachedSet reached;
+
+    private ReachedSetBasedExpressionTreeSupplier(UnmodifiableReachedSet pReached) {
+      checkArgument(!pReached.hasWaitingState());
+      checkArgument(!pReached.isEmpty());
+      reached = pReached;
+    }
+
+    @Override
+    public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
+      ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
+
+      for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
+        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+        /*
+        for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+          stateInvariant = And.of(ImmutableList.<ExpressionTree>of(
+              stateInvariant,
+              expressionTreeReportingState.getFormulaApproximation(pGetIdExpression)));
+        }
+        */
+
+        invariant = Or.of(ImmutableList.<ExpressionTree<Object>>of(invariant, stateInvariant));
       }
       return invariant;
     }
