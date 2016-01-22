@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
@@ -226,6 +227,8 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
     private int trieNum = 0;
     private List<CandidateInvariant> candidates = new ArrayList<>();
 
+    private final BooleanFormulaManager bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+
     private final ARGPath argPath;
     private final List<CFANode> abstractionNodes;
     private final Set<ARGState> elementsOnPath;
@@ -267,6 +270,12 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
             public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
               List<BooleanFormula> interpolants;
               try {
+                List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+                // the prefix is not filled up with trues if it is shorter than
+                // the path so we need to do it ourselves
+                while (pathFormula.size() < abstractionStatesTrace.size()) {
+                  pathFormula.add(bfmgr.makeBoolean(true));
+                }
                 interpolants = buildCounterexampleTrace(elementsOnPath, abstractionStatesTrace,
                     pInput.getPathFormulae(), true).getInterpolants();
 
@@ -276,8 +285,15 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
               }
 
               List<CandidateInvariant> invCandidates = new ArrayList<>();
+              // add false as last interpolant for the error location
+              interpolants = new ArrayList<>(interpolants);
+              interpolants.add(bfmgr.makeBoolean(false));
+
               for (Pair<CFANode, BooleanFormula> nodeAndFormula : Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
-                invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(), nodeAndFormula.getSecond()));
+                invCandidates.add(makeLocationInvariant(nodeAndFormula.getFirst(),
+                                                        solver.getFormulaManager()
+                                                              .dumpFormula(nodeAndFormula.getSecond())
+                                                              .toString()));
               }
               return invCandidates;
             }};
@@ -339,7 +355,6 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
 
       return invariants;
     }
-
   }
 
   public PredicateCPARefinerWithInvariants(final Configuration pConfig, final LogManager pLogger,
@@ -551,7 +566,7 @@ public class PredicateCPARefinerWithInvariants extends PredicateCPARefiner {
         throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
       }
 
-      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator);
+      KInductionInvariantGenerator invGen = KInductionInvariantGenerator.create(invariantConfig, logger, invariantShutdown, cfa, reached, candidateGenerator, false);
 
       invGen.start(cfa.getMainFunction());
       invGen.get(); // let invariant generator do the work

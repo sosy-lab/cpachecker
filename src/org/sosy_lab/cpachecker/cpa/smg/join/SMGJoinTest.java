@@ -36,11 +36,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -48,6 +50,8 @@ import com.google.common.collect.Iterables;
 public class SMGJoinTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionDeclaration functionDeclaration2 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "bar", ImmutableList.<CParameterDeclaration>of());
+  static private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
 
   private CLangSMG smg1;
   private CLangSMG smg2;
@@ -66,6 +70,86 @@ public class SMGJoinTest {
 
     smg1.addGlobalObject(global1);
     smg2.addGlobalObject(global2);
+  }
+
+  // Testing condition: adds an identical global variable to both SMGs
+  private Pair<SMGRegion, SMGRegion> addGlobalWithoutValueToBoth(String pVarName, int size) {
+    SMGRegion global1 = new SMGRegion(size, pVarName);
+    SMGRegion global2 = new SMGRegion(size, pVarName);
+
+    smg1.addGlobalObject(global1);
+    smg2.addGlobalObject(global2);
+
+    return Pair.of(global1, global2);
+  }
+
+  // Testing condition: adds an identical local variable to both SMGs
+  private Pair<SMGRegion, SMGRegion> addLocalWithoutValueToBoth(String pVarName, int size) {
+    SMGRegion local1 = new SMGRegion(size, pVarName);
+    SMGRegion local2 = new SMGRegion(size, pVarName);
+
+    smg1.addStackObject(local1);
+    smg2.addStackObject(local2);
+
+    return Pair.of(local1, local2);
+  }
+
+  // Testing condition: adds an identical local variable to both SMGs
+  private Pair<SMGRegion, SMGRegion> addHeapWithoutValueToBoth(String pVarName, int size) {
+    SMGRegion local1 = new SMGRegion(size, pVarName);
+    SMGRegion local2 = new SMGRegion(size, pVarName);
+
+    smg1.addHeapObject(local1);
+    smg2.addHeapObject(local2);
+
+    return Pair.of(local1, local2);
+  }
+
+  //Testing condition: adds an identical value to both SMGs
+  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, int pOffset,
+      int pValue, int pSizeInBytes) {
+
+    if(!smg1.getValues().contains(pValue)) {
+      smg1.addValue(pValue);
+    }
+
+    if(!smg2.getValues().contains(pValue)) {
+      smg2.addValue(pValue);
+    }
+
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(pSizeInBytes, pOffset, var.getFirst(), pValue);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(pSizeInBytes, pOffset, var.getSecond(), pValue);
+
+    smg1.addHasValueEdge(hv1);
+    smg2.addHasValueEdge(hv2);
+  }
+
+  //Testing condition: adds a pointer to both SMGs
+  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, int pOffset,
+      int pValue) {
+
+    if(!smg1.getValues().contains(pValue)) {
+      smg1.addValue(pValue);
+    }
+
+    if(!smg2.getValues().contains(pValue)) {
+      smg2.addValue(pValue);
+    }
+
+    SMGEdgePointsTo pt1 = new SMGEdgePointsTo(pValue, target.getFirst(), pOffset);
+    SMGEdgePointsTo pt2 = new SMGEdgePointsTo(pValue, target.getSecond(), pOffset);
+
+    smg1.addPointsToEdge(pt1);
+    smg2.addPointsToEdge(pt2);
+  }
+
+  //Testing condition: adds a pointer to both SMGs
+  private void addPointerValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var,
+      int pOffset, int pValue, int pSize,
+      Pair<? extends SMGObject, ? extends SMGObject> target, int pTargetOffset) {
+
+    addValueToBoth(var, pOffset, pValue, pSize);
+    addPointerToBoth(target, pTargetOffset, pValue);
   }
 
   // Testing condition: adds an identical local variable to both SMGs
@@ -184,6 +268,52 @@ public class SMGJoinTest {
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
     SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
     Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
+  }
+
+  @Test
+  public void complexJoinTestNoAbstraction() throws SMGInconsistentException {
+
+    smg1.addStackFrame(functionDeclaration3);
+    smg2.addStackFrame(functionDeclaration3);
+    Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 8);
+    Pair<SMGRegion, SMGRegion> l1 = addHeapWithoutValueToBoth("l1", 12);
+    Pair<SMGRegion, SMGRegion> l2 = addHeapWithoutValueToBoth("l2", 12);
+    Pair<SMGRegion, SMGRegion> l3 = addHeapWithoutValueToBoth("l3", 12);
+    Pair<SMGRegion, SMGRegion> l4 = addHeapWithoutValueToBoth("l4", 12);
+    addPointerValueToBoth(global, 0, 100, 4, l1, 0);
+    addPointerValueToBoth(l1, 0, 102, 4, l2, 0);
+    addPointerValueToBoth(l2, 0, 103, 4, l3, 0);
+    addPointerValueToBoth(l3, 0, 104, 4, l4, 0);
+    addPointerValueToBoth(l4, 0, 109, 4, global, 0);
+    addPointerValueToBoth(global, 4, 105, 4, l4, 0);
+    addPointerValueToBoth(l4, 4, 106, 4, l3, 0);
+    addPointerValueToBoth(l3, 4, 107, 4, l2, 0);
+    addPointerValueToBoth(l2, 4, 108, 4, l1, 0);
+    addPointerValueToBoth(l1, 4, 110, 4, global, 0);
+    addValueToBoth(l1, 8, 5, 1);
+    addValueToBoth(l2, 8, 5, 1);
+    addValueToBoth(l3, 8, 5, 1);
+    addValueToBoth(l4, 8, 5, 1);
+    Pair<SMGRegion, SMGRegion> a1 = addLocalWithoutValueToBoth("a", 4);
+    addValueToBoth(a1, 0, 5, 4);
+    Pair<SMGRegion, SMGRegion> b1 = addLocalWithoutValueToBoth("b", 4);
+    addValueToBoth(b1, 0, 100, 4);
+    smg1.addStackFrame(functionDeclaration2);
+    smg2.addStackFrame(functionDeclaration2);
+    Pair<SMGRegion, SMGRegion> b2 = addLocalWithoutValueToBoth("b", 4);
+    addValueToBoth(b2, 0, 100, 4);
+    Pair<SMGRegion, SMGRegion> c2 = addLocalWithoutValueToBoth("c", 4);
+    addValueToBoth(c2, 0, 104, 4);
+    smg1.addStackFrame(functionDeclaration);
+    smg2.addStackFrame(functionDeclaration);
+    Pair<SMGRegion, SMGRegion> a3 = addLocalWithoutValueToBoth("a", 4);
+    addValueToBoth(a3, 0, 5, 4);
+    Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 4);
+    addValueToBoth(c3, 0, 104, 4);
+
+    SMGJoin join = new SMGJoin(smg1, smg2);
+    Assert.assertTrue(join.isDefined());
+    Assert.assertEquals(join.getStatus(), SMGJoinStatus.EQUAL);
   }
 
   private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {

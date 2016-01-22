@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -132,12 +131,8 @@ enum GraphBuilder {
       }
     }
 
-    @Override
-    public GraphType getGraphType() {
-      return GraphType.ERROR_WITNESS;
-    }
   },
-  PROOF {
+  CFA {
 
     @Override
     public String getId(ARGState pState) {
@@ -181,25 +176,16 @@ enum GraphBuilder {
         CFANode current = waitlist.poll();
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
+          final Collection<ARGState> locationStates;
           if (subProgramNodes.contains(successor)) {
-            appendEdge(
-                pDocument,
-                pEdgeAppender,
-                leavingEdge,
-                Optional.of(states.get(successor)),
-                pValueMap);
+            locationStates = states.get(successor);
             if (visited.add(successor)) {
               waitlist.offer(successor);
             }
           } else {
-            String sourceId = current.toString();
-            pEdgeAppender.appendNewEdgeToSink(
-                pDocument,
-                sourceId,
-                leavingEdge,
-                Optional.<Collection<ARGState>>absent(),
-                pValueMap);
+            locationStates = Collections.<ARGState>emptySet();
           }
+          appendEdge(pDocument, pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
         }
       }
     }
@@ -228,14 +214,7 @@ enum GraphBuilder {
       }
     }
 
-    @Override
-    public GraphType getGraphType() {
-      return GraphType.PROOF_WITNESS;
-    }
-
   };
-
-  public abstract GraphType getGraphType();
 
   public abstract String getId(ARGState pState);
 

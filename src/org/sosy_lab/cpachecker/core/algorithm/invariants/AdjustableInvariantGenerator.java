@@ -46,7 +46,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 
 
-public class AdjustableInvariantGenerator<T extends InvariantGenerator> implements InvariantGenerator, StatisticsProvider {
+public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends AbstractInvariantGenerator implements StatisticsProvider {
 
   private final ShutdownNotifier shutdownNotifier;
 

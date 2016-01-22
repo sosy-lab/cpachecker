@@ -100,6 +100,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.SourceLocationMapper;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
@@ -109,7 +110,6 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
-import org.sosy_lab.cpachecker.util.expressions.ToCodeVisitor;
 import org.w3c.dom.Element;
 
 import com.google.common.base.Charsets;
@@ -130,7 +130,6 @@ import com.google.common.collect.MapDifference.ValueDifference;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.collect.SortedMapDifference;
 import com.google.common.collect.TreeMultimap;
 
@@ -228,7 +227,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.ERROR_WITNESS);
     writer.writePath(pTarget, pRootState, pIsRelevantState, pIsRelevantEdge, Optional.of(pCounterExample), GraphBuilder.ARG_PATH);
   }
 
@@ -237,16 +236,63 @@ public class ARGPathExporter {
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge)
       throws IOException {
+    writeProofWitness(
+        pTarget,
+        pRootState,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        GraphBuilder.CFA,
+        new InvariantProvider() {
+
+          @Override
+          public ExpressionTree provideInvariantFor(
+              CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
+            // TODO interface for extracting the information from states, similar to FormulaReportingState
+            Set<ExpressionTree> stateInvariants = new HashSet<>();
+            if (!pStates.isPresent()) {
+              return ExpressionTree.TRUE;
+            }
+            for (ARGState state : pStates.get()) {
+              ValueAnalysisState valueAnalysisState =
+                  AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+              if (valueAnalysisState != null) {
+                Set<ExpressionTree> stateInvariantParts = new HashSet<>();
+                ConcreteState concreteState =
+                    ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
+                for (AExpressionStatement expressionStatement :
+                    assumptionToEdgeAllocator
+                        .allocateAssumptionsToEdge(pEdge, concreteState)
+                        .getExpStmts()) {
+                  stateInvariantParts.add(LeafExpression.of(expressionStatement.getExpression()));
+                }
+                stateInvariants.add(And.of(stateInvariantParts));
+              }
+            }
+            ExpressionTree invariant = Or.of(stateInvariants);
+            return invariant;
+          }
+        });
+  }
+
+  public void writeProofWitness(
+      Appendable pTarget,
+      final ARGState pRootState,
+      final Predicate<? super ARGState> pIsRelevantState,
+      Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+      GraphBuilder pGraphBuilder,
+      InvariantProvider pInvariantProvider)
+      throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName);
+    WitnessWriter writer =
+        new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
         Optional.<CounterexampleInfo>absent(),
-        GraphBuilder.PROOF);
+        pGraphBuilder);
   }
 
   private String getInitialFileName(ARGState pRootState) {
@@ -279,10 +325,21 @@ public class ARGPathExporter {
     private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
 
     private final String defaultSourcefileName;
+    private final GraphType graphType;
+
+    private final InvariantProvider invariantProvider;
+
     private boolean isFunctionScope = false;
 
-    public WitnessWriter(@Nullable String pDefaultSourcefileName) {
-      this.defaultSourcefileName = pDefaultSourcefileName;
+    public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
+      this(pDefaultSourcefileName, pGraphType, InvariantProvider.TrueInvariantProvider.INSTANCE);
+    }
+
+    public WitnessWriter(
+        String pDefaultSourceFileName, GraphType pGraphType, InvariantProvider pInvariantProvider) {
+      this.defaultSourcefileName = pDefaultSourceFileName;
+      this.graphType = pGraphType;
+      this.invariantProvider = pInvariantProvider;
     }
 
     @Override
@@ -380,10 +437,10 @@ public class ARGPathExporter {
 
           if (cfaEdgeWithAssignments != null) {
 
-            List<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
+            Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
             Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
                 new AssignsParameterOfOtherFunction(pEdge);
-            List<AExpressionStatement> functionValidAssignments =
+            Collection<AExpressionStatement> functionValidAssignments =
                 FluentIterable.from(assignments).filter(assignsParameterOfOtherFunction).toList();
 
             if (functionValidAssignments.size() < assignments.size()) {
@@ -459,39 +516,24 @@ public class ARGPathExporter {
               code.add(
                   And.of(
                       FluentIterable.from(assignments)
-                          .transform(LeafExpression.FROM_STATEMENT)
+                          .transform(LeafExpression.FROM_EXPRESSION_STATEMENT)
                           .toList()));
             }
           }
         }
 
-        if (exportAssumptions && !code.isEmpty()) {
-          result.put(KeyDef.ASSUMPTION, Or.of(code).accept(ToCodeVisitor.INSTANCE));
+        if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+          result.put(KeyDef.ASSUMPTION, Or.of(code).toString());
           if (isFunctionScope) {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
         }
       }
 
-      if (pFromState.isPresent()) {
-        // TODO interface for extracting the information from states, similar to FormulaReportingState
-        Set<ExpressionTree> stateInvariants = new HashSet<>();
-        for (ARGState state : pFromState.get()) {
-          ValueAnalysisState valueAnalysisState =
-              AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-          if (valueAnalysisState != null) {
-            Set<ExpressionTree> stateInvariantParts = new HashSet<>();
-            ConcreteState concreteState = ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
-            for (AExpressionStatement expressionStatement : assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState).getExpStmts()) {
-              stateInvariantParts.add(LeafExpression.of(expressionStatement.getExpression()));
-            }
-            if (!stateInvariantParts.isEmpty()) {
-              stateInvariants.add(And.of(stateInvariantParts));
-            }
-          }
-        }
-        if (!stateInvariants.isEmpty()) {
-          result.put(KeyDef.INVARIANT, Or.of(stateInvariants).accept(ToCodeVisitor.INSTANCE));
+      if (graphType != GraphType.ERROR_WITNESS) {
+        ExpressionTree invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
+        if (!invariant.equals(ExpressionTree.TRUE)) {
+          result.put(KeyDef.INVARIANT, invariant.toString());
           if (isFunctionScope) {
             result.put(KeyDef.INVARIANTSCOPE, functionName);
           }
@@ -692,8 +734,6 @@ public class ARGPathExporter {
         }
       }
 
-      GraphType graphType = pGraphBuilder.getGraphType();
-
       GraphMlBuilder doc;
       try {
         doc = new GraphMlBuilder(pTarget);
@@ -811,20 +851,28 @@ public class ARGPathExporter {
 
       // Write elements
       {
-        Set<String> visited = Sets.newHashSet();
+        Map<String, Element> nodes = Maps.newHashMap();
         Deque<String> waitlist = Queues.newArrayDeque();
         waitlist.push(entryStateNodeId);
-        visited.add(entryStateNodeId);
-        appendNewNode(doc, entryStateNodeId);
+        List<Element> elementsToWrite = new ArrayList<>();
+        Element entryNode = createNewNode(doc, entryStateNodeId);
+        nodes.put(entryStateNodeId, entryNode);
+        elementsToWrite.add(entryNode);
         while (!waitlist.isEmpty()) {
           String source = waitlist.pop();
           for (Edge edge : leavingEdges.get(source)) {
-            if (visited.add(edge.target)) {
-              appendNewNode(doc, edge.target);
+            Element targetNode = nodes.get(edge.target);
+            if (targetNode == null) {
+              targetNode = createNewNode(doc, edge.target);
+              elementsToWrite.add(targetNode);
+              nodes.put(edge.target, targetNode);
               waitlist.push(edge.target);
             }
-            newEdge(doc, edge);
+            elementsToWrite.add(createNewEdge(doc, edge, targetNode));
           }
+        }
+        for (Element element : elementsToWrite) {
+          doc.appendToAppendable(element);
         }
       }
 
@@ -922,15 +970,21 @@ public class ARGPathExporter {
       return false;
     }
 
-    private void newEdge(GraphMlBuilder pDoc, Edge pEdge) {
-      Element result = pDoc.createEdgeElement(pEdge.source, pEdge.target);
-      for (KeyDef k : pEdge.label.keyValues.keySet())  {
-        pDoc.addDataElementChild(result, k, pEdge.label.keyValues.get(k));
+    private Element createNewEdge(GraphMlBuilder pDoc, Edge pEdge, Element pTargetNode) {
+      Element edge = pDoc.createEdgeElement(pEdge.source, pEdge.target);
+      for (Map.Entry<KeyDef, String> entry : pEdge.label.keyValues.entrySet()) {
+        KeyDef keyDef = entry.getKey();
+        String value = entry.getValue();
+        if (keyDef.keyFor.equals(ElementType.EDGE)) {
+          pDoc.addDataElementChild(edge, keyDef, value);
+        } else if (keyDef.keyFor.equals(ElementType.NODE)) {
+          pDoc.addDataElementChild(pTargetNode, keyDef, value);
+        }
       }
-      pDoc.appendToAppendable(result);
+      return edge;
     }
 
-    private void appendNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
+    private Element createNewNode(GraphMlBuilder pDoc, String pEntryStateNodeId) {
       Element result = pDoc.createNodeElement(pEntryStateNodeId, NodeType.ONPATH);
       for (NodeFlag f : nodeFlags.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, f.key, "true");
@@ -938,7 +992,7 @@ public class ARGPathExporter {
       for (Property violation : violatedProperties.get(pEntryStateNodeId)) {
         pDoc.addDataElementChild(result, KeyDef.VIOLATEDPROPERTY, violation.toString());
       }
-      pDoc.appendToAppendable(result);
+      return result;
     }
 
     private Collection<NodeFlag> extractNodeFlags(ARGState pState) {

@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -339,7 +340,7 @@ public class SMGConcreteErrorPathAllocator {
       if(symbolicValue == 0) {
         value = BigInteger.ZERO;
       } else if (pSMGState.isPointer(symbolicValue)) {
-        SMGEdgePointsTo pointer;
+        SMGAddressValue pointer;
         try {
           pointer = pSMGState.getPointerFromValue(symbolicValue);
         } catch (SMGInconsistentException e) {
@@ -348,7 +349,7 @@ public class SMGConcreteErrorPathAllocator {
 
 
         //TODO ugly, use common representation
-        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
+        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset().getAsInt(), pSMGState).getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
         value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {

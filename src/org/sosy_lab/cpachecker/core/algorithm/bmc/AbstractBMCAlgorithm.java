@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -139,8 +140,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
   private final ShutdownRequestListener propagateSafetyInterrupt;
 
-  private Collection<CFANode> targetLocations;
-
   protected AbstractBMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
                       ReachedSetFactory pReachedSetFactory,
@@ -191,12 +190,15 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       propagateSafetyInterrupt = null;
     }
 
+    shutdownNotifier = pShutdownManager.getNotifier();
+    targetLocationProvider = new CachingTargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
+
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
       addInvariantsByInduction = false;
       invariantGenerator = KInductionInvariantGenerator.create(pConfig, pLogger,
-          invariantGeneratorNotifier, pCFA, pReachedSetFactory);
+          invariantGeneratorNotifier, pCFA, pReachedSetFactory, targetLocationProvider);
     } else if (induction && addInvariantsByAI) {
       invariantGenerator = CPAInvariantGenerator.create(pConfig, pLogger, invariantGeneratorNotifier, Optional.of(invariantGeneratorNotifier), cfa);
     } else {
@@ -211,9 +213,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    shutdownNotifier = pShutdownManager.getNotifier();
 
-    targetLocationProvider = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logger, pConfig, cfa);
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
@@ -510,14 +510,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * @return the potential target locations.
    */
   protected Collection<CFANode> getTargetLocations() {
-    if (this.targetLocations != null) {
-      return this.targetLocations;
-    }
-    Collection<CFANode> targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
-    if (targetLocations == null) {
-      targetLocations = cfa.getAllNodes();
-    }
-    return this.targetLocations = targetLocations;
+    return targetLocationProvider.tryGetAutomatonTargetLocations(cfa.getMainFunction());
 
   }
 }

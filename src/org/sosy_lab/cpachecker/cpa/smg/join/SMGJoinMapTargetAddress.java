@@ -60,7 +60,12 @@ final class SMGJoinMapTargetAddress {
       }
     }
 
-    value = SMGValueFactory.getNewValue();
+    if(pAddress1 == pAddress2) {
+      value = pAddress1;
+    } else {
+      value = SMGValueFactory.getNewValue();
+    }
+
     smg.addValue(value);
     smg.addPointsToEdge(new SMGEdgePointsTo(value, target, pt.getOffset()));
     mapping1.map(pAddress1, value);

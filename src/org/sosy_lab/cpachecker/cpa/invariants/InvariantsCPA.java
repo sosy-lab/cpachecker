@@ -41,7 +41,6 @@ import java.util.logging.Level;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -88,7 +87,9 @@ import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedV
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
+import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -149,9 +150,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
   private final LogManager logManager;
 
   /**
-   * The reached set factory used.
+   * The target location provider used.
    */
-  private final ReachedSetFactory reachedSetFactory;
+  private final TargetLocationProvider targetLocationProvider;
 
   /**
    * The notifier that tells us when to stop.
@@ -212,8 +213,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     this.config = pConfig;
     this.logManager = pLogManager;
     this.shutdownNotifier = pShutdownNotifier;
-    this.reachedSetFactory = pReachedSetFactory;
     this.cfa = pCfa;
+    this.targetLocationProvider = new CachingTargetLocationProvider(pReachedSetFactory, shutdownNotifier, logManager, config, cfa);
     this.options = pOptions;
     this.conditionAdjuster = pOptions.conditionAdjusterFactory.createConditionAdjuster(this);
     this.machineModel = pCfa.getMachineModel();
@@ -265,8 +266,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     // Determine the target locations
     boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
     if (determineTargetLocations) {
-      TargetLocationProvider tlp = new TargetLocationProvider(reachedSetFactory, shutdownNotifier, logManager, config, cfa);
-      targetLocations = tlp.tryGetAutomatonTargetLocations(pNode);
+      targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(pNode);
       determineTargetLocations = targetLocations != null;
       if (targetLocations == null) {
         targetLocations = ImmutableSet.of();

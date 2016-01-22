@@ -32,4 +32,8 @@ public interface ExpressionTreeVisitor<T> {
 
   T visit(LeafExpression pLeafExpression);
 
+  T visitTrue();
+
+  T visitFalse();
+
 }

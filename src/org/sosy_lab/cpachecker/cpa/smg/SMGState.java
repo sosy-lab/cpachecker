@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddVal;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
@@ -417,15 +418,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * Constant.
    *
    * @param pValue A value for which to return the Points-To edge
-   * @return A Points-To edge leading from the passed value. The value needs to be
-   * a pointer, i.e. it needs to have that edge. If it does not have it, the method raises
+   * @return the address represented by the passed value. The value needs to be
+   * a pointer, i.e. it needs to have a points-to edge. If it does not have it, the method raises
    * an exception.
    *
    * @throws SMGInconsistentException When the value passed does not have a Points-To edge.
    */
-  public SMGEdgePointsTo getPointerFromValue(Integer pValue) throws SMGInconsistentException {
+  public SMGAddressValue getPointerFromValue(Integer pValue) throws SMGInconsistentException {
     if (heap.isPointer(pValue)) {
-      return heap.getPointer(pValue);
+      SMGEdgePointsTo addressValue = heap.getPointer(pValue);
+      return SMGKnownAddVal.valueOf(addressValue.getValue(), addressValue.getObject(), addressValue.getOffset());
     }
 
     throw new SMGInconsistentException("Asked for a Points-To edge for a non-pointer value");
@@ -797,7 +799,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   /** memory allocated in the heap has to be freed by the user,
    * otherwise this is a memory-leak. */
-  public SMGEdgePointsTo addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+  public SMGAddressValue addNewHeapAllocation(int pSize, String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
@@ -806,11 +808,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addPointsToEdge(points_to);
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return points_to;
+    return SMGKnownAddVal.valueOf(new_value, new_object, 0);
   }
 
   /** memory allocated on the stack is automatically freed when leaving the current function scope */
-  public SMGEdgePointsTo addNewStackAllocation(int pSize, String pLabel) throws SMGInconsistentException {
+  public SMGAddressValue addNewStackAllocation(int pSize, String pLabel) throws SMGInconsistentException {
     SMGRegion new_object = new SMGRegion(pSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, 0);
@@ -818,7 +820,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return points_to;
+    return SMGKnownAddVal.valueOf(new_value, new_object, 0);
   }
 
   public void setMemLeak() {

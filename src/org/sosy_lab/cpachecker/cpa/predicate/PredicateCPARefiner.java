@@ -149,9 +149,10 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private List<CFANode> lastErrorPath = null;
 
   private final PathChecker pathChecker;
-  private final Solver solver;
   private final PredicateAssumeStore assumesStore;
 
+
+  protected final Solver solver;
   protected final PrefixProvider prefixProvider;
   protected final LogManager logger;
   protected final PathFormulaManager pfmgr;

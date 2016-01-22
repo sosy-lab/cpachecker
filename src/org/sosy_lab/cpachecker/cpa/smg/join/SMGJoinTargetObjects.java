@@ -23,10 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.util.List;
+
+import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+
+import com.google.common.collect.ImmutableList;
 
 final class SMGJoinTargetObjects {
   private SMGJoinStatus status;
@@ -38,6 +43,8 @@ final class SMGJoinTargetObjects {
   private Integer value;
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
+
+  private List<SMGAbstractionCandidate> abstractionCandidates;
 
   private static boolean matchOffsets(SMGJoinTargetObjects pJto, SMGEdgePointsTo pt1, SMGEdgePointsTo pt2) {
     if (pt1.getOffset() != pt2.getOffset()) {
@@ -95,6 +102,7 @@ final class SMGJoinTargetObjects {
     SMGEdgePointsTo pt2 = inputSMG2.getPointer(pAddress2);
 
     if (SMGJoinTargetObjects.matchOffsets(this, pt1, pt2)) {
+      abstractionCandidates = ImmutableList.of();
       return;
     }
 
@@ -102,10 +110,12 @@ final class SMGJoinTargetObjects {
     SMGObject target2 = pt2.getObject();
 
     if (SMGJoinTargetObjects.checkAlreadyJoined(this, target1, target2, pAddress1, pAddress2)) {
+      abstractionCandidates = ImmutableList.of();
       return;
     }
 
     if (SMGJoinTargetObjects.checkObjectMatch(this, target1, target2)) {
+      abstractionCandidates = ImmutableList.of();
       return;
     }
 
@@ -131,7 +141,10 @@ final class SMGJoinTargetObjects {
     if (jss.isDefined()) {
       defined = true;
       status = jss.getStatus();
+      abstractionCandidates = jss.getSubSmgAbstractionCandidates();
     }
+
+    abstractionCandidates = ImmutableList.of();
   }
 
   public boolean isDefined() {
@@ -168,5 +181,9 @@ final class SMGJoinTargetObjects {
 
   public SMGNodeMapping getMapping2() {
     return mapping2;
+  }
+
+  public List<SMGAbstractionCandidate> getAbstractionCandidates() {
+    return abstractionCandidates;
   }
 }

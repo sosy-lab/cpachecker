@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.invariants;
 import static com.google.common.base.Preconditions.*;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -45,6 +48,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -53,6 +58,9 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithmForInvariantGeneration;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -63,16 +71,18 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.solver.SolverException;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Sets;
 
 /**
  * Generate invariants using k-induction.
  */
-public class KInductionInvariantGenerator implements InvariantGenerator, StatisticsProvider {
+public class KInductionInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
 
@@ -116,7 +126,7 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger, final ShutdownManager pShutdownNotifier,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory)
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, TargetLocationProvider pTargetLocationProvider)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
@@ -126,12 +136,12 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
             pCFA,
             pReachedSetFactory,
             true,
-            Optional.<CandidateGenerator>absent());
+            new StaticCandidateProvider(getCandidateInvariants(pCFA, pTargetLocationProvider)));
   }
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
       final LogManager pLogger, final ShutdownManager pShutdownNotifier,
-      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator)
+      final CFA pCFA, final ReachedSetFactory pReachedSetFactory, CandidateGenerator candidateGenerator, boolean pAsync)
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
@@ -140,14 +150,14 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
             pShutdownNotifier,
             pCFA,
             pReachedSetFactory,
-            true,
-            Optional.of(candidateGenerator));
+            pAsync,
+            candidateGenerator);
   }
 
   private KInductionInvariantGenerator(final Configuration config, final LogManager pLogger,
       final ShutdownManager pShutdownNotifier, final CFA cfa,
       final ReachedSetFactory pReachedSetFactory, final boolean pAsync,
-      final Optional<CandidateGenerator> pCandidateGenerator)
+      final CandidateGenerator pCandidateGenerator)
           throws InvalidConfigurationException, CPAException {
     logger = pLogger;
     shutdownManager = pShutdownNotifier;
@@ -264,5 +274,41 @@ public class KInductionInvariantGenerator implements InvariantGenerator, Statist
         CPAs.closeIfPossible(algorithm, logger);
       }
     }
+  }
+
+  private static Set<CandidateInvariant> getCandidateInvariants(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+
+    final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+
+    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
+      candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+    }
+
+    return candidates;
+  }
+
+  /**
+   * Gets the relevant assume edges.
+   *
+   * @param pTargetLocations the predetermined target locations.
+   *
+   * @return the relevant assume edges.
+   */
+  private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
+    final Set<AssumeEdge> assumeEdges = Sets.newLinkedHashSet();
+    Set<CFANode> visited = Sets.newHashSet(pTargetLocations);
+    Queue<CFANode> waitlist = new ArrayDeque<>(pTargetLocations);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          assumeEdges.add((AssumeEdge)enteringEdge);
+        } else if (visited.add(predecessor)) {
+          waitlist.add(predecessor);
+        }
+      }
+    }
+    return assumeEdges;
   }
 }

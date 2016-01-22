@@ -50,6 +50,11 @@ public class ProofGenerator {
       description = "Qualified name for class which implements certification strategy, hence proof writing, to be used.")
   private String pccStrategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy";
 
+  @Option(secure=true,
+      name = "pcc.sliceProof",
+      description = "Make proof more abstract, remove some of the information not needed to prove the property.")
+  private boolean slicingEnabled = false;
+
   private PCCStrategy checkingStrategy;
 
   private final LogManager logger;
@@ -93,6 +98,12 @@ public class ProofGenerator {
       logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return;
     }
+
+    if(slicingEnabled){
+      logger.log(Level.INFO, "Start slicing of proof");
+      reached = new ProofSlicer().sliceProof(reached);
+    }
+
     // saves the proof
     logger.log(Level.INFO, "Proof Generation started.");
 

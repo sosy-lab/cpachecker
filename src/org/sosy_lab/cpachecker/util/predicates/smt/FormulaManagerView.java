@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -55,6 +56,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
 import org.sosy_lab.solver.Model;
@@ -1321,15 +1323,27 @@ public class FormulaManagerView {
   }
 
   private boolean containsIfThenElse(Formula f) {
-    if (booleanFormulaManager.isIfThenElse(f)) {
-      return true;
-    }
-    for (int i = 0; i < unsafeManager.getArity(f); ++i) {
-      if (containsIfThenElse(unsafeManager.getArg(f, i))) {
-        return true;
+    final AtomicBoolean containsITE = new AtomicBoolean(false);
+    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
+      @Override
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
       }
-    }
-    return false;
+
+      @Override
+      public TraversalProcess visitFuncApp(
+          Formula f,
+          List<Formula> args,
+          FuncDecl decl,
+          Function<List<Formula>, Formula> constructor) {
+        if (decl.getKind() == FuncDeclKind.ITE) {
+          containsITE.set(true);
+          return TraversalProcess.ABORT;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+    }, f);
+    return containsITE.get();
   }
 
   static final String BitwiseAndUfName = "_&_";
@@ -1516,6 +1530,45 @@ public class FormulaManagerView {
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
     return eliminationResult;
+  }
+
+  /**
+   * Split boolean or non-boolean if-then-else formula into three parts:
+   * if, then, else.
+   * Return an empty optional for input which does not have
+   * if-then-else as an input element.
+   */
+  public <T extends Formula> Optional<Triple<BooleanFormula, T, T>>
+      splitIfThenElse(final T pF) {
+    return visit(new DefaultFormulaVisitor<Optional<Triple<BooleanFormula, T, T>>>() {
+
+            @Override
+            protected Optional<Triple<BooleanFormula, T, T>> visitDefault(Formula f) {
+              return Optional.absent();
+            }
+
+            @Override
+            public Optional<Triple<BooleanFormula, T, T>> visitFuncApp(
+                Formula f,
+                List<Formula> args,
+                FuncDecl functionDeclaration,
+                Function<List<Formula>, Formula> newApplicationConstructor) {
+              if (functionDeclaration.getKind() == FuncDeclKind.ITE) {
+                assert args.size() == 3;
+                BooleanFormula cond = (BooleanFormula)args.get(0);
+                Formula thenBranch = args.get(1);
+                Formula elseBranch = args.get(2);
+                FormulaType<T> targetType = getFormulaType(pF);
+                return Optional.of(Triple.of(
+                    cond,
+                    wrap(targetType, thenBranch),
+                    wrap(targetType, elseBranch)
+                ));
+              }
+              return Optional.absent();
+            }
+          }, pF
+      );
   }
 
   /**

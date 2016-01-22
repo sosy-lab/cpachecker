@@ -203,15 +203,14 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
     // fill the above set and map
     for (CFANode cfaNode : pStates.keySet()) {
-      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode), cfaNode);
+      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode));
       extractPredicatesAndDefinitions(cfaNode, definitions, cfaNodeToPredicate, formulas);
     }
 
     writeFormulas(pAppendable, definitions, cfaNodeToPredicate);
   }
 
-  /** get formulas representing the abstract states at the cfaNode. */
-  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states, CFANode cfaNode) {
+  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states) {
     final List<BooleanFormula> formulas = new ArrayList<>();
     final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 

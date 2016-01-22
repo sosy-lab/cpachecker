@@ -92,6 +92,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return AutomatonBoolExpr.CONST_FALSE;
     }
 
+    @Override
+    public String toString() {
+      return "PROGRAM-ENTRY";
+    }
+
   }
 
   /**

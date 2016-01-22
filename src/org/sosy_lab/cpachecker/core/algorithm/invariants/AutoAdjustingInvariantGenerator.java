@@ -46,7 +46,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 
 
-public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> implements InvariantGenerator, StatisticsProvider {
+public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> extends AbstractInvariantGenerator implements StatisticsProvider {
 
   private final ShutdownNotifier shutdownNotifier;
 
