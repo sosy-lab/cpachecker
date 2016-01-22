@@ -282,6 +282,12 @@ public class ARGPathExporter {
       GraphBuilder pGraphBuilder,
       InvariantProvider pInvariantProvider)
       throws IOException {
+    Preconditions.checkNotNull(pTarget);
+    Preconditions.checkNotNull(pRootState);
+    Preconditions.checkNotNull(pIsRelevantState);
+    Preconditions.checkNotNull(pIsRelevantEdge);
+    Preconditions.checkNotNull(pGraphBuilder);
+    Preconditions.checkNotNull(pInvariantProvider);
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer =
