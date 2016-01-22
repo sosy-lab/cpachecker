@@ -180,7 +180,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
         @Override
         public void shutdownRequested(String pReason) {
-          if (invariantGenerator.isProgramSafe()) {
+          InvariantGenerator invariantGenerator = AbstractBMCAlgorithm.this.invariantGenerator;
+          if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
             pShutdownManager.requestShutdown(pReason);
           }
         }
