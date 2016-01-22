@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -75,6 +76,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Or;
@@ -143,7 +145,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   // After start(), this will hold a Future for the final result of the invariant generation.
   // We use a Future instead of just the atomic reference below
   // to be able to ask for termination and see thrown exceptions.
-  private Future<InvariantSupplier> invariantGenerationFuture = null;
+  private Future<FormulaAndTreeSupplier> invariantGenerationFuture = null;
 
   private volatile boolean programIsSafe = false;
 
@@ -338,7 +340,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   public void start(final CFANode initialLocation) {
     checkState(invariantGenerationFuture == null);
 
-    Callable<InvariantSupplier> task = new InvariantGenerationTask(initialLocation);
+    Callable<FormulaAndTreeSupplier> task = new InvariantGenerationTask(initialLocation);
     // create future for lazy synchronous invariant generation
     invariantGenerationFuture = new LazyFutureTask<>(task);
 
@@ -353,6 +355,21 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
+    checkState(invariantGenerationFuture != null);
+
+    try {
+      return invariantGenerationFuture.get();
+    } catch (ExecutionException e) {
+      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+      throw new UnexpectedCheckedException("invariant generation", e.getCause());
+    } catch (CancellationException e) {
+      shutdownManager.getNotifier().shutdownIfNecessary();
+      throw e;
+    }
+  }
+
+  @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
 
     try {
@@ -436,13 +453,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
         ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
-        /*
         for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-          stateInvariant = And.of(ImmutableList.<ExpressionTree>of(
+          stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
               stateInvariant,
-              expressionTreeReportingState.getFormulaApproximation(pGetIdExpression)));
+              expressionTreeReportingState.getFormulaApproximation(Optional.of(pLocation.getFunctionName()))));
         }
-        */
 
         invariant = Or.of(ImmutableList.<ExpressionTree<Object>>of(invariant, stateInvariant));
       }
@@ -455,7 +470,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    * potentially in a loop with increasing precision.
    * Returns the final invariants.
    */
-  private class InvariantGenerationTask implements Callable<InvariantSupplier> {
+  private class InvariantGenerationTask implements Callable<FormulaAndTreeSupplier> {
 
     private static final String SAFE_MESSAGE = "Invariant generation with abstract interpretation proved specification to hold.";
     private final CFANode initialLocation;
@@ -465,7 +480,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
 
     @Override
-    public InvariantSupplier call() throws Exception {
+    public FormulaAndTreeSupplier call() throws Exception {
       stats.invariantGeneration.start();
       try {
 
@@ -479,7 +494,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       }
     }
 
-    private InvariantSupplier runInvariantGeneration(CFANode pInitialLocation)
+    private FormulaAndTreeSupplier runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
       ReachedSet taskReached = reachedSetFactory.create();
@@ -489,7 +504,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
-          return TrivialInvariantSupplier.INSTANCE;
+          return new FormulaAndTreeSupplier(
+              TrivialInvariantSupplier.INSTANCE,
+              org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE);
         }
       }
 
@@ -502,8 +519,9 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      return new ReachedSetBasedInvariantSupplier(
-          new UnmodifiableReachedSetWrapper(taskReached), logger);
+      return new FormulaAndTreeSupplier(
+          new ReachedSetBasedInvariantSupplier(new UnmodifiableReachedSetWrapper(taskReached), logger),
+          new ReachedSetBasedExpressionTreeSupplier(taskReached));
     }
   }
 }

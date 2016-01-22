@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanConstant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
@@ -71,10 +72,14 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ReplaceVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitConjunctionsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.StateEqualsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.ToBitvectorFormulaVisitor;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.ToCodeFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -82,6 +87,7 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -91,7 +97,8 @@ import com.google.common.collect.Sets;
 /**
  * Instances of this class represent states in the light-weight invariants analysis.
  */
-public class InvariantsState implements AbstractState, FormulaReportingState,
+public class InvariantsState implements AbstractState,
+    ExpressionTreeReportingState, FormulaReportingState,
     LatticeAbstractState<InvariantsState>, AbstractQueryableState {
 
   private static final String PROPERTY_OVERFLOW = "overflow";
@@ -875,11 +882,54 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
 
   @Override
   public org.sosy_lab.solver.api.BooleanFormula getFormulaApproximation(FormulaManagerView pManager, PathFormulaManager pfmgr) {
-    FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();
+
     BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
     org.sosy_lab.solver.api.BooleanFormula result = bfmgr.makeBoolean(true);
+    FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getFormulaResolver();
     ToBitvectorFormulaVisitor toBooleanFormulaVisitor =
         new ToBitvectorFormulaVisitor(pManager, evaluationVisitor);
+
+    for (BooleanFormula<CompoundInterval> assumption : getApproximationFormulas()) {
+      org.sosy_lab.solver.api.BooleanFormula assumptionFormula =
+          assumption.accept(toBooleanFormulaVisitor, getEnvironment());
+      if (assumptionFormula != null) {
+        result = bfmgr.and(result, assumptionFormula);
+      }
+    }
+    return result;
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximation(final Optional<String> pScope) {
+    return And.of(getApproximationFormulas().filter(new Predicate<BooleanFormula<CompoundInterval>>() {
+
+      @Override
+      public boolean apply(BooleanFormula<CompoundInterval> pFormula) {
+        if (!pScope.isPresent()) {
+          return true;
+        }
+        final String functionName = pScope.get();
+        return FluentIterable.from(pFormula.accept(new CollectVarsVisitor<CompoundInterval>())).allMatch(new Predicate<MemoryLocation>() {
+
+          @Override
+          public boolean apply(MemoryLocation pMemoryLocation) {
+            return !pMemoryLocation.isOnFunctionStack() || pMemoryLocation.getFunctionName().equals(functionName);
+          }
+
+        });
+      }
+
+    }).transform(new Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>>() {
+
+      @Override
+      public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
+        return LeafExpression.of((Object) pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
+      }
+
+    }));
+  }
+
+  private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
 
     final Predicate<MemoryLocation> acceptVariable = new Predicate<MemoryLocation>() {
 
@@ -899,17 +949,7 @@ public class InvariantsState implements AbstractState, FormulaReportingState,
       }
 
     };
-
-    for (BooleanFormula<CompoundInterval> assumption : Iterables.concat(getEnvironmentAsAssumptions(), getTypeInformationAsAssumptions())) {
-      if (acceptFormula.apply(assumption)) {
-        org.sosy_lab.solver.api.BooleanFormula assumptionFormula =
-            assumption.accept(toBooleanFormulaVisitor, getEnvironment());
-        if (assumptionFormula != null) {
-          result = bfmgr.and(result, assumptionFormula);
-        }
-      }
-    }
-    return result;
+    return FluentIterable.from(Iterables.concat(getEnvironmentAsAssumptions(), getTypeInformationAsAssumptions())).filter(acceptFormula);
   }
 
   @Override
