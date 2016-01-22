@@ -28,13 +28,18 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.util.Map;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class TigerTest {
+
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(20); // 10 seconds max per method tested
 
   /*
    * Test various configurations - variants
