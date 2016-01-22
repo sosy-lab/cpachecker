@@ -42,14 +42,16 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 
-public class EdgeFormulaNegation extends LocationFormulaInvariant {
+public class EdgeFormulaNegation extends LocationFormulaInvariant implements ExpressionTreeCandidateInvariant {
 
   private final AssumeEdge edge;
 
@@ -111,5 +113,10 @@ public class EdgeFormulaNegation extends LocationFormulaInvariant {
     for (CFANode location : locations) {
       pInvariantGenerator.injectInvariant(location, getNegatedAssumeEdge());
     }
+  }
+
+  @Override
+  public ExpressionTree asExpressionTree() {
+    return LeafExpression.of(getNegatedAssumeEdge().getExpression());
   }
 }

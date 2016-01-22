@@ -230,6 +230,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
   }
 
   @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
+    get();
+    return algorithm.getCurrentInvariantsAsExpressionTree();
+  }
+
+  @Override
   public boolean isProgramSafe() {
     return algorithm.isProgramSafe();
   }

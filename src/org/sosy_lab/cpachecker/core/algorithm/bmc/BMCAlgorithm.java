@@ -26,6 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -36,25 +40,36 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.GraphBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -68,6 +83,8 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -84,6 +101,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
+  @Option(secure=true, description="Export auxiliary invariants used for induction.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path invariantsExport = Paths.get("invariants.graphml");
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final FormulaManagerView fmgr;
@@ -94,6 +115,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Configuration config;
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
+
+  private final ARGPathExporter argPathExporter;
 
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
@@ -120,6 +143,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     MachineModel machineModel = predCpa.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
+    argPathExporter = new ARGPathExporter(config, logger, machineModel, cfa.getLanguage());
   }
 
   @Override
@@ -289,5 +313,43 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     } finally {
       stats.errorPathCreation.stop();
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    pStatsCollection.add(new Statistics() {
+
+      @Override
+      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+        ARGState rootState = AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
+        if (rootState != null && invariantsExport != null) {
+          try (Writer w = Files.openOutputFile(invariantsExport)) {
+            argPathExporter.writeProofWitness(w, rootState, Predicates.alwaysTrue(), Predicates.alwaysTrue(), GraphBuilder.CFA,
+                  new InvariantProvider() {
+
+                    @Override
+                    public ExpressionTree provideInvariantFor(CFAEdge pCFAEdge,
+                        Optional<? extends Collection<? extends ARGState>> pStates) {
+                      try {
+                        return invariantGenerator.getAsExpressionTree().getInvariantFor(pCFAEdge.getSuccessor());
+                      } catch (CPAException e) {
+                        return ExpressionTree.TRUE;
+                      } catch (InterruptedException e) {
+                        return ExpressionTree.TRUE;
+                      }
+                    }
+                  });
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write invariants to file " + invariantsExport);
+          }
+        }
+      }
+
+      @Override
+      public String getName() {
+        return null; // return null because we do not print statistics
+      }
+    });
   }
 }
