@@ -350,6 +350,9 @@ public class ARGPathExporter {
     private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
     private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
 
+    private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
+    private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
+
     private final String defaultSourcefileName;
     private final GraphType graphType;
 
@@ -586,10 +589,8 @@ public class ARGPathExporter {
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
         if (!invariant.equals(ExpressionTrees.getTrue())) {
-          result.put(KeyDef.INVARIANT, invariant.toString());
-          if (isFunctionScope) {
-            result.put(KeyDef.INVARIANTSCOPE, functionName);
-          }
+          stateInvariants.put(pTo, Or.of(getStateInvariant(pTo), invariant));
+          stateScopes.put(pTo, isFunctionScope ? functionName : "");
         }
       }
 
@@ -909,6 +910,7 @@ public class ARGPathExporter {
         waitlist.push(entryStateNodeId);
         List<Element> elementsToWrite = new ArrayList<>();
         Element entryNode = createNewNode(doc, entryStateNodeId);
+        addInvariantsData(doc, entryNode, entryStateNodeId);
         nodes.put(entryStateNodeId, entryNode);
         elementsToWrite.add(entryNode);
         while (!waitlist.isEmpty()) {
@@ -917,6 +919,7 @@ public class ARGPathExporter {
             Element targetNode = nodes.get(edge.target);
             if (targetNode == null) {
               targetNode = createNewNode(doc, edge.target);
+              addInvariantsData(doc, targetNode, edge.target);
               elementsToWrite.add(targetNode);
               nodes.put(edge.target, targetNode);
               waitlist.push(edge.target);
@@ -930,6 +933,16 @@ public class ARGPathExporter {
       }
 
       doc.appendFooter();
+    }
+
+    private void addInvariantsData(GraphMlBuilder pDoc, Element pNode, String pStateId) {
+      String scope = stateScopes.get(pStateId);
+      if (scope != null) {
+        pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, stateInvariants.get(pStateId).toString());
+        if (!scope.isEmpty()) {
+          pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
+        }
+      }
     }
 
     private void mergeNodes(final Edge pEdge) {
@@ -951,6 +964,13 @@ public class ARGPathExporter {
 
       // Merge the flags
       nodeFlags.putAll(source, nodeFlags.removeAll(target));
+      ExpressionTree<Object> sourceTree = getStateInvariant(source);
+      ExpressionTree<Object> targetTree = getStateInvariant(target);
+      stateInvariants.put(source, Or.of(sourceTree, targetTree));
+      String targetScope = stateScopes.get(target);
+      if (targetScope == null || !targetScope.equals(stateScopes.get(source))) {
+        stateScopes.remove(source);
+      }
       // Merge the violated properties
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
@@ -1059,6 +1079,14 @@ public class ARGPathExporter {
       ArrayList<Property> result = Lists.newArrayList();
       if (pState.isTarget()) {
         result.addAll(pState.getViolatedProperties());
+      }
+      return result;
+    }
+
+    private ExpressionTree<Object> getStateInvariant(String pStateId) {
+      ExpressionTree<Object> result = stateInvariants.get(pStateId);
+      if (result == null) {
+        return ExpressionTrees.getFalse();
       }
       return result;
     }
