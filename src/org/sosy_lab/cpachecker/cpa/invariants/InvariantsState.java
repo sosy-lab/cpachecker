@@ -686,15 +686,18 @@ public class InvariantsState implements AbstractState,
         Variable<CompoundInterval> variable = InvariantsFormulaManager.INSTANCE.asVariable(
                 bitVectorInfo,
                 memoryLocation);
-        if (range.hasLowerBound()) {
-          assumptions.add(compoundIntervalFormulaManager.greaterThanOrEqual(
-              variable,
-              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getLowerBound()))));
-        }
-        if (range.hasUpperBound()) {
-          assumptions.add(compoundIntervalFormulaManager.lessThanOrEqual(
-              variable,
-              InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getUpperBound()))));
+        NumeralFormula<CompoundInterval> value = environment.get(memoryLocation);
+        if (value == null || value.accept(evaluationVisitor, environment).containsAllPossibleValues()) {
+          if (range.hasLowerBound()) {
+            assumptions.add(compoundIntervalFormulaManager.greaterThanOrEqual(
+                variable,
+                InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getLowerBound()))));
+          }
+          if (range.hasUpperBound()) {
+            assumptions.add(compoundIntervalFormulaManager.lessThanOrEqual(
+                variable,
+                InvariantsFormulaManager.INSTANCE.asConstant(bitVectorInfo, cim.singleton(range.getUpperBound()))));
+          }
         }
       }
     }
