@@ -32,7 +32,6 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.UnsafeFormulaManager;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
@@ -40,14 +39,11 @@ import org.sosy_lab.solver.visitors.TraversalProcess;
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
 
   private final BooleanFormulaManager manager;
-  private final UnsafeFormulaManager unsafe;
 
   BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
-      BooleanFormulaManager pManager,
-      UnsafeFormulaManager pUnsafe) {
+      BooleanFormulaManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;
-    this.unsafe = pUnsafe;
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {
@@ -85,30 +81,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  @Deprecated
-  public boolean isNot(BooleanFormula pBits) {
-    return manager.isNot(pBits);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isAnd(BooleanFormula pBits) {
-    return manager.isAnd(pBits);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isOr(BooleanFormula pBits) {
-    return manager.isOr(pBits);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isXor(BooleanFormula pBits) {
-    return manager.isXor(pBits);
-  }
-
-  @Override
   public <R> R visit(
       org.sosy_lab.solver.visitors.BooleanFormulaVisitor<R> visitor,
       BooleanFormula formula) {
@@ -120,11 +92,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
       org.sosy_lab.solver.visitors.BooleanFormulaVisitor<TraversalProcess> rFormulaVisitor,
       BooleanFormula f) {
     manager.visitRecursively(rFormulaVisitor, f);
-  }
-
-  @Override
-  public boolean isBoolean(Formula pF) {
-    return pF instanceof BooleanFormula;
   }
 
   @Override
@@ -157,24 +124,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   @Override
-  @Deprecated
-  public <T extends Formula> boolean isIfThenElse(T pF) {
-    return manager.isIfThenElse(unwrap(pF));
-  }
-
-  @Override
-  @Deprecated
-  public boolean isEquivalence(BooleanFormula pFormula) {
-    return manager.isEquivalence(pFormula);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isImplication(BooleanFormula pFormula) {
-    return manager.isImplication(pFormula);
-  }
-
-  @Override
   public BooleanFormula equivalence(BooleanFormula pFormula1, BooleanFormula pFormula2) {
     return manager.equivalence(pFormula1, pFormula2);
   }
@@ -182,10 +131,6 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   @Override
   public BooleanFormula implication(BooleanFormula formula1, BooleanFormula formula2) {
     return manager.implication(formula1, formula2);
-  }
-
-  public BooleanFormula notEquivalence(BooleanFormula p, BooleanFormula q) {
-    return not(equivalence(p, q));
   }
 
   /**
