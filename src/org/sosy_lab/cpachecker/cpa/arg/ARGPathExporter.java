@@ -52,6 +52,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
@@ -92,6 +93,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
@@ -174,6 +176,8 @@ public class ARGPathExporter {
 
   private final LogManager logger;
 
+  private final CFA cfa;
+
   private final MachineModel machineModel;
 
   private final Language language;
@@ -209,16 +213,16 @@ public class ARGPathExporter {
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
-      MachineModel pMachineModel,
-      Language pLanguage)
+      CFA pCFA)
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
     pConfig.inject(hackyOptions);
-    this.machineModel = pMachineModel;
-    this.language = pLanguage;
+    this.cfa = pCFA;
+    this.machineModel = pCFA.getMachineModel();
+    this.language = pCFA.getLanguage();
     this.logger = pLogger;
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
+    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
   }
 
   public void writeErrorWitness(Appendable pTarget,
@@ -257,19 +261,29 @@ public class ARGPathExporter {
             for (ARGState state : pStates.get()) {
               ValueAnalysisState valueAnalysisState =
                   AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+              ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
               if (valueAnalysisState != null) {
-                Set<ExpressionTree<Object>> stateInvariantParts = new HashSet<>();
                 ConcreteState concreteState =
                     ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
                 for (AExpressionStatement expressionStatement :
                     assumptionToEdgeAllocator
                         .allocateAssumptionsToEdge(pEdge, concreteState)
                         .getExpStmts()) {
-                  stateInvariantParts.add(
-                      LeafExpression.of((Object) expressionStatement.getExpression()));
+                  stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
+                      stateInvariant,
+                      LeafExpression.of((Object) expressionStatement.getExpression())));
                 }
-                stateInvariants.add(And.of(stateInvariantParts));
               }
+
+              String functionName = pEdge.getPredecessor().getFunctionName();
+              if (functionName.equals(pEdge.getSuccessor().getFunctionName())) {
+                for (ExpressionTreeReportingState etrs : AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
+                  stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
+                      stateInvariant,
+                      etrs.getFormulaApproximation(cfa.getFunctionHead(functionName))));
+                }
+              }
+              stateInvariants.add(stateInvariant);
             }
             ExpressionTree<Object> invariant = Or.of(stateInvariants);
             return invariant;
@@ -521,21 +535,20 @@ public class ARGPathExporter {
               }
             }
 
-            if (!assignments.isEmpty()) {
-              code.add(
-                  And.of(
-                      FluentIterable.from(assignments)
-                          .transform(
-                              new Function<AExpressionStatement, ExpressionTree<Object>>() {
+            if (!code.isEmpty()) {
+              code.add(And.of(
+                  FluentIterable.from(assignments)
+                  .transform(
+                      new Function<AExpressionStatement, ExpressionTree<Object>>() {
 
-                                @Override
-                                public ExpressionTree<Object> apply(
-                                    AExpressionStatement pExpressionStatement) {
-                                  return LeafExpression.of(
-                                      (Object) pExpressionStatement.getExpression());
-                                }
-                              })
-                          .toList()));
+                        @Override
+                        public ExpressionTree<Object> apply(
+                            AExpressionStatement pExpressionStatement) {
+                          return LeafExpression.of(
+                              (Object) pExpressionStatement.getExpression());
+                        }
+                      })
+                  .toList()));
             }
           }
         }
