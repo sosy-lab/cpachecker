@@ -868,30 +868,7 @@ public class ARGPathExporter {
         public Iterator<Edge> get() {
           return FluentIterable
               .from(leavingEdges.values())
-              .filter(new Predicate<Edge>() {
-
-                @Override
-                public boolean apply(final Edge pEdge) {
-                  // An edge is redundant if it is the only leaving edge of a
-                  // node and it is empty or all its non-assumption contents
-                  // are summarized by a preceding edge
-                  if ((!pEdge.label.hasTransitionRestrictions()
-                      || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
-
-                        @Override
-                        public boolean apply(Edge pPrecedingEdge) {
-                          return pPrecedingEdge.label.summarizes(pEdge.label);
-                        }
-
-                      })
-                      || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
-                      && leavingEdges.get(pEdge.source).size() == 1) {
-                    return true;
-                  }
-                  return false;
-                }
-
-              }).iterator();
+              .filter(isRedundant).iterator();
         }
 
       };
@@ -945,22 +922,41 @@ public class ARGPathExporter {
       }
     }
 
+    private final Predicate<Edge> isRedundant = new Predicate<Edge>() {
+
+      @Override
+      public boolean apply(final Edge pEdge) {
+        // An edge is redundant if it is the only leaving edge of a
+        // node and it is empty or all its non-assumption contents
+        // are summarized by a preceding edge
+        if ((!pEdge.label.hasTransitionRestrictions()
+            || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
+
+              @Override
+              public boolean apply(Edge pPrecedingEdge) {
+                return pPrecedingEdge.label.summarizes(pEdge.label);
+              }
+
+            })
+            || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
+            && (leavingEdges.get(pEdge.source).size() == 1) || FluentIterable.from(leavingEdges.get(pEdge.source)).allMatch(new Predicate<Edge>() {
+
+              @Override
+              public boolean apply(Edge pLeavingEdge) {
+                return pLeavingEdge.label.keyValues.isEmpty();
+              }
+            })) {
+          return true;
+        }
+        return false;
+      }
+
+    };
+
     private void mergeNodes(final Edge pEdge) {
       final String source = pEdge.source;
       final String target = pEdge.target;
-      final TransitionCondition label = pEdge.label;
-      Preconditions.checkArgument((!label.hasTransitionRestrictions()
-          || FluentIterable.from(enteringEdges.get(pEdge.source)).anyMatch(new Predicate<Edge>() {
-
-        @Override
-        public boolean apply(Edge pPrecedingEdge) {
-          return pPrecedingEdge.label.summarizes(pEdge.label);
-        }
-
-      })
-        || pEdge.label.keyValues.size() == 1 && pEdge.label.keyValues.containsKey(KeyDef.FUNCTIONEXIT))
-        && leavingEdges.get(pEdge.source).size() == 1);
-      Preconditions.checkArgument(removeEdge(pEdge));
+      Preconditions.checkArgument(isRedundant.apply(pEdge));
 
       // Merge the flags
       nodeFlags.putAll(source, nodeFlags.removeAll(target));
@@ -974,57 +970,75 @@ public class ARGPathExporter {
       // Merge the violated properties
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
-      // Move the leaving edges
-      FluentIterable<Edge> leavingEdges = FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
-      // Remove the edges from their successors
-      for (Edge leavingEdge : leavingEdges) {
-        boolean removed = removeEdge(leavingEdge);
-        assert removed;
-      }
-      // Create the replacement edges
-      leavingEdges = leavingEdges
-          .transform(new Function<Edge, Edge>() {
+      if (leavingEdges.get(pEdge.source).size() == 1) {
 
-            @Override
-            public Edge apply(Edge pOldEdge) {
-              TransitionCondition label = new TransitionCondition();
-              label.keyValues.putAll(pEdge.label.keyValues);
-              label.keyValues.putAll(pOldEdge.label.keyValues);
-              return new Edge(source, pOldEdge.target, label);
-            }
 
-          });
-      // Add them as leaving edges to the source node
-      // and them as entering edges to their target nodes
-      for (Edge leavingEdge : leavingEdges) {
-        putEdge(leavingEdge);
-      }
+        // Move the leaving edges
+        FluentIterable<Edge> leavingEdges = FluentIterable.from(Lists.newArrayList(this.leavingEdges.get(target)));
+        // Remove the edges from their successors
+        for (Edge leavingEdge : leavingEdges) {
+          boolean removed = removeEdge(leavingEdge);
+          assert removed;
+        }
+        // Create the replacement edges
+        leavingEdges = leavingEdges
+            .transform(new Function<Edge, Edge>() {
 
-      // Move the entering edges
-      FluentIterable<Edge> enteringEdges = FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
-      // Remove the edges from their predecessors
-      for (Edge enteringEdge : enteringEdges) {
-        boolean removed = removeEdge(enteringEdge);
-        assert removed;
-      }
-      // Create the replacement edges
-      enteringEdges = enteringEdges
-          .filter(Predicates.not(Predicates.equalTo(pEdge)))
-          .transform(new Function<Edge, Edge>() {
+              @Override
+              public Edge apply(Edge pOldEdge) {
+                TransitionCondition label = new TransitionCondition();
+                label.keyValues.putAll(pEdge.label.keyValues);
+                label.keyValues.putAll(pOldEdge.label.keyValues);
+                return new Edge(source, pOldEdge.target, label);
+              }
 
-            @Override
-            public Edge apply(Edge pOldEdge) {
-              TransitionCondition label = new TransitionCondition();
-              label.keyValues.putAll(pEdge.label.keyValues);
-              label.keyValues.putAll(pOldEdge.label.keyValues);
-              return new Edge(pOldEdge.source, source, label);
-            }
+            });
+        // Add them as leaving edges to the source node
+        // and them as entering edges to their target nodes
+        for (Edge leavingEdge : leavingEdges) {
+          putEdge(leavingEdge);
+        }
 
-          });
-      // Add them as entering edges to the source node
-      // and add them as leaving edges to their source nodes
-      for (Edge enteringEdge : enteringEdges) {
-        putEdge(enteringEdge);
+        // Move the entering edges
+        FluentIterable<Edge> enteringEdges = FluentIterable.from(Lists.newArrayList(this.enteringEdges.get(target)));
+        // Remove the edges from their predecessors
+        for (Edge enteringEdge : enteringEdges) {
+          boolean removed = removeEdge(enteringEdge);
+          assert removed;
+        }
+        // Create the replacement edges
+        enteringEdges = enteringEdges
+            .filter(Predicates.not(Predicates.equalTo(pEdge)))
+            .transform(new Function<Edge, Edge>() {
+
+              @Override
+              public Edge apply(Edge pOldEdge) {
+                TransitionCondition label = new TransitionCondition();
+                label.keyValues.putAll(pEdge.label.keyValues);
+                label.keyValues.putAll(pOldEdge.label.keyValues);
+                return new Edge(pOldEdge.source, source, label);
+              }
+
+            });
+        // Add them as entering edges to the source node
+        // and add them as leaving edges to their source nodes
+        for (Edge enteringEdge : enteringEdges) {
+          putEdge(enteringEdge);
+        }
+      } else {
+        Collection<Edge> removed = Lists.newArrayList(leavingEdges.get(pEdge.source));
+        Collection<Edge> toMove = Lists.newArrayList(enteringEdges.get(pEdge.source));
+        for (Edge old : toMove) {
+          removeEdge(old);
+          String s = old.source;
+          TransitionCondition condition = old.label;
+          for (Edge rem : removed) {
+            removeEdge(rem);
+            String t = rem.target;
+            Edge newEdge = new Edge(s, t, condition);
+            putEdge(newEdge);
+          }
+        }
       }
 
     }
