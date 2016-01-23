@@ -137,6 +137,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   private final CPAAlgorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
   private final ReachedSetFactory reachedSetFactory;
+  private final CFA cfa;
 
   private final ShutdownManager shutdownManager;
 
@@ -234,7 +235,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
           CPAInvariantGenerator result = pToAdjust;
           try {
             if (adjustConditions(logger, conditionCPAs)) {
-              result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pToAdjust.iteration + 1, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
+              result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pToAdjust.iteration + 1, pCFA, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
             }
           } catch (InvalidConfigurationException e) {
             pLogger.logUserException(Level.WARNING, e, "Creating adjusted invariant generator failed");
@@ -294,7 +295,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final ShutdownManager pShutdownManager,
       Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
-      final CFA cfa, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
+      final CFA pCFA, List<Automaton> pAdditionalAutomata) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     logger = pLogger;
     shutdownManager = pShutdownManager;
@@ -311,6 +312,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig);
+    cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
             .buildsCPAWithWitnessAutomataAndSpecification(cfa, pAdditionalAutomata);
@@ -322,6 +324,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       final ShutdownManager pShutdownManager,
       Optional<ShutdownManager> pShutdownOnSafeManager,
       final int pIteration,
+      final CFA pCFA,
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
       CPAAlgorithm pAlgorithm) throws InvalidConfigurationException {
@@ -332,6 +335,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     iteration = pIteration;
 
     reachedSetFactory = pReachedSetFactory;
+    cfa = pCFA;
     cpa = pCPA;
     algorithm = pAlgorithm;
   }
@@ -440,11 +444,13 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   private static class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupplier {
 
     private final UnmodifiableReachedSet reached;
+    private final CFA cfa;
 
-    private ReachedSetBasedExpressionTreeSupplier(UnmodifiableReachedSet pReached) {
+    private ReachedSetBasedExpressionTreeSupplier(UnmodifiableReachedSet pReached, CFA pCFA) {
       checkArgument(!pReached.hasWaitingState());
       checkArgument(!pReached.isEmpty());
       reached = pReached;
+      cfa = pCFA;
     }
 
     @Override
@@ -456,7 +462,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
           stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
               stateInvariant,
-              expressionTreeReportingState.getFormulaApproximation(Optional.of(pLocation.getFunctionName()))));
+              expressionTreeReportingState.getFormulaApproximation(cfa.getFunctionHead(pLocation.getFunctionName()))));
         }
 
         invariant = Or.of(ImmutableList.<ExpressionTree<Object>>of(invariant, stateInvariant));
@@ -521,7 +527,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       return new FormulaAndTreeSupplier(
           new ReachedSetBasedInvariantSupplier(new UnmodifiableReachedSetWrapper(taskReached), logger),
-          new ReachedSetBasedExpressionTreeSupplier(taskReached));
+          new ReachedSetBasedExpressionTreeSupplier(taskReached, cfa));
     }
   }
 }

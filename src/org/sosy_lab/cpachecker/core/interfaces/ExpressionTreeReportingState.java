@@ -23,9 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-
-import com.google.common.base.Optional;
 
 /**
  * Interface to implement in order for an abstract state
@@ -37,8 +36,10 @@ public interface ExpressionTreeReportingState extends AbstractState {
   /**
    * Returns an ExpressionTree over-approximating the state.
    *
+   * @param pFunctionScope the function scope.
+   *
    * @return an ExpressionTree over-approximating the state.
    */
-  ExpressionTree<Object> getFormulaApproximation(Optional<String> pScope);
+  ExpressionTree<Object> getFormulaApproximation(FunctionEntryNode pFunctionScope);
 
 }

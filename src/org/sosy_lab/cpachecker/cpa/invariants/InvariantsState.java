@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -87,7 +88,6 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -900,19 +900,21 @@ public class InvariantsState implements AbstractState,
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(final Optional<String> pScope) {
+  public ExpressionTree<Object> getFormulaApproximation(final FunctionEntryNode pFunctionEntryNode) {
     return And.of(getApproximationFormulas().filter(new Predicate<BooleanFormula<CompoundInterval>>() {
 
       @Override
       public boolean apply(BooleanFormula<CompoundInterval> pFormula) {
-        if (!pScope.isPresent()) {
-          return true;
-        }
-        final String functionName = pScope.get();
         return FluentIterable.from(pFormula.accept(new CollectVarsVisitor<CompoundInterval>())).allMatch(new Predicate<MemoryLocation>() {
 
           @Override
           public boolean apply(MemoryLocation pMemoryLocation) {
+            if (pFunctionEntryNode.getReturnVariable().isPresent()
+                && pMemoryLocation.isOnFunctionStack()
+                && pMemoryLocation.getIdentifier().equals(pFunctionEntryNode.getReturnVariable().get().getName())) {
+              return false;
+            }
+            final String functionName = pFunctionEntryNode.getFunctionName();
             return !pMemoryLocation.isOnFunctionStack() || pMemoryLocation.getFunctionName().equals(functionName);
           }
 
