@@ -108,6 +108,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           "Provides additional candidate invariants to the k-induction invariant generator."
     )
     private Path invariantsAutomatonFile = null;
+
+    @Option(secure = true, description = "Guess some candidates for the k-induction invariant generator from the CFA.")
+    private boolean guessCandidatesFromCFA = true;
   }
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
@@ -326,12 +329,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
-    for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
-      candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
-    }
-
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
+
+    if (options.guessCandidatesFromCFA) {
+      for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
+        candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+      }
+    }
+
     if (options.invariantsAutomatonFile != null) {
       ConfigurationBuilder configBuilder = Configuration.builder();
       String machineModelOption = "analysis.machineModel";

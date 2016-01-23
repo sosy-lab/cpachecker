@@ -2207,6 +2207,9 @@ invariantGeneration.async = false
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
+# Guess some candidates for the k-induction invariant generator from the CFA.
+invariantGeneration.kInduction.guessCandidatesFromCFA = true
+
 # Provides additional candidate invariants to the k-induction invariant
 # generator.
 invariantGeneration.kInduction.invariantsAutomatonFile = no default value
