@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.*;
 
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Queue;
 import java.util.Set;
@@ -40,13 +41,21 @@ import java.util.concurrent.Future;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.concurrency.Threads;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -60,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -69,11 +79,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Throwables;
@@ -83,6 +97,18 @@ import com.google.common.collect.Sets;
  * Generate invariants using k-induction.
  */
 public class KInductionInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
+
+  @Options(prefix="invariantGeneration.kInduction")
+  private static class KInductionInvariantGeneratorOptions {
+
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    @Option(
+      secure = true,
+      description =
+          "Provides additional candidate invariants to the k-induction invariant generator."
+    )
+    private Path invariantsAutomatonFile = null;
+  }
 
   private static class KInductionInvariantGeneratorStatistics extends BMCStatistics {
 
@@ -130,13 +156,20 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           throws InvalidConfigurationException, CPAException {
 
     return new KInductionInvariantGenerator(
-            pConfig,
-            pLogger.withComponentName("KInductionInvariantGenerator"),
-            pShutdownNotifier,
-            pCFA,
-            pReachedSetFactory,
-            true,
-            new StaticCandidateProvider(getCandidateInvariants(pCFA, pTargetLocationProvider)));
+        pConfig,
+        pLogger.withComponentName("KInductionInvariantGenerator"),
+        pShutdownNotifier,
+        pCFA,
+        pReachedSetFactory,
+        true,
+        new StaticCandidateProvider(
+            getCandidateInvariants(
+                pConfig,
+                pLogger,
+                pCFA,
+                pShutdownNotifier.getNotifier(),
+                pReachedSetFactory,
+                pTargetLocationProvider)));
   }
 
   public static KInductionInvariantGenerator create(final Configuration pConfig,
@@ -282,12 +315,66 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     }
   }
 
-  private static Set<CandidateInvariant> getCandidateInvariants(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
+  private static Set<CandidateInvariant> getCandidateInvariants(
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCFA,
+      ShutdownNotifier pShutdownNotifier,
+      ReachedSetFactory pReachedSetFactory,
+      TargetLocationProvider pTargetLocationProvider)
+      throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
 
     for (AssumeEdge assumeEdge : getRelevantAssumeEdges(pTargetLocationProvider.tryGetAutomatonTargetLocations(pCFA.getMainFunction()))) {
       candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
+    }
+
+    KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
+    pConfig.inject(options);
+    if (options.invariantsAutomatonFile != null) {
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      String machineModelOption = "analysis.machineModel";
+      if (pConfig.hasProperty(machineModelOption)) {
+        configBuilder.copyOptionFrom(pConfig, machineModelOption);
+      }
+      configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
+      configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+      configBuilder.setOption(
+          "CompositeCPA.cpas",
+          "cpa.location.LocationCPA, "
+              + "cpa.callstack.CallstackCPA, "
+              + "cpa.functionpointer.FunctionPointerCPA");
+      configBuilder.setOption("cpa.callstack.skipRecursion", "true");
+      Configuration config = configBuilder.build();
+      CPABuilder builder = new CPABuilder(config, pLogger, pShutdownNotifier, pReachedSetFactory);
+      ConfigurableProgramAnalysis cpa =
+          builder.buildCPAs(pCFA, Arrays.asList(options.invariantsAutomatonFile));
+      CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, pShutdownNotifier);
+      ReachedSet reachedSet = pReachedSetFactory.create();
+      CFANode rootNode = pCFA.getMainFunction();
+      StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+      reachedSet.add(
+          cpa.getInitialState(rootNode, partition),
+          cpa.getInitialPrecision(rootNode, partition));
+      try {
+        algorithm.run(reachedSet);
+      } catch (InterruptedException e) {
+        // Candidate collection was interrupted,
+        // but instead of throwing the exception here,
+        // let it be thrown by the invariant generator.
+      }
+      for (AbstractState abstractState : reachedSet) {
+        Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
+        for (CFANode location : locations) {
+          for (AutomatonState automatonState : AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
+            ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
+            if (!candidate.equals(ExpressionTrees.getTrue())) {
+              candidates.add(new ExpressionTreeLocationInvariant(location, candidate));
+            }
+          }
+        }
+      }
     }
 
     return candidates;

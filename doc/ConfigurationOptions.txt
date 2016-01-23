@@ -2203,6 +2203,10 @@ invariantGeneration.async = false
 # configuration file for invariant generation
 invariantGeneration.config = no default value
 
+# Provides additional candidate invariants to the k-induction invariant
+# generator.
+invariantGeneration.kInduction.invariantsAutomatonFile = no default value
+
 # Specify the class code path to search for java class or interface
 # definitions
 java.classpath = ""
