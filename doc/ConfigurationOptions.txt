@@ -2214,6 +2214,10 @@ invariantGeneration.kInduction.guessCandidatesFromCFA = true
 # generator.
 invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 
+# For correctness-witness validation: Shut down if a candidate invariant is
+# found to be incorrect.
+invariantGeneration.kInduction.terminateOnCounterexample = false
+
 # Specify the class code path to search for java class or interface
 # definitions
 java.classpath = ""

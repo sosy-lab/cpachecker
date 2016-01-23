@@ -71,4 +71,9 @@ public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant im
     });
   }
 
+  @Override
+  public String toString() {
+    return getLocations() + ": " + expressionTree.toString();
+  }
+
 }
