@@ -121,6 +121,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 
@@ -688,16 +689,12 @@ public class AutomatonGraphmlParser {
   private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
       Set<String> pStatements, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
-    if (!pStatements.isEmpty()) {
-
-      Set<ExpressionTree<AExpression>> result = new HashSet<>();
-      for (String assumeCode : pStatements) {
-        ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
-        result.add(expressionTree);
-      }
-      return And.of(result);
+    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
+    for (String assumeCode : pStatements) {
+      ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
+      result = And.of(result, expressionTree);
     }
-    return ExpressionTrees.getTrue();
+    return result;
   }
 
   private ExpressionTree<AExpression> parseStatement(
@@ -762,69 +759,72 @@ public class AutomatonGraphmlParser {
     }
     FunctionEntryNode entryNode = parseResult.getFunctions().values().iterator().next();
 
-    Collection<List<CFAEdge>> paths = new ArrayList<>();
-    Deque<List<CFAEdge>> pathStack = new ArrayDeque<>();
-    Iterables.addAll(
-        pathStack,
-        CFAUtils.leavingEdges(entryNode)
-            .transform(
-                new Function<CFAEdge, List<CFAEdge>>() {
+    if (containsUnsupportedEdges(entryNode)) {
+      logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
+      return ExpressionTrees.getTrue();
+    }
 
-                  @Override
-                  public List<CFAEdge> apply(CFAEdge pEdge) {
-                    return ImmutableList.of(pEdge);
-                  }
-                }));
-    while (!pathStack.isEmpty()) {
-      List<CFAEdge> currentPath = pathStack.pop();
-      CFANode currentEndNode = currentPath.get(currentPath.size() - 1).getSuccessor();
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentEndNode)) {
-        if (currentPath.contains(leavingEdge)) {
-          logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-          return ExpressionTrees.getTrue();
-        } else if (leavingEdge instanceof AReturnStatementEdge) {
-          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-          Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
-          if (!optExpression.isPresent()) {
-            logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-            return ExpressionTrees.getTrue();
+    return asExpressionTree(entryNode, Maps.<CFANode, ExpressionTree<AExpression>>newHashMap());
+  }
+
+  private static boolean containsUnsupportedEdges(CFANode pNode) {
+    Set<CFANode> visited = Sets.newHashSet();
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+    waitlist.offer(pNode);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+        CFANode succ = leavingEdge.getSuccessor();
+        if (visited.add(succ)) {
+          if (!(leavingEdge instanceof AssumeEdge)
+              && !(leavingEdge instanceof BlankEdge)
+              && !(leavingEdge instanceof AReturnStatementEdge)) {
+            return true;
           }
-          AExpression expression = optExpression.get();
-          if (!(expression instanceof AIntegerLiteralExpression)) {
-            logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-            return ExpressionTrees.getTrue();
-          }
-          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
-          if (!literal.getValue().equals(BigInteger.ZERO)) {
-            paths.add(currentPath);
-          }
-        } else {
-          List<CFAEdge> newPath =
-              ImmutableList.<CFAEdge>builder().addAll(currentPath).add(leavingEdge).build();
-          pathStack.push(newPath);
+          waitlist.offer(succ);
         }
       }
     }
+    return false;
+  }
 
-    Collection<ExpressionTree<AExpression>> pathsAsExpressions = new ArrayList<>(paths.size());
-    for (List<CFAEdge> path : paths) {
-      Collection<ExpressionTree<AExpression>> leaves = new ArrayList<>(path.size() - 1);
-      for (CFAEdge edge : path) {
-        if (edge instanceof BlankEdge) {
-          continue;
-        }
-        if (edge instanceof AssumeEdge) {
-          AssumeEdge assumeEdge = (AssumeEdge) edge;
-          AExpression expression = assumeEdge.getExpression();
-          leaves.add(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
-        } else {
-          logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
+  private ExpressionTree<AExpression> asExpressionTree(CFANode pNode, Map<CFANode, ExpressionTree<AExpression>> pMemo) {
+    ExpressionTree<AExpression> tree = pMemo.get(pNode);
+    if (tree != null) {
+      return tree;
+    }
+    if (pNode.getNumLeavingEdges() == 0) {
+      return ExpressionTrees.getTrue();
+    }
+    ExpressionTree<AExpression> result = ExpressionTrees.getFalse();
+    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pNode)) {
+      CFANode succ = leavingEdge.getSuccessor();
+      ExpressionTree<AExpression> succTree = asExpressionTree(succ, pMemo);
+      if (leavingEdge instanceof AssumeEdge) {
+        AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
+        succTree = And.of(succTree, LeafExpression.of(assumeEdge.getExpression(), assumeEdge.getTruthAssumption()));
+      }
+      if (leavingEdge instanceof AReturnStatementEdge) {
+        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
+        Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+        assert optExpression.isPresent();
+        if (!optExpression.isPresent()) {
           return ExpressionTrees.getTrue();
         }
+        AExpression expression = optExpression.get();
+        assert expression instanceof AIntegerLiteralExpression;
+        if (!(expression instanceof AIntegerLiteralExpression)) {
+          return ExpressionTrees.getTrue();
+        }
+        AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+        if (literal.getValue().equals(BigInteger.ZERO)) {
+          succTree = ExpressionTrees.getFalse();
+        }
       }
-      pathsAsExpressions.add(And.of(leaves));
+      result = Or.of(result, succTree);
     }
-    return Or.of(pathsAsExpressions);
+    pMemo.put(pNode, result);
+    return result;
   }
 
   private static AutomatonBoolExpr createViolationAssertion() {
