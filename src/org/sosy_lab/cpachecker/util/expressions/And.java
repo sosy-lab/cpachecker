@@ -25,25 +25,24 @@ package org.sosy_lab.cpachecker.util.expressions;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
 public class And<LeafType> extends AbstractExpressionTree<LeafType>
     implements Iterable<ExpressionTree<LeafType>> {
 
-  private final List<ExpressionTree<LeafType>> operands;
+  private final ImmutableSortedSet<ExpressionTree<LeafType>> operands;
 
-  private And(Iterable<? extends ExpressionTree<LeafType>> pOperands) {
+  private And(ImmutableSortedSet<ExpressionTree<LeafType>> pOperands) {
     assert Iterables.size(pOperands) >= 2;
     assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
     assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
     assert !FluentIterable.from(pOperands).anyMatch(Predicates.instanceOf(And.class));
-    operands = ImmutableList.copyOf(pOperands);
+    operands = pOperands;
   }
 
   @Override
@@ -74,13 +73,13 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
   }
 
   public static <LeafType> ExpressionTree<LeafType> of(
-      Iterable<? extends ExpressionTree<LeafType>> pOperands) {
+      Iterable<ExpressionTree<LeafType>> pOperands) {
     // If one of the operands is false, return false
     if (Iterables.contains(pOperands, ExpressionTrees.getFalse())) {
       return ExpressionTrees.getFalse();
     }
     // Filter out trivial operands and flatten the hierarchy
-    FluentIterable<? extends ExpressionTree<LeafType>> operands =
+    ImmutableSortedSet<ExpressionTree<LeafType>> operands =
         FluentIterable.from(pOperands)
             .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getTrue())))
             .transformAndConcat(
@@ -94,13 +93,14 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
                     }
                     return Collections.singleton(pOperand);
                   }
-                });
+                })
+                .toSortedSet(ExpressionTrees.<LeafType>getComparator());
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
       return ExpressionTrees.getTrue();
     }
     // If there is only one operand, return it
-    if (operands.skip(1).isEmpty()) {
+    if (operands.size() == 1) {
       return operands.iterator().next();
     }
     return new And<>(operands);
