@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -764,7 +765,7 @@ public class AutomatonGraphmlParser {
       return ExpressionTrees.getTrue();
     }
 
-    return asExpressionTree(entryNode, Maps.<CFANode, ExpressionTree<AExpression>>newHashMap());
+    return asExpressionTree(entryNode);
   }
 
   private static boolean containsUnsupportedEdges(CFANode pNode) {
@@ -788,43 +789,84 @@ public class AutomatonGraphmlParser {
     return false;
   }
 
-  private ExpressionTree<AExpression> asExpressionTree(CFANode pNode, Map<CFANode, ExpressionTree<AExpression>> pMemo) {
-    ExpressionTree<AExpression> tree = pMemo.get(pNode);
-    if (tree != null) {
-      return tree;
-    }
-    if (pNode.getNumLeavingEdges() == 0) {
-      return ExpressionTrees.getTrue();
-    }
-    ExpressionTree<AExpression> result = ExpressionTrees.getFalse();
-    for (CFAEdge leavingEdge : CFAUtils.leavingEdges(pNode)) {
-      CFANode succ = leavingEdge.getSuccessor();
-      ExpressionTree<AExpression> succTree = asExpressionTree(succ, pMemo);
-      if (leavingEdge instanceof AssumeEdge) {
-        AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
-        succTree = And.of(succTree, LeafExpression.of(assumeEdge.getExpression(), assumeEdge.getTruthAssumption()));
+  private ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pNode) {
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+
+    // Initialize memo with exit node trees
+    FunctionExitNode exitNode = pNode.getExitNode();
+    Map<CFANode, ExpressionTree<AExpression>> memo = Maps.newHashMap();
+    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(exitNode)) {
+      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) enteringEdge;
+      Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+      assert optExpression.isPresent();
+      if (!optExpression.isPresent()) {
+        return ExpressionTrees.getTrue();
       }
-      if (leavingEdge instanceof AReturnStatementEdge) {
-        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-        Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
-        assert optExpression.isPresent();
-        if (!optExpression.isPresent()) {
-          return ExpressionTrees.getTrue();
-        }
-        AExpression expression = optExpression.get();
-        assert expression instanceof AIntegerLiteralExpression;
-        if (!(expression instanceof AIntegerLiteralExpression)) {
-          return ExpressionTrees.getTrue();
-        }
-        AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
-        if (literal.getValue().equals(BigInteger.ZERO)) {
-          succTree = ExpressionTrees.getFalse();
+      AExpression expression = optExpression.get();
+      assert expression instanceof AIntegerLiteralExpression;
+      if (!(expression instanceof AIntegerLiteralExpression)) {
+        return ExpressionTrees.getTrue();
+      }
+      AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+      if (literal.getValue().equals(BigInteger.ZERO)) {
+        memo.put(enteringEdge.getPredecessor(), ExpressionTrees.<AExpression>getFalse());
+      } else {
+        memo.put(enteringEdge.getPredecessor(), ExpressionTrees.<AExpression>getTrue());
+      }
+
+      // Compute nodes than can be handled next
+      for (CFANode predecessor : CFAUtils.predecessorsOf(enteringEdge.getPredecessor())) {
+        if (!memo.keySet().contains(predecessor)) {
+          List<CFANode> successorsOfPredecessor = CFAUtils.successorsOf(predecessor).toList();
+          if (memo.keySet().containsAll(successorsOfPredecessor)) {
+            waitlist.offer(predecessor);
+          }
         }
       }
-      result = Or.of(result, succTree);
     }
-    pMemo.put(pNode, result);
-    return result;
+
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      ExpressionTree<AExpression> expressionTree = memo.get(current);
+      if (expressionTree == null) {
+        expressionTree = ExpressionTrees.getFalse();
+        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+          CFANode succ = leavingEdge.getSuccessor();
+          ExpressionTree<AExpression> succTree = memo.get(succ);
+          if (leavingEdge instanceof AssumeEdge) {
+            AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
+            succTree = And.of(succTree, LeafExpression.of(assumeEdge.getExpression(), assumeEdge.getTruthAssumption()));
+          }
+          if (leavingEdge instanceof AReturnStatementEdge) {
+            AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
+            Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+            assert optExpression.isPresent();
+            if (!optExpression.isPresent()) {
+              return ExpressionTrees.getTrue();
+            }
+            AExpression expression = optExpression.get();
+            assert expression instanceof AIntegerLiteralExpression;
+            if (!(expression instanceof AIntegerLiteralExpression)) {
+              return ExpressionTrees.getTrue();
+            }
+            AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+            if (literal.getValue().equals(BigInteger.ZERO)) {
+              succTree = ExpressionTrees.getFalse();
+            }
+          }
+          expressionTree = Or.of(expressionTree, succTree);
+        }
+        memo.put(current, expressionTree);
+
+        // Compute nodes than can be handled next
+        for (CFANode predecessor : CFAUtils.predecessorsOf(current)) {
+          if (!memo.containsKey(predecessor) && memo.keySet().containsAll(CFAUtils.successorsOf(predecessor).toList())) {
+            waitlist.offer(predecessor);
+          }
+        }
+      }
+    }
+    return memo.get(pNode);
   }
 
   private static AutomatonBoolExpr createViolationAssertion() {
