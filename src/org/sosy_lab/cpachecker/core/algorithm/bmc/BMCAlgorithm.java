@@ -47,6 +47,7 @@ import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -341,9 +342,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                           CFAEdge pCFAEdge,
                           Optional<? extends Collection<? extends ARGState>> pStates) {
                         try {
-                          return invariantGenerator
-                              .getAsExpressionTree()
-                              .getInvariantFor(pCFAEdge.getSuccessor());
+                          CFANode node = pCFAEdge.getSuccessor();
+                          ExpressionTree<Object> result =
+                              invariantGenerator.getAsExpressionTree().getInvariantFor(node);
+
+                          return result;
+
                         } catch (CPAException e) {
                           return ExpressionTrees.getTrue();
                         } catch (InterruptedException e) {

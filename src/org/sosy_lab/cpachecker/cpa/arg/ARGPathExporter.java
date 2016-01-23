@@ -283,7 +283,8 @@ public class ARGPathExporter {
                   stateInvariant =
                       And.of(
                           stateInvariant,
-                          etrs.getFormulaApproximation(cfa.getFunctionHead(functionName)));
+                          etrs.getFormulaApproximation(
+                              cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
                 }
               }
               stateInvariants.add(stateInvariant);

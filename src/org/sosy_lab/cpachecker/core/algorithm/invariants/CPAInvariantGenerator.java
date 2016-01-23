@@ -463,7 +463,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
               And.of(
                   stateInvariant,
                   expressionTreeReportingState.getFormulaApproximation(
-                      cfa.getFunctionHead(pLocation.getFunctionName())));
+                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
         }
 
         invariant = Or.of(invariant, stateInvariant);

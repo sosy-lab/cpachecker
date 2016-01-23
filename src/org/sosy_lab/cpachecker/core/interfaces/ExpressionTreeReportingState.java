@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
@@ -36,10 +37,12 @@ public interface ExpressionTreeReportingState extends AbstractState {
   /**
    * Returns an ExpressionTree over-approximating the state.
    *
-   * @param pFunctionScope the function scope.
+   * @param pFunctionScope the function scope as a function entry node.
+   * @param pLocation the formula should at least try to approximate variables referenced by entering edges.
    *
    * @return an ExpressionTree over-approximating the state.
    */
-  ExpressionTree<Object> getFormulaApproximation(FunctionEntryNode pFunctionScope);
+  ExpressionTree<Object> getFormulaApproximation(
+      FunctionEntryNode pFunctionScope, CFANode pLocation);
 
 }

@@ -43,6 +43,7 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
@@ -925,35 +927,59 @@ public class InvariantsState implements AbstractState,
   }
 
   @Override
-  public ExpressionTree<Object> getFormulaApproximation(final FunctionEntryNode pFunctionEntryNode) {
-    return And.of(getApproximationFormulas().filter(new Predicate<BooleanFormula<CompoundInterval>>() {
+  public ExpressionTree<Object> getFormulaApproximation(
+      final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
+    EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
+    final Set<MemoryLocation> memoryLocations = Sets.newHashSet();
+    for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
+      memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
+    }
+    return And.of(
+        getApproximationFormulas()
+            .filter(
+                new Predicate<BooleanFormula<CompoundInterval>>() {
 
-      @Override
-      public boolean apply(BooleanFormula<CompoundInterval> pFormula) {
-        return FluentIterable.from(pFormula.accept(new CollectVarsVisitor<CompoundInterval>())).allMatch(new Predicate<MemoryLocation>() {
+                  @Override
+                  public boolean apply(BooleanFormula<CompoundInterval> pFormula) {
+                    return FluentIterable.from(
+                            pFormula.accept(new CollectVarsVisitor<CompoundInterval>()))
+                        .allMatch(
+                            new Predicate<MemoryLocation>() {
 
-          @Override
-          public boolean apply(MemoryLocation pMemoryLocation) {
-            if (pFunctionEntryNode.getReturnVariable().isPresent()
-                && pMemoryLocation.isOnFunctionStack()
-                && pMemoryLocation.getIdentifier().equals(pFunctionEntryNode.getReturnVariable().get().getName())) {
-              return false;
-            }
-            final String functionName = pFunctionEntryNode.getFunctionName();
-            return !pMemoryLocation.isOnFunctionStack() || pMemoryLocation.getFunctionName().equals(functionName);
-          }
+                              @Override
+                              public boolean apply(MemoryLocation pMemoryLocation) {
+                                if (!memoryLocations.contains(pMemoryLocation)) {
+                                  return false;
+                                }
+                                if (pFunctionEntryNode.getReturnVariable().isPresent()
+                                    && pMemoryLocation.isOnFunctionStack()
+                                    && pMemoryLocation
+                                        .getIdentifier()
+                                        .equals(
+                                            pFunctionEntryNode
+                                                .getReturnVariable()
+                                                .get()
+                                                .getName())) {
+                                  return false;
+                                }
+                                final String functionName = pFunctionEntryNode.getFunctionName();
+                                return !pMemoryLocation.isOnFunctionStack()
+                                    || pMemoryLocation.getFunctionName().equals(functionName);
+                              }
+                            });
+                  }
+                })
+            .transform(
+                new Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>>() {
 
-        });
-      }
-
-    }).transform(new Function<BooleanFormula<CompoundInterval>, ExpressionTree<Object>>() {
-
-      @Override
-      public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
-        return LeafExpression.of((Object) pFormula.accept(new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
-      }
-
-    }));
+                  @Override
+                  public ExpressionTree<Object> apply(BooleanFormula<CompoundInterval> pFormula) {
+                    return LeafExpression.of(
+                        (Object)
+                            pFormula.accept(
+                                new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
+                  }
+                }));
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
