@@ -30,6 +30,7 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -89,9 +90,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -374,15 +377,24 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         // but instead of throwing the exception here,
         // let it be thrown by the invariant generator.
       }
+      Map<CFANode, ExpressionTree<AExpression>> candidatesByLocation = Maps.newLinkedHashMap();
       for (AbstractState abstractState : reachedSet) {
         Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
         for (CFANode location : locations) {
           for (AutomatonState automatonState : AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
             ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
-            if (!candidate.equals(ExpressionTrees.getTrue())) {
-              candidates.add(new ExpressionTreeLocationInvariant(location, candidate));
+            ExpressionTree<AExpression> prev = candidatesByLocation.get(location);
+            if (prev == null) {
+              candidatesByLocation.put(location, candidate);
+            } else {
+              candidatesByLocation.put(location, Or.of(prev, candidate));
             }
           }
+        }
+      }
+      for (Map.Entry<CFANode, ExpressionTree<AExpression>> entry : candidatesByLocation.entrySet()) {
+        if (!entry.getKey().equals(ExpressionTrees.getTrue())) {
+          candidates.add(new ExpressionTreeLocationInvariant(entry.getKey(), entry.getValue()));
         }
       }
     }
