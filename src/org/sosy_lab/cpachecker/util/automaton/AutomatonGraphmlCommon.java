@@ -187,8 +187,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    ERROR_WITNESS("false_witness"),
-    PROOF_WITNESS("true_witness");
+    ERROR_WITNESS("violation_witness"),
+    PROOF_WITNESS("correctness_witness");
 
     public final String text;
 
@@ -211,6 +211,12 @@ public class AutomatonGraphmlCommon {
         return Optional.of(ERROR_WITNESS);
       }
       if (pTextualRepresentation.equals("TRUE")) {
+        return Optional.of(PROOF_WITNESS);
+      }
+      if (pTextualRepresentation.equals("false_witness")) {
+        return Optional.of(ERROR_WITNESS);
+      }
+      if (pTextualRepresentation.equals("true_witness")) {
         return Optional.of(PROOF_WITNESS);
       }
       return Optional.absent();
