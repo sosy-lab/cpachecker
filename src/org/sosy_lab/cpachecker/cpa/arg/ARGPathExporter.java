@@ -269,18 +269,21 @@ public class ARGPathExporter {
                     assumptionToEdgeAllocator
                         .allocateAssumptionsToEdge(pEdge, concreteState)
                         .getExpStmts()) {
-                  stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
-                      stateInvariant,
-                      LeafExpression.of((Object) expressionStatement.getExpression())));
+                  stateInvariant =
+                      And.of(
+                          stateInvariant,
+                          LeafExpression.of((Object) expressionStatement.getExpression()));
                 }
               }
 
               String functionName = pEdge.getPredecessor().getFunctionName();
               if (functionName.equals(pEdge.getSuccessor().getFunctionName())) {
-                for (ExpressionTreeReportingState etrs : AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-                  stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
-                      stateInvariant,
-                      etrs.getFormulaApproximation(cfa.getFunctionHead(functionName))));
+                for (ExpressionTreeReportingState etrs :
+                    AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
+                  stateInvariant =
+                      And.of(
+                          stateInvariant,
+                          etrs.getFormulaApproximation(cfa.getFunctionHead(functionName)));
                 }
               }
               stateInvariants.add(stateInvariant);

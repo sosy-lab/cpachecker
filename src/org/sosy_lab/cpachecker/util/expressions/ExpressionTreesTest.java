@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-import com.google.common.collect.ImmutableList;
-
 
 public class ExpressionTreesTest {
 
@@ -47,16 +45,10 @@ public class ExpressionTreesTest {
       LeafExpression.of((AExpression) TestDataTools.makeVariable("c", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> COMPLEX_CNF =
-      And.of(
-          ImmutableList.<ExpressionTree<AExpression>>of(
-              Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_A, LITERAL_B)),
-              Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_C, LITERAL_NOT_A))));
+      And.of(Or.of(LITERAL_A, LITERAL_B), Or.of(LITERAL_C, LITERAL_NOT_A));
 
   private static final ExpressionTree<AExpression> COMPLEX_DNF =
-      Or.of(
-          ImmutableList.<ExpressionTree<AExpression>>of(
-              And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_A, LITERAL_B)),
-              And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_C, LITERAL_NOT_A))));
+      Or.of(And.of(LITERAL_A, LITERAL_B), And.of(LITERAL_C, LITERAL_NOT_A));
 
   @Test
   public void testIsConstant() {
@@ -64,12 +56,8 @@ public class ExpressionTreesTest {
     Assert.assertTrue(ExpressionTrees.isConstant(ExpressionTrees.getFalse()));
     Assert.assertFalse(ExpressionTrees.isConstant(LITERAL_A));
     Assert.assertFalse(ExpressionTrees.isConstant(LITERAL_NOT_A));
-    Assert.assertFalse(
-        ExpressionTrees.isConstant(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
-    Assert.assertFalse(
-        ExpressionTrees.isConstant(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+    Assert.assertFalse(ExpressionTrees.isConstant(And.of(LITERAL_B, LITERAL_C)));
+    Assert.assertFalse(ExpressionTrees.isConstant(Or.of(LITERAL_B, LITERAL_C)));
   }
 
   @Test
@@ -78,12 +66,8 @@ public class ExpressionTreesTest {
     Assert.assertTrue(ExpressionTrees.isLeaf(ExpressionTrees.getFalse()));
     Assert.assertTrue(ExpressionTrees.isLeaf(LITERAL_A));
     Assert.assertTrue(ExpressionTrees.isLeaf(LITERAL_NOT_A));
-    Assert.assertFalse(
-        ExpressionTrees.isLeaf(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
-    Assert.assertFalse(
-        ExpressionTrees.isLeaf(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+    Assert.assertFalse(ExpressionTrees.isLeaf(And.of(LITERAL_B, LITERAL_C)));
+    Assert.assertFalse(ExpressionTrees.isLeaf(Or.of(LITERAL_B, LITERAL_C)));
   }
 
   @Test
@@ -92,12 +76,8 @@ public class ExpressionTreesTest {
     Assert.assertFalse(ExpressionTrees.isOr(ExpressionTrees.getFalse()));
     Assert.assertFalse(ExpressionTrees.isOr(LITERAL_A));
     Assert.assertFalse(ExpressionTrees.isOr(LITERAL_NOT_A));
-    Assert.assertFalse(
-        ExpressionTrees.isOr(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
-    Assert.assertTrue(
-        ExpressionTrees.isOr(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+    Assert.assertFalse(ExpressionTrees.isOr(And.of(LITERAL_B, LITERAL_C)));
+    Assert.assertTrue(ExpressionTrees.isOr(Or.of(LITERAL_B, LITERAL_C)));
   }
 
   @Test
@@ -106,12 +86,8 @@ public class ExpressionTreesTest {
     Assert.assertFalse(ExpressionTrees.isAnd(ExpressionTrees.getFalse()));
     Assert.assertFalse(ExpressionTrees.isAnd(LITERAL_A));
     Assert.assertFalse(ExpressionTrees.isAnd(LITERAL_NOT_A));
-    Assert.assertTrue(
-        ExpressionTrees.isAnd(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
-    Assert.assertFalse(
-        ExpressionTrees.isAnd(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+    Assert.assertTrue(ExpressionTrees.isAnd(And.of(LITERAL_B, LITERAL_C)));
+    Assert.assertFalse(ExpressionTrees.isAnd(Or.of(LITERAL_B, LITERAL_C)));
   }
 
   @Test
@@ -120,12 +96,8 @@ public class ExpressionTreesTest {
     Assert.assertTrue(ExpressionTrees.isInCNF(ExpressionTrees.getFalse()));
     Assert.assertTrue(ExpressionTrees.isInCNF(LITERAL_A));
     Assert.assertTrue(ExpressionTrees.isInCNF(LITERAL_NOT_A));
-    Assert.assertTrue(
-        ExpressionTrees.isInCNF(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
-    Assert.assertTrue(
-        ExpressionTrees.isInCNF(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+    Assert.assertTrue(ExpressionTrees.isInCNF(And.of(LITERAL_B, LITERAL_C)));
+    Assert.assertTrue(ExpressionTrees.isInCNF(Or.of(LITERAL_B, LITERAL_C)));
 
     Assert.assertTrue(ExpressionTrees.isInCNF(COMPLEX_CNF));
 
@@ -138,12 +110,8 @@ public class ExpressionTreesTest {
     Assert.assertTrue(ExpressionTrees.isInDNF(ExpressionTrees.getFalse()));
     Assert.assertTrue(ExpressionTrees.isInDNF(LITERAL_A));
     Assert.assertTrue(ExpressionTrees.isInDNF(LITERAL_NOT_A));
-    Assert.assertTrue(
-        ExpressionTrees.isInDNF(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
-    Assert.assertTrue(
-        ExpressionTrees.isInDNF(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+    Assert.assertTrue(ExpressionTrees.isInDNF(And.of(LITERAL_B, LITERAL_C)));
+    Assert.assertTrue(ExpressionTrees.isInDNF(Or.of(LITERAL_B, LITERAL_C)));
 
     Assert.assertTrue(ExpressionTrees.isInDNF(COMPLEX_DNF));
 
@@ -163,13 +131,9 @@ public class ExpressionTreesTest {
         LITERAL_NOT_A,
         ExpressionTrees.toDNF(LITERAL_NOT_A));
     Assert.assertEquals(
-        And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C)),
-        ExpressionTrees.toDNF(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+        And.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(And.of(LITERAL_B, LITERAL_C)));
     Assert.assertEquals(
-        Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C)),
-        ExpressionTrees.toDNF(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+        Or.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(Or.of(LITERAL_B, LITERAL_C)));
 
     Assert.assertEquals(COMPLEX_DNF, ExpressionTrees.toDNF(COMPLEX_DNF));
 
@@ -189,13 +153,9 @@ public class ExpressionTreesTest {
         LITERAL_NOT_A,
         ExpressionTrees.toDNF(LITERAL_NOT_A));
     Assert.assertEquals(
-        And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C)),
-        ExpressionTrees.toDNF(
-            And.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+        And.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(And.of(LITERAL_B, LITERAL_C)));
     Assert.assertEquals(
-        Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C)),
-        ExpressionTrees.toDNF(
-            Or.of(ImmutableList.<ExpressionTree<AExpression>>of(LITERAL_B, LITERAL_C))));
+        Or.of(LITERAL_B, LITERAL_C), ExpressionTrees.toDNF(Or.of(LITERAL_B, LITERAL_C)));
 
     Assert.assertEquals(COMPLEX_CNF, ExpressionTrees.toCNF(COMPLEX_CNF));
 

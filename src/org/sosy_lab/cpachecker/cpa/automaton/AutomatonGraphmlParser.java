@@ -418,9 +418,8 @@ public class AutomatonGraphmlParser {
           }
           candidateInvariants =
               And.of(
-                  ImmutableList.<ExpressionTree<AExpression>>of(
-                      candidateInvariants,
-                      parseStatementsAsExpressionTree(candidates, candidateScope, cparser)));
+                  candidateInvariants,
+                  parseStatementsAsExpressionTree(candidates, candidateScope, cparser));
         }
 
         if (matchOriginLine) {

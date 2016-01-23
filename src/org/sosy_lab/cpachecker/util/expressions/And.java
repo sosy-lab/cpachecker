@@ -29,6 +29,7 @@ import java.util.Iterator;
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
@@ -70,6 +71,11 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
       return operands.equals(((And<?>) pObj).operands);
     }
     return false;
+  }
+
+  public static <LeafType> ExpressionTree<LeafType> of(
+      ExpressionTree<LeafType> pOp1, ExpressionTree<LeafType> pOp2) {
+    return of(ImmutableList.of(pOp1, pOp2));
   }
 
   public static <LeafType> ExpressionTree<LeafType> of(

@@ -88,7 +88,6 @@ import org.sosy_lab.solver.api.BooleanFormulaManager;
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 
 /**
  * Class that encapsulates invariant generation by using the CPAAlgorithm
@@ -460,12 +459,14 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
         ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
         for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-          stateInvariant = And.of(ImmutableList.<ExpressionTree<Object>>of(
-              stateInvariant,
-              expressionTreeReportingState.getFormulaApproximation(cfa.getFunctionHead(pLocation.getFunctionName()))));
+          stateInvariant =
+              And.of(
+                  stateInvariant,
+                  expressionTreeReportingState.getFormulaApproximation(
+                      cfa.getFunctionHead(pLocation.getFunctionName())));
         }
 
-        invariant = Or.of(ImmutableList.<ExpressionTree<Object>>of(invariant, stateInvariant));
+        invariant = Or.of(invariant, stateInvariant);
       }
       return invariant;
     }

@@ -88,7 +88,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -292,10 +291,7 @@ class KInductionProver implements AutoCloseable {
     ExpressionTree<Object> invariant = currentInvariantsSupplier.getInvariantFor(pLocation);
 
     for (ExpressionTreeCandidateInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeCandidateInvariant.class)) {
-      invariant =
-          And.of(
-              ImmutableList.<ExpressionTree<Object>>of(
-                  invariant, confirmedCandidate.asExpressionTree()));
+      invariant = And.of(invariant, confirmedCandidate.asExpressionTree());
     }
 
     return invariant;
