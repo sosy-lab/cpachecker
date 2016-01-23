@@ -163,6 +163,8 @@ public class InvariantsState implements AbstractState,
 
   private final boolean overflowDetected;
 
+  private final boolean includeTypeInformation;
+
   private Iterable<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
@@ -172,7 +174,8 @@ public class InvariantsState implements AbstractState,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
       InvariantsState pInvariant,
-      AbstractionState pAbstractionState) {
+      AbstractionState pAbstractionState,
+      boolean pIncludeTypeInformation) {
     this.environment = pInvariant.environment;
     this.partialEvaluator = pInvariant.partialEvaluator;
     this.variableSelection = pVariableSelection;
@@ -184,6 +187,7 @@ public class InvariantsState implements AbstractState,
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
     this.overflowDetected = false;
+    this.includeTypeInformation = pIncludeTypeInformation;
   }
 
   /**
@@ -192,12 +196,16 @@ public class InvariantsState implements AbstractState,
    *
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
+   * @param pAbstractionState the abstraction information.
+   * @param pOverflowDetected if an overflow has been detected.
+   * @param pIncludeTypeInformation whether or not to include type information for exports.
    */
   public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
       AbstractionState pAbstractionState,
-      boolean pOverflowDetected) {
+      boolean pOverflowDetected,
+      boolean pIncludeTypeInformation) {
     this.environment = NonRecursiveEnvironment.of(pCompoundIntervalManagerFactory);
     this.partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, this.environment);
     this.variableSelection = pVariableSelection;
@@ -209,6 +217,7 @@ public class InvariantsState implements AbstractState,
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
     this.overflowDetected = pOverflowDetected;
+    this.includeTypeInformation = pIncludeTypeInformation;
   }
 
   /**
@@ -217,9 +226,11 @@ public class InvariantsState implements AbstractState,
    *
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
-   * @param pAbstractionState the abstraction state.
+   * @param pAbstractionState the abstraction information.
    * @param pEnvironment the environment. This instance is reused and not copied.
    * @param pVariableTypes the variable types.
+   * @param pOverflowDetected if an overflow has been detected.
+   * @param pIncludeTypeInformation whether or not to include type information for exports.
    */
   private InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
@@ -227,7 +238,8 @@ public class InvariantsState implements AbstractState,
       AbstractionState pAbstractionState,
       NonRecursiveEnvironment pEnvironment,
       PersistentSortedMap<MemoryLocation, CType> pVariableTypes,
-      boolean pOverflowDetected) {
+      boolean pOverflowDetected,
+      boolean pIncludeTypeInformation) {
     this.environment = pEnvironment;
     this.partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, this.environment);
     this.variableSelection = pVariableSelection;
@@ -239,6 +251,7 @@ public class InvariantsState implements AbstractState,
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
     this.overflowDetected = pOverflowDetected;
+    this.includeTypeInformation = pIncludeTypeInformation;
   }
 
   /**
@@ -249,13 +262,17 @@ public class InvariantsState implements AbstractState,
    * @param pMachineModel the machine model used.
    * @param pVariableTypes the variable types.
    * @param pAbstractionState the abstraction state.
+   * @param pOverflowDetected if an overflow has been detected.
+   * @param pIncludeTypeInformation whether or not to include type information for exports.
    */
   private InvariantsState(Map<MemoryLocation, NumeralFormula<CompoundInterval>> pEnvironment,
       VariableSelection<CompoundInterval> pVariableSelection,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
       PersistentSortedMap<MemoryLocation, CType> pVariableTypes,
-      AbstractionState pAbstractionState) {
+      AbstractionState pAbstractionState,
+      boolean pOverflowDetected,
+      boolean pIncludeTypeInformation) {
     this.environment = NonRecursiveEnvironment.copyOf(pCompoundIntervalManagerFactory, pEnvironment);
     this.partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, pEnvironment);
     this.variableSelection = pVariableSelection;
@@ -266,7 +283,8 @@ public class InvariantsState implements AbstractState,
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.abstractionVisitor = new FormulaAbstractionVisitor(compoundIntervalManagerFactory);
-    this.overflowDetected = false;
+    this.overflowDetected = pOverflowDetected;
+    this.includeTypeInformation = pIncludeTypeInformation;
   }
 
   private AbstractionState determineAbstractionState(AbstractionState pMasterState) {
@@ -291,7 +309,7 @@ public class InvariantsState implements AbstractState,
     if (state.equals(abstractionState)) {
       return this;
     }
-    return new InvariantsState(environment, variableSelection, compoundIntervalManagerFactory, machineModel, variableTypes, state);
+    return new InvariantsState(environment, variableSelection, compoundIntervalManagerFactory, machineModel, variableTypes, state, overflowDetected, includeTypeInformation);
   }
 
   public Type getType(MemoryLocation pMemoryLocation) {
@@ -302,7 +320,7 @@ public class InvariantsState implements AbstractState,
     if (pType.equals(variableTypes.get(pMemoryLocation))) {
       return this;
     }
-    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes.putAndCopy(pMemoryLocation, pType), overflowDetected);
+    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes.putAndCopy(pMemoryLocation, pType), overflowDetected, includeTypeInformation);
   }
 
   public InvariantsState setTypes(Map<MemoryLocation, CType> pVarTypes) {
@@ -323,7 +341,7 @@ public class InvariantsState implements AbstractState,
         variableTypes = variableTypes.putAndCopy(memoryLocation, entry.getValue());
       }
     }
-    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes, overflowDetected);
+    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, environment, variableTypes, overflowDetected, includeTypeInformation);
   }
 
   public InvariantsState assignArray(MemoryLocation pArray, NumeralFormula<CompoundInterval> pSubscript, NumeralFormula<CompoundInterval> pValue) {
@@ -443,7 +461,9 @@ public class InvariantsState implements AbstractState,
           compoundIntervalManagerFactory,
           machineModel,
           variableTypes,
-          abstractionState);
+          abstractionState,
+          overflowDetected,
+          includeTypeInformation);
     }
 
     BitVectorInfo bitVectorInfo = pValue.getBitVectorInfo();
@@ -529,7 +549,7 @@ public class InvariantsState implements AbstractState,
       }
     }
     resultEnvironment = resultEnvironment.putAndCopy(pMemoryLocation, pValue.accept(replaceVisitor).accept(partialEvaluator, evaluationVisitor));
-    return new InvariantsState(newVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected);
+    return new InvariantsState(newVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected, includeTypeInformation);
   }
 
   /**
@@ -543,7 +563,7 @@ public class InvariantsState implements AbstractState,
     if (environment.isEmpty()) {
       return this;
     }
-    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, overflowDetected);
+    return new InvariantsState(variableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, overflowDetected, includeTypeInformation);
   }
 
   /**
@@ -577,7 +597,8 @@ public class InvariantsState implements AbstractState,
         result.abstractionState,
         resultEnvironment,
         result.variableTypes,
-        overflowDetected);
+        overflowDetected,
+        includeTypeInformation);
     if (equals(result)) {
       return this;
     }
@@ -655,7 +676,8 @@ public class InvariantsState implements AbstractState,
         abstractionState,
         resultEnvironment,
         variableTypes,
-        overflowDetected);
+        overflowDetected,
+        includeTypeInformation);
     if (equals(result)) {
       return this;
     }
@@ -847,7 +869,7 @@ public class InvariantsState implements AbstractState,
     if (isDefinitelyFalse(assumption, pEvaluationVisitor)) {
       return null;
     }
-    return new InvariantsState(environmentBuilder.build(), pNewVariableSelection, compoundIntervalManagerFactory, machineModel, variableTypes, abstractionState);
+    return new InvariantsState(environmentBuilder.build(), pNewVariableSelection, compoundIntervalManagerFactory, machineModel, variableTypes, abstractionState, overflowDetected, includeTypeInformation);
   }
 
   /**
@@ -954,7 +976,11 @@ public class InvariantsState implements AbstractState,
       }
 
     };
-    return FluentIterable.from(Iterables.concat(getEnvironmentAsAssumptions(), getTypeInformationAsAssumptions())).filter(acceptFormula);
+    Iterable<BooleanFormula<CompoundInterval>> formulas = getEnvironmentAsAssumptions();
+    if (includeTypeInformation) {
+      formulas = Iterables.concat(formulas, getTypeInformationAsAssumptions());
+    }
+    return FluentIterable.from(formulas).filter(acceptFormula);
   }
 
   @Override
@@ -1129,7 +1155,7 @@ public class InvariantsState implements AbstractState,
       }
     }
     final NonRecursiveEnvironment resEnv = resultEnvironment;
-    InvariantsState result = new InvariantsState(resEnv, variableSelection, compoundIntervalManagerFactory, machineModel, variableTypes, abstractionState);
+    InvariantsState result = new InvariantsState(resEnv, variableSelection, compoundIntervalManagerFactory, machineModel, variableTypes, abstractionState, overflowDetected, includeTypeInformation);
 
     for (BooleanFormula<CompoundInterval> hint : FluentIterable
         .from(pWideningHints)
@@ -1219,7 +1245,7 @@ public class InvariantsState implements AbstractState,
       AbstractionState abstractionState2 = pState2.determineAbstractionState(pPrecision);
       AbstractionState abstractionState = abstractionState1.join(abstractionState2);
 
-      result = new InvariantsState(resultVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected);
+      result = new InvariantsState(resultVariableSelection, compoundIntervalManagerFactory, machineModel, abstractionState, resultEnvironment, variableTypes, overflowDetected, includeTypeInformation);
 
       if (result.equalsState(state1)) {
         result = state1;
@@ -1288,7 +1314,8 @@ public class InvariantsState implements AbstractState,
         abstractionState,
         environment,
         variableTypes,
-        true);
+        true,
+        includeTypeInformation);
   }
 
   @Override
