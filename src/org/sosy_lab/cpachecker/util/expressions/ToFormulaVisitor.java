@@ -29,7 +29,13 @@ import java.util.List;
 import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -40,6 +46,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import com.google.common.base.Preconditions;
 
 public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, BooleanFormula, ToFormulaException> {
+
+  private static final CFANode DUMMY_NODE = new CFANode("dummy");
 
   private final FormulaManagerView formulaManagerView;
 
@@ -70,7 +78,15 @@ public class ToFormulaVisitor implements ExpressionTreeVisitor<AExpression, Bool
 
   @Override
   public BooleanFormula visit(LeafExpression<AExpression> pLeafExpression) throws ToFormulaException {
-    CFAEdge edge = null;
+    AExpression expression = pLeafExpression.getExpression();
+    final CFAEdge edge;
+    if (expression instanceof CExpression) {
+      edge = new CAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (CExpression) expression, pLeafExpression.assumeTruth());
+    } else if (expression instanceof JExpression) {
+      edge = new JAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (JExpression) expression, pLeafExpression.assumeTruth());
+    } else {
+      throw new AssertionError("Unsupported expression type.");
+    }
     PathFormula invariantPathFormula;
     try {
       invariantPathFormula = pathFormulaManager.makeFormulaForPath(Collections.<CFAEdge>singletonList(edge));
