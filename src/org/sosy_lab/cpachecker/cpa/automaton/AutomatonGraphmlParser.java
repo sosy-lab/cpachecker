@@ -1153,14 +1153,28 @@ public class AutomatonGraphmlParser {
 
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
       Set<Node> result = Sets.newHashSet();
+      Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMlTag.DATA.toString());
       for (int i=0; i<dataChilds.getLength(); i++) {
         Node dataChild = dataChilds.item(i);
         Node attribute = dataChild.getAttributes().getNamedItem("key");
         Preconditions.checkNotNull(attribute, "Every data element must have a key attribute!");
-        if (attribute.getTextContent().equals(dataKey.id)) {
+        String nodeKey = attribute.getTextContent();
+        if (nodeKey.equals(dataKey.id)) {
           result.add(dataChild);
+          alternative = null;
         }
+        // Backwards-compatibility: type/graph-type
+        if (alternative == null
+            && result.isEmpty()
+            && dataKey.equals(KeyDef.GRAPH_TYPE)
+            && nodeKey.equals("type")) {
+          alternative = Sets.newHashSet();
+          alternative.add(dataChild);
+        }
+      }
+      if (result.isEmpty() && alternative != null) {
+        return alternative;
       }
       return result;
     }
