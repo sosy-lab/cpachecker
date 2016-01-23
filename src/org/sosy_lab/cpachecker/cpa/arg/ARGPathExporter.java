@@ -561,7 +561,7 @@ public class ARGPathExporter {
 
         if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
           ExpressionTree<Object> invariant = Or.of(code);
-          String invariantCode =
+          String assumptionCode =
               ExpressionTrees.convert(
                       invariant,
                       new Function<Object, String>() {
@@ -579,7 +579,7 @@ public class ARGPathExporter {
                         }
                       })
                   .toString();
-          result.put(KeyDef.ASSUMPTION, invariantCode);
+          result.put(KeyDef.ASSUMPTION, assumptionCode);
           if (isFunctionScope) {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
@@ -588,10 +588,9 @@ public class ARGPathExporter {
 
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
-        if (!invariant.equals(ExpressionTrees.getTrue())) {
-          stateInvariants.put(pTo, Or.of(getStateInvariant(pTo), invariant));
-          stateScopes.put(pTo, isFunctionScope ? functionName : "");
-        }
+        functionName = pEdge.getSuccessor().getFunctionName();
+        stateInvariants.put(pTo, Or.of(getStateInvariant(pTo), invariant));
+        stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
       if (exportAssumeCaseInfo) {
@@ -913,10 +912,11 @@ public class ARGPathExporter {
     }
 
     private void addInvariantsData(GraphMlBuilder pDoc, Element pNode, String pStateId) {
-      String scope = stateScopes.get(pStateId);
-      if (scope != null) {
-        pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, stateInvariants.get(pStateId).toString());
-        if (!scope.isEmpty()) {
+      ExpressionTree<Object> tree = getStateInvariant(pStateId);
+      if (!tree.equals(ExpressionTrees.getTrue())) {
+        pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
+        String scope = stateScopes.get(pStateId);
+        if (scope != null && !scope.isEmpty() && !stateScopes.equals(ExpressionTrees.getFalse())) {
           pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
         }
       }
@@ -960,13 +960,27 @@ public class ARGPathExporter {
 
       // Merge the flags
       nodeFlags.putAll(source, nodeFlags.removeAll(target));
+
+      // Merge the trees
       ExpressionTree<Object> sourceTree = getStateInvariant(source);
       ExpressionTree<Object> targetTree = getStateInvariant(target);
-      stateInvariants.put(source, Or.of(sourceTree, targetTree));
+      String sourceScope = stateScopes.get(source);
       String targetScope = stateScopes.get(target);
-      if (targetScope == null || !targetScope.equals(stateScopes.get(source))) {
-        stateScopes.remove(source);
+      final String newScope;
+      if (ExpressionTrees.isConstant(sourceTree) || sourceScope.equals(targetScope)) {
+        newScope = targetScope;
+      } else if (ExpressionTrees.isConstant(targetTree)) {
+        newScope = sourceScope;
+      } else {
+        newScope = null;
       }
+      ExpressionTree<Object> newTree = Or.of(sourceTree, targetTree);
+      if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
+        stateInvariants.put(source, ExpressionTrees.getTrue());
+      } else {
+        stateInvariants.put(source, newTree);
+      }
+
       // Merge the violated properties
       violatedProperties.putAll(source, violatedProperties.removeAll(target));
 
