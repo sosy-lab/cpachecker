@@ -117,6 +117,6 @@ public class EdgeFormulaNegation extends LocationFormulaInvariant implements Exp
 
   @Override
   public ExpressionTree<Object> asExpressionTree() {
-    return LeafExpression.<Object>of((Object) getNegatedAssumeEdge().getExpression());
+    return LeafExpression.<Object>of((Object) getNegatedAssumeEdge().getExpression(), getNegatedAssumeEdge().getTruthAssumption());
   }
 }

@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
@@ -39,6 +40,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
@@ -91,11 +93,11 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -245,17 +247,20 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
 
+  private final AtomicBoolean cancelled = new AtomicBoolean();
+
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
     shutdownManager.requestShutdown("Invariant generation cancel requested.");
+    cancelled.set(true);
   }
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
 
-    if (async && !invariantGenerationFuture.isDone()) {
+    if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
       // grab intermediate result that is available so far
       return algorithm.getCurrentInvariants();
 
@@ -346,6 +351,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
 
+    final Multimap<CFANode, ExpressionTree<AExpression>> candidatesByLocation = HashMultimap.create();
     if (options.invariantsAutomatonFile != null) {
       ConfigurationBuilder configBuilder = Configuration.builder();
       String machineModelOption = "analysis.machineModel";
@@ -379,22 +385,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         // but instead of throwing the exception here,
         // let it be thrown by the invariant generator.
       }
-      Map<CFANode, ExpressionTree<AExpression>> candidatesByLocation = Maps.newLinkedHashMap();
       for (AbstractState abstractState : reachedSet) {
         Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
         for (CFANode location : locations) {
           for (AutomatonState automatonState : AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
             ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
-            ExpressionTree<AExpression> prev = candidatesByLocation.get(location);
-            if (prev == null) {
-              candidatesByLocation.put(location, candidate);
-            } else {
-              candidatesByLocation.put(location, Or.of(prev, candidate));
-            }
+            candidatesByLocation.put(location, candidate);
           }
         }
       }
-      for (Map.Entry<CFANode, ExpressionTree<AExpression>> entry : candidatesByLocation.entrySet()) {
+      for (Map.Entry<CFANode, ExpressionTree<AExpression>> entry : candidatesByLocation.entries()) {
         if (!entry.getValue().equals(ExpressionTrees.getTrue())) {
           candidates.add(new ExpressionTreeLocationInvariant(entry.getKey(), entry.getValue()));
         }
@@ -403,6 +403,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
     if (options.terminateOnCounterexample) {
       return new StaticCandidateProvider(candidates) {
+
+        private final Map<CFANode, Integer> disproved = new HashMap<>();
 
         @Override
         public Iterator<CandidateInvariant> iterator() {
@@ -423,7 +425,19 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
             @Override
             public void remove() {
-              pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+              if (candidate instanceof ExpressionTreeLocationInvariant) {
+                ExpressionTreeLocationInvariant expressionTreeLocationInvariant = (ExpressionTreeLocationInvariant) candidate;
+                CFANode location = expressionTreeLocationInvariant.getLocations().iterator().next();
+                Integer disprovedCount = disproved.get(location);
+                if (disprovedCount == null) {
+                  disprovedCount = 0;
+                }
+                ++disprovedCount;
+                disproved.put(location, disprovedCount);
+                if (disprovedCount == candidatesByLocation.get(location).size()) {
+                  //pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+                }
+              }
               iterator.remove();
             }
 

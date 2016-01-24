@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter.ExtractionState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.GraphBuilder;
@@ -334,17 +335,18 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     rootState,
                     Predicates.alwaysTrue(),
                     Predicates.alwaysTrue(),
-                    GraphBuilder.CFA,
+                    GraphBuilder.CFA_FULL,
                     new InvariantProvider() {
 
                       @Override
                       public ExpressionTree<Object> provideInvariantFor(
                           CFAEdge pCFAEdge,
-                          Optional<? extends Collection<? extends ARGState>> pStates) {
+                          Optional<? extends Collection<? extends ExtractionState>> pStates) {
                         try {
                           CFANode node = pCFAEdge.getSuccessor();
                           ExpressionTree<Object> result =
                               invariantGenerator.getAsExpressionTree().getInvariantFor(node);
+
 
                           return result;
 

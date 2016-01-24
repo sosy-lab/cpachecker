@@ -42,6 +42,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -90,6 +92,8 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 
 /**
  * Instances of this class are used to prove the safety of a program by
@@ -275,12 +279,19 @@ class KInductionProver implements AutoCloseable {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
+    BooleanFormula invariant = bfmgr.makeBoolean(true);
 
-    for (LocationFormulaInvariant confirmedCandidate : from(this.confirmedCandidates).filter(LocationFormulaInvariant.class)) {
-      if (confirmedCandidate.getLocations().contains(pLocation)) {
-        invariant = bfmgr.and(invariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
+
+    for (CFANode location : getBlankNeighbors(pLocation)) {
+
+      BooleanFormula locationInvariant = currentInvariantsSupplier.getInvariantFor(location, pFMGR, pPFMGR);
+
+      for (LocationFormulaInvariant confirmedCandidate : from(this.confirmedCandidates).filter(LocationFormulaInvariant.class)) {
+        if (confirmedCandidate.getLocations().contains(location)) {
+          locationInvariant = bfmgr.and(locationInvariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
+        }
       }
+      invariant = bfmgr.and(invariant, locationInvariant);
     }
 
     return invariant;
@@ -290,12 +301,19 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
-    ExpressionTree<Object> invariant = currentInvariantsSupplier.getInvariantFor(pLocation);
+    ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
 
-    for (ExpressionTreeLocationInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeLocationInvariant.class)) {
-      if (confirmedCandidate.getLocations().contains(pLocation)) {
-        invariant = And.of(invariant, confirmedCandidate.asExpressionTree());
+    for (CFANode location : getBlankNeighbors(pLocation)) {
+      ExpressionTree<Object> locationInvariant = currentInvariantsSupplier.getInvariantFor(location);
+
+      for (ExpressionTreeCandidateInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeCandidateInvariant.class)) {
+        if (confirmedCandidate instanceof LocationFormulaInvariant) {
+          if (((LocationFormulaInvariant) confirmedCandidate).getLocations().contains(location)) {
+            locationInvariant = And.of(locationInvariant, confirmedCandidate.asExpressionTree());
+          }
+        }
       }
+      invariant = And.of(invariant, locationInvariant);
     }
 
     return invariant;
@@ -589,6 +607,29 @@ class KInductionProver implements AutoCloseable {
 
   private static Set<CFANode> getStopLocations(ReachedSet pReachedSet) {
     return from(pReachedSet).filter(BMCAlgorithm.IS_STOP_STATE).transform(AbstractStates.EXTRACT_LOCATION).toSet();
+  }
+
+  private static Set<CFANode> getBlankNeighbors(CFANode pNode) {
+    Set<CFANode> visited = Sets.newHashSet();
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+    waitlist.offer(pNode);
+    visited.add(pNode);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      for (BlankEdge enteringEdge : CFAUtils.enteringEdges(current).filter(BlankEdge.class)) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (visited.add(predecessor)) {
+          waitlist.offer(predecessor);
+        }
+      }
+      for (BlankEdge leavingEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class)) {
+        CFANode successor = leavingEdge.getSuccessor();
+        if (visited.add(successor)) {
+          waitlist.offer(successor);
+        }
+      }
+    }
+    return visited;
   }
 
 }

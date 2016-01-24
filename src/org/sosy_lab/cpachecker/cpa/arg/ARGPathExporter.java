@@ -247,7 +247,7 @@ public class ARGPathExporter {
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
-        GraphBuilder.CFA,
+        GraphBuilder.CFA_FROM_ARG,
         new InvariantProvider() {
 
           @Override
