@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Varia
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -130,6 +131,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   static final String UF_NAME_PREFIX = "*";
   static final String FIELD_NAME_SEPARATOR = "$";
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
+  private static final Map<String, ArrayFormula<?, ?>> arrayFormulaCache = new IdentityHashMap<>();
 
   final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManagerHeapArray ptsMgr;
@@ -191,6 +193,19 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       result = UF_NAME_PREFIX + CTypeUtils.typeToString(pType).replace(' ', '_');
       ufNameCache.put(pType, result);
       return result;
+    }
+  }
+
+  public static ArrayFormula<?, ?> getArrayFormula(final String pArrayName) {
+    return arrayFormulaCache.get(pArrayName);
+  }
+
+  public static void addArrayFormula(final String pArrayName, final Formula pArrayFormula) {
+    if (pArrayFormula instanceof ArrayFormula<?, ?>) {
+      arrayFormulaCache.put(pArrayName, (ArrayFormula<?, ?>) pArrayFormula);
+    } else {
+      throw new IllegalArgumentException("Not allowed to put non-array formula " + pArrayName
+          + "into array formula cache!");
     }
   }
 
