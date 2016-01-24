@@ -248,6 +248,18 @@ public class ToCodeFormulaVisitor implements
   public String visit(Equal<CompoundInterval> pEqual,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     BitVectorInfo bitVectorInfo = pEqual.getOperand1().getBitVectorInfo();
+
+    // Check not equals
+    CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
+    if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
+      return not(Equal.of(Constant.of(bitVectorInfo, op1EvalInvert), pEqual.getOperand2()).accept(this, pEnvironment));
+    }
+    CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
+    if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
+      return not(Equal.of(pEqual.getOperand1(), Constant.of(bitVectorInfo, op2EvalInvert)).accept(this, pEnvironment));
+    }
+
+    // General case
     String operand1 = pEqual.getOperand1().accept(this, pEnvironment);
     String operand2 = pEqual.getOperand2().accept(this, pEnvironment);
     if (operand1 == null && operand2 == null) {
