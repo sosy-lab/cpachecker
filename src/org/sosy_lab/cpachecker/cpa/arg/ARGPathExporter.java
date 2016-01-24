@@ -590,6 +590,12 @@ public class ARGPathExporter {
         functionName = pEdge.getSuccessor().getFunctionName();
         stateInvariants.put(pTo, Or.of(getStateInvariant(pTo), invariant));
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
+
+        String entryId = cfa.getMainFunction().toString();
+        ExpressionTree<Object> entryTree = stateInvariants.get(entryId);
+        if (entryTree == null) {
+          stateInvariants.put(entryId, ExpressionTrees.getTrue());
+        }
       }
 
       if (exportAssumeCaseInfo) {
