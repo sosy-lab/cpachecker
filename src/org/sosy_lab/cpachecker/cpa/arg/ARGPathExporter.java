@@ -978,8 +978,10 @@ public class ARGPathExporter {
       ExpressionTree<Object> newTree = Or.of(sourceTree, targetTree);
       if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
         stateInvariants.put(source, ExpressionTrees.getTrue());
+        stateScopes.remove(source);
       } else {
         stateInvariants.put(source, newTree);
+        stateScopes.put(source, newScope);
       }
 
       // Merge the violated properties
