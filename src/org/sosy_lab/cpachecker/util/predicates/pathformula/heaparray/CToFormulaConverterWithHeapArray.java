@@ -806,7 +806,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     if (pRhs instanceof CExpression) {
       pRhs = makeCastFromArrayToPointerIfNecessary((CExpression) pRhs, pLhs.getExpressionType());
     }
-    
+
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, pCFAEdge,
         pFunction, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
         pErrorConditions);
