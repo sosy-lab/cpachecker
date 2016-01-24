@@ -61,7 +61,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter.ExtractionState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.GraphBuilder;
@@ -341,7 +340,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                       @Override
                       public ExpressionTree<Object> provideInvariantFor(
                           CFAEdge pCFAEdge,
-                          Optional<? extends Collection<? extends ExtractionState>> pStates) {
+                          Optional<? extends Collection<? extends ARGState>> pStates) {
                         try {
                           CFANode node = pCFAEdge.getSuccessor();
                           ExpressionTree<Object> result =
