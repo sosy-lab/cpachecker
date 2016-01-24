@@ -70,6 +70,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -578,8 +579,15 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithHeapArray.getUFName(pType);
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
-    return afmgr.declareAndCallArray(ufName, index,
-        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
+    final ArrayFormula<?, ?> arrayFormula = CToFormulaConverterWithHeapArray.getArrayFormula(
+        ufName + "@" + index);
+    if (arrayFormula != null ) {
+      return afmgr.select(arrayFormula, pAddress);
+    } else {
+      throw new IllegalArgumentException("Illegal dereference");
+    }
+//    return afmgr.declareAndCallArray(ufName, index,
+//        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
   }
 
   /**

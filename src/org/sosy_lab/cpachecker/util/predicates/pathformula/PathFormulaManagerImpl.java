@@ -77,6 +77,7 @@ import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.AssignableTerm.Variable;
 import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.TermType;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -501,13 +502,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final BooleanFormula retention;
       if (useArrayHeap) {
         // TODO array call
-        retention = fmgr.assignment(
-            afmgr.declareAndCallArray(functionName, newIndex,
-                fmgr.getIntegerFormulaManager(), returnFormulaType,
-                targetAddress),
-            afmgr.declareAndCallArray(functionName, oldIndex,
-                fmgr.getIntegerFormulaManager(), returnFormulaType,
-                targetAddress));
+//        retention = fmgr.assignment(
+//            afmgr.declareAndCallArray(functionName, newIndex,
+//                fmgr.getIntegerFormulaManager(), returnFormulaType,
+//                targetAddress),
+//            afmgr.declareAndCallArray(functionName, oldIndex,
+//                fmgr.getIntegerFormulaManager(), returnFormulaType,
+//                targetAddress));
+        final ArrayFormula<?, ?> newArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+            functionName + "@" + newIndex);
+        final ArrayFormula<?, ?> oldArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+            functionName + "@" + oldIndex);
+        if (newArray == null && oldArray != null) {
+          CToFormulaConverterWithHeapArray.addArrayFormula(functionName +"@" + newIndex, oldArray);
+          retention = bfmgr.makeBoolean(true);
+        } else if (newArray == null) {
+          retention = bfmgr.makeBoolean(true);
+        } else if (oldArray == null) {
+          retention = bfmgr.makeBoolean(true);
+        } else {
+          retention = fmgr.assignment(
+              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
+        }
       } else {
         retention = fmgr.assignment(
             ffmgr.declareAndCallUninterpretedFunction(functionName,
