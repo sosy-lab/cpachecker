@@ -276,16 +276,14 @@ public class ARGPathExporter {
                 }
               }
 
-              String functionName = pEdge.getPredecessor().getFunctionName();
-              if (functionName.equals(pEdge.getSuccessor().getFunctionName())) {
-                for (ExpressionTreeReportingState etrs :
-                    AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
-                  stateInvariant =
-                      And.of(
-                          stateInvariant,
-                          etrs.getFormulaApproximation(
-                              cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
-                }
+              String functionName = pEdge.getSuccessor().getFunctionName();
+              for (ExpressionTreeReportingState etrs :
+                  AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
+                stateInvariant =
+                    And.of(
+                        stateInvariant,
+                        etrs.getFormulaApproximation(
+                            cfa.getFunctionHead(functionName), pEdge.getSuccessor()));
               }
               stateInvariants.add(stateInvariant);
             }
