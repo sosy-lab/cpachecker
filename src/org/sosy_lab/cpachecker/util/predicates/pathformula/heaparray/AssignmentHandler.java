@@ -570,13 +570,13 @@ class AssignmentHandler {
         pUpdatedVariables.add(Variable.create(targetName, pLvalueType));
       }
     } else { // Aliased LHS
-      final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
-          formulaManager.getIntegerFormulaManager(), targetType,
-          pLvalue.asAliased().getAddress());
+//      final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
+//          formulaManager.getIntegerFormulaManager(), targetType,
+//          pLvalue.asAliased().getAddress());
       // TODO array calls
       if (rhs != null) {
-//        final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
-//            pLvalue.asAliased().getAddress(), targetType, rhs);
+        final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
+            pLvalue.asAliased().getAddress(), targetType, rhs);
         result = formulaManager.assignment(lhs, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
