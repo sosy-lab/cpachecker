@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 
-interface BooleanFormulaVisitor<ConstantType, ReturnType> {
+public interface BooleanFormulaVisitor<ConstantType, ReturnType> {
 
   /**
    * Visits the boolean constant {@code false}.

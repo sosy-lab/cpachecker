@@ -21,28 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
+package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import java.util.Collection;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-import com.google.common.base.Optional;
 
-public interface InvariantProvider {
+public interface ExpressionTreeCandidateInvariant extends CandidateInvariant {
 
-  ExpressionTree<Object> provideInvariantFor(
-      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates);
+  ExpressionTree<Object> asExpressionTree();
 
-  static enum TrueInvariantProvider implements InvariantProvider {
-    INSTANCE;
-
-    @Override
-    public ExpressionTree<Object> provideInvariantFor(
-        CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
-      return ExpressionTrees.getTrue();
-    }
-  }
 }

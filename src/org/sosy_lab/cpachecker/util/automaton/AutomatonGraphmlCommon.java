@@ -125,7 +125,7 @@ public class AutomatonGraphmlCommon {
     FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),
     CFAPREDECESSORNODE("predecessor", ElementType.EDGE, "predecessor", "string"),
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
-    GRAPH_TYPE("type", ElementType.GRAPH, "witness-type", "string");
+    GRAPH_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string");
 
     public final String id;
     public final ElementType keyFor;
@@ -187,8 +187,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum GraphType {
-    ERROR_WITNESS("FALSE"),
-    PROOF_WITNESS("TRUE");
+    ERROR_WITNESS("violation_witness"),
+    PROOF_WITNESS("correctness_witness");
 
     public final String text;
 
@@ -206,6 +206,18 @@ public class AutomatonGraphmlCommon {
         if (element.text.equals(pTextualRepresentation)) {
           return Optional.of(element);
         }
+      }
+      if (pTextualRepresentation.equals("FALSE")) {
+        return Optional.of(ERROR_WITNESS);
+      }
+      if (pTextualRepresentation.equals("TRUE")) {
+        return Optional.of(PROOF_WITNESS);
+      }
+      if (pTextualRepresentation.equals("false_witness")) {
+        return Optional.of(ERROR_WITNESS);
+      }
+      if (pTextualRepresentation.equals("true_witness")) {
+        return Optional.of(PROOF_WITNESS);
       }
       return Optional.absent();
     }

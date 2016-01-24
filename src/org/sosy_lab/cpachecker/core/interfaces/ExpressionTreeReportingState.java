@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,31 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.invariants;
+package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-
-public interface ExpressionTreeSupplier {
+/**
+ * Interface to implement in order for an abstract state
+ * to be able to be over-approximated by an ExpressionTree representing
+ * the abstract state.
+ */
+public interface ExpressionTreeReportingState extends AbstractState {
 
   /**
-   * Return an invariant that holds at a given node.
-   * This method should be relatively cheap and not block
-   * (i.e., do not start an expensive invariant generation procedure).
+   * Returns an ExpressionTree over-approximating the state.
    *
-   * @param node The CFANode.
-   * @return An invariant boolean expression over C expressions.
+   * @param pFunctionScope the function scope as a function entry node.
+   * @param pLocation the formula should at least try to approximate variables referenced by entering edges.
+   *
+   * @return an ExpressionTree over-approximating the state.
    */
-  ExpressionTree<Object> getInvariantFor(CFANode node);
+  ExpressionTree<Object> getFormulaApproximation(
+      FunctionEntryNode pFunctionScope, CFANode pLocation);
 
-  static enum TrivialInvariantSupplier implements ExpressionTreeSupplier {
-    INSTANCE;
-
-    @Override
-    public ExpressionTree<Object> getInvariantFor(CFANode pNode) {
-      return ExpressionTrees.getTrue();
-    }
-  }
 }

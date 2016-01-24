@@ -56,7 +56,7 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
 
   private final AtomicReference<T> invariantGenerator;
 
-  private final AtomicReference<Future<InvariantSupplier>> currentInvariantSupplier = new AtomicReference<>();
+  private final AtomicReference<Future<FormulaAndTreeSupplier>> currentInvariantSupplier = new AtomicReference<>();
 
   public AdjustableInvariantGenerator(ShutdownNotifier pShutdownNotifier, T pInitialGenerator, Function<? super T, ? extends T> pAdjust) {
     shutdownNotifier = pShutdownNotifier;
@@ -73,7 +73,7 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
   public boolean adjustAndContinue(CFANode pInitialLocation) throws CPAException, InterruptedException {
     final T current = invariantGenerator.get();
     try {
-      setSupplier(current.get());
+      setSupplier(new FormulaAndTreeSupplier(current.get(), current.getAsExpressionTree()));
     } finally {
       if (current.isProgramSafe()) {
         isProgramSafe.set(true);
@@ -93,9 +93,8 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
     invariantGenerator.get().cancel();
   }
 
-  @Override
-  public InvariantSupplier get() throws CPAException, InterruptedException {
-    Future<InvariantSupplier> supplier = currentInvariantSupplier.get();
+  private FormulaAndTreeSupplier getInternal() throws CPAException, InterruptedException {
+    Future<FormulaAndTreeSupplier> supplier = currentInvariantSupplier.get();
     Preconditions.checkState(supplier != null);
     try {
       return supplier.get();
@@ -106,6 +105,16 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
       shutdownNotifier.shutdownIfNecessary();
       throw e;
     }
+  }
+
+  @Override
+  public InvariantSupplier get() throws CPAException, InterruptedException {
+    return getInternal();
+  }
+
+  @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
+    return getInternal();
   }
 
   @Override
@@ -127,21 +136,21 @@ public class AdjustableInvariantGenerator<T extends InvariantGenerator> extends 
   }
 
   private void setSupplier(final InvariantGenerator pInvariantGenerator) {
-    currentInvariantSupplier.set(new LazyFutureTask<>(new Callable<InvariantSupplier>() {
+    currentInvariantSupplier.set(new LazyFutureTask<>(new Callable<FormulaAndTreeSupplier>() {
 
       @Override
-      public InvariantSupplier call() throws Exception {
-        return pInvariantGenerator.get();
+      public FormulaAndTreeSupplier call() throws Exception {
+        return new FormulaAndTreeSupplier(pInvariantGenerator.get(), pInvariantGenerator.getAsExpressionTree());
       }
 
     }));
   }
 
-  private void setSupplier(final InvariantSupplier pSupplier) {
-    currentInvariantSupplier.set(new LazyFutureTask<>(new Callable<InvariantSupplier>() {
+  private void setSupplier(final FormulaAndTreeSupplier pSupplier) {
+    currentInvariantSupplier.set(new LazyFutureTask<>(new Callable<FormulaAndTreeSupplier>() {
 
       @Override
-      public InvariantSupplier call() throws Exception {
+      public FormulaAndTreeSupplier call() throws Exception {
         return pSupplier;
       }
 

@@ -37,18 +37,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 import com.google.common.base.Function;
 
-public class LeafExpression extends AbstractExpressionTree {
+public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
-  public static Function<AExpressionStatement, ExpressionTree> FROM_EXPRESSION_STATEMENT =
-      new Function<AExpressionStatement, ExpressionTree>() {
+  public static Function<AExpressionStatement, ExpressionTree<AExpression>>
+      FROM_EXPRESSION_STATEMENT =
+          new Function<AExpressionStatement, ExpressionTree<AExpression>>() {
 
-        @Override
-        public ExpressionTree apply(AExpressionStatement pExpressionStatement) {
-          return of(pExpressionStatement.getExpression());
-        }
-      };
+            @Override
+            public ExpressionTree<AExpression> apply(AExpressionStatement pExpressionStatement) {
+              return of(pExpressionStatement.getExpression());
+            }
+          };
 
-  public static ExpressionTree fromStatement(
+  public static ExpressionTree<AExpression> fromStatement(
       AStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder) {
     if (pStatement instanceof AExpressionStatement) {
       return FROM_EXPRESSION_STATEMENT.apply((AExpressionStatement) pStatement);
@@ -60,22 +61,22 @@ public class LeafExpression extends AbstractExpressionTree {
         CBinaryExpression assumeExp =
             pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
                 assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
-        return of(assumeExp);
+        return of((AExpression) assumeExp);
       }
     }
-    return ExpressionTree.TRUE;
+    return ExpressionTrees.getTrue();
   }
 
-  private final AExpression expression;
+  private final LeafType expression;
 
   private final boolean assumeTruth;
 
-  private LeafExpression(AExpression pExpression, boolean pAssumeTruth) {
-    this.expression = pExpression;
+  private LeafExpression(LeafType pExpression, boolean pAssumeTruth) {
+    this.expression = Objects.requireNonNull(pExpression);
     this.assumeTruth = pAssumeTruth;
   }
 
-  public AExpression getExpression() {
+  public LeafType getExpression() {
     return expression;
   }
 
@@ -84,7 +85,8 @@ public class LeafExpression extends AbstractExpressionTree {
   }
 
   @Override
-  public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+  public <T, E extends Throwable> T accept(ExpressionTreeVisitor<LeafType, T, E> pVisitor)
+      throws E {
     return pVisitor.visit(this);
   }
 
@@ -99,25 +101,30 @@ public class LeafExpression extends AbstractExpressionTree {
       return true;
     }
     if (pObj instanceof LeafExpression) {
-      LeafExpression other = (LeafExpression) pObj;
+      LeafExpression<?> other = (LeafExpression<?>) pObj;
       return assumeTruth == other.assumeTruth && expression.equals(other.expression);
     }
     return false;
   }
 
-  public static ExpressionTree of(AExpression pExpression) {
-    return of(pExpression, true);
+  public static <LeafType> ExpressionTree<LeafType> of(LeafType pLeafExpression) {
+    return of(pLeafExpression, true);
   }
 
-  public static ExpressionTree of(AExpression pExpression, boolean pAssumeTruth) {
-    if (pExpression instanceof AIntegerLiteralExpression) {
-      AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pExpression;
+  public static <LeafType> ExpressionTree<LeafType> of(
+      LeafType pLeafExpression, boolean pAssumeTruth) {
+    if (pLeafExpression instanceof AIntegerLiteralExpression) {
+      AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pLeafExpression;
       if (expression.getValue().equals(BigInteger.ZERO)) {
-        return pAssumeTruth ? ExpressionTree.FALSE : ExpressionTree.TRUE;
+        return pAssumeTruth
+            ? ExpressionTrees.<LeafType>getFalse()
+            : ExpressionTrees.<LeafType>getTrue();
       }
-      return pAssumeTruth ? ExpressionTree.TRUE : ExpressionTree.FALSE;
+      return pAssumeTruth
+          ? ExpressionTrees.<LeafType>getTrue()
+          : ExpressionTrees.<LeafType>getFalse();
     }
-    return new LeafExpression(pExpression, pAssumeTruth);
+    return new LeafExpression<>(pLeafExpression, pAssumeTruth);
   }
 
 }

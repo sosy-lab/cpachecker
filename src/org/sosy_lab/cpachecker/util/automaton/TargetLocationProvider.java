@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 import com.google.common.collect.ImmutableSet;
@@ -33,6 +31,6 @@ import com.google.common.collect.ImmutableSet;
 
 public interface TargetLocationProvider {
 
-  public @Nullable ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode);
+  public ImmutableSet<CFANode> tryGetAutomatonTargetLocations(CFANode pRootNode);
 
 }

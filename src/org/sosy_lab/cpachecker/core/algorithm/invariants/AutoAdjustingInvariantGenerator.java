@@ -54,7 +54,7 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
 
   private final AdjustableInvariantGenerator<T> invariantGenerator;
 
-  private final AtomicReference<Future<InvariantSupplier>> taskFuture = new AtomicReference<>();
+  private final AtomicReference<Future<FormulaAndTreeSupplier>> taskFuture = new AtomicReference<>();
 
   public AutoAdjustingInvariantGenerator(ShutdownNotifier pShutdownNotifier, AdjustableInvariantGenerator<T> pInitialGenerator) {
     shutdownNotifier = pShutdownNotifier;
@@ -70,16 +70,16 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
   public void start(final CFANode pInitialLocation) {
     invariantGenerator.start(pInitialLocation);
     ExecutorService executor = Executors.newSingleThreadExecutor(Threads.threadFactory());
-    taskFuture.set(executor.submit(new Callable<InvariantSupplier>() {
+    taskFuture.set(executor.submit(new Callable<FormulaAndTreeSupplier>() {
 
       @Override
-      public InvariantSupplier call() throws Exception {
+      public FormulaAndTreeSupplier call() throws Exception {
         while (!cancelled.get() && !invariantGenerator.isProgramSafe() && invariantGenerator.adjustAndContinue(pInitialLocation)) {
           if (shutdownNotifier.shouldShutdown()) {
             cancel();
           }
         }
-        return invariantGenerator.get();
+        return new FormulaAndTreeSupplier(invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
       }
 
     }));
@@ -94,7 +94,16 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
-    Future<InvariantSupplier> futureResult = taskFuture.get();
+    return getInternal();
+  }
+
+  @Override
+  public ExpressionTreeSupplier getAsExpressionTree() throws CPAException, InterruptedException {
+    return getInternal();
+  }
+
+  private FormulaAndTreeSupplier getInternal() throws CPAException, InterruptedException {
+    Future<FormulaAndTreeSupplier> futureResult = taskFuture.get();
     if (futureResult.isDone()) {
       try {
         return futureResult.get();
@@ -103,7 +112,7 @@ public class AutoAdjustingInvariantGenerator<T extends InvariantGenerator> exten
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       }
     }
-    return invariantGenerator.get();
+    return new FormulaAndTreeSupplier(invariantGenerator.get(), invariantGenerator.getAsExpressionTree());
   }
 
   @Override

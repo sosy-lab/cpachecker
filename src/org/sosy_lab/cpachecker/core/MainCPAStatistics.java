@@ -282,7 +282,7 @@ class MainCPAStatistics implements Statistics, AlgorithmIterationListener {
 
     if (generateNewCounterexampleReport) {
       final GenerateReportWithoutGraphs generateReportWithoutGraphs =
-          new GenerateReportWithoutGraphs(logger);
+          new GenerateReportWithoutGraphs(logger, cfa);
       generateReportWithoutGraphs.generate();
     }
   }

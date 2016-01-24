@@ -25,33 +25,35 @@ package org.sosy_lab.cpachecker.util.expressions;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 
-public class Or extends AbstractExpressionTree implements Iterable<ExpressionTree> {
+public class Or<LeafType> extends AbstractExpressionTree<LeafType>
+    implements Iterable<ExpressionTree<LeafType>> {
 
-  private List<ExpressionTree> operands;
+  private ImmutableSortedSet<ExpressionTree<LeafType>> operands;
 
-  private Or(Iterable<? extends ExpressionTree> pOperands) {
+  private Or(ImmutableSortedSet<ExpressionTree<LeafType>> pOperands) {
     assert Iterables.size(pOperands) >= 2;
-    assert !Iterables.contains(pOperands, ExpressionTree.FALSE);
-    assert !Iterables.contains(pOperands, ExpressionTree.TRUE);
+    assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
+    assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
     assert !FluentIterable.from(pOperands).anyMatch(Predicates.instanceOf(Or.class));
-    operands = ImmutableList.copyOf(pOperands);
+    operands = pOperands;
   }
 
   @Override
-  public Iterator<ExpressionTree> iterator() {
+  public Iterator<ExpressionTree<LeafType>> iterator() {
     return operands.iterator();
   }
 
   @Override
-  public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+  public <T, E extends Throwable> T accept(ExpressionTreeVisitor<LeafType, T, E> pVisitor)
+      throws E {
     return pVisitor.visit(this);
   }
 
@@ -66,40 +68,47 @@ public class Or extends AbstractExpressionTree implements Iterable<ExpressionTre
       return true;
     }
     if (pObj instanceof Or) {
-      return operands.equals(((Or) pObj).operands);
+      return operands.equals(((Or<?>) pObj).operands);
     }
     return false;
   }
 
-  public static ExpressionTree of(Iterable<? extends ExpressionTree> pOperands) {
+  public static <LeafType> ExpressionTree<LeafType> of(
+      ExpressionTree<LeafType> pOp1, ExpressionTree<LeafType> pOp2) {
+    return of(ImmutableList.of(pOp1, pOp2));
+  }
+
+  public static <LeafType> ExpressionTree<LeafType> of(
+      Iterable<ExpressionTree<LeafType>> pOperands) {
     // If one of the operands is true, return true
-    if (Iterables.contains(pOperands, ExpressionTree.TRUE)) {
-      return ExpressionTree.TRUE;
+    if (Iterables.contains(pOperands, ExpressionTrees.getTrue())) {
+      return ExpressionTrees.getTrue();
     }
     // Filter out trivial operands and flatten the hierarchy
-    FluentIterable<? extends ExpressionTree> operands =
+    ImmutableSortedSet<ExpressionTree<LeafType>> operands =
         FluentIterable.from(pOperands)
-            .filter(Predicates.not(Predicates.equalTo(ExpressionTree.FALSE)))
+            .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getFalse())))
             .transformAndConcat(
-                new Function<ExpressionTree, Iterable<ExpressionTree>>() {
+                new Function<ExpressionTree<LeafType>, Iterable<ExpressionTree<LeafType>>>() {
 
                   @Override
-                  public Iterable<ExpressionTree> apply(ExpressionTree pOperand) {
+                  public Iterable<ExpressionTree<LeafType>> apply(
+                      ExpressionTree<LeafType> pOperand) {
                     if (pOperand instanceof Or) {
-                      return (Or) pOperand;
+                      return (Or<LeafType>) pOperand;
                     }
                     return Collections.singleton(pOperand);
                   }
-                });
+                }).toSortedSet(ExpressionTrees.<LeafType>getComparator());
     // If there are no operands, return the neutral element
     if (operands.isEmpty()) {
-      return ExpressionTree.FALSE;
+      return ExpressionTrees.getFalse();
     }
     // If there is only one operand, return it
-    if (operands.skip(1).isEmpty()) {
+    if (operands.size() == 1) {
       return operands.iterator().next();
     }
-    return new Or(operands);
+    return new Or<>(operands);
   }
 
 }

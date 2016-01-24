@@ -132,6 +132,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
     private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
+
+    @Option(secure=true, description="include type information for variables, such as x >= MIN_INT && x <= MAX_INT")
+    private boolean includeTypeInformation = true;
   }
 
   /**
@@ -284,7 +287,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           compoundIntervalManagerFactory,
           machineModel,
           abstractionState,
-          false);
+          false,
+          options.includeTypeInformation);
     }
     if (options.analyzeTargetPathsOnly && determineTargetLocations) {
       relevantLocations.addAll(targetLocations);
@@ -325,7 +329,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           compoundIntervalManagerFactory,
           machineModel,
           abstractionState,
-          false);
+          false,
+          options.includeTypeInformation);
     }
 
     // Try to specify all relevant variables
@@ -377,7 +382,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           compoundIntervalManagerFactory,
           machineModel,
           abstractionState,
-          false);
+          false,
+          options.includeTypeInformation);
       state = state.assume(invariant);
     }
 
@@ -387,7 +393,8 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         compoundIntervalManagerFactory,
         machineModel,
         abstractionState,
-        false);
+        false,
+        options.includeTypeInformation);
   }
 
   @Override

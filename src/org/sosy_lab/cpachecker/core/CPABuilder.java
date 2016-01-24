@@ -195,7 +195,8 @@ public class CPABuilder {
         }
 
         if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
-          AutomatonGraphmlParser graphmlParser = new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
+        AutomatonGraphmlParser graphmlParser =
+            new AutomatonGraphmlParser(config, logger, cfa, cfa.getMachineModel(), scope);
           automata = graphmlParser.parseAutomatonFile(specFile);
 
         } else {

@@ -473,8 +473,8 @@ public class ProofSlicer {
   }
 
   private String getVarName(final MemoryLocation pMl) {
-    String prefix = pMl.isOnFunctionStack() ? pMl.getFunctionName() : "";
-    return prefix + "::" + pMl.getIdentifier();
+    String prefix = pMl.isOnFunctionStack() ? pMl.getFunctionName() + "::"  : "";
+    return prefix +  pMl.getIdentifier();
   }
 
   private static class VarNameRetriever implements CExpressionVisitor<String, RuntimeException> {

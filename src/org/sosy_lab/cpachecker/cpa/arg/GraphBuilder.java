@@ -50,7 +50,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
-enum GraphBuilder {
+public enum GraphBuilder {
 
   ARG_PATH {
 

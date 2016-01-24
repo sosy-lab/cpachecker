@@ -58,6 +58,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -73,10 +74,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -96,6 +97,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.w3c.dom.Document;
@@ -112,7 +114,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -120,6 +121,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 
@@ -156,15 +158,19 @@ public class AutomatonGraphmlParser {
   private Path automatonDumpFile = null;
 
   private Scope scope;
+  private final CFA cfa;
   private final LogManager logger;
   private final Configuration config;
   private final MachineModel machine;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
-  private final Function<AStatement, ExpressionTree> fromStatement;
+  private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
 
-  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope) throws InvalidConfigurationException {
+  public AutomatonGraphmlParser(
+      Configuration pConfig, LogManager pLogger, CFA pCFA, MachineModel pMachine, Scope pScope)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    this.cfa = pCFA;
     this.scope = pScope;
     this.machine = pMachine;
     this.logger = pLogger;
@@ -172,10 +178,10 @@ public class AutomatonGraphmlParser {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
     fromStatement =
-        new Function<AStatement, ExpressionTree>() {
+        new Function<AStatement, ExpressionTree<AExpression>>() {
 
           @Override
-          public ExpressionTree apply(AStatement pStatement) {
+          public ExpressionTree<AExpression> apply(AStatement pStatement) {
             return LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
           }
         };
@@ -336,14 +342,18 @@ public class AutomatonGraphmlParser {
         if (distance == null) {
           distance = Integer.MAX_VALUE;
         }
-        List<AutomatonAction> actions = Collections.<AutomatonAction>singletonList(
-            new AutomatonAction.Assignment(
-                DISTANCE_TO_VIOLATION,
-                new AutomatonIntExpr.Constant(-distance)
-                )
-            );
+        final List<AutomatonAction> actions;
+        if (graphType == GraphType.ERROR_WITNESS) {
+          actions =
+              Collections.<AutomatonAction>singletonList(
+                  new AutomatonAction.Assignment(
+                      DISTANCE_TO_VIOLATION, new AutomatonIntExpr.Constant(-distance)));
+        } else {
+          actions = Collections.emptyList();
+        }
+
         List<CStatement> assumptions = Lists.newArrayList();
-        ExpressionTree candidateInvariants = ExpressionTree.TRUE;
+        ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
         LinkedList<AutomatonTransition> transitions = stateTransitions.get(sourceStateId);
         if (transitions == null) {
@@ -407,9 +417,9 @@ public class AutomatonGraphmlParser {
         }
 
         Set<String> candidates =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.INVARIANT);
+            GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANT);
         Set<String> candidateScopes =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.INVARIANTSCOPE);
+            GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
         final Scope candidateScope = determineScope(candidateScopes, newStack);
         if (!candidates.isEmpty()) {
           if (graphType == GraphType.ERROR_WITNESS) {
@@ -417,9 +427,8 @@ public class AutomatonGraphmlParser {
           }
           candidateInvariants =
               And.of(
-                  ImmutableList.<ExpressionTree>of(
-                      candidateInvariants,
-                      parseStatementsAsExpressionTree(candidates, candidateScope, cparser)));
+                  candidateInvariants,
+                  parseStatementsAsExpressionTree(candidates, candidateScope, cparser));
         }
 
         if (matchOriginLine) {
@@ -504,7 +513,7 @@ public class AutomatonGraphmlParser {
                   not(conjunctedTriggers),
                   assertions,
                   Collections.<CStatement>emptyList(),
-                  ExpressionTree.TRUE,
+                  ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   violationStates.contains(sourceStateId)));
@@ -560,7 +569,7 @@ public class AutomatonGraphmlParser {
                       new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
                   assertions,
                   Collections.<CStatement>emptyList(),
-                  ExpressionTree.TRUE,
+                  ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   sourceStateId,
                   sourceIsViolationNode));
@@ -588,7 +597,7 @@ public class AutomatonGraphmlParser {
                   AutomatonBoolExpr.TRUE,
                   assertions,
                   Collections.<CStatement>emptyList(),
-                  ExpressionTree.TRUE,
+                  ExpressionTrees.<AExpression>getTrue(),
                   Collections.<AutomatonAction>emptyList(),
                   stateId,
                   true));
@@ -685,30 +694,45 @@ public class AutomatonGraphmlParser {
     return Collections.emptySet();
   }
 
-  private ExpressionTree parseStatementsAsExpressionTree(
+  private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
       Set<String> pStatements, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
-    if (!pStatements.isEmpty()) {
-
-      Set<ExpressionTree> result = new HashSet<>();
-      for (String assumeCode : pStatements) {
-        ExpressionTree expressionTree = parseStatement(assumeCode, pScope, pCParser);
-        result.add(expressionTree);
+      throws InvalidAutomatonException, InvalidConfigurationException {
+    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
+    for (String assumeCode : pStatements) {
+      try {
+        ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
+        result = And.of(result, expressionTree);
+      } catch (CParserException e) {
+        logger.log(Level.WARNING, e, "Cannot parse code: " + assumeCode);
       }
-      return And.of(result);
     }
-    return ExpressionTree.TRUE;
+    return result;
   }
 
-  private ExpressionTree parseStatement(String pAssumeCode, Scope pScope, CParser pCParser)
+  private ExpressionTree<AExpression> parseStatement(
+      String pAssumeCode, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
-    Collection<CStatement> statements =
-        removeDuplicates(
-            adjustCharAssignments(
-                AutomatonASTComparator.generateSourceASTOfBlock(
-                    tryFixArrayInitializers(pAssumeCode), pCParser, pScope)));
+    String assumeCode = tryFixArrayInitializers(pAssumeCode);
+    Collection<CStatement> statements = null;
+    try {
+      statements = AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, pCParser, pScope);
+    } catch (RuntimeException e) {
+      if (e.getMessage() != null && e.getMessage().contains("Syntax error:")) {
+        statements =
+            AutomatonASTComparator.generateSourceASTOfBlock(
+                tryFixACSL(assumeCode, pScope), pCParser, pScope);
+      } else {
+        throw e;
+      }
+    } catch (CParserException e) {
+      statements =
+          AutomatonASTComparator.generateSourceASTOfBlock(
+              tryFixACSL(assumeCode, pScope), pCParser, pScope);
+    }
+    statements = removeDuplicates(adjustCharAssignments(statements));
     // Check that no expressions were split
     if (!FluentIterable.from(statements)
         .anyMatch(
@@ -723,7 +747,7 @@ public class AutomatonGraphmlParser {
     }
 
     // For complex expressions, assume we are dealing with expression statements
-    ExpressionTree result = ExpressionTree.TRUE;
+    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     try {
       result = parseExpression(pAssumeCode, pScope, pCParser);
     } catch (CParserException e) {
@@ -733,7 +757,7 @@ public class AutomatonGraphmlParser {
       if (clausesStrings.isEmpty()) {
         throw e;
       }
-      List<ExpressionTree> clauses = new ArrayList<>(clausesStrings.size());
+      List<ExpressionTree<AExpression>> clauses = new ArrayList<>(clausesStrings.size());
       for (String statement : clausesStrings) {
         clauses.add(parseExpression(statement, pScope, pCParser));
       }
@@ -742,87 +766,140 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
-  private ExpressionTree parseExpression(String pAssumeCode, Scope pScope, CParser pCParser)
+  private String tryFixACSL(String pAssumeCode, Scope pScope) {
+    String assumeCode = pAssumeCode.trim();
+    if (assumeCode.endsWith(";")) {
+      assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
+    }
+
+    if (pScope instanceof CProgramScope) {
+      CProgramScope scope = (CProgramScope) pScope;
+      if (!scope.isGlobalScope()) {
+        String functionName = scope.getCurrentFunctionName();
+        FunctionEntryNode head = cfa.getFunctionHead(functionName);
+        if (head.getReturnVariable().isPresent()) {
+          assumeCode =
+              assumeCode.replace(
+                  " \\result ", " " + head.getReturnVariable().get().getName() + " ");
+        }
+      }
+    }
+    assumeCode = assumeCode.replace(" \\result ", " ___CPAchecker_foo() ");
+
+    Splitter splitter = Splitter.on("==>").limit(2);
+    while (assumeCode.contains("==>")) {
+      Iterator<String> partIterator = splitter.split(assumeCode).iterator();
+      assumeCode =
+          String.format("!(%s) || (%s)", partIterator.next().trim(), partIterator.next().trim());
+    }
+    return assumeCode;
+  }
+
+  private ExpressionTree<AExpression> parseExpression(
+      String pAssumeCode, Scope pScope, CParser pCParser)
       throws CParserException, InvalidConfigurationException {
     String assumeCode = pAssumeCode.trim();
     while (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();
     }
-    assumeCode =
-        String.format("int test() { if (%s) { return 1; } else { return 0; } ; }", pAssumeCode);
+    String formatString = "int test() { if (%s) { return 1; } else { return 0; } ; }";
+    String testCode = String.format(formatString, assumeCode);
 
-    final ParseResult parseResult;
+    ParseResult parseResult;
     try {
-      parseResult = pCParser.parseString("", assumeCode, new CSourceOriginMapping(), pScope);
+      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
     } catch (ParserException e) {
-      Throwables.propagateIfInstanceOf(e, CParserException.class);
-      throw new AssertionError();
+      assumeCode = tryFixACSL(assumeCode, pScope);
+      testCode = String.format(formatString, assumeCode);
+      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
     }
     FunctionEntryNode entryNode = parseResult.getFunctions().values().iterator().next();
 
-    Collection<List<CFAEdge>> paths = new ArrayList<>();
-    Deque<List<CFAEdge>> pathStack = new ArrayDeque<>();
-    Iterables.addAll(
-        pathStack,
-        CFAUtils.leavingEdges(entryNode)
-            .transform(
-                new Function<CFAEdge, List<CFAEdge>>() {
+    return asExpressionTree(entryNode);
+  }
 
-                  @Override
-                  public List<CFAEdge> apply(CFAEdge pEdge) {
-                    return ImmutableList.of(pEdge);
-                  }
-                }));
-    while (!pathStack.isEmpty()) {
-      List<CFAEdge> currentPath = pathStack.pop();
-      CFANode currentEndNode = currentPath.get(currentPath.size() - 1).getSuccessor();
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentEndNode)) {
-        if (currentPath.contains(leavingEdge)) {
-          logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-          return ExpressionTree.TRUE;
-        } else if (leavingEdge instanceof AReturnStatementEdge) {
-          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-          Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
-          if (!optExpression.isPresent()) {
-            logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-            return ExpressionTree.TRUE;
+  private ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pNode) {
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+
+    // Initialize memo with exit node trees
+    FunctionExitNode exitNode = pNode.getExitNode();
+    Map<CFANode, ExpressionTree<AExpression>> memo = Maps.newHashMap();
+    for (CFAEdge enteringEdge : CFAUtils.enteringEdges(exitNode)) {
+      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) enteringEdge;
+      Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+      assert optExpression.isPresent();
+      if (!optExpression.isPresent()) {
+        return ExpressionTrees.getTrue();
+      }
+      AExpression expression = optExpression.get();
+      assert expression instanceof AIntegerLiteralExpression;
+      if (!(expression instanceof AIntegerLiteralExpression)) {
+        return ExpressionTrees.getTrue();
+      }
+      AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+      if (literal.getValue().equals(BigInteger.ZERO)) {
+        memo.put(enteringEdge.getPredecessor(), ExpressionTrees.<AExpression>getFalse());
+      } else {
+        memo.put(enteringEdge.getPredecessor(), ExpressionTrees.<AExpression>getTrue());
+      }
+
+      // Compute nodes than can be handled next
+      for (CFANode predecessor : CFAUtils.predecessorsOf(enteringEdge.getPredecessor())) {
+        if (!memo.keySet().contains(predecessor)) {
+          List<CFANode> successorsOfPredecessor = CFAUtils.successorsOf(predecessor).toList();
+          if (memo.keySet().containsAll(successorsOfPredecessor)) {
+            waitlist.offer(predecessor);
           }
-          AExpression expression = optExpression.get();
-          if (!(expression instanceof AIntegerLiteralExpression)) {
-            logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-            return ExpressionTree.TRUE;
-          }
-          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
-          if (!literal.getValue().equals(BigInteger.ZERO)) {
-            paths.add(currentPath);
-          }
-        } else {
-          List<CFAEdge> newPath =
-              ImmutableList.<CFAEdge>builder().addAll(currentPath).add(leavingEdge).build();
-          pathStack.push(newPath);
         }
       }
     }
 
-    Collection<ExpressionTree> pathsAsExpressions = new ArrayList<>(paths.size());
-    for (List<CFAEdge> path : paths) {
-      Collection<ExpressionTree> leaves = new ArrayList<>(path.size() - 1);
-      for (CFAEdge edge : path) {
-        if (edge instanceof BlankEdge) {
-          continue;
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      ExpressionTree<AExpression> expressionTree = memo.get(current);
+      if (expressionTree == null) {
+        expressionTree = ExpressionTrees.getFalse();
+        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+          CFANode succ = leavingEdge.getSuccessor();
+          ExpressionTree<AExpression> succTree = memo.get(succ);
+          if (leavingEdge instanceof AssumeEdge) {
+            AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
+            AExpression expression = assumeEdge.getExpression();
+            if (!expression.toString().contains("__CPAchecker_TMP")) {
+              succTree =
+                  And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+            }
+          }
+          if (leavingEdge instanceof AReturnStatementEdge) {
+            AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
+            Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+            assert optExpression.isPresent();
+            if (!optExpression.isPresent()) {
+              return ExpressionTrees.getTrue();
+            }
+            AExpression expression = optExpression.get();
+            assert expression instanceof AIntegerLiteralExpression;
+            if (!(expression instanceof AIntegerLiteralExpression)) {
+              return ExpressionTrees.getTrue();
+            }
+            AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+            if (literal.getValue().equals(BigInteger.ZERO)) {
+              succTree = ExpressionTrees.getFalse();
+            }
+          }
+          expressionTree = Or.of(expressionTree, succTree);
         }
-        if (edge instanceof AssumeEdge) {
-          AssumeEdge assumeEdge = (AssumeEdge) edge;
-          AExpression expression = assumeEdge.getExpression();
-          leaves.add(LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
-        } else {
-          logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-          return ExpressionTree.TRUE;
+        memo.put(current, expressionTree);
+
+        // Compute nodes than can be handled next
+        for (CFANode predecessor : CFAUtils.predecessorsOf(current)) {
+          if (!memo.containsKey(predecessor) && memo.keySet().containsAll(CFAUtils.successorsOf(predecessor).toList())) {
+            waitlist.offer(predecessor);
+          }
         }
       }
-      pathsAsExpressions.add(And.of(leaves));
     }
-    return Or.of(pathsAsExpressions);
+    return memo.get(pNode);
   }
 
   private static AutomatonBoolExpr createViolationAssertion() {
@@ -835,7 +912,7 @@ public class AutomatonGraphmlParser {
       AutomatonBoolExpr pTriggers,
       List<AutomatonBoolExpr> pAssertions,
       List<CStatement> pAssumptions,
-      ExpressionTree pCandidateInvariants,
+      ExpressionTree<AExpression> pCandidateInvariants,
       List<AutomatonAction> pActions,
       String pTargetStateId,
       boolean pLeadsToViolationNode) {
@@ -876,7 +953,7 @@ public class AutomatonGraphmlParser {
         AutomatonBoolExpr pTriggers,
         List<AutomatonBoolExpr> pAssertions,
         List<CStatement> pAssumptions,
-        ExpressionTree pCandidateInvariants,
+        ExpressionTree<AExpression> pCandidateInvariants,
         List<AutomatonAction> pActions,
         String pTargetStateId) {
       super(pTriggers, pAssertions, pAssumptions, pCandidateInvariants, pActions, pTargetStateId);
@@ -1151,14 +1228,28 @@ public class AutomatonGraphmlParser {
 
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
       Set<Node> result = Sets.newHashSet();
+      Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMlTag.DATA.toString());
       for (int i=0; i<dataChilds.getLength(); i++) {
         Node dataChild = dataChilds.item(i);
         Node attribute = dataChild.getAttributes().getNamedItem("key");
         Preconditions.checkNotNull(attribute, "Every data element must have a key attribute!");
-        if (attribute.getTextContent().equals(dataKey.id)) {
+        String nodeKey = attribute.getTextContent();
+        if (nodeKey.equals(dataKey.id)) {
           result.add(dataChild);
+          alternative = null;
         }
+        // Backwards-compatibility: type/graph-type
+        if (alternative == null
+            && result.isEmpty()
+            && dataKey.equals(KeyDef.GRAPH_TYPE)
+            && nodeKey.equals("type")) {
+          alternative = Sets.newHashSet();
+          alternative.add(dataChild);
+        }
+      }
+      if (result.isEmpty() && alternative != null) {
+        return alternative;
       }
       return result;
     }

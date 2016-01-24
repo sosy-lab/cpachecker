@@ -32,10 +32,13 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -47,6 +50,8 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
   private final CandidateGenerator candidateGenerator;
 
   private InvariantSupplier locationInvariantsProvider = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+
+  private ExpressionTreeSupplier locationInvariantExpressionTreeProvider = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
   public BMCAlgorithmForInvariantGeneration(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
@@ -64,6 +69,10 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
   public InvariantSupplier getCurrentInvariants() {
     return locationInvariantsProvider;
+  }
+
+  public ExpressionTreeSupplier getCurrentInvariantsAsExpressionTree() {
+    return locationInvariantExpressionTreeProvider;
   }
 
   public boolean isProgramSafe() {
@@ -91,6 +100,18 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
           }
         }
       };
+      locationInvariantExpressionTreeProvider =
+          new ExpressionTreeSupplier() {
+
+            @Override
+            public ExpressionTree<Object> getInvariantFor(CFANode location) {
+              try {
+                return prover.getCurrentLocationInvariants(location);
+              } catch (InterruptedException e) {
+                return ExpressionTrees.getTrue();
+              }
+            }
+          };
     }
 
     return prover;
