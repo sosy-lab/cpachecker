@@ -82,7 +82,13 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     final ArrayFormulaType<TI, TE> inputArrayType =
         new ArrayFormulaType<>(getIndexType(pArray), getElementType(pArray));
 
-    return wrap(inputArrayType, manager.store(declaredArray, unwrap(pIndex), unwrap(pValue)));
+    final ArrayFormula<TI, TE> resultFormula =
+        manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
+    if (resultFormula instanceof WrappingFormula<?, ?>) {
+      return resultFormula;
+    } else {
+      return wrap(inputArrayType, resultFormula);
+    }
   }
 
   /**
