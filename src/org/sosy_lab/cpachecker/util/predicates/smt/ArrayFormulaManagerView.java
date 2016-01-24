@@ -79,8 +79,10 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
+    final ArrayFormulaType<TI, TE> inputArrayType =
+        new ArrayFormulaType<>(getIndexType(pArray), getElementType(pArray));
 
-    return manager.store(declaredArray, unwrap(pIndex), unwrap(pValue));
+    return wrap(inputArrayType, manager.store(declaredArray, unwrap(pIndex), unwrap(pValue)));
   }
 
   /**
