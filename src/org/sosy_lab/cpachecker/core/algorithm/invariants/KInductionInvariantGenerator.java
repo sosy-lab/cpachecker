@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -334,6 +335,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    candidates.add(TargetLocationCandidateInvariant.INSTANCE);
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
@@ -393,7 +395,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         }
       }
       for (Map.Entry<CFANode, ExpressionTree<AExpression>> entry : candidatesByLocation.entrySet()) {
-        if (!entry.getKey().equals(ExpressionTrees.getTrue())) {
+        if (!entry.getValue().equals(ExpressionTrees.getTrue())) {
           candidates.add(new ExpressionTreeLocationInvariant(entry.getKey(), entry.getValue()));
         }
       }

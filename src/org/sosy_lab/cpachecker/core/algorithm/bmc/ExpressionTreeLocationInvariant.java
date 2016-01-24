@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
@@ -56,6 +62,17 @@ public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant im
         throw e.asInterruptedException();
       }
       throw e.asTransferException();
+    }
+  }
+
+  @Override
+  public void assumeTruth(ReachedSet pReachedSet) {
+    if (expressionTree.equals(ExpressionTrees.getFalse())) {
+      Iterable<AbstractState> infeasibleStates = AbstractStates.filterLocations(pReachedSet, getLocations()).toList();
+      pReachedSet.removeAll(infeasibleStates);
+      for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
+        s.removeFromARG();
+      }
     }
   }
 

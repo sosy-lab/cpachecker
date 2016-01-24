@@ -277,8 +277,10 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
 
-    for (CandidateInvariant confirmedCandidate : this.confirmedCandidates) {
-      invariant = bfmgr.and(invariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
+    for (LocationFormulaInvariant confirmedCandidate : from(this.confirmedCandidates).filter(LocationFormulaInvariant.class)) {
+      if (confirmedCandidate.getLocations().contains(pLocation)) {
+        invariant = bfmgr.and(invariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
+      }
     }
 
     return invariant;
@@ -290,8 +292,10 @@ class KInductionProver implements AutoCloseable {
 
     ExpressionTree<Object> invariant = currentInvariantsSupplier.getInvariantFor(pLocation);
 
-    for (ExpressionTreeCandidateInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeCandidateInvariant.class)) {
-      invariant = And.of(invariant, confirmedCandidate.asExpressionTree());
+    for (ExpressionTreeLocationInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeLocationInvariant.class)) {
+      if (confirmedCandidate.getLocations().contains(pLocation)) {
+        invariant = And.of(invariant, confirmedCandidate.asExpressionTree());
+      }
     }
 
     return invariant;
@@ -410,6 +414,9 @@ class KInductionProver implements AutoCloseable {
           }});
     BooleanFormula invariants = getCurrentLoopHeadInvariants(stopLocations);
     BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, invariants, fmgr)).toList());
+    for (CandidateInvariant candidateInvariant : confirmedCandidates) {
+      loopHeadInv = bfmgr.and(loopHeadInv, candidateInvariant.getAssertion(reached, fmgr, pfmgr));
+    }
 
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(k + 1);
