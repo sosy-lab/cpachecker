@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -454,19 +455,26 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     @Override
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
-      ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
 
-      for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
-        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
-        for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-          stateInvariant =
-              And.of(
-                  stateInvariant,
-                  expressionTreeReportingState.getFormulaApproximation(
-                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+      ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+
+      for (CFANode location : CFAUtils.getBlankNeighbors(pLocation)) {
+
+        ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+
+        for (AbstractState locState : AbstractStates.filterLocation(reached, location)) {
+          ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+          for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+            stateInvariant =
+                And.of(
+                    stateInvariant,
+                    expressionTreeReportingState.getFormulaApproximation(
+                        cfa.getFunctionHead(pLocation.getFunctionName()), location));
+          }
+
+          locationInvariant = Or.of(locationInvariant, stateInvariant);
         }
-
-        invariant = Or.of(invariant, stateInvariant);
+        invariant = And.of(invariant, locationInvariant);
       }
       return invariant;
     }

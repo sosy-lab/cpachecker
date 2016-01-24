@@ -930,9 +930,14 @@ public class InvariantsState implements AbstractState,
   public ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
     EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
-    final Set<MemoryLocation> memoryLocations = Sets.newHashSet();
-    for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
-      memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
+    final Set<MemoryLocation> memoryLocations;
+    if (!pReferenceNode.isLoopStart()) {
+      memoryLocations = Sets.newHashSet();
+      for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
+        memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
+      }
+    } else {
+      memoryLocations = Collections.emptySet();
     }
     return And.of(
         getApproximationFormulas()
@@ -948,7 +953,7 @@ public class InvariantsState implements AbstractState,
 
                               @Override
                               public boolean apply(MemoryLocation pMemoryLocation) {
-                                if (!memoryLocations.contains(pMemoryLocation)) {
+                                if (!pReferenceNode.isLoopStart() && !memoryLocations.contains(pMemoryLocation)) {
                                   return false;
                                 }
                                 if (pFunctionEntryNode.getReturnVariable().isPresent()

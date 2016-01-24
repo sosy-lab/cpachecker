@@ -38,6 +38,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -49,6 +50,8 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Queues;
+import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 
 public class CFAUtils {
@@ -377,5 +380,34 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * Get all nodes transitively connected to this node via blank edges, including the node itself.
+   *
+   * @param pNode the node to get the neighbors for.
+   * @return all nodes connected to this node via blank edges, including the node itself.
+   */
+  public static Set<CFANode> getBlankNeighbors(CFANode pNode) {
+    Set<CFANode> visited = Sets.newHashSet();
+    Queue<CFANode> waitlist = Queues.newArrayDeque();
+    waitlist.offer(pNode);
+    visited.add(pNode);
+    while (!waitlist.isEmpty()) {
+      CFANode current = waitlist.poll();
+      for (BlankEdge enteringEdge : CFAUtils.enteringEdges(current).filter(BlankEdge.class)) {
+        CFANode predecessor = enteringEdge.getPredecessor();
+        if (visited.add(predecessor)) {
+          waitlist.offer(predecessor);
+        }
+      }
+      for (BlankEdge leavingEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class)) {
+        CFANode successor = leavingEdge.getSuccessor();
+        if (visited.add(successor)) {
+          waitlist.offer(successor);
+        }
+      }
+    }
+    return visited;
   }
 }
