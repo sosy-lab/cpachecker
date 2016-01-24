@@ -343,8 +343,18 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final int index = getIndex(ufName, pType, pSSAMapBuilder);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
     // TODO array calls
-    return afmgr.declareAndCallArray(ufName, index,
-        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
+//    return afmgr.declareAndCallArray(ufName, index,
+//        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
+    final ArrayFormula<?, ?> arrayFormula = getArrayFormula(ufName + "@" + index);
+    if (arrayFormula != null) {
+      return afmgr.select(arrayFormula, pAddress);
+    } else {
+      ArrayFormula<?, ?> tmpFormula = afmgr.makeArray(ufName + "@" + index,
+          FormulaType.IntegerType, returnType);
+      tmpFormula = afmgr.store(tmpFormula, pAddress, nullPointer);
+      addArrayFormula(ufName + "@" + index, tmpFormula);
+      return afmgr.select(tmpFormula, pAddress);
+    }
   }
 
   /**

@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Varia
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
@@ -575,9 +576,23 @@ class AssignmentHandler {
 //          pLvalue.asAliased().getAddress());
       // TODO array calls
       if (rhs != null) {
-        final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
-            pLvalue.asAliased().getAddress(), targetType, rhs);
-        result = formulaManager.assignment(lhs, rhs);
+//        final Formula lhs = afmgr.declareAndCallArray(targetName, newIndex,
+//            pLvalue.asAliased().getAddress(), targetType, rhs);
+//        result = formulaManager.assignment(lhs, rhs);
+        final ArrayFormula<?, ?> arrayFormula = CToFormulaConverterWithHeapArray.getArrayFormula(
+            targetName + "@" + newIndex);
+        ArrayFormula<?, ?> tmpFormula;
+        if (arrayFormula != null) {
+          tmpFormula = afmgr.store(arrayFormula, pLvalue.asAliased().getAddress(), rhs);
+
+        } else {
+          tmpFormula = afmgr.makeArray(targetName + "@" + newIndex, FormulaType.IntegerType,
+              targetType);
+          tmpFormula = afmgr.store(tmpFormula, pLvalue.asAliased().getAddress(), rhs);
+        }
+        CToFormulaConverterWithHeapArray.addArrayFormula(targetName + "@" + newIndex, tmpFormula);
+        Formula tmp = afmgr.select(tmpFormula, pLvalue.asAliased().getAddress());
+        result = formulaManager.assignment(tmp, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -687,13 +702,30 @@ class AssignmentHandler {
             targetAddress, pLvalue);
 
         // TODO array calls
-        final BooleanFormula retention = formulaManager.makeEqual(
-            afmgr.declareAndCallArray(pUfName, pNewIndex,
-                formulaManager.getIntegerFormulaManager(), pReturnType,
-                targetAddress),
-            afmgr.declareAndCallArray(pUfName, pOldIndex,
-                formulaManager.getIntegerFormulaManager(), pReturnType,
-                targetAddress));
+//        final BooleanFormula retention = formulaManager.makeEqual(
+//            afmgr.declareAndCallArray(pUfName, pNewIndex,
+//                formulaManager.getIntegerFormulaManager(), pReturnType,
+//                targetAddress),
+//            afmgr.declareAndCallArray(pUfName, pOldIndex,
+//                formulaManager.getIntegerFormulaManager(), pReturnType,
+//                targetAddress));
+        final ArrayFormula<?, ?> newArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+            pUfName + "@" + pNewIndex);
+        final ArrayFormula<?, ?> oldArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+            pUfName + "@" + pOldIndex);
+        final BooleanFormula retention;
+        if (newArray == null && oldArray != null) {
+          CToFormulaConverterWithHeapArray.addArrayFormula(pUfName + "@" + pNewIndex, oldArray);
+          retention = bfmgr.makeBoolean(true);
+        } else if (newArray == null) {
+          retention = bfmgr.makeBoolean(true);
+        } else if (oldArray == null) {
+          CToFormulaConverterWithHeapArray.addArrayFormula(pUfName + "@" + pOldIndex, newArray);
+          retention = bfmgr.makeBoolean(true);
+        } else {
+          retention = formulaManager.makeEqual(
+              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
+        }
 
         constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
@@ -711,13 +743,21 @@ class AssignmentHandler {
               target.getOffset()));
 
       // TODO array calls
-      constraints.addConstraint(formulaManager.makeEqual(
-          afmgr.declareAndCallArray(pUfName, pNewIndex,
-              formulaManager.getIntegerFormulaManager(), pReturnType,
-              targetAddress),
-          afmgr.declareAndCallArray(pUfName, pOldIndex,
-              formulaManager.getIntegerFormulaManager(), pReturnType,
-              targetAddress)));
+//      constraints.addConstraint(formulaManager.makeEqual(
+//          afmgr.declareAndCallArray(pUfName, pNewIndex,
+//              formulaManager.getIntegerFormulaManager(), pReturnType,
+//              targetAddress),
+//          afmgr.declareAndCallArray(pUfName, pOldIndex,
+//              formulaManager.getIntegerFormulaManager(), pReturnType,
+//              targetAddress)));
+      final ArrayFormula<?, ?> newArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+          pUfName + "@" + pNewIndex);
+      final ArrayFormula<?, ?> oldArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+          pUfName + "@" + pOldIndex);
+      if (newArray != null && oldArray != null) {
+        constraints.addConstraint(formulaManager.makeEqual(
+            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
+      }
     }
   }
 
@@ -766,13 +806,21 @@ class AssignmentHandler {
               formulaManager.makeNumber(converter.voidPointerFormulaType,
                   spurious.getOffset()));
           // TODO array calls
-          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-              afmgr.declareAndCallArray(ufName, newIndex,
-                  formulaManager.getIntegerFormulaManager(), returnType,
-                  targetAddress),
-              afmgr.declareAndCallArray(ufName, oldIndex,
-                  formulaManager.getIntegerFormulaManager(), returnType,
-                  targetAddress)));
+//          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
+//              afmgr.declareAndCallArray(ufName, newIndex,
+//                  formulaManager.getIntegerFormulaManager(), returnType,
+//                  targetAddress),
+//              afmgr.declareAndCallArray(ufName, oldIndex,
+//                  formulaManager.getIntegerFormulaManager(), returnType,
+//                  targetAddress)));
+          final ArrayFormula<?, ?> newArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+              ufName + "@" + newIndex);
+          final ArrayFormula<?, ?> oldArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+              ufName + "@" + oldIndex);
+          if (newArray != null && oldArray != null) {
+            consequent = bfmgr.and(consequent, formulaManager.makeEqual(
+                afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
+          }
         }
       }
 
@@ -812,16 +860,27 @@ class AssignmentHandler {
             formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1));
 
         // TODO array calls
-        constraints.addConstraint(bfmgr.or(bfmgr.and(
-            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
-            formulaManager.makeEqual(
-                afmgr.declareAndCallArray(ufName, newIndex,
-                    formulaManager.getIntegerFormulaManager(), returnType,
-                    targetAddress),
-                afmgr.declareAndCallArray(ufName, oldIndex,
-                    formulaManager.getIntegerFormulaManager(), returnType,
-                    targetAddress))));
+//        constraints.addConstraint(bfmgr.or(bfmgr.and(
+//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
+//            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
+//            formulaManager.makeEqual(
+//                afmgr.declareAndCallArray(ufName, newIndex,
+//                    formulaManager.getIntegerFormulaManager(), returnType,
+//                    targetAddress),
+//                afmgr.declareAndCallArray(ufName, oldIndex,
+//                    formulaManager.getIntegerFormulaManager(), returnType,
+//                    targetAddress))));
+        final ArrayFormula<?, ?> newArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+            ufName + "@" + newIndex);
+        final ArrayFormula<?, ?> oldArray = CToFormulaConverterWithHeapArray.getArrayFormula(
+            ufName + "@" + oldIndex);
+        if (newArray != null && oldArray != null) {
+          constraints.addConstraint(bfmgr.or(bfmgr.and(
+              formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
+              formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
+              formulaManager.makeEqual(
+                  afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress))));
+        }
       }
     }
   }
