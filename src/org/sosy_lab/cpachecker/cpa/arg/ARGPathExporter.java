@@ -917,7 +917,7 @@ public class ARGPathExporter {
       if (!tree.equals(ExpressionTrees.getTrue())) {
         pDoc.addDataElementChild(pNode, KeyDef.INVARIANT, tree.toString());
         String scope = stateScopes.get(pStateId);
-        if (scope != null && !scope.isEmpty() && !stateScopes.equals(ExpressionTrees.getFalse())) {
+        if (scope != null && !scope.isEmpty() && !tree.equals(ExpressionTrees.getFalse())) {
           pDoc.addDataElementChild(pNode, KeyDef.INVARIANTSCOPE, scope);
         }
       }
