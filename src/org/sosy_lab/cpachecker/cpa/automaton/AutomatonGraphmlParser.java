@@ -58,6 +58,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -73,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -114,7 +114,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -159,15 +158,19 @@ public class AutomatonGraphmlParser {
   private Path automatonDumpFile = null;
 
   private Scope scope;
+  private final CFA cfa;
   private final LogManager logger;
   private final Configuration config;
   private final MachineModel machine;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
   private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
 
-  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope) throws InvalidConfigurationException {
+  public AutomatonGraphmlParser(
+      Configuration pConfig, LogManager pLogger, CFA pCFA, MachineModel pMachine, Scope pScope)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    this.cfa = pCFA;
     this.scope = pScope;
     this.machine = pMachine;
     this.logger = pLogger;
@@ -339,12 +342,16 @@ public class AutomatonGraphmlParser {
         if (distance == null) {
           distance = Integer.MAX_VALUE;
         }
-        List<AutomatonAction> actions = Collections.<AutomatonAction>singletonList(
-            new AutomatonAction.Assignment(
-                DISTANCE_TO_VIOLATION,
-                new AutomatonIntExpr.Constant(-distance)
-                )
-            );
+        final List<AutomatonAction> actions;
+        if (graphType == GraphType.ERROR_WITNESS) {
+          actions =
+              Collections.<AutomatonAction>singletonList(
+                  new AutomatonAction.Assignment(
+                      DISTANCE_TO_VIOLATION, new AutomatonIntExpr.Constant(-distance)));
+        } else {
+          actions = Collections.emptyList();
+        }
+
         List<CStatement> assumptions = Lists.newArrayList();
         ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
@@ -689,11 +696,15 @@ public class AutomatonGraphmlParser {
 
   private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
       Set<String> pStatements, Scope pScope, CParser pCParser)
-      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+      throws InvalidAutomatonException, InvalidConfigurationException {
     ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     for (String assumeCode : pStatements) {
-      ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
-      result = And.of(result, expressionTree);
+      try {
+        ExpressionTree<AExpression> expressionTree = parseStatement(assumeCode, pScope, pCParser);
+        result = And.of(result, expressionTree);
+      } catch (CParserException e) {
+        logger.log(Level.WARNING, e, "Cannot parse code: " + assumeCode);
+      }
     }
     return result;
   }
@@ -701,13 +712,27 @@ public class AutomatonGraphmlParser {
   private ExpressionTree<AExpression> parseStatement(
       String pAssumeCode, Scope pScope, CParser pCParser)
       throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+
     // Try the old method first; it works for simple expressions
     // and also supports assignment statements and multiple statements easily
-    Collection<CStatement> statements =
-        removeDuplicates(
-            adjustCharAssignments(
-                AutomatonASTComparator.generateSourceASTOfBlock(
-                    tryFixArrayInitializers(pAssumeCode), pCParser, pScope)));
+    String assumeCode = tryFixArrayInitializers(pAssumeCode);
+    Collection<CStatement> statements = null;
+    try {
+      statements = AutomatonASTComparator.generateSourceASTOfBlock(assumeCode, pCParser, pScope);
+    } catch (RuntimeException e) {
+      if (e.getMessage() != null && e.getMessage().contains("Syntax error:")) {
+        statements =
+            AutomatonASTComparator.generateSourceASTOfBlock(
+                tryFixACSL(assumeCode, pScope), pCParser, pScope);
+      } else {
+        throw e;
+      }
+    } catch (CParserException e) {
+      statements =
+          AutomatonASTComparator.generateSourceASTOfBlock(
+              tryFixACSL(assumeCode, pScope), pCParser, pScope);
+    }
+    statements = removeDuplicates(adjustCharAssignments(statements));
     // Check that no expressions were split
     if (!FluentIterable.from(statements)
         .anyMatch(
@@ -741,6 +766,35 @@ public class AutomatonGraphmlParser {
     return result;
   }
 
+  private String tryFixACSL(String pAssumeCode, Scope pScope) {
+    String assumeCode = pAssumeCode.trim();
+    if (assumeCode.endsWith(";")) {
+      assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
+    }
+
+    if (pScope instanceof CProgramScope) {
+      CProgramScope scope = (CProgramScope) pScope;
+      if (!scope.isGlobalScope()) {
+        String functionName = scope.getCurrentFunctionName();
+        FunctionEntryNode head = cfa.getFunctionHead(functionName);
+        if (head.getReturnVariable().isPresent()) {
+          assumeCode =
+              assumeCode.replace(
+                  " \\result ", " " + head.getReturnVariable().get().getName() + " ");
+        }
+      }
+    }
+    assumeCode = assumeCode.replace(" \\result ", " ___CPAchecker_foo() ");
+
+    Splitter splitter = Splitter.on("==>").limit(2);
+    while (assumeCode.contains("==>")) {
+      Iterator<String> partIterator = splitter.split(assumeCode).iterator();
+      assumeCode =
+          String.format("!(%s) || (%s)", partIterator.next().trim(), partIterator.next().trim());
+    }
+    return assumeCode;
+  }
+
   private ExpressionTree<AExpression> parseExpression(
       String pAssumeCode, Scope pScope, CParser pCParser)
       throws CParserException, InvalidConfigurationException {
@@ -748,45 +802,20 @@ public class AutomatonGraphmlParser {
     while (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1).trim();
     }
-    assumeCode =
-        String.format("int test() { if (%s) { return 1; } else { return 0; } ; }", pAssumeCode);
+    String formatString = "int test() { if (%s) { return 1; } else { return 0; } ; }";
+    String testCode = String.format(formatString, assumeCode);
 
-    final ParseResult parseResult;
+    ParseResult parseResult;
     try {
-      parseResult = pCParser.parseString("", assumeCode, new CSourceOriginMapping(), pScope);
+      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
     } catch (ParserException e) {
-      Throwables.propagateIfInstanceOf(e, CParserException.class);
-      throw new AssertionError();
+      assumeCode = tryFixACSL(assumeCode, pScope);
+      testCode = String.format(formatString, assumeCode);
+      parseResult = pCParser.parseString("", testCode, new CSourceOriginMapping(), pScope);
     }
     FunctionEntryNode entryNode = parseResult.getFunctions().values().iterator().next();
 
-    if (containsUnsupportedEdges(entryNode)) {
-      logger.log(Level.WARNING, "Witness contains invalid code:", pAssumeCode);
-      return ExpressionTrees.getTrue();
-    }
-
     return asExpressionTree(entryNode);
-  }
-
-  private static boolean containsUnsupportedEdges(CFANode pNode) {
-    Set<CFANode> visited = Sets.newHashSet();
-    Queue<CFANode> waitlist = Queues.newArrayDeque();
-    waitlist.offer(pNode);
-    while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
-        CFANode succ = leavingEdge.getSuccessor();
-        if (visited.add(succ)) {
-          if (!(leavingEdge instanceof AssumeEdge)
-              && !(leavingEdge instanceof BlankEdge)
-              && !(leavingEdge instanceof AReturnStatementEdge)) {
-            return true;
-          }
-          waitlist.offer(succ);
-        }
-      }
-    }
-    return false;
   }
 
   private ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pNode) {
@@ -835,7 +864,11 @@ public class AutomatonGraphmlParser {
           ExpressionTree<AExpression> succTree = memo.get(succ);
           if (leavingEdge instanceof AssumeEdge) {
             AssumeEdge assumeEdge = (AssumeEdge) leavingEdge;
-            succTree = And.of(succTree, LeafExpression.of(assumeEdge.getExpression(), assumeEdge.getTruthAssumption()));
+            AExpression expression = assumeEdge.getExpression();
+            if (!expression.toString().contains("__CPAchecker_TMP")) {
+              succTree =
+                  And.of(succTree, LeafExpression.of(expression, assumeEdge.getTruthAssumption()));
+            }
           }
           if (leavingEdge instanceof AReturnStatementEdge) {
             AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
