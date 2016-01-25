@@ -301,7 +301,7 @@ assumptions.export = true
 assumptions.file = "assumptions.txt"
 
 # Granularity of safety properties that are encoded in automata.
-automata.properties.granularity = AUTOMATON
+automata.properties.granularity = BASENAME
   enum:     [BASENAME, AUTOMATON, VIOLATING_EXPRESSION]
 
 # comma-separated list of files with specifications that should be used 

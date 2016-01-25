@@ -57,7 +57,7 @@ class AutomatonSafetyPropertyFactory {
   }
 
   @Option(secure=true, description="Granularity of safety properties that are encoded in automata.")
-  private PropertyGranularity granularity = PropertyGranularity.AUTOMATON;
+  private PropertyGranularity granularity = PropertyGranularity.BASENAME;
 
   private final String propertyBasename;
 
