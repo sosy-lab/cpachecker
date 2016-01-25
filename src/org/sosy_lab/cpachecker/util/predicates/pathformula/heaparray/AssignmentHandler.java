@@ -693,7 +693,8 @@ class AssignmentHandler {
             FormulaType.IntegerType, pReturnType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
             FormulaType.IntegerType, pReturnType);
-        final BooleanFormula retention = formulaManager.makeEqual(newArray, oldArray);
+        final BooleanFormula retention = formulaManager.makeEqual(
+            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
 //        final BooleanFormula retention = formulaManager.makeEqual(
 //            ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex, pReturnType,
 //                targetAddress),
@@ -720,7 +721,8 @@ class AssignmentHandler {
           FormulaType.IntegerType, pReturnType);
       final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
           FormulaType.IntegerType, pReturnType);
-      constraints.addConstraint(formulaManager.makeEqual(newArray, oldArray));
+      constraints.addConstraint(formulaManager.makeEqual(
+          afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
 //      constraints.addConstraint(formulaManager.makeEqual(
 //          ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex, pReturnType, targetAddress),
 //          ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex, pReturnType,
@@ -777,7 +779,8 @@ class AssignmentHandler {
               FormulaType.IntegerType, returnType);
           final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
               FormulaType.IntegerType, returnType);
-          consequent = bfmgr.and(consequent, formulaManager.makeEqual(newArray, oldArray));
+          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
+              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
 //          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
 //              ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex, returnType,
 //                  targetAddress),
@@ -829,7 +832,8 @@ class AssignmentHandler {
         constraints.addConstraint(bfmgr.or(bfmgr.and(
             formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
             formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
-            formulaManager.makeEqual(newArray, oldArray)));
+            formulaManager.makeEqual(
+                afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress))));
 //        constraints.addConstraint(bfmgr.or(bfmgr.and(
 //            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
 //            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),

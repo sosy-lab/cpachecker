@@ -506,7 +506,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             FormulaType.IntegerType, returnFormulaType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,
             FormulaType.IntegerType, returnFormulaType);
-        retention = fmgr.makeEqual(newArray, oldArray);
+        retention = fmgr.makeEqual(
+            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
 
       } else {
         retention = fmgr.assignment(
