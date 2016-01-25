@@ -90,7 +90,7 @@ public class ARGStatistics implements IterationStatistics {
   @Option(secure=true, name="proofWitness",
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path proofWitness = Paths.get("ARG.graphml");
+  private Path proofWitness = null;
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")

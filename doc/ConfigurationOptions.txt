@@ -712,7 +712,7 @@ cpa.arg.inCPAEnabledAnalysis = false
 cpa.arg.keepCoveredStatesInReached = false
 
 # export a proof as .graphml file
-cpa.arg.proofWitness = "ARG.graphml"
+cpa.arg.proofWitness = no default value
 
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
