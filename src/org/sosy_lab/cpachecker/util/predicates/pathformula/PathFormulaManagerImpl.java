@@ -502,13 +502,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       final BooleanFormula retention;
       if (useArrayHeap) {
         // TODO array call
-//        retention = fmgr.assignment(
-//            afmgr.declareAndCallArray(functionName, newIndex,
-//                fmgr.getIntegerFormulaManager(), returnFormulaType,
-//                targetAddress),
-//            afmgr.declareAndCallArray(functionName, oldIndex,
-//                fmgr.getIntegerFormulaManager(), returnFormulaType,
-//                targetAddress));
         final ArrayFormula<?, ?> newArray = afmgr.makeArray(functionName + "@" + newIndex,
             FormulaType.IntegerType, returnFormulaType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,

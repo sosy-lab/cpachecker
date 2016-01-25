@@ -580,11 +580,11 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
 
+    // TODO array call
     final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,
         FormulaType.IntegerType, returnType);
     return afmgr.select(arrayFormula, pAddress);
-    //    return afmgr.declareAndCallArray(ufName, index,
-//        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
+//    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);
   }
 
   /**

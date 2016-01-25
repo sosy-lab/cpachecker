@@ -571,12 +571,15 @@ class AssignmentHandler {
         pUpdatedVariables.add(Variable.create(targetName, pLvalueType));
       }
     } else { // Aliased LHS
+//      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex,
+//          targetType, pLvalue.asAliased().getAddress());
       // TODO array calls
       if (rhs != null) {
         final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + newIndex,
             FormulaType.IntegerType, targetType);
         result = formulaManager.makeEqual(arrayFormula, afmgr.store(arrayFormula,
             pLvalue.asAliased().getAddress(), rhs));
+//        result = formulaManager.assignment(lhs, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -691,6 +694,11 @@ class AssignmentHandler {
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
             FormulaType.IntegerType, pReturnType);
         final BooleanFormula retention = formulaManager.makeEqual(newArray, oldArray);
+//        final BooleanFormula retention = formulaManager.makeEqual(
+//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex, pReturnType,
+//                targetAddress),
+//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex, pReturnType,
+//                targetAddress));
 
         constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
@@ -713,6 +721,10 @@ class AssignmentHandler {
       final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
           FormulaType.IntegerType, pReturnType);
       constraints.addConstraint(formulaManager.makeEqual(newArray, oldArray));
+//      constraints.addConstraint(formulaManager.makeEqual(
+//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex, pReturnType, targetAddress),
+//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex, pReturnType,
+//              targetAddress)));
     }
   }
 
@@ -766,6 +778,11 @@ class AssignmentHandler {
           final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
               FormulaType.IntegerType, returnType);
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(newArray, oldArray));
+//          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
+//              ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex, returnType,
+//                  targetAddress),
+//              ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex, returnType,
+//                  targetAddress)));
         }
       }
 
@@ -805,16 +822,6 @@ class AssignmentHandler {
             formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1));
 
         // TODO array calls
-//        constraints.addConstraint(bfmgr.or(bfmgr.and(
-//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-//            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
-//            formulaManager.makeEqual(
-//                afmgr.declareAndCallArray(ufName, newIndex,
-//                    formulaManager.getIntegerFormulaManager(), returnType,
-//                    targetAddress),
-//                afmgr.declareAndCallArray(ufName, oldIndex,
-//                    formulaManager.getIntegerFormulaManager(), returnType,
-//                    targetAddress))));
         final ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + newIndex,
             FormulaType.IntegerType, returnType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
@@ -823,7 +830,14 @@ class AssignmentHandler {
             formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
             formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
             formulaManager.makeEqual(newArray, oldArray)));
-
+//        constraints.addConstraint(bfmgr.or(bfmgr.and(
+//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
+//            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
+//            formulaManager.makeEqual(
+//                ffmgr.declareAnCallUninterpretedFunction(ufName, newIndex, returnType,
+//                    targetAddress),
+//                ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex, returnType,
+//                    targetAddress))));
       }
     }
   }
