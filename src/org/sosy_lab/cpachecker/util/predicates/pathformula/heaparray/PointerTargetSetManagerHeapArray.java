@@ -579,28 +579,11 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     final String ufName = CToFormulaConverterWithHeapArray.getUFName(pType);
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
-    final ArrayFormula<?, ?> arrayFormula = CToFormulaConverterWithHeapArray.getArrayFormula(
-        ufName + "@" + index);
-    if (arrayFormula != null ) {
-      return afmgr.select(arrayFormula, pAddress);
-    } else {
-      ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + index,
-          FormulaType.IntegerType, returnType);
-      final Formula type;
-      if (returnType.isIntegerType()) {
-        type = formulaManager.getIntegerFormulaManager().makeNumber(0);
-      } else if (returnType.isRationalType()) {
-        type = formulaManager.getRationalFormulaManager().makeNumber(0);
-      } else if (returnType.isBitvectorType()) {
-        type = formulaManager.getBitvectorFormulaManager().makeBitvector(32, 0);
-      } else {
-        type = null;
-      }
-      newArray = afmgr.store(newArray, pAddress, type);
-      CToFormulaConverterWithHeapArray.addArrayFormula(ufName + "@" + index, newArray);
-      return afmgr.select(newArray, pAddress);
-    }
-//    return afmgr.declareAndCallArray(ufName, index,
+
+    final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,
+        FormulaType.IntegerType, returnType);
+    return afmgr.select(arrayFormula, pAddress);
+    //    return afmgr.declareAndCallArray(ufName, index,
 //        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
   }
 

@@ -509,21 +509,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 //            afmgr.declareAndCallArray(functionName, oldIndex,
 //                fmgr.getIntegerFormulaManager(), returnFormulaType,
 //                targetAddress));
-        final ArrayFormula<?, ?> newArray = CToFormulaConverterWithHeapArray.getArrayFormula(
-            functionName + "@" + newIndex);
-        final ArrayFormula<?, ?> oldArray = CToFormulaConverterWithHeapArray.getArrayFormula(
-            functionName + "@" + oldIndex);
-        if (newArray == null && oldArray != null) {
-          CToFormulaConverterWithHeapArray.addArrayFormula(functionName +"@" + newIndex, oldArray);
-          retention = bfmgr.makeBoolean(true);
-        } else if (newArray == null) {
-          retention = bfmgr.makeBoolean(true);
-        } else if (oldArray == null) {
-          retention = bfmgr.makeBoolean(true);
-        } else {
-          retention = fmgr.assignment(
-              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
-        }
+        final ArrayFormula<?, ?> newArray = afmgr.makeArray(functionName + "@" + newIndex,
+            FormulaType.IntegerType, returnFormulaType);
+        final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,
+            FormulaType.IntegerType, returnFormulaType);
+        retention = fmgr.assignment(newArray, oldArray);
+
       } else {
         retention = fmgr.assignment(
             ffmgr.declareAndCallUninterpretedFunction(functionName,
