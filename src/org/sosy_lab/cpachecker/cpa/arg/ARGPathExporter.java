@@ -925,6 +925,16 @@ public class ARGPathExporter {
 
       @Override
       public boolean apply(final Edge pEdge) {
+        // An edge is never redundant if there are conflicting scopes
+        ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
+        if (sourceTree != null) {
+          String sourceScope = stateScopes.get(pEdge.source);
+          String targetScope = stateScopes.get(pEdge.target);
+          if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
+            return false;
+          }
+        }
+
         // An edge is redundant if it is the only leaving edge of a
         // node and it is empty or all its non-assumption contents
         // are summarized by a preceding edge
