@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,9 +49,16 @@ public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant im
 
   private final ExpressionTree<AExpression> expressionTree;
 
-  public ExpressionTreeLocationInvariant(CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
+  private final CFANode location;
+
+  private final String groupId;
+
+  public ExpressionTreeLocationInvariant(
+      String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
     super(pLocation);
-    expressionTree = pExpressionTree;
+    groupId = Objects.requireNonNull(pGroupId);
+    location = Objects.requireNonNull(pLocation);
+    expressionTree = Objects.requireNonNull(pExpressionTree);
   }
 
   @Override
@@ -88,9 +97,32 @@ public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant im
     });
   }
 
+  public String getGroupId() {
+    return groupId;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(groupId, location, expressionTree);
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof ExpressionTreeLocationInvariant) {
+      ExpressionTreeLocationInvariant other = (ExpressionTreeLocationInvariant) pObj;
+      return groupId.equals(other.groupId)
+          && location.equals(other.location)
+          && expressionTree.equals(other.expressionTree);
+    }
+    return false;
+  }
+
   @Override
   public String toString() {
-    return getLocations() + ": " + expressionTree.toString();
+    return groupId + " at " + location + ": " + expressionTree.toString();
   }
 
 }
