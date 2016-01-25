@@ -278,7 +278,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
       final CArrayType arrayType = (CArrayType) type;
       Integer length = CTypeUtils.getArrayLength(arrayType);
 
-      if (length == null || length > options.maxArrayLength()) {
+      if (length == null) {
         length = options.defaultArrayLength();
       }
 

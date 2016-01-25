@@ -711,8 +711,6 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
 
       if (length == null) {
         length = options.defaultArrayLength();
-      } else if (length > options.maxArrayLength()) {
-        length = options.maxArrayLength();
       }
 
       int offset = 0;

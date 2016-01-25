@@ -643,7 +643,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final Integer length = CTypeUtils.getArrayLength(arrayType);
 
       if (length != null) {
-        for (int i = 0; i < Math.min(length, options.maxArrayLength()); i++) {
+        for (int i = 0; i < length; i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
               pLhs.getFileLocation(), elementType, pLhs,
               new CIntegerLiteralExpression(pLhs.getFileLocation(),
