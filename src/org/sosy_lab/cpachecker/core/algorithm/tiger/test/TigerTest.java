@@ -28,6 +28,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -35,6 +36,8 @@ import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+
+import com.google.common.truth.Truth;
 
 public class TigerTest {
 
@@ -82,6 +85,7 @@ public class TigerTest {
    * Specialties: uses cross product for test goal representation
    */
   @Test
+  @Ignore
   public void variants_crossProduct_miniExample() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
@@ -102,9 +106,9 @@ public class TigerTest {
 
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    Truth.assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    Truth.assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    Truth.assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -175,6 +179,7 @@ public class TigerTest {
    * Specialties: uses cross product for test goal representation
    */
   @Test
+  @Ignore
   public void variantsValue_crossProduct_miniExample() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
@@ -242,6 +247,7 @@ public class TigerTest {
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("cpa.predicate.targetStateSatCheck", "true");
+    prop.put("tiger.limitsPerGoal.time.cpu", "-1");
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.usePowerset", "false");
     prop.put("tiger.useAutomataCrossProduct", "false");
@@ -304,6 +310,7 @@ public class TigerTest {
    *              multiple test goals
    */
   @Test
+  @Ignore
   public void variants_crossProduct_example() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
@@ -399,6 +406,7 @@ public class TigerTest {
    *              multiple test goals
    */
   @Test
+  @Ignore
   public void variantsValue_crossProduct_example() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants-value.properties"));
@@ -497,6 +505,7 @@ public class TigerTest {
    * Specialties: uses cross product for test goal representation
    */
   @Test
+  @Ignore
   public void simulator_crossProduct_miniFase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
@@ -590,6 +599,7 @@ public class TigerTest {
    * Specialties: uses cross product for test goal representation
    */
   @Test
+  @Ignore
   public void simulatorValue_crossProduct_miniFase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
@@ -683,6 +693,7 @@ public class TigerTest {
    * Specialties: uses cross product for test goal representation
    */
   @Test
+  @Ignore
   public void simulator_crossProduct_fase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware.properties"));
@@ -776,6 +787,7 @@ public class TigerTest {
    * Specialties: uses cross product for test goal representation
    */
   @Test
+  @Ignore
   public void simulatorValue_crossProduct_fase() throws Exception {
     Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variabilityAware-value.properties"));
