@@ -455,25 +455,33 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     @Override
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
-      ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+      ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
       for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
         ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
 
         for (CFANode location : path) {
+          ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+
           for (AbstractState locState : AbstractStates.filterLocation(reached, location)) {
+            ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+
             for (ExpressionTreeReportingState expressionTreeReportingState :
                 AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-              pathInvariant =
+              stateInvariant =
                   And.of(
-                      pathInvariant,
+                      stateInvariant,
                       expressionTreeReportingState.getFormulaApproximation(
                           cfa.getFunctionHead(pLocation.getFunctionName()), location));
             }
+
+            locationInvariant = Or.of(locationInvariant, stateInvariant);
           }
+
+          pathInvariant = And.of(pathInvariant, locationInvariant);
         }
-        locationInvariant = Or.of(pathInvariant, locationInvariant);
+        invariant = Or.of(pathInvariant, invariant);
       }
-      return locationInvariant;
+      return invariant;
     }
   }
 
