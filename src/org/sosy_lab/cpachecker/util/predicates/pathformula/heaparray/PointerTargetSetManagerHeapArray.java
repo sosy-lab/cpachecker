@@ -584,7 +584,21 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     if (arrayFormula != null ) {
       return afmgr.select(arrayFormula, pAddress);
     } else {
-      throw new IllegalArgumentException("Illegal dereference");
+      ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + index,
+          FormulaType.IntegerType, returnType);
+      final Formula type;
+      if (returnType.isIntegerType()) {
+        type = formulaManager.getIntegerFormulaManager().makeNumber(0);
+      } else if (returnType.isRationalType()) {
+        type = formulaManager.getRationalFormulaManager().makeNumber(0);
+      } else if (returnType.isBitvectorType()) {
+        type = formulaManager.getBitvectorFormulaManager().makeBitvector(32, 0);
+      } else {
+        type = null;
+      }
+      newArray = afmgr.store(newArray, pAddress, type);
+      CToFormulaConverterWithHeapArray.addArrayFormula(ufName + "@" + index, newArray);
+      return afmgr.select(newArray, pAddress);
     }
 //    return afmgr.declareAndCallArray(ufName, index,
 //        formulaManager.getIntegerFormulaManager(), returnType, pAddress);
