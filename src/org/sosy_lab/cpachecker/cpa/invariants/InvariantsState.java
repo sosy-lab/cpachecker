@@ -953,6 +953,9 @@ public class InvariantsState implements AbstractState,
 
                               @Override
                               public boolean apply(MemoryLocation pMemoryLocation) {
+                                if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
+                                  return false;
+                                }
                                 if (!pReferenceNode.isLoopStart() && !memoryLocations.contains(pMemoryLocation)) {
                                   return false;
                                 }
