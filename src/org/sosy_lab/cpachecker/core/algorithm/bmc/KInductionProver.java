@@ -310,11 +310,20 @@ class KInductionProver implements AutoCloseable {
             getConfirmedCandidates(location).filter(ExpressionTreeCandidateInvariant.class)) {
           pathInvariant =
               And.of(pathInvariant, expressionTreeCandidateInvariant.asExpressionTree());
+          if (ExpressionTrees.getFalse().equals(pathInvariant)) {
+            break;
+          }
         }
 
         pathInvariant = And.of(pathInvariant, currentInvariantsSupplier.getInvariantFor(location));
+        if (ExpressionTrees.getFalse().equals(pathInvariant)) {
+          break;
+        }
       }
       invariant = Or.of(pathInvariant, invariant);
+      if (ExpressionTrees.getTrue().equals(invariant)) {
+        break;
+      }
     }
     return invariant;
   }

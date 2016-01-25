@@ -931,7 +931,8 @@ public class InvariantsState implements AbstractState,
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
     EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
     final Set<MemoryLocation> memoryLocations;
-    if (!pReferenceNode.isLoopStart()) {
+    final boolean fullState = exportFullState(pReferenceNode);
+    if (!fullState) {
       memoryLocations = Sets.newHashSet();
       for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
         memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
@@ -953,10 +954,12 @@ public class InvariantsState implements AbstractState,
 
                               @Override
                               public boolean apply(MemoryLocation pMemoryLocation) {
-                                if (pMemoryLocation.getIdentifier().startsWith("__CPAchecker_TMP_")) {
+                                if (pMemoryLocation
+                                    .getIdentifier()
+                                    .startsWith("__CPAchecker_TMP_")) {
                                   return false;
                                 }
-                                if (!pReferenceNode.isLoopStart() && !memoryLocations.contains(pMemoryLocation)) {
+                                if (!fullState && !memoryLocations.contains(pMemoryLocation)) {
                                   return false;
                                 }
                                 if (pFunctionEntryNode.getReturnVariable().isPresent()
@@ -988,6 +991,10 @@ public class InvariantsState implements AbstractState,
                                 new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
                   }
                 }));
+  }
+
+  private boolean exportFullState(CFANode pReferenceNode) {
+    return pReferenceNode.isLoopStart();
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {

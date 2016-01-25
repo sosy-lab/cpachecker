@@ -45,7 +45,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import com.google.common.base.Function;
 
 
-public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant implements ExpressionTreeCandidateInvariant {
+public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInvariant
+    implements ExpressionTreeCandidateInvariant {
 
   private final ExpressionTree<AExpression> expressionTree;
 

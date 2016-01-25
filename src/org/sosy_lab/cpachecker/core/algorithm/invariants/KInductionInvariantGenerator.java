@@ -341,7 +341,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
-    candidates.add(TargetLocationCandidateInvariant.INSTANCE);
+    if (pCFA.getAllLoopHeads().isPresent()) {
+      candidates.add(new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get()));
+    }
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
