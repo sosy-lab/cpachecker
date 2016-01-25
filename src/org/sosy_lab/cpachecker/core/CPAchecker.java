@@ -627,6 +627,11 @@ public class CPAchecker {
         }
 
         @Override
+        public Optional<ImmutableSet<Property>> getRelevantProperties() {
+          return Optional.absent();
+        }
+
+        @Override
         public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
           return Optional.absent();
         }

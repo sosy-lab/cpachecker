@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -82,6 +85,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   private final AutomatonState inactiveState;
   private final ControlAutomatonOptions options;
   private @Nullable CounterexamplesSummary cexSummary;
+
+  private static final Pattern exitFunctionNamePattern = Pattern.compile(".*check_final_state.*");
 
   int statNumberOfMatches = 0;
   Timer totalPostTime = new Timer();
@@ -311,6 +316,9 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           statNumberOfMatches++;
           edgeMatched = true;
 
+          // Collect information on relevant properties
+          collectStatisticsForMatchedTransition(automaton, pState.getInternalState(), t);
+
           // Check if the ASSERTION holds
           assertionsTime.start();
           ResultValue<Boolean> assertionsHold = t.assertionsHold(exprArgs);
@@ -426,6 +434,36 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
           cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, null);
       return Collections.singleton(stateNewCounters);
     }
+  }
+
+  private void collectStatisticsForMatchedTransition(Automaton pAutomaton, AutomatonInternalState pQ,
+      AutomatonTransition pT) {
+
+    // TODO: Refactor
+    //    Hacky code to get the research done...
+
+    boolean matchesIndependentOfProperty =
+               (pAutomaton.getInitialState().equals(pQ) &&  pT.getTrigger() instanceof AutomatonBoolExpr.MatchProgramEntry)
+            || (pT.getFollowState().isTarget() && pT.getTrigger() instanceof AutomatonBoolExpr.MatchProgramExit)
+            || (pT.getFollowState().isTarget() && triggeredByFunctionCallOrReturn(pT.getTrigger(), exitFunctionNamePattern));
+
+    if (matchesIndependentOfProperty) {
+      return;
+    }
+
+    ImmutableSet<? extends SafetyProperty> relevantFor = pAutomaton.getIsRelevantForProperties(pT);
+    PropertyStats.INSTANCE.signalRelevancesOfProperties(relevantFor);
+  }
+
+  private boolean triggeredByFunctionCallOrReturn(AutomatonBoolExpr pTrigger,
+      Pattern pExitfunctionnamepattern) {
+
+    if (pTrigger instanceof AutomatonBoolExpr.MatchCFAEdgeASTComparison) {
+      AutomatonBoolExpr.MatchCFAEdgeASTComparison trigger = (AutomatonBoolExpr.MatchCFAEdgeASTComparison) pTrigger;
+      return pExitfunctionnamepattern.matcher(trigger.getPatternAST().getPatternString()).matches();
+    }
+
+    return false;
   }
 
   private static Map<String, AutomatonVariable> deepCloneVars(Map<String, AutomatonVariable> pOld) {

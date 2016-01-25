@@ -34,12 +34,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -47,6 +49,7 @@ import com.google.common.collect.Sets;
 public enum PropertyStats implements Statistics {
   INSTANCE;
 
+  private Set<Property> relevantProperties = Sets.newHashSet();
   private Map<Property, StatCpuTime> refinementTime = Maps.newHashMap();
   private Map<Property, StatCounter> refinementCount = Maps.newHashMap();
   private Map<Property, StatCounter> coverageCount = Maps.newHashMap();
@@ -57,6 +60,7 @@ public enum PropertyStats implements Statistics {
     refinementTime.clear();
     coverageCount.clear();
     noCoverageCount.clear();
+    relevantProperties.clear();
   }
 
   public interface StatHandle extends AutoCloseable{
@@ -78,6 +82,10 @@ public enum PropertyStats implements Statistics {
       return Optional.absent();
     }
     return Optional.of(result);
+  }
+
+  public Set<Property> getRelevantProperties() {
+    return relevantProperties;
   }
 
   public synchronized double getExplosionFactor(Property pProperty) {
@@ -165,6 +173,10 @@ public enum PropertyStats implements Statistics {
   @Override
   public String getName() {
     return "Property Statistics";
+  }
+
+  public void signalRelevancesOfProperties(ImmutableSet<? extends SafetyProperty> pRelevant) {
+    relevantProperties.addAll(pRelevant);
   }
 
 }

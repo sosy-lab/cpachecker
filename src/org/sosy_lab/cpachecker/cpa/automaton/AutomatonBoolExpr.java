@@ -245,6 +245,10 @@ interface AutomatonBoolExpr extends AutomatonExpression, TrinaryEqualable {
       return false;
     }
 
+    public ASTMatcherProvider getPatternAST() {
+      return patternAST;
+    }
+
     private Optional<?> getFunctionReturnAst(final CFAEdge pCFAEdge) {
       if (pCFAEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         FunctionReturnEdge edge = (FunctionReturnEdge) pCFAEdge;

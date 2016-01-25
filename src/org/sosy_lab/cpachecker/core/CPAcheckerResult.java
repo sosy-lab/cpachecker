@@ -138,24 +138,38 @@ public class CPAcheckerResult {
       out.println(String.format("\tNumber of satisfied properties: %d", propertySummary.getSatisfiedProperties().get().size()));
     }
 
+    if (propertySummary.getRelevantProperties().isPresent()) {
+      out.println(String.format("\tNumber of relevant properties: %d", propertySummary.getRelevantProperties().get().size()));
+    }
+
     out.println("\tStatus by property:");
 
     for (Property prop: sortPropertiesByStrings(propertySummary.getViolatedProperties())) {
-      out.println(String.format("\t\tProperty %s: %s", prop.toString(), "FALSE"));
+      out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "FALSE", propertySummary)));
     }
 
     if (propertySummary.getUnknownProperties().isPresent()) {
       for (Property prop: sortPropertiesByStrings(propertySummary.getUnknownProperties().get())) {
-        out.println(String.format("\t\tProperty %s: %s", prop.toString(), "UNKNOWN"));
+        out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "UNKNOWN", propertySummary)));
       }
     }
 
     if (propertySummary.getSatisfiedProperties().isPresent()) {
       for (Property prop: sortPropertiesByStrings(propertySummary.getSatisfiedProperties().get())) {
-        out.println(String.format("\t\tProperty %s: %s", prop.toString(), "TRUE"));
+        out.println(String.format("\t\tProperty %s: %s", prop.toString(), verdictWithRelevance(prop, "TRUE", propertySummary)));
       }
     }
 
+  }
+
+  private String verdictWithRelevance(Property pProp, String pString, PropertySummary pPropertySummary) {
+    if (pPropertySummary.getRelevantProperties().isPresent()) {
+      boolean relevant = pPropertySummary.getRelevantProperties().get().contains(pProp);
+      if (!relevant) {
+        return String.format("%s (irrelevant)", pString);
+      }
+    }
+    return pString;
   }
 
   private String getResultString() {

@@ -340,6 +340,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     logger.logf(Level.INFO, "Checking %d properties.", all.size());
     Preconditions.checkState(all.size() > 0, "At least one property must get checked!");
 
+    final Set<Property> relevant = Sets.newHashSet();
     final Set<Property> violated = Sets.newHashSet();
     final Set<Property> satisfied = Sets.newHashSet();
     final Set<Property> exhausted = Sets.newHashSet();
@@ -382,6 +383,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
           } finally {
             timer.stop();
+
+            // Track what properties are relevant for the program
+            relevant.addAll(PropertyStats.INSTANCE.getRelevantProperties());
           }
 
         } catch (InterruptedException ie) {
@@ -551,6 +555,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
         @Override
         public Optional<ImmutableSet<Property>> getUnknownProperties() {
           return Optional.of(ImmutableSet.copyOf(Sets.difference(all, Sets.union(violated, satisfied))));
+        }
+
+        @Override
+        public Optional<ImmutableSet<Property>> getRelevantProperties() {
+          return Optional.of(ImmutableSet.copyOf(relevant));
         }
 
         @Override

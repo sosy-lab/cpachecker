@@ -36,6 +36,8 @@ public interface PropertySummary {
 
   public Optional<ImmutableSet<Property>> getUnknownProperties();
 
+  public Optional<ImmutableSet<Property>> getRelevantProperties();
+
   public static PropertySummary UNKNOWN = new PropertySummary() {
 
     @Override
@@ -56,6 +58,11 @@ public interface PropertySummary {
     @Override
     public ImmutableSet<Property> getConsideredProperties() {
       return ImmutableSet.<Property> of();
+    }
+
+    @Override
+    public Optional<ImmutableSet<Property>> getRelevantProperties() {
+      return Optional.absent();
     }
   };
 
