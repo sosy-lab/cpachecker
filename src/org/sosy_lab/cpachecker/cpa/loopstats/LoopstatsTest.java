@@ -41,7 +41,7 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/ldv_118_test.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults results = runWithPredicateAnalysis(specFile, programFile);
 
     TestRunStatisticsParser stat = new TestRunStatisticsParser();
     results.getCheckerResult().printStatistics(stat.getPrintStream());
@@ -56,7 +56,7 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/ldv_118_test_false.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults results = runWithPredicateAnalysis(specFile, programFile);
 
     results.assertIsUnsafe();
 
@@ -73,19 +73,30 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_while_true.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsSafe();
+    resultsPA.assertIsSafe();
+    resultsBMC.assertIsSafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 10");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
   @Test
@@ -93,20 +104,32 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_while_false.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsUnsafe();
+    resultsPA.assertIsUnsafe();
+    resultsBMC.assertIsUnsafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 10");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    // Actual results might be smaller due to expected result FALSE (if the analysis terminates
-    // before unrolling all loops)
-    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
+    // Actual results might be smaller than expected due to expected result FALSE (if the analysis
+    // terminates before unrolling all loops)
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+    // Actual results might be smaller than expected due to expected result FALSE (if the
+    // analysis terminates before unrolling all loops)
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
 //  @Test
@@ -114,19 +137,30 @@ public class LoopstatsTest {
 //    final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
 //    final String programFile = "test/config/automata/encode/loop_unroll_do_while_true.c";
 //
-//    TestResults results = runWithSetup(specFile, programFile);
+//    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+//    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 //
-//    results.assertIsSafe();
+//    resultsPA.assertIsSafe();
+//    resultsBMC.assertIsSafe();
 //
-//    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-//    results.getCheckerResult().printStatistics(stat.getPrintStream());
+//    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+//    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+//    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+//    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 //
-//    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-//    stat.assertThatString("Loop with max. unrollings").contains("line 10");
-//    stat.assertThatNumber("Number of loops").isEqualTo(2);
-//    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-//    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(0);
-//    stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+//    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+//    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
+//    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+//    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
+//    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+//    statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+//
+//    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+//    statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
+//    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+//    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+//    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+//    statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
 //  }
 
   @Test
@@ -134,20 +168,32 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_do_while_false.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsUnsafe();
+    resultsPA.assertIsUnsafe();
+    resultsBMC.assertIsUnsafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 10");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
     // Actual results might be smaller than expected due to expected result FALSE (if the analysis
     // terminates before unrolling all loops)
-    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+    // Actual results might be smaller than expected due to expected result FALSE (if the
+    // analysis terminates before unrolling all loops)
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
   @Test
@@ -155,19 +201,30 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_for_true.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsSafe();
+    resultsPA.assertIsSafe();
+    resultsBMC.assertIsSafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 10");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
   @Test
@@ -175,20 +232,32 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_for_false.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsUnsafe();
+    resultsPA.assertIsUnsafe();
+    resultsBMC.assertIsUnsafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 10");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 10");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
     // Actual results might be smaller than expected due to expected result FALSE (if the analysis
     // terminates before unrolling all loops)
-    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 10");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+    // Actual results might be smaller than expected due to expected result FALSE (if the
+    // analysis terminates before unrolling all loops)
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
   @Test
@@ -196,19 +265,30 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_goto_true.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsSafe();
+    resultsPA.assertIsSafe();
+    resultsBMC.assertIsSafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 13");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
-    stat.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
-    //stat.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 13");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    //statPA.assertThatNumber("Max. nesting of loops").isEqualTo(1);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 13");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+    //statBMC.assertThatNumber("Max. nesting of loops").isEqualTo(1);
   }
 
   @Test
@@ -216,23 +296,35 @@ public class LoopstatsTest {
     final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
     final String programFile = "test/config/automata/encode/loop_unroll_goto_false.c";
 
-    TestResults results = runWithSetup(specFile, programFile);
+    TestResults resultsPA = runWithPredicateAnalysis(specFile, programFile);
+    TestResults resultsBMC = runWithBMC(specFile, programFile, 100);
 
-    results.assertIsUnsafe();
+    resultsPA.assertIsUnsafe();
+    resultsBMC.assertIsUnsafe();
 
-    TestRunStatisticsParser stat = new TestRunStatisticsParser();
-    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    TestRunStatisticsParser statPA = new TestRunStatisticsParser();
+    resultsPA.getCheckerResult().printStatistics(statPA.getPrintStream());
+    TestRunStatisticsParser statBMC = new TestRunStatisticsParser();
+    resultsBMC.getCheckerResult().printStatistics(statBMC.getPrintStream());
 
-    stat.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
-    stat.assertThatString("Loop with max. unrollings").contains("line 13");
-    stat.assertThatNumber("Number of loops").isEqualTo(2);
-    stat.assertThatNumber("Number of loops entered").isAtLeast(2);
+    statPA.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statPA.assertThatString("Loop with max. unrollings").contains("line 13");
+    statPA.assertThatNumber("Number of loops").isEqualTo(2);
+    statPA.assertThatNumber("Number of loops entered").isAtLeast(2);
+    // Actual results might be smaller than expected due to expected result FALSE (if the analysis
+    // terminates before unrolling all loops)
+    statPA.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+
+    statBMC.assertThatNumber("Max. unrollings of a loop").isAtMost(14);
+    statBMC.assertThatString("Loop with max. unrollings").contains("line 13");
+    statBMC.assertThatNumber("Number of loops").isEqualTo(2);
+    statBMC.assertThatNumber("Number of loops entered").isAtLeast(2);
     // Actual results might be smaller than expected due to expected result FALSE (if the
     // analysis terminates before unrolling all loops)
-    stat.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
+    statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
-  private TestResults runWithSetup(final String pSpecFile, final String pProgramFile)
+  private TestResults runWithPredicateAnalysis(final String pSpecFile, final String pProgramFile)
       throws Exception {
     Map<String, String> prop = ImmutableMap.<String, String>builder()
         .put("specification", pSpecFile)
@@ -247,6 +339,31 @@ public class LoopstatsTest {
 
     Configuration cfg = TestDataTools.configurationForTest()
         .loadFromFile("config/predicateAnalysis-PredAbsRefiner-ABEl.properties")
+        .setOptions(prop)
+        .build();
+
+    return CPATestRunner.run(cfg, pProgramFile, false);
+  }
+
+  private TestResults runWithBMC(final String pSpecFile,
+      final String pProgramFile,
+      final int pLoopIterationBound)
+      throws Exception{
+    Map<String, String> prop = ImmutableMap.<String, String>builder()
+        .put("specification", pSpecFile)
+        .put("cpa.predicate.ignoreIrrelevantVariables", "false")
+        .put("cfa.useMultiEdges", "false")
+        .put("automata.properties.granularity", "BASENAME")
+        .put("analysis.checkCounterexamples", "false")
+        .put("CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, "
+            + "cpa.loopstats.LoopstatsCPA, cpa.functionpointer.FunctionPointerCPA, "
+            + "cpa.predicate.PredicateCPA, cpa.assumptions.storage.AssumptionStorageCPA, "
+            + "cpa.bounds.BoundsCPA, cpa.value.ValueAnalysisCPA")
+        .put("cpa.bounds.maxLoopIterations", String.valueOf(pLoopIterationBound))
+        .build();
+
+    Configuration cfg = TestDataTools.configurationForTest()
+        .loadFromFile("config/bmc.properties")
         .setOptions(prop)
         .build();
 
