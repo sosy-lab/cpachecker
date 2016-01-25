@@ -24,6 +24,7 @@
             <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
             <include>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</include>
             <include>../programs/benchmarks/systemc/*_true-unreach-call*.cil.c</include>
+            <exclude>../programs/benchmarks/systemc/transmitter.06_false-unreach-call_false-termination.cil.c</exclude>
       </tasks>    
         <tasks name="OctagonRegression-int">
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
