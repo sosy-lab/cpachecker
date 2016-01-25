@@ -227,9 +227,9 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    */
   Formula makeBaseAddressOfTerm(final Formula pAddress) {
     // TODO array calls
-    return afmgr.declareAndCallArray("__BASE_ADDRESS_OF__",
-        formulaManager.getIntegerFormulaManager(), voidPointerFormulaType,
-        pAddress);
+    final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray("__BASE_ADDRESS_OF_",
+        FormulaType.IntegerType, voidPointerFormulaType);
+    return afmgr.select(arrayFormula, pAddress);
 //    return ffmgr.declareAndCallUninterpretedFunction("__BASE_ADDRESS_OF__",
 //        voidPointerFormulaType, address);
   }
