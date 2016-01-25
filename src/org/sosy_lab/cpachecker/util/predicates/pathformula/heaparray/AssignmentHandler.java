@@ -543,7 +543,6 @@ class AssignmentHandler {
 
     assert !(pLvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    // TODO getUFName
     final String targetName = !pLvalue.isAliased()
         ? pLvalue.asUnaliased().getVariableName()
         : CToFormulaConverterWithHeapArray.getUFName(pLvalueType);
@@ -571,15 +570,11 @@ class AssignmentHandler {
         pUpdatedVariables.add(Variable.create(targetName, pLvalueType));
       }
     } else { // Aliased LHS
-//      final Formula lhs = ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex,
-//          targetType, pLvalue.asAliased().getAddress());
-      // TODO array calls
       if (rhs != null) {
         final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + newIndex,
             FormulaType.IntegerType, targetType);
         result = formulaManager.makeEqual(arrayFormula, afmgr.store(arrayFormula,
             pLvalue.asAliased().getAddress(), rhs));
-//        result = formulaManager.assignment(lhs, rhs);
       } else {
         result = bfmgr.makeBoolean(true);
       }
@@ -611,7 +606,7 @@ class AssignmentHandler {
     if (isSimpleType(pLvalueType)) {
       Preconditions.checkArgument(pStartAddress != null, "Start address is "
           + "mandatory for assigning to lvalues of simple types");
-      // TODO getUFName
+
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(
           pLvalueType);
       final int oldIndex = converter.getIndex(ufName, pLvalueType, ssa);
@@ -624,7 +619,6 @@ class AssignmentHandler {
     } else if (pPattern.isExact()) {
       pPattern.setRange(size);
       for (final CType type : pTypesToRetain) {
-        // TODO getUFName
         final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
         final int oldIndex = converter.getIndex(ufName, type, ssa);
         final int newIndex = converter.getFreshIndex(ufName, type, ssa);
@@ -675,6 +669,7 @@ class AssignmentHandler {
       final Formula pLvalue) throws InterruptedException {
 
     if (!pPattern.isExact()) {
+      // TODO check possible loop unrolling
       for (final PointerTarget target
           : pts.getMatchingTargets(pLvalueType, pPattern)) {
         converter.shutdownNotifier.shutdownIfNecessary();
@@ -688,18 +683,12 @@ class AssignmentHandler {
         final BooleanFormula updateCondition = formulaManager.makeEqual(
             targetAddress, pLvalue);
 
-        // TODO array calls
         final ArrayFormula<?, ?> newArray = afmgr.makeArray(pUfName + "@" + pNewIndex,
             FormulaType.IntegerType, pReturnType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
             FormulaType.IntegerType, pReturnType);
         final BooleanFormula retention = formulaManager.makeEqual(
             afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
-//        final BooleanFormula retention = formulaManager.makeEqual(
-//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex, pReturnType,
-//                targetAddress),
-//            ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex, pReturnType,
-//                targetAddress));
 
         constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
@@ -707,7 +696,7 @@ class AssignmentHandler {
 
     for (final PointerTarget target
         : pts.getSpuriousTargets(pLvalueType, pPattern)) {
-
+      // TODO check possible loop unrolling
       converter.shutdownNotifier.shutdownIfNecessary();
 
       final Formula targetAddress = formulaManager.makePlus(
@@ -716,17 +705,12 @@ class AssignmentHandler {
           formulaManager.makeNumber(converter.voidPointerFormulaType,
               target.getOffset()));
 
-      // TODO array calls
       final ArrayFormula<?, ?> newArray = afmgr.makeArray(pUfName + "@" + pNewIndex,
           FormulaType.IntegerType, pReturnType);
       final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
           FormulaType.IntegerType, pReturnType);
       constraints.addConstraint(formulaManager.makeEqual(
           afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
-//      constraints.addConstraint(formulaManager.makeEqual(
-//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pNewIndex, pReturnType, targetAddress),
-//          ffmgr.declareAndCallUninterpretedFunction(pUfName, pOldIndex, pReturnType,
-//              targetAddress)));
     }
   }
 
@@ -763,29 +747,24 @@ class AssignmentHandler {
       BooleanFormula consequent = bfmgr.makeBoolean(true);
 
       for (final CType type : pTypes) {
-        // TODO getUFName
         final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
         final int oldIndex = converter.getIndex(ufName, type, ssa);
         final int newIndex = converter.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
         for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
+          // TODO check possible loop unrolling
           final Formula targetAddress = formulaManager.makePlus(
               formulaManager.makeVariable(converter.voidPointerFormulaType,
                   spurious.getBaseName()),
               formulaManager.makeNumber(converter.voidPointerFormulaType,
                   spurious.getOffset()));
-          // TODO array calls
+
           final ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + newIndex,
               FormulaType.IntegerType, returnType);
           final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
               FormulaType.IntegerType, returnType);
           consequent = bfmgr.and(consequent, formulaManager.makeEqual(
               afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
-//          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-//              ffmgr.declareAndCallUninterpretedFunction(ufName, newIndex, returnType,
-//                  targetAddress),
-//              ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex, returnType,
-//                  targetAddress)));
         }
       }
 
@@ -807,12 +786,12 @@ class AssignmentHandler {
 
     final PointerTargetPattern any = PointerTargetPatternHeapArray.any();
     for (final CType type : pTypes) {
-      // TODO getUFName
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       final int oldIndex = converter.getIndex(ufName, type, ssa);
       final int newIndex = converter.getFreshIndex(ufName, type, ssa);
       final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
       for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
+        // TODO check possible loop unrolling
         converter.shutdownNotifier.shutdownIfNecessary();
 
         final Formula targetAddress = formulaManager.makePlus(
@@ -824,7 +803,6 @@ class AssignmentHandler {
         final Formula endAddress = formulaManager.makePlus(pStartAddress,
             formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1));
 
-        // TODO array calls
         final ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + newIndex,
             FormulaType.IntegerType, returnType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
@@ -834,14 +812,6 @@ class AssignmentHandler {
             formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
             formulaManager.makeEqual(
                 afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress))));
-//        constraints.addConstraint(bfmgr.or(bfmgr.and(
-//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-//            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
-//            formulaManager.makeEqual(
-//                ffmgr.declareAnCallUninterpretedFunction(ufName, newIndex, returnType,
-//                    targetAddress),
-//                ffmgr.declareAndCallUninterpretedFunction(ufName, oldIndex, returnType,
-//                    targetAddress))));
       }
     }
   }
@@ -855,7 +825,6 @@ class AssignmentHandler {
   private void updateSSA(final @Nonnull Set<CType> pTypes,
       final SSAMapBuilder pSSAMapBuilder) {
     for (final CType type : pTypes) {
-      // TODO getUFName
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       converter.makeFreshIndex(ufName, type, pSSAMapBuilder);
     }

@@ -495,13 +495,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final FormulaType<?> returnFormulaType =  converter.getFormulaTypeFromCType(returnType);
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
+      // TODO check possible loop unrolling in case of array heap
       shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
       final BooleanFormula retention;
       if (useArrayHeap) {
-        // TODO array call
         final ArrayFormula<?, ?> newArray = afmgr.makeArray(functionName + "@" + newIndex,
             FormulaType.IntegerType, returnFormulaType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,

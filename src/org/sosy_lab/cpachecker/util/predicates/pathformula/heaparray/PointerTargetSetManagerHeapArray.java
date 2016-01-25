@@ -575,12 +575,10 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   private Formula makeDereference(final CType pType,
       final Formula pAddress,
       final SSAMapBuilder pSSAMapBuilder) {
-    // TODO getUFName
     final String ufName = CToFormulaConverterWithHeapArray.getUFName(pType);
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
 
-    // TODO array call
     final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,
         FormulaType.IntegerType, returnType);
     return afmgr.select(arrayFormula, pAddress);

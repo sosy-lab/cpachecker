@@ -401,7 +401,6 @@ class DynamicMemoryHandler {
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder,
       final CtoFormulaConverter pConverter) {
-    // TODO getUFName
     return pFunctionName
         + "_"
         + CToFormulaConverterWithHeapArray.getUFName(pType)
