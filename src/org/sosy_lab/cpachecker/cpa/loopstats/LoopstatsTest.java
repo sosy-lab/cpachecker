@@ -324,6 +324,31 @@ public class LoopstatsTest {
     statBMC.assertThatNumber("Max. completed unrollings of a loop").isAtMost(13);
   }
 
+  @Test
+  public void testPartialUnrolling() throws Exception {
+    final String specFile = "test/config/automata/encode/LDV_118_1a_encode.spc";
+    final String programFile = "test/config/automata/encode/loop_unroll_while_true.c";
+
+    TestResults results1 = runWithBMC(specFile, programFile, 1);
+    TestResults results2 = runWithBMC(specFile, programFile, 2);
+    TestResults results10 = runWithBMC(specFile, programFile, 10);
+    TestResults results15 = runWithBMC(specFile, programFile, 15);
+
+    TestRunStatisticsParser stat1 = new TestRunStatisticsParser();
+    TestRunStatisticsParser stat2 = new TestRunStatisticsParser();
+    TestRunStatisticsParser stat10 = new TestRunStatisticsParser();
+    TestRunStatisticsParser stat15 = new TestRunStatisticsParser();
+    results1.getCheckerResult().printStatistics(stat1.getPrintStream());
+    results2.getCheckerResult().printStatistics(stat2.getPrintStream());
+    results10.getCheckerResult().printStatistics(stat10.getPrintStream());
+    results15.getCheckerResult().printStatistics(stat15.getPrintStream());
+
+    stat1.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(1);
+    stat2.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(2);
+    stat10.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(10);
+    stat15.assertThatNumber("Max. completed unrollings of a loop").isEqualTo(13);
+  }
+
   private TestResults runWithPredicateAnalysis(final String pSpecFile, final String pProgramFile)
       throws Exception {
     Map<String, String> prop = ImmutableMap.<String, String>builder()
