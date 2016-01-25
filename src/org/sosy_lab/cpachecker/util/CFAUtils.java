@@ -27,9 +27,11 @@ import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Predicates.not;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.SortedSet;
@@ -49,9 +51,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 
 public class CFAUtils {
@@ -383,31 +385,55 @@ public class CFAUtils {
   }
 
   /**
-   * Get all nodes transitively connected to this node via blank edges, including the node itself.
+   * Get all (sub)-paths through the given nodes connected only via blank edges.
    *
-   * @param pNode the node to get the neighbors for.
-   * @return all nodes connected to this node via blank edges, including the node itself.
+   * @param pNode the node to get the blank paths for.
+   * @return all (sub)-paths through the given nodes connected only via blank edges.
    */
-  public static Set<CFANode> getBlankNeighbors(CFANode pNode) {
-    Set<CFANode> visited = Sets.newHashSet();
-    Queue<CFANode> waitlist = Queues.newArrayDeque();
-    waitlist.offer(pNode);
-    visited.add(pNode);
+  public static Iterable<List<CFANode>> getBlankPaths(CFANode pNode) {
+    List<List<CFANode>> blankPaths = new ArrayList<>();
+    Queue<List<CFANode>> waitlist = Queues.newArrayDeque();
+    waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
-      CFANode current = waitlist.poll();
-      for (BlankEdge enteringEdge : CFAUtils.enteringEdges(current).filter(BlankEdge.class)) {
-        CFANode predecessor = enteringEdge.getPredecessor();
-        if (visited.add(predecessor)) {
-          waitlist.offer(predecessor);
-        }
-      }
-      for (BlankEdge leavingEdge : CFAUtils.leavingEdges(current).filter(BlankEdge.class)) {
-        CFANode successor = leavingEdge.getSuccessor();
-        if (visited.add(successor)) {
-          waitlist.offer(successor);
+      List<CFANode> currentPath = waitlist.poll();
+      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
+      List<BlankEdge> leavingBlankEdges =
+          CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
+      if (pathSucc.getNumLeavingEdges() <= 0
+          || leavingBlankEdges.size() < pathSucc.getNumLeavingEdges()) {
+        blankPaths.add(currentPath);
+      } else {
+        for (CFAEdge leavingEdge : leavingBlankEdges) {
+          CFANode successor = leavingEdge.getSuccessor();
+          if (!currentPath.contains(successor)) {
+            List<CFANode> newPath =
+                ImmutableList.<CFANode>builder().addAll(currentPath).add(successor).build();
+            waitlist.offer(newPath);
+          }
         }
       }
     }
-    return visited;
+    waitlist.addAll(blankPaths);
+    blankPaths.clear();
+    while (!waitlist.isEmpty()) {
+      List<CFANode> currentPath = waitlist.poll();
+      CFANode pathPred = currentPath.get(0);
+      List<BlankEdge> enteringBlankEdges =
+          CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
+      if (pathPred.getNumEnteringEdges() <= 0
+          || enteringBlankEdges.size() < pathPred.getNumEnteringEdges()) {
+        blankPaths.add(currentPath);
+      } else {
+        for (CFAEdge enteringEdge : enteringBlankEdges) {
+          CFANode predecessor = enteringEdge.getPredecessor();
+          if (!currentPath.contains(predecessor)) {
+            List<CFANode> newPath =
+                ImmutableList.<CFANode>builder().add(predecessor).addAll(currentPath).build();
+            waitlist.offer(newPath);
+          }
+        }
+      }
+    }
+    return blankPaths;
   }
 }

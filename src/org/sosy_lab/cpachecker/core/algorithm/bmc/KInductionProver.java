@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -276,21 +278,22 @@ class KInductionProver implements AutoCloseable {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = bfmgr.makeBoolean(true);
+    BooleanFormula invariant = bfmgr.makeBoolean(false);
 
+    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+      BooleanFormula pathInvariant = bfmgr.makeBoolean(true);
 
-    for (CFANode location : CFAUtils.getBlankNeighbors(pLocation)) {
-
-      BooleanFormula locationInvariant = currentInvariantsSupplier.getInvariantFor(location, pFMGR, pPFMGR);
-
-      for (LocationFormulaInvariant confirmedCandidate : from(this.confirmedCandidates).filter(LocationFormulaInvariant.class)) {
-        if (confirmedCandidate.getLocations().contains(location)) {
-          locationInvariant = bfmgr.and(locationInvariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
+      for (CFANode location : path) {
+        for (CandidateInvariant candidateInvariant :
+            getConfirmedCandidates(location).filter(CandidateInvariant.class)) {
+          pathInvariant = bfmgr.and(pathInvariant, candidateInvariant.getFormula(pFMGR, pPFMGR));
         }
+        pathInvariant =
+            bfmgr.and(
+                pathInvariant, currentInvariantsSupplier.getInvariantFor(location, pFMGR, pPFMGR));
       }
-      invariant = bfmgr.and(invariant, locationInvariant);
+      invariant = bfmgr.or(pathInvariant, invariant);
     }
-
     return invariant;
   }
 
@@ -298,22 +301,35 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
-    ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+    ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
+    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+      ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
 
-    for (CFANode location : CFAUtils.getBlankNeighbors(pLocation)) {
-      ExpressionTree<Object> locationInvariant = currentInvariantsSupplier.getInvariantFor(location);
-
-      for (ExpressionTreeCandidateInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeCandidateInvariant.class)) {
-        if (confirmedCandidate instanceof LocationFormulaInvariant) {
-          if (((LocationFormulaInvariant) confirmedCandidate).getLocations().contains(location)) {
-            locationInvariant = And.of(locationInvariant, confirmedCandidate.asExpressionTree());
-          }
+      for (CFANode location : path) {
+        for (ExpressionTreeCandidateInvariant expressionTreeCandidateInvariant :
+            getConfirmedCandidates(location).filter(ExpressionTreeCandidateInvariant.class)) {
+          pathInvariant =
+              And.of(pathInvariant, expressionTreeCandidateInvariant.asExpressionTree());
         }
-      }
-      invariant = And.of(invariant, locationInvariant);
-    }
 
+        pathInvariant = And.of(pathInvariant, currentInvariantsSupplier.getInvariantFor(location));
+      }
+      invariant = Or.of(pathInvariant, invariant);
+    }
     return invariant;
+  }
+
+  private FluentIterable<LocationFormulaInvariant> getConfirmedCandidates(final CFANode pLocation) {
+    return from(confirmedCandidates)
+        .filter(LocationFormulaInvariant.class)
+        .filter(
+            new Predicate<LocationFormulaInvariant>() {
+
+              @Override
+              public boolean apply(LocationFormulaInvariant pConfirmedCandidate) {
+                return pConfirmedCandidate.getLocations().contains(pLocation);
+              }
+            });
   }
 
   @Override

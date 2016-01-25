@@ -973,13 +973,14 @@ public class ARGPathExporter {
       } else {
         newScope = null;
       }
-      ExpressionTree<Object> newTree = Or.of(sourceTree, targetTree);
-      if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
-        putStateInvariant(source, ExpressionTrees.getTrue());
-        stateScopes.remove(source);
-      } else {
-        putStateInvariant(source, newTree);
-        stateScopes.put(source, newScope);
+      ExpressionTree<Object> newTree = mergeStateInvariantsInfoFirst(source, target);
+      if (newTree != null) {
+        if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
+          putStateInvariant(source, ExpressionTrees.getTrue());
+          stateScopes.remove(source);
+        } else {
+          stateScopes.put(source, newScope);
+        }
       }
 
       // Merge the violated properties
@@ -1124,12 +1125,37 @@ public class ARGPathExporter {
      * @param pValue the invariant to be added.
      */
     private void putStateInvariant(String pStateId, ExpressionTree<Object> pValue) {
-      ExpressionTree<Object> result = stateInvariants.get(pStateId);
-      if (result == null) {
+      ExpressionTree<Object> prev = stateInvariants.get(pStateId);
+      if (prev == null) {
         stateInvariants.put(pStateId, pValue);
-      } else {
-        stateInvariants.put(pStateId, Or.of(result, pValue));
+        return;
       }
+      ExpressionTree<Object> result = Or.of(prev, pValue);
+      stateInvariants.put(pStateId, result);
+    }
+
+    /**
+     * Merges the invariants for the given state ids and stores it as the new invariant for the first of the given ids.
+     *
+     * @param pStateId the state id.
+     * @param pOtherStateId the other state id.
+     *
+     * @return the merged invariant. {@code null} if neither state had an invariant.
+     */
+    private @Nullable ExpressionTree<Object> mergeStateInvariantsInfoFirst(
+        String pStateId, String pOtherStateId) {
+      ExpressionTree<Object> prev = stateInvariants.get(pStateId);
+      ExpressionTree<Object> other = stateInvariants.get(pOtherStateId);
+      if (prev == null) {
+        stateInvariants.put(pStateId, other);
+        return other;
+      }
+      if (other == null) {
+        return prev;
+      }
+      ExpressionTree<Object> result = Or.of(prev, other);
+      stateInvariants.put(pStateId, result);
+      return result;
     }
 
     private ExpressionTree<Object> getStateInvariant(String pStateId) {

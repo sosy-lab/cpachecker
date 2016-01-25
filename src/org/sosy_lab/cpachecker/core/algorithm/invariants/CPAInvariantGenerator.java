@@ -455,28 +455,25 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     @Override
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
+      ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+      for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+        ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
 
-      ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-
-      for (CFANode location : CFAUtils.getBlankNeighbors(pLocation)) {
-
-        ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
-
-        for (AbstractState locState : AbstractStates.filterLocation(reached, location)) {
-          ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
-          for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-            stateInvariant =
-                And.of(
-                    stateInvariant,
-                    expressionTreeReportingState.getFormulaApproximation(
-                        cfa.getFunctionHead(pLocation.getFunctionName()), location));
+        for (CFANode location : path) {
+          for (AbstractState locState : AbstractStates.filterLocation(reached, location)) {
+            for (ExpressionTreeReportingState expressionTreeReportingState :
+                AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+              pathInvariant =
+                  And.of(
+                      pathInvariant,
+                      expressionTreeReportingState.getFormulaApproximation(
+                          cfa.getFunctionHead(pLocation.getFunctionName()), location));
+            }
           }
-
-          locationInvariant = Or.of(locationInvariant, stateInvariant);
         }
-        invariant = And.of(invariant, locationInvariant);
+        locationInvariant = Or.of(pathInvariant, locationInvariant);
       }
-      return invariant;
+      return locationInvariant;
     }
   }
 
