@@ -934,6 +934,10 @@ public class ARGPathExporter {
             return false;
           }
         }
+        // An edge is never redundant if there are different invariants
+        if (!getStateInvariant(pEdge.target).equals(sourceTree)) {
+          return false;
+        }
 
         // An edge is redundant if it is the only leaving edge of a
         // node and it is empty or all its non-assumption contents
