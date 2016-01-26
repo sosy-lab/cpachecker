@@ -376,6 +376,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     strengthenTimer.start();
     try {
+      CFANode loc = getAnalysisSuccesor(edge);
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       if (element.isAbstractionState()) {
@@ -388,7 +389,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element, otherElements);
       }
 
-      boolean targetOrIntermediateTargetStateFound = false;
+      boolean targetStateFound = false;
+      boolean intermediateTargetStateFound = false;
       for (AbstractState lElement : otherElements) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
@@ -406,18 +408,27 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (AbstractStates.isTargetState(lElement)) {
-          targetOrIntermediateTargetStateFound = true;
+          targetStateFound = true;
         }
 
         if (AbstractStates.isIntermediateTargetState(lElement)) {
-          targetOrIntermediateTargetStateFound = true;
+          intermediateTargetStateFound = true;
         }
       }
 
-      // check satisfiability in case of error
+      // Checking satisfiability of a intermediate state
+      // means to compute an abstraction that might not be 'true'
+      if (intermediateTargetStateFound && targetStateSatCheck) {
+        element = new PredicateAbstractState.ComputeAbstractionState(
+            element.getPathFormula(), element.getAbstractionFormula(), loc,
+            element.getAbstractionLocationsOnPath());
+      }
+
+      // Check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (targetOrIntermediateTargetStateFound && targetStateSatCheck) {
+      if (targetStateFound && targetStateSatCheck) {
         element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
+
         if (element == null) {
           // successor not reachable
           return Collections.emptySet();
