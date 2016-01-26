@@ -346,8 +346,10 @@ public class Goal implements SafetyProperty {
         final ImmutableList<AStatement> assumptions = createAssumesForLabel(t.getLabel());
         final ImmutableList<AutomatonAction> actions;
 
-        final boolean matchesCriticalEdge = t.getLabel().contains(getCriticalEdge());
-        if (matchesCriticalEdge) {
+        final CFAEdge criticalEdge = getCriticalEdge();
+        final boolean matchesCriticalEdge = t.getLabel().contains(criticalEdge);
+        final boolean isStutterTransition = t.getTarget().equals(q);
+        if (matchesCriticalEdge && !isStutterTransition) {// Ignore stutter transitions
           actions = ImmutableList.<AutomatonAction>of(AutomatonAction.CheckFeasibility.getInstance());
         } else {
           actions = ImmutableList.of();
