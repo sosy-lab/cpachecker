@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.*;
 
 import java.io.File;
@@ -36,8 +37,10 @@ import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
 import com.google.common.truth.Truth;
+
 
 public class TigerTest {
 
@@ -101,14 +104,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    Truth.assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    Truth.assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
-    Truth.assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -343,8 +344,10 @@ public class TigerTest {
    *              multiple test goals
    */
   @Test
-  public void variants_powerset_example() throws Exception {
-    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+  public void variants_powerset_example()
+      throws Exception {
+
+    Map<String,     String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("cpa.predicate.targetStateSatCheck", "false");
@@ -358,14 +361,17 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
+    assertThat(result).isInstanceOf(TestSuite.class);
 
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 4);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+    stat.assertThatNumber("Number of feasible test goals").isEqualTo(testSuite.getNumberOfFeasibleTestGoals());
+
+    Truth.assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    Truth.assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    Truth.assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -839,9 +845,9 @@ public class TigerTest {
 
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    Truth.assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    Truth.assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    Truth.assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
 }
