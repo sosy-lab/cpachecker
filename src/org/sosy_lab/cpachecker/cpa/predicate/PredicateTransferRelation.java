@@ -418,7 +418,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
       // Checking satisfiability of a intermediate state
       // means to compute an abstraction that might not be 'true'
-      if (intermediateTargetStateFound && targetStateSatCheck) {
+      //  This is important for test case generation; it forces the state space to split (and get unique paths)
+      if (intermediateTargetStateFound) {
         element = new PredicateAbstractState.ComputeAbstractionState(
             element.getPathFormula(), element.getAbstractionFormula(), loc,
             element.getAbstractionLocationsOnPath());
