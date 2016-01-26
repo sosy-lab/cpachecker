@@ -151,7 +151,9 @@ public class TestSuite extends AlgorithmResult {
 
   public boolean addTestCase(TestCase testcase, Goal goal, Region pPresenceCondition) {
     if (testSuiteAlreadyContrainsTestCase(testcase, goal)) { return true; }
-    numberOfFeasibleGoals++;
+    if (!isGoalPariallyCovered(goal)) {
+      numberOfFeasibleGoals++;
+    }
 
     List<Goal> goals = mapping.get(testcase);
     List<TestCase> testcases = coveringTestCases.get(goal);
@@ -180,6 +182,18 @@ public class TestSuite extends AlgorithmResult {
     }
 
     return testcaseExisted;
+  }
+
+  private boolean isGoalPariallyCovered(Goal pGoal) {
+    if (useTigerAlgorithm_with_pc) {
+      if (remainingPresenceConditions.get(pGoal).isFalse()) {
+        return true;
+      }
+    }
+
+    List<TestCase> testCases = coveringTestCases.get(pGoal);
+    return (testCases != null && testCases.size() > 0);
+
   }
 
   private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {

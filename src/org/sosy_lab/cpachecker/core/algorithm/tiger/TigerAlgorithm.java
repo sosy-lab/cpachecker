@@ -1522,7 +1522,6 @@ public class TigerAlgorithm
             // goal is partially timed out
             partiallyInfeasibleGoals.add(goal);
             partiallyInfeasibleGoals.add(goal);
-            ;
           } else {
             // goal is infeasible
             infeasibleGoals.add(goal);
