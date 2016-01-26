@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger.test;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Map;
@@ -38,8 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
-
-import com.google.common.truth.Truth;
 
 
 public class TigerTest {
@@ -72,9 +70,7 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
@@ -133,14 +129,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -164,14 +158,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -196,14 +188,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -227,14 +217,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -259,14 +247,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/mini_example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /*
@@ -294,14 +280,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 4);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -327,14 +311,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 4);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -362,16 +344,15 @@ public class TigerTest {
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
-
     TestSuite testSuite = (TestSuite) result;
 
     TestRunStatisticsParser stat = new TestRunStatisticsParser();
     results.getCheckerResult().printStatistics(stat.getPrintStream());
     stat.assertThatNumber("Number of feasible test goals").isEqualTo(testSuite.getNumberOfFeasibleTestGoals());
 
-    Truth.assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
-    Truth.assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
-    Truth.assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -395,14 +376,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 4);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -428,14 +407,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 4);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -460,14 +437,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 4);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /*
@@ -495,14 +470,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -527,14 +500,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -558,14 +529,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -589,14 +558,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -621,14 +588,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -649,17 +614,15 @@ public class TigerTest {
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
 
-    TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c");
+    TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c", true);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 1);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -683,14 +646,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -715,14 +676,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -746,14 +705,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -777,14 +734,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -809,14 +764,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 7);
-    assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
   /**
@@ -840,14 +793,12 @@ public class TigerTest {
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
-    assertNotNull(result);
-    assertTrue(result instanceof TestSuite);
-
+    assertThat(result).isInstanceOf(TestSuite.class);
     TestSuite testSuite = (TestSuite) result;
 
-    Truth.assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
-    Truth.assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
-    Truth.assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
 }
