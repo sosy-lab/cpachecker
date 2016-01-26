@@ -1554,75 +1554,79 @@ public class TigerAlgorithm
     }
 
     // write generated test suite and mapping to file system
-    try (Writer writer = new BufferedWriter(
-        new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
+    if (testsuiteFile != null) {
+      try (Writer writer = new BufferedWriter(
+          new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
 
-      writer.write(testsuite.toString());
+        writer.write(testsuite.toString());
 
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
 
     // write test case generation times to file system
-    try (Writer writer = new BufferedWriter(
-        new OutputStreamWriter(new FileOutputStream(testcaseGenerationTimesFile.getAbsolutePath()), "utf-8"))) {
+    if (testcaseGenerationTimesFile != null) {
+      try (Writer writer = new BufferedWriter(
+          new OutputStreamWriter(new FileOutputStream(testcaseGenerationTimesFile.getAbsolutePath()), "utf-8"))) {
 
-      List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
-      Collections.sort(testcases, new Comparator<TestCase>() {
+        List<TestCase> testcases = new ArrayList<>(testsuite.getTestCases());
+        Collections.sort(testcases, new Comparator<TestCase>() {
 
-        @Override
-        public int compare(TestCase pTestCase1, TestCase pTestCase2) {
-          if (pTestCase1.getGenerationTime() > pTestCase2.getGenerationTime()) {
-            return 1;
-          } else if (pTestCase1.getGenerationTime() < pTestCase2.getGenerationTime()) { return -1; }
-          return 0;
-        }
-      });
+          @Override
+          public int compare(TestCase pTestCase1, TestCase pTestCase2) {
+            if (pTestCase1.getGenerationTime() > pTestCase2.getGenerationTime()) {
+              return 1;
+            } else if (pTestCase1.getGenerationTime() < pTestCase2.getGenerationTime()) { return -1; }
+            return 0;
+          }
+        });
 
-      if (useTigerAlgorithm_with_pc) {
-        Set<Goal> feasible = new HashSet<>();
-        feasible.addAll(feasibleGoals);
-        feasible.addAll(partiallyFeasibleGoals);
-        feasible.removeAll(partiallyTimedoutGoals);
-        for (Goal goal : feasible) {
-          List<TestCase> tests = testsuite.getCoveringTestCases(goal);
-          TestCase lastTestCase = getLastTestCase(tests);
-          lastTestCase.incrementNumberOfNewlyCoveredGoals();
-        }
-        Set<Goal> partially = new HashSet<>();
-        partially.addAll(feasibleGoals);
-        partially.addAll(partiallyFeasibleGoals);
-        partially.removeAll(partiallyInfeasibleGoals);
-        for (Goal goal : partially) {
-          List<TestCase> tests = testsuite.getCoveringTestCases(goal);
-          TestCase lastTestCase = getLastTestCase(tests);
-          lastTestCase.incrementNumberOfNewlyPartiallyCoveredGoals();
-        }
+        if (useTigerAlgorithm_with_pc) {
+          Set<Goal> feasible = new HashSet<>();
+          feasible.addAll(feasibleGoals);
+          feasible.addAll(partiallyFeasibleGoals);
+          feasible.removeAll(partiallyTimedoutGoals);
+          for (Goal goal : feasible) {
+            List<TestCase> tests = testsuite.getCoveringTestCases(goal);
+            TestCase lastTestCase = getLastTestCase(tests);
+            lastTestCase.incrementNumberOfNewlyCoveredGoals();
+          }
+          Set<Goal> partially = new HashSet<>();
+          partially.addAll(feasibleGoals);
+          partially.addAll(partiallyFeasibleGoals);
+          partially.removeAll(partiallyInfeasibleGoals);
+          for (Goal goal : partially) {
+            List<TestCase> tests = testsuite.getCoveringTestCases(goal);
+            TestCase lastTestCase = getLastTestCase(tests);
+            lastTestCase.incrementNumberOfNewlyPartiallyCoveredGoals();
+          }
 
-        writer.write(
-            "Test Case;Generation Time;Covered Goals After Generation;Completely Covered Goals After Generation;Partially Covered Goals After Generation\n");
-        int completelyCoveredGoals = 0;
-        int partiallyCoveredGoals = 0;
-        for (TestCase testCase : testcases) {
-          int newCoveredGoals = testCase.getNumberOfNewlyCoveredGoals();
-          int newPartiallyCoveredGoals = testCase.getNumberOfNewlyPartiallyCoveredGoals();
-          completelyCoveredGoals += newCoveredGoals;
-          partiallyCoveredGoals += newPartiallyCoveredGoals;
+          writer.write(
+              "Test Case;Generation Time;Covered Goals After Generation;Completely Covered Goals After Generation;Partially Covered Goals After Generation\n");
+          int completelyCoveredGoals = 0;
+          int partiallyCoveredGoals = 0;
+          for (TestCase testCase : testcases) {
+            int newCoveredGoals = testCase.getNumberOfNewlyCoveredGoals();
+            int newPartiallyCoveredGoals = testCase.getNumberOfNewlyPartiallyCoveredGoals();
+            completelyCoveredGoals += newCoveredGoals;
+            partiallyCoveredGoals += newPartiallyCoveredGoals;
 
-          writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
-              + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals + ";"
-              + partiallyCoveredGoals + "\n");
+            writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";"
+                + (completelyCoveredGoals + partiallyCoveredGoals) + ";" + completelyCoveredGoals + ";"
+                + partiallyCoveredGoals + "\n");
+          }
+        } else {
+          Set<Goal> coveredGoals = new HashSet<>();
+          writer.write("Test Case;Generation Time;Covered Goals After Generation\n");
+          for (TestCase testCase : testcases) {
+            coveredGoals.addAll(testsuite.getTestGoalsCoveredByTestCase(testCase));
+            writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";" + coveredGoals.size() + "\n");
+          }
         }
-      } else {
-        Set<Goal> coveredGoals = new HashSet<>();
-        writer.write("Test Case;Generation Time;Covered Goals After Generation\n");
-        for (TestCase testCase : testcases) {
-          coveredGoals.addAll(testsuite.getTestGoalsCoveredByTestCase(testCase));
-          writer.write(testCase.getId() + ";" + testCase.getGenerationTime() + ";" + coveredGoals.size() + "\n");
-        }
+      } catch (IOException e) {
+        throw new RuntimeException(e);
       }
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
