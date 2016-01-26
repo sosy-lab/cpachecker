@@ -474,7 +474,7 @@ public class TigerTest {
     TestSuite testSuite = (TestSuite) result;
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
@@ -533,7 +533,7 @@ public class TigerTest {
     TestSuite testSuite = (TestSuite) result;
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
-    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
   }
 
