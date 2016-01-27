@@ -23,15 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import javax.annotation.Nonnull;
-
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
-import org.sosy_lab.solver.api.NumeralFormulaManager;
 
 /**
  * Implements some methods for easier interaction with the formula manager for
@@ -156,104 +153,6 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
 
     BooleanFormula result = manager.equivalence(declaredArray1, declaredArray2);
     return wrap(FormulaType.BooleanType, result);
-  }
-
-  /**
-   * Returns a formula representing the declaration of an SMT array and a call
-   * to it.
-   *
-   * <p>The new returned formula is of the form {@code select( store (<pName> 0 <pArgs>) 0)}.</p>
-   *
-   * @param pName The name of the array variable.
-   * @param pIntegerFormulaManager The formula manager for integer formulae.
-   * @param pReturnType The return type of the array call, i.e. the element type of the array.
-   * @param pArgs The formula for the element that gets stored in the array.
-   * @param <T> The formula type of the elements of the array.
-   * @return A formula for the array and the call to it.
-   */
-  public <T extends Formula> T declareAndCallArray(
-      final @Nonnull String pName,
-      final @Nonnull NumeralFormulaManager<?, ?> pIntegerFormulaManager,
-      final @Nonnull FormulaType<T> pReturnType,
-      final @Nonnull Formula pArgs) {
-
-    // TODO evaluate correctness of these statements. They seem to be working in most cases but
-    // not when there is a cast involved, e.g. if pReturnType is a Rational type and the formula
-    // in pArgs is of type Integer, the store fails (at least in SMTInterpol).
-    ArrayFormula<?, ?> arrayFormula = makeArray(pName, FormulaType.IntegerType, pReturnType);
-    final Formula index = pIntegerFormulaManager.makeNumber(0);
-    arrayFormula = store(arrayFormula, index, pArgs);
-
-    return wrap(pReturnType, select(arrayFormula, index));
-  }
-
-  /**
-   * Returns a formula representing the declaration of an SMT array and a call
-   * to it.
-   *
-   * @param pName The name of the array variable.
-   * @param pIdx An additional index.
-   * @param pIntegerFormulaManager The formula manager for integer formulae.
-   * @param pReturnType The return type of the array call, i.e. the element type of the array.
-   * @param pArgs The formula for the element that gets stored in the array.
-   * @param <T> The formula type of the elements of the array.
-   * @return A formula for the array and the call to it.
-   * @see #declareAndCallArray(String, NumeralFormulaManager, FormulaType, Formula)
-   */
-  public <T extends Formula> T declareAndCallArray(
-      final String pName,
-      final int pIdx,
-      final NumeralFormulaManager<?, ?> pIntegerFormulaManager,
-      final FormulaType<T> pReturnType,
-      final Formula pArgs) {
-
-    String name = FormulaManagerView.makeName(pName, pIdx);
-    return declareAndCallArray(name, pIntegerFormulaManager, pReturnType, pArgs);
-  }
-
-  /**
-   * Returns a formula representing the declaration of an SMT array and a call
-   * to it.
-   *
-   * @param pName The name of the array variable.
-   * @param pIdx An additional index.
-   * @param pArrayIndex The index in the array we want to store the value in.
-   * @param pReturnType The return type of the array call, i.e. the element type of the array.
-   * @param pArgs The formula for the element that gets stored in the array.
-   * @param <T> The formula type of the elements of the array.
-   * @return A formula for the array and the call to it.
-   * @see #declareAndCallArray(String, NumeralFormulaManager, FormulaType, Formula)
-   */
-  public <T extends Formula> T declareAndCallArray(
-      final String pName,
-      final int pIdx,
-      final Formula pArrayIndex,
-      final FormulaType<T> pReturnType,
-      final Formula pArgs) {
-    String name = FormulaManagerView.makeName(pName, pIdx);
-    return declareAndCallArray(name, pArrayIndex, pReturnType, pArgs);
-  }
-
-  /**
-   * Returns a formula representing the declaration of an SMT array and a call
-   * to it.
-   *
-   * @param pName The name of the array variable.
-   * @param pArrayIndex The index in the array we want to store the value in.
-   * @param pReturnType The return type of the array call, i.e. the element type of the array.
-   * @param pArgs The formula for the element that gets stored in the array.
-   * @param <T> The formula type of the elements of the array.
-   * @return A formula for the array and the call to it.
-   * @see #declareAndCallArray(String, NumeralFormulaManager, FormulaType, Formula)
-   */
-  public <T extends Formula> T declareAndCallArray(
-      final String pName,
-      final Formula pArrayIndex,
-      final FormulaType<T> pReturnType,
-      final Formula pArgs) {
-    ArrayFormula<?, ?> arrayFormula = makeArray(pName, FormulaType.IntegerType, pReturnType);
-    arrayFormula = store(arrayFormula, pArrayIndex, pArgs);
-    return wrap(pReturnType, select(arrayFormula, pArrayIndex));
   }
 
 }
