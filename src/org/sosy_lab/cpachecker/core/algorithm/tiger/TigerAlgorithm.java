@@ -1214,7 +1214,7 @@ public class TigerAlgorithm
       testsuite.setInfeasiblePresenceCondition(pGoal, testsuite.getRemainingPresenceCondition(pGoal));
       testsuite.setRemainingPresenceCondition(pGoal, bddCpaNamedRegionManager.makeFalse());
       logger.logf(Level.WARNING, "Goal %d is infeasible for remaining PC %s!", pGoal.getIndex(),
-          bddCpaNamedRegionManager.dumpRegion(testsuite.getRemainingPresenceCondition(pGoal)));
+          bddCpaNamedRegionManager.dumpRegion(testsuite.getInfeasiblePresenceCondition(pGoal)));
     } else {
       logger.logf(Level.WARNING, "Goal %d is infeasible!", pGoal.getIndex());
       testsuite.addInfeasibleGoal(pGoal, null, lGoalPrediction);
