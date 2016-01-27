@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -156,25 +155,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   private ResourceLimitChecker reschecker = null;
 
   public static int hackyRefinementBound = 0;
-
-  private final Comparator<Property> propertyExplosionComparator = new Comparator<Property>() {
-    @Override
-    public int compare(Property p1, Property p2) {
-      final double p1ExplosionFactor = PropertyStats.INSTANCE.getExplosionFactor(p1);
-      final double p2ExplosionFactor = PropertyStats.INSTANCE.getExplosionFactor(p1);
-
-      // -1 : P1 is cheaper
-      // +1 : P1 is more expensive
-      if (p1ExplosionFactor < p2ExplosionFactor) {
-        return -1;
-      } else if (p1ExplosionFactor > p2ExplosionFactor) {
-        return 1;
-      } else {
-        return 0;
-      }
-    }
-  };
-
 
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
     Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa)
