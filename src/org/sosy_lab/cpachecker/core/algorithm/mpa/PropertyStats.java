@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
+import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
@@ -61,6 +62,55 @@ public enum PropertyStats implements Statistics {
     coverageCount.clear();
     noCoverageCount.clear();
     relevantProperties.clear();
+  }
+
+  private final Comparator<Property> propertyRefinementComparator = new Comparator<Property>() {
+
+    @Override
+    public int compare(Property p1, Property p2) {
+      Optional<StatCounter> p1refCount = getRefinementCount(p1);
+      Optional<StatCounter> p2refCount = getRefinementCount(p2);
+      Optional<StatCpuTime> p1refTime = getRefinementTime(p1);
+      Optional<StatCpuTime> p2refTime = getRefinementTime(p2);
+
+      // -1 : P1 is cheaper
+      // +1 : P1 is more expensive
+
+      if (p1refTime.isPresent()) {
+        if (!p2refTime.isPresent()) {
+          return 1;
+        }
+
+        try {
+          if (p1refTime.get().getCpuTimeSum().asMillis() < p2refTime.get().getCpuTimeSum().asMillis()) {
+            return -1;
+          } else if (p1refTime.get().getCpuTimeSum().asMillis() > p2refTime.get().getCpuTimeSum().asMillis()) {
+            return 1;
+          }
+        } catch (NoTimeMeasurement e) {
+          return 0;
+        }
+      }
+
+      if (p1refCount.isPresent()) {
+        if (!p2refCount.isPresent()) {
+          return 1;
+        }
+
+        if (p1refCount.get().getValue() < p2refCount.get().getValue()) {
+          return -1;
+        } else if (p1refCount.get().getValue() > p2refCount.get().getValue()) {
+          return 1;
+        }
+      }
+
+      return 0;
+    }
+  };
+
+
+  public Comparator<Property> getPropertyRefinementComparator() {
+    return propertyRefinementComparator;
   }
 
   public interface StatHandle extends AutoCloseable{
