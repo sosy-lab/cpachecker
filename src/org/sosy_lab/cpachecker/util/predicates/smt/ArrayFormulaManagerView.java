@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.ArrayFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -45,7 +47,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * @param pManager The formula manager capable of the SMT theory of arrays.
    */
   ArrayFormulaManagerView(
-      final FormulaWrappingHandler pWrappingHandler, final ArrayFormulaManager pManager) {
+      final @Nonnull FormulaWrappingHandler pWrappingHandler,
+      final @Nonnull ArrayFormulaManager pManager) {
     super(pWrappingHandler);
     this.manager = pManager;
   }
@@ -55,7 +58,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> TE select(
-      final ArrayFormula<TI, TE> pArray, final Formula pIndex) {
+      final @Nonnull ArrayFormula<TI, TE> pArray, final @Nonnull Formula pIndex) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
@@ -72,7 +75,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store(
-      final ArrayFormula<TI, TE> pArray, final Formula pIndex, final Formula pValue) {
+      final @Nonnull ArrayFormula<TI, TE> pArray,
+      final @Nonnull Formula pIndex,
+      final @Nonnull Formula pValue) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
@@ -93,9 +98,10 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula, FTI extends FormulaType<TI>,
-          FTE extends FormulaType<TE>>
-      ArrayFormula<TI, TE> makeArray(
-          final String pName, final FTI pIndexType, final FTE pElementType) {
+          FTE extends FormulaType<TE>> ArrayFormula<TI, TE> makeArray(
+          final @Nonnull String pName,
+          final @Nonnull FTI pIndexType,
+          final @Nonnull FTE pElementType) {
 
     final ArrayFormulaType<TI, TE> inputArrayType =
         new ArrayFormulaType<>(pIndexType, pElementType);
@@ -115,7 +121,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * {@inheritDoc}
    */
   @Override
-  public <TI extends Formula> FormulaType<TI> getIndexType(final ArrayFormula<TI, ?> pArray) {
+  public <TI extends Formula> FormulaType<TI> getIndexType(
+      final @Nonnull ArrayFormula<TI, ?> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
       @SuppressWarnings("unchecked")
       ArrayFormulaType<TI, ?> t =
@@ -129,7 +136,8 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    * {@inheritDoc}
    */
   @Override
-  public <TE extends Formula> FormulaType<TE> getElementType(final ArrayFormula<?, TE> pArray) {
+  public <TE extends Formula> FormulaType<TE> getElementType(
+      final @Nonnull ArrayFormula<?, TE> pArray) {
     if (pArray instanceof WrappingFormula<?,?>) {
       @SuppressWarnings("unchecked")
       ArrayFormulaType<?, TE> t =
@@ -144,7 +152,7 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
    */
   @Override
   public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(
-      final ArrayFormula<TI, TE> pArray1, final ArrayFormula<TI, TE> pArray2) {
+      final @Nonnull ArrayFormula<TI, TE> pArray1, final @Nonnull ArrayFormula<TI, TE> pArray2) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray1 = (ArrayFormula<TI, TE>) unwrap(pArray1);
