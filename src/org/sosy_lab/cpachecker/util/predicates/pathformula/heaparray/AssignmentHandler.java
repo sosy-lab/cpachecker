@@ -669,7 +669,6 @@ class AssignmentHandler {
       final Formula pLvalue) throws InterruptedException {
 
     if (!pPattern.isExact()) {
-      // TODO check possible loop unrolling
       for (final PointerTarget target
           : pts.getMatchingTargets(pLvalueType, pPattern)) {
         converter.shutdownNotifier.shutdownIfNecessary();
@@ -791,7 +790,6 @@ class AssignmentHandler {
       final int newIndex = converter.getFreshIndex(ufName, type, ssa);
       final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
       for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
-        // TODO check possible loop unrolling
         converter.shutdownNotifier.shutdownIfNecessary();
 
         final Formula targetAddress = formulaManager.makePlus(
