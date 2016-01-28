@@ -103,6 +103,11 @@ public class Partitions implements Partitioning {
   }
 
   @Override
+  public String toString() {
+    return String.format("%s: %s", status, partitions);
+  }
+
+  @Override
   public boolean isEmpty() {
     if (partitions.isEmpty()) {
       return true;
