@@ -499,7 +499,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           FormulaType.IntegerType, returnFormulaType);
       final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,
           FormulaType.IntegerType, returnFormulaType);
-      return fmgr.makeEqual(newArray, oldArray);  // evtl assignment
+      return fmgr.assignment(newArray, oldArray);
     }
 
     BooleanFormula result = bfmgr.makeBoolean(true);
