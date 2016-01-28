@@ -157,4 +157,9 @@ public class InvariantsPrecision implements Precision {
     return builder.build();
   }
 
+  @Override
+  public Precision join(Precision pOther) {
+    throw new RuntimeException("Not yet implemented. Implement this method if required.");
+  }
+
 }

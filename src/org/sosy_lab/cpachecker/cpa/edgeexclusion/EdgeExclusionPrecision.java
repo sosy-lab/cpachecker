@@ -140,4 +140,9 @@ public class EdgeExclusionPrecision implements Precision {
     return excludedEdges.isEmpty() ? "no precision" : excludedEdges.toString();
   }
 
+  @Override
+  public Precision join(Precision pOther) {
+    throw new RuntimeException("Not yet implemented. Implement this method if required.");
+  }
+
 }

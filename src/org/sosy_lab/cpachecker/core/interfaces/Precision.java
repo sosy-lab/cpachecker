@@ -23,5 +23,24 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+/**
+ * A central technique to cope with the state space explosion
+ * problem in model checking is abstraction.
+ * The abstraction precision describes the details of the systems
+ * that should get encoded into a model for proving the absence
+ * of a violation of the specification.
+ */
 public interface Precision {
+
+  /**
+   * Compute the join (union) of the ({@code this}) precision with the
+   * precision that is provided as argument.
+   *
+   * The union of two precision must result in a model with higher precision!
+   *
+   * @param pOther  Union with this precision.
+   * @return        The resulting union.
+   */
+  public Precision join(Precision pOther);
+
 }

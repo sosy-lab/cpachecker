@@ -660,7 +660,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     for (Precision prec : precisions) {
-      rootPrecision = rootPrecision.join(Precisions.extractPrecisionByType(prec,
+      rootPrecision = (VariableTrackingPrecision) rootPrecision.join(Precisions.extractPrecisionByType(prec,
           VariableTrackingPrecision.class));
     }
 

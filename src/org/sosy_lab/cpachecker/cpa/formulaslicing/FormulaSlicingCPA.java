@@ -163,7 +163,12 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Precision getInitialPrecision(CFANode node,
       StateSpacePartition partition) {
     // At the moment, precision is not used for formula slicing.
-    return new Precision() {};
+    return new Precision() {
+      @SuppressWarnings("unchecked")
+      @Override
+      public Precision join(Precision pOther) {
+        return this;
+      }};
   }
 
   @Override

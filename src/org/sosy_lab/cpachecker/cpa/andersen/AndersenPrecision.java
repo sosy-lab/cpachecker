@@ -27,4 +27,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class AndersenPrecision implements Precision {
 
+  @Override
+  public Precision join(Precision pOther) {
+    return this;
+  }
+
 }

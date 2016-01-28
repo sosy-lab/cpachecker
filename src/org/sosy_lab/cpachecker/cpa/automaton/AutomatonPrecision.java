@@ -27,7 +27,9 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 public class AutomatonPrecision implements Precision {
 
@@ -53,6 +55,22 @@ public class AutomatonPrecision implements Precision {
   @Override
   public String toString() {
     return blacklist.toString();
+  }
+
+  /**
+   * The join of two automata precisions with property
+   *  blacklists is special.
+   *
+   * The resulting precision blacklists the intersection of the input blacklists.
+   *  (which is the union of the whitelists).
+   */
+  @Override
+  public Precision join(Precision pOther) {
+    Preconditions.checkArgument(pOther instanceof AutomatonPrecision);
+    AutomatonPrecision other = (AutomatonPrecision) pOther;
+
+    return new AutomatonPrecision(ImmutableSet.<SafetyProperty>copyOf(
+        Sets.intersection(this.blacklist, other.blacklist)));
   }
 
 

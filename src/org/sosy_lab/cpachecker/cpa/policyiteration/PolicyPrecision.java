@@ -25,4 +25,9 @@ public class PolicyPrecision implements Precision, Iterable<Template> {
   public Iterator<Template> iterator() {
     return templates.iterator();
   }
+
+  @Override
+  public Precision join(Precision pOther) {
+    throw new RuntimeException("Not yet implemented. Implement this method if required.");
+  }
 }

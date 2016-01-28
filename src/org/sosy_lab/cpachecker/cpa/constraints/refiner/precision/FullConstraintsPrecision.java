@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
 /**
@@ -45,7 +46,7 @@ public class FullConstraintsPrecision implements ConstraintsPrecision {
   }
 
   @Override
-  public ConstraintsPrecision join(ConstraintsPrecision pOther) {
+  public Precision join(Precision pOther) {
     throw new UnsupportedOperationException(
         FullConstraintsPrecision.class.getSimpleName() + " can't be joined");
   }

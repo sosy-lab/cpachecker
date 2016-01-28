@@ -29,14 +29,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -264,6 +265,14 @@ public class PredicatePrecision implements Precision {
 
     return new PredicatePrecision(newLocationInstanceSpecificPredicates,
         newLocalPredicates, newFunctionPredicates, newGlobalPredicates);
+  }
+
+  @Override
+  public Precision join(Precision pOther) {
+    Preconditions.checkArgument(pOther instanceof PredicatePrecision);
+    PredicatePrecision other = (PredicatePrecision) pOther;
+
+    return mergeWith(other);
   }
 
   /**

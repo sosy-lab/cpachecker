@@ -94,7 +94,7 @@ public abstract class VariableTrackingPrecision implements Precision {
         if (joinedPrecision == null) {
           joinedPrecision = prec;
         } else {
-          joinedPrecision = joinedPrecision.join(prec);
+          joinedPrecision = (VariableTrackingPrecision) joinedPrecision.join(prec);
         }
       }
     }
@@ -179,13 +179,6 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @throws IOException
    */
   public abstract void serialize(Writer writer) throws IOException;
-
-  /**
-   * This method joins this precision with another precision
-   *
-   * @param otherPrecision the precision to join with
-   */
-  public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
   /**
    * This methods compares if this precision tracks the same variables as another precision.
@@ -375,7 +368,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+    public Precision join(Precision consolidatedPrecision) {
       Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
       return this;
     }
@@ -535,7 +528,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+    public Precision join(Precision consolidatedPrecision) {
       checkArgument(getClass().equals(consolidatedPrecision.getClass()));
       checkArgument(super.baseline.equals(((LocalizedRefinablePrecision)consolidatedPrecision).getBaseline()));
 
@@ -645,7 +638,7 @@ public abstract class VariableTrackingPrecision implements Precision {
     }
 
     @Override
-    public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
+    public Precision join(Precision consolidatedPrecision) {
       Preconditions.checkArgument((getClass().equals(consolidatedPrecision.getClass())));
       checkArgument(super.baseline.equals(((ScopedRefinablePrecision)consolidatedPrecision).getBaseline()));
 
