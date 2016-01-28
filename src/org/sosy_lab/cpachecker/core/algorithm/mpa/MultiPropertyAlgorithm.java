@@ -604,25 +604,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     return result;
   }
 
-  public static String toReadable(Iterable<ImmutableSet<Property>> pSetsOfProps) {
-    final StringBuilder result = new StringBuilder();
-    result.append("[");
-    for (Set<Property> s: pSetsOfProps) {
-      result.append("[");
-      boolean first = true;
-      for (Property p: s) {
-        if (!first) {
-          result.append(",");
-        }
-        result.append(p.toString());
-        first = false;
-      }
-      result.append("]");
-    }
-    result.append("]");
-    return result.toString();
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
