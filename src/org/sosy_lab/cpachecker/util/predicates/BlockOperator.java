@@ -131,7 +131,9 @@ public class BlockOperator {
   public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pf) {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
-    if (predLoc instanceof ShadowCFANode) {
+    if (predLoc instanceof ShadowCFANode && !(succLoc instanceof ShadowCFANode)) {
+      return true;
+    } else if (predLoc instanceof ShadowCFANode ) {
       // This would lead to repeated, expensive, abstraction computation
       //      (locations get repeated when weaving)
       return false;
