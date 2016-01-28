@@ -51,7 +51,8 @@ import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Preconditions;
 
-public class EdgeFormulaNegation extends LocationFormulaInvariant implements ExpressionTreeCandidateInvariant {
+public class EdgeFormulaNegation extends AbstractLocationFormulaInvariant
+    implements ExpressionTreeCandidateInvariant {
 
   private final AssumeEdge edge;
 
@@ -117,6 +118,6 @@ public class EdgeFormulaNegation extends LocationFormulaInvariant implements Exp
 
   @Override
   public ExpressionTree<Object> asExpressionTree() {
-    return LeafExpression.<Object>of((Object) getNegatedAssumeEdge().getExpression());
+    return LeafExpression.<Object>of((Object) getNegatedAssumeEdge().getExpression(), getNegatedAssumeEdge().getTruthAssumption());
   }
 }

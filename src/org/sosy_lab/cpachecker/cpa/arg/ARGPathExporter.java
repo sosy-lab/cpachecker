@@ -247,7 +247,7 @@ public class ARGPathExporter {
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
-        GraphBuilder.CFA,
+        GraphBuilder.CFA_FROM_ARG,
         new InvariantProvider() {
 
           @Override
@@ -588,7 +588,7 @@ public class ARGPathExporter {
       if (graphType != GraphType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = invariantProvider.provideInvariantFor(pEdge, pFromState);
         functionName = pEdge.getSuccessor().getFunctionName();
-        stateInvariants.put(pTo, Or.of(getStateInvariant(pTo), invariant));
+        putStateInvariant(pTo, invariant);
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
@@ -925,6 +925,20 @@ public class ARGPathExporter {
 
       @Override
       public boolean apply(final Edge pEdge) {
+        // An edge is never redundant if there are conflicting scopes
+        ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
+        if (sourceTree != null) {
+          String sourceScope = stateScopes.get(pEdge.source);
+          String targetScope = stateScopes.get(pEdge.target);
+          if (sourceScope != null && targetScope != null && !sourceScope.equals(targetScope)) {
+            return false;
+          }
+        }
+        // An edge is never redundant if there are different invariants
+        if (!getStateInvariant(pEdge.target).equals(sourceTree)) {
+          return false;
+        }
+
         // An edge is redundant if it is the only leaving edge of a
         // node and it is empty or all its non-assumption contents
         // are summarized by a preceding edge
@@ -973,13 +987,14 @@ public class ARGPathExporter {
       } else {
         newScope = null;
       }
-      ExpressionTree<Object> newTree = Or.of(sourceTree, targetTree);
-      if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
-        stateInvariants.put(source, ExpressionTrees.getTrue());
-        stateScopes.remove(source);
-      } else {
-        stateInvariants.put(source, newTree);
-        stateScopes.put(source, newScope);
+      ExpressionTree<Object> newTree = mergeStateInvariantsInfoFirst(source, target);
+      if (newTree != null) {
+        if (newScope == null && !ExpressionTrees.isConstant(newTree)) {
+          putStateInvariant(source, ExpressionTrees.getTrue());
+          stateScopes.remove(source);
+        } else {
+          stateScopes.put(source, newScope);
+        }
       }
 
       // Merge the violated properties
@@ -1112,10 +1127,55 @@ public class ARGPathExporter {
       return result;
     }
 
+    /**
+     * Records the given invariant for the given state.
+     *
+     * If no invariant is present for this state, the given invariant is the new state invariant.
+     * Otherwise, the new state invariant is a disjunction of the previous and the given invariant.
+     *
+     * However, if no invariants are ever added for a state, it is assumed to have the invariant "true".
+     *
+     * @param pStateId the state id.
+     * @param pValue the invariant to be added.
+     */
+    private void putStateInvariant(String pStateId, ExpressionTree<Object> pValue) {
+      ExpressionTree<Object> prev = stateInvariants.get(pStateId);
+      if (prev == null) {
+        stateInvariants.put(pStateId, pValue);
+        return;
+      }
+      ExpressionTree<Object> result = Or.of(prev, pValue);
+      stateInvariants.put(pStateId, result);
+    }
+
+    /**
+     * Merges the invariants for the given state ids and stores it as the new invariant for the first of the given ids.
+     *
+     * @param pStateId the state id.
+     * @param pOtherStateId the other state id.
+     *
+     * @return the merged invariant. {@code null} if neither state had an invariant.
+     */
+    private @Nullable ExpressionTree<Object> mergeStateInvariantsInfoFirst(
+        String pStateId, String pOtherStateId) {
+      ExpressionTree<Object> prev = stateInvariants.get(pStateId);
+      ExpressionTree<Object> other = stateInvariants.get(pOtherStateId);
+      if (prev == null) {
+        stateInvariants.put(pStateId, other);
+        return other;
+      }
+      if (other == null) {
+        return prev;
+      }
+      ExpressionTree<Object> result = Or.of(prev, other);
+      stateInvariants.put(pStateId, result);
+      return result;
+    }
+
     private ExpressionTree<Object> getStateInvariant(String pStateId) {
       ExpressionTree<Object> result = stateInvariants.get(pStateId);
       if (result == null) {
-        return ExpressionTrees.getFalse();
+        return ExpressionTrees.getTrue();
       }
       return result;
     }

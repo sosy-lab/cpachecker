@@ -23,9 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
@@ -37,13 +45,21 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import com.google.common.base.Function;
 
 
-public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant implements ExpressionTreeCandidateInvariant {
+public class ExpressionTreeLocationInvariant extends AbstractLocationFormulaInvariant
+    implements ExpressionTreeCandidateInvariant {
 
   private final ExpressionTree<AExpression> expressionTree;
 
-  public ExpressionTreeLocationInvariant(CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
+  private final CFANode location;
+
+  private final String groupId;
+
+  public ExpressionTreeLocationInvariant(
+      String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
     super(pLocation);
-    expressionTree = pExpressionTree;
+    groupId = Objects.requireNonNull(pGroupId);
+    location = Objects.requireNonNull(pLocation);
+    expressionTree = Objects.requireNonNull(pExpressionTree);
   }
 
   @Override
@@ -60,6 +76,17 @@ public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant im
   }
 
   @Override
+  public void assumeTruth(ReachedSet pReachedSet) {
+    if (expressionTree.equals(ExpressionTrees.getFalse())) {
+      Iterable<AbstractState> infeasibleStates = AbstractStates.filterLocations(pReachedSet, getLocations()).toList();
+      pReachedSet.removeAll(infeasibleStates);
+      for (ARGState s : from(infeasibleStates).filter(ARGState.class)) {
+        s.removeFromARG();
+      }
+    }
+  }
+
+  @Override
   public ExpressionTree<Object> asExpressionTree() {
     return ExpressionTrees.convert(expressionTree, new Function<AExpression, Object>() {
 
@@ -71,9 +98,32 @@ public class ExpressionTreeLocationInvariant extends LocationFormulaInvariant im
     });
   }
 
+  public String getGroupId() {
+    return groupId;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(groupId, location, expressionTree);
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof ExpressionTreeLocationInvariant) {
+      ExpressionTreeLocationInvariant other = (ExpressionTreeLocationInvariant) pObj;
+      return groupId.equals(other.groupId)
+          && location.equals(other.location)
+          && expressionTree.equals(other.expressionTree);
+    }
+    return false;
+  }
+
   @Override
   public String toString() {
-    return getLocations() + ": " + expressionTree.toString();
+    return groupId + " at " + location + ": " + expressionTree.toString();
   }
 
 }

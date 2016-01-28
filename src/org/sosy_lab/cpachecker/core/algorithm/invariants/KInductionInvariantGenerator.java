@@ -39,6 +39,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -73,6 +75,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -90,11 +93,12 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -244,17 +248,20 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     shutdownManager.getNotifier().registerAndCheckImmediately(shutdownListener);
   }
 
+  private final AtomicBoolean cancelled = new AtomicBoolean();
+
   @Override
   public void cancel() {
     checkState(invariantGenerationFuture != null);
     shutdownManager.requestShutdown("Invariant generation cancel requested.");
+    cancelled.set(true);
   }
 
   @Override
   public InvariantSupplier get() throws CPAException, InterruptedException {
     checkState(invariantGenerationFuture != null);
 
-    if (async && !invariantGenerationFuture.isDone()) {
+    if (async && (!invariantGenerationFuture.isDone()) || cancelled.get()) {
       // grab intermediate result that is available so far
       return algorithm.getCurrentInvariants();
 
@@ -334,6 +341,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
+    if (pCFA.getAllLoopHeads().isPresent()) {
+      candidates.add(new TargetLocationCandidateInvariant(pCFA.getAllLoopHeads().get()));
+    }
 
     KInductionInvariantGeneratorOptions options = new KInductionInvariantGeneratorOptions();
     pConfig.inject(options);
@@ -344,6 +354,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       }
     }
 
+    final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (options.invariantsAutomatonFile != null) {
       ConfigurationBuilder configBuilder = Configuration.builder();
       String machineModelOption = "analysis.machineModel";
@@ -357,7 +368,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
           "cpa.location.LocationCPA, "
               + "cpa.callstack.CallstackCPA, "
               + "cpa.functionpointer.FunctionPointerCPA");
-      configBuilder.setOption("cpa.callstack.skipRecursion", "true");
       Configuration config = configBuilder.build();
       ShutdownNotifier notifier = pShutdownManager.getNotifier();
       CPABuilder builder = new CPABuilder(config, pLogger, notifier, pReachedSetFactory);
@@ -377,24 +387,48 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         // but instead of throwing the exception here,
         // let it be thrown by the invariant generator.
       }
-      Map<CFANode, ExpressionTree<AExpression>> candidatesByLocation = Maps.newLinkedHashMap();
+      Set<CFANode> visited = Sets.newHashSet();
+      Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
+          HashMultimap.create();
       for (AbstractState abstractState : reachedSet) {
         Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
-        for (CFANode location : locations) {
-          for (AutomatonState automatonState : AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
-            ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
-            ExpressionTree<AExpression> prev = candidatesByLocation.get(location);
-            if (prev == null) {
-              candidatesByLocation.put(location, candidate);
-            } else {
-              candidatesByLocation.put(location, Or.of(prev, candidate));
+        Iterables.addAll(visited, locations);
+        for (AutomatonState automatonState :
+            AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
+          ExpressionTree<AExpression> candidate = automatonState.getCandidateInvariants();
+          if (!candidate.equals(ExpressionTrees.getTrue())) {
+            String groupId = automatonState.getInternalStateName();
+            candidateGroupLocations.putAll(groupId, locations);
+            for (CFANode location : locations) {
+              potentialAdditionalCandidates.removeAll(location);
+              CandidateInvariant candidateInvariant =
+                  new ExpressionTreeLocationInvariant(groupId, location, candidate);
+              candidates.add(candidateInvariant);
+              // Check if there are any leaving return edges:
+              // The predecessors are also potential matches for the invariant
+              for (FunctionReturnEdge returnEdge :
+                  CFAUtils.leavingEdges(location).filter(FunctionReturnEdge.class)) {
+                CFANode successor = returnEdge.getSuccessor();
+                if (!candidateGroupLocations.containsEntry(groupId, successor)
+                    && !visited.contains(successor)) {
+                  potentialAdditionalCandidates.put(
+                      successor,
+                      new ExpressionTreeLocationInvariant(groupId, successor, candidate));
+                }
+              }
             }
           }
         }
       }
-      for (Map.Entry<CFANode, ExpressionTree<AExpression>> entry : candidatesByLocation.entrySet()) {
-        if (!entry.getKey().equals(ExpressionTrees.getTrue())) {
-          candidates.add(new ExpressionTreeLocationInvariant(entry.getKey(), entry.getValue()));
+      for (Map.Entry<CFANode, Collection<ExpressionTreeLocationInvariant>> potentialCandidates :
+          potentialAdditionalCandidates.asMap().entrySet()) {
+        if (!visited.contains(potentialCandidates.getKey())) {
+          for (ExpressionTreeLocationInvariant candidateInvariant :
+              potentialCandidates.getValue()) {
+            candidateGroupLocations.put(
+                candidateInvariant.getGroupId(), potentialCandidates.getKey());
+            candidates.add(candidateInvariant);
+          }
         }
       }
     }
@@ -421,13 +455,24 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
             @Override
             public void remove() {
-              pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+              if (candidate instanceof ExpressionTreeLocationInvariant) {
+                ExpressionTreeLocationInvariant expressionTreeLocationInvariant =
+                    (ExpressionTreeLocationInvariant) candidate;
+
+                // Remove the location from the group
+                String groupId = expressionTreeLocationInvariant.getGroupId();
+                Collection<CFANode> remainingLocations = candidateGroupLocations.get(groupId);
+                remainingLocations.removeAll(expressionTreeLocationInvariant.getLocations());
+
+                // If no location remains, the invariant has been disproved at all possible locations
+                if (remainingLocations.isEmpty()) {
+                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+                }
+              }
               iterator.remove();
             }
-
           };
         }
-
       };
     }
     return new StaticCandidateProvider(candidates);

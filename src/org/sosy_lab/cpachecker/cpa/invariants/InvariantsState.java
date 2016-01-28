@@ -930,9 +930,15 @@ public class InvariantsState implements AbstractState,
   public ExpressionTree<Object> getFormulaApproximation(
       final FunctionEntryNode pFunctionEntryNode, final CFANode pReferenceNode) {
     EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
-    final Set<MemoryLocation> memoryLocations = Sets.newHashSet();
-    for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
-      memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
+    final Set<MemoryLocation> memoryLocations;
+    final boolean fullState = exportFullState(pReferenceNode);
+    if (!fullState) {
+      memoryLocations = Sets.newHashSet();
+      for (CFAEdge edge : CFAUtils.enteringEdges(pReferenceNode)) {
+        memoryLocations.addAll(edgeAnalyzer.getInvolvedVariableTypes(edge).keySet());
+      }
+    } else {
+      memoryLocations = Collections.emptySet();
     }
     return And.of(
         getApproximationFormulas()
@@ -948,7 +954,12 @@ public class InvariantsState implements AbstractState,
 
                               @Override
                               public boolean apply(MemoryLocation pMemoryLocation) {
-                                if (!memoryLocations.contains(pMemoryLocation)) {
+                                if (pMemoryLocation
+                                    .getIdentifier()
+                                    .startsWith("__CPAchecker_TMP_")) {
+                                  return false;
+                                }
+                                if (!fullState && !memoryLocations.contains(pMemoryLocation)) {
                                   return false;
                                 }
                                 if (pFunctionEntryNode.getReturnVariable().isPresent()
@@ -980,6 +991,10 @@ public class InvariantsState implements AbstractState,
                                 new ToCodeFormulaVisitor(evaluationVisitor), getEnvironment()));
                   }
                 }));
+  }
+
+  private boolean exportFullState(CFANode pReferenceNode) {
+    return pReferenceNode.isLoopStart();
   }
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {

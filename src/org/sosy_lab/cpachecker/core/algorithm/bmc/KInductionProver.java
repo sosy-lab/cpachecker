@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -71,6 +72,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -275,12 +278,22 @@ class KInductionProver implements AutoCloseable {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR);
+    BooleanFormula invariant = bfmgr.makeBoolean(false);
 
-    for (CandidateInvariant confirmedCandidate : this.confirmedCandidates) {
-      invariant = bfmgr.and(invariant, confirmedCandidate.getFormula(pFMGR, pPFMGR));
+    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+      BooleanFormula pathInvariant = bfmgr.makeBoolean(true);
+
+      for (CFANode location : path) {
+        for (CandidateInvariant candidateInvariant :
+            getConfirmedCandidates(location).filter(CandidateInvariant.class)) {
+          pathInvariant = bfmgr.and(pathInvariant, candidateInvariant.getFormula(pFMGR, pPFMGR));
+        }
+        pathInvariant =
+            bfmgr.and(
+                pathInvariant, currentInvariantsSupplier.getInvariantFor(location, pFMGR, pPFMGR));
+      }
+      invariant = bfmgr.or(pathInvariant, invariant);
     }
-
     return invariant;
   }
 
@@ -288,13 +301,44 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
-    ExpressionTree<Object> invariant = currentInvariantsSupplier.getInvariantFor(pLocation);
+    ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
+    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+      ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
 
-    for (ExpressionTreeCandidateInvariant confirmedCandidate : FluentIterable.from(this.confirmedCandidates).filter(ExpressionTreeCandidateInvariant.class)) {
-      invariant = And.of(invariant, confirmedCandidate.asExpressionTree());
+      for (CFANode location : path) {
+        for (ExpressionTreeCandidateInvariant expressionTreeCandidateInvariant :
+            getConfirmedCandidates(location).filter(ExpressionTreeCandidateInvariant.class)) {
+          pathInvariant =
+              And.of(pathInvariant, expressionTreeCandidateInvariant.asExpressionTree());
+          if (ExpressionTrees.getFalse().equals(pathInvariant)) {
+            break;
+          }
+        }
+
+        pathInvariant = And.of(pathInvariant, currentInvariantsSupplier.getInvariantFor(location));
+        if (ExpressionTrees.getFalse().equals(pathInvariant)) {
+          break;
+        }
+      }
+      invariant = Or.of(pathInvariant, invariant);
+      if (ExpressionTrees.getTrue().equals(invariant)) {
+        break;
+      }
     }
-
     return invariant;
+  }
+
+  private FluentIterable<LocationFormulaInvariant> getConfirmedCandidates(final CFANode pLocation) {
+    return from(confirmedCandidates)
+        .filter(LocationFormulaInvariant.class)
+        .filter(
+            new Predicate<LocationFormulaInvariant>() {
+
+              @Override
+              public boolean apply(LocationFormulaInvariant pConfirmedCandidate) {
+                return pConfirmedCandidate.getLocations().contains(pLocation);
+              }
+            });
   }
 
   @Override
@@ -410,6 +454,9 @@ class KInductionProver implements AutoCloseable {
           }});
     BooleanFormula invariants = getCurrentLoopHeadInvariants(stopLocations);
     BooleanFormula loopHeadInv = bfmgr.and(from(BMCHelper.assertAt(loopHeadStates, invariants, fmgr)).toList());
+    for (CandidateInvariant candidateInvariant : confirmedCandidates) {
+      loopHeadInv = bfmgr.and(loopHeadInv, candidateInvariant.getAssertion(reached, fmgr, pfmgr));
+    }
 
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(k + 1);

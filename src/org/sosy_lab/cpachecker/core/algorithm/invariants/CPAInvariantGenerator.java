@@ -75,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -455,18 +456,30 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     @Override
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
       ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
+      for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+        ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
 
-      for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
-        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
-        for (ExpressionTreeReportingState expressionTreeReportingState : AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-          stateInvariant =
-              And.of(
-                  stateInvariant,
-                  expressionTreeReportingState.getFormulaApproximation(
-                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+        for (CFANode location : path) {
+          ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+
+          for (AbstractState locState : AbstractStates.filterLocation(reached, location)) {
+            ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
+
+            for (ExpressionTreeReportingState expressionTreeReportingState :
+                AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+              stateInvariant =
+                  And.of(
+                      stateInvariant,
+                      expressionTreeReportingState.getFormulaApproximation(
+                          cfa.getFunctionHead(pLocation.getFunctionName()), location));
+            }
+
+            locationInvariant = Or.of(locationInvariant, stateInvariant);
+          }
+
+          pathInvariant = And.of(pathInvariant, locationInvariant);
         }
-
-        invariant = Or.of(invariant, stateInvariant);
+        invariant = Or.of(pathInvariant, invariant);
       }
       return invariant;
     }

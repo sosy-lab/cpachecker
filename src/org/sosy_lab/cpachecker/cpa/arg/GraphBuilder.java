@@ -132,7 +132,8 @@ public enum GraphBuilder {
     }
 
   },
-  CFA {
+
+  CFA_FROM_ARG {
 
     @Override
     public String getId(ARGState pState) {
@@ -190,31 +191,109 @@ public enum GraphBuilder {
       }
     }
 
-    private void appendEdge(
+  },
+
+  CFA_FULL {
+
+    @Override
+    public String getId(ARGState pState) {
+      return Joiner.on(",").join(AbstractStates.extractLocations(pState));
+    }
+
+    @Override
+    public void buildGraph(ARGState pRootState,
+        final Predicate<? super ARGState> pPathStates,
+        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
+        Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
-        EdgeAppender pEdgeAppender,
-        CFAEdge pEdge,
-        Optional<Collection<ARGState>> pStates,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-      if (pEdge instanceof MultiEdge) {
-        Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
-        while (edgeIterator.hasNext()) {
-          CFAEdge edge = edgeIterator.next();
-          appendEdge(
-              pDocument,
-              pEdgeAppender,
-              edge,
-              edgeIterator.hasNext() ? Optional.<Collection<ARGState>>absent() : pStates,
-              pValueMap);
+        Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
+        EdgeAppender pEdgeAppender) {
+
+      // normally there is only one node per state, thus we assume that there is only one root-node
+      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
+
+      // Get all successor nodes of edges
+      final Set<CFANode> subProgramNodes = new HashSet<>();
+      final Multimap<CFANode, ARGState> states = HashMultimap.create();
+
+      subProgramNodes.add(rootNode);
+      for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
+        for (ARGState target : edge.getSecond()) {
+          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          if (pPathStates.apply(target) && pIsRelevantEdge.apply(Pair.of(edge.getFirst(), target))) {
+            for (CFANode location : AbstractStates.extractLocations(target)) {
+              subProgramNodes.add(location);
+              states.put(location, target);
+            }
+          }
         }
-      } else {
-        String sourceId = pEdge.getPredecessor().toString();
-        String targetId = pEdge.getSuccessor().toString();
-        pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
+      }
+
+      Queue<CFANode> waitlist = new ArrayDeque<>();
+      Set<CFANode> visited = new HashSet<>();
+      waitlist.offer(rootNode);
+      visited.add(rootNode);
+      Set<CFAEdge> appended = new HashSet<>();
+      while (!waitlist.isEmpty()) {
+        CFANode current = waitlist.poll();
+        for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
+          CFANode successor = leavingEdge.getSuccessor();
+          final Optional<Collection<ARGState>> locationStates;
+          if (subProgramNodes.contains(successor)) {
+            locationStates = Optional.of(states.get(successor));
+          } else {
+            locationStates = Optional.absent();
+          }
+          if (visited.add(successor)) {
+            waitlist.offer(successor);
+          }
+          if (appended.add(leavingEdge)) {
+            appendEdge(pDocument, pEdgeAppender, leavingEdge, locationStates, pValueMap);
+          }
+        }
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
+          CFANode predecessor = enteringEdge.getPredecessor();
+          final Optional<Collection<ARGState>> locationStates;
+          if (subProgramNodes.contains(predecessor)) {
+            locationStates = Optional.of(states.get(predecessor));
+          } else {
+            locationStates = Optional.absent();
+          }
+          if (visited.add(predecessor)) {
+            waitlist.offer(predecessor);
+          }
+          if (appended.add(enteringEdge)) {
+            appendEdge(pDocument, pEdgeAppender, enteringEdge, locationStates, pValueMap);
+          }
+        }
       }
     }
 
   };
+
+  private static void appendEdge(
+      GraphMlBuilder pDocument,
+      EdgeAppender pEdgeAppender,
+      CFAEdge pEdge,
+      Optional<Collection<ARGState>> pStates,
+      Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+    if (pEdge instanceof MultiEdge) {
+      Iterator<CFAEdge> edgeIterator = ((MultiEdge) pEdge).iterator();
+      while (edgeIterator.hasNext()) {
+        CFAEdge edge = edgeIterator.next();
+        appendEdge(
+            pDocument,
+            pEdgeAppender,
+            edge,
+            edgeIterator.hasNext() ? Optional.<Collection<ARGState>>absent() : pStates,
+            pValueMap);
+      }
+    } else {
+      String sourceId = pEdge.getPredecessor().toString();
+      String targetId = pEdge.getSuccessor().toString();
+      pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
+    }
+  }
 
   public abstract String getId(ARGState pState);
 
