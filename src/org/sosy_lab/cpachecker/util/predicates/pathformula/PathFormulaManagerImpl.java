@@ -493,24 +493,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     assert oldIndex < newIndex;
 
     final FormulaType<?> returnFormulaType =  converter.getFormulaTypeFromCType(returnType);
+
+    if (useArrayHeap) {
+      final ArrayFormula<?,?> newArray = afmgr.makeArray(functionName + "@" + newIndex,
+          FormulaType.IntegerType, returnFormulaType);
+      final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,
+          FormulaType.IntegerType, returnFormulaType);
+      return fmgr.makeEqual(newArray, oldArray);  // evtl assignment
+    }
+
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
-      // TODO check possible loop unrolling in case of array heap
       shutdownNotifier.shutdownIfNecessary();
       final Formula targetAddress = fmgr.makePlus(fmgr.makeVariable(typeHandler.getPointerType(), target.getBaseName()),
                                                   fmgr.makeNumber(typeHandler.getPointerType(), target.getOffset()));
 
-      final BooleanFormula retention;
-      if (useArrayHeap) {
-        final ArrayFormula<?, ?> newArray = afmgr.makeArray(functionName + "@" + newIndex,
-            FormulaType.IntegerType, returnFormulaType);
-        final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,
-            FormulaType.IntegerType, returnFormulaType);
-        retention = fmgr.makeEqual(
-            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
-
-      } else {
-        retention = fmgr.assignment(
+      final BooleanFormula retention= fmgr.assignment(
             ffmgr.declareAndCallUninterpretedFunction(functionName,
                 newIndex,
                 returnFormulaType,
@@ -519,7 +517,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                 oldIndex,
                 returnFormulaType,
                 targetAddress));
-      }
       result = fmgr.makeAnd(result, retention);
     }
 
