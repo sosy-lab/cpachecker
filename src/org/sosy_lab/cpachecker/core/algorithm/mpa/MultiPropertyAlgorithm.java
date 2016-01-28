@@ -244,7 +244,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
    * It MUST be EXACT or an OverAPPROXIMATION (of the set of checked properties)
    *    to ensure SOUNDNESS of the analysis result!
    *
-   * @param pReachedSet
+   * @param pReachedSet Set of reached states
    * @return  Set of properties
    */
   private ImmutableSet<Property> getInactiveProperties(
@@ -307,53 +307,56 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       initReached(pReachedSet, checkPartitions);
 
       do {
-        Stats.incCounter("Multi-Property Verification Iterations", 1);
+        final Set<Property> runProperties = Sets.difference(all, getInactiveProperties(pReachedSet));
 
-        try {
-
-          StatCpuTimer timer = stats.pureAnalysisTime.start();
+        try (Contexts runCtx = Stats.beginRootContextCollection(runProperties)) {
+          Stats.incCounter("Multi-Property Verification Iterations", 1);
           try {
 
-            // Run the wrapped algorithm (for example, CEGAR)
-            status = status.update(wrapped.run(pReachedSet));
+            StatCpuTimer timer = stats.pureAnalysisTime.start();
+            try (StatCpuTimer t = Stats.startTimer("Pure Analysis Time")) {
 
-          } finally {
-            timer.stop();
+              // Run the wrapped algorithm (for example, CEGAR)
+              status = status.update(wrapped.run(pReachedSet));
 
-            // Track what properties are relevant for the program
-            relevant.addAll(PropertyStats.INSTANCE.getRelevantProperties());
-          }
+            } finally {
+              timer.stop();
 
-        } catch (InterruptedException ie) {
-          // The shutdown notifier might trigger the interrupted exception
-          // either because ...
-
-          if (interruptNotifier.hasTemporaryInterruptRequest()) {
-            interruptNotifier.reset();
-
-            // A) the resource limit for the analysis run has exceeded
-            logger.log(Level.WARNING, "Resource limit for properties exceeded!");
-
-            // Stop the checker
-            if (reschecker != null) {
-              reschecker.cancel();
+              // Track what properties are relevant for the program
+              relevant.addAll(PropertyStats.INSTANCE.getRelevantProperties());
             }
 
-            Preconditions.checkState(!pReachedSet.isEmpty());
-            stats.numberOfPartitionExhaustions++;
+          } catch (InterruptedException ie) {
+            // The shutdown notifier might trigger the interrupted exception
+            // either because ...
 
-            SetView<Property> active = Sets.difference(all,
-                Sets.union(violated, getInactiveProperties(pReachedSet)));
-            if (active.size() == 1) {
-              exhausted.addAll(active);
+            if (interruptNotifier.hasTemporaryInterruptRequest()) {
+              interruptNotifier.reset();
+
+              // A) the resource limit for the analysis run has exceeded
+              logger.log(Level.WARNING, "Resource limit for properties exceeded!");
+
+              // Stop the checker
+              if (reschecker != null) {
+                reschecker.cancel();
+              }
+
+              Preconditions.checkState(!pReachedSet.isEmpty());
+              stats.numberOfPartitionExhaustions++;
+
+              SetView<Property> active = Sets.difference(all,
+                  Sets.union(violated, getInactiveProperties(pReachedSet)));
+              if (active.size() == 1) {
+                exhausted.addAll(active);
+              }
+
+            } else {
+              // B) the user (or the operating system) requested a stop of the verifier.
+
+              throw ie;
             }
 
-          } else {
-            // B) the user (or the operating system) requested a stop of the verifier.
-
-            throw ie;
           }
-
         }
 
         interruptNotifier.canInterrupt();
