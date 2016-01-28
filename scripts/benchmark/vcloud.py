@@ -64,9 +64,10 @@ def execute_benchmark(benchmark, output_handler):
     if not _justReprocessResults:
         # build input for cloud
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
-        cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
-        util.write_file(cloudInput, cloudInputFile)
-        output_handler.all_created_files.add(cloudInputFile)
+        if benchmark.config.debug:
+            cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
+            util.write_file(cloudInput, cloudInputFile)
+            output_handler.all_created_files.add(cloudInputFile)
         meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
                                         "generator": "benchmark.vcloud.py"})
 
@@ -242,8 +243,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
         logging.warning("Cloud produced no results. Output-directory is missing or empty: %s", outputDir)
 
     # Write worker host informations in xml
-    filePath = os.path.join(outputDir, "hostInformation.txt")
-    parseAndSetCloudWorkerHostInformation(filePath, output_handler)
+    parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
@@ -296,11 +296,10 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                         os.path.join(outputDir, '*.stdError'))
 
 
-def parseAndSetCloudWorkerHostInformation(filePath, output_handler):
+def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
+    filePath = os.path.join(outputDir, "hostInformation.txt")
     try:
         with open(filePath, 'rt') as file:
-            output_handler.all_created_files.add(filePath)
-
             # Parse first part of information about hosts until first blank line
             while True:
                 line = file.readline().strip()
@@ -317,6 +316,10 @@ def parseAndSetCloudWorkerHostInformation(filePath, output_handler):
             # Ignore second part of information about runs
             # (we read the run-to-host mapping from the .data file for each run).
 
+        if benchmark.config.debug:
+            output_handler.all_created_files.add(filePath)
+        else:
+            os.remove(filePath)
     except IOError:
         logging.warning("Host information file not found: " + filePath)
 
