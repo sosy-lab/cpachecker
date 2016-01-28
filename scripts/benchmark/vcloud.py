@@ -66,7 +66,7 @@ def execute_benchmark(benchmark, output_handler):
         (cloudInput, numberOfRuns) = getCloudInput(benchmark)
         cloudInputFile = os.path.join(benchmark.log_folder, 'cloudInput.txt')
         util.write_file(cloudInput, cloudInputFile)
-        output_handler.all_created_files.append(cloudInputFile)
+        output_handler.all_created_files.add(cloudInputFile)
         meta_information = json.dumps({"tool": {"name": benchmark.tool_name, "revision": benchmark.tool_version}, \
                                         "generator": "benchmark.vcloud.py"})
 
@@ -268,7 +268,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                 except IOError as e:
                     logging.warning("Cannot extract measured values from output for file %s: %s",
                                     run.identifier, e)
-                    output_handler.all_created_files.append(dataFile)
+                    output_handler.all_created_files.add(dataFile)
                     executedAllRuns = False
                     return_value = None
             else:
@@ -299,7 +299,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
 def parseAndSetCloudWorkerHostInformation(filePath, output_handler):
     try:
         with open(filePath, 'rt') as file:
-            output_handler.all_created_files.append(filePath)
+            output_handler.all_created_files.add(filePath)
 
             # Parse first part of information about hosts until first blank line
             while True:
