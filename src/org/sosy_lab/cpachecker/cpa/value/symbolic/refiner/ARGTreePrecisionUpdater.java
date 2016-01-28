@@ -98,7 +98,7 @@ public class ARGTreePrecisionUpdater {
     // join all unique precisions into a single precision
     VariableTrackingPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
     for (VariableTrackingPrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.join(precision);
+      mergedPrecision = (VariableTrackingPrecision) mergedPrecision.join(precision);
     }
 
     return mergedPrecision;
@@ -159,7 +159,7 @@ public class ARGTreePrecisionUpdater {
     // join all unique precisions into a single precision
     ConstraintsPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
     for (ConstraintsPrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.join(precision);
+      mergedPrecision = (ConstraintsPrecision) mergedPrecision.join(precision);
     }
 
     return mergedPrecision;

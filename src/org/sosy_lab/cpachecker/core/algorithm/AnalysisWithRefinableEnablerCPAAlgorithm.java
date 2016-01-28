@@ -559,7 +559,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
 
     for(Precision joinPrec : pPrecisions) {
       if (seen.add(joinPrec)) {
-        vtPrec = vtPrec.join((VariableTrackingPrecision) Precisions.asIterable(joinPrec)
+        vtPrec = (VariableTrackingPrecision) vtPrec.join(Precisions.asIterable(joinPrec)
             .filter(VariableTrackingPrecision.isMatchingCPAClass(enablerCPA.cpaClass)).get(0));
       }
     }

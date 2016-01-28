@@ -237,7 +237,7 @@ public class ValueAnalysisRefiner
     // join all unique precisions into a single precision
     VariableTrackingPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
     for (VariableTrackingPrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.join(precision);
+      mergedPrecision = (VariableTrackingPrecision) mergedPrecision.join(precision);
     }
 
     return mergedPrecision;

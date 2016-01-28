@@ -43,4 +43,9 @@ public class CHCPrecision implements Precision {
     return false;
   }
 
+  @Override
+  public Precision join(Precision pOther) {
+    throw new RuntimeException("Not yet implemented. Implement this method if required.");
+  }
+
 }

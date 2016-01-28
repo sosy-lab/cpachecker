@@ -41,4 +41,9 @@ public class SingletonPrecision implements Precision {
   public String toString() {
     return "no precision";
   }
+
+  @Override
+  public Precision join(Precision pOther) {
+    return this;
+  }
 }
