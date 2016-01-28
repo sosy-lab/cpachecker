@@ -36,7 +36,7 @@ import com.google.common.base.Preconditions;
 
 public class StatCpuTime implements TimeMeasurementListener {
 
-  public static class NoTimeMeasurement extends Exception {
+  public static class NoTimeMeasurement extends RuntimeException {
     private static final long serialVersionUID = 8708086213456270100L;
 
     public NoTimeMeasurement(String pMessage) {
@@ -98,6 +98,8 @@ public class StatCpuTime implements TimeMeasurementListener {
 
   private long maxCpuTimeSumMsec = Long.MIN_VALUE;
   private long minCpuTimeSumMsec = Long.MAX_VALUE;
+  private long lastIncrementCpuTimeMsec = 0;
+  private long lastIncrementWallTimeMsec = 0;
   private long cpuTimeSumMsec = 0;
   private long wallTimeSumMsec = 0;
   private long intervals = 0;
@@ -118,10 +120,14 @@ public class StatCpuTime implements TimeMeasurementListener {
       maxCpuTimeSumMsec = Long.MIN_VALUE;
       minCpuTimeSumMsec = Long.MAX_VALUE;
       cpuTimeSumMsec = Long.MIN_VALUE;
+      lastIncrementCpuTimeMsec = 0;
+      lastIncrementWallTimeMsec = 0;
     } else {
       cpuTimeSumMsec += pSpentCpuTimeMSecs;
       minCpuTimeSumMsec = Math.min(minCpuTimeSumMsec, pSpentCpuTimeMSecs);
       maxCpuTimeSumMsec = Math.max(maxCpuTimeSumMsec, pSpentCpuTimeMSecs);
+      lastIncrementCpuTimeMsec = pSpentCpuTimeMSecs;
+      lastIncrementWallTimeMsec = pSpentWallTimeMSecs;
     }
 
     wallTimeSumMsec += pSpentWallTimeMSecs;
@@ -155,6 +161,26 @@ public class StatCpuTime implements TimeMeasurementListener {
     }
 
     return TimeSpan.ofMillis(maxCpuTimeSumMsec);
+  }
+
+  public TimeSpan getLastCpuTimeSum()
+      throws NoTimeMeasurement {
+
+    if (intervals == 0) {
+      throw new NoTimeMeasurement("No time measurement available!");
+    }
+
+    return TimeSpan.ofMillis(lastIncrementCpuTimeMsec);
+  }
+
+  public TimeSpan getLastWallTimeSum()
+      throws NoTimeMeasurement {
+
+    if (intervals == 0) {
+      throw new NoTimeMeasurement("No time measurement available!");
+    }
+
+    return TimeSpan.ofMillis(lastIncrementWallTimeMsec);
   }
 
   public TimeSpan getAvgCpuTimeSum()

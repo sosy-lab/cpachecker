@@ -151,6 +151,7 @@ public final class Stats {
     protected final Map<Object, Aggregateable> statValues = Maps.newHashMap();
     protected AggregationTime contextWallDuration = AggregationTime.neutral();
     @Nullable protected Long contextActivationTime;
+    private int timesActive = 0;
 
     private final ContextKey key;
     private final int cachedHashCode;
@@ -205,19 +206,24 @@ public final class Stats {
     public void close() {
       Preconditions.checkNotNull(contextActivationTime);
 
-      // Measure the time
-      final long contextCloseTime = System.currentTimeMillis();
-      final long activationDuration = contextCloseTime - contextActivationTime;
-      contextWallDuration = contextWallDuration.aggregateBy(
-          AggregationTime.single(activationDuration));
-      contextActivationTime = null;
+      timesActive = timesActive - 1;
 
-      // Remove the context from the global stack
-      Stats.popContext(this);
+      if (timesActive <= 0) {
+        // Measure the time
+        final long contextCloseTime = System.currentTimeMillis();
+        final long activationDuration = contextCloseTime - contextActivationTime;
+        contextWallDuration = contextWallDuration.aggregateBy(
+            AggregationTime.single(activationDuration));
+        contextActivationTime = null;
+
+        // Remove the context from the global stack
+        Stats.popContext(this);
+      }
     }
 
     void activated() {
       this.contextActivationTime = System.currentTimeMillis();
+      this.timesActive = timesActive + 1;
     }
 
     synchronized void addToContextWallTime (final AggregationTime pTime) {
@@ -249,7 +255,14 @@ public final class Stats {
 
     @Override
     public String toString() {
-      return key.toString();
+      StringBuilder sb = new StringBuilder();
+      sb.append(key);
+      if (contextActivationTime == null) {
+        sb.append(" INACTIVE");
+      } else {
+        sb.append(" ACTIVATED");
+      }
+      return sb.toString();
     }
 
     @Override
@@ -442,6 +455,30 @@ public final class Stats {
     if (pContext.getKey().getParentContext().isPresent()) {
       activeContexts.put(t, pContext.getKey().getParentContext().get());
     }
+  }
+
+  public synchronized static Contexts beginRootContextCollection(final Collection<?> pIdentifier) {
+    final Thread t = Thread.currentThread();
+    Set<StatisticsContext> result = Sets.newHashSetWithExpectedSize(pIdentifier.size());
+
+    for (Object ident: pIdentifier) {
+      StatisticsContext ctx = getContext(t, ident, Optional.<Context>absent());
+
+      result.add(ctx);
+
+      if (!rootContexts.containsEntry(t, ctx)) {
+        rootContexts.put(t, ctx);
+      }
+      activeContexts.put(t, ctx);
+    }
+
+    // Signal the activation in each context
+    //  Triggers observers, and internal statistics!
+    for (StatisticsContext ctx: result) {
+      ctx.activated();
+    }
+
+    return new Contexts(result);
   }
 
   public synchronized static Contexts beginRootContext(final Object ... pIdentifier) {
