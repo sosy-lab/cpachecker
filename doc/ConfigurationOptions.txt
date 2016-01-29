@@ -798,8 +798,8 @@ cpa.automaton.merge.onTop = false
 # Disable a property after the avg. time for refinements was exhausted.
 cpa.automaton.prec.limit.avgRefineTime = -1ns
 
-# Disable a property after the a specific number of refinements.
-cpa.automaton.prec.limit.numRefinements = -1
+# Disable a property after a specific number of refinements was exhausted.
+cpa.automaton.prec.limit.maxRefinements = -1
 
 # Disable a property after a specific time (total) for refinements was
 # exhausted.

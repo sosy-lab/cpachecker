@@ -34,7 +34,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -74,6 +73,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
     defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
   private TimeSpan avgRefineTimeLimit = TimeSpan.ofNanos(-1);
+
+  @Option(secure=true, name="limit.maxRefinements",
+      description="Disable a property after a specific number of refinements was exhausted.")
+  private int refinementsLimit = -1;
 
   @Option(secure=true, name="limit.totalRefineTime",
       description="Disable a property after a specific time (total) for refinements was exhausted.")
@@ -138,7 +141,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   }
 
   private boolean isBudgedExhausted(Property pProperty) {
-    final int targetDisabledAfterRefinements = MultiPropertyAlgorithm.hackyRefinementBound;
+    final int activeRefinementLimit = refinementsLimit * hackyLimitFactor;
 
     int timesHandled = feasibleViolationsOf(ImmutableSet.of(pProperty));
     int maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
@@ -146,8 +149,8 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     final boolean result =
                (violationsLimit > 0
                    && timesHandled >= violationsLimit) // the new state is the ith+1
-             || (targetDisabledAfterRefinements > 0
-                 && maxInfeasibleCexs >= targetDisabledAfterRefinements);
+             || (activeRefinementLimit > 0
+                 && maxInfeasibleCexs >= activeRefinementLimit);
 
     if (avgRefineTimeLimit.asMillis() > 0
      || totalRefineTimeLimit.asMillis() > 0) {
