@@ -38,10 +38,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -238,11 +236,11 @@ public class ARGToDotWriter {
 
     final StringBuilder labelBuilder = new StringBuilder();
 
-    Collection<PredicateAbstractState> abstraction = AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class);
-    for (PredicateAbstractState e: abstraction) {
-      final String formual = GlobalInfo.getInstance().getPredicateFormulaManagerView().simplify(e.getPathFormula().getFormula()).toString();
-      labelBuilder.append(formual + "\n");
-    }
+//    Collection<PredicateAbstractState> abstraction = AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class);
+//    for (PredicateAbstractState e: abstraction) {
+//      final String formual = GlobalInfo.getInstance().getPredicateFormulaManagerView().simplify(e.getPathFormula().getFormula()).toString();
+//      labelBuilder.append(formual + "\n");
+//    }
 
     Collection<AutomatonState> automatonStates = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
     for (AutomatonState q: automatonStates) {
