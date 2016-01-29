@@ -89,7 +89,7 @@ public interface PathFormulaManager {
    * @param pModel A satisfying assignment that should contain values for branching predicates.
    * @return A map from ARG state id to a boolean value indicating direction.
    */
-  Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model pModel);
+  Map<Integer, Integer> getBranchingPredicateValuesFromModel(Model pModel);
 
   /**
    * Convert a simple C expression to a formula consistent with the

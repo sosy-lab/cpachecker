@@ -494,8 +494,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
     errorPathProcessing.start();
     try {
-      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
-      if (preds.isEmpty()) {
+      Map<Integer, Integer> directions = counterexample.getBranchingDirections();
+      if (directions.isEmpty()) {
         logger.log(Level.WARNING, "No information about ARG branches available!");
         return null;
       }
@@ -508,7 +508,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
         targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
-            pathElements, preds);
+            pathElements, directions);
 
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, null);
@@ -551,7 +551,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 
     model = model.withAssignmentInformation(pathWithAssignments);
-    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
+    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingDirections());
   }
 
   @Override
