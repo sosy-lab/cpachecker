@@ -350,6 +350,7 @@ public class Goal implements SafetyProperty {
         final boolean matchesCriticalEdge = t.getLabel().contains(criticalEdge);
         final boolean isStutterTransition = t.getTarget().equals(q);
         if (matchesCriticalEdge && !isStutterTransition) {// Ignore stutter transitions
+          // This ensures that each path is along a critical edge!
           actions = ImmutableList.<AutomatonAction>of(AutomatonAction.CheckFeasibility.getInstance());
         } else {
           actions = ImmutableList.of();
