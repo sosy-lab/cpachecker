@@ -92,6 +92,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   @Option(secure=true, description="Behaviour on a property that has already been fully handled.")
   private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
 
+  @Option(secure=true, description="Behaviour on a property for which the resources were exhausted.")
+  private Action onExhaustedAction = Action.CONTINUE;
+
   public static int hackyLimitFactor = 1;
 
   public ControlAutomatonPrecisionAdjustment(
@@ -244,7 +247,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
           return Optional.of(PrecisionAdjustmentResult.create(
               stateOnHandledTarget,
-              piPrime, Action.CONTINUE));
+              piPrime, onExhaustedAction));
         }
       }
     }
