@@ -78,18 +78,6 @@
         <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201509131935" conf="runtime->default; contrib->sources"/>
         <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
 
-        <!-- SmtInterpol -->
-        <dependency org="de.uni-freiburg.informatik.ultimate" name="smtinterpol" rev="2.1-224-gfd408f2" conf="runtime->runtime; contrib->sources">
-          <artifact name="smtinterpol" e:classifier="comp" conf="runtime"/>
-          <artifact name="smtinterpol" e:classifier="sources" conf="contrib" ext="zip"/>
-        </dependency>
-
-        <!-- Princess -->
-        <dependency org="org.ruemmer.philipp" name="princess" rev="2015-11-23-r2554" conf="runtime->runtime; contrib->sources">
-          <artifact name="princess" e:classifier="assertionless" conf="runtime"/>
-          <artifact name="princess" e:classifier="sources-assertionless" conf="contrib" ext="zip"/>
-        </dependency>
-
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.5" transitive="false" conf="build->default" />
@@ -108,11 +96,9 @@
 
         <!-- JavaSMT -->
         <dependency org="org.sosy_lab" name="javasmt" rev="0.2" conf="runtime->runtime; contrib->sources" />
-
-        <!-- Solver Binaries -->
-        <dependency org="org.sosy_lab" name="javasmt-solver-z3" rev="z3-4.4.1-87-gad58226" conf="runtime->solver-z3" />
-        <dependency org="org.sosy_lab" name="javasmt-solver-mathsat" rev="5.3.10" conf="runtime->solver-mathsat" />
-        <dependency org="org.sosy_lab" name="javasmt-solver-optimathsat" rev="1.3.5" conf="runtime->solver-optimathsat" />
+        <!-- TODO check next line. It should work after publishing a new version of JavaSMT.
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.2-???" conf="runtime->runtime-smtinterpol,runtime-mathsat,runtime-optimathsat,runtime-z3; contrib->sources" />
+        -->
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.5"/>
