@@ -596,7 +596,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMap.<Integer, Integer>of());
     }
 
     // add formula to solver environment
@@ -618,7 +618,7 @@ public final class InterpolationManager {
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
       return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
-          ImmutableMap.<Integer, Boolean>of());
+          ImmutableMap.<Integer, Integer>of());
     }
   }
 

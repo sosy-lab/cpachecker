@@ -44,7 +44,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -76,6 +75,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
@@ -366,20 +366,20 @@ public class ARGUtils {
    * AssumeEdges should be taken.
    *
    * @param root The root element of the ARG (where to start the path)
-   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be ignored).
-   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing direction.
+   * @param pArg All elements in the ARG or a subset thereof (elements outside this set will be ignored).
+   * @param pTakenBranches A map from ARG state ids to boolean values indicating the outgoing direction.
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG is inconsistent.
    */
   public static ARGPath getPathFromBranchingInformation(
-      ARGState root, Set<? extends AbstractState> arg,
-      Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
+      ARGState pRoot, Set<? extends AbstractState> pArg,
+      Map<Integer, Integer> pTakenBranches) throws IllegalArgumentException {
 
-    checkArgument(arg.contains(root));
+    checkArgument(pArg.contains(pRoot));
 
     List<ARGState> states = new ArrayList<>();
     List<CFAEdge> edges = new ArrayList<>();
-    ARGState currentElement = root;
+    ARGState currentElement = pRoot;
     while (!currentElement.isTarget()) {
       Collection<ARGState> children = currentElement.getChildren();
 
@@ -397,56 +397,47 @@ public class ARGUtils {
 
       case 2: // branch
         // first, find out the edges and the children
-        CFAEdge trueEdge = null;
-        CFAEdge falseEdge = null;
-        ARGState trueChild = null;
-        ARGState falseChild = null;
+        Map<Integer, ARGState> stateIdToState = Maps.newTreeMap();
+        Map<Integer, CFAEdge> childStateIdToEdge = Maps.newTreeMap();
 
-        CFANode loc = AbstractStates.extractLocation(currentElement);
-        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
-          if (candidates.size() != 1) {
-            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
-          }
-          child = Iterables.getOnlyElement(candidates);
-          edge = currentElement.getEdgeToChild(child);
-          break;
-        }
+//        CFANode loc = AbstractStates.extractLocation(currentElement);
+//        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+//          Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), pArg).immutableCopy();
+//          if (candidates.size() != 1) {
+//            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
+//          }
+//          child = Iterables.getOnlyElement(candidates);
+//          edge = currentElement.getEdgeToChild(child);
+//          break;
+//        }
+
+        edge = null;
+        child = null;
 
         for (ARGState currentChild : children) {
+          Integer childStateId = currentChild.getStateId();
           CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
-          if (((AssumeEdge)currentEdge).getTruthAssumption()) {
-            trueEdge = currentEdge;
-            trueChild = currentChild;
-          } else {
-            falseEdge = currentEdge;
-            falseChild = currentChild;
+          stateIdToState.put(childStateId, currentChild);
+          childStateIdToEdge.put(childStateId, currentEdge);
+
+          Integer onPath = pTakenBranches.get(currentElement.getStateId());
+          if (onPath != null) {
+            if (onPath.equals(childStateId)) {
+              child = currentChild;
+              edge = currentEdge;
+              break;
+            }
           }
         }
-        if (trueEdge == null || falseEdge == null) {
-          throw new IllegalArgumentException("ARG branches with non-complementary AssumeEdges!");
-        }
-        assert trueChild != null;
-        assert falseChild != null;
 
-        // search first idx where we have a predicate for the current branching
-        Boolean predValue = branchingInformation.get(currentElement.getStateId());
-        if (predValue == null) {
+        if (edge == null || child == null) {
           throw new IllegalArgumentException("ARG branches without direction information!");
         }
 
-        // now select the right edge
-        if (predValue) {
-          edge = trueEdge;
-          child = trueChild;
-        } else {
-          edge = falseEdge;
-          child = falseChild;
-        }
         break;
 
       default:
-        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), arg).immutableCopy();
+        Set<ARGState> candidates = Sets.intersection(Sets.newHashSet(children), pArg).immutableCopy();
         if (candidates.size() != 1) {
           throw new IllegalArgumentException("ARG splits with more than two branches!");
         }
@@ -455,7 +446,7 @@ public class ARGUtils {
         break;
       }
 
-      if (!arg.contains(child)) {
+      if (!pArg.contains(child)) {
         throw new IllegalArgumentException("ARG and direction information from solver disagree!");
       }
 
@@ -485,7 +476,7 @@ public class ARGUtils {
    */
   public static ARGPath getPathFromBranchingInformation(
       ARGState root, ARGState target, Set<? extends AbstractState> arg,
-      Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
+      Map<Integer, Integer> branchingInformation) throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));
     checkArgument(target.isTarget());

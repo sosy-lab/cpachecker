@@ -24,18 +24,18 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
 import static org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.IS_POINTER_SIGNED;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,12 +51,14 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
@@ -81,10 +83,8 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
@@ -108,7 +108,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
-      "^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
+      "^.*" + BRANCHING_PREDICATE_NAME + "_(\\d+)_(\\d+)$");
 
   private static final String NONDET_VARIABLE = "__nondet__";
   private static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
@@ -557,81 +557,63 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * This method may be called with an empty set, in which case it does nothing
    * and returns the formula "true".
    *
-   * @param elementsOnPath The ARG states that should be considered.
+   * @param pElementsOnPath The ARG states that should be considered.
    * @return A formula containing a predicate for each branching.
    */
   @Override
-  public BooleanFormula buildBranchingFormula(Iterable<ARGState> elementsOnPath) throws CPATransferException, InterruptedException {
+  public BooleanFormula buildBranchingFormula(Iterable<ARGState> pElementsOnPath)
+      throws CPATransferException, InterruptedException {
+
     // build the branching formula that will help us find the real error path
     BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
-    for (final ARGState pathElement : elementsOnPath) {
 
-      if (pathElement.getChildren().size() > 1) {
-        if (pathElement.getChildren().size() > 2) {
-          // can't create branching formula
-          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
-            // We expect this situation of one of the children is a target state created by PredicateCPA.
-            continue;
-          } else {
-            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeBoolean(true);
-          }
-        }
+    for (final ARGState e : pElementsOnPath) {
 
-        FluentIterable<CFAEdge> outgoingEdges = from(pathElement.getChildren()).transform(
-            new Function<ARGState, CFAEdge>() {
-              @Override
-              public CFAEdge apply(ARGState child) {
-                return pathElement.getEdgeToChild(child);
-              }
-        });
-        if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          if (from(pathElement.getChildren()).anyMatch(AbstractStates.IS_TARGET_STATE)) {
-            // We expect this situation of one of the children is a target state created by PredicateCPA.
-            continue;
-          } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeBoolean(true);
-          }
-        }
+      // Skip states without a branching
+      if (e.getChildren().size() <= 1) {
+        continue;
+      }
 
-        assert outgoingEdges.size() == 2;
+      final PredicateAbstractState pe = AbstractStates.extractStateByType(e, PredicateAbstractState.class);
+      Preconditions.checkNotNull(pe, "Cannot find precise error path information without PredicateCPA");
+      // TODO: The class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+      //       it is used without PredicateCPA as well.
 
-        // We expect there to be exactly one positive and one negative edge
-        AssumeEdge positiveEdge = null;
-        AssumeEdge negativeEdge = null;
-        for (AssumeEdge currentEdge : outgoingEdges.filter(AssumeEdge.class)) {
-          if (currentEdge.getTruthAssumption()) {
-            positiveEdge = currentEdge;
-          } else {
-            negativeEdge = currentEdge;
-          }
-        }
-        if (positiveEdge == null || negativeEdge == null) {
-          logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
-          return bfmgr.makeBoolean(true);
-        }
+      // There might be states with more than two children.
+      //    One of the component CPAs might have provided more than two successor states;
+      //    the automaton CPA is one example where this behaviour can occur.
 
-        BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId(), 0);
+      for (ARGState child: e.getChildren()) {
+        CFAEdge t = e.getEdgeToChild(child);
 
-        // create formula by edge, be sure to use the correct SSA indices!
-        // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-        // it is used without PredicateCPA as well.
-        PathFormula pf;
-        PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-        if (pe == null) {
-          logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return bfmgr.makeBoolean(true);
-        } else {
-          pf = pe.getPathFormula();
-        }
+        final BooleanFormula pred = bfmgr.makeVariable(
+            String.format("%s_%d_%d", BRANCHING_PREDICATE_NAME,
+                e.getStateId(), child.getStateId()), 0);
+
+        // Create formula by edge, be sure to use the correct SSA indices!
+        PathFormula pf = pe.getPathFormula();
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
-        pf = this.makeAnd(pf, positiveEdge);        // conjunct with edge
+        if (t instanceof AssumeEdge) {
+          pf = this.makeAnd(pf, t); // conjunct with edge
+        }
 
-        BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
+        Collection<AbstractStateWithAssumptions> assumtionStates = AbstractStates.extractStatesByType(
+            child, AbstractStateWithAssumptions.class);
+
+        for (AbstractStateWithAssumptions stateWithAssumes: assumtionStates) {
+          List<AssumeEdge> assumes = stateWithAssumes.getAsAssumeEdges(t.getPredecessor().getFunctionName());
+          for (AssumeEdge a: assumes) {
+            pf = this.makeAnd(pf, a);
+          }
+        }
+
+        Preconditions.checkState(pf.getLength() > 0, "No assume on path branching");
+
+        final BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
         branchingFormula = bfmgr.and(branchingFormula, equiv);
       }
     }
+
     return branchingFormula;
   }
 
@@ -646,28 +628,31 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {
+  public Map<Integer, Integer> getBranchingPredicateValuesFromModel(Model model) {
     if (model.isEmpty()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return Collections.emptyMap();
     }
 
-    Map<Integer, Boolean> preds = Maps.newHashMap();
+    Map<Integer, Integer> preds = Maps.newHashMap();
+
     for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
       AssignableTerm a = entry.getKey();
       String canonicalName = FormulaManagerView.parseName(a.getName()).getFirstNotNull();
       if (a instanceof Variable && a.getType() == TermType.Boolean) {
 
-        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
-        if (!name.equals(canonicalName)) {
-          // pattern matched, so it's a variable with __ART__ in it
+        Matcher matcher = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName);
+        if (matcher.matches()) {
+          // Pattern matched, so it's a variable with __ART__ in it
 
-          // no NumberFormatException because of RegExp match earlier
-          Integer nodeId = Integer.parseInt(name);
+          // No NumberFormatException because of RegExp match earlier!
+          final int sourceStateId = Integer.parseInt(matcher.group(1));
+          final int targetStateId = Integer.parseInt(matcher.group(2));
+          final boolean isTrue = (Boolean) entry.getValue();
 
-          assert !preds.containsKey(nodeId);
-
-          preds.put(nodeId, (Boolean)entry.getValue());
+          if (isTrue) {
+            preds.put(sourceStateId, targetStateId);
+          }
         }
       }
     }

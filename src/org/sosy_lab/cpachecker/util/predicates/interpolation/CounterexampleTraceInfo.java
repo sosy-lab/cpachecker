@@ -40,20 +40,21 @@ import com.google.common.collect.ImmutableMap;
  * For spurious counterexamples, this stores the interpolants.
  */
 public class CounterexampleTraceInfo {
+
     private final boolean spurious;
     private final ImmutableList<BooleanFormula> interpolants;
     private final RichModel mCounterexampleModel;
     private final ImmutableList<BooleanFormula> mCounterexampleFormula;
-    private final ImmutableMap<Integer, Boolean> branchingPreds;
+    private final ImmutableMap<Integer, Integer> branchingDirections;
 
     private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
         RichModel pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
-        ImmutableMap<Integer, Boolean> pBranchingPreds) {
+        ImmutableMap<Integer, Integer> pBranchingPreds) {
       spurious = pSpurious;
       interpolants = pInterpolants;
       mCounterexampleModel = pCounterexampleModel;
       mCounterexampleFormula = pCounterexampleFormula;
-      branchingPreds = pBranchingPreds;
+      branchingDirections = pBranchingPreds;
     }
 
     public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
@@ -61,7 +62,7 @@ public class CounterexampleTraceInfo {
           ImmutableList.copyOf(pInterpolants),
           null,
           ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
+          ImmutableMap.<Integer, Integer>of()
           );
     }
 
@@ -70,12 +71,12 @@ public class CounterexampleTraceInfo {
           null,
           null,
           ImmutableList.<BooleanFormula>of(),
-          ImmutableMap.<Integer, Boolean>of()
+          ImmutableMap.<Integer, Integer>of()
           );
     }
 
     public static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
-        RichModel pModel, Map<Integer, Boolean> preds) {
+        RichModel pModel, Map<Integer, Integer> preds) {
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
           checkNotNull(pModel),
@@ -117,8 +118,8 @@ public class CounterexampleTraceInfo {
       return mCounterexampleModel;
     }
 
-    public Map<Integer, Boolean> getBranchingPredicates() {
+    public Map<Integer, Integer> getBranchingDirections() {
       checkState(!spurious);
-      return branchingPreds;
+      return branchingDirections;
     }
 }

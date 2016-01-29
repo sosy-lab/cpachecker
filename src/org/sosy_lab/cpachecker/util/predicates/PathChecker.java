@@ -112,7 +112,7 @@ public class PathChecker {
 
         model = model.withAssignmentInformation(pathWithAssignments);
 
-        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
+        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Integer>of());
       }
     }
   }

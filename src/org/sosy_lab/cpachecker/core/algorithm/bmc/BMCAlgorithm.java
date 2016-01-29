@@ -227,7 +227,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
 
       // get precise error path
-      Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
+      Map<Integer, Integer> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
       ARGState root = (ARGState)pReachedSet.getFirstState();
 
       ARGPath targetPath;
