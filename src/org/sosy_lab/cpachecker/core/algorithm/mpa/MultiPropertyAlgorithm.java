@@ -324,6 +324,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
               // Track what properties are relevant for the program
               relevant.addAll(PropertyStats.INSTANCE.getRelevantProperties());
+
+              Set<Property> runExhausted = Sets.intersection(getInactiveProperties(pReachedSet), runProperties);
+              if (runProperties.size() == 1) {
+                exhausted.addAll(runExhausted);
+              }
             }
 
           } catch (InterruptedException ie) {
@@ -346,7 +351,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
               SetView<Property> active = Sets.difference(all,
                   Sets.union(violated, getInactiveProperties(pReachedSet)));
-              if (active.size() == 1) {
+              if (runProperties.size() == 1) {
                 exhausted.addAll(active);
               }
 
@@ -484,34 +489,40 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       return status;
 
     } finally {
-      lastRunPropertySummary = Optional.<PropertySummary>of(new PropertySummary() {
-
-        @Override
-        public ImmutableSet<Property> getViolatedProperties() {
-          return ImmutableSet.copyOf(violated);
-        }
-
-        @Override
-        public Optional<ImmutableSet<Property>> getUnknownProperties() {
-          return Optional.of(ImmutableSet.copyOf(Sets.difference(all, Sets.union(violated, satisfied))));
-        }
-
-        @Override
-        public Optional<ImmutableSet<Property>> getRelevantProperties() {
-          return Optional.of(ImmutableSet.copyOf(relevant));
-        }
-
-        @Override
-        public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
-          return Optional.of(ImmutableSet.copyOf(satisfied));
-        }
-
-        @Override
-        public ImmutableSet<Property> getConsideredProperties() {
-          return ImmutableSet.copyOf(all);
-        }
-      });
+      lastRunPropertySummary = Optional.<PropertySummary>of(createSummary(all, relevant, violated, satisfied));
     }
+  }
+
+  private PropertySummary createSummary(final ImmutableSet<Property> all, final Set<Property> relevant,
+      final Set<Property> violated, final Set<Property> satisfied) {
+
+    return new PropertySummary() {
+
+      @Override
+      public ImmutableSet<Property> getViolatedProperties() {
+        return ImmutableSet.copyOf(violated);
+      }
+
+      @Override
+      public Optional<ImmutableSet<Property>> getUnknownProperties() {
+        return Optional.of(ImmutableSet.copyOf(Sets.difference(all, Sets.union(violated, satisfied))));
+      }
+
+      @Override
+      public Optional<ImmutableSet<Property>> getRelevantProperties() {
+        return Optional.of(ImmutableSet.copyOf(relevant));
+      }
+
+      @Override
+      public Optional<ImmutableSet<Property>> getSatisfiedProperties() {
+        return Optional.of(ImmutableSet.copyOf(satisfied));
+      }
+
+      @Override
+      public ImmutableSet<Property> getConsideredProperties() {
+        return ImmutableSet.copyOf(all);
+      }
+    };
   }
 
   private Partitioning partition(
