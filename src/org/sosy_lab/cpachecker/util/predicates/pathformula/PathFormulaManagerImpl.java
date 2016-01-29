@@ -620,7 +620,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         branchingFormula = bfmgr.and(branchingFormula, equiv);
       }
 
-      Preconditions.checkState(isValidBranching, "The ARG must perform branchings only with ASSUMES!");
+      if (!isValidBranching) {
+        logger.logf(Level.WARNING, "Not all branchings (on state %d) in the ARG are based on an ASSUME!!", e.getStateId());
+      }
     }
 
     return branchingFormula;
