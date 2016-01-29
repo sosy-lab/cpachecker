@@ -583,6 +583,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       //    One of the component CPAs might have provided more than two successor states;
       //    the automaton CPA is one example where this behaviour can occur.
 
+      boolean isValidBranching = false;
+
       for (ARGState child: e.getChildren()) {
         CFAEdge t = e.getEdgeToChild(child);
 
@@ -593,25 +595,32 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         // Create formula by edge, be sure to use the correct SSA indices!
         PathFormula pf = pe.getPathFormula();
         pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+
         if (t instanceof AssumeEdge) {
           pf = this.makeAnd(pf, t); // conjunct with edge
+          isValidBranching = true;
         }
 
         Collection<AbstractStateWithAssumptions> assumtionStates = AbstractStates.extractStatesByType(
             child, AbstractStateWithAssumptions.class);
-
         for (AbstractStateWithAssumptions stateWithAssumes: assumtionStates) {
           List<AssumeEdge> assumes = stateWithAssumes.getAsAssumeEdges(t.getPredecessor().getFunctionName());
           for (AssumeEdge a: assumes) {
             pf = this.makeAnd(pf, a);
+            isValidBranching = true;
           }
         }
 
-        Preconditions.checkState(pf.getLength() > 0, "No assume on path branching");
+        if (child.isTarget()) {
+          // We might have performed a "split" before entering the target state
+          isValidBranching = true;
+        }
 
         final BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
         branchingFormula = bfmgr.and(branchingFormula, equiv);
       }
+
+      Preconditions.checkState(isValidBranching, "The ARG must perform branchings only with ASSUMES!");
     }
 
     return branchingFormula;
