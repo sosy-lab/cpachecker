@@ -16,10 +16,10 @@ import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FuncDecl;
-import org.sosy_lab.solver.api.FuncDeclKind;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
@@ -36,7 +36,7 @@ public class FormulaLinearizationManager {
   private final PolicyIterationStatistics statistics;
 
   // Opt environment cached to perform evaluation queries on the model.
-  private OptEnvironment environment;
+  private OptimizationProverEnvironment environment;
 
   public static final String CHOICE_VAR_NAME = "__POLICY_CHOICE_";
   private final UniqueIdGenerator choiceVarCounter = new UniqueIdGenerator();
@@ -150,7 +150,7 @@ public class FormulaLinearizationManager {
    * "concave".
    */
   public BooleanFormula convertToPolicy(BooleanFormula f,
-      OptEnvironment optEnvironment) {
+      OptimizationProverEnvironment optEnvironment) {
 
     environment = optEnvironment;
 
@@ -259,11 +259,11 @@ public class FormulaLinearizationManager {
       }
 
       @Override
-      public TraversalProcess visitFuncApp(Formula f,
+      public TraversalProcess visitFunction(Formula f,
           List<Formula> args,
-          FuncDecl decl,
+          FunctionDeclaration decl,
           Function<List<Formula>, Formula> newApplicationConstructor) {
-        if (decl.getKind() == FuncDeclKind.UF) {
+        if (decl.getKind() == FunctionDeclarationKind.UF) {
           UFs.put(decl.getName(), Pair.of(f, args));
 
         }

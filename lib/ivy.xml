@@ -95,7 +95,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.2" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.2-23-g85ee653" conf="runtime->runtime; contrib->sources" />
         <!-- TODO check next line. It should work after publishing a new version of JavaSMT.
         <dependency org="org.sosy_lab" name="javasmt" rev="0.2-???" conf="runtime->runtime-smtinterpol,runtime-mathsat,runtime-optimathsat,runtime-z3; contrib->sources" />
         -->

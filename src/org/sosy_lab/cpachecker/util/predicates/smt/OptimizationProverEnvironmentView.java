@@ -28,20 +28,20 @@ import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 
 import com.google.common.base.Optional;
 
 /**
- * Wrapper for {@link OptEnvironment} which unwraps the objective formula.
+ * Wrapper for {@link OptimizationProverEnvironment} which unwraps the objective formula.
  */
-public class OptEnvironmentView implements OptEnvironment {
+public class OptimizationProverEnvironmentView implements OptimizationProverEnvironment {
 
-  private final OptEnvironment delegate;
+  private final OptimizationProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
-  OptEnvironmentView(
-      OptEnvironment pDelegate,
+  OptimizationProverEnvironmentView(
+      OptimizationProverEnvironment pDelegate,
       FormulaManagerView pFormulaManager
   ) {
     delegate = pDelegate;

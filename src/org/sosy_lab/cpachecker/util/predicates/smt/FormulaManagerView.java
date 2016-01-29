@@ -70,8 +70,8 @@ import org.sosy_lab.solver.api.FloatingPointFormulaManager;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FuncDecl;
-import org.sosy_lab.solver.api.FuncDeclKind;
+import org.sosy_lab.solver.api.FunctionDeclaration;
+import org.sosy_lab.solver.api.FunctionDeclarationKind;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
@@ -1016,8 +1016,8 @@ public class FormulaManagerView {
 
 
       @Override
-      public Void visitFuncApp(Formula f, List<Formula> args,
-          FuncDecl decl,
+      public Void visitFunction(Formula f, List<Formula> args,
+          FunctionDeclaration decl,
           Function<List<Formula>, Formula> newApplicationConstructor) {
 
         boolean allArgumentsTransformed = true;
@@ -1044,7 +1044,7 @@ public class FormulaManagerView {
           // function application.
           toProcess.pop();
           Formula out;
-          if (decl.getKind() == FuncDeclKind.UF) {
+          if (decl.getKind() == FunctionDeclarationKind.UF) {
 
             out = functionFormulaManager.declareAndCallUninterpretedFunction(
                 pRenameFunction.apply(decl.getName()),
@@ -1112,17 +1112,17 @@ public class FormulaManagerView {
             return false;
           }
           @Override
-          public Boolean visitAtom(BooleanFormula atom, FuncDecl decl) {
+          public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
             return true;
           }
         };
 
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitFuncApp(
+      public Void visitFunction(
           Formula f,
           List<Formula> args,
-          FuncDecl decl, Function<List<Formula>, Formula> constructor) {
+          FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
 
         if (getFormulaType(f).isBooleanType() &&
             booleanFormulaManager.visit(isLowestLevel, (BooleanFormula) f)) {
@@ -1134,7 +1134,7 @@ public class FormulaManagerView {
           }
           result.add((BooleanFormula) f);
         } else {
-          super.visitFuncApp(f, args, decl, constructor);
+          super.visitFunction(f, args, decl, constructor);
         }
         return null;
       }
@@ -1193,11 +1193,11 @@ public class FormulaManagerView {
     final AtomicInteger isPurelyAtomic = new AtomicInteger(0);
     new RecursiveFormulaVisitor(manager) {
       @Override
-      public Void visitFuncApp(
+      public Void visitFunction(
           Formula f,
           List<Formula> args,
-          FuncDecl decl, Function<List<Formula>, Formula> constructor) {
-        if (decl.getKind() == FuncDeclKind.UF) {
+          FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
+        if (decl.getKind() == FunctionDeclarationKind.UF) {
           isPurelyAtomic.incrementAndGet();
         }
         return null;
@@ -1260,7 +1260,7 @@ public class FormulaManagerView {
       @Override public Boolean visitFalse() {
         return true;
       }
-      @Override public Boolean visitAtom(BooleanFormula atom, FuncDecl decl) {
+      @Override public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
@@ -1286,12 +1286,12 @@ public class FormulaManagerView {
       }
 
       @Override
-      public TraversalProcess visitFuncApp(
+      public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FuncDecl decl,
+          FunctionDeclaration decl,
           Function<List<Formula>, Formula> constructor) {
-        if (decl.getKind() == FuncDeclKind.ITE) {
+        if (decl.getKind() == FunctionDeclarationKind.ITE) {
           containsITE.set(true);
           return TraversalProcess.ABORT;
         }
@@ -1330,12 +1330,12 @@ public class FormulaManagerView {
       }
 
       @Override
-      public TraversalProcess visitFuncApp(
+      public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
-          FuncDecl decl,
+          FunctionDeclaration decl,
           Function<List<Formula>, Formula> constructor) {
-        if (decl.getKind() == FuncDeclKind.UF
+        if (decl.getKind() == FunctionDeclarationKind.UF
             && decl.getName().equals(BitwiseAndUfName)) {
           andFound.set(true);
         }
@@ -1510,12 +1510,12 @@ public class FormulaManagerView {
             }
 
             @Override
-            public Optional<Triple<BooleanFormula, T, T>> visitFuncApp(
+            public Optional<Triple<BooleanFormula, T, T>> visitFunction(
                 Formula f,
                 List<Formula> args,
-                FuncDecl functionDeclaration,
+                FunctionDeclaration functionDeclaration,
                 Function<List<Formula>, Formula> newApplicationConstructor) {
-              if (functionDeclaration.getKind() == FuncDeclKind.ITE) {
+              if (functionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
                 assert args.size() == 3;
                 BooleanFormula cond = (BooleanFormula)args.get(0);
                 Formula thenBranch = args.get(1);
