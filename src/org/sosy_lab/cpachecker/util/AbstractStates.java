@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.util;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -48,6 +50,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.common.collect.TreeTraverser;
 
 /**
@@ -91,6 +94,28 @@ public final class AbstractStates {
     }
 
     return null;
+  }
+
+  public static <T extends AbstractState> Collection<T> extractStatesByType(AbstractState pState, Class<T> pType) {
+    // TODO: Code duplication!!!! Refactor!
+
+    if (pType.isInstance(pState)) {
+      return ImmutableList.of(pType.cast(pState));
+
+    } else if (pState instanceof AbstractSingleWrapperState) {
+      AbstractState wrapped = ((AbstractSingleWrapperState)pState).getWrappedState();
+      return extractStatesByType(wrapped, pType);
+
+    } else if (pState instanceof AbstractWrapperState) {
+      Collection<T> result = Lists.newArrayList();
+      for (AbstractState wrapped : ((AbstractWrapperState)pState).getWrappedStates()) {
+        result.addAll(extractStatesByType(wrapped, pType));
+      }
+      return result;
+
+    } else {
+      return Collections.emptyList();
+    }
   }
 
   /**
