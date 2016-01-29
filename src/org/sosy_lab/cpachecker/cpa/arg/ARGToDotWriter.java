@@ -38,8 +38,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.ShadowCFAEdgeFactory.ShadowCFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -234,17 +236,22 @@ public class ARGToDotWriter {
     final String stateNodeId = Integer.toString(currentElement.getStateId());
     final String hintNodeId = stateNodeId + "hint";
 
-    String hintLabel = "";
-    Collection<AutomatonState> abstraction = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
-    for (AutomatonState e: abstraction) {
-      final StringBuilder labelBuilder = new StringBuilder();
-      labelBuilder.append(e.toString() + "\n");
-      hintLabel = labelBuilder.toString();
+    final StringBuilder labelBuilder = new StringBuilder();
+
+    Collection<PredicateAbstractState> abstraction = AbstractStates.extractStatesByType(currentElement, PredicateAbstractState.class);
+    for (PredicateAbstractState e: abstraction) {
+      final String formual = GlobalInfo.getInstance().getPredicateFormulaManagerView().simplify(e.getPathFormula().getFormula()).toString();
+      labelBuilder.append(formual + "\n");
+    }
+
+    Collection<AutomatonState> automatonStates = AbstractStates.extractStatesByType(currentElement, AutomatonState.class);
+    for (AutomatonState q: automatonStates) {
+      labelBuilder.append(q.toString() + "\n");
     }
 
     final StringBuilder builder = new StringBuilder();
 
-    if (!hintLabel.isEmpty()) {
+    if (labelBuilder.length() > 0) {
       builder.append(" {");
       builder.append(" rank=same;\n");
 
@@ -255,7 +262,7 @@ public class ARGToDotWriter {
       builder.append(" \"");
       builder.append(hintNodeId);
       builder.append("\" [label=\"");
-      builder.append(escapeLabelString(hintLabel));
+      builder.append(escapeLabelString(labelBuilder.toString()));
       builder.append("\", shape=box, style=filled, fillcolor=gray];\n");
 
       builder.append(" ");
