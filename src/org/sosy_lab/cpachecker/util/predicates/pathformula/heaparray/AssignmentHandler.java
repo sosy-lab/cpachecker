@@ -686,10 +686,10 @@ class AssignmentHandler {
             FormulaType.IntegerType, pReturnType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
             FormulaType.IntegerType, pReturnType);
-//        final BooleanFormula retention = formulaManager.makeEqual(
-//            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
+        final BooleanFormula retention = formulaManager.makeEqual(
+            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
 
-//        constraints.addConstraint(bfmgr.or(updateCondition, retention));
+        constraints.addConstraint(bfmgr.or(updateCondition, retention));
       }
     }
 
@@ -708,8 +708,8 @@ class AssignmentHandler {
           FormulaType.IntegerType, pReturnType);
       final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
           FormulaType.IntegerType, pReturnType);
-//      constraints.addConstraint(formulaManager.makeEqual(
-//          afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
+      constraints.addConstraint(formulaManager.makeEqual(
+          afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
     }
   }
 
@@ -762,8 +762,8 @@ class AssignmentHandler {
               FormulaType.IntegerType, returnType);
           final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
               FormulaType.IntegerType, returnType);
-//          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-//              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
+          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
+              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
         }
       }
 
@@ -805,11 +805,11 @@ class AssignmentHandler {
             FormulaType.IntegerType, returnType);
         final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
             FormulaType.IntegerType, returnType);
-//        constraints.addConstraint(bfmgr.or(bfmgr.and(
-//            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-//            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
-//            formulaManager.makeEqual(
-//                afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress))));
+        constraints.addConstraint(bfmgr.or(bfmgr.and(
+            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
+            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
+            formulaManager.makeEqual(
+                afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress))));
       }
     }
   }
