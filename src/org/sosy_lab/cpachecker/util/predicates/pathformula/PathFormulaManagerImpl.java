@@ -456,11 +456,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-
+    } else if (useArrayHeap && CToFormulaConverterWithHeapArray.isUF(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithHeapArray.getUFName(symbolType));
+      return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
       assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));
       return makeSsaUFMerger(symbolName, symbolType, oldIndex, newIndex, oldPts);
-
     } else {
       return makeSsaVariableMerger(symbolName, symbolType, oldIndex, newIndex);
     }
@@ -485,6 +486,22 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return fmgr.assignment(newVariable, oldVariable);
   }
 
+  private BooleanFormula makeSsaArrayMerger(
+      final String pFunctionName,
+      final CType pReturnType,
+      final int pOldIndex,
+      final int pNewIndex) {
+    assert pOldIndex < pNewIndex;
+    final FormulaType<?> returnFormulaType = converter.getFormulaTypeFromCType(pReturnType);
+    final ArrayFormula<?, ?> newArray =
+        afmgr.makeArray(
+            pFunctionName + "@" + pNewIndex, FormulaType.IntegerType, returnFormulaType);
+    final ArrayFormula<?, ?> oldArray =
+        afmgr.makeArray(
+            pFunctionName + "@" + pOldIndex, FormulaType.IntegerType, returnFormulaType);
+    return fmgr.makeEqual(newArray, oldArray);
+  }
+
   private BooleanFormula makeSsaUFMerger(final String functionName,
                                                   final CType returnType,
                                                   final int oldIndex,
@@ -493,15 +510,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     assert oldIndex < newIndex;
 
     final FormulaType<?> returnFormulaType =  converter.getFormulaTypeFromCType(returnType);
-
-    if (useArrayHeap) {
-      final ArrayFormula<?,?> newArray = afmgr.makeArray(functionName + "@" + newIndex,
-          FormulaType.IntegerType, returnFormulaType);
-      final ArrayFormula<?, ?> oldArray = afmgr.makeArray(functionName + "@" + oldIndex,
-          FormulaType.IntegerType, returnFormulaType);
-      return fmgr.assignment(newArray, oldArray);
-    }
-
     BooleanFormula result = bfmgr.makeBoolean(true);
     for (final PointerTarget target : pts.getAllTargets(returnType)) {
       shutdownNotifier.shutdownIfNecessary();
