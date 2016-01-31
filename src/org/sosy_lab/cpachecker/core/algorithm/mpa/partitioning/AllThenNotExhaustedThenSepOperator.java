@@ -54,15 +54,21 @@ public class AllThenNotExhaustedThenSepOperator extends PartitioningWithBudgetOp
       Comparator<Property> pPropertyExpenseComparator)
           throws PartitioningException {
 
-    final Set<Property> cheapProperties = Sets.difference(pToCheck, pExpensiveProperties);
+    Set<Property> cheapProperties = Sets.difference(pToCheck, pExpensiveProperties);
+    PartitioningStatus lastStatus = pLastCheckedPartitioning.getStatus();
 
-    if (pLastCheckedPartitioning.getStatus().equals(PartitioningStatus.ALL_IN_ONE)
+    if (lastStatus.equals(PartitioningStatus.ALL_IN_ONE)
         && cheapProperties.size() > 0 && pExpensiveProperties.size() > 0) {
+
         return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, getBudgetingOperator(),
             ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
-    } else if (pLastCheckedPartitioning.getStatus().equals(PartitioningStatus.ALL_IN_ONE)) {
+
+    } else if (lastStatus.equals(PartitioningStatus.ALL_IN_ONE)
+            || lastStatus.equals(PartitioningStatus.NOT_EXHAUSTED_ONLY) ) {
+
       return create(PartitioningStatus.ONE_FOR_EACH, InfiniteBudgeting.INSTANCE,
           singletonPartitions(pToCheck, pPropertyExpenseComparator));
+
     } else {
       return create(PartitioningStatus.ALL_IN_ONE, getBudgetingOperator(),
           ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
