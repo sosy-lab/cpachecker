@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperato
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.CheaperFirstDivideOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.Partitions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -126,6 +127,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       defaultUserUnit=TimeUnit.SECONDS,
       min=-1)
   private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
+
+  @Option(secure=true, description="Clear the caches of the analysis (CPA) when starting with a new partition.")
+  private boolean clearAnalysisCachesOnRestart = false;
 
   private class MPAStatistics extends AbstractStatistics {
     int numberOfRestarts = 0;
@@ -598,6 +602,15 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     Preconditions.checkState(!pCheckPartitions.isEmpty(), "A non-empty set of properties must be checked in a verification run!");
 
     Partitioning result = Partitions.none();
+
+    // Clear some of the caches (for experiments)
+    if (clearAnalysisCachesOnRestart) {
+      for (ConfigurableProgramAnalysis a: CPAs.asIterable(cpa)) {
+        if (a instanceof AnalysisCache) {
+          ((AnalysisCache) a).clearCaches();
+        }
+      }
+    }
 
     // Reset the information in counterexamples, inactive properties, ...
     ARGCPA argCpa = CPAs.retrieveCPA(cpa, ARGCPA.class);

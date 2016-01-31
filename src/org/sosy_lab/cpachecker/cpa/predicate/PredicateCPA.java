@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -79,7 +80,8 @@ import com.google.common.base.Supplier;
  * CPA that defines symbolic predicate abstraction.
  */
 @Options(prefix="cpa.predicate")
-public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProvider,
+ProofChecker, AutoCloseable, AnalysisCache {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -371,5 +373,12 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   public void setShutdownNotifier(ShutdownNotifier pShutdownNotifier) {
     shutdownNotifier = pShutdownNotifier;
+  }
+
+  @Override
+  public void clearCaches() {
+    abstractionManager.clearCaches();
+    predicateManager.clearCaches();
+    solver.clearCaches();
   }
 }

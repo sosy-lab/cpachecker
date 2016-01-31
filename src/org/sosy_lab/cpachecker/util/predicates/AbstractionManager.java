@@ -37,14 +37,13 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.AbstractMBean;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionCreator;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -52,6 +51,8 @@ import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -67,7 +68,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * It is also responsible for the creation of {@link AbstractionPredicate}s.
  */
 @Options(prefix = "cpa.predicate")
-public final class AbstractionManager {
+public final class AbstractionManager implements AnalysisCache {
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
@@ -490,6 +491,13 @@ public final class AbstractionManager {
     public String getPredicates() {
       // TODO this may run into a ConcurrentModificationException
       return Joiner.on('\n').join(absVarToPredicate.values());
+    }
+  }
+
+  @Override
+  public void clearCaches() {
+    if (useCache) {
+      toConcreteCache.clear();
     }
   }
 }

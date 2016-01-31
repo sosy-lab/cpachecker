@@ -200,6 +200,9 @@ analysis.mpa.budget.limit.numRefinements = -1
 # exhausted.
 analysis.mpa.budget.limit.totalRefineTime = -1ns
 
+# Clear the caches of the analysis (CPA) when starting with a new partition.
+analysis.mpa.clearAnalysisCachesOnRestart = false
+
 # Operator for initializing the waitlist after the partitioning of properties
 # was performed.
 analysis.mpa.initOperatorClass = InitDefaultOperator.class

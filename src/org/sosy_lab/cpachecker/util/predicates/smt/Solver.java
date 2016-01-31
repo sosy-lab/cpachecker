@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.ConjunctionSplitter;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
@@ -67,7 +68,7 @@ import com.google.common.collect.Maps;
  * or using different SMT solvers for different tasks such as solving and interpolation.
  */
 @Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
-public final class Solver implements AutoCloseable {
+public final class Solver implements AnalysisCache, AutoCloseable {
 
   @Option(secure=true, name="checkUFs",
       description="improve sat-checks with additional constraints for UFs")
@@ -402,5 +403,12 @@ public final class Solver implements AutoCloseable {
     }
 
     unsatCache.put(unsat, true);
+  }
+
+  @Override
+  public void clearCaches() {
+    if (unsatCache != null) {
+      unsatCache.clear();
+    }
   }
 }

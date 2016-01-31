@@ -56,6 +56,7 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AnalysisCache;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -86,7 +87,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "cpa.predicate")
-public class PredicateAbstractionManager {
+public class PredicateAbstractionManager implements AnalysisCache {
 
   static class Stats {
 
@@ -1233,6 +1234,20 @@ public class PredicateAbstractionManager {
   private Set<AbstractionNode> getSuccessorsInAbstractionTree(int pIdOfLastAbstractionReused) {
     Preconditions.checkNotNull(reuseAbstractionsFrom);
     return abstractionStorage.getSuccessorAbstractions(pIdOfLastAbstractionReused);
+  }
+
+  @Override
+  public void clearCaches() {
+    if (useCache) {
+      amgr.clearCaches();
+      abstractionCache.clear();
+      unsatisfiabilityCache.clear();
+      if (cartesianAbstractionCache != null) {
+        cartesianAbstractionCache.clear();
+      }
+      formulaVariablesCache.clear();
+      predInstanceCache.clear();
+    }
   }
 
 }
