@@ -360,6 +360,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
     out.println("Time for prec operator:              " + prec.totalPrecTime);
     if (prec.numAbstractions > 0) {
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
+
+      out.println("    Time for identifying relevant predicates: " + as.relevantPredTime + " (Max: " + as.relevantPredTime.getMaxTime().formatAs(SECONDS) + ")");
+      out.println("    Time for querying the cache:              " + as.cacheQueryTime + " (Max: " + as.cacheQueryTime.getMaxTime().formatAs(SECONDS) + ")");
+      out.println("    Time for creating the abst. formula:      " + as.abstFormulaCreationTime + " (Max: " + as.abstFormulaCreationTime.getMaxTime().formatAs(SECONDS) + ")");
+
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
       }
