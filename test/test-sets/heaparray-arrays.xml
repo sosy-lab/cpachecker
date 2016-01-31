@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
+  <option name="-noout"/>
+  <option name="-heap">5000M</option>
+
+  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+
+  <rundefinition name="SMTInterpol">
+    <tasks name="ArraysReach">
+      <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+    </tasks>
+<!--    <tasks name="ArraysMemSafety">
+      <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    </tasks> -->
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
+  </rundefinition>
+
+
+  <rundefinition name="Z3">
+    <tasks name="ArraysReach">
+      <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+    </tasks>
+<!--    <tasks name="ArraysMemSafety">
+      <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    </tasks> -->
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
+
+
+  <rundefinition name="MathSAT5">
+    <tasks name="ArraysReach">
+      <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+    </tasks>
+<!--    <tasks name="ArraysMemSafety">
+      <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    </tasks> -->
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+  </rundefinition>
+
+  <!--
+  <rundefinition name="PRINCESS">
+    <tasks>
+      <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+      <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    </tasks>
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=true</option>
+    <option name="-setprop">solver.solver=PRINCESS</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="-disable-java-assertions"/>
+  </rundefinition>
+
+
+  <rundefinition name="UF-Analysis">
+    <tasks>
+      <includesfile>../programs/benchmarks/ArraysReach.set</includesfile>
+      <includesfile>../programs/benchmarks/ArraysMemSafety.set</includesfile>
+    </tasks>
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">cpa.predicate.useArrayHeap=false</option>
+  </rundefinition>-->
+</benchmark>
