@@ -28,6 +28,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
@@ -37,8 +41,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-
+@Options
 public class CostModuloDivideOperator extends AbstractPartitioningOperator {
+
+  public CostModuloDivideOperator(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger);
+  }
 
   @Override
   public Partitioning partition(Partitioning pLastCheckedPartitioning, Set<Property> pToCheck,

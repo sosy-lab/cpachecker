@@ -35,8 +35,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.DefaultPropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 
-import com.google.common.base.Preconditions;
-
 @Options
 abstract class PartitioningWithBudgetOperator extends AbstractPartitioningOperator {
 
@@ -48,8 +46,8 @@ abstract class PartitioningWithBudgetOperator extends AbstractPartitioningOperat
 
   public PartitioningWithBudgetOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    Preconditions.checkNotNull(pConfig);
-    pConfig.inject(this);
+    super(pConfig, pLogger);
+
     budgetingOperator = createBudgetingOperator(pConfig, pLogger);
   }
 

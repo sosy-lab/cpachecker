@@ -29,6 +29,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
@@ -36,13 +40,26 @@ import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperato
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
-
+@Options
 abstract class AbstractPartitioningOperator implements PartitioningOperator {
+
+  protected final Configuration config;
+  protected final LogManager logger;
+
+  public AbstractPartitioningOperator(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+
+    config = Preconditions.checkNotNull(pConfig);
+    logger = Preconditions.checkNotNull(pLogger);
+
+    pConfig.inject(this);
+  }
 
   /**
    *
