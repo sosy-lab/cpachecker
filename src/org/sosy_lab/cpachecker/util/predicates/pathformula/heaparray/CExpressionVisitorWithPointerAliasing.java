@@ -170,7 +170,7 @@ class CExpressionVisitorWithPointerAliasing
    * @param pErrorConditions Additional error conditions.
    * @param pPointerTargetSetBuilder The underlying set of pointer targets.
    */
-  public CExpressionVisitorWithPointerAliasing(
+  CExpressionVisitorWithPointerAliasing(
       final CToFormulaConverterWithHeapArray pConverter,
       final CFAEdge pCFAEdge,
       final String pFunction,
@@ -207,8 +207,7 @@ class CExpressionVisitorWithPointerAliasing
    *
    * @return A formula visitor for right hand side expressions.
    */
-  public CRightHandSideVisitor<Formula, UnrecognizedCCodeException>
-  asFormulaVisitor() {
+  CRightHandSideVisitor<Formula, UnrecognizedCCodeException> asFormulaVisitor() {
     return new AdaptingExpressionToFormulaVisitor(this);
   }
 
@@ -236,7 +235,7 @@ class CExpressionVisitorWithPointerAliasing
    * @param pIsSafe A flag, if the formula is safe or not.
    * @return A formula for the value.
    */
-  Formula asValueFormula(final Expression pExpression,
+  private Formula asValueFormula(final Expression pExpression,
       final CType pType,
       final boolean pIsSafe) {
     if (pExpression.isValue()) {
@@ -272,7 +271,7 @@ class CExpressionVisitorWithPointerAliasing
    * @param pType The type of the expression.
    * @return A safe formula for the value.
    */
-  Formula asSafeValueFormula(final Expression pExpression, final CType pType) {
+  private Formula asSafeValueFormula(final Expression pExpression, final CType pType) {
     return asValueFormula(pExpression, pType, true);
   }
 

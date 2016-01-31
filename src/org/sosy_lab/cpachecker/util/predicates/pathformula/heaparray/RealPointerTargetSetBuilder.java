@@ -71,7 +71,7 @@ import com.google.common.base.Predicate;
  *
  * This class is not thread-safe.
  */
-public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
+class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
   private final FormulaManagerView formulaManager;
   private final PointerTargetSetManagerHeapArray ptsMgs;
@@ -138,7 +138,7 @@ public class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * @param pPointerTargetSetManager The PointerTargetSetManager
    * @param pOptions Additional configuration options.
    */
-  public RealPointerTargetSetBuilder(final PointerTargetSet pPointerTargetSet,
+  RealPointerTargetSetBuilder(final PointerTargetSet pPointerTargetSet,
       final FormulaManagerView pFormulaManagerView,
       final PointerTargetSetManagerHeapArray pPointerTargetSetManager,
       final FormulaEncodingWithPointerAliasingOptions pOptions) {

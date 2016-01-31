@@ -125,7 +125,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   final FormulaEncodingWithPointerAliasingOptions options;
 
   private final Optional<VariableClassification> variableClassification;
-  static final String UF_NAME_PREFIX = "*";
+  private static final String UF_NAME_PREFIX = "*";
   static final String FIELD_NAME_SEPARATOR = "$";
   private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
 
@@ -348,7 +348,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * @param pVar The variable declaration to check.
    * @return Whether the variable declaration is addressed or not.
    */
-  boolean isAddressedVariable(CDeclaration pVar) {
+  private boolean isAddressedVariable(CDeclaration pVar) {
     return !variableClassification.isPresent()
         || variableClassification.get().getAddressedVariables().contains(
             pVar.getQualifiedName());

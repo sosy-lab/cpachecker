@@ -81,7 +81,7 @@ import com.google.common.collect.ImmutableList;
 /**
  * A manager for pointer target sets.
  */
-public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
+class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
@@ -141,7 +141,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param pShutdownNotifier A notifier for external shutdowns to stop
    *                         long-running algorithms.
    */
-  public PointerTargetSetManagerHeapArray(
+  PointerTargetSetManagerHeapArray(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
       final FormulaManagerView pFormulaManagerView,
       final TypeHandlerWithPointerAliasing pTypeHandler,
@@ -654,8 +654,8 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return The new map of targets.
    */
   @CheckReturnValue
-  private static PersistentSortedMap<String, PersistentList<PointerTarget>>
-  addToTarget(final String pBase,
+  private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(
+      final String pBase,
       final CType pTargetType,
       final @Nullable CType pContainerType,
       final int pProperOffset,
@@ -760,8 +760,7 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return A map of existing targets
    */
   @CheckReturnValue
-  private PersistentSortedMap<String, PersistentList<PointerTarget>>
-  addAllTargets(
+  private PersistentSortedMap<String, PersistentList<PointerTarget>> addAllTargets(
       PersistentSortedMap<String, PersistentList<PointerTarget>> pTargets,
       final PersistentSortedMap<String, CType> pBases,
       final PersistentSortedMap<CompositeField, Boolean> pFields) {

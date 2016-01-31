@@ -222,7 +222,7 @@ class AssignmentHandler {
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException It the execution was interrupted.
    */
-  public BooleanFormula handleInitializationAssignments(
+  BooleanFormula handleInitializationAssignments(
       final CLeftHandSide pVariable,
       final List<CExpressionAssignmentStatement> pAssignments)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -336,7 +336,7 @@ class AssignmentHandler {
    * @param pUpdatedTypes A set of updated types.
    * @throws InterruptedException If the execution was interrupted.
    */
-  void finishAssignments(@Nonnull CType pLvalueType,
+  private void finishAssignments(@Nonnull CType pLvalueType,
       final @Nonnull AliasedLocation pLvalue,
       final @Nonnull PointerTargetPattern pPattern,
       final @Nonnull Set<CType> pUpdatedTypes) throws InterruptedException {
