@@ -189,7 +189,7 @@ class AssignmentHandler {
     final PointerTargetPattern pattern =
         lhsLocation.isUnaliasedLocation()
             ? null
-            : PointerTargetPatternHeapArray.forLeftHandSide(
+            : PointerTargetPattern.forLeftHandSide(
                 pLhs, converter.typeHandler, converter.ptsMgr, edge, pts);
 
     if (converter.options.revealAllocationTypeFromLHS()
@@ -244,7 +244,7 @@ class AssignmentHandler {
       finishAssignments(
           CTypeUtils.simplifyType(pVariable.getExpressionType()),
           lhsLocation.asAliased(),
-          PointerTargetPatternHeapArray.forLeftHandSide(
+          PointerTargetPattern.forLeftHandSide(
               pVariable, converter.typeHandler, converter.ptsMgr, edge, pts),
           updatedTypes);
     }
@@ -728,7 +728,7 @@ class AssignmentHandler {
       final int pSize,
       final Set<CType> pTypes) throws InterruptedException {
 
-    final PointerTargetPattern exact = PointerTargetPatternHeapArray.any();
+    final PointerTargetPattern exact = PointerTargetPattern.any();
     for (final PointerTarget target
         : pts.getMatchingTargets(pFirstElementType, pPattern)) {
       converter.shutdownNotifier.shutdownIfNecessary();
@@ -781,7 +781,7 @@ class AssignmentHandler {
       final int pSize,
       final Set<CType> pTypes) throws InterruptedException {
 
-    final PointerTargetPattern any = PointerTargetPatternHeapArray.any();
+    final PointerTargetPattern any = PointerTargetPattern.any();
     for (final CType type : pTypes) {
       final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
       final int oldIndex = converter.getIndex(ufName, type, ssa);

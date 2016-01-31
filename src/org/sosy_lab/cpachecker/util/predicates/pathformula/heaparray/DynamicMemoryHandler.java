@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -379,7 +380,7 @@ class DynamicMemoryHandler {
               Value.ofValue(
                   converter.formulaManager.makeNumber(
                       converter.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-              PointerTargetPatternHeapArray.forBase(pBase),
+              PointerTargetPattern.forBase(pBase),
               true,
               null);
       constraints.addConstraint(initialization);
