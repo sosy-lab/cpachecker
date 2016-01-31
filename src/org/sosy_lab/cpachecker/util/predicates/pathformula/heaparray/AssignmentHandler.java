@@ -397,12 +397,10 @@ class AssignmentHandler {
       // Try to fix the length if it's unknown (or too big)
       // Also ignore the tail part of very long arrays to avoid very large
       // formulae (imprecise!)
-      if (length == null || length > options.maxArrayLength()) {
+      if (length == null) {
         final Integer rLength;
         if (pRvalue.isLocation()
-            && (rLength = CTypeUtils.getArrayLength(
-                (CArrayType) pRvalueType)) != null
-            && rLength <= options.maxArrayLength()) {
+            && (rLength = CTypeUtils.getArrayLength((CArrayType) pRvalueType)) != null) {
           length = rLength;
         } else {
           length = options.defaultArrayLength();
