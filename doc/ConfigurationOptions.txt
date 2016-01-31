@@ -56,15 +56,12 @@ solver.logfile = no default value
 # Further options that will be passed to Mathsat in addition to the default
 # options. Format is 'key1=value1,key2=value2'
 solver.mathsat5.furtherOptions = ""
-solver.mathsat5.furtherOptions = no default value
 
 # Load less stable optimizing version of mathsat5 solver.
 solver.mathsat5.loadOptimathsat5 = false
-solver.mathsat5.loadOptimathsat5 = no default value
 
 # The number of atoms a term has to have before it gets abbreviated if there
 # are more identical terms.
-solver.princess.minAtomsForAbbreviation = no default value
 solver.princess.minAtomsForAbbreviation = 100
 
 # Random seed for SMT solver.
@@ -73,12 +70,10 @@ solver.randomSeed = 42
 # Double check generated results like interpolants and models whether they
 # are correct
 solver.smtinterpol.checkResults = false
-solver.smtinterpol.checkResults = no default value
 
 # Further options that will be set to true for SMTInterpol in addition to the
 # default options. Format is 'option1,option2,option3'
 solver.smtinterpol.furtherOptions = []
-solver.smtinterpol.furtherOptions = no default value
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
@@ -92,23 +87,17 @@ solver.useLogger = false
 solver.z3.log = no default value
 
 # Ordering for objectives in the optimization context
-solver.z3.objectivePrioritizationMode = no default value
-  allowed values: [lex, pareto, box]
 solver.z3.objectivePrioritizationMode = "box"
   allowed values: [lex, pareto, box]
 
 # Engine to use for the optimization
-solver.z3.optimizationEngine = no default value
-  allowed values: [basic, farkas, symba]
 solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
-solver.z3.requireProofs = no default value
 solver.z3.requireProofs = true
 
 # Whether to use PhantomReferences for discarding Z3 AST
-solver.z3.usePhantomReferences = no default value
 solver.z3.usePhantomReferences = false
 
 # maximum number of condition adjustments (-1 for infinite)

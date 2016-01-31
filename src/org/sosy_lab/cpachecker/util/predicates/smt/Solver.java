@@ -49,7 +49,7 @@ import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironmentWithAssumptions;
-import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
@@ -226,12 +226,12 @@ public final class Solver implements AutoCloseable {
   /**
    * Direct reference to the underlying SMT solver for optimization queries.
    * This creates a fresh, new, environment in the solver.
-   * This environment needs to be closed after it is used by calling {@link OptEnvironment#close()}.
+   * This environment needs to be closed after it is used by calling {@link OptimizationProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public OptEnvironment newOptEnvironment() {
-    OptEnvironment environment = solvingContext.newOptEnvironment();
-    environment = new OptEnvironmentView(environment, fmgr);
+  public OptimizationProverEnvironment newOptEnvironment() {
+    OptimizationProverEnvironment environment = solvingContext.newOptimizationProverEnvironment();
+    environment = new OptimizationProverEnvironmentView(environment, fmgr);
     return environment;
   }
 

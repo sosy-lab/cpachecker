@@ -257,7 +257,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
 
         for run in runSet.runs:
             dataFile = run.log_file + ".data"
-            if os.path.exists(dataFile):
+            if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
                     (run.cputime, run.walltime, return_value, termination_reason, values) =\
                         parseCloudRunResultFile(dataFile)

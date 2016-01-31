@@ -29,7 +29,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FuncDecl;
+import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
@@ -100,7 +100,7 @@ public class FormulaMeasuring {
     }
 
     @Override
-    public TraversalProcess visitAtom(BooleanFormula pAtom, FuncDecl decl) {
+    public TraversalProcess visitAtom(BooleanFormula pAtom, FunctionDeclaration decl) {
       measures.atoms++;
 
       BooleanFormula atom = fmgr.uninstantiate(pAtom);

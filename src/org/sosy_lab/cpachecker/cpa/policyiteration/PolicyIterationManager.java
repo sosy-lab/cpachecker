@@ -48,7 +48,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.OptEnvironment;
+import org.sosy_lab.solver.api.OptimizationProverEnvironment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Optional;
@@ -502,7 +502,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
     // Maximize for each template subject to the overall constraints.
     statistics.startValueDeterminationTimer();
-    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
       for (BooleanFormula constraint : valDetConstraints.constraints) {
         optEnvironment.addConstraint(constraint);
@@ -527,17 +527,17 @@ public class PolicyIterationManager implements IPolicyIterationManager {
 
         optEnvironment.addConstraint(consistencyConstraint);
 
-        OptEnvironment.OptStatus result;
+        OptimizationProverEnvironment.OptStatus result;
         try {
           statistics.startOPTTimer();
           result = optEnvironment.check();
         } finally {
           statistics.stopOPTTimer();
         }
-        if (result != OptEnvironment.OptStatus.OPT) {
+        if (result != OptimizationProverEnvironment.OptStatus.OPT) {
           shutdownNotifier.shutdownIfNecessary();
 
-          if (result == OptEnvironment.OptStatus.UNSAT) {
+          if (result == OptimizationProverEnvironment.OptStatus.UNSAT) {
             if (!runningCheapValueDetermination) {
               throw new CPATransferException("Inconsistent value determination "
                   + "problem");
@@ -666,7 +666,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
     final BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraints(state, true);
 
-    try (OptEnvironment optEnvironment = solver.newOptEnvironment()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
       optEnvironment.addConstraint(annotatedFormula);
       optEnvironment.addConstraint(startConstraints);
 
@@ -738,7 +738,7 @@ public class PolicyIterationManager implements IPolicyIterationManager {
         logger.log(Level.FINE, "Optimizing for ", objective);
         int handle = optEnvironment.maximize(objective);
 
-        OptEnvironment.OptStatus status;
+        OptimizationProverEnvironment.OptStatus status;
         try {
           statistics.startOPTTimer();
           status = optEnvironment.check();

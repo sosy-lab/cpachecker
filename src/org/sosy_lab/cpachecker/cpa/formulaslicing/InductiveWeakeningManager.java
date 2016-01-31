@@ -27,7 +27,7 @@ import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FuncDecl;
+import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
@@ -451,7 +451,7 @@ public class InductiveWeakeningManager {
      * Replace all atoms containing intermediate variables with "true".
      */
     @Override
-    public BooleanFormula visitAtom(BooleanFormula atom, FuncDecl decl) {
+    public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
 
       if (!fmgr.getDeadFunctionNames(atom, finalSSA).isEmpty()) {
         return fmgr.getBooleanFormulaManager().makeBoolean(true);
