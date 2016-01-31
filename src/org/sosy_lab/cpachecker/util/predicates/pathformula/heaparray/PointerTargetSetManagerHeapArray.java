@@ -575,7 +575,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   private Formula makeDereference(final CType pType,
       final Formula pAddress,
       final SSAMapBuilder pSSAMapBuilder) {
-    final String ufName = CToFormulaConverterWithHeapArray.getUFName(pType);
+    final String ufName = CToFormulaConverterWithHeapArray.getArrayName(pType);
     final int index = pSSAMapBuilder.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(pType);
 

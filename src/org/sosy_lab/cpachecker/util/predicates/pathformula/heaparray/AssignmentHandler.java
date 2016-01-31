@@ -543,7 +543,7 @@ class AssignmentHandler {
 
     final String targetName = !pLvalue.isAliased()
         ? pLvalue.asUnaliased().getVariableName()
-        : CToFormulaConverterWithHeapArray.getUFName(pLvalueType);
+        : CToFormulaConverterWithHeapArray.getArrayName(pLvalueType);
     final FormulaType<?> targetType = converter.getFormulaTypeFromCType(
         pLvalueType);
     final int newIndex = pUseOldSSAIndices
@@ -605,7 +605,7 @@ class AssignmentHandler {
       Preconditions.checkArgument(pStartAddress != null, "Start address is "
           + "mandatory for assigning to lvalues of simple types");
 
-      final String ufName = CToFormulaConverterWithHeapArray.getUFName(
+      final String ufName = CToFormulaConverterWithHeapArray.getArrayName(
           pLvalueType);
       final int oldIndex = converter.getIndex(ufName, pLvalueType, ssa);
       final int newIndex = converter.getFreshIndex(ufName, pLvalueType, ssa);
@@ -617,7 +617,7 @@ class AssignmentHandler {
     } else if (pPattern.isExact()) {
       pPattern.setRange(size);
       for (final CType type : pTypesToRetain) {
-        final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
+        final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
         final int oldIndex = converter.getIndex(ufName, type, ssa);
         final int newIndex = converter.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> targetType = converter.getFormulaTypeFromCType(type);
@@ -744,7 +744,7 @@ class AssignmentHandler {
       BooleanFormula consequent = bfmgr.makeBoolean(true);
 
       for (final CType type : pTypes) {
-        final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
+        final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
         final int oldIndex = converter.getIndex(ufName, type, ssa);
         final int newIndex = converter.getFreshIndex(ufName, type, ssa);
         final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
@@ -783,7 +783,7 @@ class AssignmentHandler {
 
     final PointerTargetPattern any = PointerTargetPattern.any();
     for (final CType type : pTypes) {
-      final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
+      final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
       final int oldIndex = converter.getIndex(ufName, type, ssa);
       final int newIndex = converter.getFreshIndex(ufName, type, ssa);
       final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
@@ -821,7 +821,7 @@ class AssignmentHandler {
   private void updateSSA(final @Nonnull Set<CType> pTypes,
       final SSAMapBuilder pSSAMapBuilder) {
     for (final CType type : pTypes) {
-      final String ufName = CToFormulaConverterWithHeapArray.getUFName(type);
+      final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
       converter.makeFreshIndex(ufName, type, pSSAMapBuilder);
     }
   }

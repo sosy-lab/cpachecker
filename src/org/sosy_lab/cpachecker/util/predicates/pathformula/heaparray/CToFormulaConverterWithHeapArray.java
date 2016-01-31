@@ -125,9 +125,9 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   final FormulaEncodingWithPointerAliasingOptions options;
 
   private final Optional<VariableClassification> variableClassification;
-  private static final String UF_NAME_PREFIX = "*";
+  private static final String POINTER_NAME_PREFIX = "*";
   static final String FIELD_NAME_SEPARATOR = "$";
-  private static final Map<CType, String> ufNameCache = new IdentityHashMap<>();
+  private static final Map<CType, String> arrayNameCache = new IdentityHashMap<>();
 
   final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManagerHeapArray ptsMgr;
@@ -176,30 +176,30 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   }
 
   /**
-   * Returns the UF name for a C type.
+   * Returns the SMT formula array name for a C type.
    *
-   * @param pType The type to get an UF name for.
-   * @return The UF name for the type.
+   * @param pType The type to get an array name for.
+   * @return The array name for the type.
    */
-  public static String getUFName(final CType pType) {
-    String result = ufNameCache.get(pType);
+  public static String getArrayName(final CType pType) {
+    String result = arrayNameCache.get(pType);
     if (result != null) {
       return result;
     } else {
-      result = UF_NAME_PREFIX + CTypeUtils.typeToString(pType).replace(' ', '_');
-      ufNameCache.put(pType, result);
+      result = POINTER_NAME_PREFIX + CTypeUtils.typeToString(pType).replace(' ', '_');
+      arrayNameCache.put(pType, result);
       return result;
     }
   }
 
   /**
-   * Checks, whether a symbol is an UF or not.
+   * Checks, whether a symbol is an SMT array or not.
    *
    * @param pSymbol The name of the symbol.
-   * @return Whether the symbol is an UF or not.
+   * @return Whether the symbol is an array or not.
    */
-  public static boolean isUF(final String pSymbol) {
-    return pSymbol.startsWith(UF_NAME_PREFIX);
+  public static boolean isSMTArray(final String pSymbol) {
+    return pSymbol.startsWith(POINTER_NAME_PREFIX);
   }
 
   /**
@@ -320,7 +320,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final SSAMapBuilder pSSAMapBuilder) {
 
     pType = CTypeUtils.simplifyType(pType);
-    final String ufName = getUFName(pType);
+    final String ufName = getArrayName(pType);
     final int index = getIndex(ufName, pType, pSSAMapBuilder);
     final FormulaType<?> returnType = getFormulaTypeFromCType(pType);
     final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,

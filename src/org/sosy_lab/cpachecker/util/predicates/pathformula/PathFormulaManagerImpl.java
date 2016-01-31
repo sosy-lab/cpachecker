@@ -456,8 +456,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     if (useNondetFlags && symbolName.equals(NONDET_FLAG_VARIABLE)) {
       return makeSsaNondetFlagMerger(oldIndex, newIndex);
-    } else if (useArrayHeap && CToFormulaConverterWithHeapArray.isUF(symbolName)) {
-      assert symbolName.equals(CToFormulaConverterWithHeapArray.getUFName(symbolType));
+    } else if (useArrayHeap && CToFormulaConverterWithHeapArray.isSMTArray(symbolName)) {
+      assert symbolName.equals(CToFormulaConverterWithHeapArray.getArrayName(symbolType));
       return makeSsaArrayMerger(symbolName, symbolType, oldIndex, newIndex);
     } else if (CToFormulaConverterWithPointerAliasing.isUF(symbolName)) {
       assert symbolName.equals(CToFormulaConverterWithPointerAliasing.getUFName(symbolType));

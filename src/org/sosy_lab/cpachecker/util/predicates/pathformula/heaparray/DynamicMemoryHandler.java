@@ -404,7 +404,7 @@ class DynamicMemoryHandler {
       final CtoFormulaConverter pConverter) {
     return pFunctionName
         + "_"
-        + CToFormulaConverterWithHeapArray.getUFName(pType)
+        + CToFormulaConverterWithHeapArray.getArrayName(pType)
         + MALLOC_INDEX_SEPARATOR
         + pConverter.makeFreshIndex(pFunctionName, pType, pSSAMapBuilder);
   }
