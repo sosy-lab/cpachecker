@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
