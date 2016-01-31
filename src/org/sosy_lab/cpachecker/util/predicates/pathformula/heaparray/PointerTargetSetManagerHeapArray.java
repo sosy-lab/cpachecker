@@ -582,7 +582,6 @@ public class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(ufName + "@" + index,
         FormulaType.IntegerType, returnType);
     return afmgr.select(arrayFormula, pAddress);
-//    return ffmgr.declareAndCallUninterpretedFunction(ufName, index, returnType, address);
   }
 
   /**
