@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import java.util.Comparator;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -34,8 +37,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+public class DefaultOperator extends PartitioningWithBudgetOperator {
 
-public class DefaultOperator extends AbstractPartitioningOperator {
+  public DefaultOperator(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    super(pConfig, pLogger);
+  }
 
   @Override
   public Partitioning partition(
@@ -65,10 +71,11 @@ public class DefaultOperator extends AbstractPartitioningOperator {
     // If possible not equal to the last partitioning
     if (pLastCheckedPartitioning.getPartitions().equals(partitions)) {
       // Divide the partitioning into two halfs...
-      return create(PartitioningStatus.CHEAPEST_BISECT, bisectPartitons(partitions, pPropertyExpenseComparator));
+      return create(PartitioningStatus.CHEAPEST_BISECT, getBudgetingOperator(),
+          bisectPartitons(partitions, pPropertyExpenseComparator));
     }
 
-    return create(status, partitions);
+    return create(status, getBudgetingOperator(), partitions);
   }
 
 }

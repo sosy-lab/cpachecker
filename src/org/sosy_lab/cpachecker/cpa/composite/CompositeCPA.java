@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProvider, WrapperCPA, ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
@@ -312,6 +313,28 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
     }
     return null;
+  }
+
+  @Override
+  public <T extends ConfigurableProgramAnalysis> Collection<T> retrieveWrappedCpas(Class<T> pType) {
+    Builder<T> result = ImmutableList.builder();
+
+    if (pType.isAssignableFrom(getClass())) {
+      result.add(pType.cast(this));
+    }
+
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      if (pType.isAssignableFrom(cpa.getClass())) {
+        result.add(pType.cast(cpa));
+      } else if (cpa instanceof WrapperCPA) {
+        Collection<T> c = ((WrapperCPA)cpa).retrieveWrappedCpas(pType);
+        if (c != null) {
+          result.addAll(c);
+        }
+      }
+    }
+
+    return result.build();
   }
 
   @Override

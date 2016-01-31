@@ -26,8 +26,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -45,7 +49,9 @@ public class DefaultOperatorTest {
 
   @Before
   public void setUp() throws Exception {
-    op = new DefaultOperator();
+    Configuration config = TestDataTools.configurationForTest().build();
+    LogManager logger = TestLogManager.getInstance();
+    op = new DefaultOperator(config, logger);
 
     p1 = NamedProperty.create("p1");
     p2 = NamedProperty.create("p2");

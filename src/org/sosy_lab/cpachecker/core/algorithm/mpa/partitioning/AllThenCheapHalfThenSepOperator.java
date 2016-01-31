@@ -26,6 +26,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import java.util.Comparator;
 import java.util.Set;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -34,7 +38,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
-public class AllThenCheapHalfThenSepOperator extends AbstractPartitioningOperator {
+public class AllThenCheapHalfThenSepOperator extends PartitioningWithBudgetOperator {
+
+  public AllThenCheapHalfThenSepOperator(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
+    super(pConfig, pLogger);
+  }
 
   @Override
   public Partitioning partition(
@@ -47,11 +56,14 @@ public class AllThenCheapHalfThenSepOperator extends AbstractPartitioningOperato
 
     switch(pLastCheckedPartitioning.getStatus()) {
     case ALL_IN_ONE:
-      return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
+      return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, getBudgetingOperator(),
+          ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
     case NOT_EXHAUSTED_ONLY:
-      return create(PartitioningStatus.ONE_FOR_EACH, singletonPartitions(pToCheck, pPropertyExpenseComparator));
+      return create(PartitioningStatus.ONE_FOR_EACH, InfiniteBudgeting.INSTANCE,
+          singletonPartitions(pToCheck, pPropertyExpenseComparator));
     default:
-      return create(PartitioningStatus.ALL_IN_ONE, ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
+      return create(PartitioningStatus.ALL_IN_ONE, getBudgetingOperator(),
+          ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 
   }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
 
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import com.google.common.collect.ImmutableList;
@@ -54,5 +55,7 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
   public Partitioning withoutFirst();
 
   public ImmutableSet<Property> getFirstPartition();
+
+  public PropertyBudgeting getBudgeting();
 
 }

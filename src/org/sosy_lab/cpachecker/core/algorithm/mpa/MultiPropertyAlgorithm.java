@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonPrecisionAdjustment;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -172,7 +172,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     this.cpa = (ARGCPA) pCpa;
 
     this.initOperator = createInitOperator();
-    this.partitionOperator = createPartitioningOperator();
+    this.partitionOperator = createPartitioningOperator(pConfig, pLogger);
     this.interruptNotifier = pShutdownNotifier;
   }
 
@@ -180,8 +180,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     return Classes.createInstance(InitOperator.class, initOperatorClass, new Class[] { }, new Object[] { }, CPAException.class);
   }
 
-  private PartitioningOperator createPartitioningOperator() throws CPAException, InvalidConfigurationException {
-    return Classes.createInstance(PartitioningOperator.class, partitionOperatorClass, new Class[] { }, new Object[] { }, CPAException.class);
+  private PartitioningOperator createPartitioningOperator(Configuration pConfig, LogManager pLogger)
+      throws CPAException, InvalidConfigurationException {
+
+    return Classes.createInstance(PartitioningOperator.class, partitionOperatorClass,
+        new Class[] { Configuration.class, LogManager.class }, new Object[] { pConfig, pLogger }, CPAException.class);
   }
 
   private ImmutableSetMultimap<AbstractState, Property> identifyViolationsInRun(ReachedSet pReachedSet) {
@@ -316,6 +319,12 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
             StatCpuTimer timer = stats.pureAnalysisTime.start();
             try (StatCpuTimer t = Stats.startTimer("Pure Analysis Time")) {
 
+              // Update the budgeting strategy of the automaton CPA
+              Collection<ControlAutomatonCPA> automatonCPAs = CPAs.retrieveCPAs(cpa, ControlAutomatonCPA.class);
+              for (ControlAutomatonCPA cpa: automatonCPAs) {
+                cpa.setBudgeting(checkPartitions.getBudgeting());
+              }
+
               // Run the wrapped algorithm (for example, CEGAR)
               status = status.update(wrapped.run(pReachedSet));
 
@@ -445,8 +454,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
               logger.log(Level.INFO, "Disabled properties: " + disabledProperties.toString());
               logger.log(Level.INFO, "Satisfied properties: " + satisfied.toString());
               logger.log(Level.INFO, "Violated properties: " + violated.toString());
-
-              ControlAutomatonPrecisionAdjustment.hackyLimitFactor = ControlAutomatonPrecisionAdjustment.hackyLimitFactor * 2;
 
               checkPartitions = partition(lastPartitioning, remain, disabledProperties);
               lastPartitioning = checkPartitions;

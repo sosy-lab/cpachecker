@@ -24,17 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.PropertyStats;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -48,11 +43,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
-import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -60,29 +54,19 @@ import com.google.common.collect.Sets;
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
-  private final LogManager logger;
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
+
+  /**
+   *  We use {@link Supplier} because it should be possible
+   *  to have different strategies for one instance of the CPA;
+   *  this is used, for example, in context of verifying several properties.
+   */
+  private final Supplier<PropertyBudgeting> budgeting;
 
   @Option(secure=true, name="limit.violations",
       description="Handle at most k (> 0) violation of one property.")
   private int violationsLimit = 1;
-
-  @Option(secure=true, name="limit.avgRefineTime",
-      description="Disable a property after the avg. time for refinements was exhausted.")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-    defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
-  private TimeSpan avgRefineTimeLimit = TimeSpan.ofNanos(-1);
-
-  @Option(secure=true, name="limit.maxRefinements",
-      description="Disable a property after a specific number of refinements was exhausted.")
-  private int refinementsLimit = -1;
-
-  @Option(secure=true, name="limit.totalRefineTime",
-      description="Disable a property after a specific time (total) for refinements was exhausted.")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-    defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
-  private TimeSpan totalRefineTimeLimit = TimeSpan.ofNanos(-1);
 
   enum TargetStateVisitBehaviour {
     SIGNAL, // Signal the target state (default)
@@ -93,14 +77,12 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
 
   @Option(secure=true, description="Behaviour on a property for which the resources were exhausted.")
-  private Action onExhaustedAction = Action.CONTINUE;
-
-  public static int hackyLimitFactor = 1;
+  private Action onExhaustedBudget = Action.CONTINUE;
 
   public ControlAutomatonPrecisionAdjustment(
-      LogManager pLogger,
       Configuration pConfig,
       ControlAutomatonOptions pOptions,
+      Supplier<PropertyBudgeting> pBudgeting,
       AutomatonState pBottomState,
       AutomatonState pInactiveState)
           throws InvalidConfigurationException {
@@ -113,14 +95,9 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       throw new InvalidConfigurationException("Splitting to INACTIVE requires an adjustment of handled target states to either SIGNAL or BOTTOM!");
     }
 
-    this.logger = pLogger;
     this.bottomState = pBottomState;
     this.inactiveState = pInactiveState;
-  }
-
-  private int maxInfeasibleCexFor(Set<? extends Property> pProperties) {
-    ARGCPA argCpa = CPAs.retrieveCPA(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class);
-    return argCpa.getCexSummary().getMaxInfeasibleCexCountFor(pProperties);
+    this.budgeting = pBudgeting;
   }
 
   private void signalDisablingProperties(Set<? extends Property> pProperty) {
@@ -143,47 +120,12 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     return result;
   }
 
-  private boolean isBudgedExhausted(Property pProperty) {
-    final int activeRefinementLimit = refinementsLimit * hackyLimitFactor;
+  private boolean propertyBudgetExhausted(Property pProperty) {
+    int timesFeasible = feasibleViolationsOf(ImmutableSet.of(pProperty));
 
-    int timesHandled = feasibleViolationsOf(ImmutableSet.of(pProperty));
-    int maxInfeasibleCexs = maxInfeasibleCexFor(ImmutableSet.of(pProperty));
-
-    final boolean result =
-               (violationsLimit > 0
-                   && timesHandled >= violationsLimit) // the new state is the ith+1
-             || (activeRefinementLimit > 0
-                 && maxInfeasibleCexs >= activeRefinementLimit);
-
-    if (avgRefineTimeLimit.asMillis() > 0
-     || totalRefineTimeLimit.asMillis() > 0) {
-      try {
-        Optional<StatCpuTime> t = PropertyStats.INSTANCE.getRefinementTime(pProperty);
-        if (t.isPresent()) {
-          StatCpuTime s = t.get();
-          if (s.getIntervals() > 0) {
-            final long avgMsec = s.getCpuTimeSum().asMillis()  / s.getIntervals();
-            logger.logf(Level.INFO, "Precision refinement time (msec) for %s: %d avg, %d total",
-                pProperty.toString(), avgMsec, s.getCpuTimeSum().asMillis());
-
-            if (avgRefineTimeLimit.asMillis() > 0
-                && avgMsec > avgRefineTimeLimit.asMillis() * hackyLimitFactor) {
-              logger.log(Level.INFO, "Exhausted avg. refine. time of property " + pProperty.toString());
-              return true;
-            }
-
-            if (totalRefineTimeLimit.asMillis() > 0
-                && s.getCpuTimeSum().asMillis() > totalRefineTimeLimit.asMillis() * hackyLimitFactor) {
-              logger.log(Level.INFO, "Exhausted total refine. time of property " + pProperty.toString());
-              return true;
-            }
-          }
-        }
-      } catch (NoTimeMeasurement e) {
-      }
-    }
-
-    return result;
+    return (violationsLimit > 0
+                   && timesFeasible >= violationsLimit) // the new state is the ith+1
+        || budgeting.get().isBudgedExhausted(pProperty);
   }
 
   @Override
@@ -231,12 +173,11 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       //    We might disable certain target states
       //      (they should not be considered as target states)
       if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
-
         Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
         Set<SafetyProperty> exhausted = Sets.newHashSet();
 
         for (SafetyProperty p: violated) {
-          if (isBudgedExhausted(p)) {
+          if (propertyBudgetExhausted(p)) {
             exhausted.add(p);
           }
         }
@@ -247,7 +188,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
           return Optional.of(PrecisionAdjustmentResult.create(
               stateOnHandledTarget,
-              piPrime, onExhaustedAction));
+              piPrime, onExhaustedBudget));
         }
       }
     }

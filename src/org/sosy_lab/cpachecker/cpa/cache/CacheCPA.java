@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.cache;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -116,15 +117,26 @@ public class CacheCPA implements ConfigurableProgramAnalysis, WrapperCPA {
       Class<T> pType) {
     if (pType.isAssignableFrom(getClass())) {
       return pType.cast(this);
-    }
-
-    if (pType.isAssignableFrom(mCachedCPA.getClass())) {
+    } else if (pType.isAssignableFrom(mCachedCPA.getClass())) {
       return pType.cast(mCachedCPA);
     } else if (mCachedCPA instanceof WrapperCPA) {
       return ((WrapperCPA)mCachedCPA).retrieveWrappedCpa(pType);
     }
 
     return null;
+  }
+
+  @Override
+  public <T extends ConfigurableProgramAnalysis> Collection<T> retrieveWrappedCpas(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return ImmutableList.of(pType.cast(this));
+    } else if (pType.isAssignableFrom(mCachedCPA.getClass())) {
+      return ImmutableList.of(pType.cast(mCachedCPA));
+    } else if (mCachedCPA instanceof WrapperCPA) {
+      return ((WrapperCPA)mCachedCPA).retrieveWrappedCpas(pType);
+    } else {
+      return ImmutableList.of();
+    }
   }
 
   @Override

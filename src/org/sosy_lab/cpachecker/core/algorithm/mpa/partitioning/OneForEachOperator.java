@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import java.util.Comparator;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -39,7 +40,9 @@ public class OneForEachOperator extends AbstractPartitioningOperator {
       Comparator<Property> pPropertyExpenseComparator)
           throws PartitioningException {
 
-    return create(PartitioningStatus.ONE_FOR_EACH, singletonPartitions(pToCheck, pPropertyExpenseComparator));
+    return create(PartitioningStatus.ONE_FOR_EACH,
+        InfiniteBudgeting.INSTANCE,
+        singletonPartitions(pToCheck, pPropertyExpenseComparator));
   }
 
 }

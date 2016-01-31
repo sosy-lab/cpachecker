@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
@@ -91,9 +92,10 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
   }
 
   protected Partitioning create(final PartitioningStatus pStatus,
+      PropertyBudgeting pBudgeting,
       final ImmutableList<ImmutableSet<Property>> pPartitions) {
 
-    return Partitions.partitions(pStatus, pPartitions);
+    return Partitions.partitions(pStatus, pBudgeting, pPartitions);
   }
 
   protected ImmutableList<ImmutableSet<Property>> immutable(List<Set<Property>> pInput) {

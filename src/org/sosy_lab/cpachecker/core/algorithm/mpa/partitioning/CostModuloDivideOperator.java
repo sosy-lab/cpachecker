@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -66,7 +67,9 @@ public class CostModuloDivideOperator extends AbstractPartitioningOperator {
       partitions.get(targetPartitionIndex).add(propertiesByCost.get(rank));
     }
 
-    return Partitions.partitions(PartitioningStatus.MORE_PARTITIONS, immutable(partitions));
+    return Partitions.partitions(PartitioningStatus.MORE_PARTITIONS,
+        InfiniteBudgeting.INSTANCE, // The expense comparison and the partitioning is responsible for this.
+        immutable(partitions));
   }
 
 }

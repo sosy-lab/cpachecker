@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
@@ -36,19 +38,25 @@ import com.google.common.collect.Sets;
 
 public class Partitions implements Partitioning {
 
+  private final PropertyBudgeting budgeting;
   private final PartitioningStatus status;
   private final ImmutableList<ImmutableSet<Property>> partitions;
 
-  public static Partitions partitions(PartitioningStatus pStatus, ImmutableList<ImmutableSet<Property>> pPartitions) {
-    return new Partitions(pStatus, pPartitions);
+  public static Partitions partitions(PartitioningStatus pStatus,
+      PropertyBudgeting pBudgeting,
+      ImmutableList<ImmutableSet<Property>> pPartitions) {
+    return new Partitions(pStatus, pBudgeting, pPartitions);
   }
 
   public static Partitions none() {
-    return new Partitions(PartitioningStatus.NONE, ImmutableList.<ImmutableSet<Property>>of());
+    return new Partitions(PartitioningStatus.NONE, InfiniteBudgeting.INSTANCE,
+        ImmutableList.<ImmutableSet<Property>>of());
   }
 
-  private Partitions(PartitioningStatus pStatus, ImmutableList<ImmutableSet<Property>> pPartitions) {
+  private Partitions(PartitioningStatus pStatus, PropertyBudgeting pBudgeting,
+      ImmutableList<ImmutableSet<Property>> pPartitions) {
     status = Preconditions.checkNotNull(pStatus);
+    budgeting = Preconditions.checkNotNull(pBudgeting);
     partitions = Preconditions.checkNotNull(pPartitions);
   }
 
@@ -83,14 +91,13 @@ public class Partitions implements Partitioning {
 
   @Override
   public Partitioning substract(Set<Property> pProperties) {
-
     ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
 
     for (ImmutableSet<Property> p: partitions) {
       result.add(ImmutableSet.<Property>copyOf(Sets.difference(p, pProperties)));
     }
 
-    return partitions(getStatus(), result.build());
+    return partitions(getStatus(), getBudgeting(), result.build());
   }
 
   @Override
@@ -136,7 +143,9 @@ public class Partitions implements Partitioning {
   public Partitioning withoutFirst() {
     Preconditions.checkState(!this.isEmpty());
 
-    return new Partitions(this.status, this.partitions.subList(1, this.partitions.size()));
+    return new Partitions(status,
+        budgeting, // We keep the same budget here!
+        partitions.subList(1, partitions.size()));
   }
 
   @Override
@@ -163,6 +172,11 @@ public class Partitions implements Partitioning {
     }
     result.append("]");
     return result.toString();
+  }
+
+  @Override
+  public PropertyBudgeting getBudgeting() {
+    return budgeting;
   }
 
 }

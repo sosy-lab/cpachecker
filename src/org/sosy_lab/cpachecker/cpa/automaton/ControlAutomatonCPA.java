@@ -29,6 +29,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 
+import javax.annotation.Nonnull;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -46,6 +48,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.BreakOnTargetsPrecisionAdjustment;
@@ -70,6 +74,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
@@ -136,6 +141,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   private final Statistics stats = new AutomatonStatistics(this);
 
+  @Nonnull private PropertyBudgeting budgeting;
+
   private final CFA cfa;
   private final LogManager logger;
 
@@ -152,6 +159,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     this.inactiveState = new AutomatonState.INACTIVE(this);
     this.automatonDomain = new AutomatonDomain(topState, inactiveState);
     this.stopOperator = new AutomatonStopOperator(automatonDomain);
+
+    budgeting = InfiniteBudgeting.INSTANCE;
 
     this.transferRelation = new AutomatonTransferRelation(this, pLogger, inactiveState, options);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
@@ -201,7 +210,15 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
       throws InvalidConfigurationException {
 
-    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(logger, pConfig, options, bottomState, inactiveState);
+    Supplier<PropertyBudgeting> supplier = new Supplier<PropertyBudgeting>() {
+      @Override
+      public PropertyBudgeting get() {
+        return budgeting;
+      }
+    };
+
+    PrecisionAdjustment result = new ControlAutomatonPrecisionAdjustment(pConfig, options,
+        supplier, bottomState, inactiveState);
 
     if (options.breakOnTargetState > 0) {
       final int pFoundTargetLimit = options.breakOnTargetState;
@@ -297,5 +314,9 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   boolean isTreatingErrorsAsTargets() {
     return options.treatErrorsAsTargets;
+  }
+
+  public void setBudgeting(PropertyBudgeting pBudgeting) {
+    budgeting = pBudgeting;
   }
 }

@@ -190,6 +190,16 @@ analysis.machineModel = LINUX32
 # analysis
 analysis.memorizeReachedAfterRestart = false
 
+# Disable a property after the avg. time for refinements was exhausted.
+analysis.mpa.budget.limit.avgRefineTime = -1ns
+
+# Disable a property after a specific number of refinements was exhausted.
+analysis.mpa.budget.limit.numRefinements = -1
+
+# Disable a property after a specific time (total) for refinements was
+# exhausted.
+analysis.mpa.budget.limit.totalRefineTime = -1ns
+
 # Operator for initializing the waitlist after the partitioning of properties
 # was performed.
 analysis.mpa.initOperatorClass = InitDefaultOperator.class
@@ -392,6 +402,9 @@ bmc.havocLoopTerminationConditionVariablesOnly = false
 
 # try using induction to verify programs with loops
 bmc.induction = false
+
+# Operator that defines the (remaining) budget for a property.
+budgeting.operator = DefaultPropertyBudgeting.class
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
@@ -795,21 +808,11 @@ cpa.automaton.inputFile = no default value
 # Merge two automata states if one of them is TOP.
 cpa.automaton.merge.onTop = false
 
-# Disable a property after the avg. time for refinements was exhausted.
-cpa.automaton.prec.limit.avgRefineTime = -1ns
-
-# Disable a property after a specific number of refinements was exhausted.
-cpa.automaton.prec.limit.maxRefinements = -1
-
-# Disable a property after a specific time (total) for refinements was
-# exhausted.
-cpa.automaton.prec.limit.totalRefineTime = -1ns
-
 # Handle at most k (> 0) violation of one property.
 cpa.automaton.prec.limit.violations = 1
 
 # Behaviour on a property for which the resources were exhausted.
-cpa.automaton.prec.onExhaustedAction = CONTINUE
+cpa.automaton.prec.onExhaustedBudget = CONTINUE
   enum:     [CONTINUE, BREAK]
 
 # Behaviour on a property that has already been fully handled.

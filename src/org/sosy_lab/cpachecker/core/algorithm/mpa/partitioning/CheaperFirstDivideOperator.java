@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -63,7 +64,9 @@ public class CheaperFirstDivideOperator extends AbstractPartitioningOperator {
       newPartitions = bisectPartitons(newPartitions, pPropertyExpenseComparator);
     }
 
-    return Partitions.partitions(PartitioningStatus.MORE_PARTITIONS, newPartitions);
+    return Partitions.partitions(PartitioningStatus.MORE_PARTITIONS,
+        InfiniteBudgeting.INSTANCE, // The expense comparison and the partitioning is responsible for this.
+        newPartitions);
   }
 
 }

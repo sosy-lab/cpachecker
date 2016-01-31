@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
+import java.util.Collection;
+
 /**
  * Interface for classes that are wrapping CPAs
  * (like composite CPAs)
@@ -41,6 +43,7 @@ public interface WrapperCPA {
    * @return An instance of an element with type T or null if there is none.
    */
   public <T extends ConfigurableProgramAnalysis> T retrieveWrappedCpa(Class<T> type);
+  public <T extends ConfigurableProgramAnalysis> Collection<T> retrieveWrappedCpas(Class<T> type);
 
   /**
    * Retrieve all wrapped CPAs contained directly in this object (not recursively).
