@@ -36,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.sosy_lab.common.Appender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -469,6 +470,10 @@ public class TestSuite extends AlgorithmResult {
 
   public int size() {
     return getTestCases().size();
+  }
+
+  public Appender dumpRegion(Region region) {
+    return bddCpaNamedRegionManager.dumpRegion(region);
   }
 
 }
