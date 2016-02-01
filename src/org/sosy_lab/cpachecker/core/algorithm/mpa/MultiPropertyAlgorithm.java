@@ -137,6 +137,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     final StatCpuTime pureAnalysisTime = new StatCpuTime();
     final List<Integer> reachedStates = Lists.newArrayList();
     final List<Integer> reachedStatesWithFixpoint = Lists.newArrayList();
+    final List<Integer> reachedStatesForRelPropsWithFixpoint = Lists.newArrayList();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
@@ -158,7 +159,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
       // Statistics on the reached-sets
       final String fpOnly = "(fix-points only)";
-      final String fpAlso = "(including fix-points)";
+      final String fpRelPropsOnly = "(fix-points with relevant props. only)";
+      final String fpAlso = "(exhausted only)";
 
       put(pOut, 0, "Statistics on the set 'reached' " + fpOnly);
       printStatisticsOnReachedStates(pOut, 1, fpOnly, reachedStatesWithFixpoint);
@@ -166,6 +168,10 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
       put(pOut, 0, "Statistics on the set 'reached' " + fpAlso);
       printStatisticsOnReachedStates(pOut, 1, fpAlso, reachedStates);
+      pOut.println("");
+
+      put(pOut, 0, "Statistics on the set 'reached' " + fpRelPropsOnly);
+      printStatisticsOnReachedStates(pOut, 1, fpRelPropsOnly, reachedStatesForRelPropsWithFixpoint);
       pOut.println("");
     }
 
@@ -475,6 +481,9 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
             logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s. %d properties remain to be checked.", reachedSetSize, active.toString(), remain.size());
             Preconditions.checkState(reachedSetSize >= 10, "The set reached has too few states for a correct analysis run! Bug?");
             stats.reachedStatesWithFixpoint.add(reachedSetSize);
+            if (Sets.intersection(relevant, runProperties).size() > 0) {
+              stats.reachedStatesForRelPropsWithFixpoint.add(reachedSetSize);
+            }
 
           } else {
             // The analysis terminated because it ran out of resources
