@@ -135,6 +135,8 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     int numberOfRestarts = 0;
     int numberOfPartitionExhaustions = 0;
     final StatCpuTime pureAnalysisTime = new StatCpuTime();
+    final List<Integer> reachedStates = Lists.newArrayList();
+    final List<Integer> reachedStatesWithFixpoint = Lists.newArrayList();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
@@ -143,14 +145,54 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       put(pOut, 0, "Number of restarts", numberOfRestarts);
       put(pOut, 0, "Number of exhaustions", numberOfPartitionExhaustions);
       put(pOut, 0, "Number of analysis runs", pureAnalysisTime.getIntervals());
+      pOut.println("");
 
       try {
         put(pOut, 0, "Min. analysis run CPU time", pureAnalysisTime.getMinCpuTimeSum().formatAs(TimeUnit.SECONDS));
         put(pOut, 0, "Max. analysis run CPU time", pureAnalysisTime.getMaxCpuTimeSum().formatAs(TimeUnit.SECONDS));
         put(pOut, 0, "Avg. analysis run CPU time", pureAnalysisTime.getAvgCpuTimeSum().formatAs(TimeUnit.SECONDS));
         put(pOut, 0, "Total analysis run CPU time", pureAnalysisTime.getCpuTimeSum().formatAs(TimeUnit.SECONDS));
+        pOut.println("");
       } catch (NoTimeMeasurement e) {
       }
+
+      // Statistics on the reached-sets
+      final String fpOnly = "(fix-points only)";
+      final String fpAlso = "(including fix-points)";
+
+      put(pOut, 0, "Statistics on the set 'reached' " + fpOnly);
+      printStatisticsOnReachedStates(pOut, 1, fpOnly, reachedStatesWithFixpoint);
+      pOut.println("");
+
+      put(pOut, 0, "Statistics on the set 'reached' " + fpAlso);
+      printStatisticsOnReachedStates(pOut, 1, fpAlso, reachedStates);
+      pOut.println("");
+    }
+
+    private void printStatisticsOnReachedStates(PrintStream pOut, int pLevel, String pStatPostfix,
+        List<Integer> pReachedStates) {
+
+        int maxStates = Integer.MIN_VALUE;
+        int minStates = Integer.MAX_VALUE;
+        int totalStates = 0;
+        int setCount = 0;
+
+        for (Integer numStates: pReachedStates) {
+          setCount = setCount + 1;
+          totalStates = totalStates + numStates;
+          maxStates = Math.max(maxStates, numStates);
+          minStates = Math.min(minStates, numStates);
+        }
+
+        if (setCount > 0) {
+          int setRange = maxStates - minStates;
+          int avgStates = totalStates / setCount;
+          put(pOut, pLevel, "Number of sets" + " " + pStatPostfix, setCount);
+          put(pOut, pLevel, "Max. states reached" + " " + pStatPostfix, maxStates);
+          put(pOut, pLevel, "Min. states reached" + " " + pStatPostfix, minStates);
+          put(pOut, pLevel, "Range of states reached" + " " + pStatPostfix, setRange);
+          put(pOut, pLevel, "Avg. states reached" + " " + pStatPostfix, avgStates);
+        }
     }
   }
 
@@ -428,8 +470,11 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
             Set<Property> remain = remaining(all, violated, satisfied, exhausted);
 
-            logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s. %d properties remain to be checked.", pReachedSet.size(), active.toString(), remain.size());
-            Preconditions.checkState(pReachedSet.size() >= 10, "The set reached has too few states for a correct analysis run! Bug?");
+            // On the size of the set 'reached' (assertions and statistics)
+            final Integer reachedSetSize = pReachedSet.size();
+            logger.logf(Level.INFO, "Fixpoint with %d states reached for: %s. %d properties remain to be checked.", reachedSetSize, active.toString(), remain.size());
+            Preconditions.checkState(reachedSetSize >= 10, "The set reached has too few states for a correct analysis run! Bug?");
+            stats.reachedStatesWithFixpoint.add(reachedSetSize);
 
           } else {
             // The analysis terminated because it ran out of resources
@@ -440,6 +485,10 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
             // The partitioning must take care that we verify
             //  smaller (or other) partitions in the next run!
+
+            // Statistics
+            final Integer reachedSetSize = pReachedSet.size();
+            stats.reachedStates.add(reachedSetSize);
           }
 
           // A new partitioning must be computed.

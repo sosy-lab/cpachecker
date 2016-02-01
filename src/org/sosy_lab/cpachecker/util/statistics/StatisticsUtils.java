@@ -52,6 +52,13 @@ public class StatisticsUtils {
   }
 
   public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
+      String text) {
+    String indentation = Strings.repeat("  ", indentLevel);
+    target.println(String.format("%-" + outputNameColWidth + "s",
+                                 indentation + text));
+  }
+
+  public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
       AbstractStatValue stat) {
     write(target, indentLevel, outputNameColWidth, stat.getTitle(), stat.toString());
   }

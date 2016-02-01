@@ -51,16 +51,20 @@ public abstract class AbstractStatistics implements Statistics {
    * @param name        Left hand side (name/description)
    * @param value       Right hand side (value)
    */
-  protected void put(PrintStream target, int indentLevel, String name, Object value) {
-    StatisticsUtils.write(target, indentLevel, outputNameColWidth, name, value);
+  protected void put(PrintStream pTarget, int indentLevel, String name, Object value) {
+    StatisticsUtils.write(pTarget, indentLevel, outputNameColWidth, name, value);
   }
 
-  protected void put(PrintStream target, int indentLevel, AbstractStatValue stat) {
-    StatisticsUtils.write(target, indentLevel, outputNameColWidth, stat);
+  protected void put(PrintStream pTarget, int indentLevel, AbstractStatValue stat) {
+    StatisticsUtils.write(pTarget, indentLevel, outputNameColWidth, stat);
   }
 
   protected void put(PrintStream pTarget, String pName, Object pValue) {
     put(pTarget, 0, pName, pValue);
+  }
+
+  protected void put(PrintStream pTarget, int indentLevel, String pName) {
+    StatisticsUtils.write(pTarget, indentLevel, outputNameColWidth, pName);
   }
 
   public void addKeyValueStatistic(final String pName, final Object pValue) {
