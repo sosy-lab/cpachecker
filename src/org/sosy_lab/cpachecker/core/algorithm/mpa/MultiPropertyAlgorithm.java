@@ -422,7 +422,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
             // Properties that are (1) still active
             //  and (2) for that no counterexample was found are considered to be save!
-            SetView<Property> active = Sets.difference(all,
+            Set<Property> active = Sets.difference(all,
                 Sets.union(violated, getInactiveProperties(pReachedSet)));
             satisfied.addAll(active);
 
