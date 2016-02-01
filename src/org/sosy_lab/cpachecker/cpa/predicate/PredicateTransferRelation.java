@@ -110,6 +110,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
+  @Option(secure=true, description = "Compute abstractions after introducing an assumption.")
+  private boolean blockEndsAfterAssumption = false;
+
   @Option(secure=true, description = "do not include assumptions of states into path formula during strengthening")
   private boolean ignoreStateAssumptions = false;
 
@@ -377,6 +380,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     strengthenTimer.start();
     try {
 
+      CFANode succLoc = getAnalysisSuccesor(edge);
+
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       if (element.isAbstractionState()) {
         // can't do anything with this object because the path formula of
@@ -402,7 +407,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(succLoc, element, (AbstractStateWithAssumptions) lElement);
         }
 
 
@@ -582,7 +587,13 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (pf != pElement.getPathFormula()) {
-      return replacePathFormula(pElement, pf);
+      if (blockEndsAfterAssumption) {
+        return new PredicateAbstractState.ComputeAbstractionState(
+          pf, pElement.getAbstractionFormula(), pNode,
+          pElement.getAbstractionLocationsOnPath());
+      } else {
+        return replacePathFormula(pElement, pf);
+      }
     } else {
       return pElement;
     }
