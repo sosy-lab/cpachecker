@@ -28,9 +28,16 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.solver.SolverException;
+import org.sosy_lab.solver.api.BooleanFormula;
 
 public class TigerTestHelper {
 
@@ -38,7 +45,7 @@ public class TigerTestHelper {
       File propertiesFile) {
     Map<String, String> configuration = new HashMap<>();
 
-    try(BufferedReader reader = new BufferedReader(new FileReader(propertiesFile))) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(propertiesFile))) {
       String line = null;
       while ((line = reader.readLine()) != null) {
         line = line.trim();
@@ -56,7 +63,8 @@ public class TigerTestHelper {
           }
 
           configuration.putAll(getConfigurationFromPropertiesFile(
-              new File(propertiesFile.getPath().substring(0,propertiesFile.getPath().lastIndexOf(File.separator)) + "/" + pair[1])));
+              new File(propertiesFile.getPath().substring(0,
+                  propertiesFile.getPath().lastIndexOf(File.separator)) + "/" + pair[1])));
         }
 
         String[] pair = line.split("=");
@@ -84,7 +92,7 @@ public class TigerTestHelper {
   public static TestSuite getTestSuiteFromFile(File pFile, boolean pUseTigerAlgorithm_with_pc) {
     TestSuite testSuite = new TestSuite(null, false, pUseTigerAlgorithm_with_pc);
 
-    try(BufferedReader reader = new BufferedReader(new FileReader(pFile))) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(pFile))) {
       String line = null;
       boolean testCaseFound = false;
 
@@ -99,6 +107,78 @@ public class TigerTestHelper {
     }
 
     return testSuite;
+  }
+
+  public static boolean validPresenceConditions(TestSuite pTestSuite,
+      List<Pair<String, String>> pExpectedTestSuite, String pFm)
+          throws InvalidConfigurationException, SolverException, InterruptedException {
+    SolverHelper helper = new SolverHelper();
+    BooleanFormula fm = helper.parseFormula(pFm);
+
+    for (Goal goal : pTestSuite.getGoals()) {
+      if (pTestSuite.isGoalCovered(goal)) {
+        // goal is (partially) feasible
+        Pair<String, String> expectedGoal = getGoalFromExpectedTestSuite(goal, pExpectedTestSuite);
+        if (expectedGoal == null) { return false; }
+        BooleanFormula expectedPresenceCondition = helper.parseFormula(expectedGoal.getSecond());
+
+        Region goalCoverage = pTestSuite.getGoalCoverage(goal);
+        BooleanFormula goalPresenceCondition = null;
+        if (goalCoverage == null) {
+          goalPresenceCondition =
+              helper.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
+        } else {
+          goalPresenceCondition =
+              helper.parseFormula(pTestSuite.dumpRegion(goalCoverage).toString());
+        }
+
+        if (fm != null) {
+          expectedPresenceCondition =
+              helper.getFormulaManager().getBooleanFormulaManager().and(expectedPresenceCondition, fm);
+          goalPresenceCondition =
+              helper.getFormulaManager().getBooleanFormulaManager().and(goalPresenceCondition, fm);
+        }
+
+        if (!helper.equivalent(expectedPresenceCondition, goalPresenceCondition)) { return false; }
+      }
+
+      if (pTestSuite.isGoalInfeasible(goal)) {
+        // goal is (partially) infeasible
+        Pair<String, String> expectedGoal = getGoalFromExpectedTestSuite(goal, pExpectedTestSuite);
+        if (expectedGoal == null) { return false; }
+
+        BooleanFormula expectedPresenceCondition = helper.parseFormula(expectedGoal.getSecond());
+        expectedPresenceCondition = helper.getFormulaManager().getBooleanFormulaManager().not(expectedPresenceCondition);
+
+        Region goalCoverage = pTestSuite.getInfeasiblePresenceCondition(goal);
+        BooleanFormula goalPresenceCondition = null;
+        if (goalCoverage == null) {
+          goalPresenceCondition =
+              helper.getFormulaManager().getBooleanFormulaManager().makeBoolean(false);
+        } else {
+          goalPresenceCondition = helper.parseFormula(pTestSuite.dumpRegion(goalCoverage).toString());
+        }
+
+        if (fm != null) {
+          expectedPresenceCondition =
+              helper.getFormulaManager().getBooleanFormulaManager().and(expectedPresenceCondition, fm);
+          goalPresenceCondition =
+              helper.getFormulaManager().getBooleanFormulaManager().and(goalPresenceCondition, fm);
+        }
+
+        if (!helper.equivalent(expectedPresenceCondition, goalPresenceCondition)) { return false; }
+      }
+    }
+
+    return true;
+  }
+
+  private static Pair<String, String> getGoalFromExpectedTestSuite(Goal pGoal,
+      List<Pair<String, String>> pExpectedTestSuite) {
+    for (Pair<String, String> pair : pExpectedTestSuite) {
+      if (pGoal.getName().equals(pair.getFirst())) { return pair; }
+    }
+    return null;
   }
 
 }

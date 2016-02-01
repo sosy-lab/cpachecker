@@ -82,6 +82,9 @@ public class SolverHelper {
   }
 
   public BooleanFormula parseFormula(String formula) {
+    if (formula == null) {
+      return null;
+    }
     return PresenceConditionParser.parseFormula(formula, fmgr.getBooleanFormulaManager());
   }
 

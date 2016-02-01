@@ -27,14 +27,16 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
+import org.junit.BeforeClass;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.Timeout;
 import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
@@ -42,8 +44,41 @@ import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
 public class TigerTest {
 
-  @Rule
-  public Timeout globalTimeout = Timeout.seconds(20); // 10 seconds max per method tested
+//  @Rule
+//  public Timeout globalTimeout = Timeout.seconds(20); // 10 seconds max per method tested
+
+  public static List<Pair<String, String>> miniExampleTS = null;
+  public static List<Pair<String, String>> exampleTS = null;
+  public static List<Pair<String, String>> miniFaseTS = null;
+  public static List<Pair<String, String>> faseTS = null;
+
+  public static String miniFaseFm = "__SELECTED_FEATURE_PLUS";
+  public static String faseFm = "__SELECTED_FEATURE_FOOBAR_SPL  &  (!__SELECTED_FEATURE_FOOBAR_SPL  |  __SELECTED_FEATURE_COMP)  &  (!__SELECTED_FEATURE_FOOBAR_SPL  |  __SELECTED_FEATURE_OP)  &  (!__SELECTED_FEATURE_COMP  |  __SELECTED_FEATURE_FOOBAR_SPL)  &  (!__SELECTED_FEATURE_OP  |  __SELECTED_FEATURE_FOOBAR_SPL)  &  (!__SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_FOOBAR_SPL)  &  (!__SELECTED_FEATURE_COMP  |  __SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_GR)  &  (!__SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_COMP)  &  (!__SELECTED_FEATURE_GR  |  __SELECTED_FEATURE_COMP)  &  (!__SELECTED_FEATURE_LE  |  !__SELECTED_FEATURE_GR)  &  (!__SELECTED_FEATURE_OP  |  __SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_MINUS)  &  (!__SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_OP)  &  (!__SELECTED_FEATURE_MINUS  |  __SELECTED_FEATURE_OP)  &  (!__SELECTED_FEATURE_PLUS  |  !__SELECTED_FEATURE_MINUS)  &  (!__SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_MINUS)  &  (__SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_GR  |  __SELECTED_FEATURE_MINUS  |  TRUE)";
+
+  @BeforeClass
+  public static void initializeExpectedTestSuites() {
+    miniExampleTS = new ArrayList<>();
+    miniExampleTS.add(Pair.of("G1", "true"));
+
+    exampleTS = new ArrayList<>();
+    exampleTS.add(Pair.of("G1", "true"));
+    exampleTS.add(Pair.of("G2", "false"));
+    exampleTS.add(Pair.of("G3", "true"));
+    exampleTS.add(Pair.of("G4", "true"));
+    exampleTS.add(Pair.of("G5", "true"));
+
+    miniFaseTS = new ArrayList<>();
+    miniFaseTS.add(Pair.of("G1", "true"));
+
+    faseTS = new ArrayList<>();
+    faseTS.add(Pair.of("G1", "__SELECTED_FEATURE_PLUS"));
+    faseTS.add(Pair.of("G2", "__SELECTED_FEATURE_MINUS"));
+    faseTS.add(Pair.of("G3", "__SELECTED_FEATURE_MINUS & __SELECTED_FEATURE_NOTNEGATIVE"));
+    faseTS.add(Pair.of("G4", "__SELECTED_FEATURE_GR"));
+    faseTS.add(Pair.of("G5", "__SELECTED_FEATURE_GR"));
+    faseTS.add(Pair.of("G6", "__SELECTED_FEATURE_LE"));
+    faseTS.add(Pair.of("G7", "__SELECTED_FEATURE_LE"));
+  }
 
   /*
    * Test various configurations - variants
@@ -76,6 +111,9 @@ public class TigerTest {
     assertTrue(testSuite.getNumberOfFeasibleTestGoals() == 1);
     assertTrue(testSuite.getNumberOfInfeasibleTestGoals() == 0);
     assertTrue(testSuite.getNumberOfTimedoutTestGoals() == 0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -106,6 +144,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -135,6 +176,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -164,6 +208,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -194,6 +241,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -223,6 +273,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /**
@@ -253,6 +306,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniExampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniExampleTS, null));
   }
 
   /*
@@ -275,7 +331,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -286,6 +343,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
   }
 
   /**
@@ -306,7 +366,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "true");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -317,6 +378,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
   }
 
   /**
@@ -329,7 +393,7 @@ public class TigerTest {
   public void variants_powerset_example()
       throws Exception {
 
-    Map<String,     String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
         new File("config/tiger-variants.properties"));
     prop.put("cpa.arg.dumpAfterIteration", "false");
     prop.put("cpa.predicate.targetStateSatCheck", "false");
@@ -338,7 +402,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -348,11 +413,15 @@ public class TigerTest {
 
     TestRunStatisticsParser stat = new TestRunStatisticsParser();
     results.getCheckerResult().printStatistics(stat.getPrintStream());
-    stat.assertThatNumber("Number of feasible test goals").isEqualTo(testSuite.getNumberOfFeasibleTestGoals());
+    stat.assertThatNumber("Number of feasible test goals")
+        .isEqualTo(testSuite.getNumberOfFeasibleTestGoals());
 
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
   }
 
   /**
@@ -371,7 +440,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -382,6 +452,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
   }
 
   /**
@@ -402,7 +475,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "true");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -413,6 +487,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
   }
 
   /**
@@ -432,7 +509,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/products/example.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -443,6 +521,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(4);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == exampleTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, exampleTS, null));
   }
 
   /*
@@ -476,6 +557,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -506,6 +590,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -535,6 +622,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(0);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -564,6 +654,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -594,6 +687,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -614,7 +710,8 @@ public class TigerTest {
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
     prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))).\"EDGES(ID)*\"");
 
-    TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c", true);
+    TestResults results =
+        CPATestRunner.run(prop, "test/programs/tiger/simulator/mini_FASE2015.c", true);
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
 
     assertThat(result).isInstanceOf(TestSuite.class);
@@ -623,6 +720,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == miniFaseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, miniFaseTS, miniFaseFm));
   }
 
   /**
@@ -641,7 +741,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -652,6 +753,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -671,7 +775,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "true");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -682,6 +787,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -700,7 +808,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -711,6 +820,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -729,7 +841,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -740,6 +853,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -759,7 +875,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "true");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -770,6 +887,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
   }
 
   /**
@@ -788,7 +908,8 @@ public class TigerTest {
     prop.put("tiger.useAutomataCrossProduct", "false");
     prop.put("tiger.checkCoverage", "true");
     prop.put("tiger.allCoveredGoalsPerTestCase", "false");
-    prop.put("tiger.fqlQuery", "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))+EDGES(@LABEL(G5))+EDGES(@LABEL(G6))+EDGES(@LABEL(G7))).\"EDGES(ID)*\"");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/tiger/simulator/FASE2015.c");
     AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
@@ -799,6 +920,9 @@ public class TigerTest {
     assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(7);
     assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+
+    assertTrue(testSuite.getGoals().size() == faseTS.size());
+    assertTrue(TigerTestHelper.validPresenceConditions(testSuite, faseTS, faseFm));
   }
 
 }

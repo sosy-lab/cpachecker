@@ -1,6 +1,6 @@
 extern int __VERIFIER_nondet_int();
 
-int __SELECTED_FEATURE_FOOBAR_SPL = 1;
+int __SELECTED_FEATURE_FOOBAR_SPL;
 int __SELECTED_FEATURE_LE;
 int __SELECTED_FEATURE_GR;
 int __SELECTED_FEATURE_PLUS;
@@ -48,6 +48,7 @@ int main() {
 	int y = __VERIFIER_nondet_int();
 	int z = __VERIFIER_nondet_int();
 
+	__SELECTED_FEATURE_FOOBAR_SPL = __VERIFIER_nondet_int();
 	__SELECTED_FEATURE_GR = __VERIFIER_nondet_int();
 	__SELECTED_FEATURE_LE = __VERIFIER_nondet_int();
 	__SELECTED_FEATURE_MINUS = __VERIFIER_nondet_int();

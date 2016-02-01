@@ -394,6 +394,10 @@ public class TestSuite extends AlgorithmResult {
    * Summarizes the presence conditions of tests in this testsuite that cover the parameter test goal.
    */
   public Region getGoalCoverage(Goal pGoal) {
+    if (bddCpaNamedRegionManager == null) {
+      return null;
+    }
+
     Region totalCoverage = bddCpaNamedRegionManager.makeFalse();
     for (Entry<TestCase, List<Goal>> entry : this.mapping.entrySet()) {
       if (entry.getValue().contains(pGoal)) {
