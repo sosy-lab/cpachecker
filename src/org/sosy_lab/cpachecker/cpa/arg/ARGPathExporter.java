@@ -649,21 +649,6 @@ public class ARGPathExporter {
       return result;
     }
 
-    private void appendKeyDefinitions(GraphMlBuilder pDoc) {
-      EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
-      pDoc.appendNewKeyDef(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text);
-      keyDefs.remove(KeyDef.NODETYPE);
-      pDoc.appendNewKeyDef(KeyDef.ORIGINFILE, defaultSourcefileName);
-      keyDefs.remove(KeyDef.ORIGINFILE);
-      for (NodeFlag f : NodeFlag.values()) {
-        keyDefs.remove(f.key);
-        pDoc.appendNewKeyDef(f.key, "false");
-      }
-      for (KeyDef keyDef : keyDefs) {
-        pDoc.appendNewKeyDef(keyDef, null);
-      }
-    }
-
     /**
      * Starting from the given initial ARG state, collects that state and all
      * transitive successors (as defined by the successor function) that are
@@ -788,39 +773,34 @@ public class ARGPathExporter {
 
       GraphMlBuilder doc;
       try {
-        doc = new GraphMlBuilder(pTarget);
+        doc =
+            new GraphMlBuilder(
+                graphType,
+                defaultSourcefileName,
+                language,
+                machineModel,
+                hackyOptions.handlePointerAliasing ? "precise" : "simple",
+                FluentIterable.from(hackyOptions.propertyFiles)
+                    .transform(
+                        new Function<Path, String>() {
+
+                          @Override
+                          public String apply(Path pArg0) {
+                            try {
+                              return pArg0.asCharSource(Charsets.UTF_8).read().trim();
+                            } catch (IOException e) {
+                              logger.logUserException(
+                                  Level.WARNING, e, "Could not export specification to witness.");
+                              return "Unknown specification";
+                            }
+                          }
+                        }),
+                hackyOptions.programs);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
 
-      // TODO: Full schema details
-      // Version of format..
-      // TODO! (we could use the version of a XML schema)
-
-      // ...
       String entryStateNodeId = pGraphBuilder.getId(pRootState);
-
-      doc.appendDocHeader();
-      appendKeyDefinitions(doc);
-      doc.appendGraphHeader(
-          graphType,
-          language,
-          FluentIterable.from(hackyOptions.propertyFiles).transform(new Function<Path, String>() {
-
-            @Override
-            public String apply(Path pArg0) {
-              try {
-                return pArg0.asCharSource(Charsets.UTF_8).read().trim();
-              } catch (IOException e) {
-                logger.logUserException(Level.WARNING, e, "Could not export specification to witness.");
-                return "Unknown specification";
-              }
-            }
-
-          }),
-          hackyOptions.programs,
-          hackyOptions.handlePointerAliasing ? "precise" : "simple",
-          machineModel);
 
       // Collect node flags in advance
       for (ARGState s : collectPathNodes(pRootState, successorFunction, pIsRelevantState)) {
@@ -883,11 +863,9 @@ public class ARGPathExporter {
         Map<String, Element> nodes = Maps.newHashMap();
         Deque<String> waitlist = Queues.newArrayDeque();
         waitlist.push(entryStateNodeId);
-        List<Element> elementsToWrite = new ArrayList<>();
         Element entryNode = createNewNode(doc, entryStateNodeId);
         addInvariantsData(doc, entryNode, entryStateNodeId);
         nodes.put(entryStateNodeId, entryNode);
-        elementsToWrite.add(entryNode);
         while (!waitlist.isEmpty()) {
           String source = waitlist.pop();
           for (Edge edge : leavingEdges.get(source)) {
@@ -895,19 +873,14 @@ public class ARGPathExporter {
             if (targetNode == null) {
               targetNode = createNewNode(doc, edge.target);
               addInvariantsData(doc, targetNode, edge.target);
-              elementsToWrite.add(targetNode);
               nodes.put(edge.target, targetNode);
               waitlist.push(edge.target);
             }
-            elementsToWrite.add(createNewEdge(doc, edge, targetNode));
+            createNewEdge(doc, edge, targetNode);
           }
         }
-        for (Element element : elementsToWrite) {
-          doc.appendToAppendable(element);
-        }
       }
-
-      doc.appendFooter();
+      doc.appendTo(pTarget);
     }
 
     private void addInvariantsData(GraphMlBuilder pDoc, Element pNode, String pStateId) {
