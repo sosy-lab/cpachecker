@@ -480,4 +480,8 @@ public class TestSuite extends AlgorithmResult {
     return bddCpaNamedRegionManager.dumpRegion(region);
   }
 
+  public boolean isVariabilityAware() {
+    return useTigerAlgorithm_with_pc;
+  }
+
 }

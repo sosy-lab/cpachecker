@@ -33,7 +33,9 @@ import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -44,8 +46,8 @@ import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
 public class TigerTest {
 
-//  @Rule
-//  public Timeout globalTimeout = Timeout.seconds(20); // 10 seconds max per method tested
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
 
   private static final String FASE_C = "test/programs/tiger/simulator/FASE2015.c";
   private static final String MINI_FASE_C = "test/programs/tiger/simulator/mini_FASE2015.c";
@@ -67,7 +69,7 @@ public class TigerTest {
 
     exampleTS = new ArrayList<>();
     exampleTS.add(Pair.of("G1", "true"));
-    exampleTS.add(Pair.of("G2", "false"));
+    exampleTS.add(Pair.of("G2", "false")); // infeasible
     exampleTS.add(Pair.of("G3", "true"));
     exampleTS.add(Pair.of("G4", "true"));
     exampleTS.add(Pair.of("G5", "true"));
