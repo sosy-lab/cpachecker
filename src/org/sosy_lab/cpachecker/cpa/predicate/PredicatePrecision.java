@@ -66,6 +66,12 @@ public class PredicatePrecision implements Precision {
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
 
+  private static final PredicatePrecision EMPTY = new PredicatePrecision(
+      ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate>of(),
+      ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
+      ImmutableSetMultimap.<String, AbstractionPredicate>of(),
+      ImmutableSet.<AbstractionPredicate>of());
+
   public PredicatePrecision(
       Multimap<Pair<CFANode, Integer>, AbstractionPredicate> pLocationInstancePredicates,
       Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
@@ -87,14 +93,10 @@ public class PredicatePrecision implements Precision {
   }
 
   /**
-   * Create a new, empty precision.
+   * Return the empty precision.
    */
   public static PredicatePrecision empty() {
-    return new PredicatePrecision(
-        ImmutableSetMultimap.<Pair<CFANode, Integer>, AbstractionPredicate>of(),
-        ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
-        ImmutableSetMultimap.<String, AbstractionPredicate>of(),
-        ImmutableSet.<AbstractionPredicate>of());
+    return EMPTY;
   }
 
   /**

@@ -71,17 +71,19 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PredicateAbstractionManager formulaManager;
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView fmgr;
+  private final PredicateStaticRefiner staticRefiner;
 
   private @Nullable InvariantGenerator invariantGenerator;
   private InvariantSupplier invariants;
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa,
-      InvariantGenerator pInvariantGenerator) {
+      InvariantGenerator pInvariantGenerator, PredicateStaticRefiner pStaticRefiner) {
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
     pathFormulaManager = pCpa.getPathFormulaManager();
     fmgr = pCpa.getSolver().getFormulaManager();
+    staticRefiner = pStaticRefiner;
 
     invariantGenerator = checkNotNull(pInvariantGenerator);
     invariants = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
@@ -92,22 +94,20 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       AbstractState pElement,
       Precision pPrecision,
       UnmodifiableReachedSet pElements,
-      Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      Function<AbstractState, AbstractState> pProjection,
+      AbstractState pFullState) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
     try {
-      PredicateAbstractState element = (PredicateAbstractState)pElement;
+      PredicateAbstractState element = (PredicateAbstractState) pElement;
+      PredicatePrecision precision = (PredicatePrecision) pPrecision;
 
       if (element instanceof ComputeAbstractionState) {
-        PredicatePrecision precision = (PredicatePrecision)pPrecision;
-
-        return computeAbstraction((ComputeAbstractionState)element, precision);
+        return computeAbstraction((ComputeAbstractionState) element, precision);
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(
             element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
       }
-
 
     } catch (SolverException e) {
       throw new CPAException("Solver Failure", e);
