@@ -220,12 +220,8 @@ ProofChecker, AutoCloseable, AnalysisCache {
       invariantGenerator = new DoNothingInvariantGenerator();
     }
 
-    if (performInitialStaticRefinement) {
-      staticRefiner = new PredicateStaticRefiner(config, logger, solver,
-          pathFormulaManager, formulaManager, predicateManager, cfa);
-    } else {
-      staticRefiner = null;
-    }
+    staticRefiner = new PredicateStaticRefiner(config, logger, solver,
+        pathFormulaManager, formulaManager, predicateManager, cfa);
 
     precisionBootstraper = new PredicatePrecisionBootstrapper(config, logger, cfa, abstractionManager, formulaManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
@@ -234,7 +230,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
         cfa, config);
 
-    prec = new PredicatePrecisionAdjustment(this, invariantGenerator);
+    prec = new PredicatePrecisionAdjustment(this, invariantGenerator, staticRefiner);
 
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);
@@ -294,8 +290,12 @@ ProofChecker, AutoCloseable, AnalysisCache {
   }
 
   @Nullable
-  public PredicateStaticRefiner getStaticRefiner() {
-    return staticRefiner;
+  public PredicateStaticRefiner getStaticRefinerForMining() {
+    if (performInitialStaticRefinement) {
+      return staticRefiner;
+    } else {
+      return null;
+    }
   }
 
   @Override

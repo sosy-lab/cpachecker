@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -246,31 +247,46 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return result;
   }
 
-  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState)
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState,
+      boolean pAddControlFlowAssumes, boolean pAddStateAssumes)
       throws SolverException, CPATransferException, InterruptedException {
+
     Set<AssumeEdge> result = new HashSet<>();
-
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
+
     for (ARGState s: allStatesOnPath) {
-      CFANode u = AbstractStates.extractLocation(s);
-      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
-        CFANode v = e.getSuccessor();
-        Collection<AbstractState> reachedOnV = reached.getReached(v);
+      CFANode u = AbstractStates.extractLocation(s); // TODO: Location correct?
 
-        boolean edgeOnTrace = false;
-        for (AbstractState ve : reachedOnV) {
-          if (allStatesOnPath.contains(ve)) {
-            edgeOnTrace = true;
-            break;
-          }
+      // Also states can carry assumes
+      if (pAddStateAssumes) {
+        Collection<AbstractStateWithAssumptions> assumingStates = AbstractStates.extractStatesByType(s, AbstractStateWithAssumptions.class);
+        for (AbstractStateWithAssumptions e: assumingStates) {
+          List<AssumeEdge> assumes = e.getAsAssumeEdges(u.getFunctionName());
+          result.addAll(assumes);
         }
+      }
 
-        if (edgeOnTrace) {
-          if (e instanceof AssumeEdge) {
-            AssumeEdge assume = (AssumeEdge) e;
-            if (!isAssumeOnLoopVariable(assume)) {
-              if (hasContradictingOperationInFlow(assume)) {
-                result.add(assume);
+      // Consider the transition between the states
+      if (pAddControlFlowAssumes) {
+        for (CFAEdge e : CFAUtils.leavingEdges(u)) {
+          CFANode v = e.getSuccessor();
+          Collection<AbstractState> reachedOnV = reached.getReached(v);
+
+          boolean edgeOnTrace = false;
+          for (AbstractState ve : reachedOnV) {
+            if (allStatesOnPath.contains(ve)) {
+              edgeOnTrace = true;
+              break;
+            }
+          }
+
+          if (edgeOnTrace) {
+            if (e instanceof AssumeEdge) {
+              AssumeEdge assume = (AssumeEdge) e;
+              if (!isAssumeOnLoopVariable(assume)) {
+                if (hasContradictingOperationInFlow(assume)) {
+                  result.add(assume);
+                }
               }
             }
           }
@@ -280,6 +296,29 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
     return result;
   }
+
+  public Optional<PredicatePrecision> derivePrecFromStateWithAssumptions(AbstractState pFullState)
+      throws CPATransferException, InterruptedException {
+
+    Collection<AbstractStateWithAssumptions> assumingStates = AbstractStates.extractStatesByType(pFullState, AbstractStateWithAssumptions.class);
+    CFANode loc = AbstractStates.extractLocation(pFullState); // TODO: Location correct?
+    PredicatePrecision result = PredicatePrecision.empty();
+
+    for (AbstractStateWithAssumptions e: assumingStates) {
+      List<AssumeEdge> assumes = e.getAsAssumeEdges(loc.getFunctionName());
+      for (AssumeEdge assume: assumes) {
+        PredicatePrecision assumePrec = assumeEdgeToPrecision(assume, true);
+        result = result.mergeWith(assumePrec);
+      }
+    }
+
+    if (result.equals(PredicatePrecision.empty())) {
+      return Optional.absent();
+    } else {
+      return Optional.of(result);
+    }
+  }
+
 
   /**
    * This method extracts a precision based only on static information derived from the CFA.
@@ -302,7 +341,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
       assumeEdges.addAll(getAllNonLoopControlFlowAssumes());
     } else {
       if (addAllErrorTraceAssumes) {
-        assumeEdges.addAll(getAssumeEdgesAlongPath(pReached, targetState));
+        assumeEdges.addAll(getAssumeEdgesAlongPath(pReached, targetState, true, true));
       }
       if (addAssumesByBoundedBackscan) {
         assumeEdges.addAll(getTargetLocationAssumes(Lists.newArrayList(targetLocation)).values());

@@ -68,7 +68,7 @@ public abstract class PredicateRefiner implements Refiner {
 
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
-    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefiner();
+    PredicateStaticRefiner staticRefiner = predicateCpa.getStaticRefinerForMining();
     Solver solver = predicateCpa.getSolver();
 
     RefinementStrategy strategy = new PredicateAbstractionRefinementStrategy(
