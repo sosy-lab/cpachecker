@@ -241,6 +241,7 @@ public class PolicyIterationTest {
           .add("cpa.formulaslicing.FormulaSlicingCPA")
           .add("cpa.policyiteration.PolicyCPA")
           .build()
+
   );
 
 }
