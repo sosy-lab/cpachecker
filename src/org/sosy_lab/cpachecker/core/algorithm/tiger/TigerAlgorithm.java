@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -666,8 +665,8 @@ public class TigerAlgorithm
 
   private Set<Goal> updateTestsuiteByCoverageOf(TestCase pTestcase, Collection<Goal> pCheckCoverageOf) {
 
-    Set<Goal> coveredGoals = new HashSet<>();
-    Set<Goal> goalsCoveredByLastState = Sets.newHashSet();
+    Set<Goal> coveredGoals = Sets.newLinkedHashSet();
+    Set<Goal> goalsCoveredByLastState = Sets.newLinkedHashSet();
 
     ARGState lastState = pTestcase.getArgPath().getLastState();
     for (Property p : lastState.getViolatedProperties()) {
@@ -703,7 +702,7 @@ public class TigerAlgorithm
         if (criticalState == null) {
           Path argFile = Paths.get("output", "ARG_goal_criticalIsNull_" + Integer.toString(goal.getIndex()) + ".dot");
 
-          final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
+          final Set<Pair<ARGState, ARGState>> allTargetPathEdges = Sets.newLinkedHashSet();
           allTargetPathEdges.addAll(pTestcase.getArgPath().getStatePairs());
 
           try (Writer w = Files.openOutputFile(argFile)) {
@@ -757,8 +756,8 @@ public class TigerAlgorithm
 
   public static ThreeValuedAnswer accepts(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton,
       List<CFAEdge> pCFAPath) {
-    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
-    Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
+    Set<NondeterministicFiniteAutomaton.State> lCurrentStates = Sets.newLinkedHashSet();
+    Set<NondeterministicFiniteAutomaton.State> lNextStates = Sets.newLinkedHashSet();
 
     lCurrentStates.add(pAutomaton.getInitialState());
 
@@ -905,7 +904,7 @@ public class TigerAlgorithm
             restrictBdd(remainingPC);
           }
           // Exclude covered goals from further exploration
-          Set<Property> toBlacklist = Sets.newHashSet();
+          Set<Property> toBlacklist = Sets.newLinkedHashSet();
           for (Goal goal : pTestGoalsToBeProcessed) {
             if (testsuite.isGoalCoveredOrInfeasible(goal)) {
               toBlacklist.add(goal);
@@ -1045,7 +1044,7 @@ public class TigerAlgorithm
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }
-        Set<Statistics> lStatistics = new HashSet<>();
+        Set<Statistics> lStatistics = Sets.newLinkedHashSet();
         lStatistics.add(lARTStatistics);
         cegarAlg.collectStatistics(lStatistics);
       }
@@ -1223,7 +1222,7 @@ public class TigerAlgorithm
     // TODO add missing soundness checks!
     if (pInfeasibilityPropagation.getFirst()) {
       logger.logf(Level.INFO, "Do infeasibility propagation!");
-      HashSet<CFAEdge> lTargetEdges = new HashSet<>();
+      Set<CFAEdge> lTargetEdges = Sets.newLinkedHashSet();
       ClusteredElementaryCoveragePattern lClusteredPattern =
           (ClusteredElementaryCoveragePattern) pGoal.getPattern();
       ListIterator<ClusteredElementaryCoveragePattern> lRemainingPatterns =
@@ -1487,12 +1486,12 @@ public class TigerAlgorithm
     Set<Goal> partiallyTimedoutGoals = null;
 
     if (useTigerAlgorithm_with_pc) {
-      feasibleGoals = new HashSet<>();
-      partiallyFeasibleGoals = new HashSet<>();
-      infeasibleGoals = new HashSet<>();
-      partiallyInfeasibleGoals = new HashSet<>();
-      timedoutGoals = new HashSet<>();
-      partiallyTimedoutGoals = new HashSet<>();
+      feasibleGoals = Sets.newLinkedHashSet();
+      partiallyFeasibleGoals = Sets.newLinkedHashSet();
+      infeasibleGoals = Sets.newLinkedHashSet();
+      partiallyInfeasibleGoals = Sets.newLinkedHashSet();
+      timedoutGoals = Sets.newLinkedHashSet();
+      partiallyTimedoutGoals = Sets.newLinkedHashSet();
 
       for (Goal goal : testsuite.getGoals()) {
         List<TestCase> testcases = testsuite.getCoveringTestCases(goal);
@@ -1582,7 +1581,7 @@ public class TigerAlgorithm
         });
 
         if (useTigerAlgorithm_with_pc) {
-          Set<Goal> feasible = new HashSet<>();
+          Set<Goal> feasible = Sets.newLinkedHashSet();
           feasible.addAll(feasibleGoals);
           feasible.addAll(partiallyFeasibleGoals);
           feasible.removeAll(partiallyTimedoutGoals);
@@ -1591,7 +1590,7 @@ public class TigerAlgorithm
             TestCase lastTestCase = getLastTestCase(tests);
             lastTestCase.incrementNumberOfNewlyCoveredGoals();
           }
-          Set<Goal> partially = new HashSet<>();
+          Set<Goal> partially = Sets.newLinkedHashSet();
           partially.addAll(feasibleGoals);
           partially.addAll(partiallyFeasibleGoals);
           partially.removeAll(partiallyInfeasibleGoals);
@@ -1616,7 +1615,7 @@ public class TigerAlgorithm
                 + partiallyCoveredGoals + "\n");
           }
         } else {
-          Set<Goal> coveredGoals = new HashSet<>();
+          Set<Goal> coveredGoals = Sets.newLinkedHashSet();
           writer.write("Test Case;Generation Time;Covered Goals After Generation\n");
           for (TestCase testCase : testcases) {
             coveredGoals.addAll(testsuite.getTestGoalsCoveredByTestCase(testCase));

@@ -60,7 +60,22 @@ public class TigerTest {
   public static List<Pair<String, String>> faseTS = null;
 
   public static String miniFaseFm = "__SELECTED_FEATURE_PLUS";
-  public static String faseFm = "__SELECTED_FEATURE_FOOBAR_SPL  &  (!__SELECTED_FEATURE_FOOBAR_SPL  |  __SELECTED_FEATURE_COMP)  &  (!__SELECTED_FEATURE_FOOBAR_SPL  |  __SELECTED_FEATURE_OP)  &  (!__SELECTED_FEATURE_COMP  |  __SELECTED_FEATURE_FOOBAR_SPL)  &  (!__SELECTED_FEATURE_OP  |  __SELECTED_FEATURE_FOOBAR_SPL)  &  (!__SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_FOOBAR_SPL)  &  (!__SELECTED_FEATURE_COMP  |  __SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_GR)  &  (!__SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_COMP)  &  (!__SELECTED_FEATURE_GR  |  __SELECTED_FEATURE_COMP)  &  (!__SELECTED_FEATURE_LE  |  !__SELECTED_FEATURE_GR)  &  (!__SELECTED_FEATURE_OP  |  __SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_MINUS)  &  (!__SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_OP)  &  (!__SELECTED_FEATURE_MINUS  |  __SELECTED_FEATURE_OP)  &  (!__SELECTED_FEATURE_PLUS  |  !__SELECTED_FEATURE_MINUS)  &  (!__SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_MINUS)  &  (__SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_GR  |  __SELECTED_FEATURE_MINUS  |  TRUE)";
+  public static String faseFm = "__SELECTED_FEATURE_FOOBAR_SPL  " +
+                                " &  (!__SELECTED_FEATURE_FOOBAR_SPL    |  __SELECTED_FEATURE_COMP) "
+                              + " &  (!__SELECTED_FEATURE_FOOBAR_SPL    |  __SELECTED_FEATURE_OP) "
+                              + " &  (!__SELECTED_FEATURE_COMP          |  __SELECTED_FEATURE_FOOBAR_SPL) "
+                              + " &  (!__SELECTED_FEATURE_OP            |  __SELECTED_FEATURE_FOOBAR_SPL) "
+                              + " &  (!__SELECTED_FEATURE_NOTNEGATIVE   |  __SELECTED_FEATURE_FOOBAR_SPL) "
+                              + " &  (!__SELECTED_FEATURE_COMP          |  __SELECTED_FEATURE_LE          |  __SELECTED_FEATURE_GR) "
+                              + " &  (!__SELECTED_FEATURE_LE            |  __SELECTED_FEATURE_COMP)  "
+                              + " &  (!__SELECTED_FEATURE_GR            |  __SELECTED_FEATURE_COMP)  "
+                              + " &  (!__SELECTED_FEATURE_LE            |  !__SELECTED_FEATURE_GR)  "
+                              + " &  (!__SELECTED_FEATURE_OP            |  __SELECTED_FEATURE_PLUS        |  __SELECTED_FEATURE_MINUS)  "
+                              + " &  (!__SELECTED_FEATURE_PLUS          |  __SELECTED_FEATURE_OP)  "
+                              + " &  (!__SELECTED_FEATURE_MINUS         |  __SELECTED_FEATURE_OP)  "
+                              + " &  (!__SELECTED_FEATURE_PLUS          |  !__SELECTED_FEATURE_MINUS)  "
+                              + " &  (!__SELECTED_FEATURE_NOTNEGATIVE   |  __SELECTED_FEATURE_MINUS)  "
+                              + " &  (__SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_GR  |  __SELECTED_FEATURE_MINUS  |  TRUE)";
 
   @BeforeClass
   public static void initializeExpectedTestSuites() {

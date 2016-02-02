@@ -119,7 +119,7 @@ public class TestGoalUtils {
       pGoalPrediction = null;
     }
 
-    Set<Goal> goalsToCover = Sets.newHashSet();
+    Set<Goal> goalsToCover = Sets.newLinkedHashSet();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
       Goal lGoal = constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
