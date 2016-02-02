@@ -75,7 +75,12 @@ public class TigerTest {
                               + " &  (!__SELECTED_FEATURE_MINUS         |  __SELECTED_FEATURE_OP)  "
                               + " &  (!__SELECTED_FEATURE_PLUS          |  !__SELECTED_FEATURE_MINUS)  "
                               + " &  (!__SELECTED_FEATURE_NOTNEGATIVE   |  __SELECTED_FEATURE_MINUS)  "
-                              + " &  (__SELECTED_FEATURE_LE  |  __SELECTED_FEATURE_PLUS  |  __SELECTED_FEATURE_NOTNEGATIVE  |  __SELECTED_FEATURE_GR  |  __SELECTED_FEATURE_MINUS  |  TRUE)";
+                              + " &  (__SELECTED_FEATURE_LE "
+                                    + " |  __SELECTED_FEATURE_PLUS "
+                                    + " |  __SELECTED_FEATURE_NOTNEGATIVE "
+                                    + " |  __SELECTED_FEATURE_GR "
+                                    + " |  __SELECTED_FEATURE_MINUS "
+                                    + " |  TRUE)";
 
   @BeforeClass
   public static void initializeExpectedTestSuites() {
