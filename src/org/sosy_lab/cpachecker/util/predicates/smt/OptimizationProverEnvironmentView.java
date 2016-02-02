@@ -102,7 +102,7 @@ public class OptimizationProverEnvironmentView implements OptimizationProverEnvi
 
   @Override
   public Model getModel() throws SolverException {
-    return delegate.getModel();
+    return new ModelView(delegate.getModel(), wrappingHandler);
   }
 
   @Override

@@ -130,9 +130,6 @@ public final class Solver implements AutoCloseable {
 
     // Instantiate another SMT solver for interpolation if requested.
     if (interpolationSolver != null) {
-
-      // todo: new config?
-      // new factory?
       interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
     } else {
       interpolatingContext = solvingContext;
@@ -190,6 +187,8 @@ public final class Solver implements AutoCloseable {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
     }
 
+    pe = new ProverEnvironmentView(pe, fmgr.getFormulaWrappingHandler());
+
     return pe;
   }
 
@@ -219,6 +218,10 @@ public final class Solver implements AutoCloseable {
     if (checkUFs) {
       ipeA = new UFCheckingInterpolatingProverEnvironmentWithAssumptions<>(logger, ipeA, fmgr, ufCheckingProverOptions);
     }
+
+    ipeA = new InterpolatingProverEnvironmentWithAssumptionsView<>(
+        ipeA,
+        fmgr.getFormulaWrappingHandler());
 
     return ipeA;
   }
