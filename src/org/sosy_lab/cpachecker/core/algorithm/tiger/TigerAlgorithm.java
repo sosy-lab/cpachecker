@@ -105,9 +105,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -329,10 +328,13 @@ public class TigerAlgorithm
 
   private TestGoalUtils testGoalUtils = null;
 
+  private final ReachedSetFactory reachedSetFactory;
+
   public TigerAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, ShutdownManager pShutdownManager,
       CFA pCfa, Configuration pConfig, LogManager pLogger, String pProgramDenotation,
-      @Nullable final MainCPAStatistics pStatistics) throws InvalidConfigurationException {
+      @Nullable final MainCPAStatistics pStatistics, ReachedSetFactory pReachedSetFactory) throws InvalidConfigurationException {
 
+    reachedSetFactory = pReachedSetFactory;
     programDenotation = pProgramDenotation;
     stats = pStatistics;
     statCpuTime = new StatCpuTime();
@@ -415,9 +417,9 @@ public class TigerAlgorithm
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // we empty pReachedSet to stop complaints of an incomplete analysis
     // Problem: pReachedSet does not match the internal CPA structure!
-    logger.logf(Level.INFO,
-        "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
+    logger.logf(Level.INFO, "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
+
     outsideReachedSet = pReachedSet;
     outsideReachedSet.clear();
 
@@ -446,7 +448,17 @@ public class TigerAlgorithm
 
     assert (goalsToCover.isEmpty());
 
-    // write generated test suite and mapping to file system
+    // Write generated test suite and mapping to file system
+    dumpTestSuite();
+
+    if (wasSound) {
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    } else {
+      return AlgorithmStatus.UNSOUND_AND_PRECISE;
+    }
+  }
+
+  private void dumpTestSuite() {
     if (testsuiteFile != null) {
       try (Writer writer =
           new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
@@ -454,12 +466,6 @@ public class TigerAlgorithm
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    if (wasSound) {
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    } else {
-      return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
   }
 
@@ -1057,21 +1063,19 @@ public class TigerAlgorithm
     return algorithm;
   }
 
-  private void initializeReachedSet(ARGCPA lARTCPA) {
-    reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+  private void initializeReachedSet(ARGCPA pArgCPA) {
+    // Create a new set 'reached' using the responsible factory.
+    reachedSet = reachedSetFactory.create();
 
-    AbstractState lInitialElement =
-        lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-    Precision lInitialPrecision =
-        lARTCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    AbstractState initialState = pArgCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+    Precision initialPrec = pArgCPA.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-    reachedSet.add(lInitialElement, lInitialPrecision);
-
-    outsideReachedSet.add(lInitialElement, lInitialPrecision);
+    reachedSet.add(initialState, initialPrec);
+    outsideReachedSet.add(initialState, initialPrec);
 
     if (reusePredicates) {
       // initialize reused predicate precision
-      PredicateCPA predicateCPA = lARTCPA.retrieveWrappedCpa(PredicateCPA.class);
+      PredicateCPA predicateCPA = pArgCPA.retrieveWrappedCpa(PredicateCPA.class);
 
       if (predicateCPA != null) {
         reusedPrecision = (PredicatePrecision) predicateCPA.getInitialPrecision(cfa.getMainFunction(),
@@ -1550,17 +1554,7 @@ public class TigerAlgorithm
       }
     }
 
-    // write generated test suite and mapping to file system
-    if (testsuiteFile != null) {
-      try (Writer writer = new BufferedWriter(
-          new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
-
-        writer.write(testsuite.toString());
-
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
+    dumpTestSuite();
 
     // write test case generation times to file system
     if (testcaseGenerationTimesFile != null) {

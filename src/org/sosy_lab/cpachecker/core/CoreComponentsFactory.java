@@ -222,7 +222,7 @@ public class CoreComponentsFactory {
 
       TigerConfiguration tigerConfig = new TigerConfiguration(config);
       if (tigerConfig.useTigerAlgorithm) {
-        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownManager, cfa, config, logger, programDenotation, stats);
+        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownManager, cfa, config, logger, programDenotation, stats, reachedSetFactory);
       }
 
       if (usePropertyCheckingAlgorithm) {
