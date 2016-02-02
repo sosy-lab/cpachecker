@@ -607,6 +607,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //      which is executed AFTER the 'transfer' has been performed.
         //
         if (pf.getLength() == 0) {
+          // If the operation was no assume,
+          //  we have to consider the SSA indices that are valid
+          //  AFTER the (non-assume) operation has been encoded.
           pf = childPe.getPathFormula();
           pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
         }
