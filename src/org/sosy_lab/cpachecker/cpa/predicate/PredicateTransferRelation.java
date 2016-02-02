@@ -404,7 +404,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(edge.getSuccessor(), element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(loc, element, (AbstractStateWithAssumptions) lElement);
         }
 
         if (AbstractStates.isTargetState(lElement)) {
