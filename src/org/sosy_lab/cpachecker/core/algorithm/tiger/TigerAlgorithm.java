@@ -451,7 +451,6 @@ public class TigerAlgorithm
       try (Writer writer =
           new BufferedWriter(new OutputStreamWriter(new FileOutputStream(testsuiteFile.getAbsolutePath()), "utf-8"))) {
         writer.write(testsuite.toString());
-        writer.close();
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
