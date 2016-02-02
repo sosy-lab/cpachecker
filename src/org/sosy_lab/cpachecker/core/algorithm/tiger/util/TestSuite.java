@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +46,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.solver.AssignableTerm;
+
+import com.google.common.collect.Sets;
 
 public class TestSuite extends AlgorithmResult {
 
@@ -69,8 +70,8 @@ public class TestSuite extends AlgorithmResult {
     mapping = new HashMap<>();
     coveringTestCases = new HashMap<>();
     coveringPresenceConditions = new HashMap<>();
-    testGoals = new HashSet<>();
-    infeasibleGoals = new HashSet<>();
+    testGoals = Sets.newLinkedHashSet();
+    infeasibleGoals = Sets.newLinkedHashSet();
     timedOutGoals = new HashMap<>();
     bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     printLabels = pPrintLabels;
