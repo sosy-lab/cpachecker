@@ -85,9 +85,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -534,7 +534,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     RichModel model = counterexample.getModel();
 
-    Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms =
+    Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> pathAndTerms =
         pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();

@@ -49,12 +49,11 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
@@ -322,17 +321,17 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException {
     Model validAssignment = prover.getModel();
 
-    for (Map.Entry<AssignableTerm, Object> entry : validAssignment.entrySet()) {
-      AssignableTerm term = entry.getKey();
-      Object termAssignment = entry.getValue();
+    for (ValueAssignment val : validAssignment) {
+      Formula term = val.getKey();
+      Object termAssignment = val.getValue();
 
       if (isSymbolicTerm(term)) {
 
-        SymbolicIdentifier identifier = toSymbolicIdentifier(term.getName());
-        Value concreteValue = convertToValue(termAssignment, term.getType());
+        SymbolicIdentifier identifier = toSymbolicIdentifier(val.getName());
+        Value concreteValue = convertToValue(val);
 
         if (!definiteAssignment.containsKey(identifier)
-            && isOnlySatisfyingAssignment(term, termAssignment, pFormula)) {
+            && isOnlySatisfyingAssignment(val, termAssignment, pFormula)) {
 
           assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue)
               : "Definite assignment can't be changed from " + definiteAssignment.get(identifier) + " to " + concreteValue;
@@ -388,11 +387,13 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     return new IdentifierAssignment(definiteAssignment);
   }
 
-  private boolean isSymbolicTerm(AssignableTerm pTerm) {
-    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.getName());
+  private boolean isSymbolicTerm(Formula pTerm) {
+
+    // TODO: is it valid to get the variable name? use the visitor instead?
+    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.toString());
   }
 
-  private boolean isOnlySatisfyingAssignment(AssignableTerm pTerm, Object termAssignment, BooleanFormula pFormula)
+  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm, Object termAssignment, BooleanFormula pFormula)
       throws SolverException, InterruptedException {
 
     VariableMap freeVariables = new VariableMap(formulaManager.extractFreeVariableMap(pFormula));
@@ -413,18 +414,14 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     return SymbolicIdentifier.Converter.getInstance().convertToIdentifier(pEncoding);
   }
 
-  private Value convertToValue(Object pTermAssignment, TermType pType) {
-    if (pType.equals(TermType.Integer) || pType.equals(TermType.Bitvector)
-        || pType.equals(TermType.FloatingPoint) || pType.equals(TermType.Real)) {
-      assert pTermAssignment instanceof Number;
-
-      return new NumericValue((Number) pTermAssignment);
-
-    } else if (pType.equals(TermType.Boolean)) {
-      return BooleanValue.valueOf(true);
-
+  private Value convertToValue(ValueAssignment assignment) {
+    Object value = assignment.getValue();
+    if (value instanceof Number) {
+      return new NumericValue((Number) value);
+    } else if (value instanceof Boolean) {
+      return BooleanValue.valueOf((Boolean) value);
     } else {
-      throw new AssertionError("Unexpected type " + pType);
+      throw new AssertionError("Unexpected value " + value);
     }
   }
 

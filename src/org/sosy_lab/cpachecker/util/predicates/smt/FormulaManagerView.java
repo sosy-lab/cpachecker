@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceBitvectorWithNumeralAndFunctionTheory.ReplaceBitvectorEncodingOptions;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BitvectorFormula;
@@ -72,6 +71,7 @@ import org.sosy_lab.solver.api.FormulaManager;
 import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.FunctionDeclarationKind;
+import org.sosy_lab.solver.api.Model;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
@@ -1215,7 +1215,7 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractVariableNames(Formula f) {
-    return manager.extractFunctionNames(unwrap(f)).keySet();
+    return manager.extractVariables(unwrap(f)).keySet();
   }
 
   /**
@@ -1226,7 +1226,7 @@ public class FormulaManagerView {
    * @return    Set of variable names (might be instantiated)
    */
   public Set<String> extractFunctionNames(Formula f) {
-    return manager.extractFunctionNames(unwrap(f)).keySet();
+    return manager.extractVariablesAndUFs(unwrap(f)).keySet();
   }
 
   /**
@@ -1240,7 +1240,7 @@ public class FormulaManagerView {
    */
   @Deprecated
   public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    return manager.extractVariableNames(unwrap(pF));
+    return manager.extractVariables(unwrap(pF));
   }
 
   public Appender dumpFormula(BooleanFormula pT) {
@@ -1430,9 +1430,9 @@ public class FormulaManagerView {
 
     Map<String, Formula> vars;
     if (extractUF) {
-      vars = manager.extractFunctionNames(pFormula);
+      vars = manager.extractVariablesAndUFs(pFormula);
     } else {
-      vars = manager.extractVariableNames(pFormula);
+      vars = manager.extractVariables(pFormula);
     }
 
     for (Entry<String, Formula> entry: vars.entrySet()) {

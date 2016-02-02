@@ -48,9 +48,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
@@ -106,7 +106,7 @@ public class PathChecker {
       } else {
         RichModel model = getModel(thmProver);
 
-        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> pathAndTerms
+        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> pathAndTerms
             = extractVariableAssignment(pPath, ssaMaps, model);
 
         CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
@@ -155,7 +155,7 @@ public class PathChecker {
     return createPrecisePathFormula(pPath).getSecond();
   }
 
-  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, AssignableTerm>> extractVariableAssignment(ARGPath pPath,
+  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> extractVariableAssignment(ARGPath pPath,
       List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
     return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);

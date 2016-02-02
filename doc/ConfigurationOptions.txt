@@ -705,6 +705,8 @@ cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in a CPA enabled analysis because then it
 # mustbehave differntly during merge.
+# inform ARG CPA if it is run in an analysis with enabler CPA because then it
+# must behave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
@@ -1156,6 +1158,7 @@ cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
 cpa.predicate.abs.predicateOrdering.partitions = false
 
 # use caching of abstractions
+# use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
@@ -2329,6 +2332,9 @@ pcc.cmc.configFiles = no default value
 # write collected assumptions to file
 pcc.cmc.file = "assumptions.txt"
 
+# collects information about value analysis states in proof
+pcc.collectValueAnalysisStateInfo = false
+
 # The number of cores used exclusively for proof reading. Must be less than
 # pcc.useCores and may not be negative. Value 0 means that the cores used for
 # reading and checking are shared
@@ -2377,8 +2383,14 @@ pcc.proofFile = "arg.obj"
 # Generate and dump a proof
 pcc.proofgen.doPCC = false
 
+# Make proof more abstract, remove some of the information not needed to
+# prove the property.
+pcc.sliceProof = false
+
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking

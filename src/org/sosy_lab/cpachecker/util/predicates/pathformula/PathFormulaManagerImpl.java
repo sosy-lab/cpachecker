@@ -71,13 +71,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.solver.AssignableTerm;
-import org.sosy_lab.solver.AssignableTerm.Variable;
-import org.sosy_lab.solver.Model;
-import org.sosy_lab.solver.TermType;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -645,17 +643,17 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    */
   @Override
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Model model) {
-    if (model.isEmpty()) {
+    if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return Collections.emptyMap();
     }
 
     Map<Integer, Boolean> preds = Maps.newHashMap();
-    for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
-      AssignableTerm a = entry.getKey();
-      String canonicalName = FormulaManagerView.parseName(a.getName()).getFirstNotNull();
-      if (a instanceof Variable && a.getType() == TermType.Boolean) {
+    for (ValueAssignment entry : model) {
+      String canonicalName =
+          FormulaManagerView.parseName(entry.getName()).getFirstNotNull();
 
+      if (fmgr.getFormulaType(entry.getKey()).isBooleanType()) {
         String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
         if (!name.equals(canonicalName)) {
           // pattern matched, so it's a variable with __ART__ in it

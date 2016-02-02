@@ -95,10 +95,7 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.2-23-g85ee653" conf="runtime->runtime; contrib->sources" />
-        <!-- TODO check next line. It should work after publishing a new version of JavaSMT.
-        <dependency org="org.sosy_lab" name="javasmt" rev="0.2-???" conf="runtime->runtime-smtinterpol,runtime-mathsat,runtime-optimathsat,runtime-z3; contrib->sources" />
-        -->
+        <dependency org="org.sosy_lab" name="javasmt" rev="0.3-8-gceef011" conf="runtime->runtime; contrib->sources" />
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
         <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.5"/>

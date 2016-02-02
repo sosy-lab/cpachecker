@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -95,7 +96,7 @@ class SylvanBDDRegionManager implements RegionManager {
   // In this map we store the info which BDD to free after a SylvanBDDRegion object was GCed.
   // Needs to be concurrent because we access it from two threads,
   // and we don't want synchronized blocks in the main thread.
-  private final Map<PhantomReference<SylvanBDDRegion>, Long> referenceMap =
+  private final Map<Reference<SylvanBDDRegion>, Long> referenceMap =
       Maps.newConcurrentMap();
   @Option(secure = true, description = "Log2 size of the BDD node table.")
   @IntegerOption(min = 1)
@@ -165,14 +166,12 @@ class SylvanBDDRegionManager implements RegionManager {
    */
   private static void cleanupReferences(
       final ReferenceQueue<SylvanBDDRegion> referenceQueue,
-      final Map<PhantomReference<SylvanBDDRegion>, Long> referenceMap,
+      final Map<Reference<SylvanBDDRegion>, Long> referenceMap,
       final StatTimer cleanupTimer) {
 
     try {
       while (true) {
-        PhantomReference<? extends SylvanBDDRegion> ref =
-            (PhantomReference<? extends SylvanBDDRegion>)referenceQueue
-                .remove();
+        Reference<? extends SylvanBDDRegion> ref = referenceQueue.remove();
 
         // It would be faster to have a thread-safe timer instead of synchronized.
         // However, the lock is uncontended, and thus probably quite fast
