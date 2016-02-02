@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
@@ -90,61 +91,60 @@ public class TigerTestHelper {
     return configuration;
   }
 
-  public static boolean validPresenceConditions(TestSuite pTestSuite,
+  public static boolean validPresenceConditions(TestSuite pSuite,
       List<Pair<String, String>> pExpectedTestSuite, String pFeatureModel)
           throws InvalidConfigurationException, SolverException, InterruptedException {
+
     SolverHelper helper = new SolverHelper();
+    BooleanFormulaManagerView bfm = helper.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula fm = helper.parseFormula(pFeatureModel);
 
-    for (Goal goal : pTestSuite.getGoals()) {
+    for (Goal goal : pSuite.getGoals()) {
       Pair<String, String> expectedGoal = getGoalFromExpectedTestSuite(goal, pExpectedTestSuite);
-      if (expectedGoal == null) { throw new AssertionFailedError(
-          "Expected result for goal " + goal.getName() + " is missing!"); }
-      BooleanFormula expectedPresenceCondition = helper.parseFormula(expectedGoal.getSecond());
+      if (expectedGoal == null) {
+        throw new AssertionFailedError("Expected result for goal " + goal.getName() + " is missing!");
+      }
+      BooleanFormula expectedPC = helper.parseFormula(expectedGoal.getSecond());
 
-      if (pTestSuite.isGoalCovered(goal)) {
-        // goal is (partially) feasible
-        BooleanFormula feasiblePC = null;
-        if (pTestSuite.isVariabilityAware()) {
-          feasiblePC =
-              helper
-                  .parseFormula(pTestSuite.dumpRegion(pTestSuite.getGoalCoverage(goal)).toString());
+      if (pSuite.isGoalCovered(goal)) {
+        // Goal is (partially) feasible
+        BooleanFormula goalPC = null;
+        if (pSuite.isVariabilityAware()) {
+          goalPC = helper.parseFormula(pSuite.dumpRegion(pSuite.getGoalCoverage(goal)).toString());
         } else {
-          feasiblePC =
-              helper.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
+          goalPC = bfm.makeBoolean(true);
         }
 
         if (fm != null) {
-          expectedPresenceCondition = appendFeatureModel(helper, fm, expectedPresenceCondition);
-          feasiblePC = appendFeatureModel(helper, fm, feasiblePC);
+          expectedPC = appendFeatureModel(helper, fm, expectedPC);
+          goalPC = appendFeatureModel(helper, fm, goalPC);
         }
 
-        if (!helper.equivalent(expectedPresenceCondition,
-            feasiblePC)) { throw new AssertionFailedError("Feasible presence condition of "
-                + goal.getName() + " does not match with expected feasible presence condition."); }
+        if (!helper.equivalent(expectedPC, goalPC)) {
+          throw new AssertionFailedError("Feasible presence condition of "
+                + goal.getName() + " does not match with expected feasible presence condition.");
+        }
       }
 
-      if (pTestSuite.isGoalInfeasible(goal)) {
-        // goal is (partially) infeasible
-        BooleanFormula infeasiblePC = null;
-        if (pTestSuite.isVariabilityAware()) {
-          expectedPresenceCondition =
-              helper.getFormulaManager().getBooleanFormulaManager().not(expectedPresenceCondition);
-          infeasiblePC = helper.parseFormula(
-              pTestSuite.dumpRegion(pTestSuite.getInfeasiblePresenceCondition(goal)).toString());
+      if (pSuite.isGoalInfeasible(goal)) {
+        // Goal is (partially) infeasible
+        BooleanFormula goalPC = null;
+        if (pSuite.isVariabilityAware()) {
+          expectedPC = bfm.not(expectedPC);
+          goalPC = helper.parseFormula(pSuite.dumpRegion(pSuite.getInfeasiblePresenceCondition(goal)).toString());
         } else {
-          infeasiblePC = helper.getFormulaManager().getBooleanFormulaManager().makeBoolean(false);
+          goalPC = bfm.makeBoolean(false);
         }
 
         if (fm != null) {
-          expectedPresenceCondition = appendFeatureModel(helper, fm, expectedPresenceCondition);
-          infeasiblePC = appendFeatureModel(helper, fm, infeasiblePC);
+          expectedPC = appendFeatureModel(helper, fm, expectedPC);
+          goalPC = appendFeatureModel(helper, fm, goalPC);
         }
 
-        if (!helper.equivalent(expectedPresenceCondition,
-            infeasiblePC)) { throw new AssertionFailedError(
-                "Infeasible presence condition of " + goal.getName()
-                    + " does not match with expected infeasible presence condition."); }
+        if (!helper.equivalent(expectedPC, goalPC)) {
+          throw new AssertionFailedError("Infeasible presence condition of " + goal.getName()
+                    + " does not match with expected infeasible presence condition.");
+        }
       }
     }
 
