@@ -86,8 +86,9 @@ import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 
@@ -590,7 +591,7 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMap.<Integer, Integer>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMultimap.<Integer, Integer>of());
     }
 
     // add formula to solver environment
@@ -612,7 +613,7 @@ public final class InterpolationManager {
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
       return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
-          ImmutableMap.<Integer, Integer>of());
+          HashMultimap.<Integer, Integer>create());
     }
   }
 

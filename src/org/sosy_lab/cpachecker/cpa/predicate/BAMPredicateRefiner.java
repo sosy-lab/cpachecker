@@ -156,7 +156,7 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
                                           predicateCpa,
                                           predicateCpa.getSolver(),
                                           predicateCpa.getPredicateManager(),
-                                          predicateCpa.getStaticRefiner());
+                                          predicateCpa.getStaticRefinerForMining());
 
     this.refiner = new ExtendedPredicateRefiner(
                                           predicateCpa.getConfiguration(),

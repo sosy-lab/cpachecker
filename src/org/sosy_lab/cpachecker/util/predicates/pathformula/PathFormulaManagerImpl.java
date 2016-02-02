@@ -28,7 +28,6 @@ import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -84,7 +83,8 @@ import org.sosy_lab.solver.api.FormulaType;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -586,6 +586,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       for (ARGState child: e.getChildren()) {
         CFAEdge t = e.getEdgeToChild(child);
 
+        final PredicateAbstractState childPe = AbstractStates.extractStateByType(child, PredicateAbstractState.class);
+
         final BooleanFormula pred = bfmgr.makeVariable(
             String.format("%s_%d_%d", BRANCHING_PREDICATE_NAME,
                 e.getStateId(), child.getStateId()), 0);
@@ -599,8 +601,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           isValidBranching = true;
         }
 
+        // 2. Encode assumptions from AbstractStateWithAssumptions
+        //    ATTENTION: The SSA indices can be different compared to the SSAs of the
+        //      abstract state 'e'; reason: the assumes get encoded in 'strengthening'
+        //      which is executed AFTER the 'transfer' has been performed.
+        //
+        if (pf.getLength() == 0) {
+          pf = childPe.getPathFormula();
+          pf = this.makeEmptyPathFormula(pf); // reset everything except SSAMap
+        }
+
         Collection<AbstractStateWithAssumptions> assumtionStates = AbstractStates.extractStatesByType(
             child, AbstractStateWithAssumptions.class);
+
         for (AbstractStateWithAssumptions stateWithAssumes: assumtionStates) {
           List<AssumeEdge> assumes = stateWithAssumes.getAsAssumeEdges(t.getPredecessor().getFunctionName());
           for (AssumeEdge a: assumes) {
@@ -635,13 +648,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
-  public Map<Integer, Integer> getBranchingPredicateValuesFromModel(Model model) {
+  public Multimap<Integer, Integer> getBranchingPredicateValuesFromModel(Model model) {
     if (model.isEmpty()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      return Collections.emptyMap();
+      return HashMultimap.<Integer, Integer>create();
     }
 
-    Map<Integer, Integer> preds = Maps.newHashMap();
+    Multimap<Integer, Integer> preds = HashMultimap.<Integer, Integer>create();
 
     for (Map.Entry<AssignableTerm, Object> entry : model.entrySet()) {
       AssignableTerm a = entry.getKey();

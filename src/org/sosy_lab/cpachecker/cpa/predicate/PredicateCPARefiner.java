@@ -32,7 +32,6 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -494,7 +493,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
     errorPathProcessing.start();
     try {
-      Map<Integer, Integer> directions = counterexample.getBranchingDirections();
+      Multimap<Integer, Integer> directions = counterexample.getBranchingDirections();
       if (directions.isEmpty()) {
         logger.log(Level.WARNING, "No information about ARG branches available!");
         return null;

@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -69,6 +68,7 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 @Options(prefix="bmc")
@@ -227,7 +227,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
 
       // get precise error path
-      Map<Integer, Integer> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
+      Multimap<Integer, Integer> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
       ARGState root = (ARGState)pReachedSet.getFirstState();
 
       ARGPath targetPath;
