@@ -28,13 +28,12 @@ import static com.google.common.base.Preconditions.*;
 import javax.annotation.Nonnull;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class LoopstatsState implements AbstractState, Partitionable {
+public class LoopstatsState implements AbstractState {
 
   private final transient LoopStatisticsReceiver statReceiver;
 
@@ -71,11 +70,6 @@ public class LoopstatsState implements AbstractState, Partitionable {
       return 0;
     }
     return activeIterations.peekHead();
-  }
-
-  @Override
-  public Object getPartitionKey() {
-    return activeLoops;
   }
 
   @Override
