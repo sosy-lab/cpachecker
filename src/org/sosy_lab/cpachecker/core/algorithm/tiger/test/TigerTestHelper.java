@@ -110,7 +110,8 @@ public class TigerTestHelper {
         // Goal is (partially) feasible
         BooleanFormula goalPC = null;
         if (pSuite.isVariabilityAware()) {
-          goalPC = helper.parseFormula(pSuite.dumpRegion(pSuite.getGoalCoverage(goal)).toString());
+          String regionString = pSuite.dumpRegion(pSuite.getGoalCoverage(goal)).toString();
+          goalPC = helper.parseFormula(regionString);
         } else {
           goalPC = bfm.makeBoolean(true);
         }

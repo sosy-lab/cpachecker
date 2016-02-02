@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-public class SolverTest {
+public class SolverHelperTest {
 
   @Test
   public void presenceConditionParsingTest() throws Exception {
@@ -95,5 +95,6 @@ public class SolverTest {
     assertTrue(solver.equivalent(formula1, formula3));
     assertTrue(!solver.equivalent(formula1, formula4));
   }
+
 
 }

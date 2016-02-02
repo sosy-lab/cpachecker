@@ -68,11 +68,7 @@ public class PresenceConditionParser {
               formula = pBfmgr.and(formula, pBfmgr.makeBoolean(false));
               break;
             default:
-              if (token.startsWith(NOT)) {
-                formula = pBfmgr.and(formula, pBfmgr.not(pBfmgr.makeVariable(token.substring(1))));
-              } else {
-                formula = pBfmgr.and(formula, pBfmgr.makeVariable(token));
-              }
+              formula = makeVariableFormula(pBfmgr, token);
               break;
           }
           break;
@@ -89,11 +85,7 @@ public class PresenceConditionParser {
               formula = pBfmgr.or(formula, pBfmgr.makeBoolean(false));
               break;
             default:
-              if (token.startsWith(NOT)) {
-                formula = pBfmgr.or(formula, pBfmgr.not(pBfmgr.makeVariable(token.substring(1))));
-              } else {
-                formula = pBfmgr.or(formula, pBfmgr.makeVariable(token));
-              }
+              formula = makeVariableFormula(pBfmgr, token);
               break;
           }
           break;
@@ -107,16 +99,20 @@ public class PresenceConditionParser {
           formula = pBfmgr.makeBoolean(false);
           break;
         default:
-          if (token.startsWith(NOT)) {
-            formula = pBfmgr.not(pBfmgr.makeVariable(parseName(token.substring(1))));
-          } else {
-            formula = pBfmgr.makeVariable(parseName(token));
-          }
+          formula = makeVariableFormula(pBfmgr, token);
           break;
       }
     }
 
     return formula;
+  }
+
+  private static BooleanFormula makeVariableFormula(BooleanFormulaManagerView pBfmgr, String token) {
+    if (token.startsWith(NOT)) {
+      return pBfmgr.not(pBfmgr.makeVariable(parseName(token.substring(1))));
+    } else {
+      return pBfmgr.makeVariable(parseName(token));
+    }
   }
 
   private static String parseName(String pName) {
