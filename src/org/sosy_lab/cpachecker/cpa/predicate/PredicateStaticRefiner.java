@@ -291,12 +291,6 @@ public class PredicateStaticRefiner extends StaticRefiner {
           throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
-    // Predicates that should be tracked on function scope
-    Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
-
-    // Predicates that should be tracked globally
-    Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
-
     // Determine the ERROR location of the path (last node)
     ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     CFANode targetLocation = AbstractStates.extractLocation(targetState);
@@ -315,38 +309,54 @@ public class PredicateStaticRefiner extends StaticRefiner {
       }
     }
 
+    PredicatePrecision result = PredicatePrecision.empty();
+
     // Create predicates for the assume edges and add them to the precision
     for (AssumeEdge assume : assumeEdges) {
-      // Create a boolean formula from the assume
-      Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(atomicPredicates, assume);
-
-      // Check whether the predicate should be used global or only local
-      boolean applyGlobal = true;
-      if (applyScoped) {
-        for (CIdExpression idExpr : getVariablesOfAssume(assume)) {
-          CSimpleDeclaration decl = idExpr.getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            if (!((CVariableDeclaration) decl).isGlobal()) {
-              applyGlobal = false;
-            }
-          } else if (decl instanceof CParameterDeclaration) {
-            applyGlobal = false;
-          }
-        }
-      }
-
-      // Add the predicate to the resulting precision
-      if (applyGlobal) {
-        logger.log(Level.FINEST, "Global predicates mined", preds);
-        globalPredicates.addAll(preds);
-      } else {
-        logger.log(Level.FINEST, "Function predicates mined", preds);
-        String function = assume.getPredecessor().getFunctionName();
-        functionPredicates.putAll(function, preds);
-      }
+      PredicatePrecision assumePrec = assumeEdgeToPrecision(assume, atomicPredicates);
+      result = result.mergeWith(assumePrec);
     }
 
     logger.log(Level.FINER, "Extracting finished.");
+
+    return result;
+  }
+
+  public PredicatePrecision assumeEdgeToPrecision(AssumeEdge pAssume, boolean pAtomicPredicates)
+      throws CPATransferException, InterruptedException {
+    // Create a boolean formula from the assume
+    Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(pAtomicPredicates, pAssume);
+
+    // Predicates that should be tracked on function scope
+    Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
+
+    // Predicates that should be tracked globally
+    Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
+
+    // Check whether the predicate should be used global or only local
+    boolean applyGlobal = true;
+    if (applyScoped) {
+      for (CIdExpression idExpr : getVariablesOfAssume(pAssume)) {
+        CSimpleDeclaration decl = idExpr.getDeclaration();
+        if (decl instanceof CVariableDeclaration) {
+          if (!((CVariableDeclaration) decl).isGlobal()) {
+            applyGlobal = false;
+          }
+        } else if (decl instanceof CParameterDeclaration) {
+          applyGlobal = false;
+        }
+      }
+    }
+
+    // Add the predicate to the resulting precision
+    if (applyGlobal) {
+      logger.log(Level.FINEST, "Global predicates mined", preds);
+      globalPredicates.addAll(preds);
+    } else {
+      logger.log(Level.FINEST, "Function predicates mined", preds);
+      String function = pAssume.getPredecessor().getFunctionName();
+      functionPredicates.putAll(function, preds);
+    }
 
     return new PredicatePrecision(
         ImmutableSetMultimap.<Pair<CFANode,Integer>,
@@ -356,12 +366,12 @@ public class PredicateStaticRefiner extends StaticRefiner {
         globalPredicates);
   }
 
-  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean atomicPredicates, AssumeEdge assume) throws CPATransferException, InterruptedException {
+  private Collection<AbstractionPredicate> assumeEdgeToPredicates(boolean pAtomicPredicates, AssumeEdge pAssume) throws CPATransferException, InterruptedException {
     BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
-        pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
+        pathFormulaManager.makeEmptyPathFormula(), pAssume).getFormula();
 
     Collection<AbstractionPredicate> preds;
-    if (atomicPredicates) {
+    if (pAtomicPredicates) {
       preds = predAbsManager.extractPredicates(relevantAssumesFormula);
     } else {
       preds = ImmutableList.of(predAbsManager.createPredicateFor(
