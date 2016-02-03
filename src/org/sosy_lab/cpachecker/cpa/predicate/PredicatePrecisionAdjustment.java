@@ -115,7 +115,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       if (adjustPrecFromStateAssumes) {
         Optional<PredicatePrecision> refinement = staticRefiner.derivePrecFromStateWithAssumptions(pFullState);
         if (refinement.isPresent()) {
-          precision = (PredicatePrecision) precision.join(refinement.get());
+          PredicatePrecision refinementDelta = refinement.get();
+          precision = (PredicatePrecision) precision.join(refinementDelta);
         }
       }
 
