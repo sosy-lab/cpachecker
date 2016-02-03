@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTLiteralConverter.Suffix;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.base.Functions;
@@ -108,11 +109,16 @@ public class ASTConverterTest {
   }
 
   private String parseIntegerExpression32(String s) {
-    return converter32.parseIntegerLiteral(s, null).toString();
+    return parseIntegerExpression(s, converter32);
   }
 
   private String parseIntegerExpression64(String s) {
-    return converter64.parseIntegerLiteral(s, null).toString();
+    return parseIntegerExpression(s, converter64);
+  }
+
+  private String parseIntegerExpression(String pExpression, ASTLiteralConverter pConverter) {
+    Suffix suffix = pConverter.determineSuffix(pExpression, null);
+    return pConverter.parseIntegerLiteral(suffix, pExpression.substring(0, pExpression.length() - suffix.getLength()), null).toString();
   }
 
   @Test

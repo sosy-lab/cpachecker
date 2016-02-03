@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -77,7 +78,10 @@ class ASTLiteralConverter {
       return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
 
     case IASTLiteralExpression.lk_integer_constant:
-      return new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, e));
+      Suffix suffix = determineSuffix(valueStr, e);
+      BigInteger integerValue = parseIntegerLiteral(suffix, valueStr.substring(0, valueStr.length() - suffix.getLength()), e);
+      CSimpleType actualType = suffix.getTypeForValue(integerValue, machine);
+      return new CIntegerLiteralExpression(fileLoc, actualType, integerValue);
 
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal value;
@@ -86,7 +90,7 @@ class ASTLiteralConverter {
         //in Java float and double can be distinguished by the suffixes "f" (Float) and "d" (Double)
         // in C the suffixes are "f" / "F" (Float) and "l" / "L" (Long Double)
         if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
-          valueStr = valueStr.substring(0, valueStr.length()-1) + "d";
+          valueStr = valueStr.substring(0, valueStr.length() - 1) + "d";
         }
 
         value = new BigDecimal(valueStr);
@@ -123,9 +127,12 @@ class ASTLiteralConverter {
 
 
     case IASTLiteralExpression.lk_integer_constant:
+      Suffix suffix = determineSuffix(valueStr, exp);
+      BigInteger integerValue = parseIntegerLiteral(suffix, valueStr.substring(0, valueStr.length() - suffix.getLength()), exp);
+      CSimpleType actualType = suffix.getTypeForValue(integerValue, machine);
       return new CImaginaryLiteralExpression(fileLoc,
-                                             type,
-                                             new CIntegerLiteralExpression(fileLoc, type, parseIntegerLiteral(valueStr, exp))) ;
+                                             actualType,
+                                             new CIntegerLiteralExpression(fileLoc, actualType, integerValue)) ;
 
     case IASTLiteralExpression.lk_float_constant:
       BigDecimal val;
@@ -239,35 +246,7 @@ class ASTLiteralConverter {
     return result;
   }
 
-  BigInteger parseIntegerLiteral(String s, final IASTNode e) {
-    // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
-    int last = s.length() - 1;
-
-    Suffix suffix = Suffix.NONE;
-
-    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
-      last--;
-      suffix = Suffix.U;
-    }
-    if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
-      last--;
-      // one 'L' is a long int
-      suffix = suffix == Suffix.NONE ? Suffix.L : Suffix.UL;
-    }
-    if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
-      last--;
-      // two 'L' are a long long int
-      suffix = suffix == Suffix.L ? Suffix.LL : Suffix.ULL;
-    }
-    if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
-      if (!suffix.isSigned()) {
-        throw new CFAGenerationRuntimeException("invalid duplicate modifier U in integer literal", e, niceFileNameFunction);
-      }
-      last--;
-      suffix = suffix == Suffix.L ? Suffix.UL : Suffix.ULL;
-    }
-
-    s = s.substring(0, last + 1);
+  BigInteger parseIntegerLiteral(Suffix pSuffix, String s, final IASTNode e) {
     BigInteger result;
     try {
       if (s.startsWith("0x") || s.startsWith("0X")) {
@@ -286,7 +265,7 @@ class ASTLiteralConverter {
     }
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 
-    int bits = suffix.getNumberOfBits(machine, result);
+    int bits = pSuffix.getNumberOfBits(machine, result);
 
     // clear the bits that don't fit in the type
     // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
@@ -295,7 +274,7 @@ class ASTLiteralConverter {
     assert result.bitLength() <= bits;
 
     // compute twos complement if necessary
-    if (suffix.isSigned() && result.testBit(bits - 1)) {
+    if (pSuffix.isSigned() && result.testBit(bits - 1)) {
       // highest bit is set
       result = result.clearBit(bits - 1);
 
@@ -308,7 +287,35 @@ class ASTLiteralConverter {
     return result;
   }
 
-  private static enum Suffix {
+  Suffix determineSuffix(String pIntegerLiteral, IASTNode pExpression) {
+    Suffix suffix = Suffix.NONE;
+    int last = pIntegerLiteral.length() - 1;
+
+    if (pIntegerLiteral.charAt(last) == 'U' || pIntegerLiteral.charAt(last) == 'u') {
+      last--;
+      suffix = Suffix.U;
+    }
+    if (pIntegerLiteral.charAt(last) == 'L' || pIntegerLiteral.charAt(last) == 'l') {
+      last--;
+      // one 'L' is a long int
+      suffix = suffix == Suffix.NONE ? Suffix.L : Suffix.UL;
+    }
+    if (pIntegerLiteral.charAt(last) == 'L' || pIntegerLiteral.charAt(last) == 'l') {
+      last--;
+      // two 'L' are a long long int
+      suffix = suffix == Suffix.L ? Suffix.LL : Suffix.ULL;
+    }
+    if (pIntegerLiteral.charAt(last) == 'U' || pIntegerLiteral.charAt(last) == 'u') {
+      if (!suffix.isSigned()) {
+        throw new CFAGenerationRuntimeException("invalid duplicate modifier U in integer literal", pExpression, niceFileNameFunction);
+      }
+      last--;
+      suffix = suffix == Suffix.L ? Suffix.UL : Suffix.ULL;
+    }
+    return suffix;
+  }
+
+  static enum Suffix {
 
     NONE {
 
@@ -318,13 +325,19 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-        int sizeOfChar = pMachineModel.getSizeofCharInBits();
-        return getNumberOfBits(pValue,
-            pMachineModel.getSizeofInt() * sizeOfChar,
-            pMachineModel.getSizeofLongInt() * sizeOfChar,
-            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
+        return getType(pValue,
+            pMachineModel,
+            CNumericTypes.INT,
+            CNumericTypes.LONG_INT,
+            CNumericTypes.LONG_LONG_INT);
       }
+
+      @Override
+      public int getLength() {
+        return 0;
+      }
+
     },
 
     U {
@@ -335,13 +348,19 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-        int sizeOfChar = pMachineModel.getSizeofCharInBits();
-        return getNumberOfBits(pValue,
-            pMachineModel.getSizeofInt() * sizeOfChar,
-            pMachineModel.getSizeofLongInt() * sizeOfChar,
-            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
+        return getType(pValue,
+            pMachineModel,
+            CNumericTypes.UNSIGNED_INT,
+            CNumericTypes.UNSIGNED_LONG_INT,
+            CNumericTypes.UNSIGNED_LONG_LONG_INT);
       }
+
+      @Override
+      public int getLength() {
+        return 1;
+      }
+
     },
 
     L {
@@ -352,12 +371,18 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-        int sizeOfChar = pMachineModel.getSizeofCharInBits();
-        return getNumberOfBits(pValue,
-            pMachineModel.getSizeofLongInt() * sizeOfChar,
-            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
+        return getType(pValue,
+            pMachineModel,
+            CNumericTypes.LONG_INT,
+            CNumericTypes.LONG_LONG_INT);
       }
+
+      @Override
+      public int getLength() {
+        return 1;
+      }
+
     },
 
     UL {
@@ -368,12 +393,18 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-        int sizeOfChar = pMachineModel.getSizeofCharInBits();
-        return getNumberOfBits(pValue,
-            pMachineModel.getSizeofLongInt() * sizeOfChar,
-            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
+        return getType(pValue,
+            pMachineModel,
+            CNumericTypes.UNSIGNED_LONG_INT,
+            CNumericTypes.UNSIGNED_LONG_LONG_INT);
       }
+
+      @Override
+      public int getLength() {
+        return 2;
+      }
+
     },
 
     LL {
@@ -384,11 +415,17 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-        int sizeOfChar = pMachineModel.getSizeofCharInBits();
-        return getNumberOfBits(pValue,
-            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
+        return getType(pValue,
+            pMachineModel,
+            CNumericTypes.LONG_LONG_INT);
       }
+
+      @Override
+      public int getLength() {
+        return 2;
+      }
+
     },
 
     ULL {
@@ -399,14 +436,22 @@ class ASTLiteralConverter {
       }
 
       @Override
-      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
-        int sizeOfChar = pMachineModel.getSizeofCharInBits();
-        return getNumberOfBits(pValue,
-            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      public CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel) {
+        return getType(pValue,
+            pMachineModel,
+            CNumericTypes.UNSIGNED_LONG_LONG_INT);
       }
+
+      @Override
+      public int getLength() {
+        return 3;
+      }
+
     };
 
     public abstract boolean isSigned();
+
+    public abstract int getLength();
 
     /**
      * Implement section 6.4.4.1 "Integer constants" of the C standard:
@@ -420,19 +465,28 @@ class ASTLiteralConverter {
      *
      * @return the size that will be used to represent the value.
      */
-    public abstract int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue);
+    public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+      CSimpleType type = getTypeForValue(pValue, pMachineModel);
+      if (type != null) {
+        return pMachineModel.getSizeof(type) * pMachineModel.getSizeofCharInBits();
+      }
+      return pValue.bitLength();
+    }
 
-    protected int getNumberOfBits(BigInteger pValue, int... pCandidates) {
+    public abstract CSimpleType getTypeForValue(BigInteger pValue, MachineModel pMachineModel);
+
+    protected CSimpleType getType(BigInteger pValue, MachineModel pMachineModel, CSimpleType... pCandidates) {
       int numberOfBits = pValue.bitLength();
-      int highestCandidateSize = numberOfBits;
-      for (int candidateBitSize : pCandidates) {
+      CSimpleType bestCandidate = null;
+      for (CSimpleType candidate : pCandidates) {
+        int candidateBitSize = pMachineModel.getSizeof(candidate) * pMachineModel.getSizeofCharInBits();
         int actualCandidateBitSize = isSigned() ? candidateBitSize - 1 : candidateBitSize;
         if (actualCandidateBitSize >= numberOfBits) {
-          return candidateBitSize;
+          return candidate;
         }
-        highestCandidateSize = candidateBitSize;
+        bestCandidate = candidate;
       }
-      return highestCandidateSize;
+      return bestCandidate;
     }
 
   }
