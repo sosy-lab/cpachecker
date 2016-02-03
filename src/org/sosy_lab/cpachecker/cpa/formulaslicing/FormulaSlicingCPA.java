@@ -59,7 +59,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final StopOperator stopOperator;
   private final IFormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
-  private FormulaSlicingStatistics statistics;
+  private final LoopTransitionFinder loopTransitionFinder;
 
   private FormulaSlicingCPA(
       Configuration pConfiguration,
@@ -69,7 +69,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   ) throws InvalidConfigurationException {
     pConfiguration.inject(this);
 
-    statistics = new FormulaSlicingStatistics();
     Solver solver = Solver.create(pConfiguration, pLogger, shutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
@@ -80,17 +79,16 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
 
-    LoopTransitionFinder ltf = new LoopTransitionFinder(
+    loopTransitionFinder = new LoopTransitionFinder(
         pConfiguration, cfa, pathFormulaManager, formulaManager, pLogger,
-        statistics, shutdownNotifier);
+        shutdownNotifier);
 
     InductiveWeakeningManager pInductiveWeakeningManager =
         new InductiveWeakeningManager(pConfiguration, formulaManager, solver, pLogger);
     manager = new FormulaSlicingManager(
         pConfiguration,
-        pathFormulaManager, formulaManager, cfa, ltf,
-        pInductiveWeakeningManager, solver,
-        statistics);
+        pathFormulaManager, formulaManager, cfa, loopTransitionFinder,
+        pInductiveWeakeningManager, solver);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -176,7 +174,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(statistics);
+    loopTransitionFinder.collectStatistics(statsCollection);
+    ((StatisticsProvider)manager).collectStatistics(statsCollection);
   }
 
   @Override

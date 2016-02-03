@@ -1,21 +1,30 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -34,7 +43,30 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Verify;
 
 @Options(prefix="cpa.slicing")
-public class FormulaSlicingManager implements IFormulaSlicingManager {
+public class FormulaSlicingManager implements IFormulaSlicingManager, StatisticsProvider {
+
+  /**
+   * Statistics for formula slicing.
+   */
+  class Stats implements Statistics {
+    final Timer formulaSlicingTimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream out, Result result,
+        ReachedSet reached) {
+      out.printf("Time spent in formula slicing: %s (Max: %s), (Avg: %s)%n",
+          formulaSlicingTimer,
+          formulaSlicingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
+          formulaSlicingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+    }
+
+    @Nullable
+    @Override
+    public String getName() {
+      return "Formula Slicing Manager";
+    }
+  }
+
   private final PathFormulaManager pfmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaManagerView fmgr;
@@ -42,7 +74,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private final LoopTransitionFinder loopTransitionFinder;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final Solver solver;
-  private final FormulaSlicingStatistics statistics;
+  private final Stats statistics;
 
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
@@ -53,8 +85,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       FormulaManagerView pFmgr,
       CFA pCfa,
       LoopTransitionFinder pLoopTransitionFinder,
-      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver,
-      FormulaSlicingStatistics pStatistics)
+      InductiveWeakeningManager pInductiveWeakeningManager, Solver pSolver)
       throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
@@ -64,7 +95,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     inductiveWeakeningManager = pInductiveWeakeningManager;
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
-    statistics = pStatistics;
+    statistics = new Stats();
   }
 
   @Override
@@ -371,5 +402,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
       SlicingIntermediateState iState2 = pState2.asIntermediate();
       return joinIntermediateStates(iState1, iState2);
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(statistics);
   }
 }
