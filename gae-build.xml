@@ -115,11 +115,9 @@
       </fileset>
       <fileset dir="${ivy.lib.dir}">
         <include name="runtime/*.jar" />
-        <include name="build/*.jar" />
       </fileset>
       <fileset dir="${lib.dir.gae}">
         <include name="runtime/*.jar" />
-        <include name="build/*.jar" />
       </fileset>
       <fileset dir="${gae-sdk.dir}">
         <include name="lib/user/**/*.jar" />
