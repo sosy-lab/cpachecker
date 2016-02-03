@@ -20,7 +20,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -94,7 +93,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
   public LoopTransitionFinder(
       Configuration config,
-      CFA pCfa, PathFormulaManager pPfmgr,
+      LoopStructure pLoopStructure, PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr, LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
@@ -104,7 +103,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     pfmgr = pPfmgr;
     fmgr = pFmgr;
     logger = pLogger;
-    loopStructure = pCfa.getLoopStructure().get();
+    loopStructure = pLoopStructure;
 
     LBEcache = new HashMap<>();
   }
