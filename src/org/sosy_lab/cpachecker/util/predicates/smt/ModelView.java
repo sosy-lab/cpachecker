@@ -89,4 +89,9 @@ public class ModelView implements Model {
   public Iterator<ValueAssignment> iterator() {
     return delegate.iterator();
   }
+
+  @Override
+  public String toString() {
+    return delegate.toString();
+  }
 }
