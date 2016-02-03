@@ -159,6 +159,8 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       return result;
     }
 
+    Preconditions.checkState(!(pCfaEdge instanceof MultiEdge), "This CPA does not yet support multi-edges reliable!");
+
     final List<CFAEdge> edges = ((MultiEdge)pCfaEdge).getEdges();
     checkArgument(!edges.isEmpty());
 
