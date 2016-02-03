@@ -193,6 +193,10 @@ analysis.memorizeReachedAfterRestart = false
 # Disable a property after the avg. time for refinements was exhausted.
 analysis.mpa.budget.limit.avgRefineTime = -1ns
 
+# Disable a property after a specific number of loop-related precision
+# elements is required.
+analysis.mpa.budget.limit.loopRelatedPrecisionElements = -1
+
 # Disable a property after a specific number of refinements was exhausted.
 analysis.mpa.budget.limit.numRefinements = -1
 

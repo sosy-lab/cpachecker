@@ -362,14 +362,14 @@ public final class BAMPredicateRefiner extends AbstractBAMBasedRefiner {
     private boolean secondRepeatedCEX = false;
 
     private BAMPredicateAbstractionRefinementStrategy(final Configuration config, final LogManager logger,
-        final BAMPredicateCPA predicateCpa,
+        final BAMPredicateCPA pPredicateCpa,
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr,
         final PredicateStaticRefiner pStaticRefiner)
             throws InvalidConfigurationException {
 
-      super(config, logger, predicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver);
-      this.predicateCpa = predicateCpa;
+      super(config, logger, pPredicateCpa.getShutdownNotifier(), pPredAbsMgr, pStaticRefiner, pSolver, pPredicateCpa.getCfa().getLoopStructure());
+      this.predicateCpa = pPredicateCpa;
     }
 
     @Override

@@ -83,7 +83,8 @@ public abstract class PredicateExtractionRefiner implements Refiner {
             predicateCPA.getPredicateManager(),
             predicateCPA.getStaticRefinerForMining(),
             predicateCPA.getSolver(),
-            predicateCPA.getSolver().getFormulaManager()
+            predicateCPA.getSolver().getFormulaManager(),
+            predicateCPA.getCfa().getLoopStructure()
             );
 
     return PredicateRefiner.create(pCpa, strategy);

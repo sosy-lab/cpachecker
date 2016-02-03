@@ -77,7 +77,8 @@ public abstract class PredicateRefiner implements Refiner {
         predicateCpa.getShutdownNotifier(),
         predicateCpa.getPredicateManager(),
         staticRefiner,
-        solver);
+        solver,
+        predicateCpa.getCfa().getLoopStructure());
 
     return create(pCpa, strategy);
   }

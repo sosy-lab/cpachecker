@@ -30,11 +30,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
@@ -42,9 +45,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.StatCpuTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 public enum PropertyStats implements Statistics {
@@ -55,6 +60,8 @@ public enum PropertyStats implements Statistics {
   private Map<Property, StatCounter> refinementCount = Maps.newHashMap();
   private Map<Property, StatCounter> coverageCount = Maps.newHashMap();
   private Map<Property, StatCounter> noCoverageCount = Maps.newHashMap();
+  private Multimap<Property, AbstractionPredicate> loopRelatedPredicates = HashMultimap.create();
+  private Multimap<Property, AbstractionPredicate> loopUnrelatedPredicates = HashMultimap.create();
 
   public synchronized void clear() {
     refinementCount.clear();
@@ -62,6 +69,8 @@ public enum PropertyStats implements Statistics {
     coverageCount.clear();
     noCoverageCount.clear();
     relevantProperties.clear();
+    loopRelatedPredicates.clear();
+    loopUnrelatedPredicates.clear();
   }
 
   private final Comparator<Property> propertyRefinementComparator = new Comparator<Property>() {
@@ -153,6 +162,10 @@ public enum PropertyStats implements Statistics {
       return Optional.absent();
     }
     return Optional.of(result);
+  }
+
+  public synchronized Optional<Integer> getLoopRelatedPredicates(Property pProperty) {
+    return Optional.of(loopRelatedPredicates.get(pProperty).size());
   }
 
   public Set<Property> getRelevantProperties() {
@@ -248,6 +261,17 @@ public enum PropertyStats implements Statistics {
 
   public void signalRelevancesOfProperties(ImmutableSet<? extends SafetyProperty> pRelevant) {
     relevantProperties.addAll(pRelevant);
+  }
+
+  public void trackPropertyPredicate(AbstractionPredicate pPredicate, Pair<CFANode, Integer> pKey,
+      boolean pLoopRelated, Set<Property> pPropertiesAtTarget) {
+    for (Property prop: pPropertiesAtTarget) {
+      if (pLoopRelated) {
+        loopRelatedPredicates.put(prop, pPredicate);
+      } else {
+        loopUnrelatedPredicates.put(prop, pPredicate);
+      }
+    }
   }
 
 }

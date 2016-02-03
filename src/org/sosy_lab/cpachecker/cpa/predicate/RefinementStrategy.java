@@ -28,9 +28,11 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -136,6 +138,8 @@ public abstract class RefinementStrategy {
     ARGState lastElement = pAbstractionStatesTrace.get(pAbstractionStatesTrace.size()-1);
     assert lastElement.isTarget();
 
+    Set<Property> propertiesAtTarget = lastElement.getViolatedProperties();
+
     // Hook
     startRefinementOfPath(pReached, pAbstractionStatesTrace, lastElement);
 
@@ -151,7 +155,7 @@ public abstract class RefinementStrategy {
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
 
     // Hook
-    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample);
+    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample, propertiesAtTarget);
 
     assert !pReached.asReachedSet().contains(lastElement);
   }
@@ -272,19 +276,21 @@ public abstract class RefinementStrategy {
   /**
    * Do any necessary work after one path has been refined.
    *
-   * @param unreachableState The first state in the path which is infeasible (this identifies the path).
-   * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
-   * @param reached The reached set.
-   * @param repeatedCounterexample Whether the counterexample has been found before.
+   * @param pUnreachableState The first state in the path which is infeasible (this identifies the path).
+   * @param pAffectedStates The list of states that were affected by the refinement (ordered from root to target state).
+   * @param pReached The reached set.
+   * @param pRepeatedCounterexample Whether the counterexample has been found before.
+   * @param pPropertiesAtTarget Properties that would have been violated at the target location.
    * @throws CPAException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
   @ForOverride
   protected abstract void finishRefinementOfPath(
-      final ARGState unreachableState,
-      List<ARGState> affectedStates,
-      ARGReachedSet reached,
-      boolean repeatedCounterexample) throws CPAException, InterruptedException;
+      final ARGState pUnreachableState,
+      List<ARGState> pAffectedStates,
+      ARGReachedSet pReached,
+      boolean pRepeatedCounterexample,
+      Set<Property> pPropertiesAtTarget) throws CPAException, InterruptedException;
 
   public abstract Statistics getStatistics();
 }

@@ -53,6 +53,10 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
       description="Disable a property after a specific number of refinements was exhausted.")
   private int refinementsLimit = -1;
 
+  @Option(secure=true, name="limit.loopRelatedPrecisionElements",
+      description="Disable a property after a specific number of loop-related precision elements is required.")
+  private int loopRelatedPrecisionElementsLimit = -1;
+
   @Option(secure=true, name="limit.avgRefineTime",
       description="Disable a property after the avg. time for refinements was exhausted.")
   @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
@@ -98,6 +102,16 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
     if (refinementsLimit > 0
         && maxInfeasibleCexs >= (refinementsLimit * budgetFactor)) {
       return true;
+    }
+
+    if (loopRelatedPrecisionElementsLimit > 0) {
+      Optional<Integer> related = PropertyStats.INSTANCE.getLoopRelatedPredicates(pProperty);
+      if (related.isPresent()) {
+        if (related.get() > loopRelatedPrecisionElementsLimit) {
+          logger.logf(Level.INFO, "Loop related precision limit exhausted for %s", pProperty.toString());
+          return true;
+        }
+      }
     }
 
     if (avgRefineTimeLimit.asMillis() > 0
