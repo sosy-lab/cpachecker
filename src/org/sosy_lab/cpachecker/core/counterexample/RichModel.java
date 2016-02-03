@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,15 +35,17 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.solver.Model;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Ordering;
 
 /**
  * This class represents an assignment of concrete values to program variables
@@ -56,15 +58,14 @@ import com.google.common.collect.Multimap;
  * {@link CFAPathWithAssumptions} and a multimap from {@link CFAEdge} to objects
  * stored.
  */
-public class RichModel extends ForwardingMap<AssignableTerm, Object> implements Appender {
+public class RichModel extends ForwardingMap<ValueAssignment, Object> implements Appender {
 
-  private final Map<AssignableTerm, Object> mModel;
+  private final Map<ValueAssignment, Object> mModel;
 
   private final CFAPathWithAssumptions assignments;
-  private final Multimap<CFAEdge, AssignableTerm> assignableTermsPerCFAEdge;
 
   @Override
-  protected Map<AssignableTerm, Object> delegate() {
+  protected Map<ValueAssignment, Object> delegate() {
     return mModel;
   }
 
@@ -75,24 +76,25 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
   private RichModel() {
     mModel = ImmutableMap.of();
     assignments = new CFAPathWithAssumptions();
-    assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
-  public RichModel(Map<AssignableTerm, Object> content) {
+  public RichModel(Map<ValueAssignment, Object> content) {
     mModel = ImmutableMap.copyOf(content);
     assignments = new CFAPathWithAssumptions();
-    assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
-  private RichModel(Map<AssignableTerm, Object> content,
+  private RichModel(Map<ValueAssignment, Object> content,
       CFAPathWithAssumptions pAssignments) {
     mModel = ImmutableMap.copyOf(content);
     assignments = pAssignments;
-    assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   public static RichModel of(Model model) {
-    return new RichModel(model.getData());
+    Map<ValueAssignment, Object> map = new HashMap<>();
+    for (ValueAssignment assignment : model) {
+      map.put(assignment, assignment.getValue());
+    }
+    return new RichModel(map);
   }
 
   /**
@@ -111,17 +113,6 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
   @Nullable
   public CFAPathWithAssumptions getCFAPathWithAssignments() {
     return assignments;
-  }
-
-  /**
-   * Returns a collection of {@link AssignableTerm}} terms that were assigned a the given
-   * {@link CFAEdge} edge.
-   *
-   * @param pEdge All terms that were assigned at this edge are returned-
-   * @return A collection of terms assigned at the given edge.
-   */
-  public Collection<AssignableTerm> getAllAssignedTerms(CFAEdge pEdge) {
-    return assignableTermsPerCFAEdge.get(pEdge);
   }
 
   @Nullable
@@ -144,9 +135,19 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
     return assignments.getExactVariableValues(pPath);
   }
 
+  private static final MapJoiner TEXTUAL_MAP_JOINER =
+      Joiner.on(System.lineSeparator()).withKeyValueSeparator(": ");
+
+  public static void appendModel(Appendable output, Map<ValueAssignment, Object> data)
+      throws IOException {
+    Map<ValueAssignment, Object> sorted = ImmutableSortedMap
+        .copyOf(data, Ordering.usingToString());
+    TEXTUAL_MAP_JOINER.appendTo(output, sorted);
+  }
+
   @Override
   public void appendTo(Appendable output) throws IOException {
-    Model.appendModel(output, mModel);
+    appendModel(output, mModel);
   }
 
   @Override

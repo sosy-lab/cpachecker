@@ -28,11 +28,14 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -42,6 +45,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
@@ -54,6 +59,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
@@ -77,11 +83,15 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
+import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
@@ -623,7 +633,59 @@ public final class InterpolationManager {
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+
+      // Empty model.
+      return new Model() {
+        @Nullable
+        @Override
+        public Object evaluate(Formula f) {
+          return null;
+        }
+
+        @Nullable
+        @Override
+        public BigInteger evaluate(IntegerFormula f) {
+          return null;
+        }
+
+        @Nullable
+        @Override
+        public Rational evaluate(RationalFormula f) {
+          return null;
+        }
+
+        @Nullable
+        @Override
+        public Boolean evaluate(BooleanFormula f) {
+          return null;
+        }
+
+        @Nullable
+        @Override
+        public BigInteger evaluate(BitvectorFormula f) {
+          return null;
+        }
+
+        @Override
+        public Iterator<ValueAssignment> iterator() {
+          return new Iterator<ValueAssignment>() {
+            @Override
+            public boolean hasNext() {
+              return false;
+            }
+
+            @Override
+            public ValueAssignment next() {
+              throw new NoSuchElementException();
+            }
+
+            @Override
+            public void remove() {
+              throw new UnsupportedOperationException();
+            }
+          };
+        }
+      };
     }
   }
 

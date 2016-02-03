@@ -1159,6 +1159,7 @@ cpa.predicate.abs.predicateOrdering.partitions = false
 
 # use caching of region to formula conversions
 # use caching of abstractions
+# use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
@@ -2390,10 +2391,10 @@ pcc.proofgen.doPCC = false
 # prove the property.
 pcc.sliceProof = false
 
-# Qualified name for class which implements proof checking strategy to be
-# used.
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
+# Qualified name for class which implements proof checking strategy to be
+# used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking

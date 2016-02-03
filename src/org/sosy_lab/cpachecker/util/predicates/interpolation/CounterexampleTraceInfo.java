@@ -46,8 +46,11 @@ public class CounterexampleTraceInfo {
     private final ImmutableList<BooleanFormula> mCounterexampleFormula;
     private final ImmutableMap<Integer, Boolean> branchingPreds;
 
-    private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
-        RichModel pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
+    private CounterexampleTraceInfo(
+        boolean pSpurious,
+        ImmutableList<BooleanFormula> pInterpolants,
+        RichModel pCounterexampleModel,
+        ImmutableList<BooleanFormula> pCounterexampleFormula,
         ImmutableMap<Integer, Boolean> pBranchingPreds) {
       spurious = pSpurious;
       interpolants = pInterpolants;

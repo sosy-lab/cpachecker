@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
-import org.sosy_lab.solver.AssignableTerm;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -300,14 +299,6 @@ public class CEXExporter {
         for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
-          //TODO Erase, counterexample is supposed to be independent of Assignable terms
-          for (AssignableTerm term : model.getAllAssignedTerms(edge)) {
-            out.append('\t');
-            out.append(term.toString());
-            out.append(": ");
-            out.append(model.get(term).toString());
-            out.append(System.lineSeparator());
-          }
         }
       }
 

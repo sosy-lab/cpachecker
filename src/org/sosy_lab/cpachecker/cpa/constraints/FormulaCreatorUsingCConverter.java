@@ -40,11 +40,11 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier.Converter;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.FloatingPointFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -105,7 +105,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
   @Override
   public BooleanFormula transformAssignment(
-      final AssignableTerm pTerm,
+      final ValueAssignment pTerm,
       final Object termAssignment,
       final VariableMap pVariables
   ) {
@@ -223,7 +223,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
    * @param pVariables the map of possible variables
    * @return a variable representing the given term, in form of a {@link Formula}
    */
-  private Formula getVariableForTerm(AssignableTerm pTerm, VariableMap pVariables) {
+  private Formula getVariableForTerm(ValueAssignment pTerm, VariableMap pVariables) {
     final Converter symIdConverter = Converter.getInstance();
 
     final String name = symIdConverter.normalizeStringEncoding(pTerm.getName());

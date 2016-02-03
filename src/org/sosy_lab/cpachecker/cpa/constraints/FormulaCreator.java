@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.constraints;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.solver.AssignableTerm;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 
@@ -51,11 +51,11 @@ public interface FormulaCreator {
    * one exists.
    *
    * @param pConstraint the constraint to create a formula of
-   * @param pDefiniteAssingment the known definite assignments of symbolic identifiers
+   * @param pDefiniteAssignment the known definite assignments of symbolic identifiers
    *
    * @return a <code>Formula</code> representing the given constraint
    */
-  BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssingment) throws UnrecognizedCCodeException, InterruptedException;
+  BooleanFormula createFormula(Constraint pConstraint, IdentifierAssignment pDefiniteAssignment) throws UnrecognizedCCodeException, InterruptedException;
 
   /**
    * Creates a {@link BooleanFormula} representing the given term-value assignment.
@@ -67,10 +67,10 @@ public interface FormulaCreator {
    * returns the formula <code>a equals 5</code>
    * </p>
    *
-   * @param pTerm the term of the assignment
+   * @param pTerm the term assignment
    * @param termAssignment the value of the assignment
    * @return a <code>BooleanFormula</code> representing the given assignment
    */
-  BooleanFormula transformAssignment(AssignableTerm pTerm, Object termAssignment, VariableMap pVariables)
+  BooleanFormula transformAssignment(ValueAssignment pTerm, Object termAssignment, VariableMap pVariables)
   ;
 }

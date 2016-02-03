@@ -29,10 +29,10 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
-import org.sosy_lab.solver.AssignableTerm.Function;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 /** This class contains code for a better evaluation of UFs. */
 public class FunctionApplicationManager {
@@ -53,44 +53,50 @@ public class FunctionApplicationManager {
    * and build an assignment (equality) of the UF and the correct result and return it.
    * If we cannot compute a result or UF is unknown, we return TRUE.
    */
-  public BooleanFormula evaluate(Function func, Object value) {
-    switch (func.getName()) {
-    case "Integer__*_": {
-      return INTEGER_MULT.apply(func, value);
-    }
-    case "Integer__/_": {
-      return INTEGER_DIV.apply(func, value);
-    }
-    case "Integer__%_": {
-      return INTEGER_MOD.apply(func, value);
-    }
-    case "_<<_": {
-      return INTEGER_SHIFT_LEFT.apply(func, value);
-    }
-    case "_>>_": {
-      return INTEGER_SHIFT_RIGHT.apply(func, value);
-    }
-    case "_&_": {
-      return INTEGER_AND.apply(func, value);
-    }
-    case "_!!_": {
-      return INTEGER_OR.apply(func, value);
-    }
-    case "_^_": {
-      return INTEGER_XOR.apply(func, value);
-    }
-    case "_~_": {
-      return INTEGER_NOT.apply(func, value);
-    }
-    default:
-      // $FALL-THROUGH$
+  public BooleanFormula evaluate(
+      ValueAssignment entry,
+      Object value) {
+    String functionName = entry.getName();
+
+    // Stateful shortcut.
+
+    switch (functionName) {
+      case "Integer__*_": {
+        return INTEGER_MULT.apply(entry, value);
+      }
+      case "Integer__/_": {
+        return INTEGER_DIV.apply(entry, value);
+      }
+      case "Integer__%_": {
+        return INTEGER_MOD.apply(entry, value);
+      }
+      case "_<<_": {
+        return INTEGER_SHIFT_LEFT.apply(entry, value);
+      }
+      case "_>>_": {
+        return INTEGER_SHIFT_RIGHT.apply(entry, value);
+      }
+      case "_&_": {
+        return INTEGER_AND.apply(entry, value);
+      }
+      case "_!!_": {
+        return INTEGER_OR.apply(entry, value);
+      }
+      case "_^_": {
+        return INTEGER_XOR.apply(entry, value);
+      }
+      case "_~_": {
+        return INTEGER_NOT.apply(entry, value);
+      }
+      default:
+        // $FALL-THROUGH$
     }
 
-    if (func.getName().startsWith("_overflow")) {
-      return OVERFLOW.apply(func, value);
+    if (functionName.startsWith("_overflow")) {
+      return OVERFLOW.apply(entry, value);
     }
 
-    logger.logf(Level.ALL, "ignoring UF '%s' with value '%s'.", func, value);
+    logger.logf(Level.ALL, "ignoring UF '%s' with value '%s'.", entry, value);
     return fmgr.getBooleanFormulaManager().makeBoolean(true);
   }
 
@@ -105,25 +111,24 @@ public class FunctionApplicationManager {
   }
 
   /** common interface for all function-evaluators. */
-  private static interface FunctionApplication {
+  private interface FunctionApplication {
 
     /**
      * returns a constraint "UF(params) == result"
      * or TRUE if we cannot evaluate the UF.
      */
-    public BooleanFormula apply(Function func, Object pValue);
+    BooleanFormula apply(ValueAssignment func, Object pValue);
   }
 
   private abstract class BinaryArithmeticFunctionApplication implements FunctionApplication {
 
     @Override
-    public final BooleanFormula apply(Function func, Object value) {
-      assert func.getArity() == 2;
+    public final BooleanFormula apply(ValueAssignment func, Object value) {
       assert value instanceof BigInteger;
+      BigInteger arg1 = (BigInteger) func.getArgInterpretation(0);
+      BigInteger arg2 = (BigInteger) func.getArgInterpretation(1);
 
-      BigInteger p1 = (BigInteger) func.getArgument(0);
-      BigInteger p2 = (BigInteger) func.getArgument(1);
-      BigInteger validResult = compute(p1, p2);
+      BigInteger validResult = compute(arg1, arg2);
 
       if (validResult == null) {
         // evaluation not possible, ignore UF
@@ -133,8 +138,8 @@ public class FunctionApplicationManager {
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUninterpretedFunction(
           func.getName(),
           getType(),
-          fmgr.makeNumber(getType(), p1),
-          fmgr.makeNumber(getType(), p2));
+          fmgr.makeNumber(getType(), arg1),
+          fmgr.makeNumber(getType(), arg2));
 
       BooleanFormula newAssignment = fmgr.makeEqual(uf, fmgr.makeNumber(getType(), validResult));
 
@@ -154,11 +159,8 @@ public class FunctionApplicationManager {
   private abstract class UnaryFunctionApplication implements FunctionApplication {
 
     @Override
-    public final BooleanFormula apply(Function func, Object value) {
-      assert func.getArity() == 1;
-      assert value instanceof BigInteger;
-
-      BigInteger p1 = (BigInteger) func.getArgument(0);
+    public final BooleanFormula apply(ValueAssignment func, Object value) {
+      BigInteger p1 = (BigInteger) func.getArgInterpretation(0);
       BigInteger validResult = compute(func, p1);
 
       if (validResult == null) {
@@ -182,7 +184,7 @@ public class FunctionApplicationManager {
     }
 
     /** returns the correct result of the computation. */
-    abstract BigInteger compute(Function func, BigInteger p2);
+    abstract BigInteger compute(ValueAssignment func, BigInteger p2);
 
   }
 
@@ -269,7 +271,7 @@ public class FunctionApplicationManager {
   private final FunctionApplication INTEGER_NOT = new UnaryFunctionApplication() {
 
     @Override
-    BigInteger compute(Function pFunc, BigInteger p1) {
+    BigInteger compute(ValueAssignment pFunc, BigInteger p1) {
       return p1.not();
     }
   };
@@ -277,7 +279,7 @@ public class FunctionApplicationManager {
   private final FunctionApplication OVERFLOW = new UnaryFunctionApplication() {
 
     @Override
-    BigInteger compute(Function func, BigInteger p1) {
+    BigInteger compute(ValueAssignment func, BigInteger p1) {
       final String name = func.getName();
       assert name.startsWith("_overflowSigned") || name.startsWith("_overflowUnsigned");
       final boolean signed = name.startsWith("_overflowSigned");

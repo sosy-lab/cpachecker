@@ -53,7 +53,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 
 /**
- * New version of policy iteration, now with path focusing.
+ * Policy iteration CPA.
  */
 @Options(prefix="cpa.stator.policy")
 public class PolicyCPA extends SingleEdgeTransferRelation

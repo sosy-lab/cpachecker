@@ -26,9 +26,11 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTLiteralConverter.Suffix;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 public class ASTConverterTest {
 
@@ -107,111 +109,66 @@ public class ASTConverterTest {
   }
 
   private String parseIntegerExpression32(String s) {
-    return converter32.parseIntegerLiteral(s, null).toString();
+    return parseIntegerExpression(s, converter32);
+  }
+
+  private String parseIntegerExpression64(String s) {
+    return parseIntegerExpression(s, converter64);
+  }
+
+  private String parseIntegerExpression(String pExpression, ASTLiteralConverter pConverter) {
+    Suffix suffix = pConverter.determineSuffix(pExpression, null);
+    return pConverter.parseIntegerLiteral(suffix, pExpression.substring(0, pExpression.length() - suffix.getLength()), null).toString();
   }
 
   @Test
   public final void testIntegerExpression() {
-    assertEquals("0", parseIntegerExpression32("0"));
-    assertEquals("1", parseIntegerExpression32("1"));
-    assertEquals("2", parseIntegerExpression32("2L"));
-    assertEquals("3", parseIntegerExpression32("3u"));
-    assertEquals("4", parseIntegerExpression32("4LL"));
-    assertEquals("5", parseIntegerExpression32("5uLl"));
-    assertEquals("63", parseIntegerExpression32("077"));
+    check("0","0");
+    check("1", "1");
+    check("2", "2");
+    check("3", "3u");
+    check("4", "4");
+    check("5", "5u");
+    check("63", "077");
 
-    assertEquals( "2147483647", parseIntegerExpression32("2147483647"));
-    assertEquals( "2147483647", parseIntegerExpression32("0x7FFFFFFFL"));
-    assertEquals("-2147483648", parseIntegerExpression32("2147483648L"));
-    assertEquals("-2147483648", parseIntegerExpression32("0x80000000"));
-    assertEquals("-1",          parseIntegerExpression32("4294967295"));
-    assertEquals("-1",          parseIntegerExpression32("0xFFFFFFFFl"));
-    assertEquals( "0",          parseIntegerExpression32("4294967296l"));
-    assertEquals("-294967296",  parseIntegerExpression32("4000000000"));
-    assertEquals( "4000000000", parseIntegerExpression32("4000000000u"));
+    check("2147483647", "2147483647");
+    check("2147483647", "0x7FFFFFFF");
+    check("2147483648", "2147483648");
+    check("2147483648", "0x80000000");
+    check("4294967295", "4294967295");
+    check("4294967295", "0xFFFFFFFF");
+    check("4294967296", "4294967296");
+    check("4000000000", "4000000000");
+    check("4000000000", "4000000000u");
 
-    assertEquals("2147483647", parseIntegerExpression32("2147483647LL"));
-    assertEquals("2147483647", parseIntegerExpression32("0x7FFFFFFFlL"));
-    assertEquals("2147483648", parseIntegerExpression32("2147483648Ll"));
-    assertEquals("2147483648", parseIntegerExpression32("0x80000000LL"));
-    assertEquals("4294967295", parseIntegerExpression32("4294967295ll"));
-    assertEquals("4294967295", parseIntegerExpression32("0xFFFFFFFFLL"));
-    assertEquals("4294967296", parseIntegerExpression32("4294967296Ll"));
-    assertEquals("4000000000", parseIntegerExpression32("4000000000lL"));
-    assertEquals("4000000000", parseIntegerExpression32("4000000000uLL"));
+    check("18446744073709551600", "0xfffffffffffffff0u");
+    check("-16",                  "0xfffffffffffffff0");
 
-    assertEquals("18446744073709551600", parseIntegerExpression32("0xfffffffffffffff0ull"));
-    assertEquals("-16",                  parseIntegerExpression32("0xfffffffffffffff0ll"));
+    check( "9223372036854775807", "9223372036854775807");
+    check( "9223372036854775807", "0x7FFFFFFFFFFFFFFF");
+    check("-9223372036854775808", "9223372036854775808");
+    check("-9223372036854775808", "0x8000000000000000");
+    check( "9223372036854775808", "9223372036854775808u");
+    check( "9223372036854775808", "0x8000000000000000u");
+    check("18446744073709551615", "18446744073709551615u");
+    check("18446744073709551615", "0xFFFFFFFFFFFFFFFFu");
+    check("18446711088360718336", "0xffffe20000000000U");
+    check("18446604435732824064", "0xffff810000000000U");
 
-    assertEquals( "9223372036854775807", parseIntegerExpression32("9223372036854775807LL"));
-    assertEquals( "9223372036854775807", parseIntegerExpression32("0x7FFFFFFFFFFFFFFFLL"));
-    assertEquals("-9223372036854775808", parseIntegerExpression32("9223372036854775808LL"));
-    assertEquals("-9223372036854775808", parseIntegerExpression32("0x8000000000000000LL"));
-    assertEquals( "9223372036854775808", parseIntegerExpression32("9223372036854775808uLL"));
-    assertEquals( "9223372036854775808", parseIntegerExpression32("0x8000000000000000uLL"));
-    assertEquals("18446744073709551615", parseIntegerExpression32("18446744073709551615uLL"));
-    assertEquals("18446744073709551615", parseIntegerExpression32("0xFFFFFFFFFFFFFFFFuLL"));
-
-    assertEquals("-1", parseIntegerExpression32("0xFFFFFFFFFFFFFFFF"));
-    assertEquals("-1", parseIntegerExpression32("0xFFFFFFFFFFFFFFFFLL"));
-
-    assertEquals("1", parseIntegerExpression32("18446744073709551617uLL"));
-    assertEquals("0", parseIntegerExpression32("0xffffe20000000000UL"));
-    assertEquals("0", parseIntegerExpression32("0xffff810000000000UL"));
+    check("-1", "0xFFFFFFFFFFFFFFFF");
+    check("1", "18446744073709551617u");
+    check("0", "36893488147419103232");
+    check("0", "36893488147419103232u");
+    check("5563120682049744680", "100020003000400050006000700080009000u");
   }
 
-  private String parseIntegerExpression64(String s) {
-    return converter64.parseIntegerLiteral(s, null).toString();
-  }
-
-  @Test
-  public final void testIntegerExpression64() {
-    assertEquals("0", parseIntegerExpression64("0"));
-    assertEquals("1", parseIntegerExpression64("1"));
-    assertEquals("2", parseIntegerExpression64("2L"));
-    assertEquals("3", parseIntegerExpression64("3u"));
-    assertEquals("4", parseIntegerExpression64("4LL"));
-    assertEquals("5", parseIntegerExpression64("5uLl"));
-    assertEquals("63", parseIntegerExpression64("077"));
-
-    assertEquals( "2147483647", parseIntegerExpression64("2147483647"));
-    assertEquals( "2147483647", parseIntegerExpression64("0x7FFFFFFFL"));
-    assertEquals( "2147483648", parseIntegerExpression64("2147483648L"));
-    assertEquals("-2147483648", parseIntegerExpression64("0x80000000"));
-    assertEquals("-1",          parseIntegerExpression64("4294967295"));
-    assertEquals( "4294967295", parseIntegerExpression64("0xFFFFFFFFl"));
-    assertEquals( "4294967296", parseIntegerExpression64("4294967296l"));
-    assertEquals("-294967296",  parseIntegerExpression64("4000000000"));
-    assertEquals( "4000000000", parseIntegerExpression64("4000000000u"));
-
-    assertEquals("2147483647", parseIntegerExpression64("2147483647LL"));
-    assertEquals("2147483647", parseIntegerExpression64("0x7FFFFFFFlL"));
-    assertEquals("2147483648", parseIntegerExpression64("2147483648Ll"));
-    assertEquals("2147483648", parseIntegerExpression64("0x80000000LL"));
-    assertEquals("4294967295", parseIntegerExpression64("4294967295ll"));
-    assertEquals("4294967295", parseIntegerExpression64("0xFFFFFFFFLL"));
-    assertEquals("4294967296", parseIntegerExpression64("4294967296Ll"));
-    assertEquals("4000000000", parseIntegerExpression64("4000000000lL"));
-    assertEquals("4000000000", parseIntegerExpression64("4000000000uLL"));
-
-    assertEquals("18446744073709551600", parseIntegerExpression64("0xfffffffffffffff0ull"));
-    assertEquals("-16",                  parseIntegerExpression64("0xfffffffffffffff0ll"));
-
-    assertEquals( "9223372036854775807", parseIntegerExpression64("9223372036854775807LL"));
-    assertEquals( "9223372036854775807", parseIntegerExpression64("0x7FFFFFFFFFFFFFFFLL"));
-    assertEquals("-9223372036854775808", parseIntegerExpression64("9223372036854775808LL"));
-    assertEquals("-9223372036854775808", parseIntegerExpression64("0x8000000000000000LL"));
-    assertEquals( "9223372036854775808", parseIntegerExpression64("9223372036854775808uLL"));
-    assertEquals( "9223372036854775808", parseIntegerExpression64("0x8000000000000000uLL"));
-    assertEquals("18446744073709551615", parseIntegerExpression64("18446744073709551615uLL"));
-    assertEquals("18446744073709551615", parseIntegerExpression64("0xFFFFFFFFFFFFFFFFuLL"));
-
-    assertEquals("-1", parseIntegerExpression64("0xFFFFFFFFFFFFFFFF"));
-    assertEquals("-1", parseIntegerExpression64("0xFFFFFFFFFFFFFFFFLL"));
-
-    assertEquals("1", parseIntegerExpression64("18446744073709551617uLL"));
-    assertEquals("18446711088360718336", parseIntegerExpression64("0xffffe20000000000UL"));
-    assertEquals("18446604435732824064", parseIntegerExpression64("0xffff810000000000UL"));
+  private void check(String expected, String input) {
+    // constant integers are always extended to the smllest matching type.
+    // thus the result is always identical for L and LL
+    for (String postfix : Lists.newArrayList("","l","ll","L","LL","lL","Ll")) {
+      assertEquals(expected, parseIntegerExpression32(input + postfix));
+      assertEquals(expected, parseIntegerExpression64(input + postfix));
+    }
   }
 
 }

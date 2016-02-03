@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -55,9 +55,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -175,7 +175,7 @@ public class AutomatonGraphmlCommon {
     private final static Map<String, NodeFlag> stringToFlagMap = Maps.newHashMap();
 
     static {
-      for (NodeFlag f: NodeFlag.values()) {
+      for (NodeFlag f : NodeFlag.values()) {
         stringToFlagMap.put(f.key.id, f);
       }
     }
@@ -268,21 +268,77 @@ public class AutomatonGraphmlCommon {
   public static class GraphMlBuilder {
 
     private final Document doc;
-    private final Writer target;
+    private final Element graph;
 
-    public GraphMlBuilder(Appendable target) throws ParserConfigurationException {
+    public GraphMlBuilder(
+        GraphType pGraphType,
+        String pDefaultSourceFileName,
+        Language pLanguage,
+        MachineModel pMachineModel,
+        String pMemoryModel,
+        Iterable<String> pSpecifications,
+        String pProgramNames)
+        throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
       this.doc = docBuilder.newDocument();
-      this.target = CharStreams.asWriter(target);
+      Element root = doc.createElement("graphml");
+      doc.appendChild(root);
+      root.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+      root.setAttribute("xmlns", "http://graphml.graphdrawing.org/xmlns");
+
+      EnumSet<KeyDef> keyDefs = EnumSet.allOf(KeyDef.class);
+      root.appendChild(
+          createKeyDefElement(KeyDef.NODETYPE, AutomatonGraphmlCommon.defaultNodeType.text));
+      keyDefs.remove(KeyDef.NODETYPE);
+      root.appendChild(createKeyDefElement(KeyDef.ORIGINFILE, pDefaultSourceFileName));
+      keyDefs.remove(KeyDef.ORIGINFILE);
+      for (NodeFlag f : NodeFlag.values()) {
+        keyDefs.remove(f.key);
+        root.appendChild(createKeyDefElement(f.key, "false"));
+      }
+      for (KeyDef keyDef : keyDefs) {
+        root.appendChild(createKeyDefElement(keyDef, null));
+      }
+
+      graph = doc.createElement("graph");
+      root.appendChild(graph);
+      graph.setAttribute("edgedefault", "directed");
+      graph.appendChild(createDataElement(KeyDef.GRAPH_TYPE, pGraphType.toString()));
+      graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
+      graph.appendChild(
+          createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
+      for (String specification : pSpecifications) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, specification));
+      }
+
+      /*
+       * TODO: We should allow multiple program files here.
+       * As soon as we do, we should also hash each file separately.
+       */
+      graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, pProgramNames));
+      graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeProgramHash(pProgramNames)));
+
+      graph.appendChild(createDataElement(KeyDef.MEMORYMODEL, pMemoryModel));
+      switch (pMachineModel) {
+        case LINUX32:
+          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "32bit"));
+          break;
+        case LINUX64:
+          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "64bit"));
+          break;
+        default:
+          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString()));
+          break;
+      }
     }
 
-    public Element createElement(GraphMlTag tag) {
+    private Element createElement(GraphMlTag tag) {
       return doc.createElement(tag.toString());
     }
 
-    public Element createDataElement(final KeyDef key, final String value) {
+    private Element createDataElement(final KeyDef key, final String value) {
       Element result = createElement(GraphMlTag.DATA);
       result.setAttribute("key", key.id);
       result.setTextContent(value);
@@ -293,14 +349,29 @@ public class AutomatonGraphmlCommon {
       Element result = createElement(GraphMlTag.EDGE);
       result.setAttribute("source", from);
       result.setAttribute("target", to);
+      graph.appendChild(result);
       return result;
     }
 
-    public Element createKeyDefElement(KeyDef keyDef, @Nullable String defaultValue) {
-      return createKeyDefElement(keyDef.id, keyDef.keyFor, keyDef.attrName, keyDef.attrType, defaultValue);
+    public Element createNodeElement(String nodeId, NodeType nodeType) {
+      Element result = createElement(GraphMlTag.NODE);
+      result.setAttribute("id", nodeId);
+
+      if (nodeType != defaultNodeType) {
+        addDataElementChild(result, KeyDef.NODETYPE, nodeType.toString());
+      }
+
+      graph.appendChild(result);
+
+      return result;
     }
 
-    public Element createKeyDefElement(
+    private Element createKeyDefElement(KeyDef keyDef, @Nullable String defaultValue) {
+      return createKeyDefElement(
+          keyDef.id, keyDef.keyFor, keyDef.attrName, keyDef.attrType, defaultValue);
+    }
+
+    private Element createKeyDefElement(
         String id,
         ElementType keyFor,
         String attrName,
@@ -329,71 +400,9 @@ public class AutomatonGraphmlCommon {
       return result;
     }
 
-    public Element createNodeElement(String nodeId, NodeType nodeType) {
-      Element result = createElement(GraphMlTag.NODE);
-      result.setAttribute("id", nodeId);
-
-      if (nodeType != defaultNodeType) {
-        addDataElementChild(result, KeyDef.NODETYPE, nodeType.toString());
-      }
-
-      return result;
-    }
-
-    public void appendNewNode(String nodeId, NodeType nodeType) {
-      Element result = createNodeElement(nodeId, nodeType);
-      appendToAppendable(result);
-    }
-
-    public Element addDataElementChild(Element childOf, final KeyDef key, final String value) {
+    public void addDataElementChild(Element childOf, final KeyDef key, final String value) {
       Element result = createDataElement(key, value);
       childOf.appendChild(result);
-      return result;
-    }
-
-    public void appendDataElement(final KeyDef key, final String value) {
-      Element result = createDataElement(key, value);
-      appendToAppendable(result);
-    }
-
-    public void appendDocHeader() throws IOException {
-      target.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
-      target.append("<graphml xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n");
-    }
-
-    public void appendGraphHeader(GraphType pGraphType,
-        Language pLanguage,
-        Iterable<String> pSpecifications,
-        String pProgramNames,
-        String pMemoryModel,
-        MachineModel pMachineModel) throws IOException {
-      target.append("<graph edgedefault=\"directed\">");
-      appendDataElement(KeyDef.GRAPH_TYPE, pGraphType.toString());
-      appendDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString());
-      appendDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion());
-      for (String specification : pSpecifications) {
-        appendDataElement(KeyDef.SPECIFICATION, specification);
-      }
-
-      /*
-       * TODO: We should allow multiple program files here.
-       * As soon as we do, we should also hash each file separately.
-       */
-      appendDataElement(KeyDef.PROGRAMFILE, pProgramNames);
-      appendDataElement(KeyDef.PROGRAMHASH, computeProgramHash(pProgramNames));
-
-      appendDataElement(KeyDef.MEMORYMODEL, pMemoryModel);
-      switch (pMachineModel) {
-        case LINUX32:
-          appendDataElement(KeyDef.ARCHITECTURE, "32bit");
-          break;
-        case LINUX64:
-          appendDataElement(KeyDef.ARCHITECTURE, "64bit");
-          break;
-        default:
-          appendDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString());
-          break;
-      }
     }
 
     private String computeProgramHash(String pProgramDenotations) throws IOException {
@@ -407,28 +416,25 @@ public class AutomatonGraphmlCommon {
       return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
     }
 
-    public void appendNewKeyDef(KeyDef keyDef, @Nullable String defaultValue) {
-      appendToAppendable(createKeyDefElement(keyDef, defaultValue));
-    }
-
-    public void appendToAppendable(Node n) {
+    public void appendTo(Appendable pTarget) throws IOException {
       try {
+        pTarget.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
+
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
         transformer.setOutputProperty(OutputKeys.METHOD, "xml");
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "1");
         transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 
-        transformer.transform(new DOMSource(n), new StreamResult(target));
+        transformer.transform(new DOMSource(doc), new StreamResult(CharStreams.asWriter(pTarget)));
       } catch (TransformerException ex) {
-          throw new RuntimeException("Error while dumping program path", ex);
+        if (ex.getException() instanceof IOException) {
+          throw (IOException) ex.getException();
+        }
+        throw new RuntimeException("Error while writing witness.", ex);
       }
-    }
-
-    public void appendFooter() throws IOException {
-      target.append("</graph>\n");
-      target.append("</graphml>\n");
     }
 
   }

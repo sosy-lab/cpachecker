@@ -316,7 +316,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final Formula b =
           processOperand(or.getOperand2(), exp.getCalculationType(), exp.getExpressionType());
 
-      return conv.bfmgr.or(mgr.makeEqual(a, zero), mgr.makeEqual(b, zero));
+      return conv.bfmgr.and(mgr.makeEqual(a, zero), mgr.makeEqual(b, zero));
     }
     return mgr.makeEqual(f1, f2);
   }

@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -92,7 +93,7 @@ class JavaBDDRegionManager implements RegionManager {
   private final ReferenceQueue<JavaBDDRegion> referenceQueue =
       new ReferenceQueue<>();
   // In this map we store the info which BDD to free after a JavaBDDRegion object was GCed.
-  private final Map<PhantomReference<JavaBDDRegion>, BDD> referenceMap = Maps
+  private final Map<Reference<? extends JavaBDDRegion>, BDD> referenceMap = Maps
       .newIdentityHashMap();
 
   @Option(secure = true, description = "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
@@ -141,20 +142,20 @@ class JavaBDDRegionManager implements RegionManager {
     try {
       Method gcCallback =
           JavaBDDRegionManager.class.getDeclaredMethod("gcCallback",
-              new Class[]{Integer.class, BDDFactory.GCStats.class});
+              Integer.class, BDDFactory.GCStats.class);
       gcCallback.setAccessible(true);
       factory.registerGCCallback(this, gcCallback);
 
       Method resizeCallback =
           JavaBDDRegionManager.class.getDeclaredMethod("resizeCallback",
-              new Class[]{Integer.class, Integer.class});
+              Integer.class, Integer.class);
       resizeCallback.setAccessible(true);
       factory.registerResizeCallback(this, resizeCallback);
 
       Method reorderCallback =
           JavaBDDRegionManager.class
-              .getDeclaredMethod("reorderCallback", new Class[]{
-                  Integer.class, BDDFactory.ReorderStats.class});
+              .getDeclaredMethod("reorderCallback", Integer.class,
+                  BDDFactory.ReorderStats.class);
       reorderCallback.setAccessible(true);
       factory.registerReorderCallback(this, reorderCallback);
 
@@ -229,7 +230,6 @@ class JavaBDDRegionManager implements RegionManager {
           .putIf(cacheSize >= 0, "Size of BDD cache", cacheSize)
           .put(cleanupQueueSize)
           .put(cleanupTimer)
-
           .put(
               "Time for BDD garbage collection",
               TimeSpan.ofMillis(stats.sumtime).formatAs(SECONDS)
@@ -308,9 +308,8 @@ class JavaBDDRegionManager implements RegionManager {
     cleanupTimer.start();
     try {
       int count = 0;
-      PhantomReference<? extends JavaBDDRegion> ref;
-      while ((ref =
-          (PhantomReference<? extends JavaBDDRegion>)referenceQueue
+      Reference<? extends JavaBDDRegion> ref;
+      while ((ref = referenceQueue
               .poll()) != null) {
         count++;
 
