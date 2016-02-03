@@ -801,13 +801,20 @@ class WebInterface:
                 message = ""
                 if response.status == 401:
                     message = 'Error 401: Permission denied. Please check the URL given to --cloudMaster and specify credentials if necessary.'
+                
                 elif response.status == 404:
                     message = 'Error 404: Not found. Please check the URL given to --cloudMaster.'
+                    
                 elif response.status == 503:
                     message = 'Error 503: Service Unavailable.'
-                    sleep(60)
+                    if counter < 5:
+                        logging.debug(message)
+                        sleep(60)
+                        continue
+                    
                 else:
                     message += response.read().decode('UTF-8')
+                    
                 logging.warning(message)
                 raise urllib2.HTTPError(path, response.getcode(), message , response.getheaders(), None)
 
