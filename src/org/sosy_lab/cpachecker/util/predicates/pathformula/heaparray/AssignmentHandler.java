@@ -298,8 +298,8 @@ class AssignmentHandler {
 
     if (!pUseOldSSAIndices) {
       if (pLvalue.isAliased()) {
-        addRetentionForAssignment(pLvalueType, pLvalue.asAliased().getAddress(),
-            pPattern, pUpdatedTypes);
+//        addRetentionForAssignment(pLvalueType, pLvalue.asAliased().getAddress(),
+//            pPattern, pUpdatedTypes);
 
         if (pUpdatedTypes == null) {
           assert isSimpleType(pLvalueType) : "Should be impossible due to the "
@@ -341,8 +341,8 @@ class AssignmentHandler {
       final @Nonnull PointerTargetPattern pPattern,
       final @Nonnull Set<CType> pUpdatedTypes) throws InterruptedException {
 
-    addRetentionForAssignment(pLvalueType, pLvalue.asAliased().getAddress(),
-        pPattern, pUpdatedTypes);
+//    addRetentionForAssignment(pLvalueType, pLvalue.asAliased().getAddress(),
+//        pPattern, pUpdatedTypes);
     updateSSA(pUpdatedTypes, ssa);
   }
 
@@ -546,6 +546,7 @@ class AssignmentHandler {
         : CToFormulaConverterWithHeapArray.getArrayName(pLvalueType);
     final FormulaType<?> targetType = converter.getFormulaTypeFromCType(
         pLvalueType);
+    final int oldIndex = converter.getIndex(targetName, pLvalueType, ssa);
     final int newIndex = pUseOldSSAIndices
         ? converter.getIndex(targetName, pLvalueType, ssa)
         : converter.getFreshIndex(targetName, pLvalueType, ssa);
@@ -569,9 +570,11 @@ class AssignmentHandler {
       }
     } else { // Aliased LHS
       if (rhs != null) {
+        final ArrayFormula<?, ?> oldFormula = afmgr.makeArray(targetName + "@" + oldIndex,
+            FormulaType.IntegerType, targetType);
         final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + newIndex,
             FormulaType.IntegerType, targetType);
-        result = formulaManager.makeEqual(arrayFormula, afmgr.store(arrayFormula,
+        result = formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula,
             pLvalue.asAliased().getAddress(), rhs));
       } else {
         result = bfmgr.makeBoolean(true);
