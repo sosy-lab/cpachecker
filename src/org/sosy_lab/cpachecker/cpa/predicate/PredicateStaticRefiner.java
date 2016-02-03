@@ -262,7 +262,11 @@ public class PredicateStaticRefiner extends StaticRefiner {
         Collection<AbstractStateWithAssumptions> assumingStates = AbstractStates.extractStatesByType(s, AbstractStateWithAssumptions.class);
         for (AbstractStateWithAssumptions e: assumingStates) {
           List<AssumeEdge> assumes = e.getAsAssumeEdges(u.getFunctionName());
-          result.addAll(assumes);
+          for (AssumeEdge assume : assumes) {
+            if (!isAssumeOnLoopVariable(assume)) {
+              result.add(assume);
+            }
+          }
         }
       }
 
@@ -307,8 +311,10 @@ public class PredicateStaticRefiner extends StaticRefiner {
     for (AbstractStateWithAssumptions e: assumingStates) {
       List<AssumeEdge> assumes = e.getAsAssumeEdges(loc.getFunctionName());
       for (AssumeEdge assume: assumes) {
-        PredicatePrecision assumePrec = assumeEdgeToPrecision(assume, true);
-        result = result.mergeWith(assumePrec);
+        if (!isAssumeOnLoopVariable(assume)) {
+          PredicatePrecision assumePrec = assumeEdgeToPrecision(assume, true);
+          result = result.mergeWith(assumePrec);
+        }
       }
     }
 
