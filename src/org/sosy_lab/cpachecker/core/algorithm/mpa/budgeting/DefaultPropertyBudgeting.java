@@ -107,7 +107,7 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
     if (loopRelatedPrecisionElementsLimit > 0) {
       Optional<Integer> related = PropertyStats.INSTANCE.getLoopRelatedPredicates(pProperty);
       if (related.isPresent()) {
-        if (related.get() > loopRelatedPrecisionElementsLimit) {
+        if (related.get() > (loopRelatedPrecisionElementsLimit * budgetFactor)) {
           logger.logf(Level.INFO, "Loop related precision limit exhausted for %s", pProperty.toString());
           return true;
         }
