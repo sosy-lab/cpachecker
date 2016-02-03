@@ -1274,6 +1274,10 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# Dynamically derive (and add) precision elements from assumptions on the
+# state.
+cpa.predicate.adjustPrecFromStateAssumes = false
+
 # whether to use auxiliary predidates for reduction
 cpa.predicate.bam.auxiliaryPredicateComputer = true
 

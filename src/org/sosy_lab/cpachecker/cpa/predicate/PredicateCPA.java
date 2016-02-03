@@ -230,7 +230,7 @@ ProofChecker, AutoCloseable, AnalysisCache {
     stats = new PredicateCPAStatistics(this, blk, regionManager, abstractionManager,
         cfa, config);
 
-    prec = new PredicatePrecisionAdjustment(this, invariantGenerator, staticRefiner);
+    prec = new PredicatePrecisionAdjustment(this, config, invariantGenerator, staticRefiner);
 
     if (stopType.equals("SEP")) {
       stop = new PredicateStopOperator(domain);

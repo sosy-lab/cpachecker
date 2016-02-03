@@ -32,6 +32,10 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -57,7 +61,11 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
+@Options(prefix="cpa.predicate")
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
+
+  @Option(secure=true, description="Dynamically derive (and add) precision elements from assumptions on the state.")
+  private boolean adjustPrecFromStateAssumes = false;
 
   // statistics
   final Timer totalPrecTime = new Timer();
@@ -77,7 +85,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private InvariantSupplier invariants;
 
   public PredicatePrecisionAdjustment(PredicateCPA pCpa,
-      InvariantGenerator pInvariantGenerator, PredicateStaticRefiner pStaticRefiner) {
+      Configuration pConfig, InvariantGenerator pInvariantGenerator, PredicateStaticRefiner pStaticRefiner) throws InvalidConfigurationException {
+
+    pConfig.inject(this);
 
     logger = pCpa.getLogger();
     formulaManager = pCpa.getPredicateManager();
@@ -102,11 +112,18 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       PredicatePrecision precision = (PredicatePrecision) pPrecision;
 
+      if (adjustPrecFromStateAssumes) {
+        Optional<PredicatePrecision> refinement = staticRefiner.derivePrecFromStateWithAssumptions(pFullState);
+        if (refinement.isPresent()) {
+          precision = (PredicatePrecision) precision.join(refinement.get());
+        }
+      }
+
       if (element instanceof ComputeAbstractionState) {
         return computeAbstraction((ComputeAbstractionState) element, precision);
       } else {
         return Optional.of(PrecisionAdjustmentResult.create(
-            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+            element, precision, PrecisionAdjustmentResult.Action.CONTINUE));
       }
 
     } catch (SolverException e) {
