@@ -241,12 +241,7 @@ class AssignmentHandler {
     }
 
     if (lhsLocation.isAliased()) {
-      finishAssignments(
-          CTypeUtils.simplifyType(pVariable.getExpressionType()),
-          lhsLocation.asAliased(),
-          PointerTargetPattern.forLeftHandSide(
-              pVariable, converter.typeHandler, converter.ptsMgr, edge, pts),
-          updatedTypes);
+      updateSSA(updatedTypes, ssa);
     }
 
     return result;
@@ -298,9 +293,6 @@ class AssignmentHandler {
 
     if (!pUseOldSSAIndices) {
       if (pLvalue.isAliased()) {
-//        addRetentionForAssignment(pLvalueType, pLvalue.asAliased().getAddress(),
-//            pPattern, pUpdatedTypes);
-
         if (pUpdatedTypes == null) {
           assert isSimpleType(pLvalueType) : "Should be impossible due to the "
               + "first if statement";
@@ -325,25 +317,6 @@ class AssignmentHandler {
       }
     }
     return result;
-  }
-
-  /**
-   * Finishes an assignment.
-   *
-   * @param pLvalueType The type of the lvalue.
-   * @param pLvalue The location of the lvalue.
-   * @param pPattern The pattern of the pointer targets.
-   * @param pUpdatedTypes A set of updated types.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  private void finishAssignments(@Nonnull CType pLvalueType,
-      final @Nonnull AliasedLocation pLvalue,
-      final @Nonnull PointerTargetPattern pPattern,
-      final @Nonnull Set<CType> pUpdatedTypes) throws InterruptedException {
-
-//    addRetentionForAssignment(pLvalueType, pLvalue.asAliased().getAddress(),
-//        pPattern, pUpdatedTypes);
-    updateSSA(pUpdatedTypes, ssa);
   }
 
   /**
@@ -586,233 +559,6 @@ class AssignmentHandler {
     }
 
     return result;
-  }
-
-  /**
-   * Adds a retention for an assignment.
-   *
-   * @param pLvalueType The type of the lvalue.
-   * @param pStartAddress Either {@code null} or the start address formula.
-   * @param pPattern The pattern of pointer targets
-   * @param pTypesToRetain A set of types to retain.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  private void addRetentionForAssignment(@Nonnull CType pLvalueType,
-      final @Nullable Formula pStartAddress,
-      final @Nonnull PointerTargetPattern pPattern,
-      final Set<CType> pTypesToRetain) throws InterruptedException {
-
-    pLvalueType = CTypeUtils.simplifyType(pLvalueType);
-    final int size = converter.getSizeof(pLvalueType);
-    if (isSimpleType(pLvalueType)) {
-      Preconditions.checkArgument(pStartAddress != null, "Start address is "
-          + "mandatory for assigning to lvalues of simple types");
-
-      final String ufName = CToFormulaConverterWithHeapArray.getArrayName(
-          pLvalueType);
-      final int oldIndex = converter.getIndex(ufName, pLvalueType, ssa);
-      final int newIndex = converter.getFreshIndex(ufName, pLvalueType, ssa);
-      final FormulaType<?> targetType = converter.getFormulaTypeFromCType(
-          pLvalueType);
-      addRetentionConstraints(pPattern, pLvalueType, ufName, oldIndex, newIndex,
-          targetType, pStartAddress);
-
-    } else if (pPattern.isExact()) {
-      pPattern.setRange(size);
-      for (final CType type : pTypesToRetain) {
-        final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
-        final int oldIndex = converter.getIndex(ufName, type, ssa);
-        final int newIndex = converter.getFreshIndex(ufName, type, ssa);
-        final FormulaType<?> targetType = converter.getFormulaTypeFromCType(type);
-        addRetentionConstraints(pPattern, type, ufName, oldIndex, newIndex,
-            targetType, null);
-      }
-
-    } else if (pPattern.isSemiExact()) {
-      Preconditions.checkArgument(pStartAddress != null, "Start address is "
-          + "mandatory for semi-exact pointer target patterns");
-      // For semiexact retention constraints we need the first element type of
-      // the composite
-      if (pLvalueType instanceof CArrayType) {
-        pLvalueType = CTypeUtils.simplifyType(((CArrayType) pLvalueType).getType());
-      } else { // CCompositeType
-        pLvalueType = CTypeUtils.simplifyType(((CCompositeType) pLvalueType)
-            .getMembers().get(0).getType());
-      }
-      addSemiExactRetentionConstraints(pPattern, pLvalueType, pStartAddress,
-          size, pTypesToRetain);
-
-    } else { // Inexact pointer target pattern
-      Preconditions.checkArgument(pStartAddress != null, "Start address is "
-          + "mandatory for inexact pointer target patterns");
-      addInexactRetentionConstraints(pStartAddress, size, pTypesToRetain);
-    }
-  }
-
-  /**
-   * Adds retention constraints.
-   *
-   * @param pPattern The pattern of pointer targets.
-   * @param pLvalueType The type of the lvalue expression.
-   * @param pUfName The name of the UF.
-   * @param pOldIndex The old index.
-   * @param pNewIndex The new index.
-   * @param pReturnType The formula type of the return.
-   * @param pLvalue A formula for the lvalue.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  private void addRetentionConstraints(final PointerTargetPattern pPattern,
-      final CType pLvalueType,
-      final String pUfName,
-      final int pOldIndex,
-      final int pNewIndex,
-      final FormulaType<?> pReturnType,
-      final Formula pLvalue) throws InterruptedException {
-
-    if (!pPattern.isExact()) {
-      for (final PointerTarget target
-          : pts.getMatchingTargets(pLvalueType, pPattern)) {
-        converter.shutdownNotifier.shutdownIfNecessary();
-
-        final Formula targetAddress = formulaManager.makePlus(
-            formulaManager.makeVariable(converter.voidPointerFormulaType,
-                target.getBaseName()),
-            formulaManager.makeNumber(converter.voidPointerFormulaType,
-                target.getOffset()));
-
-        final BooleanFormula updateCondition = formulaManager.makeEqual(
-            targetAddress, pLvalue);
-
-        final ArrayFormula<?, ?> newArray = afmgr.makeArray(pUfName + "@" + pNewIndex,
-            FormulaType.IntegerType, pReturnType);
-        final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
-            FormulaType.IntegerType, pReturnType);
-        final BooleanFormula retention = formulaManager.makeEqual(
-            afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress));
-
-        constraints.addConstraint(bfmgr.or(updateCondition, retention));
-      }
-    }
-
-    for (final PointerTarget target
-        : pts.getSpuriousTargets(pLvalueType, pPattern)) {
-      // TODO check possible loop unrolling
-      converter.shutdownNotifier.shutdownIfNecessary();
-
-      final Formula targetAddress = formulaManager.makePlus(
-          formulaManager.makeVariable(converter.voidPointerFormulaType,
-              target.getBaseName()),
-          formulaManager.makeNumber(converter.voidPointerFormulaType,
-              target.getOffset()));
-
-      final ArrayFormula<?, ?> newArray = afmgr.makeArray(pUfName + "@" + pNewIndex,
-          FormulaType.IntegerType, pReturnType);
-      final ArrayFormula<?, ?> oldArray = afmgr.makeArray(pUfName + "@" + pOldIndex,
-          FormulaType.IntegerType, pReturnType);
-      constraints.addConstraint(formulaManager.makeEqual(
-          afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
-    }
-  }
-
-  /**
-   * Adds a constraint of a semi exact retention.
-   *
-   * @param pPattern A pattern of pointer targets.
-   * @param pFirstElementType The type of the first element.
-   * @param pStartAddress The formula representing the start address of the type.
-   * @param pSize The size of the type.
-   * @param pTypes A set of types.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  private void addSemiExactRetentionConstraints(
-      final PointerTargetPattern pPattern,
-      final CType pFirstElementType,
-      final Formula pStartAddress,
-      final int pSize,
-      final Set<CType> pTypes) throws InterruptedException {
-
-    final PointerTargetPattern exact = PointerTargetPattern.any();
-    for (final PointerTarget target
-        : pts.getMatchingTargets(pFirstElementType, pPattern)) {
-      converter.shutdownNotifier.shutdownIfNecessary();
-      final Formula candidateAddress = formulaManager.makePlus(
-          formulaManager.makeVariable(converter.voidPointerFormulaType,
-              target.getBaseName()),
-          formulaManager.makeNumber(converter.voidPointerFormulaType,
-              target.getOffset()));
-      final BooleanFormula negAntecedent = bfmgr.not(
-          formulaManager.makeEqual(candidateAddress, pStartAddress));
-      exact.setBase(target.getBase());
-      exact.setRange(target.getOffset(), pSize);
-      BooleanFormula consequent = bfmgr.makeBoolean(true);
-
-      for (final CType type : pTypes) {
-        final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
-        final int oldIndex = converter.getIndex(ufName, type, ssa);
-        final int newIndex = converter.getFreshIndex(ufName, type, ssa);
-        final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
-        for (final PointerTarget spurious : pts.getSpuriousTargets(type, exact)) {
-          // TODO check possible loop unrolling
-          final Formula targetAddress = formulaManager.makePlus(
-              formulaManager.makeVariable(converter.voidPointerFormulaType,
-                  spurious.getBaseName()),
-              formulaManager.makeNumber(converter.voidPointerFormulaType,
-                  spurious.getOffset()));
-
-          final ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + newIndex,
-              FormulaType.IntegerType, returnType);
-          final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
-              FormulaType.IntegerType, returnType);
-          consequent = bfmgr.and(consequent, formulaManager.makeEqual(
-              afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress)));
-        }
-      }
-
-      constraints.addConstraint(bfmgr.or(negAntecedent, consequent));
-    }
-  }
-
-  /**
-   * Adds a constraint for an inexact retention.
-   *
-   * @param pStartAddress The formula representing the start address of the type.
-   * @param pSize The size of the type.
-   * @param pTypes A set of types.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  private void addInexactRetentionConstraints(final Formula pStartAddress,
-      final int pSize,
-      final Set<CType> pTypes) throws InterruptedException {
-
-    final PointerTargetPattern any = PointerTargetPattern.any();
-    for (final CType type : pTypes) {
-      final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
-      final int oldIndex = converter.getIndex(ufName, type, ssa);
-      final int newIndex = converter.getFreshIndex(ufName, type, ssa);
-      final FormulaType<?> returnType = converter.getFormulaTypeFromCType(type);
-      for (final PointerTarget target : pts.getMatchingTargets(type, any)) {
-        converter.shutdownNotifier.shutdownIfNecessary();
-
-        final Formula targetAddress = formulaManager.makePlus(
-            formulaManager.makeVariable(converter.voidPointerFormulaType,
-                target.getBaseName()),
-            formulaManager.makeNumber(converter.voidPointerFormulaType,
-                target.getOffset()));
-
-        final Formula endAddress = formulaManager.makePlus(pStartAddress,
-            formulaManager.makeNumber(converter.voidPointerFormulaType, pSize - 1));
-
-        final ArrayFormula<?, ?> newArray = afmgr.makeArray(ufName + "@" + newIndex,
-            FormulaType.IntegerType, returnType);
-        final ArrayFormula<?, ?> oldArray = afmgr.makeArray(ufName + "@" + oldIndex,
-            FormulaType.IntegerType, returnType);
-        constraints.addConstraint(bfmgr.or(bfmgr.and(
-            formulaManager.makeLessOrEqual(pStartAddress, targetAddress, false),
-            formulaManager.makeLessOrEqual(targetAddress, endAddress, false)),
-            formulaManager.makeEqual(
-                afmgr.select(newArray, targetAddress), afmgr.select(oldArray, targetAddress))));
-      }
-    }
   }
 
   /**
