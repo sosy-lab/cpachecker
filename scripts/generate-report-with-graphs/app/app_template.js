@@ -7,7 +7,7 @@
 
     app.controller('ReportController', ['$rootScope', '$scope', function($rootScope, $scope){
         $scope.date = Date.now();
-        $scope.logo = "http://cpachecker.sosy-lab.org/logo.svg";
+        $scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
         $scope.help_externalFiles = "<p><b>CFA</b> (control flow automaton) shows the control flow of the program (one CFA for one function in the source-code)</p>" +
             "<p>- the errorpath is highlighted in red</p>" +
             "<p>- click on the function-nodes to jump to CFA of this function</p>" +
