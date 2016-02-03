@@ -242,31 +242,30 @@ class ASTLiteralConverter {
   BigInteger parseIntegerLiteral(String s, final IASTNode e) {
     // this might have some modifiers attached (e.g. 0ULL), we have to get rid of them
     int last = s.length() - 1;
-    int bytes = machine.getSizeofInt();
-    boolean signed = true;
+
+    Suffix suffix = Suffix.NONE;
 
     if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
       last--;
-      signed = false;
+      suffix = Suffix.U;
     }
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
       // one 'L' is a long int
-      bytes = machine.getSizeofLongInt();
+      suffix = suffix == Suffix.NONE ? Suffix.L : Suffix.UL;
     }
     if (s.charAt(last) == 'L' || s.charAt(last) == 'l') {
       last--;
       // two 'L' are a long long int
-      bytes = machine.getSizeofLongLongInt();
+      suffix = suffix == Suffix.L ? Suffix.LL : Suffix.ULL;
     }
     if (s.charAt(last) == 'U' || s.charAt(last) == 'u') {
-      if (!signed) {
+      if (!suffix.isSigned()) {
         throw new CFAGenerationRuntimeException("invalid duplicate modifier U in integer literal", e, niceFileNameFunction);
       }
       last--;
-      signed = false;
+      suffix = suffix == Suffix.L ? Suffix.UL : Suffix.ULL;
     }
-    int bits = bytes * machine.getSizeofCharInBits();
 
     s = s.substring(0, last + 1);
     BigInteger result;
@@ -287,6 +286,8 @@ class ASTLiteralConverter {
     }
     check(result.compareTo(BigInteger.ZERO) >= 0, "invalid number", e);
 
+    int bits = suffix.getNumberOfBits(machine, result);
+
     // clear the bits that don't fit in the type
     // a BigInteger with the lowest "bits" bits set to one (e. 2^32-1 or 2^64-1)
     BigInteger mask = BigInteger.ZERO.setBit(bits).subtract(BigInteger.ONE);
@@ -294,7 +295,7 @@ class ASTLiteralConverter {
     assert result.bitLength() <= bits;
 
     // compute twos complement if necessary
-    if (signed && result.testBit(bits - 1)) {
+    if (suffix.isSigned() && result.testBit(bits - 1)) {
       // highest bit is set
       result = result.clearBit(bits - 1);
 
@@ -305,5 +306,134 @@ class ASTLiteralConverter {
     }
 
     return result;
+  }
+
+  private static enum Suffix {
+
+    NONE {
+
+      @Override
+      public boolean isSigned() {
+        return true;
+      }
+
+      @Override
+      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+        int sizeOfChar = pMachineModel.getSizeofCharInBits();
+        return getNumberOfBits(pValue,
+            pMachineModel.getSizeofInt() * sizeOfChar,
+            pMachineModel.getSizeofLongInt() * sizeOfChar,
+            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      }
+    },
+
+    U {
+
+      @Override
+      public boolean isSigned() {
+        return false;
+      }
+
+      @Override
+      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+        int sizeOfChar = pMachineModel.getSizeofCharInBits();
+        return getNumberOfBits(pValue,
+            pMachineModel.getSizeofInt() * sizeOfChar,
+            pMachineModel.getSizeofLongInt() * sizeOfChar,
+            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      }
+    },
+
+    L {
+
+      @Override
+      public boolean isSigned() {
+        return true;
+      }
+
+      @Override
+      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+        int sizeOfChar = pMachineModel.getSizeofCharInBits();
+        return getNumberOfBits(pValue,
+            pMachineModel.getSizeofLongInt() * sizeOfChar,
+            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      }
+    },
+
+    UL {
+
+      @Override
+      public boolean isSigned() {
+        return false;
+      }
+
+      @Override
+      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+        int sizeOfChar = pMachineModel.getSizeofCharInBits();
+        return getNumberOfBits(pValue,
+            pMachineModel.getSizeofLongInt() * sizeOfChar,
+            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      }
+    },
+
+    LL {
+
+      @Override
+      public boolean isSigned() {
+        return true;
+      }
+
+      @Override
+      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+        int sizeOfChar = pMachineModel.getSizeofCharInBits();
+        return getNumberOfBits(pValue,
+            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      }
+    },
+
+    ULL {
+
+      @Override
+      public boolean isSigned() {
+        return false;
+      }
+
+      @Override
+      public int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue) {
+        int sizeOfChar = pMachineModel.getSizeofCharInBits();
+        return getNumberOfBits(pValue,
+            pMachineModel.getSizeofLongLongInt() * sizeOfChar);
+      }
+    };
+
+    public abstract boolean isSigned();
+
+    /**
+     * Implement section 6.4.4.1 "Integer constants" of the C standard:
+     *
+     * For each kind of literal suffix (including no suffix),
+     * there is an ordered list of potential types,
+     * and the first matching type of the list should be selected.
+     *
+     * @param pMachineModel the machine model.
+     * @param pValue the literal value.
+     *
+     * @return the size that will be used to represent the value.
+     */
+    public abstract int getNumberOfBits(MachineModel pMachineModel, BigInteger pValue);
+
+    protected int getNumberOfBits(BigInteger pValue, int... pCandidates) {
+      int numberOfBits = pValue.bitLength();
+      int highestCandidateSize = numberOfBits;
+      for (int candidateBitSize : pCandidates) {
+        int actualCandidateBitSize = isSigned() ? candidateBitSize - 1 : candidateBitSize;
+        if (actualCandidateBitSize >= numberOfBits) {
+          return candidateBitSize;
+        }
+        highestCandidateSize = candidateBitSize;
+      }
+      return highestCandidateSize;
+    }
+
   }
 }
