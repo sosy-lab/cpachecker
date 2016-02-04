@@ -59,16 +59,16 @@ public class RedundancyRemoverTest {
     Truth.assertThat(intervalStateImpl.compare(i01, i02)).isEqualTo(- intervalStateImpl.compare(i02, i01));
     Truth.assertThat(intervalStateImpl.compare(i01, i02)).isEqualTo(0);
 
-    Interval i11 = new Interval(new Long(-5), new Long(8));
-    Interval i12 = new Interval(new Long(0), new Long(5));
+    Interval i11 = new Interval(-5L, 8L);
+    Interval i12 = new Interval(0L, 5L);
     Truth.assertThat(intervalStateImpl.compare(i11, i12)).isEqualTo(1);
 
-    Interval i21 = new Interval(new Long(-1), new Long(3));
-    Interval i22 = new Interval(new Long(-1), new Long(7));
+    Interval i21 = new Interval(-1L, 3L);
+    Interval i22 = new Interval(-1L, 7L);
     Truth.assertThat(intervalStateImpl.compare(i21, i22)).isEqualTo(-1);
 
-    Interval i31 = new Interval(new Long(3), new Long(9));
-    Interval i32 = new Interval(new Long(5), new Long(7));
+    Interval i31 = new Interval(3L, 9L);
+    Interval i32 = new Interval(5L, 7L);
     Truth.assertThat(intervalStateImpl.compare(i31, i32)).isEqualTo(1); // TODO eigentlich -1
   }
 
@@ -83,27 +83,27 @@ public class RedundancyRemoverTest {
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
 
-    Interval i_35 = new Interval(new Long(-3), new Long(5));
-    Interval i01 = new Interval(new Long(0), new Long(1));
+    Interval i_35 = new Interval(-3L, 5L);
+    Interval i01 = new Interval(0L, 1L);
     Truth.assertThat(intervalStateImpl.covers(i_35, i01)).isEqualTo(true);
 
-    Interval i11a = new Interval(new Long(1), new Long(1));
-    Interval i11b = new Interval(new Long(1), new Long(1));
+    Interval i11a = new Interval(1L, 1L);
+    Interval i11b = new Interval(1L, 1L);
     Truth.assertThat(intervalStateImpl.covers(i11a, i11b)).isEqualTo(true);
 
     Interval iUnbounded = Interval.createUnboundInterval();
-    Interval i37 = new Interval(new Long(3), new Long(7));
+    Interval i37 = new Interval(3L, 7L);
     Truth.assertThat(intervalStateImpl.covers(iUnbounded, i37)).isEqualTo(true);
 
-    Interval i_38 = new Interval(new Long(-3), new Long(8));
+    Interval i_38 = new Interval(-3L, 8L);
     Truth.assertThat(intervalStateImpl.covers(i_35, i_38)).isEqualTo(false);
 
-    Interval i17 = new Interval(new Long(1), new Long(7));
-    Interval i_57 = new Interval(new Long(-5), new Long(7));
+    Interval i17 = new Interval(1L, 7L);
+    Interval i_57 = new Interval(-5L, 7L);
     Truth.assertThat(intervalStateImpl.covers(i17, i_57)).isEqualTo(false);
 
-    Interval i03 = new Interval(new Long(0), new Long(3));
-    Interval i912 = new Interval(new Long(9), new Long(12));
+    Interval i03 = new Interval(0L, 3L);
+    Interval i912 = new Interval(9L, 12L);
     Truth.assertThat(intervalStateImpl.covers(i03, i912)).isEqualTo(false);
   }
 
@@ -114,13 +114,13 @@ public class RedundancyRemoverTest {
     // varOrConst x -> Interval [-1,4]
     // varOrConst y -> unbound interval
 
-    IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new Interval(new Long(1),new Long(1)), 0);
-    //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(new Long(-1),new Long(4)), 0);
+    IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
+    //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(-1L, 4L), 0);
     IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", Interval.createUnboundInterval(), 0);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
-    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new Interval(new Long(1),new Long(1)));
-//    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new Interval(new Long(-1),new Long(4))); // TODO
+    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new Interval(1L, 1L));
+//    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new Interval(-1L, 4L)); // TODO
     Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y")).isEqualTo(Interval.createUnboundInterval());
   }
 
@@ -340,13 +340,13 @@ public class RedundancyRemoverTest {
     RedundantRequirementsValueAnalysisStateImplementation valueImpl = new RedundantRequirementsValueAnalysisStateImplementation();
 
     ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
-    NumericValue val1 = new NumericValue(new Long(1));
+    NumericValue val1 = new NumericValue(1L);
     valState1.assignConstant(MemoryLocation.valueOf("1"), val1, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
     //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
     ValueAnalysisState valState2 = new ValueAnalysisState(machineModel);
-    NumericValue val2 = new NumericValue(new Long(7));
+    NumericValue val2 = new NumericValue(7L);
     valState2.assignConstant(MemoryLocation.valueOf("x"), val2, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
