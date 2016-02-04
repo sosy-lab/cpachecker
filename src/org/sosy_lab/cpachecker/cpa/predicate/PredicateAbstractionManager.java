@@ -231,7 +231,7 @@ public class PredicateAbstractionManager {
     pfmgr = pPfmgr;
     solver = pSolver;
 
-    if (pLoopStructure.isPresent()) {
+    if (identifyInductivePredicates && pLoopStructure.isPresent()) {
       inductiveWeakeningMgr = new InductiveWeakeningManager(config, fmgr, solver, logger);
       loopFinder =
           new LoopTransitionFinder(
