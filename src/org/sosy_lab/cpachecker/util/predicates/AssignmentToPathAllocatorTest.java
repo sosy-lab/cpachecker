@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
@@ -37,11 +38,11 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
 
 public class AssignmentToPathAllocatorTest {
 
@@ -59,9 +60,9 @@ public class AssignmentToPathAllocatorTest {
 
   @Test
   public void testFindFirstOccurrenceOfVariable() {
-    ValueAssignment varX = new ValueAssignment(null, "x@4", 1, ImmutableList.of());
-    ValueAssignment varY = new ValueAssignment(null, "y@5", 1, ImmutableList.of());
-    ValueAssignment varZ = new ValueAssignment(null, "z@6", 1, ImmutableList.of());
+    ValueAssignment varX = new ValueAssignment(mock(Formula.class), "x@4", 1, ImmutableList.of());
+    ValueAssignment varY = new ValueAssignment(mock(Formula.class), "y@5", 1, ImmutableList.of());
+    ValueAssignment varZ = new ValueAssignment(mock(Formula.class), "z@6", 1, ImmutableList.of());
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
     List<SSAMap> ssaMaps = Lists.newArrayList();
