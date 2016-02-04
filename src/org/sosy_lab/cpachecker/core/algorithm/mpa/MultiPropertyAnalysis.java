@@ -45,7 +45,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
@@ -195,8 +194,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
   private ResourceLimitChecker reschecker = null;
 
   public MultiPropertyAnalysis(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
-    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa,
-    String pProgramDenotation)
+    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException, CPAException {
 
     pConfig.inject(this);
@@ -607,6 +605,7 @@ public final class MultiPropertyAnalysis implements MultiPropertyAlgorithm, Stat
     return result;
   }
 
+  @Override
   public Optional<PropertySummary> getLastRunPropertySummary() {
     return lastRunPropertySummary;
   }

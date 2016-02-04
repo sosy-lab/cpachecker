@@ -238,9 +238,9 @@ public class CoreComponentsFactory {
       }
 
       if (!pInnerAlgorithmsOnly && checkMultipleProperties == MultiPropertyMode.REUSE_CPA_COMPONENTS) {
-        algorithm = new MultiPropertyAnalysis(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation);
+        algorithm = new MultiPropertyAnalysis(algorithm, cpa, config, logger, interruptProvider, cfa);
       } else if (!pInnerAlgorithmsOnly && checkMultipleProperties == MultiPropertyMode.RESET_CPA_COMPONENTS) {
-        algorithm = new MultiPropertyAnalysisFullReset(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation, stats);
+        algorithm = new MultiPropertyAnalysisFullReset(config, logger, interruptProvider, cfa, programDenotation, stats);
       }
 
       if (collectAssumptions) {

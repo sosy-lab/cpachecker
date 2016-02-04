@@ -48,8 +48,6 @@ import org.sosy_lab.cpachecker.core.AnalysisFactory;
 import org.sosy_lab.cpachecker.core.AnalysisFactory.Analysis;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
@@ -200,7 +198,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
   private ResourceLimitChecker reschecker = null;
   private UnmodifiableReachedSet initialReached;
 
-  public MultiPropertyAnalysisFullReset(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa, Configuration pConfig, LogManager pLogger,
+  public MultiPropertyAnalysisFullReset(Configuration pConfig, LogManager pLogger,
       InterruptProvider pShutdownNotifier, CFA pCfa, String pProgramDenotation, MainCPAStatistics pStats)
       throws InvalidConfigurationException, CPAException {
 
@@ -616,6 +614,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
     return result;
   }
 
+  @Override
   public Optional<PropertySummary> getLastRunPropertySummary() {
     return lastRunPropertySummary;
   }

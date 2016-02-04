@@ -265,6 +265,7 @@ public enum PropertyStats implements Statistics {
 
   public void trackPropertyPredicate(AbstractionPredicate pPredicate, Pair<CFANode, Integer> pKey,
       boolean pLoopRelated, Set<Property> pPropertiesAtTarget) {
+
     for (Property prop: pPropertiesAtTarget) {
       if (pLoopRelated) {
         loopRelatedPredicates.put(prop, pPredicate);
