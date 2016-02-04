@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 public class RedundantRequirementsRemoverIntervalStateImplementation extends
     RedundantRequirementsRemoverImplementation<IntervalAnalysisState, Interval> {
 
+  private static final long serialVersionUID = 1323131138350817689L;
+
   @Override
   public int compare(Interval pO1, Interval pO2) {
     // one of arguments null -> NullPointerException

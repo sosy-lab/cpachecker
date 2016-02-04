@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,8 +65,9 @@ public class RedundantRequirementsRemover {
   }
 
   public static abstract class RedundantRequirementsRemoverImplementation<S extends AbstractState, V>
-      implements Comparator<V> {
+      implements Comparator<V>, Serializable {
 
+    private static final long serialVersionUID = 2610823786116954949L;
     private SortingArrayHelper sortHelper = new SortingArrayHelper();
 
     protected abstract boolean covers(final V covering, final V covered);
@@ -181,7 +183,9 @@ public class RedundantRequirementsRemover {
       }
     }
 
-    private class SortingArrayHelper implements Comparator<V[]> {
+    private class SortingArrayHelper implements Comparator<V[]>, Serializable {
+
+      private static final long serialVersionUID = 3970718511743910013L;
 
       @Override
       public int compare(final V[] arg0, final V[] arg1) {
@@ -203,7 +207,9 @@ public class RedundantRequirementsRemover {
 
 
     private class SortingHelper implements
-        Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>> {
+        Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
+
+      private static final long serialVersionUID = 3894486288294859800L;
 
       @Override
       public int compare(final Pair<V[][], Pair<ARGState, Collection<ARGState>>> arg0,
