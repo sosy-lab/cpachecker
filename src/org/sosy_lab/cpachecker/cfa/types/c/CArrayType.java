@@ -41,7 +41,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
     justification="handled by serialization proxy")
-public final class CArrayType extends AArrayType implements CType, Serializable {
+public final class CArrayType extends AArrayType implements CType {
 
   private static final long serialVersionUID = -6314468260643330323L;
 

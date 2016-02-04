@@ -33,7 +33,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 
 
-public class AFunctionType implements IAFunctionType, Serializable {
+public class AFunctionType implements IAFunctionType {
 
   private static final long serialVersionUID = 5378375954515193938L;
   private final Type returnType;

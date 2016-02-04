@@ -31,7 +31,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 
 
-public final class CElaboratedType implements CComplexType, Serializable {
+public final class CElaboratedType implements CComplexType {
 
   private static final long serialVersionUID = -3566628634889842927L;
   private final ComplexTypeKind kind;

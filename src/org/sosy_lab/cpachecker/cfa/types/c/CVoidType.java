@@ -36,7 +36,7 @@ import com.google.common.base.Strings;
  * This class represents the type "void".
  * It does not allow any modifiers and has only a single instance.
  */
-public final class CVoidType implements CType, Serializable {
+public final class CVoidType implements CType {
 
   private static final long serialVersionUID = 1385808708190595556L;
 

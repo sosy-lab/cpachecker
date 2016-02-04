@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
 /**
  * This type is used when the parser could not determine the correct type.
  */
-public final class CProblemType implements CType, Serializable {
+public final class CProblemType implements CType {
 
   private static final long serialVersionUID = -5658149239682173246L;
   private final String typeName;
