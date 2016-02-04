@@ -63,6 +63,7 @@ abstract class PartitioningBudgetOperator extends AbstractPartitioningOperator {
   protected PartitionBudgeting createPartitionBudgetingOperator(Configuration pConfig, LogManager pLogger,
       Class<? extends PartitionBudgeting> pClass)
       throws InvalidConfigurationException {
+
     return Classes.createInstance(PartitionBudgeting.class, pClass,
         new Class[] { Configuration.class, LogManager.class },
         new Object[] { pConfig, pLogger },
@@ -72,6 +73,7 @@ abstract class PartitioningBudgetOperator extends AbstractPartitioningOperator {
   protected PropertyBudgeting createPropertyBudgetingOperator(Configuration pConfig, LogManager pLogger,
       Class<? extends PropertyBudgeting> pClass)
       throws InvalidConfigurationException {
+
     return Classes.createInstance(PropertyBudgeting.class, pClass,
         new Class[] { Configuration.class, LogManager.class },
         new Object[] { pConfig, pLogger },

@@ -46,7 +46,7 @@ import com.google.common.collect.ImmutableSet;
 public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
 
   @Options(prefix="analysis.mpa.partition.short")
-  class ShortPartitionBudgeting extends BasicPartitionBudgeting {
+  public static class ShortPartitionBudgeting extends BasicPartitionBudgeting {
 
     public ShortPartitionBudgeting(Configuration pConfig, LogManager pLogger)
         throws InvalidConfigurationException {
@@ -56,22 +56,24 @@ public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
   }
 
   @Options(prefix="analysis.mpa.budget.short")
-  class ShortBudgeting extends DefaultPropertyBudgeting {
+  public static class ShortPropertyBudgeting extends DefaultPropertyBudgeting {
 
-    public ShortBudgeting(Configuration pConfig, LogManager pLogger)
+    public ShortPropertyBudgeting(Configuration pConfig, LogManager pLogger)
         throws InvalidConfigurationException {
       super(pConfig, pLogger);
     }
 
   }
 
-  private final PropertyBudgeting shortBudgeting;
+  private final PropertyBudgeting shortPropertyBudgeting;
   private final PartitionBudgeting shortPartitionBudgeting;
 
   public AllShortThenAllThenSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
+
     super(pConfig, pLogger);
-    shortBudgeting = createPropertyBudgetingOperator(pConfig, pLogger, ShortBudgeting.class);
+
+    shortPropertyBudgeting = createPropertyBudgetingOperator(pConfig, pLogger, ShortPropertyBudgeting.class);
     shortPartitionBudgeting = createPartitionBudgetingOperator(pConfig, pLogger, ShortPartitionBudgeting.class);
   }
 
@@ -84,7 +86,7 @@ public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
 
     switch(pLastCheckedPartitioning.getStatus()) {
     case ALL_IN_ONE_SHORT:
-      return create(PartitioningStatus.ALL_IN_ONE, shortBudgeting, shortPartitionBudgeting,
+      return create(PartitioningStatus.ALL_IN_ONE, shortPropertyBudgeting, shortPartitionBudgeting,
           ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     case ALL_IN_ONE:
       return create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
