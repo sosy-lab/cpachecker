@@ -147,6 +147,9 @@ analysis.checkCounterexamplesWithBDDCPARestriction = false
 # check multiple, different, properties in one verification run?
 analysis.checkMultipleProperties = false
 
+# Re-create the multi-property analysis components for each iteration?
+analysis.checkMultiplePropertiesWithFullReset = false
+
 # do analysis and then check analysis result
 analysis.checkProof = false
 
@@ -204,14 +207,6 @@ analysis.mpa.budget.limit.numRefinements = -1
 # exhausted.
 analysis.mpa.budget.limit.totalRefineTime = -1ns
 
-# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
-analysis.mpa.budget.partition.time.cpu = -1ns
-
-# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
-# for infinite)
-analysis.mpa.budget.partition.time.wall = -1ns
-
 # Clear the caches of the analysis (CPA) when starting with a new partition.
 analysis.mpa.clearAnalysisCachesOnRestart = false
 
@@ -222,6 +217,22 @@ analysis.mpa.initOperatorClass = InitDefaultOperator.class
 # Operator for determining the partitions of properties that have to be
 # checked.
 analysis.mpa.partition.operator = CheaperFirstDivideOperator.class
+
+# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+analysis.mpa.partition.short.time.cpu = -1ns
+
+# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+analysis.mpa.partition.short.time.wall = -1ns
+
+# Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+analysis.mpa.partition.time.cpu = -1ns
+
+# Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
+# for infinite)
+analysis.mpa.partition.time.wall = -1ns
 
 # Partition the initial states based on the type of location they were
 # created for (see 'initialStatesFor')
@@ -411,7 +422,8 @@ bmc.havocLoopTerminationConditionVariablesOnly = false
 bmc.induction = false
 
 # Operator that defines the (remaining) budget for a property.
-budgeting.operator = DefaultPropertyBudgeting.class
+budgeting.partition.operator = BasicPartitionBudgeting.class
+budgeting.property.operator = DefaultPropertyBudgeting.class
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the

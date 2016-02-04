@@ -48,7 +48,8 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAnalysisFullReset;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.PartialARGsCombiner;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
@@ -92,6 +93,9 @@ public class CoreComponentsFactory {
 
   @Option(secure=true, description="check multiple, different, properties in one verification run?")
   private boolean checkMultipleProperties = false;
+
+  @Option(secure=true, description="Re-create the multi-property analysis components for each iteration?")
+  private boolean checkMultiplePropertiesWithFullReset = false;
 
   @Option(secure=true, name="checkCounterexamplesWithBDDCPARestriction",
       description="use counterexample check and the BDDCPA Restriction option")
@@ -235,8 +239,13 @@ public class CoreComponentsFactory {
       }
 
       if (!pInnerAlgorithmsOnly && checkMultipleProperties) {
-        algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation);
+        algorithm = new MultiPropertyAnalysis(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation);
       }
+
+      if (!pInnerAlgorithmsOnly && checkMultiplePropertiesWithFullReset) {
+        algorithm = new MultiPropertyAnalysisFullReset(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation, stats);
+      }
+
 
       if (collectAssumptions) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, config, logger);

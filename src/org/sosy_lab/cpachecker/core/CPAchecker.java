@@ -62,9 +62,9 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.MultiPropertyAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PropertySummary;
@@ -529,7 +529,7 @@ public class CPAchecker {
 
     final PropertySummaryExtractor extractor;
     if (pAlgorithm instanceof MultiPropertyAlgorithm) {
-      extractor = new MpaSummaryExtractor();
+      extractor = new MultiPropertyAnalysisSummaryExtractor();
     } else {
       extractor = new DefaultSummaryExtractor();
     }
@@ -561,7 +561,7 @@ public class CPAchecker {
     return Pair.of(verdict, summary);
   }
 
-  private class MpaSummaryExtractor implements PropertySummaryExtractor {
+  private class MultiPropertyAnalysisSummaryExtractor implements PropertySummaryExtractor {
 
     @Override
     public PropertySummary extractSummary(Algorithm pAlgorithm, ReachedSet pReached, AlgorithmStatus pStatus) {

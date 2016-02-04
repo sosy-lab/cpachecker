@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
+import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
@@ -50,21 +52,19 @@ import com.google.common.collect.Sets.SetView;
 public class InitDefaultOperator implements InitOperator {
 
   @Override
-  public Partitioning init(ConfigurableProgramAnalysis pCPA, ReachedSet pReached,
-      Partitioning pPartitioning, CFA pCFA)
+  public Partitioning init(Set<Property> pAllProperties, ConfigurableProgramAnalysis pCPA,
+      ReachedSet pReached, Partitioning pPartitioning, CFA pCfa)
           throws CPAException, InterruptedException {
 
     final ARGCPA argCpa = CPAs.retrieveCPA(pCPA, ARGCPA.class);
 
-    ImmutableSet<Property> allProperties = MultiPropertyAlgorithm.getAllProperties(pReached.getFirstState(), pReached);
-
     Preconditions.checkArgument(!pPartitioning.isEmpty(), "This init operator requires at least one partition of properties!");
-    Preconditions.checkState(allProperties.size() > 0, "There must be a set of properties that get checked!");
+    Preconditions.checkState(pAllProperties.size() > 0, "There must be a set of properties that get checked!");
 
     // At the moment we check the first partition in the list
     ImmutableSet<Property> partitionToChcek = pPartitioning.getFirstPartition();
 
-    final CFANode initLocation = pCFA.getMainFunction();
+    final CFANode initLocation = pCfa.getMainFunction();
     final AbstractState initialState = pCPA.getInitialState(initLocation, StateSpacePartition.getDefaultPartition());
     final Precision initialPrecision = pCPA.getInitialPrecision(initLocation, StateSpacePartition.getDefaultPartition());
 
@@ -74,7 +74,7 @@ public class InitDefaultOperator implements InitOperator {
     pReached.add(initialState, initialPrecision);
 
     // Modify the 'waitlist': Blacklist those properties that are not in the partition!
-    SetView<Property> toBlacklist = Sets.difference(allProperties, partitionToChcek);
+    SetView<Property> toBlacklist = Sets.difference(pAllProperties, partitionToChcek);
     Precisions.updatePropertyBlacklistOnWaitlist(argCpa, pReached, toBlacklist);
 
     // Perform a precision adjustment on all states of the waitlist to
@@ -93,10 +93,11 @@ public class InitDefaultOperator implements InitOperator {
     pReached.add(ePrime, pi);
 
     // Check
-    ImmutableSet<Property> active = MultiPropertyAlgorithm.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);
+    ImmutableSet<Property> active = MultiPropertyAnalysis.getActiveProperties(pReached.getWaitlist().iterator().next(), pReached);
     Preconditions.checkState(Sets.intersection(toBlacklist, active).size() == 0, "Blacklisted properties must not be active!");
 
     return pPartitioning.withoutFirst();
+
   }
 
 

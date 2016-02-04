@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,20 +21,15 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces;
+package org.sosy_lab.cpachecker.core.interfaces;
 
-import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import com.google.common.base.Optional;
 
-public interface InitOperator {
 
-  public Partitioning init(Set<Property> pAllProperties, ConfigurableProgramAnalysis pCPA,
-      ReachedSet pReached, Partitioning pPartitioning, CFA pCfa)
-          throws CPAException, InterruptedException;
+public interface MultiPropertyAlgorithm extends Algorithm {
+
+  public Optional<PropertySummary> getLastRunPropertySummary();
 
 }
