@@ -86,13 +86,13 @@ public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
 
     switch(pLastCheckedPartitioning.getStatus()) {
     case ALL_IN_ONE_SHORT:
-      return create(PartitioningStatus.ALL_IN_ONE, shortPropertyBudgeting, shortPartitionBudgeting,
+      return create(PartitioningStatus.ALL_IN_ONE, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
           ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     case ALL_IN_ONE:
       return create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
           singletonPartitions(pToCheck, pPropertyExpenseComparator));
     default:
-      return create(PartitioningStatus.ALL_IN_ONE_SHORT, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
+      return create(PartitioningStatus.ALL_IN_ONE_SHORT, shortPropertyBudgeting, shortPartitionBudgeting,
           ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 

@@ -581,10 +581,10 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
   private Partitioning partition(
       Partitioning lastPartitioning,
-      Set<Property> remaining,
+      Set<Property> pToCheck,
       ImmutableSet<Property> disabledProperties) throws PartitioningException {
 
-    Partitioning result = partitionOperator.partition(lastPartitioning, remaining,
+    Partitioning result = partitionOperator.partition(lastPartitioning, pToCheck,
         disabledProperties, PropertyStats.INSTANCE.getPropertyRefinementComparator());
 
     logger.log(Level.WARNING, String.format("New partitioning with %d partitions.", result.partitionCount()));
@@ -597,7 +597,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     }
 
     // Check the partition and the budget for feasibility...
-    Preconditions.checkState(result.getPartitions().size() <= 1
+    Preconditions.checkState(pToCheck.size() <= 1
         || result.getPartitionBudgeting().getPartitionCpuTimeLimit().isPresent()
         || result.getPartitionBudgeting().getPartitionWallTimeLimit().isPresent(),
         "You have to specify a time limit for a multi-property verification runs with more than one partition!");
