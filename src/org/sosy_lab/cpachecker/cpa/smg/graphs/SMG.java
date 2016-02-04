@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.HashMapCopyOnWrite;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -45,8 +46,8 @@ public class SMG {
   final private Set<SMGObject> objects = new HashSet<>();
   final private Set<Integer> values = new HashSet<>();
   final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  final private Map<Integer, SMGEdgePointsTo> pt_edges = new HashMap<>();
-  final private Map<SMGObject, Boolean> object_validity = new HashMap<>();
+  private HashMapCopyOnWrite<Integer, SMGEdgePointsTo> pt_edges = new HashMapCopyOnWrite<>();
+  private HashMapCopyOnWrite<SMGObject, Boolean> object_validity = new HashMapCopyOnWrite<>();
   final private NeqRelation neq = new NeqRelation();
 
   final private MachineModel machine_model;
@@ -73,7 +74,7 @@ public class SMG {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
 
     addObject(nullObject);
-    object_validity.put(nullObject, false);
+    object_validity = object_validity.putAndCopy(nullObject, false);
 
     addValue(nullAddress);
     addPointsToEdge(nullPointer);
@@ -92,9 +93,9 @@ public class SMG {
     machine_model = pHeap.machine_model;
     hv_edges.addAll(pHeap.hv_edges);
     neq.putAll(pHeap.neq);
-    object_validity.putAll(pHeap.object_validity);
+    object_validity = pHeap.object_validity;
     objects.addAll(pHeap.objects);
-    pt_edges.putAll(pHeap.pt_edges);
+    pt_edges =  pHeap.pt_edges;
     values.addAll(pHeap.values);
   }
 
@@ -166,7 +167,7 @@ public class SMG {
   @VisibleForTesting
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
-    object_validity.remove(pObj);
+    object_validity = object_validity.removeAndCopy(pObj);
   }
 
   /**
@@ -204,7 +205,7 @@ public class SMG {
    */
   final public void addObject(final SMGObject pObj, final boolean pValidity) {
     objects.add(pObj);
-    object_validity.put(pObj, pValidity);
+    object_validity = object_validity.putAndCopy(pObj, pValidity);
   }
 
   /**
@@ -226,7 +227,7 @@ public class SMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
-    pt_edges.put(pEdge.getValue(), pEdge);
+    pt_edges = pt_edges.putAndCopy(pEdge.getValue(), pEdge);
   }
 
   /**
@@ -259,7 +260,7 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
-    pt_edges.remove(pValue);
+    pt_edges = pt_edges.removeAndCopy(pValue);
   }
 
   /**
@@ -277,7 +278,7 @@ public class SMG {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    object_validity.put(pObject, pValidity);
+    object_validity = object_validity.putAndCopy(pObject, pValidity);
   }
 
   /**
