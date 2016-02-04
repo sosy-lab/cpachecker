@@ -44,6 +44,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.TestLogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -77,10 +78,12 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 import org.sosy_lab.solver.api.IntegerFormulaManager;
 
+import com.google.common.base.Optional;
 import com.google.common.truth.Truth;
 
 public class TranslatorTest {
 
+  private final MachineModel machineModel = MachineModel.LINUX32;
   private String[] varNames = {"var1", "var2", "var3", "fun::var1", "fun::varB", "fun::varC"};
   private CSimpleType integervariable = new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false);
   private SSAMap ssaTest;
@@ -106,7 +109,8 @@ public class TranslatorTest {
 
     Truth.assertThat(constantsMap).hasSize(4);
 
-    ValueAnalysisState vStateTest = new ValueAnalysisState(constantsMap, locToTypeMap);
+    ValueAnalysisState vStateTest =
+        new ValueAnalysisState(Optional.of(machineModel), constantsMap, locToTypeMap);
     Truth.assertThat(vStateTest.getConstantsMapView()).isNotEmpty();
     ValueRequirementsTranslator vReqTransTest =
         new ValueRequirementsTranslator(TestLogManager.getInstance());

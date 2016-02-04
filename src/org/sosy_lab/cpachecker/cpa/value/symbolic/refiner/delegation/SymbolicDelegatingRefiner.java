@@ -129,9 +129,13 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             cfa);
 
     final GenericPrefixProvider<ForgettingCompositeState> symbolicPrefixProvider =
-        new GenericPrefixProvider<>(symbolicStrongestPost,
-            ForgettingCompositeState.getInitialState(),
-            logger, cfa, config, ValueAnalysisCPA.class);
+        new GenericPrefixProvider<>(
+            symbolicStrongestPost,
+            ForgettingCompositeState.getInitialState(cfa.getMachineModel()),
+            logger,
+            cfa,
+            config,
+            ValueAnalysisCPA.class);
 
     final ElementTestingSymbolicEdgeInterpolator symbolicEdgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -157,25 +161,31 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
     final FeasibilityChecker<ForgettingCompositeState> explicitFeasibilityChecker =
         new GenericFeasibilityChecker<>(
             explicitStrongestPost,
-            ForgettingCompositeState.getInitialState(),
+            ForgettingCompositeState.getInitialState(cfa.getMachineModel()),
             ValueAnalysisCPA.class, // we want to work on the ValueAnalysisCPA only
-            logger, config, cfa
-            );
+            logger,
+            config,
+            cfa);
 
     final EdgeInterpolator<ForgettingCompositeState, SymbolicInterpolant> explicitEdgeInterpolator =
         new GenericEdgeInterpolator<>(
             explicitStrongestPost,
             explicitFeasibilityChecker,
             SymbolicInterpolantManager.getInstance(),
-            ForgettingCompositeState.getInitialState(),
+            ForgettingCompositeState.getInitialState(cfa.getMachineModel()),
             ValueAnalysisCPA.class, // we want to work on the ValueAnalysisCPA only
-            config, shutdownNotifier, cfa);
+            config,
+            shutdownNotifier,
+            cfa);
 
     final GenericPrefixProvider<ForgettingCompositeState> explicitPrefixProvider =
         new GenericPrefixProvider<>(
             explicitStrongestPost,
-            ForgettingCompositeState.getInitialState(),
-            logger, cfa, config, ValueAnalysisCPA.class);
+            ForgettingCompositeState.getInitialState(cfa.getMachineModel()),
+            logger,
+            cfa,
+            config,
+            ValueAnalysisCPA.class);
 
     final PathInterpolator<SymbolicInterpolant> explicitPathInterpolator =
         new GenericPathInterpolator<>(

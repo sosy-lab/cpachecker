@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -49,6 +50,7 @@ public class ValueAnalysisFeasibilityChecker
 
   private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
+  private final MachineModel machineModel;
 
   /**
    * This method acts as the constructor of the class.
@@ -63,15 +65,17 @@ public class ValueAnalysisFeasibilityChecker
       final Configuration config
   ) throws InvalidConfigurationException {
 
-    super(pStrongestPostOp,
-          new ValueAnalysisState(),
-          ValueAnalysisCPA.class,
-          pLogger,
-          config,
-          pCfa);
+    super(
+        pStrongestPostOp,
+        new ValueAnalysisState(pCfa.getMachineModel()),
+        ValueAnalysisCPA.class,
+        pLogger,
+        config,
+        pCfa);
 
     strongestPostOp = pStrongestPostOp;
     precision = VariableTrackingPrecision.createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
+    machineModel = pCfa.getMachineModel();
   }
 
   public List<Pair<ValueAnalysisState, CFAEdge>> evaluate(final ARGPath path)
@@ -79,7 +83,7 @@ public class ValueAnalysisFeasibilityChecker
 
     try {
       List<Pair<ValueAnalysisState, CFAEdge>> reevaluatedPath = new ArrayList<>();
-      ValueAnalysisState next = new ValueAnalysisState();
+      ValueAnalysisState next = new ValueAnalysisState(machineModel);
 
       PathIterator iterator = path.pathIterator();
       while (iterator.hasNext()) {

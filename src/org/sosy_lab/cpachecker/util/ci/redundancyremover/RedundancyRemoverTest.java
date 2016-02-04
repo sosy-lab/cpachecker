@@ -31,6 +31,7 @@ import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -53,6 +54,8 @@ import com.google.common.truth.Truth;
 
 
 public class RedundancyRemoverTest {
+
+  private final MachineModel machineModel = MachineModel.LINUX32;
 
   @Test
   public void testCompareIntervalState() {
@@ -350,19 +353,19 @@ public class RedundancyRemoverTest {
 
     RedundantRequirementsValueAnalysisStateImplementation valueImpl = new RedundantRequirementsValueAnalysisStateImplementation();
 
-    ValueAnalysisState valState1 = new ValueAnalysisState();
+    ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
     NumericValue val1 = new NumericValue(new Long(1));
     valState1.assignConstant(MemoryLocation.valueOf("1"), val1, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
-//    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
+    //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
-    ValueAnalysisState valState2 = new ValueAnalysisState();
+    ValueAnalysisState valState2 = new ValueAnalysisState(machineModel);
     NumericValue val2 = new NumericValue(new Long(7));
     valState2.assignConstant(MemoryLocation.valueOf("x"), val2, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
 
-    ValueAnalysisState valState3 = new ValueAnalysisState();
+    ValueAnalysisState valState3 = new ValueAnalysisState(machineModel);
     Value val3 = Value.UnknownValue.getInstance();
     valState3.assignConstant(MemoryLocation.valueOf("y"), val3, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));

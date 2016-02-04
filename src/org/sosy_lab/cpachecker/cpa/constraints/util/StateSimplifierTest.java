@@ -27,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * third is dependent on the fourth. No dependencies exist between these two groups.
  */
 public class StateSimplifierTest {
+
+  private final MachineModel machineModel = MachineModel.LINUX32;
 
   private final StateSimplifier simplifier;
 
@@ -95,7 +98,7 @@ public class StateSimplifierTest {
 
   @Test
   public void testRemoveOutdatedConstraints_allConstraintsOutdated() {
-    final ValueAnalysisState initialValueState = new ValueAnalysisState();
+    final ValueAnalysisState initialValueState = new ValueAnalysisState(machineModel);
 
     ConstraintsState constraintsState = getSampleConstraints();
 
@@ -157,7 +160,7 @@ public class StateSimplifierTest {
   }
 
   private ValueAnalysisState getCompleteValueState() {
-    ValueAnalysisState state = new ValueAnalysisState();
+    ValueAnalysisState state = new ValueAnalysisState(machineModel);
 
     state.assignConstant(group1MemLoc1, group1Id1, defaultNumericType);
     state.assignConstant(group1MemLoc2, group1Id2, defaultNumericType);

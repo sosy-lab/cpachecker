@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,8 +39,10 @@ import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
@@ -52,15 +55,18 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.IntegerFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.solver.api.RationalFormulaManager;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -82,19 +88,30 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
    */
   private PersistentMap<MemoryLocation, Value> constantsMap;
 
+  private final Optional<MachineModel> machineModel;
+
   private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
-  public ValueAnalysisState() {
+  public ValueAnalysisState(MachineModel pMachineModel) {
+    this(Optional.of(pMachineModel));
+  }
+
+  public ValueAnalysisState(Optional<MachineModel> pMachineModel) {
+    machineModel = pMachineModel;
     constantsMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public ValueAnalysisState(PersistentMap<MemoryLocation, Value> pConstantsMap, PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
+  public ValueAnalysisState(
+      Optional<MachineModel> pMachineModel,
+      PersistentMap<MemoryLocation, Value> pConstantsMap,
+      PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
+    machineModel = pMachineModel;
     this.constantsMap = pConstantsMap;
     this.memLocToType = pLocToTypeMap;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.constantsMap, state.memLocToType);
+    return new ValueAnalysisState(state.machineModel, state.constantsMap, state.memLocToType);
   }
 
   /**
@@ -346,7 +363,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(newConstantsMap, newlocToTypeMap);
+      return new ValueAnalysisState(machineModel, newConstantsMap, newlocToTypeMap);
     }
   }
 
@@ -556,16 +573,48 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager, PathFormulaManager pfmgr) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    IntegerFormulaManager nfmgr = manager.getIntegerFormulaManager();
     BooleanFormula formula = bfmgr.makeBoolean(true);
+
+    if (!machineModel.isPresent()) {
+      return formula;
+    }
+
+    MachineModel machineModel = this.machineModel.get();
+
+    BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
+    RationalFormulaManager ratFMGR = manager.getRationalFormulaManager();
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
       NumericValue num = entry.getValue().asNumericValue();
+
       if (num != null) {
-        // TODO explicit-float: handle the case that it's not a long
-        IntegerFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-        IntegerFormula val = nfmgr.makeNumber(num.longValue());
-        formula = bfmgr.and(formula, nfmgr.equal(var, val));
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = getTypeForMemoryLocation(memoryLocation);
+        if (type instanceof CSimpleType) {
+          CSimpleType simpleType = (CSimpleType) type;
+          if (simpleType.getType().isIntegerType()) {
+            int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
+            BitvectorFormula var =
+                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
+
+            Number value = num.getNumber();
+            final BitvectorFormula val;
+            if (value instanceof BigInteger) {
+              val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
+            } else {
+              val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
+            }
+            formula = bfmgr.and(formula, bitvectorFMGR.equal(var, val));
+          } else if (simpleType.getType().isFloatingPointType()) {
+            RationalFormula var = ratFMGR.makeVariable(entry.getKey().getAsSimpleString());
+            RationalFormula val = ratFMGR.makeNumber(num.doubleValue());
+            formula = bfmgr.and(formula, ratFMGR.equal(var, val));
+          } else {
+            // ignore in formula-approximation
+          }
+        } else {
+          // ignore in formula-approximation
+        }
       } else {
         // ignore in formula-approximation
       }
