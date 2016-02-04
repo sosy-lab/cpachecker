@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting;
 
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+
+import com.google.common.base.Optional;
 
 
 public enum InfiniteBudgeting implements PropertyBudgeting {
@@ -38,6 +41,16 @@ public enum InfiniteBudgeting implements PropertyBudgeting {
   @Override
   public PropertyBudgeting getBudgetTimesTwo() {
     return this;
+  }
+
+  @Override
+  public Optional<TimeSpan> getPartitionWallTimeLimit() {
+    return Optional.<TimeSpan>absent();
+  }
+
+  @Override
+  public Optional<TimeSpan> getPartitionCpuTimeLimit() {
+    return Optional.<TimeSpan>absent();
   }
 
 }

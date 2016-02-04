@@ -23,11 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting;
 
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+
+import com.google.common.base.Optional;
 
 public interface PropertyBudgeting {
 
   public boolean isBudgedExhausted(Property pForProperty);
+
+  public Optional<TimeSpan> getPartitionWallTimeLimit();
+  public Optional<TimeSpan> getPartitionCpuTimeLimit();
 
   public PropertyBudgeting getBudgetTimesTwo();
 

@@ -41,12 +41,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
@@ -113,20 +112,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa")
   @Nonnull private Class<? extends InitOperator> initOperatorClass = InitDefaultOperator.class;
   private final InitOperator initOperator;
-
-  @Option(secure=true, name="partition.time.wall",
-      description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-      defaultUserUnit=TimeUnit.SECONDS,
-      min=-1)
-  private TimeSpan walltime = TimeSpan.ofNanos(-1);
-
-  @Option(secure=true, name="partition.time.cpu",
-      description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-      defaultUserUnit=TimeUnit.SECONDS,
-      min=-1)
-  private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
   @Option(secure=true, description="Clear the caches of the analysis (CPA) when starting with a new partition.")
   private boolean clearAnalysisCachesOnRestart = false;
@@ -356,7 +341,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       }
 
       // Initialize the check for resource limits
-      initAndStartLimitChecker();
+      initAndStartLimitChecker(checkPartitions.getBudgeting());
 
       // Initialize the waitlist
       initReached(pReachedSet, checkPartitions);
@@ -535,7 +520,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           stats.numberOfRestarts++;
           remainingPartitions = initReached(pReachedSet, checkPartitions);
           // -- Reset the resource limit checker
-          initAndStartLimitChecker();
+          initAndStartLimitChecker(checkPartitions.getBudgeting());
         }
 
         interruptNotifier.canInterrupt();
@@ -618,18 +603,18 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     return lastRunPropertySummary;
   }
 
-  private synchronized void initAndStartLimitChecker() {
+  private synchronized void initAndStartLimitChecker(PropertyBudgeting pBudgeting) {
 
     try {
       // Configure limits
       List<ResourceLimit> limits = Lists.newArrayList();
 
-      if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
-        limits.add(ProcessCpuTimeLimit.fromNowOn(cpuTime));
+      if (pBudgeting.getPartitionCpuTimeLimit().isPresent()) {
+        limits.add(ProcessCpuTimeLimit.fromNowOn(pBudgeting.getPartitionCpuTimeLimit().get()));
       }
 
-      if (walltime.compareTo(TimeSpan.empty()) >= 0) {
-        limits.add(WalltimeLimit.fromNowOn(walltime));
+      if (pBudgeting.getPartitionWallTimeLimit().isPresent()) {
+        limits.add(WalltimeLimit.fromNowOn(pBudgeting.getPartitionWallTimeLimit().get()));
       }
 
       // Stop the old check

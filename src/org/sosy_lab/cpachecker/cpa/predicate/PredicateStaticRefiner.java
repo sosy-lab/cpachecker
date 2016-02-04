@@ -59,6 +59,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -312,7 +314,17 @@ public class PredicateStaticRefiner extends StaticRefiner {
       List<AssumeEdge> assumes = e.getAsAssumeEdges(loc.getFunctionName());
       for (AssumeEdge assume: assumes) {
         if (!isAssumeOnLoopVariable(assume)) {
+          // Derive the precision (delta) from the assume
           PredicatePrecision assumePrec = assumeEdgeToPrecision(assume, true);
+
+          // Track statistics on the origin of the precision
+          //  TODO: This violates the separation of concerns!
+          if (e instanceof AutomatonState) {
+            AutomatonState q = (AutomatonState) e;
+            Set<? extends SafetyProperty> props = q.getOwningAutomaton().getEncodedProperties();
+          }
+
+          // Join the delta with the result
           result = result.mergeWith(assumePrec);
         }
       }
