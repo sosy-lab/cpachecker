@@ -145,10 +145,8 @@ analysis.checkCounterexamples = false
 analysis.checkCounterexamplesWithBDDCPARestriction = false
 
 # check multiple, different, properties in one verification run?
-analysis.checkMultipleProperties = false
-
-# Re-create the multi-property analysis components for each iteration?
-analysis.checkMultiplePropertiesWithFullReset = false
+analysis.checkMultipleProperties = OFF
+  enum:     [OFF, REUSE_CPA_COMPONENTS, RESET_CPA_COMPONENTS]
 
 # do analysis and then check analysis result
 analysis.checkProof = false

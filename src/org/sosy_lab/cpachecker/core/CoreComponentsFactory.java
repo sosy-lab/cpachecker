@@ -73,6 +73,8 @@ import org.sosy_lab.cpachecker.util.InterruptProvider;
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
 
+  public static enum MultiPropertyMode { OFF, REUSE_CPA_COMPONENTS, RESET_CPA_COMPONENTS }
+
   public static enum SpecAutomatonCompositionType { NONE, TARGET_SPEC, BACKWARD_TO_ENTRY_SPEC }
 
   @Option(secure=true, description="use assumption collecting algorithm")
@@ -92,10 +94,7 @@ public class CoreComponentsFactory {
   private boolean checkCounterexamples = false;
 
   @Option(secure=true, description="check multiple, different, properties in one verification run?")
-  private boolean checkMultipleProperties = false;
-
-  @Option(secure=true, description="Re-create the multi-property analysis components for each iteration?")
-  private boolean checkMultiplePropertiesWithFullReset = false;
+  private MultiPropertyMode checkMultipleProperties = MultiPropertyMode.OFF;
 
   @Option(secure=true, name="checkCounterexamplesWithBDDCPARestriction",
       description="use counterexample check and the BDDCPA Restriction option")
@@ -238,14 +237,11 @@ public class CoreComponentsFactory {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
-      if (!pInnerAlgorithmsOnly && checkMultipleProperties) {
+      if (!pInnerAlgorithmsOnly && checkMultipleProperties == MultiPropertyMode.REUSE_CPA_COMPONENTS) {
         algorithm = new MultiPropertyAnalysis(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation);
-      }
-
-      if (!pInnerAlgorithmsOnly && checkMultiplePropertiesWithFullReset) {
+      } else if (!pInnerAlgorithmsOnly && checkMultipleProperties == MultiPropertyMode.RESET_CPA_COMPONENTS) {
         algorithm = new MultiPropertyAnalysisFullReset(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation, stats);
       }
-
 
       if (collectAssumptions) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, cfa, shutdownNotifier, config, logger);
