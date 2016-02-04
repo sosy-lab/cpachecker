@@ -23,32 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
 import org.junit.Test;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
-import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 import com.google.common.truth.Truth;
 
@@ -129,7 +115,7 @@ public class RedundancyRemoverTest {
     // varOrConst y -> unbound interval
 
     IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new Interval(new Long(1),new Long(1)), 0);
-    IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(new Long(-1),new Long(4)), 0);
+    //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(new Long(-1),new Long(4)), 0);
     IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", Interval.createUnboundInterval(), 0);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
@@ -373,32 +359,32 @@ public class RedundancyRemoverTest {
   }
 
   @Test
-  public void testIdentifyAndRemoveRedundantRequirements() throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
-    CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
-    AbstractState loc =
-        new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(
-            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
-
-    final int NUMCONSTRAINTS = 5;
-    List<String> input = new ArrayList<>(2);
-    input.add("x");
-    input.add("y");
-    List<String> output = new ArrayList<>(2);
-    output.add("u");
-    output.add("v");
-    Pair<List<String>, List<String>> inout = Pair.of(input, output);
-    List<Pair<List<String>, List<String>>> inputOutputSignatures = new ArrayList<>(NUMCONSTRAINTS);
-    for(int i=0;i<NUMCONSTRAINTS;i++) {
-      inputOutputSignatures.add(inout);
-    }
-
-    List<Pair<ARGState, Collection<ARGState>>> requirements, expectedResult, result;
-    ValueAnalysisState valState;
-    ARGState argState;
-    Collection<ARGState> ends;
-
-    requirements = new ArrayList<>(NUMCONSTRAINTS);
-    expectedResult = new ArrayList<>();
+  public void testIdentifyAndRemoveRedundantRequirements() {//throws IOException, ParserException, InterruptedException, InvalidConfigurationException {
+//    CFA cfa = TestDataTools.makeCFA("void main() { int x = 5;}");
+//    AbstractState loc =
+//        new LocationCPA(cfa, TestDataTools.configurationForTest().build()).getInitialState(
+//            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+//
+//    final int NUMCONSTRAINTS = 5;
+//    List<String> input = new ArrayList<>(2);
+//    input.add("x");
+//    input.add("y");
+//    List<String> output = new ArrayList<>(2);
+//    output.add("u");
+//    output.add("v");
+//    Pair<List<String>, List<String>> inout = Pair.of(input, output);
+//    List<Pair<List<String>, List<String>>> inputOutputSignatures = new ArrayList<>(NUMCONSTRAINTS);
+//    for(int i=0;i<NUMCONSTRAINTS;i++) {
+//      inputOutputSignatures.add(inout);
+//    }
+//
+//    List<Pair<ARGState, Collection<ARGState>>> requirements, expectedResult, result;
+//    ValueAnalysisState valState;
+//    ARGState argState;
+//    Collection<ARGState> ends;
+//
+//    requirements = new ArrayList<>(NUMCONSTRAINTS);
+//    expectedResult = new ArrayList<>();
 
 
 //    requirements.add(Pair.of(new ARGState(new CompositeState()), second));

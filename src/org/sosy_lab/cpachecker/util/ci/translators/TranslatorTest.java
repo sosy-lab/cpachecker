@@ -395,7 +395,7 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testOctagonTranslator() throws InvalidConfigurationException {
+  public void testOctagonTranslator() {
 //    int numVars = 3;
 //    OctagonIntManager manager = new OctagonIntManager();
 //    Configuration config = TestDataTools.configurationForTest().build();
@@ -482,7 +482,7 @@ public class TranslatorTest {
   }
 
   @Test
-  public void testApronTranslator() throws InvalidConfigurationException {
+  public void testApronTranslator() {
 //    ApronManager apronManager = new ApronManager(TestDataTools.configurationForTest().build());
 //
 //    List<MemoryLocation> intMap = new ArrayList<>();
