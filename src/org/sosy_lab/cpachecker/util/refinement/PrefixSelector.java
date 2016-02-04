@@ -44,9 +44,9 @@ public class PrefixSelector {
   public InfeasiblePrefix selectSlicedPrefix(List<PrefixPreference> pPrefixPreference,
       List<InfeasiblePrefix> pInfeasiblePrefixes) {
 
-    List<Comparator<InfeasiblePrefix>> comperators = createComperators(pPrefixPreference);
+    List<Comparator<InfeasiblePrefix>> comparators = createComparators(pPrefixPreference);
 
-    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comperators));
+    TreeSet<InfeasiblePrefix> sortedPrefixes = new TreeSet<>(new ChainedComparator(comparators));
     sortedPrefixes.addAll(pInfeasiblePrefixes);
 
     return sortedPrefixes.first();
@@ -69,16 +69,16 @@ public class PrefixSelector {
     return minScore;
   }
 
-  private List<Comparator<InfeasiblePrefix>> createComperators(List<PrefixPreference> pPrefixPreference) {
+  private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
 
     ScorerFactory factory = new ScorerFactory(classification, loopStructure);
 
-    List<Comparator<InfeasiblePrefix>> comperators = new ArrayList<>();
+    List<Comparator<InfeasiblePrefix>> comparators = new ArrayList<>();
     for(PrefixPreference preference : pPrefixPreference) {
-      comperators.add(factory.createScorer(preference).getComperator());
+      comparators.add(factory.createScorer(preference).getComparator());
     }
 
-    return comperators;
+    return comparators;
   }
 
   private static class ChainedComparator implements Comparator<InfeasiblePrefix>, Serializable {
@@ -209,7 +209,7 @@ public class PrefixSelector {
       return this;
     }
 
-    public Comparator<InfeasiblePrefix> getComperator() {
+    public Comparator<InfeasiblePrefix> getComparator() {
       return new Comparator<InfeasiblePrefix>() {
 
         @Override
