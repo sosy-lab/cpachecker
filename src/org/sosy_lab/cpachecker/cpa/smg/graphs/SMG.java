@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
@@ -180,18 +181,18 @@ public class SMG {
   final public void removeObjectAndEdges(final SMGObject pObj) {
     removeObject(pObj);
     Iterator<SMGEdgeHasValue> hv_iter = hv_edges.iterator();
-    Iterator<SMGEdgePointsTo> pt_iter = pt_edges.values().iterator();
     while (hv_iter.hasNext()) {
       if (hv_iter.next().getObject() == pObj) {
         hv_iter.remove();
       }
     }
-
-    while (pt_iter.hasNext()) {
-      if (pt_iter.next().getObject() == pObj) {
-        pt_iter.remove();
+    Set<Integer> remove = new HashSet<>();
+    for(Entry<Integer, SMGEdgePointsTo> point : pt_edges.entrySet()) {
+      if (point.getValue().getObject() == pObj) {
+        remove.add(point.getKey());
       }
     }
+    pt_edges = pt_edges.removeKeysAndCopy(remove);
   }
 
   /**
