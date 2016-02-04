@@ -156,18 +156,26 @@ public class HashMapCopyOnWrite<K, V> extends HashMap<K, V> implements Persisten
   }
 
   @Override
-  public HashMapCopyOnWrite<K, V> removeAndCopy(Object pO) {
-    HashMapCopyOnWrite<K, V> temp = new HashMapCopyOnWrite(this);
-    temp.internalHashMap.remove(pO);
-    return temp;
+  public HashMapCopyOnWrite<K, V> removeAndCopy(Object key) {
+    if (this.containsKey(key)) {
+      HashMapCopyOnWrite<K, V> temp = new HashMapCopyOnWrite(this);
+      temp.internalHashMap.remove(key);
+      return temp;
+    } else {
+      return this;
+    }
   }
 
   public HashMapCopyOnWrite<K, V> removeKeysAndCopy(Set<? extends Object> keys) {
-    HashMapCopyOnWrite<K, V> temp = new HashMapCopyOnWrite(this);
-    for (Object key: keys) {
-      temp.internalHashMap.remove(key);
+    if (keys.isEmpty()) {
+      return this;
+    } else {
+      HashMapCopyOnWrite<K, V> temp = new HashMapCopyOnWrite(this);
+      for (Object key : keys) {
+        temp.internalHashMap.remove(key);
+      }
+      return temp;
     }
-    return temp;
   }
 
   @Override
