@@ -235,7 +235,7 @@ public class CoreComponentsFactory {
       }
 
       if (!pInnerAlgorithmsOnly && checkMultipleProperties) {
-        algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger, interruptProvider, cfa);
+        algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger, interruptProvider, cfa, programDenotation);
       }
 
       if (collectAssumptions) {
