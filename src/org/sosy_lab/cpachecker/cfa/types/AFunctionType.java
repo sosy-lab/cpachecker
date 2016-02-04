@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
