@@ -102,7 +102,8 @@ public class PrefixSelector {
     }
   }
 
-  public static List<PrefixPreference> NO_SELECTION = Collections.singletonList(PrefixPreference.NONE);
+  public static final List<PrefixPreference> NO_SELECTION =
+      Collections.singletonList(PrefixPreference.NONE);
 
   public enum PrefixPreference {
 
