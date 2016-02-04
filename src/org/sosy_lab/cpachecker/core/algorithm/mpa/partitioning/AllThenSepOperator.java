@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 @Options
-public class AllThenSepOperator extends PartitioningWithBudgetOperator {
+public class AllThenSepOperator extends PartitioningBudgetOperator {
 
   public AllThenSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -54,9 +54,9 @@ public class AllThenSepOperator extends PartitioningWithBudgetOperator {
           throws PartitioningException {
 
     return pLastCheckedPartitioning.isEmpty()
-        ? create(PartitioningStatus.ALL_IN_ONE, getBudgetingOperator(),
+        ? create(PartitioningStatus.ALL_IN_ONE, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
             ImmutableList.of(ImmutableSet.copyOf(pToCheck)))
-        : create(PartitioningStatus.ONE_FOR_EACH, InfiniteBudgeting.INSTANCE,
+        : create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
             singletonPartitions(pToCheck, pPropertyExpenseComparator));
   }
 

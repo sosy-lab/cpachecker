@@ -30,7 +30,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @Options
-public class AllThenCheapHalfThenSepOperator extends PartitioningWithBudgetOperator {
+public class AllThenCheapHalfThenSepOperator extends PartitioningBudgetOperator {
 
   public AllThenCheapHalfThenSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -58,13 +58,13 @@ public class AllThenCheapHalfThenSepOperator extends PartitioningWithBudgetOpera
 
     switch(pLastCheckedPartitioning.getStatus()) {
     case ALL_IN_ONE:
-      return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, getBudgetingOperator(),
+      return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
           ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
     case NOT_EXHAUSTED_ONLY:
-      return create(PartitioningStatus.ONE_FOR_EACH, InfiniteBudgeting.INSTANCE,
+      return create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
           singletonPartitions(pToCheck, pPropertyExpenseComparator));
     default:
-      return create(PartitioningStatus.ALL_IN_ONE, getBudgetingOperator(),
+      return create(PartitioningStatus.ALL_IN_ONE, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
           ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 

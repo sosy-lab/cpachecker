@@ -30,13 +30,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 @Options
-public class OneForEachOperator extends AbstractPartitioningOperator {
+public class OneForEachOperator extends PartitioningBudgetOperator {
 
   public OneForEachOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -51,7 +51,8 @@ public class OneForEachOperator extends AbstractPartitioningOperator {
           throws PartitioningException {
 
     return create(PartitioningStatus.ONE_FOR_EACH,
-        InfiniteBudgeting.INSTANCE,
+        InfinitePropertyBudgeting.INSTANCE,
+        getPartitionBudgetingOperator(),
         singletonPartitions(pToCheck, pPropertyExpenseComparator));
   }
 

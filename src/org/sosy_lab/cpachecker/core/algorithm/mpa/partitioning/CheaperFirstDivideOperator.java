@@ -32,7 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -43,7 +43,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
 @Options
-public class CheaperFirstDivideOperator extends AbstractPartitioningOperator {
+public class CheaperFirstDivideOperator extends PartitioningBudgetOperator {
 
   public CheaperFirstDivideOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -74,7 +74,8 @@ public class CheaperFirstDivideOperator extends AbstractPartitioningOperator {
     }
 
     return Partitions.partitions(PartitioningStatus.MORE_PARTITIONS,
-        InfiniteBudgeting.INSTANCE, // The expense comparison and the partitioning is responsible for this.
+        InfinitePropertyBudgeting.INSTANCE, // The expense comparison and the partitioning is responsible for this.
+        getPartitionBudgetingOperator(),
         newPartitions);
   }
 

@@ -32,31 +32,44 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.BasicPartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.DefaultPropertyBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 
 @Options
-abstract class PartitioningWithBudgetOperator extends AbstractPartitioningOperator {
+abstract class PartitioningBudgetOperator extends AbstractPartitioningOperator {
 
-  @Option(secure=true, name="budgeting.operator",
+  @Option(secure=true, name="budgeting.property.operator",
       description = "Operator that defines the (remaining) budget for a property.")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting")
-  @Nonnull private Class<? extends PropertyBudgeting> budgetingOperatorClass = DefaultPropertyBudgeting.class;
-  private final PropertyBudgeting budgetingOperator;
+  @Nonnull private Class<? extends PropertyBudgeting> propertyBudgetingOperatorClass = DefaultPropertyBudgeting.class;
+  private final PropertyBudgeting propertyBudgetingOperator;
 
-  public PartitioningWithBudgetOperator(Configuration pConfig, LogManager pLogger)
+  @Option(secure=true, name="budgeting.partition.operator",
+      description = "Operator that defines the (remaining) budget for a property.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting")
+  @Nonnull private Class<? extends PartitionBudgeting> partitionBudgetingOperatorClass = BasicPartitionBudgeting.class;
+  private final PartitionBudgeting partitionBudgetingOperator;
+
+  public PartitioningBudgetOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
-    budgetingOperator = createBudgetingOperator(pConfig, pLogger);
+    propertyBudgetingOperator = createPropertyBudgetingOperator(pConfig, pLogger, propertyBudgetingOperatorClass);
+    partitionBudgetingOperator = createPartitionBudgetingOperator(pConfig, pLogger, partitionBudgetingOperatorClass);
   }
 
-  private PropertyBudgeting createBudgetingOperator(Configuration pConfig, LogManager pLogger)
+  protected PartitionBudgeting createPartitionBudgetingOperator(Configuration pConfig, LogManager pLogger,
+      Class<? extends PartitionBudgeting> pClass)
       throws InvalidConfigurationException {
-    return createBudgetingOperator(pConfig, pLogger, budgetingOperatorClass);
+    return Classes.createInstance(PartitionBudgeting.class, pClass,
+        new Class[] { Configuration.class, LogManager.class },
+        new Object[] { pConfig, pLogger },
+        InvalidConfigurationException.class);
   }
 
-  protected PropertyBudgeting createBudgetingOperator(Configuration pConfig, LogManager pLogger,
+  protected PropertyBudgeting createPropertyBudgetingOperator(Configuration pConfig, LogManager pLogger,
       Class<? extends PropertyBudgeting> pClass)
       throws InvalidConfigurationException {
     return Classes.createInstance(PropertyBudgeting.class, pClass,
@@ -65,8 +78,12 @@ abstract class PartitioningWithBudgetOperator extends AbstractPartitioningOperat
         InvalidConfigurationException.class);
   }
 
-  protected PropertyBudgeting getBudgetingOperator() {
-    return budgetingOperator;
+  protected PropertyBudgeting getPropertyBudgetingOperator() {
+    return propertyBudgetingOperator;
+  }
+
+  public PartitionBudgeting getPartitionBudgetingOperator() {
+    return partitionBudgetingOperator;
   }
 
 }

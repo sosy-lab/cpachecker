@@ -43,25 +43,10 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 
 @Options(prefix="analysis.mpa.budget")
 public class DefaultPropertyBudgeting implements PropertyBudgeting {
-
-  @Option(secure=true, name="partition.time.wall",
-      description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-      defaultUserUnit=TimeUnit.SECONDS,
-      min=-1)
-  private TimeSpan wallTime = TimeSpan.ofNanos(-1);
-
-  @Option(secure=true, name="partition.time.cpu",
-      description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-      defaultUserUnit=TimeUnit.SECONDS,
-      min=-1)
-  private TimeSpan cpuTime = TimeSpan.ofNanos(-1);
 
   @Option(secure=true, name="limit.numRefinements",
       description="Disable a property after a specific number of refinements was exhausted.")
@@ -83,14 +68,15 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
     defaultUserUnit=TimeUnit.MILLISECONDS, min=-1)
   private TimeSpan totalRefineTimeLimit = TimeSpan.ofNanos(-1);
 
-  private final int budgetFactor;
-
   private final LogManager logger;
+
+  private final int budgetFactor;
 
   public DefaultPropertyBudgeting(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
+
     pConfig.inject(this);
-    logger = Preconditions.checkNotNull(pLogger);
+    logger = pLogger;
     budgetFactor = 1;
   }
 
@@ -163,22 +149,6 @@ public class DefaultPropertyBudgeting implements PropertyBudgeting {
   public PropertyBudgeting getBudgetTimesTwo() {
     return new DefaultPropertyBudgeting(logger, totalRefineTimeLimit, avgRefineTimeLimit,
         refinementsLimit, budgetFactor * 2);
-  }
-
-  @Override
-  public Optional<TimeSpan> getPartitionWallTimeLimit() {
-    if (wallTime.compareTo(TimeSpan.empty()) >= 0) {
-      return Optional.of(wallTime);
-    }
-    return Optional.absent();
-  }
-
-  @Override
-  public Optional<TimeSpan> getPartitionCpuTimeLimit() {
-    if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
-      return Optional.of(cpuTime);
-    }
-    return Optional.absent();
   }
 
 }

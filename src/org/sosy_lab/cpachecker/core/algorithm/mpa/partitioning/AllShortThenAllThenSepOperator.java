@@ -30,21 +30,49 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.BasicPartitionBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.DefaultPropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 @Options
-public class AllThenNotExhaustedThenSepOperator extends PartitioningBudgetOperator {
+public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
 
-  public AllThenNotExhaustedThenSepOperator(Configuration pConfig, LogManager pLogger)
+  @Options(prefix="analysis.mpa.partition.short")
+  class ShortPartitionBudgeting extends BasicPartitionBudgeting {
+
+    public ShortPartitionBudgeting(Configuration pConfig, LogManager pLogger)
+        throws InvalidConfigurationException {
+      super(pConfig, pLogger);
+    }
+
+  }
+
+  @Options(prefix="analysis.mpa.budget.short")
+  class ShortBudgeting extends DefaultPropertyBudgeting {
+
+    public ShortBudgeting(Configuration pConfig, LogManager pLogger)
+        throws InvalidConfigurationException {
+      super(pConfig, pLogger);
+    }
+
+  }
+
+  private final PropertyBudgeting shortBudgeting;
+  private final PartitionBudgeting shortPartitionBudgeting;
+
+  public AllShortThenAllThenSepOperator(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pLogger);
+    shortBudgeting = createPropertyBudgetingOperator(pConfig, pLogger, ShortBudgeting.class);
+    shortPartitionBudgeting = createPartitionBudgetingOperator(pConfig, pLogger, ShortPartitionBudgeting.class);
   }
 
   @Override
@@ -54,23 +82,15 @@ public class AllThenNotExhaustedThenSepOperator extends PartitioningBudgetOperat
       Comparator<Property> pPropertyExpenseComparator)
           throws PartitioningException {
 
-    Set<Property> cheapProperties = Sets.difference(pToCheck, pExpensiveProperties);
-    PartitioningStatus lastStatus = pLastCheckedPartitioning.getStatus();
-
-    if (lastStatus.equals(PartitioningStatus.ALL_IN_ONE)
-        && cheapProperties.size() > 0 && pExpensiveProperties.size() > 0) {
-
-        return create(PartitioningStatus.NOT_EXHAUSTED_ONLY, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
-            ImmutableList.of(ImmutableSet.copyOf(cheapProperties)));
-
-    } else if (lastStatus.equals(PartitioningStatus.ALL_IN_ONE)
-            || lastStatus.equals(PartitioningStatus.NOT_EXHAUSTED_ONLY) ) {
-
+    switch(pLastCheckedPartitioning.getStatus()) {
+    case ALL_IN_ONE_SHORT:
+      return create(PartitioningStatus.ALL_IN_ONE, shortBudgeting, shortPartitionBudgeting,
+          ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
+    case ALL_IN_ONE:
       return create(PartitioningStatus.ONE_FOR_EACH, InfinitePropertyBudgeting.INSTANCE, getPartitionBudgetingOperator(),
           singletonPartitions(pToCheck, pPropertyExpenseComparator));
-
-    } else {
-      return create(PartitioningStatus.ALL_IN_ONE, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
+    default:
+      return create(PartitioningStatus.ALL_IN_ONE_SHORT, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(),
           ImmutableList.of(ImmutableSet.copyOf(pToCheck)));
     }
 

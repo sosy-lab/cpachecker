@@ -25,10 +25,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting;
 
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
-public interface PropertyBudgeting {
 
-  public boolean isBudgedExhausted(Property pForProperty);
+public enum InfinitePropertyBudgeting implements PropertyBudgeting {
 
-  public PropertyBudgeting getBudgetTimesTwo();
+  INSTANCE;
+
+  @Override
+  public boolean isBudgedExhausted(Property pForProperty) {
+    return false;
+  }
+
+  @Override
+  public PropertyBudgeting getBudgetTimesTwo() {
+    return this;
+  }
 
 }

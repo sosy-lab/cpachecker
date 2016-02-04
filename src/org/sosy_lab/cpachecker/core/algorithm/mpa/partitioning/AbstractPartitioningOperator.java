@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
@@ -109,10 +110,11 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
   }
 
   protected Partitioning create(final PartitioningStatus pStatus,
-      PropertyBudgeting pBudgeting,
+      PropertyBudgeting pPropertyBudgeting,
+      PartitionBudgeting pPartitionBudgeting,
       final ImmutableList<ImmutableSet<Property>> pPartitions) {
 
-    return Partitions.partitions(pStatus, pBudgeting, pPartitions);
+    return Partitions.partitions(pStatus, pPropertyBudgeting, pPartitionBudgeting, pPartitions);
   }
 
   protected ImmutableList<ImmutableSet<Property>> immutable(List<Set<Property>> pInput) {

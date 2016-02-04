@@ -39,7 +39,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 @Options
-public class DefaultOperator extends PartitioningWithBudgetOperator {
+public class DefaultOperator extends PartitioningBudgetOperator {
 
   public DefaultOperator(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
     super(pConfig, pLogger);
@@ -73,11 +73,13 @@ public class DefaultOperator extends PartitioningWithBudgetOperator {
     // If possible not equal to the last partitioning
     if (pLastCheckedPartitioning.getPartitions().equals(partitions)) {
       // Divide the partitioning into two halfs...
-      return create(PartitioningStatus.CHEAPEST_BISECT, getBudgetingOperator(),
+      return create(PartitioningStatus.CHEAPEST_BISECT,
+          getPropertyBudgetingOperator(),
+          getPartitionBudgetingOperator(),
           bisectPartitons(partitions, pPropertyExpenseComparator));
     }
 
-    return create(status, getBudgetingOperator(), partitions);
+    return create(status, getPropertyBudgetingOperator(), getPartitionBudgetingOperator(), partitions);
   }
 
 }

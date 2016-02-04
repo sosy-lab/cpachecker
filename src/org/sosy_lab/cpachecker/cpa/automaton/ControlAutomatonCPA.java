@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfiniteBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.InfinitePropertyBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory.OptionalAnnotation;
@@ -160,7 +160,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     this.automatonDomain = new AutomatonDomain(topState, inactiveState);
     this.stopOperator = new AutomatonStopOperator(automatonDomain);
 
-    budgeting = InfiniteBudgeting.INSTANCE;
+    budgeting = InfinitePropertyBudgeting.INSTANCE;
 
     this.transferRelation = new AutomatonTransferRelation(this, pLogger, inactiveState, options);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);

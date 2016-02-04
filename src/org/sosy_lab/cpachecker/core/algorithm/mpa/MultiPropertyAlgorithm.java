@@ -45,7 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PropertyBudgeting;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
@@ -341,7 +341,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       }
 
       // Initialize the check for resource limits
-      initAndStartLimitChecker(checkPartitions.getBudgeting());
+      initAndStartLimitChecker(checkPartitions.getPartitionBudgeting());
 
       // Initialize the waitlist
       initReached(pReachedSet, checkPartitions);
@@ -359,7 +359,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
               // Update the budgeting strategy of the automaton CPA
               Collection<ControlAutomatonCPA> automatonCPAs = CPAs.retrieveCPAs(cpa, ControlAutomatonCPA.class);
               for (ControlAutomatonCPA cpa: automatonCPAs) {
-                cpa.setBudgeting(checkPartitions.getBudgeting());
+                cpa.setBudgeting(checkPartitions.getPropertyBudgeting());
               }
 
               // Run the wrapped algorithm (for example, CEGAR)
@@ -520,7 +520,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
           stats.numberOfRestarts++;
           remainingPartitions = initReached(pReachedSet, checkPartitions);
           // -- Reset the resource limit checker
-          initAndStartLimitChecker(checkPartitions.getBudgeting());
+          initAndStartLimitChecker(checkPartitions.getPartitionBudgeting());
         }
 
         interruptNotifier.canInterrupt();
@@ -596,6 +596,12 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
+    // Check the partition and the budget for feasibility...
+    Preconditions.checkState(result.getPartitions().size() <= 1
+        || result.getPartitionBudgeting().getPartitionCpuTimeLimit().isPresent()
+        || result.getPartitionBudgeting().getPartitionWallTimeLimit().isPresent(),
+        "You have to specify a time limit for a multi-property verification runs with more than one partition!");
+
     return result;
   }
 
@@ -603,7 +609,7 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     return lastRunPropertySummary;
   }
 
-  private synchronized void initAndStartLimitChecker(PropertyBudgeting pBudgeting) {
+  private synchronized void initAndStartLimitChecker(PartitionBudgeting pBudgeting) {
 
     try {
       // Configure limits
