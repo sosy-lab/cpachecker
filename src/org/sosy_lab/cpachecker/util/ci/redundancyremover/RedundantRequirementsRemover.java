@@ -227,9 +227,9 @@ public class RedundantRequirementsRemover {
         // compare first
         if (firstArg[0].length != secondArg[0].length) { return -(firstArg[0].length - secondArg[0].length); }
 
-        int r = sortHelper.compare(firstArg[0], secondArg[0]);
+        int r = sortHelper.compare(secondArg[0],firstArg[0]);
 
-        if (r != 0) { return -r; }
+        if (r != 0) { return r; }
 
         // compare remaining parts
         if (firstArg.length != secondArg.length) { return -(firstArg.length - secondArg.length); }
