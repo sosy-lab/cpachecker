@@ -110,12 +110,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
   private boolean addInvariantsByInduction = true;
 
-  @Option(secure=true, description="Adds pre-loop information to the induction hypothesis. "
-      + "This is unsound and should generally not be used; however "
-      + "it is provided as an implementation of the technique introduced in "
-      + "the SV-COMP 2013 competition contribution of ESBMC 1.20.")
-  private boolean havocLoopTerminationConditionVariablesOnly = false;
-
   protected final BMCStatistics stats;
   private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -501,7 +495,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
         invariantGenerator,
         stats,
         reachedSetFactory,
-        havocLoopTerminationConditionVariablesOnly,
         shutdownNotifier) : null;
   }
 
