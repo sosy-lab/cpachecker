@@ -212,6 +212,9 @@ analysis.mpa.clearAnalysisCachesOnRestart = false
 # was performed.
 analysis.mpa.initOperatorClass = InitDefaultOperator.class
 
+# Add at most k properties to one partition.
+analysis.mpa.partition.k = 5
+
 # Operator for determining the partitions of properties that have to be
 # checked.
 analysis.mpa.partition.operator = CheaperFirstDivideOperator.class

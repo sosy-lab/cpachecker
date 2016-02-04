@@ -39,6 +39,7 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
     ALL_IN_ONE,
     ALL_IN_ONE_SHORT,
     ONE_FOR_EACH,
+    K_FOR_EACH,
     CHEAPEST_BISECT,
     NOT_EXHAUSTED_ONLY,
     MORE_PARTITIONS

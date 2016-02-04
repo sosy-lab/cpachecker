@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -46,6 +47,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @Options
 abstract class AbstractPartitioningOperator implements PartitioningOperator {
@@ -104,6 +106,37 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
 
     for (Property p: l) {
       result.add(ImmutableSet.of(p));
+    }
+
+    return result.build();
+  }
+
+  @VisibleForTesting
+  protected ImmutableList<ImmutableSet<Property>> partitionsWithAtMost(int pK, Set<Property> pInput,
+      Comparator<Property> pComp) {
+
+    final ImmutableList.Builder<ImmutableSet<Property>> result = ImmutableList.<ImmutableSet<Property>>builder();
+
+    final ArrayList<Property> l = Lists.newArrayList(pInput);
+    Collections.sort(l, pComp);
+
+    int inPartition = 0;
+    Iterator<Property> it = l.iterator();
+    Set<Property> active = Sets.newLinkedHashSet();
+
+    while (it.hasNext()) {
+      Property p = it.next();
+      if (inPartition >= pK) {
+        result.add(ImmutableSet.copyOf(active));
+        active = Sets.newLinkedHashSet();
+        inPartition = 0;
+      }
+      inPartition++;
+      active.add(p);
+    }
+
+    if (active.size() > 0) {
+      result.add(ImmutableSet.copyOf(active));
     }
 
     return result.build();
