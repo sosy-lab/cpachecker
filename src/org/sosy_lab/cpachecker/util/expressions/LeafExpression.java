@@ -39,7 +39,7 @@ import com.google.common.base.Function;
 
 public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
-  public static Function<AExpressionStatement, ExpressionTree<AExpression>>
+  public static final Function<AExpressionStatement, ExpressionTree<AExpression>>
       FROM_EXPRESSION_STATEMENT =
           new Function<AExpressionStatement, ExpressionTree<AExpression>>() {
 
