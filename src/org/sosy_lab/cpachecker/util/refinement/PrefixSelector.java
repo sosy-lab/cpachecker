@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.refinement;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -80,18 +81,20 @@ public class PrefixSelector {
     return comperators;
   }
 
-  private static class ChainedComparator implements Comparator<InfeasiblePrefix> {
+  private static class ChainedComparator implements Comparator<InfeasiblePrefix>, Serializable {
 
-    List<Comparator<InfeasiblePrefix>> comperators;
+    private static final long serialVersionUID = -6359291861139423226L;
 
-    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComperators) {
-      comperators = pComperators;
+    private final List<Comparator<InfeasiblePrefix>> comparators;
+
+    public ChainedComparator(final List<Comparator<InfeasiblePrefix>> pComparators) {
+      comparators = pComparators;
     }
 
     @Override
     public int compare(final InfeasiblePrefix onePrefix, final InfeasiblePrefix otherPrefix) {
-      for (Comparator<InfeasiblePrefix> comperator : comperators) {
-        int result = comperator.compare(onePrefix, otherPrefix);
+      for (Comparator<InfeasiblePrefix> comparator : comparators) {
+        int result = comparator.compare(onePrefix, otherPrefix);
 
         if (result != 0) {
           return result;
