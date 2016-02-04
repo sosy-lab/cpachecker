@@ -35,7 +35,6 @@ import java.util.IdentityHashMap;
 import java.util.Set;
 import java.util.logging.Level;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -320,6 +320,11 @@ class PredicateCPAStatistics extends AbstractStatistics {
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("Number of trivially used predicates:      " + valueWithPercentage(as.numTrivialPredicates, as.numTotalPredicates));
       }
+      if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
+        out.println(
+            "Number of inductive predicates:           "
+                + valueWithPercentage(as.numInductivePredicates, as.numTotalPredicates));
+      }
       if (as.cartesianAbstractionTime.getNumberOfIntervals() > 0) {
         out.println("Number of preds cached for cartesian abs: " + valueWithPercentage(as.numCartesianAbsPredicatesCached, as.numTotalPredicates));
         out.println("Number of preds solved by cartesian abs:  " + valueWithPercentage(as.numCartesianAbsPredicates, as.numTotalPredicates));
@@ -362,6 +367,9 @@ class PredicateCPAStatistics extends AbstractStatistics {
       out.println("  Time for abstraction:              " + prec.computingAbstractionTime + " (Max: " + prec.computingAbstractionTime.getMaxTime().formatAs(SECONDS) + ", Count: " + prec.computingAbstractionTime.getNumberOfIntervals() + ")");
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("    Relevant predicate analysis:     " + as.trivialPredicatesTime);
+      }
+      if (as.inductivePredicatesTime.getNumberOfIntervals() > 0) {
+        out.println("    Inductive predicate analysis:    " + as.inductivePredicatesTime);
       }
       if (as.cartesianAbstractionTime.getNumberOfIntervals() > 0) {
         out.println("    Cartesian abstraction:           " + as.cartesianAbstractionTime);
