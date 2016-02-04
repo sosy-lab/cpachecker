@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import org.sosy_lab.common.log.LogManager;
@@ -32,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg.HashMapCopyOnWrite;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
@@ -41,19 +40,17 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.ImmutableMap;
-
 
 public class SMGInterpolant implements Interpolant<SMGState> {
 
   private static final SMGInterpolant FALSE = new SMGInterpolant(null, null, null);
 
-  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues;
+  private final HashMapCopyOnWrite<SMGKnownSymValue, SMGKnownExpValue> explicitValues;
   private final CLangSMG heap;
   private final LogManager logger;
 
 
-  public SMGInterpolant(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+  public SMGInterpolant(HashMapCopyOnWrite<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
       CLangSMG pHeap,
       LogManager pLogger) {
 
@@ -69,7 +66,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       // TODO Copy necessary?
-      return new SMGState(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
+      return new SMGState(explicitValues, new CLangSMG(heap), logger);
     }
   }
 
@@ -123,11 +120,9 @@ public class SMGInterpolant implements Interpolant<SMGState> {
     }
 
 
-    Map<SMGKnownSymValue, SMGKnownExpValue> joinedExplicitValues = new HashMap<>();
-
     //FIXME join of explicit values
-    joinedExplicitValues.putAll(explicitValues);
-    joinedExplicitValues.putAll(other.explicitValues);
+    HashMapCopyOnWrite<SMGKnownSymValue, SMGKnownExpValue> joinedExplicitValues = explicitValues;
+    joinedExplicitValues = joinedExplicitValues.putAllAndCopy(other.explicitValues);
 
 
     return new SMGInterpolant(joinedExplicitValues, join.getJointSMG(), logger);
@@ -135,7 +130,7 @@ public class SMGInterpolant implements Interpolant<SMGState> {
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
       FunctionEntryNode pMainFunctionNode) {
-    Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = ImmutableMap.of();
+    HashMapCopyOnWrite<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMapCopyOnWrite();
     CLangSMG heap = new CLangSMG(model);
     AFunctionDeclaration mainFunction = pMainFunctionNode.getFunctionDefinition();
 

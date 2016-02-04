@@ -75,7 +75,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   private final AtomicInteger id_counter;
 
-  private final Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMap<>();
+  private HashMapCopyOnWrite<SMGKnownSymValue, SMGKnownExpValue> explicitValues = new HashMapCopyOnWrite<>();
   private final CLangSMG heap;
   private final LogManager logger;
   private final int predecessorId;
@@ -145,7 +145,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     predecessorId = pOriginalState.getId();
     id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
+    explicitValues = pOriginalState.explicitValues;
     memoryErrors = pOriginalState.memoryErrors;
     unknownOnUndefined = pOriginalState.unknownOnUndefined;
     runtimeCheckLevel = pSMGRuntimeCheck;
@@ -168,7 +168,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     predecessorId = pOriginalState.getId();
     id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
+    explicitValues = pOriginalState.explicitValues;
     memoryErrors = pOriginalState.memoryErrors;
     unknownOnUndefined = pOriginalState.unknownOnUndefined;
     runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
@@ -183,7 +183,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     predecessorId = pOriginalState.getId();
     id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
+    explicitValues = pOriginalState.explicitValues;
     memoryErrors = pOriginalState.memoryErrors;
     unknownOnUndefined = pOriginalState.unknownOnUndefined;
     runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
@@ -213,13 +213,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pInvalidWrite;
   }
 
-  public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
+  public SMGState(HashMapCopyOnWrite<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
       CLangSMG pHeap,
       LogManager pLogger) {
 
     heap = pHeap;
     logger = pLogger;
-    explicitValues.putAll(pExplicitValues);
+    explicitValues = pExplicitValues;
 
     unknownOnUndefined = false;
     runtimeCheckLevel = SMGRuntimeCheck.NONE;
@@ -1041,11 +1041,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
-    explicitValues.put(pKey, pValue);
+    explicitValues = explicitValues.putAndCopy(pKey, pValue);
   }
 
   public void clearExplicit(SMGKnownSymValue pKey) {
-    explicitValues.remove(pKey);
+    explicitValues = explicitValues.removeAndCopy(pKey);
   }
 
   boolean isExplicit(int value) {
@@ -1110,7 +1110,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public SMGInterpolant createInterpolant() {
     // TODO Copy necessary?
-    return new SMGInterpolant(new HashMap<>(explicitValues), new CLangSMG(heap), logger);
+    return new SMGInterpolant(explicitValues, new CLangSMG(heap), logger);
   }
 
   public CType getTypeForMemoryLocation(MemoryLocation pMemoryLocation) {
