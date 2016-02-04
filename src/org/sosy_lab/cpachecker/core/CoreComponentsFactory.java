@@ -176,6 +176,14 @@ public class CoreComponentsFactory {
   public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
       final String programDenotation, final CFA cfa, @Nullable final MainCPAStatistics stats)
       throws InvalidConfigurationException, CPAException {
+
+    return createAlgorithm(cpa, programDenotation, cfa, stats, false);
+  }
+
+  public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,
+      final String programDenotation, final CFA cfa,
+      @Nullable final MainCPAStatistics stats, boolean pInnerAlgorithmsOnly)
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating algorithms");
 
     Algorithm algorithm;
@@ -226,7 +234,7 @@ public class CoreComponentsFactory {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
-      if (checkMultipleProperties) {
+      if (!pInnerAlgorithmsOnly && checkMultipleProperties) {
         algorithm = new MultiPropertyAlgorithm(algorithm, cpa, config, logger, interruptProvider, cfa);
       }
 

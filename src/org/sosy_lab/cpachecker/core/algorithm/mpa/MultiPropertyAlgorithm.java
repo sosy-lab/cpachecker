@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisFactory;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
@@ -187,30 +188,33 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
     }
   }
 
-  private MPAStatistics stats = new MPAStatistics();
+  private final MPAStatistics stats = new MPAStatistics();
+  private final AnalysisFactory analysisFactory;
+
   private Optional<PropertySummary> lastRunPropertySummary = Optional.absent();
   private ResourceLimitChecker reschecker = null;
 
-  public static int hackyRefinementBound = 0;
-
   public MultiPropertyAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCpa,
-    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa)
+    Configuration pConfig, LogManager pLogger, InterruptProvider pShutdownNotifier, CFA pCfa,
+    String pProgramDenotation)
       throws InvalidConfigurationException, CPAException {
 
     pConfig.inject(this);
 
-    this.wrapped = pAlgorithm;
-    this.logger = pLogger;
-    this.cfa = pCfa;
+    analysisFactory = new AnalysisFactory(pConfig, pLogger, pCfa, pProgramDenotation);
+
+    wrapped = pAlgorithm;
+    logger = pLogger;
+    cfa = pCfa;
 
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARGCPA needed for MultiPropertyAlgorithm");
     }
-    this.cpa = (ARGCPA) pCpa;
+    cpa = (ARGCPA) pCpa;
 
-    this.initOperator = createInitOperator();
-    this.partitionOperator = createPartitioningOperator(pConfig, pLogger);
-    this.interruptNotifier = pShutdownNotifier;
+    initOperator = createInitOperator();
+    partitionOperator = createPartitioningOperator(pConfig, pLogger);
+    interruptNotifier = pShutdownNotifier;
   }
 
   private InitOperator createInitOperator() throws CPAException, InvalidConfigurationException {
@@ -472,7 +476,6 @@ public final class MultiPropertyAlgorithm implements Algorithm, StatisticsProvid
 
           } else {
             // The analysis terminated because it ran out of resources
-            // hackyRefinementBound = hackyRefinementBound * 2;
 
             // It is not possible to make any statements about
             //   the satisfaction of more properties here!
