@@ -38,7 +38,6 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
-import org.sosy_lab.cpachecker.cpa.constraints.VariableMap;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -288,7 +287,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
         if (!unsat) {
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really requested
-          resolveDefiniteAssignments(constraintsAsFormula);
+          resolveDefiniteAssignments();
 
         } else {
           definiteAssignment = null;
@@ -309,21 +308,20 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     }
   }
 
-  private void resolveDefiniteAssignments(BooleanFormula pFormula)
+  private void resolveDefiniteAssignments()
       throws InterruptedException, SolverException, UnrecognizedCCodeException {
 
     IdentifierAssignment oldDefinites = new IdentifierAssignment(definiteAssignment);
-    computeDefiniteAssignment(pFormula);
+    computeDefiniteAssignment();
     updateOldFormulasDefinitesAppearIn(oldDefinites, definiteAssignment);
     assert definiteAssignment.entrySet().containsAll(oldDefinites.entrySet());
   }
 
-  private void computeDefiniteAssignment(BooleanFormula pFormula) throws SolverException, InterruptedException {
+  private void computeDefiniteAssignment() throws SolverException, InterruptedException {
     Model validAssignment = prover.getModel();
 
     for (ValueAssignment val : validAssignment) {
       Formula term = val.getKey();
-      Object termAssignment = val.getValue();
 
       if (isSymbolicTerm(term)) {
 
@@ -331,7 +329,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
         Value concreteValue = convertToValue(val);
 
         if (!definiteAssignment.containsKey(identifier)
-            && isOnlySatisfyingAssignment(val, termAssignment, pFormula)) {
+            && isOnlySatisfyingAssignment(val)) {
 
           assert !definiteAssignment.containsKey(identifier) || definiteAssignment.get(identifier).equals(concreteValue)
               : "Definite assignment can't be changed from " + definiteAssignment.get(identifier) + " to " + concreteValue;
@@ -393,12 +391,10 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.toString());
   }
 
-  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm, Object termAssignment, BooleanFormula pFormula)
+  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
       throws SolverException, InterruptedException {
 
-    VariableMap freeVariables = new VariableMap(formulaManager.extractFreeVariableMap(pFormula));
-    BooleanFormula prohibitAssignment = formulaManager
-                                       .makeNot(formulaCreator.transformAssignment(pTerm, termAssignment, freeVariables));
+    BooleanFormula prohibitAssignment = formulaManager.makeNot(formulaCreator.transformAssignment(pTerm.getKey(), pTerm.getValue()));
 
     prover.push(prohibitAssignment);
     boolean isUnsat = prover.isUnsat();
