@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -37,6 +38,8 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandidateTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.MaterlisationStep;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.MaterlisationStep.FieldsOfTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
 
 import com.google.common.base.Optional;
@@ -45,6 +48,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+@SuppressWarnings("unused")
 public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   private final GenericAbstractionCandidateTemplate template;
@@ -271,10 +275,26 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    SMGObject region = pObject;
+    SMGRegion region = (SMGRegion) pObject;
+
+    if(region.getSize() != pTemplate.getSize()) {
+      return false;
+    }
+
+    Set<SMGEdgePointsTo> pointerToRegion = getPointerToThisObject(region, pInputSMG);
+    Set<SMGEdgePointsToTemplate> pointerToRegionTemplate = matStep.getPointerToThisTemplate(pTemplate);
+
+    Set<SMGEdgeHasValue> fieldsOffRegion = getFieldsOfRegion(region, pInputSMG);
+    FieldsOfTemplate fieldsOffTemplate = matStep.getFieldsOfThisTemplate(pTemplate);
+
 
 
     return false;
+  }
+
+  private Set<SMGEdgeHasValue> getFieldsOfRegion(SMGRegion pRegion, SMG pInputSMG) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   private MatchResult wasMatchedPreviously(SMG pInputSMG, SMGObject pRootObject,

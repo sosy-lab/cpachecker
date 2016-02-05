@@ -301,4 +301,18 @@ public class MaterlisationStep {
 
     return entryRegions;
   }
+
+  public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(@SuppressWarnings("unused") SMGObjectTemplate pTemplate) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public FieldsOfTemplate getFieldsOfThisTemplate(@SuppressWarnings("unused") SMGObjectTemplate template) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public static class FieldsOfTemplate {
+
+  }
 }
