@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import java.util.BitSet;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +34,9 @@ import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.BiMultiValueMap;
 import org.sosy_lab.cpachecker.cpa.smg.HashMapCopyOnWrite;
+import org.sosy_lab.cpachecker.cpa.smg.ReturnOppositeValueOperator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -47,7 +48,14 @@ public class SMG {
   final private Set<SMGObject> objects = new HashSet<>();
   final private Set<Integer> values = new HashSet<>();
   final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
-  private HashMapCopyOnWrite<Integer, SMGEdgePointsTo> pt_edges = new HashMapCopyOnWrite<>();
+  private BiMultiValueMap<Integer, SMGEdgePointsTo> pt_edges = new BiMultiValueMap<>(
+      new ReturnOppositeValueOperator<SMGEdgePointsTo>() {
+        @Override
+        public Object getOpposite(SMGEdgePointsTo value) {
+          return value.getObject();
+        }
+      });
+
   private HashMapCopyOnWrite<SMGObject, Boolean> object_validity = new HashMapCopyOnWrite<>();
   final private NeqRelation neq = new NeqRelation();
 
@@ -96,7 +104,7 @@ public class SMG {
     neq.putAll(pHeap.neq);
     object_validity = pHeap.object_validity;
     objects.addAll(pHeap.objects);
-    pt_edges =  pHeap.pt_edges;
+    pt_edges.putAll(pHeap.pt_edges);
     values.addAll(pHeap.values);
   }
 
@@ -186,13 +194,7 @@ public class SMG {
         hv_iter.remove();
       }
     }
-    Set<Integer> remove = new HashSet<>();
-    for(Entry<Integer, SMGEdgePointsTo> point : pt_edges.entrySet()) {
-      if (point.getValue().getObject() == pObj) {
-        remove.add(point.getKey());
-      }
-    }
-    pt_edges = pt_edges.removeKeysAndCopy(remove);
+    pt_edges.removeOppositValue(pObj);
   }
 
   /**
@@ -228,7 +230,7 @@ public class SMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
-    pt_edges = pt_edges.putAndCopy(pEdge.getValue(), pEdge);
+    pt_edges.put(pEdge.getValue(), pEdge);
   }
 
   /**
@@ -261,7 +263,7 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
-    pt_edges = pt_edges.removeAndCopy(pValue);
+    pt_edges.remove(pValue);
   }
 
   /**
@@ -384,7 +386,7 @@ public class SMG {
    * @return Unmodifiable view on Points-To edges set.
    */
   final public Map<Integer, SMGEdgePointsTo> getPTEdges() {
-    return Collections.unmodifiableMap(pt_edges );
+    return Collections.unmodifiableMap(pt_edges.getMap() );
   }
 
   /**
