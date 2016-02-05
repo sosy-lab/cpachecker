@@ -592,7 +592,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = getTypeForMemoryLocation(memoryLocation);
-        if (type instanceof CSimpleType) {
+        if (!memoryLocation.isReference() && type instanceof CSimpleType) {
           CSimpleType simpleType = (CSimpleType) type;
           if (simpleType.getType().isIntegerType()) {
             int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
