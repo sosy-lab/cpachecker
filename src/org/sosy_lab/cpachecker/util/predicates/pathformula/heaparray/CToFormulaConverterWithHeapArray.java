@@ -1005,18 +1005,20 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     } else if (initializer instanceof CInitializerList) {
 
       List<CExpressionAssignmentStatement> assignments =
-        CInitializers.convertToAssignments(declaration, pDeclarationEdge);
-      if (options.handleStringLiteralInitializers()) {
-        // Special handling for string literal initializers -- convert them
-        // into character arrays
-        assignments = expandStringLiterals(assignments);
+          CInitializers.convertToAssignments(declaration, pDeclarationEdge);
+      if (qfmgr == null) {
+        if (options.handleStringLiteralInitializers()) {
+          // Special handling for string literal initializers -- convert them
+          // into character arrays
+          assignments = expandStringLiterals(assignments);
+        }
+        if (options.handleImplicitInitialization()) {
+          assignments = expandAssignmentList(declaration, assignments);
+        }
+        result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
+      } else {
+        result = assignmentHandler.handleInitializationAssignmentsWithQuantifier(lhs, assignments);
       }
-      if (options.handleImplicitInitialization()) {
-        assignments = expandAssignmentList(declaration, assignments);
-      }
-
-      result = assignmentHandler.handleInitializationAssignments(lhs,
-          assignments);
 
     } else {
       throw new UnrecognizedCCodeException("Unrecognized initializer",

@@ -247,6 +247,23 @@ class AssignmentHandler {
   }
 
   /**
+   * Handles an initialization assignments, i.e. an assignment with a C initializer, with using a
+   * quantifier over the resulting SMT array.
+   *
+   * @param pVariable The left hand side of the assignment.
+   * @param pAssignments A list of assignment statements.
+   * @return A boolean formula for the assignment.
+   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
+   * @throws InterruptedException If the execution was interrupted.
+   */
+  BooleanFormula handleInitializationAssignmentsWithQuantifier(
+      final CLeftHandSide pVariable,
+      final List<CExpressionAssignmentStatement> pAssignments)
+      throws UnrecognizedCCodeException, InterruptedException {
+    return null;
+  }
+
+  /**
    * Creates a formula for an assignment.
    *
    * @param pLvalueType The type of the lvalue.
