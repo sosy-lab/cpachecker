@@ -116,9 +116,13 @@ public class SymbolicValueAnalysisRefiner
 
 
     final GenericPrefixProvider<ForgettingCompositeState> prefixProvider =
-        new GenericPrefixProvider<>(strongestPostOperator,
-                                    ForgettingCompositeState.getInitialState(),
-                                    logger, cfa, config, ValueAnalysisCPA.class);
+        new GenericPrefixProvider<>(
+            strongestPostOperator,
+            ForgettingCompositeState.getInitialState(cfa.getMachineModel()),
+            logger,
+            cfa,
+            config,
+            ValueAnalysisCPA.class);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,

@@ -35,6 +35,10 @@ import org.sosy_lab.solver.api.FormulaType;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
+import com.google.common.collect.ImmutableList;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
 
@@ -156,19 +160,26 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
 
   /**
    * This visitor visits a formula and splits it (recursively) in case of a
-   * conjunction. Otherwise it returns NULL.
+   * conjunction.
    *
-   * Example: AND(x,AND(y,z)) -> [x,y,z], NOT(x) -> NULL
+   * Example: AND(x,AND(y,z)) -> [x,y,z], NOT(x) -> [NOT(x)]
    */
-  public static class ConjunctionSplitter
-      extends DefaultBooleanFormulaVisitor<List<BooleanFormula>> {
-
-    protected final FormulaManagerView fmgr;
-
-    protected ConjunctionSplitter(FormulaManagerView pFmgr) {
-      super();
-      fmgr = pFmgr;
+  @SuppressFBWarnings(
+    value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE",
+    justification = "visitor actually returns null"
+  )
+  public List<BooleanFormula> splitConjunctions(BooleanFormula f) {
+    List<BooleanFormula> result = visit(conjunctionSplitter, f);
+    if (result == null) {
+      return ImmutableList.of(f);
+    } else {
+      return result;
     }
+  }
+
+  private final ConjunctionSplitter conjunctionSplitter = new ConjunctionSplitter();
+
+  private class ConjunctionSplitter extends DefaultBooleanFormulaVisitor<List<BooleanFormula>> {
 
     @Override
     protected List<BooleanFormula> visitDefault() {
@@ -179,13 +190,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
     public List<BooleanFormula> visitAnd(List<BooleanFormula> conjunction) {
       final List<BooleanFormula> result = new ArrayList<>();
       for (BooleanFormula f : conjunction) {
-        List<BooleanFormula> parts = fmgr.getBooleanFormulaManager().visit(this, f);
-        if (parts == null) {
-          result.add(f);
-        } else {
-          // recursive conjunction found
-          result.addAll(parts);
-        }
+        result.addAll(splitConjunctions(f));
       }
       return result;
     }

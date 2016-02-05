@@ -352,12 +352,6 @@ bmc.checkTargetStates = true
 # dump counterexample formula to file
 bmc.dumpCounterexampleFormula = "ErrorPath.%d.smt2"
 
-# Adds pre-loop information to the induction hypothesis. This is unsound and
-# should generally not be used; however it is provided as an implementation
-# of the technique introduced in the SV-COMP 2013 competition contribution of
-# ESBMC 1.20.
-bmc.havocLoopTerminationConditionVariablesOnly = false
-
 # try using induction to verify programs with loops
 bmc.induction = false
 
@@ -382,11 +376,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
-# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-cbmc.timelimit = 0
+# maximum time limit for CBMC (0 is infinite)
 cbmc.timelimit = 0ms
+cbmc.timelimit = 0
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
@@ -703,10 +697,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in a CPA enabled analysis because then it
-# mustbehave differntly during merge.
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differntly during merge.
+# inform ARG CPA if it is run in a CPA enabled analysis because then it
+# mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
@@ -1159,7 +1153,6 @@ cpa.predicate.abs.predicateOrdering.partitions = false
 
 # use caching of region to formula conversions
 # use caching of abstractions
-# use caching of region to formula conversions
 cpa.predicate.abs.useCache = true
 
 # DEPRECATED: whether to use Boolean (false) or Cartesian (true) abstraction
@@ -1171,6 +1164,9 @@ cpa.predicate.abstraction.computation = BOOLEAN
 
 # dump the abstraction formulas if they took to long
 cpa.predicate.abstraction.dumpHardQueries = false
+
+# Identify the inductive predicates in the path formula and omit them
+cpa.predicate.abstraction.identifyInductivePredicates = false
 
 # Identify those predicates where the result is trivially known before
 # abstraction computation and omit them.
@@ -1641,6 +1637,9 @@ cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 # analysis)
 cpa.predicate.stop = "SEP"
   allowed values: [SEP, SEPPCC]
+
+# Use formula reporting states for strengthening.
+cpa.predicate.strengthenWithFormulaReportingStates = false
 
 # try to reuse old abstractions from file during strengthening
 cpa.predicate.strengthenWithReusedAbstractions = false
@@ -2391,10 +2390,10 @@ pcc.proofgen.doPCC = false
 # prove the property.
 pcc.sliceProof = false
 
-# Qualified name for class which implements certification strategy, hence
-# proof writing, to be used.
 # Qualified name for class which implements proof checking strategy to be
 # used.
+# Qualified name for class which implements certification strategy, hence
+# proof writing, to be used.
 pcc.strategy = "org.sosy_lab.cpachecker.pcc.strategy.arg.ARGProofCheckerStrategy"
 
 # number of cpus/cores which should be used in parallel for proof checking

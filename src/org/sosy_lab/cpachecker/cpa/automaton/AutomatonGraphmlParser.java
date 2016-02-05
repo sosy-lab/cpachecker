@@ -832,7 +832,6 @@ public class AutomatonGraphmlParser {
         return ExpressionTrees.getTrue();
       }
       AExpression expression = optExpression.get();
-      assert expression instanceof AIntegerLiteralExpression;
       if (!(expression instanceof AIntegerLiteralExpression)) {
         return ExpressionTrees.getTrue();
       }
@@ -878,7 +877,6 @@ public class AutomatonGraphmlParser {
               return ExpressionTrees.getTrue();
             }
             AExpression expression = optExpression.get();
-            assert expression instanceof AIntegerLiteralExpression;
             if (!(expression instanceof AIntegerLiteralExpression)) {
               return ExpressionTrees.getTrue();
             }

@@ -52,13 +52,14 @@ public class ValueAnalysisEdgeInterpolator
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    super(pStrongestPostOperator,
-          pFeasibilityChecker,
-          ValueAnalysisInterpolantManager.getInstance(),
-          new ValueAnalysisState(),
-          ValueAnalysisCPA.class,
-          pConfig,
-          pShutdownNotifier,
-          pCfa);
+    super(
+        pStrongestPostOperator,
+        pFeasibilityChecker,
+        ValueAnalysisInterpolantManager.getInstance(),
+        new ValueAnalysisState(pCfa.getMachineModel()),
+        ValueAnalysisCPA.class,
+        pConfig,
+        pShutdownNotifier,
+        pCfa);
   }
 }

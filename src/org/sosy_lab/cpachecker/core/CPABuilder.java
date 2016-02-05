@@ -284,7 +284,7 @@ public class CPABuilder {
       // This is the top-level CompositeCPA that is the default,
       // but without any children. This means that the user did not specify any
       // meaningful configuration.
-      throw new InvalidConfigurationException("Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' (for example, '-explicitAnalysis' or '-predicateAnalysis'). See README.txt for more details.");
+      throw new InvalidConfigurationException("Please specify a configuration with '-config CONFIG_FILE' or '-CONFIG' (for example, '-valueAnalysis' or '-predicateAnalysis'). See README.txt for more details.");
     }
 
     // finally call createInstance

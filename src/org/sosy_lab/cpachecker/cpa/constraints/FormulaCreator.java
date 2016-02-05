@@ -67,10 +67,9 @@ public interface FormulaCreator {
    * returns the formula <code>a equals 5</code>
    * </p>
    *
-   * @param pTerm the term assignment
-   * @param termAssignment the value of the assignment
+   * @param pVariable the variable as a formula to assign the given value to
+   * @param pTermAssignment the value of the assignment
    * @return a <code>BooleanFormula</code> representing the given assignment
    */
-  BooleanFormula transformAssignment(ValueAssignment pTerm, Object termAssignment, VariableMap pVariables)
-  ;
+  BooleanFormula transformAssignment(Formula pVariable, Object pTermAssignment);
 }

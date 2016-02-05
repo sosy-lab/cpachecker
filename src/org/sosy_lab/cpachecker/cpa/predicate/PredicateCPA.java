@@ -184,7 +184,8 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
             solver,
             config,
             logger,
-            pShutdownNotifier);
+            pShutdownNotifier,
+            cfa.getLoopStructure());
 
     transfer = new PredicateTransferRelation(this, blk, config, direction, cfa);
 

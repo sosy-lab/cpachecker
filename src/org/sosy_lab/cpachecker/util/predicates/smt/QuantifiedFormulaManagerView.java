@@ -117,7 +117,7 @@ public class QuantifiedFormulaManagerView
 
   /**
    * @return  An (restricted) existential quantified formula.
-   * @see #all(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)
+   * @see #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)
    */
   public <R extends IntegerFormula> BooleanFormula exists (
       final R pVariable,

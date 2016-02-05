@@ -38,6 +38,8 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 public class RedundantRequirementsValueAnalysisStateImplementation extends
     RedundantRequirementsRemoverImplementation<ValueAnalysisState, Value> {
 
+  private static final long serialVersionUID = 2875464105471673418L;
+
   @Override
   public int compare(Value pO1, Value pO2) {
     // one of arguments null -> NullPointerException

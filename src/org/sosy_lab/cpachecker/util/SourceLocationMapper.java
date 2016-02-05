@@ -66,7 +66,7 @@ public class SourceLocationMapper {
 
   }
 
-  public static class FileNameDescriptor implements LocationDescriptor {
+  public static abstract class FileNameDescriptor implements LocationDescriptor {
 
     private final Optional<String> originFileName;
 
@@ -116,18 +116,6 @@ public class SourceLocationMapper {
     @Override
     public int hashCode() {
       return originFileName.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      if (this == pObj) {
-        return true;
-      }
-      if (pObj instanceof FileNameDescriptor && pObj.getClass().equals(FileNameDescriptor.class)) {
-        FileNameDescriptor other = (FileNameDescriptor) pObj;
-        return originFileName.equals(other.originFileName);
-      }
-      return false;
     }
 
     @Override

@@ -90,7 +90,7 @@ public final class ExpressionTrees {
         }
       };
 
-  public static Predicate<ExpressionTree<?>> IS_CONSTANT =
+  public static final Predicate<ExpressionTree<?>> IS_CONSTANT =
       new Predicate<ExpressionTree<?>>() {
 
         @Override
@@ -99,7 +99,7 @@ public final class ExpressionTrees {
         }
       };
 
-  public static Predicate<ExpressionTree<?>> IS_LEAF =
+  public static final Predicate<ExpressionTree<?>> IS_LEAF =
       new Predicate<ExpressionTree<?>>() {
 
         @Override
@@ -108,7 +108,7 @@ public final class ExpressionTrees {
         }
       };
 
-  public static Predicate<ExpressionTree<?>> IS_AND =
+  public static final Predicate<ExpressionTree<?>> IS_AND =
       new Predicate<ExpressionTree<?>>() {
 
         @Override
@@ -117,7 +117,7 @@ public final class ExpressionTrees {
         }
       };
 
-  public static Predicate<ExpressionTree<?>> IS_OR =
+  public static final Predicate<ExpressionTree<?>> IS_OR =
       new Predicate<ExpressionTree<?>>() {
 
         @Override

@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -74,6 +75,7 @@ public class ElementTestingSymbolicEdgeInterpolator
   private final StrongestPostOperator<ForgettingCompositeState> strongestPost;
   private final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant>
       interpolantManager;
+  private final MachineModel machineModel;
 
   private final ShutdownNotifier shutdownNotifier;
   private Precision valuePrecision;
@@ -97,6 +99,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     shutdownNotifier = pShutdownNotifier;
     valuePrecision = VariableTrackingPrecision.createStaticPrecision(
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
+    machineModel = pCfa.getMachineModel();
   }
 
   @Override
@@ -128,7 +131,7 @@ public class ElementTestingSymbolicEdgeInterpolator
     ARGPath suffix = getSuffix(pErrorPath, pLocationInPath);
 
     // if the suffix is contradicting by itself, the interpolant can be true
-    if (!isPathFeasible(suffix, ForgettingCompositeState.getInitialState())) {
+    if (!isPathFeasible(suffix, ForgettingCompositeState.getInitialState(machineModel))) {
       return interpolantManager.getTrueInterpolant();
     }
 

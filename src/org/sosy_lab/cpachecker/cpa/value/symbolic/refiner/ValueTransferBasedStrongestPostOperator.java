@@ -211,11 +211,7 @@ public class ValueTransferBasedStrongestPostOperator
                                  pOperation,
                                  pPrecision);
 
-    if (strengthenResult == null) {
-      // nothing changed
-      return Optional.of(pValues);
-
-    } else if (isContradiction(strengthenResult)) {
+    if (isContradiction(strengthenResult)) {
       return Optional.absent();
 
     } else {

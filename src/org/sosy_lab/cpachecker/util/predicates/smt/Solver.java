@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +36,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.ConjunctionSplitter;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingInterpolatingProverEnvironmentWithAssumptions;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingProverEnvironment;
@@ -295,14 +293,7 @@ public final class Solver implements AutoCloseable {
    * add children one by one. Keep going recursively.
    */
   private void addConstraint(BooleanFormula constraint) {
-
-    List<BooleanFormula> splittedConjunction = bfmgr.visit(new ConjunctionSplitter(fmgr), constraint);
-    if (splittedConjunction == null) {
-      // in this case, we could not split the constraint and use it "as is".
-      splittedConjunction = Collections.singletonList(constraint);
-    }
-
-    for (BooleanFormula f : splittedConjunction) {
+    for (BooleanFormula f : bfmgr.splitConjunctions(constraint)) {
       addConstraint(f);
     }
   }

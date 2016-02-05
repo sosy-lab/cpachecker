@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.AArrayType;
  */
 public class JArrayType extends AArrayType implements JReferenceType {
 
+  private static final long serialVersionUID = -120299232751433551L;
+
   private final int dimension;
 
   /**
