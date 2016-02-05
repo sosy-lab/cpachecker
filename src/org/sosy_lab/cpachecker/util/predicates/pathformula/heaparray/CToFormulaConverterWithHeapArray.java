@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Varia
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -117,6 +118,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
 
   final ArrayFormulaManagerView afmgr;
+  final QuantifiedFormulaManagerView qfmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
   @SuppressWarnings("hiding")
@@ -169,9 +171,51 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
         typeHandler, shutdownNotifier);
 
     afmgr = pFormulaManager.getArrayFormulaManager();
+    qfmgr = null;
 
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(
         CPointerType.POINTER_TO_VOID);
+    nullPointer = formulaManager.makeNumber(voidPointerFormulaType, 0);
+  }
+
+  /**
+   * Creates a C to SMT formula converter with support for pointer aliasing. The heap is modelled
+   * with SMT arrays.
+   *
+   * @param pOptions Additional configuration options.
+   * @param pFormulaManager The formula manager for SMT formulae.
+   * @param pMachineModel The machine model for the evaluation run.
+   * @param pVariableClassification An optional classification of variables.
+   * @param pLogManager The main CPAchecker logger.
+   * @param pShutdownNotifier A notifier for user shutdowns to stop long running algorithms.
+   * @param pTypeHandler A handler for C types.
+   * @param pDirection The direction of the analysis.
+   * @param pQuantifiedFormulaManagerView A formula manager supporting quantifiers.
+   */
+  public CToFormulaConverterWithHeapArray(
+      final FormulaEncodingWithPointerAliasingOptions pOptions,
+      final FormulaManagerView pFormulaManager,
+      final MachineModel pMachineModel,
+      final Optional<VariableClassification> pVariableClassification,
+      final LogManager pLogManager,
+      final ShutdownNotifier pShutdownNotifier,
+      final TypeHandlerWithPointerAliasing pTypeHandler,
+      final AnalysisDirection pDirection,
+      final QuantifiedFormulaManagerView pQuantifiedFormulaManagerView) {
+
+    super(pOptions, pFormulaManager, pMachineModel, pVariableClassification, pLogManager,
+        pShutdownNotifier, pTypeHandler,pDirection);
+
+    variableClassification = pVariableClassification;
+    options = pOptions;
+    typeHandler = pTypeHandler;
+    ptsMgr = new PointerTargetSetManagerHeapArray(options, formulaManager, typeHandler,
+        shutdownNotifier);
+
+    afmgr = pFormulaManager.getArrayFormulaManager();
+    qfmgr = pQuantifiedFormulaManagerView;
+
+    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
     nullPointer = formulaManager.makeNumber(voidPointerFormulaType, 0);
   }
 

@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -109,6 +110,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure = true, description = "Use the theory of arrays for heap "
       + "memory abstraction.")
   private boolean useArrayHeap = false;
+
+  @Option(secure = true, description = "Use quantifiers together with the heap-array analysis. "
+      + "This requires the option \"useArrayHeap=true\" and a SMT solver that is capable of the "
+      + "theory of arrays and quantifiers (e.g. Z3 or PRINCESS).")
+  private boolean useQuantifiersOnArrays = false;
 
   private static final String BRANCHING_PREDICATE_NAME = "__ART__";
   private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN = Pattern.compile(
@@ -186,9 +192,21 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       TypeHandlerWithPointerAliasing aliasingTypeHandler =
           new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
       typeHandler = aliasingTypeHandler;
-      converter = new CToFormulaConverterWithHeapArray(options, fmgr,
-          pMachineModel, pVariableClassification, logger, shutdownNotifier,
-          aliasingTypeHandler, direction);
+
+      if (useQuantifiersOnArrays) {
+        QuantifiedFormulaManagerView qfmgr = fmgr.getQuantifiedFormulaManager();
+        if (qfmgr == null) {
+          logger.log(Level.SEVERE, "To use the analysis with option \"cpa.predicate"
+              + ".useQuantifiersOnArrays=true\", you have to use a solver supporting quantifier "
+              + "theories!");
+        }
+        converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction,
+            qfmgr);
+      } else {
+        converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
+            pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction);
+      }
 
       logger.log(Level.WARNING, "This package is currently developed. Be aware of possibly "
           + "unsound results! It's not recommended to use the option cpa.predicate.useArrayHeap, "
