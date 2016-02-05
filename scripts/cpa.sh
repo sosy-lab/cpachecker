@@ -71,6 +71,9 @@ while [ $# -gt 0 ]; do
    "-disable-jit")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xint"
        ;;
+   "-compile")
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xcomp"
+       ;;
    "-compile-threshold")
        shift
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -XX:CompileThreshold=$1"
