@@ -68,6 +68,13 @@ while [ $# -gt 0 ]; do
        shift
        JAVA_HEAP_SIZE=$1
        ;;
+   "-disable-jit")
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xint"
+       ;;
+   "-compile-threshold")
+       shift
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -XX:CompileThreshold=$1"
+       ;;
    "-debug")
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=5005,suspend=n"
        ;;
