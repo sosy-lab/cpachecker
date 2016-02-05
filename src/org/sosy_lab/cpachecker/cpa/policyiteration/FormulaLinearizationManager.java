@@ -73,7 +73,6 @@ public class FormulaLinearizationManager {
 
   private class LinearizationManager
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {
-    // todo: shouldn't we just convert to NNF instead?
 
     protected LinearizationManager(
         FormulaManagerView pFmgr, Map<BooleanFormula, BooleanFormula> pCache) {
@@ -167,8 +166,8 @@ public class FormulaLinearizationManager {
   }
 
   /**
-   * TODO!! This does not correctly replace if-then-else
-   * which occurs INSIDE the formula.
+   * TODO: does not correctly replace if-then-else's
+   * which occur INSIDE the formula.
    */
   private class ReplaceITEVisitor
       extends BooleanFormulaManagerView.BooleanFormulaTransformationVisitor {

@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
@@ -78,7 +77,6 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
-import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
@@ -323,7 +321,6 @@ public class FormulaManagerView {
    * @param name the name of the variable.
    * @return the created variable.
    */
-  @SuppressWarnings("unchecked")
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name) {
     Formula t;
     if (formulaType.isBooleanType()) {
@@ -341,10 +338,12 @@ public class FormulaManagerView {
       FormulaType.ArrayFormulaType<?,?> arrayType = (FormulaType.ArrayFormulaType<?,?>) formulaType;
       t = arrayFormulaManager.makeArray(name, arrayType.getIndexType(), arrayType.getElementType());
     } else {
-      throw new IllegalArgumentException("Not supported interface");
+      throw new IllegalArgumentException("Unknown formula type");
     }
 
-    return (T) t;
+    @SuppressWarnings("unchecked")
+    T out = (T) t;
+    return out;
   }
 
   /**
@@ -1102,43 +1101,28 @@ public class FormulaManagerView {
   /**
    * Extract all atoms of a given boolean formula.
    */
-  public Collection<BooleanFormula> extractAtoms(BooleanFormula pFormula, final boolean splitArithEqualities) {
-    final List<BooleanFormula> result = new ArrayList<>();
-
-    final BooleanFormulaVisitor<Boolean> isLowestLevel =
-        new DefaultBooleanFormulaVisitor<Boolean>() {
-          @Override
-          public Boolean visitDefault() {
-            return false;
-          }
-          @Override
-          public Boolean visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
-            return true;
-          }
-        };
-
-    new RecursiveFormulaVisitor(manager) {
+  public Collection<BooleanFormula> extractAtoms(
+      BooleanFormula pFormula,
+      final boolean splitArithEqualities) {
+    final Set<BooleanFormula> result = new HashSet<>();
+    booleanFormulaManager.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>(){
       @Override
-      public Void visitFunction(
-          Formula f,
-          List<Formula> args,
-          FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
-
-        if (getFormulaType(f).isBooleanType() &&
-            booleanFormulaManager.visit(isLowestLevel, (BooleanFormula) f)) {
-
-          if (splitArithEqualities && myIsPurelyArithmetic(f)) {
-            List<BooleanFormula> split =
-                manager.splitNumeralEqualityIfPossible((BooleanFormula)f);
-            visit(split.get(0));
-          }
-          result.add((BooleanFormula) f);
-        } else {
-          super.visitFunction(f, args, decl, constructor);
-        }
-        return null;
+      protected TraversalProcess visitDefault() {
+        return TraversalProcess.CONTINUE;
       }
-    }.visit(unwrap(pFormula));
+
+      @Override
+      public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
+        if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
+
+          // TODO: why only the 0th element is relevant?
+          result.add(splitNumeralEqualityIfPossible(atom).get(0));
+        }
+        result.add(atom);
+        return TraversalProcess.CONTINUE;
+      }
+
+    }, pFormula);
     return result;
   }
 
@@ -1189,8 +1173,7 @@ public class FormulaManagerView {
     Boolean result = arithCache.get(f);
     if (result != null) { return result; }
 
-    // Stays at zero unless a UF is found.
-    final AtomicInteger isPurelyAtomic = new AtomicInteger(0);
+    final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
     new RecursiveFormulaVisitor(manager) {
       @Override
       public Void visitFunction(
@@ -1198,12 +1181,12 @@ public class FormulaManagerView {
           List<Formula> args,
           FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
-          isPurelyAtomic.incrementAndGet();
+          isPurelyAtomic.set(false);
         }
         return null;
       }
     }.visit(f);
-    result = (isPurelyAtomic.get() == 0);
+    result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
   }
