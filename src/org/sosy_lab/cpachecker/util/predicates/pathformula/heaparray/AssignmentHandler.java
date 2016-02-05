@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Varia
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
@@ -252,15 +253,18 @@ class AssignmentHandler {
    *
    * @param pVariable The left hand side of the assignment.
    * @param pAssignments A list of assignment statements.
+   * @param pQfmgr A formula manager with quantifier support.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignmentsWithQuantifier(
       final CLeftHandSide pVariable,
-      final List<CExpressionAssignmentStatement> pAssignments)
+      final List<CExpressionAssignmentStatement> pAssignments,
+      final QuantifiedFormulaManagerView pQfmgr)
       throws UnrecognizedCCodeException, InterruptedException {
-    return null;
+    throw new UnsupportedOperationException("Implementation of initializer handling with "
+        + "quantifiers is not yet implemented.");
   }
 
   /**
