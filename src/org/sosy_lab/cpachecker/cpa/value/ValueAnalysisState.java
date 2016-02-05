@@ -56,14 +56,16 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.solver.api.BitvectorFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
-import org.sosy_lab.solver.api.RationalFormulaManager;
+import org.sosy_lab.solver.api.FloatingPointFormula;
+import org.sosy_lab.solver.api.FormulaType;
+import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
@@ -582,7 +584,7 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
     MachineModel machineModel = this.machineModel.get();
 
     BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
-    RationalFormulaManager ratFMGR = manager.getRationalFormulaManager();
+    FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
 
     for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
       NumericValue num = entry.getValue().asNumericValue();
@@ -606,9 +608,20 @@ public class ValueAnalysisState implements AbstractQueryableState, FormulaReport
             }
             formula = bfmgr.and(formula, bitvectorFMGR.equal(var, val));
           } else if (simpleType.getType().isFloatingPointType()) {
-            RationalFormula var = ratFMGR.makeVariable(entry.getKey().getAsSimpleString());
-            RationalFormula val = ratFMGR.makeNumber(num.doubleValue());
-            formula = bfmgr.and(formula, ratFMGR.equal(var, val));
+            final FloatingPointType fpType;
+            switch (simpleType.getType()) {
+            case FLOAT:
+              fpType = FormulaType.getSinglePrecisionFloatingPointType();
+              break;
+            case DOUBLE:
+              fpType = FormulaType.getDoublePrecisionFloatingPointType();
+              break;
+            default:
+              throw new AssertionError("Unsupported floating point type: " + simpleType);
+            }
+            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
+            FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
+            formula = bfmgr.and(formula, floatFMGR.equalWithFPSemantics(var, val));
           } else {
             // ignore in formula-approximation
           }
