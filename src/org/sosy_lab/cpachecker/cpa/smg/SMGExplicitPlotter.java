@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -119,7 +119,12 @@ public final class SMGExplicitPlotter {
   }
 
   private String memlocAsDot(MemoryLocation pMemloc) {
-    return locationIndex.get(Location.valueOf(pMemloc)) + " -> expValue_" + explicitState.getValueFor(pMemloc) + "[label=\"[" + pMemloc.getOffset() + "]\"];";
+    return locationIndex.get(Location.valueOf(pMemloc))
+        + " -> expValue_"
+        + explicitState.getValueFor(pMemloc)
+        + "[label=\"["
+        + (pMemloc.isReference() ? pMemloc.getOffset() : 0)
+        + "]\"];";
   }
 
   private String explicitValueAsDot(MemoryLocation pMemloc) {

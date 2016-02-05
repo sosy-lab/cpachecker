@@ -362,7 +362,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     long biggestStoredOffsetInPath = 0;
 
     for (MemoryLocation loc : pCollection) {
-      if (loc.getOffset() > biggestStoredOffsetInPath) {
+      if (loc.isReference() && loc.getOffset() > biggestStoredOffsetInPath) {
         biggestStoredOffsetInPath = loc.getOffset();
       }
     }
@@ -455,7 +455,10 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);
-      Address address = baseAddress.addOffset( BigInteger.valueOf(heapLoc.getOffset()));
+      Address address = baseAddress;
+      if (heapLoc.isReference()) {
+        address = baseAddress.addOffset(BigInteger.valueOf(heapLoc.getOffset()));
+      }
       result.put(address, value);
     }
 

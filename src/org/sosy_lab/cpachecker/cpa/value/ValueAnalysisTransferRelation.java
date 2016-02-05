@@ -324,7 +324,7 @@ public class ValueAnalysisTransferRelation
       String paramName = param.getName();
       Type paramType = param.getType();
 
-      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName, 0);
+      MemoryLocation formalParamName = MemoryLocation.valueOf(calledFunctionName, paramName);
 
       if (value.isUnknown()) {
         if (isMissingCExpressionInformation(visitor, exp)) {
@@ -685,9 +685,9 @@ public class ValueAnalysisTransferRelation
 
     // assign initial value if necessary
     if (decl.isGlobal()) {
-      memoryLocation = MemoryLocation.valueOf(varName,0);
+      memoryLocation = MemoryLocation.valueOf(varName);
     } else {
-      memoryLocation = MemoryLocation.valueOf(functionName, varName, 0);
+      memoryLocation = MemoryLocation.valueOf(functionName, varName);
     }
 
     if (addressedVariables.contains(decl.getQualifiedName())
@@ -946,9 +946,9 @@ public class ValueAnalysisTransferRelation
     String varName = pIdExpression.getName();
 
     if (isGlobal(pIdExpression)) {
-      return MemoryLocation.valueOf(varName, 0);
+      return MemoryLocation.valueOf(varName);
     } else {
-      return MemoryLocation.valueOf(functionName, varName, 0);
+      return MemoryLocation.valueOf(functionName, varName);
     }
   }
 
@@ -1065,10 +1065,13 @@ public class ValueAnalysisTransferRelation
 
   private MemoryLocation createFieldMemoryLocation(MemoryLocation pStruct, int pOffset) {
 
+    long baseOffset = pStruct.isReference() ? pStruct.getOffset() : 0;
+
     if (pStruct.isOnFunctionStack()) {
-      return MemoryLocation.valueOf(pStruct.getFunctionName(), pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+      return MemoryLocation.valueOf(
+          pStruct.getFunctionName(), pStruct.getIdentifier(), baseOffset + pOffset);
     } else {
-      return MemoryLocation.valueOf(pStruct.getIdentifier(), pStruct.getOffset() + pOffset);
+      return MemoryLocation.valueOf(pStruct.getIdentifier(), baseOffset + pOffset);
     }
   }
 
@@ -1357,8 +1360,7 @@ public class ValueAnalysisTransferRelation
       if (declaration != null) {
         assignableState.assignConstant(declaration.getQualifiedName(), pValue);
       } else {
-        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName(),
-            0);
+        MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
         assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
       }
     }

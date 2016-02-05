@@ -80,10 +80,10 @@ public class StateSimplifierTest {
       factory.lessThan(group2Id2, group2Id1, defaultNumericType, defaultNumericType);
 
 
-  private final MemoryLocation group1MemLoc1 = MemoryLocation.valueOf("a", 0);
-  private final MemoryLocation group1MemLoc2 = MemoryLocation.valueOf("b", 0);
-  private final MemoryLocation group2MemLoc1 = MemoryLocation.valueOf("c", 0);
-  private final MemoryLocation group2MemLoc2 = MemoryLocation.valueOf("d", 0);
+  private final MemoryLocation group1MemLoc1 = MemoryLocation.valueOf("a");
+  private final MemoryLocation group1MemLoc2 = MemoryLocation.valueOf("b");
+  private final MemoryLocation group2MemLoc1 = MemoryLocation.valueOf("c");
+  private final MemoryLocation group2MemLoc2 = MemoryLocation.valueOf("d");
 
   public StateSimplifierTest() throws InvalidConfigurationException {
     Configuration config = Configuration.builder()
