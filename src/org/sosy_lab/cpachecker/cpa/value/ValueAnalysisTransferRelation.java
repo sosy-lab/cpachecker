@@ -383,7 +383,7 @@ public class ValueAnalysisTransferRelation
         = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
 
-    if(optionalReturnVarDeclaration.isPresent()) {
+    if (optionalReturnVarDeclaration.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(optionalReturnVarDeclaration.get().getQualifiedName());
     }
 
@@ -413,7 +413,7 @@ public class ValueAnalysisTransferRelation
 
     Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
-    if(returnVarName.isPresent()) {
+    if (returnVarName.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
     }
 
@@ -495,7 +495,7 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if(returnVarName.isPresent()) {
+    if (returnVarName.isPresent()) {
       newElement.forget(functionReturnVar);
     }
 
@@ -576,7 +576,7 @@ public class ValueAnalysisTransferRelation
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
 
-    if(value.isExplicitlyKnown()) {
+    if (value.isExplicitlyKnown()) {
       deterministicAssumptions.inc();
     }
 
@@ -1221,10 +1221,12 @@ public class ValueAnalysisTransferRelation
 
       if (isEqualityAssumption(binaryOperator)) {
         if (isEligibleForAssignment(leftValue) && rightValue.isExplicitlyKnown() && isAssignable(lVarInBinaryExp)) {
-          assignConcreteValue(lVarInBinaryExp, leftValue, rightValue, pE.getExpressionType());
+          assignConcreteValue(
+              lVarInBinaryExp, leftValue, rightValue, pE.getOperand2().getExpressionType());
 
         } else if (isEligibleForAssignment(rightValue) && leftValue.isExplicitlyKnown() && isAssignable(rVarInBinaryExp)) {
-          assignConcreteValue(rVarInBinaryExp, rightValue, leftValue, pE.getExpressionType());
+          assignConcreteValue(
+              rVarInBinaryExp, rightValue, leftValue, pE.getOperand1().getExpressionType());
         }
       }
 
@@ -1233,14 +1235,16 @@ public class ValueAnalysisTransferRelation
           MemoryLocation leftMemLoc = getMemoryLocation(lVarInBinaryExp);
 
           if (optimizeBooleanVariables && (booleans.contains(leftMemLoc.getAsSimpleString()) || initAssumptionVars)) {
-            assignableState.assignConstant(leftMemLoc, new NumericValue(1L), pE.getExpressionType());
+            assignableState.assignConstant(
+                leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
           }
 
         } else if (optimizeBooleanVariables && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
           MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
           if (booleans.contains(rightMemLoc.getAsSimpleString()) || initAssumptionVars) {
-            assignableState.assignConstant(rightMemLoc, new NumericValue(1L), pE.getExpressionType());
+            assignableState.assignConstant(
+                rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
           }
         }
       }
