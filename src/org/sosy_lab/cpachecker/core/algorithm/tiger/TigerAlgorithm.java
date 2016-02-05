@@ -446,7 +446,7 @@ public class TigerAlgorithm
       throw new CPAException("Invalid configuration!", e1);
     }
 
-    assert (goalsToCover.isEmpty());
+    assert (!testsuite.getTimedOutGoals().isEmpty() ? goalsToCover.isEmpty() : true);
 
     // Write generated test suite and mapping to file system
     dumpTestSuite();
