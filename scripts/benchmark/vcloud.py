@@ -259,31 +259,24 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             dataFile = run.log_file + ".data"
             if os.path.exists(dataFile) and os.path.exists(run.log_file):
                 try:
-                    (run.cputime, run.walltime, return_value, termination_reason, values) =\
-                        parseCloudRunResultFile(dataFile)
-                    run.values.update(values)
-                    if return_value is not None and not benchmark.config.debug:
-                        # Do not delete .data file if there was some problem
+                    values = parseCloudRunResultFile(dataFile)
+                    if not benchmark.config.debug:
                         os.remove(dataFile)
                 except IOError as e:
                     logging.warning("Cannot extract measured values from output for file %s: %s",
                                     run.identifier, e)
                     output_handler.all_created_files.add(dataFile)
                     executedAllRuns = False
-                    return_value = None
+                else:
+                    output_handler.output_before_run(run)
+                    run.set_result(values, ['host'])
+                    output_handler.output_after_run(run)
             else:
                 logging.warning("No results exist for file %s.", run.identifier)
                 executedAllRuns = False
-                return_value = None
 
             if os.path.exists(run.log_file + ".stdError"):
                 runsProducedErrorOutput = True
-
-            if return_value is not None:
-                output_handler.output_before_run(run)
-
-                run.after_execution(return_value, termination_reason=termination_reason)
-                output_handler.output_after_run(run)
 
         output_handler.output_after_run_set(runSet, walltime=usedWallTime)
 
@@ -324,12 +317,11 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
         logging.warning("Host information file not found: " + filePath)
 
 
+IGNORED_VALUES = set(['command', 'timeLimit', 'coreLimit', 'returnvalue', 'exitsignal'])
+"""result values that are ignored because they are redundant"""
+
 def parseCloudRunResultFile(filePath):
     values = {}
-    cputime = None
-    walltime = None
-    return_value = None
-    termination_reason = None
 
     def parseTimeValue(s):
         if s[-1] != 's':
@@ -341,32 +333,19 @@ def parseCloudRunResultFile(filePath):
             (key, value) = line.split("=", 1)
             value = value.strip()
             if key == 'cputime':
-                cputime = parseTimeValue(value)
+                values['cputime'] = parseTimeValue(value)
             elif key == 'walltime':
-                walltime = parseTimeValue(value)
-            elif key == 'cputime':
-                cputime = float(value)
-            elif key == 'walltime':
-                walltime = float(value)
+                values['walltime'] = parseTimeValue(value)
             elif key == 'memory':
-                values['memUsage'] = value
+                values['memory'] = int(value)
             elif key == 'exitcode':
-                return_value = int(value)
-                values['@exitcode'] = value
-            elif key == 'terminationreason':
-                termination_reason = value
-            elif key == "host" or key.startswith("energy-"):
+                values['exitcode'] = int(value)
+            elif (key == "host" or key == "terminationreason" or
+                  key.startswith("energy-") or key.startswith("cputime-cpu")):
                 values[key] = value
-            else:
-                # "@" means value is hidden normally
-                values["@vcloud-" + key] = value
-
-    # remove irrelevant columns
-    values.pop("@vcloud-command", None)
-    values.pop("@vcloud-timeLimit", None)
-    values.pop("@vcloud-coreLimit", None)
-
-    return (cputime, walltime, return_value, termination_reason, values)
+            elif key not in IGNORED_VALUES:
+                values["vcloud-" + key] = value
+    return values
 
 def bytes_to_mb(mb):
     if mb is None:
