@@ -1638,6 +1638,9 @@ cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 cpa.predicate.stop = "SEP"
   allowed values: [SEP, SEPPCC]
 
+# Use formula reporting states for strengthening.
+cpa.predicate.strengthenWithFormulaReportingStates = false
+
 # try to reuse old abstractions from file during strengthening
 cpa.predicate.strengthenWithReusedAbstractions = false
 
