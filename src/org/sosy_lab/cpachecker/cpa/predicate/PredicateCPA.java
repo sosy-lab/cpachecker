@@ -314,7 +314,7 @@ public class PredicateCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     solver.close();
   }
 

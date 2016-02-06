@@ -332,7 +332,7 @@ public final class Solver implements AutoCloseable {
    * may not be used anymore after closing.
    */
   @Override
-  public void close() throws Exception {
+  public void close() {
     // Reliably close both formula managers and re-throw exceptions,
     // such that no exception gets lost and both managers get closed.
     // Taken from https://stackoverflow.com/questions/24705055/wrapping-multiple-autocloseables
