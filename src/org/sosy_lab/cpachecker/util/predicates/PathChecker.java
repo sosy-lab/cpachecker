@@ -50,13 +50,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
 
 /**
  * This class can check feasibility of a simple path using an SMT solver.
@@ -105,15 +103,9 @@ public class PathChecker {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
         RichModel model = getModel(thmProver);
+        CFAPathWithAssumptions pathWithAssignments = extractVariableAssignment(pPath, ssaMaps, model);
 
-        Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> pathAndTerms
-            = extractVariableAssignment(pPath, ssaMaps, model);
-
-        CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-
-        model = model.withAssignmentInformation(pathWithAssignments);
-
-        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of());
+        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, pathWithAssignments, ImmutableMap.<Integer, Boolean>of());
       }
     }
   }
@@ -155,10 +147,10 @@ public class PathChecker {
     return createPrecisePathFormula(pPath).getSecond();
   }
 
-  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> extractVariableAssignment(ARGPath pPath,
+  public CFAPathWithAssumptions extractVariableAssignment(ARGPath pPath,
       List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
-    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);
+    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel.keySet(), pSsaMaps);
   }
 
   private RichModel getModel(ProverEnvironment thmProver) {

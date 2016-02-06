@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -102,6 +103,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure=true, description="dump counterexample formula to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
+
+  @Option(secure=true, description="dump counterexample model to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
   @Option(secure=true, description="Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -292,11 +297,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         if (info.isSpurious()) {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");
-          counterexample = CounterexampleInfo.feasible(targetPath, RichModel
-              .of(model));
+          counterexample = CounterexampleInfo.feasible(targetPath,
+              CFAPathWithAssumptions.empty());
+          counterexample.addFurtherInformation(RichModel.of(model), dumpCounterexampleModel);
 
         } else {
-          counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
+          counterexample = CounterexampleInfo.feasible(targetPath, info.getAssignments());
 
           counterexample.addFurtherInformation(
               solver.getFormulaManager().dumpFormula(
@@ -304,13 +310,15 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                       info.getCounterExampleFormulas()
                   )),
               dumpCounterexampleFormula);
+          counterexample.addFurtherInformation(info.getModel(), dumpCounterexampleModel);
         }
 
       } catch (SolverException | CPATransferException e) {
         // path is now suddenly a problem
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-        counterexample = CounterexampleInfo.feasible(targetPath, RichModel
-            .of(model));
+        counterexample = CounterexampleInfo.feasible(targetPath,
+            CFAPathWithAssumptions.empty());
+        counterexample.addFurtherInformation(RichModel.of(model), dumpCounterexampleModel);
       }
       ((ARGCPA) cpa).addCounterexample(targetPath.getLastState(), counterexample);
 

@@ -286,7 +286,8 @@ public class AssumptionToEdgeAllocator {
       throw new AssertionError("Multi-edges should be resolved by this point.");
     }
 
-    if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(pCFAEdge)) {
+    if (pCFAEdge.getEdgeType() == CFAEdgeType.BlankEdge
+        || !AutomatonGraphmlCommon.handleAsEpsilonEdge(pCFAEdge)) {
       List<AExpressionStatement> parameterAssumptions =
           handleFunctionEntry(pCFAEdge, pConcreteState);
       result.addAll(parameterAssumptions);

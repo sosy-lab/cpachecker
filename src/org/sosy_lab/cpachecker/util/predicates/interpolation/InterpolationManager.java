@@ -62,6 +62,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -601,7 +602,8 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMap.<Integer, Boolean>of());
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)),
+          CFAPathWithAssumptions.empty(), ImmutableMap.<Integer, Boolean>of());
     }
 
     // add formula to solver environment
@@ -613,7 +615,7 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       Model model = getModel(pProver);
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), pmgr.getBranchingPredicateValuesFromModel(model));
+      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), CFAPathWithAssumptions.empty(), pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -622,7 +624,7 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
+      return CounterexampleTraceInfo.feasible(f, RichModel.empty(), CFAPathWithAssumptions.empty(),
           ImmutableMap.<Integer, Boolean>of());
     }
   }

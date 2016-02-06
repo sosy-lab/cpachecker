@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -98,11 +97,6 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
 
-  @Option(secure=true, name="assignment",
-      description="export one variable assignment for error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAssignment = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
-
   @Option(secure=true, name="graph",
       description="export error path as graph")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -134,7 +128,7 @@ public class CEXExporter {
     if (!exportSource) {
       errorPathSourceFile = null;
     }
-    if (errorPathAssignment == null && errorPathCoreFile == null && errorPathFile == null
+    if (errorPathCoreFile == null && errorPathFile == null
         && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
@@ -187,9 +181,8 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
 
-        if (counterexample.getTargetPathModel() != null
-            && counterexample.getTargetPathModel().getCFAPathWithAssignments() != null) {
-          targetPath.toJSON(pAppendable, counterexample.getTargetPathModel().getCFAPathWithAssignments().asList());
+        if (counterexample.getCFAPathWithAssignments() != null) {
+          targetPath.toJSON(pAppendable, counterexample.getCFAPathWithAssignments().asList());
         } else {
           targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
         }
@@ -204,7 +197,7 @@ public class CEXExporter {
       if (errorPathSourceFile != null) {
         switch(codeStyle) {
         case CONCRETE_EXECUTION:
-          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getTargetPathModel());
+          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getExactVariableValuePath(targetPath.getInnerEdges()));
           break;
         case CBMC:
           pathProgram = PathToCTranslator.translateSinglePath(targetPath);
@@ -224,7 +217,7 @@ public class CEXExporter {
       if (errorPathSourceFile != null) {
         switch(codeStyle) {
         case CONCRETE_EXECUTION:
-          pathProgram = PathToConcreteProgramTranslator.translatePaths(rootState, pathElements, counterexample.getTargetPathModel());
+          pathProgram = PathToConcreteProgramTranslator.translatePaths(rootState, pathElements, counterexample.getCFAPathWithAssignments());
           break;
         case CBMC:
           pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
@@ -258,10 +251,6 @@ public class CEXExporter {
       }
     });
 
-    if (counterexample.getTargetPathModel() != null) {
-      writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
-    }
-
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {
         writeErrorPathFile(info.getSecond(), cexIndex, info.getFirst());
@@ -281,28 +270,27 @@ public class CEXExporter {
 
   private Appender createErrorPathWithVariableAssignmentInformation(
           final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
-    final RichModel model = counterexample == null ? null : counterexample.getTargetPathModel();
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        CFAPathWithAssumptions exactValuePath = model.getExactVariableValuePath(edgePath);
+        CFAPathWithAssumptions exactValuePath = counterexample.getExactVariableValuePath(edgePath);
 
         if (exactValuePath != null) {
-          printPreciseValues(out, exactValuePath);
+          printPathWithValues(out, exactValuePath);
         } else {
-          printAllValues(out, edgePath);
+          printPath(out, edgePath);
         }
       }
 
-      private void printAllValues(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
+      private void printPath(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
         for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
         }
       }
 
-      private void printPreciseValues(Appendable out,
+      private void printPathWithValues(Appendable out,
                                       CFAPathWithAssumptions pExactValuePath) throws IOException {
 
         for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {

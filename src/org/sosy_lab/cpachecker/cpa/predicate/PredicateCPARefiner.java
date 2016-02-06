@@ -45,7 +45,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
@@ -87,14 +86,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.UnmodifiableIterator;
 
 /**
@@ -120,6 +117,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       description="where to dump the counterexample formula in case the error location is reached")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
+
+  @Option(secure=true,
+      description="where to dump the counterexample model in case the error location is reached")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dumpCounterexampleModelFile = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
@@ -340,12 +342,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     CounterexampleInfo cex;
     if (isPreciseErrorPath) {
-      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel());
+      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getAssignments());
     } else {
-      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getAssignments());
     }
     cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
         dumpCounterexampleFile);
+    cex.addFurtherInformation(preciseCounterexample.getModel(), dumpCounterexampleModelFile);
     return cex;
   }
 
@@ -531,16 +534,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(targetPath);
-
     RichModel model = counterexample.getModel();
-
-    Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> pathAndTerms =
+    CFAPathWithAssumptions pathWithAssignments =
         pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
 
-    CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
-
-    model = model.withAssignmentInformation(pathWithAssignments);
-    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
+    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, pathWithAssignments, counterexample.getBranchingPredicates());
   }
 
   @Override

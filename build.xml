@@ -134,6 +134,7 @@
             <src path="${source.dir}"/>
             <classpath refid="classpath"/>
             <compilerarg value="-Xlint:deprecation"/>
+            <compilerarg value="-Werror"/>
             <!-- exclude for now since necessary JARs might not be installed -->
             <exclude name="org/sosy_lab/cpachecker/appengine/**"/>
             <compilerclasspath refid="errorprone"/>

@@ -27,7 +27,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.sosy_lab.common.Appender;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
@@ -44,14 +44,14 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
    * because there is a goto to a missing label.
    *
    * @param pPath The path.
-   * @param model The model
+   * @param assignments The variable assignments for the path.
    * @return An appender that generates C code.
    */
-  public static Appender translateSinglePath(ARGPath pPath, RichModel model) {
+  public static Appender translateSinglePath(ARGPath pPath, CFAPathWithAssumptions assignments) {
     PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translateSinglePath0(pPath,
-        new ConcreteProgramEdgeVisitor(translator, model.getExactVariableValuePath(pPath.getInnerEdges())));
+        new ConcreteProgramEdgeVisitor(translator, assignments));
 
     return translator.generateCCode();
   }
@@ -67,14 +67,14 @@ public class PathToConcreteProgramTranslator extends PathTranslator {
    *
    * @param argRoot The root of all given paths.
    * @param elementsOnErrorPath The set of states that are on all paths.
-   * @param model The model
+   * @param assignments The variable assignments for the path.
    * @return An appender that generates C code.
    */
-  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, RichModel model) {
+  public static Appender translatePaths(ARGState argRoot, Set<ARGState> elementsOnErrorPath, CFAPathWithAssumptions assignments) {
     PathToConcreteProgramTranslator translator = new PathToConcreteProgramTranslator();
 
     translator.translatePaths0(argRoot, elementsOnErrorPath,
-        new ConcreteProgramEdgeVisitor(translator, model.getCFAPathWithAssignments()));
+        new ConcreteProgramEdgeVisitor(translator, assignments));
 
     return translator.generateCCode();
   }

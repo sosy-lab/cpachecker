@@ -38,7 +38,7 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -325,8 +325,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    * @throws InterruptedException may be thrown in subclass
    * @throws CPAException may be thrown in subclass
    */
-  protected RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {
-    return RichModel.empty();
+  protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+    return CFAPathWithAssumptions.empty();
   }
 
   @Override

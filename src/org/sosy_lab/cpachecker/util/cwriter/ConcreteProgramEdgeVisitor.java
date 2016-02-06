@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
-  private CFAPathWithAssumptions exactValuePath;
+  private final CFAPathWithAssumptions exactValuePath;
 
   public ConcreteProgramEdgeVisitor(PathTranslator t, CFAPathWithAssumptions exactValues) {
     super(t);
@@ -56,13 +56,13 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
   public void visit(ARGState pChildElement, CFAEdge pEdge, Stack<FunctionBody> pFunctionStack) {
     translator.processEdge(pChildElement, pEdge, pFunctionStack);
 
-    createAssumedAssigmentString(pFunctionStack, exactValuePath, pEdge);
+    createAssumedAssigmentString(pFunctionStack, pEdge);
   }
 
 
-  private void createAssumedAssigmentString(Stack<FunctionBody> functionStack, CFAPathWithAssumptions exactValuePath,
+  private void createAssumedAssigmentString(Stack<FunctionBody> functionStack,
       CFAEdge currentCFAEdge) {
-    CFAEdgeWithAssumptions e = findMatchingEdge(exactValuePath, currentCFAEdge);
+    CFAEdgeWithAssumptions e = findMatchingEdge(currentCFAEdge);
     if (e != null &&
         e.getCFAEdge() instanceof CStatementEdge) {
 
@@ -100,7 +100,7 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
     }
   }
 
-  private CFAEdgeWithAssumptions findMatchingEdge(CFAPathWithAssumptions exactValuePath, CFAEdge e) {
+  private CFAEdgeWithAssumptions findMatchingEdge(CFAEdge e) {
     for (CFAEdgeWithAssumptions edgeWithAssignments : from(exactValuePath).filter(notNull())) {
 
       if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
