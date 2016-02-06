@@ -340,9 +340,9 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     CounterexampleInfo cex;
     if (isPreciseErrorPath) {
-      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel());
+      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel(), preciseCounterexample.getAssignments());
     } else {
-      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel());
+      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel(), preciseCounterexample.getAssignments());
     }
     cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
         dumpCounterexampleFile);
@@ -539,8 +539,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     CFAPathWithAssumptions pathWithAssignments = pathAndTerms.getFirst();
 
-    model = model.withAssignmentInformation(pathWithAssignments);
-    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, counterexample.getBranchingPredicates());
+    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, pathWithAssignments, counterexample.getBranchingPredicates());
   }
 
   @Override

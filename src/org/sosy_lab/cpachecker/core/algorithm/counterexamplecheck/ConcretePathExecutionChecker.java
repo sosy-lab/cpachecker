@@ -164,7 +164,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     timer.start();
     CounterexampleInfo ceInfo = cpa.getCounterexamples().get(pErrorState);
 
-    Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getTargetPathModel());
+    Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 
     // write program to disk
     try (Writer w = Files.openOutputFile(cFile)) {

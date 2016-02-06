@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -123,18 +122,12 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public RichModel allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
+  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
 
     pPath.remove(pPath.size() - 1);
 
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-
-    CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
-
-    RichModel model = RichModel.empty();
-
-    return model.withAssignmentInformation(pathWithAssignments);
+    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {

@@ -78,8 +78,8 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
     pathWithAssignments = result;
   }
 
-  public CFAPathWithAssumptions() {
-    pathWithAssignments = ImmutableList.of();
+  public static CFAPathWithAssumptions empty() {
+    return new CFAPathWithAssumptions(ImmutableList.<CFAEdgeWithAssumptions>of());
   }
 
   public ImmutableList<CFAEdgeWithAssumptions> asList() {

@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -111,8 +112,8 @@ public abstract class AbstractARGBasedRefiner implements Refiner {
       // so it can be used for debugging
       // we don't know if the path is precise here, so we assume it is imprecise
       // (this only affects the CEXExporter)
-      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(), RichModel
-          .empty()));
+      argCpa.addCounterexample(lastElement, CounterexampleInfo.feasible(e.getErrorPath(),
+          RichModel.empty(), CFAPathWithAssumptions.empty()));
       throw e;
     }
 

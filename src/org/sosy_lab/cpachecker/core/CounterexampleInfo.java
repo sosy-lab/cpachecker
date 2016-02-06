@@ -27,10 +27,18 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.Lists;
@@ -42,16 +50,19 @@ public class CounterexampleInfo {
 
   private final ARGPath targetPath;
   private final RichModel model;
+  private final CFAPathWithAssumptions assignments;
 
   // list with additional information about the counterexample
   private final Collection<Pair<Object, PathTemplate>> furtherInfo;
 
-  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, false);
+  private static final CounterexampleInfo SPURIOUS = new CounterexampleInfo(true, null, null, null, false);
 
-  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel, boolean pIsPreciseCEX) {
+  private CounterexampleInfo(boolean pSpurious, ARGPath pTargetPath, RichModel pModel,
+      CFAPathWithAssumptions pAssignments, boolean pIsPreciseCEX) {
     spurious = pSpurious;
     targetPath = pTargetPath;
     model = pModel;
+    assignments = pAssignments;
     isPreciseCounterExample = pIsPreciseCEX;
 
     if (!spurious) {
@@ -73,15 +84,15 @@ public class CounterexampleInfo {
   /**
    * Creates a feasible counterexample whose target path is marked as being imprecise.
    */
-  public static CounterexampleInfo feasible(ARGPath pTargetPath, RichModel pModel) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel), false);
+  public static CounterexampleInfo feasible(ARGPath pTargetPath, RichModel pModel, CFAPathWithAssumptions pAssignments) {
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel), checkNotNull(pAssignments), false);
   }
 
   /**
    * Creates a feasible counterexample whose target path is marked as being precise.
    */
-  public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, RichModel pModel) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel), true);
+  public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, RichModel pModel, CFAPathWithAssumptions pAssignments) {
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pModel), checkNotNull(pAssignments), true);
   }
 
   public boolean isSpurious() {
@@ -99,6 +110,36 @@ public class CounterexampleInfo {
     checkState(!spurious);
 
     return model;
+  }
+
+  /**
+   * Return a path that indicates which variables where assigned which values at
+   * what edge. Note that not every value for every variable is available.
+   */
+  @Nullable
+  public CFAPathWithAssumptions getCFAPathWithAssignments() {
+    checkState(!spurious);
+    return assignments;
+  }
+
+  @Nullable
+  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
+    checkState(!spurious);
+    if (assignments.isEmpty()) {
+      return null;
+    }
+
+    return assignments.getExactVariableValues(pPath);
+  }
+
+  @Nullable
+  public CFAPathWithAssumptions getExactVariableValuePath(List<CFAEdge> pPath) {
+    checkState(!spurious);
+    if (assignments.isEmpty()) {
+      return null;
+    }
+
+    return assignments.getExactVariableValues(pPath);
   }
 
   /**

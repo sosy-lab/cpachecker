@@ -92,7 +92,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisito
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -763,11 +762,10 @@ public class ARGPathExporter {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample.isPresent()) {
-        RichModel model = pCounterExample.get().getTargetPathModel();
-        CFAPathWithAssumptions cfaPath = model.getCFAPathWithAssignments();
+        CFAPathWithAssumptions cfaPath = pCounterExample.get().getCFAPathWithAssignments();
         if (cfaPath != null) {
           ARGPath targetPath = pCounterExample.get().getTargetPath();
-          valueMap = model.getExactVariableValues(targetPath);
+          valueMap = pCounterExample.get().getExactVariableValues(targetPath);
         }
       }
 

@@ -298,10 +298,10 @@ public class ARGStatistics implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          RichModel model = createModelForPath(path);
+          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
           // we use the imprecise version of the CounterexampleInfo, due to the possible
           // merges which are done in the used CPAs
-          cex = CounterexampleInfo.feasible(path, model);
+          cex = CounterexampleInfo.feasible(path, RichModel.empty(), assignments);
         }
       }
       if (cex != null) {
@@ -312,7 +312,7 @@ public class ARGStatistics implements IterationStatistics {
     return counterexamples;
   }
 
-  private RichModel createModelForPath(ARGPath pPath) {
+  private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
@@ -331,10 +331,10 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if(result == null) {
-      return RichModel.empty();
+    if (result == null) {
+      return CFAPathWithAssumptions.empty();
     } else {
-      return RichModel.empty().withAssignmentInformation(result);
+      return result;
     }
   }
 
