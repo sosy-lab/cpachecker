@@ -289,20 +289,20 @@ public class CEXExporter {
         CFAPathWithAssumptions exactValuePath = model.getExactVariableValuePath(edgePath);
 
         if (exactValuePath != null) {
-          printPreciseValues(out, exactValuePath);
+          printPathWithValues(out, exactValuePath);
         } else {
-          printAllValues(out, edgePath);
+          printPath(out, edgePath);
         }
       }
 
-      private void printAllValues(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
+      private void printPath(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
         for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
           out.append(edge.toString());
           out.append(System.lineSeparator());
         }
       }
 
-      private void printPreciseValues(Appendable out,
+      private void printPathWithValues(Appendable out,
                                       CFAPathWithAssumptions pExactValuePath) throws IOException {
 
         for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
