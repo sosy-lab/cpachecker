@@ -97,31 +97,20 @@ public class AssignmentToPathAllocator {
 
   /**
    * Provide a path with concrete values (like a test case).
-   * Additionally, provides the information, at which {@link CFAEdge} edge which
-   * {@link ValueAssignment} terms have been assigned.
    */
-  public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> allocateAssignmentsToPath(ARGPath pPath,
+  public CFAPathWithAssumptions allocateAssignmentsToPath(ARGPath pPath,
       Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
-
-    // create concrete state path, also remember at wich edge which terms were used.
-    Pair<ConcreteStatePath, Multimap<CFAEdge, ValueAssignment>> concreteStatePath = createConcreteStatePath(pPath,
-        pModel, pSSAMaps);
-
-    // create the concrete error path.
-    CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath.getFirst(), assumptionToEdgeAllocator);
-
-    return Pair.of(pathWithAssignments, concreteStatePath.getSecond());
+    ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath, pModel, pSSAMaps);
+    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
 
-  private Pair<ConcreteStatePath, Multimap<CFAEdge, ValueAssignment>> createConcreteStatePath(
+  private ConcreteStatePath createConcreteStatePath(
       ARGPath pPath, Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps)
           throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
     List<ConcreteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
-    Multimap<CFAEdge, ValueAssignment> usedAssignableTerms = HashMultimap.create();
     Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
     /* Its too inefficient to recreate every assignment from scratch,
@@ -150,7 +139,7 @@ public class AssignmentToPathAllocator {
             new ArrayList<>(multiEdge.getEdges().size());
 
         int multiEdgeIndex = 0;
-        for (CFAEdge singleCfaEdge : multiEdge) {
+        for (@SuppressWarnings("unused") CFAEdge singleCfaEdge : multiEdge) {
 
           variableEnvironment = new HashMap<>(variableEnvironment);
           variables = new HashMap<>(variables);
@@ -162,9 +151,8 @@ public class AssignmentToPathAllocator {
           SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
           ConcreteState concreteState = createSingleConcreteState(
-              singleCfaEdge, ssaMap, variableEnvironment, variables,
-              functionEnvironment, memory, addressOfVariables, terms,
-              usedAssignableTerms);
+              ssaMap, variableEnvironment, variables,
+              functionEnvironment, memory, addressOfVariables, terms);
 
           singleConcreteStates.add(multiEdgeIndex, concreteState);
           ssaMapIndex++;
@@ -186,15 +174,14 @@ public class AssignmentToPathAllocator {
             createSingleConcreteStateNode(cfaEdge, ssaMap, variableEnvironment,
                 variables,
                 functionEnvironment, memory, addressOfVariables,
-                terms, usedAssignableTerms);
+                terms);
 
         pathWithAssignments.add(concreteStatePathNode);
         ssaMapIndex++;
       }
     }
 
-    ConcreteStatePath concreteStatePath = new ConcreteStatePath(pathWithAssignments);
-    return Pair.of(concreteStatePath, usedAssignableTerms);
+    return new ConcreteStatePath(pathWithAssignments);
   }
 
   private ConcreteStatePathNode createSingleConcreteStateNode(
@@ -204,26 +191,24 @@ public class AssignmentToPathAllocator {
       Multimap<String, ValueAssignment> functionEnvoirment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms,
-      Multimap<CFAEdge, ValueAssignment> usedAssignableTerms) {
+      Collection<ValueAssignment> terms) {
 
-    ConcreteState concreteState = createSingleConcreteState(cfaEdge, ssaMap,
+    ConcreteState concreteState = createSingleConcreteState(ssaMap,
         variableEnvoirment, variables,
         functionEnvoirment, memory,
-        addressOfVariables, terms, usedAssignableTerms);
+        addressOfVariables, terms);
 
     return ConcreteStatePath.valueOfPathNode(concreteState, cfaEdge);
   }
 
   private ConcreteState createSingleConcreteState(
-      CFAEdge cfaEdge, SSAMap ssaMap,
+      SSAMap ssaMap,
       Map<String, ValueAssignment> variableEnvironment,
       Map<LeftHandSide, Object> variables,
       Multimap<String, ValueAssignment> functionEnvironment,
       Map<String, Map<Address, Object>> memory,
       Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms,
-      Multimap<CFAEdge, ValueAssignment> usedAssignableTerms) {
+      Collection<ValueAssignment> terms) {
 
     Set<ValueAssignment> termSet = new HashSet<>();
 
@@ -233,12 +218,7 @@ public class AssignmentToPathAllocator {
 
     Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
 
-    ConcreteState concreteState = new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName);
-
-    // for legacy functionality, remember used assignable terms per cfa edge.
-    usedAssignableTerms.putAll(cfaEdge, terms);
-
-    return concreteState;
+    return new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName);
   }
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
