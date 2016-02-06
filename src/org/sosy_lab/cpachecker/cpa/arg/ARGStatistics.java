@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
@@ -301,7 +300,7 @@ public class ARGStatistics implements IterationStatistics {
           CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
           // we use the imprecise version of the CounterexampleInfo, due to the possible
           // merges which are done in the used CPAs
-          cex = CounterexampleInfo.feasible(path, RichModel.empty(), assignments);
+          cex = CounterexampleInfo.feasible(path, assignments);
         }
       }
       if (cex != null) {

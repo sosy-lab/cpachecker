@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -156,7 +155,7 @@ public class BddRefiner extends AbstractARGBasedRefiner implements Statistics, S
 
     // we use the imprecise version of the CounterexampleInfo, due to the possible
     // merges which are done in the Apron Analysis
-    return CounterexampleInfo.feasible(pErrorPath, RichModel.empty(), CFAPathWithAssumptions.empty());
+    return CounterexampleInfo.feasible(pErrorPath, CFAPathWithAssumptions.empty());
   }
 
   /**

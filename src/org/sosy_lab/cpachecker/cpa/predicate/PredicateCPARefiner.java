@@ -121,6 +121,11 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate dumpCounterexampleFile = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
 
+  @Option(secure=true,
+      description="where to dump the counterexample model in case the error location is reached")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dumpCounterexampleModelFile = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
+
   @Option(secure=true, description="which sliced prefix should be used for interpolation")
   private List<PrefixPreference> prefixPreference = PrefixSelector.NO_SELECTION;
 
@@ -340,12 +345,13 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     CounterexampleInfo cex;
     if (isPreciseErrorPath) {
-      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getModel(), preciseCounterexample.getAssignments());
+      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getAssignments());
     } else {
-      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getModel(), preciseCounterexample.getAssignments());
+      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getAssignments());
     }
     cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
         dumpCounterexampleFile);
+    cex.addFurtherInformation(preciseCounterexample.getModel(), dumpCounterexampleModelFile);
     return cex;
   }
 

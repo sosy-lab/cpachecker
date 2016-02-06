@@ -39,7 +39,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -307,7 +306,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       logger.log(Level.FINEST, "found a feasible counterexample");
       // we use the imprecise version of the CounterexampleInfo, due to the possible
       // merges which are done in the used CPAs
-      return CounterexampleInfo.feasible(feasiblePath, RichModel.empty(), createModel(feasiblePath));
+      return CounterexampleInfo.feasible(feasiblePath, createModel(feasiblePath));
     }
 
     return CounterexampleInfo.spurious();

@@ -97,11 +97,6 @@ public class CEXExporter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathJson = PathTemplate.ofFormatString("ErrorPath.%d.json");
 
-  @Option(secure=true, name="assignment",
-      description="export one variable assignment for error path to file, if one is found")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate errorPathAssignment = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
-
   @Option(secure=true, name="graph",
       description="export error path as graph")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -133,7 +128,7 @@ public class CEXExporter {
     if (!exportSource) {
       errorPathSourceFile = null;
     }
-    if (errorPathAssignment == null && errorPathCoreFile == null && errorPathFile == null
+    if (errorPathCoreFile == null && errorPathFile == null
         && errorPathGraphFile == null && errorPathJson == null && errorPathSourceFile == null
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
@@ -255,10 +250,6 @@ public class CEXExporter {
                 counterexample);
       }
     });
-
-    if (counterexample.getTargetPathModel() != null) {
-      writeErrorPathFile(errorPathAssignment, cexIndex, counterexample.getTargetPathModel());
-    }
 
     for (Pair<Object, PathTemplate> info : counterexample.getAllFurtherInformation()) {
       if (info.getSecond() != null) {
