@@ -156,7 +156,7 @@ public class PathChecker {
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> extractVariableAssignment(ARGPath pPath,
       List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
 
-    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);
+    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel.keySet(), pSsaMaps);
   }
 
   private RichModel getModel(ProverEnvironment thmProver) {

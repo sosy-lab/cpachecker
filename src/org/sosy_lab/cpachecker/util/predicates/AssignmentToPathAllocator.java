@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.counterexample.FieldReference;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -102,7 +101,7 @@ public class AssignmentToPathAllocator {
    * {@link ValueAssignment} terms have been assigned.
    */
   public Pair<CFAPathWithAssumptions, Multimap<CFAEdge, ValueAssignment>> allocateAssignmentsToPath(ARGPath pPath,
-      RichModel pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
+      Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
 
     // create concrete state path, also remember at wich edge which terms were used.
     Pair<ConcreteStatePath, Multimap<CFAEdge, ValueAssignment>> concreteStatePath = createConcreteStatePath(pPath,
@@ -117,13 +116,13 @@ public class AssignmentToPathAllocator {
 
 
   private Pair<ConcreteStatePath, Multimap<CFAEdge, ValueAssignment>> createConcreteStatePath(
-      ARGPath pPath, RichModel pModel, List<SSAMap> pSSAMaps)
+      ARGPath pPath, Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps)
           throws InterruptedException {
 
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
     List<ConcreteStatePathNode> pathWithAssignments = new ArrayList<>(pPath.getInnerEdges().size());
     Multimap<CFAEdge, ValueAssignment> usedAssignableTerms = HashMultimap.create();
-    Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms, pModel);
+    Map<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
     /* Its too inefficient to recreate every assignment from scratch,
        but the ssaIndex of the Assignable Terms are needed, thats
@@ -415,18 +414,14 @@ public class AssignmentToPathAllocator {
   }
 
   private Map<LeftHandSide, Address> getVariableAddresses(
-      AssignableTermsInPath assignableTerms, RichModel pModel) {
+      AssignableTermsInPath assignableTerms) {
 
     Map<LeftHandSide, Address> addressOfVariables = new HashMap<>();
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = constant.getName();
-      if (name.startsWith(ADDRESS_PREFIX)
-          && pModel.containsKey(constant)) {
-
-        Object addressValue = pModel.get(constant);
-
-        Address address = Address.valueOf(addressValue);
+      if (name.startsWith(ADDRESS_PREFIX)) {
+        Address address = Address.valueOf(constant.getValue());
 
         //TODO ugly, refactor?
         String constantName = name.substring(ADDRESS_PREFIX.length());
@@ -478,7 +473,8 @@ public class AssignmentToPathAllocator {
    * allocation is used to determine the model at each edge of the path.
    *
    */
-  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps, RichModel pModel) {
+  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps,
+      Iterable<ValueAssignment> pModel) {
 
     // Create a map that holds all AssignableTerms that occurred
     // in the given path. The referenced path is the precise path, with multi edges resolved.
@@ -487,7 +483,7 @@ public class AssignmentToPathAllocator {
     Set<ValueAssignment> constants = new HashSet<>();
     Set<ValueAssignment> functionsWithoutSSAIndex = new HashSet<>();
 
-    for (ValueAssignment term : pModel.keySet()) {
+    for (ValueAssignment term : pModel) {
 
       int ssaIdx = getSSAIndex(term);
       if (term.isFunction()) {
