@@ -72,7 +72,7 @@ while [ $# -gt 0 ]; do
        JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xint"
        ;;
    "-compile")
-       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xcomp"
+       JAVA_VM_ARGUMENTS="$JAVA_VM_ARGUMENTS -Xcomp -XX:CompileThreshold=100"
        ;;
    "-compile-threshold")
        shift
