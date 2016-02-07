@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1104,7 +1105,7 @@ public class FormulaManagerView {
   public Collection<BooleanFormula> extractAtoms(
       BooleanFormula pFormula,
       final boolean splitArithEqualities) {
-    final Set<BooleanFormula> result = new HashSet<>();
+    final Set<BooleanFormula> result = new LinkedHashSet<>();
     booleanFormulaManager.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>(){
       @Override
       protected TraversalProcess visitDefault() {
@@ -1114,8 +1115,6 @@ public class FormulaManagerView {
       @Override
       public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
-
-          // TODO: why only the 0th element is relevant?
           result.add(splitNumeralEqualityIfPossible(atom).get(0));
         }
         result.add(atom);
