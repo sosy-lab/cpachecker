@@ -1115,7 +1115,7 @@ public class FormulaManagerView {
       @Override
       public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
-          result.add(splitNumeralEqualityIfPossible(atom).get(0));
+          result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
         }
         result.add(atom);
         return TraversalProcess.CONTINUE;

@@ -128,7 +128,7 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
     atoms.removeAll(expected);
     BooleanFormula remainingAtom = Iterables.getOnlyElement(atoms);
-    assertThatFormula(remainingAtom).isEquivalentTo(atom1ineq);
+    assertThatFormula(remainingAtom).isEquivalentTo(stripNot(atom1ineq));
   }
 
   private <T extends NumeralFormula> void testExtractAtoms_SplitEqualities_numeral(
