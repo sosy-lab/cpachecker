@@ -184,7 +184,7 @@ public class CEXExporter {
       public void appendTo(Appendable pAppendable) throws IOException {
 
         if (counterexample.isPreciseCounterExample()) {
-          targetPath.toJSON(pAppendable, counterexample.getCFAPathWithAssignments().asList());
+          targetPath.toJSON(pAppendable, counterexample.getCFAPathWithAssignments());
         } else {
           targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
         }
