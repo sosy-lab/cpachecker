@@ -1216,20 +1216,6 @@ public class FormulaManagerView {
     return manager.extractVariablesAndUFs(unwrap(f)).keySet();
   }
 
-  /**
-   * Extract pairs of <variable name, variable formula>
-   *  of all free variables in a formula.
-   *
-   * @deprecated The type of the returned Formula objects is incorrect.
-   * Thus consider using {@link #extractVariableNames(Formula)} instead.
-   * @param pF The input formula
-   * @return Map from variable names to variable formulas.
-   */
-  @Deprecated
-  public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    return manager.extractVariables(unwrap(pF));
-  }
-
   public Appender dumpFormula(BooleanFormula pT) {
     return manager.dumpFormula(pT);
   }
