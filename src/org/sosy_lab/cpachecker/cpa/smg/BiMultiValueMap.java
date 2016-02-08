@@ -142,12 +142,3 @@ public class BiMultiValueMap<K, V> implements Map<K, V> {
   }
 }
 
-class ReturnOppositeSameOperator<V> implements ReturnOppositeValueOperator<V> {
-
-  @Override
-  public Object getOpposite(V value) {
-    return value;
-  }
-}
-
-

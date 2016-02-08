@@ -26,15 +26,14 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.BiMultiValueMap;
+import org.sosy_lab.cpachecker.cpa.smg.BiMultiValueSet;
 import org.sosy_lab.cpachecker.cpa.smg.HashMapCopyOnWrite;
 import org.sosy_lab.cpachecker.cpa.smg.ReturnOppositeValueOperator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -47,7 +46,14 @@ import com.google.common.annotations.VisibleForTesting;
 public class SMG {
   final private Set<SMGObject> objects = new HashSet<>();
   final private Set<Integer> values = new HashSet<>();
-  final private Set<SMGEdgeHasValue> hv_edges = new HashSet<>();
+  private BiMultiValueSet<SMGEdgeHasValue> hv_edges = new BiMultiValueSet<>(
+      new ReturnOppositeValueOperator<SMGEdgeHasValue>() {
+        @Override
+        public Object getOpposite(SMGEdgeHasValue value) {
+          return value.getObject();
+        }
+      });
+
   private BiMultiValueMap<Integer, SMGEdgePointsTo> pt_edges = new BiMultiValueMap<>(
       new ReturnOppositeValueOperator<SMGEdgePointsTo>() {
         @Override
@@ -188,12 +194,7 @@ public class SMG {
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
     removeObject(pObj);
-    Iterator<SMGEdgeHasValue> hv_iter = hv_edges.iterator();
-    while (hv_iter.hasNext()) {
-      if (hv_iter.next().getObject() == pObj) {
-        hv_iter.remove();
-      }
-    }
+    hv_edges.removeOppositValue(pObj);
     pt_edges.removeOppositValue(pObj);
   }
 
@@ -368,7 +369,7 @@ public class SMG {
    * @return Unmodifiable view on Has-Value edges set.
    */
   final public Set<SMGEdgeHasValue> getHVEdges() {
-    return Collections.unmodifiableSet(hv_edges);
+    return Collections.unmodifiableSet(hv_edges.getSet());
   }
 
   /**
@@ -378,7 +379,7 @@ public class SMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Collections.unmodifiableSet(pFilter.filterSet(hv_edges));
+    return Collections.unmodifiableSet(pFilter.filterSet(hv_edges.getSet()));
   }
 
   /**

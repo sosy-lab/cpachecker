@@ -26,3 +26,13 @@ package org.sosy_lab.cpachecker.cpa.smg;
 public interface ReturnOppositeValueOperator<V> {
   Object getOpposite(V value);
 }
+
+
+class ReturnOppositeSameOperator<V> implements ReturnOppositeValueOperator<V> {
+
+  @Override
+  public Object getOpposite(V value) {
+    return value;
+  }
+}
+
