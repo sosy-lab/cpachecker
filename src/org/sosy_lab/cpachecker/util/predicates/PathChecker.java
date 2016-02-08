@@ -115,7 +115,9 @@ public class PathChecker {
 
     CounterexampleInfo counterexample;
     try {
-      CounterexampleTraceInfo info = checkPath(precisePath);
+      Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
+          checkPath(precisePath);
+      CounterexampleTraceInfo info = replayedPathResult.getFirst();
 
       if (info.isSpurious()) {
         logger.log(Level.WARNING, "Inconsistent replayed error path!");
@@ -124,7 +126,8 @@ public class PathChecker {
         counterexample.addFurtherInformation(dumpModel(pModel), dumpCounterexampleModel);
 
       } else {
-        counterexample = CounterexampleInfo.feasiblePrecise(precisePath, info.getAssignments());
+        counterexample =
+            CounterexampleInfo.feasiblePrecise(precisePath, replayedPathResult.getSecond());
         counterexample.addFurtherInformation(dumpCounterexample(info), dumpCounterexampleFormula);
         counterexample.addFurtherInformation(dumpModel(info.getModel()), dumpCounterexampleModel);
       }
@@ -155,7 +158,8 @@ public class PathChecker {
 
   public CounterexampleInfo createImpreciseCounterexample(
       final ARGPath allStatesTrace, final CounterexampleTraceInfo pInfo) {
-    CounterexampleInfo cex = CounterexampleInfo.feasible(allStatesTrace, pInfo.getAssignments());
+    CounterexampleInfo cex =
+        CounterexampleInfo.feasible(allStatesTrace, CFAPathWithAssumptions.empty());
     cex.addFurtherInformation(dumpCounterexample(pInfo), dumpCounterexampleFormula);
     cex.addFurtherInformation(dumpModel(pInfo.getModel()), dumpCounterexampleModel);
     return cex;
@@ -177,7 +181,7 @@ public class PathChecker {
     return fmgr.dumpFormula(fmgr.getBooleanFormulaManager().and(cex.getCounterExampleFormulas()));
   }
 
-  public CounterexampleTraceInfo checkPath(ARGPath pPath)
+  public Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
       throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
@@ -191,13 +195,16 @@ public class PathChecker {
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return CounterexampleTraceInfo.infeasibleNoItp();
+        return Pair.of(CounterexampleTraceInfo.infeasibleNoItp(), null);
       } else {
         Iterable<ValueAssignment> model = getModel(thmProver);
         CFAPathWithAssumptions pathWithAssignments =
             assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
-        return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, pathWithAssignments, ImmutableMap.<Integer, Boolean>of());
+        return Pair.of(
+            CounterexampleTraceInfo.feasible(
+                ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of()),
+            pathWithAssignments);
       }
     }
   }
