@@ -161,6 +161,11 @@ public class BitvectorFormulaManagerView extends BaseManagerView implements Bitv
   }
 
   @Override
+  public BitvectorFormula makeVariable(BitvectorType type, String pVar) {
+    return manager.makeVariable(type.getSize(), pVar);
+  }
+
+  @Override
   public int getLength(BitvectorFormula pNumber) {
     return manager.getLength(pNumber);
   }

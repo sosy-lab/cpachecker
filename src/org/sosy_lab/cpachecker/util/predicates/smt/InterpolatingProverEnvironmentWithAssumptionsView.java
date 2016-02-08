@@ -90,13 +90,13 @@ public class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
 
   @Override
   public List<BooleanFormula> getSeqInterpolants(
-      List<Set<E>> partitionedFormulas) {
+      List<Set<E>> partitionedFormulas) throws SolverException {
     return delegate.getSeqInterpolants(partitionedFormulas);
   }
 
   @Override
   public List<BooleanFormula> getTreeInterpolants(
-      List<Set<E>> partitionedFormulas, int[] startOfSubTree) {
+      List<Set<E>> partitionedFormulas, int[] startOfSubTree) throws SolverException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }
 
