@@ -702,4 +702,32 @@ public class ToGuardedAutomatonTranslator {
     return lNewAutomaton;
   }
 
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeSelfLoops(
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
+
+    Map<NondeterministicFiniteAutomaton.State, NondeterministicFiniteAutomaton.State> lStateMap = new HashMap<>();
+
+    lStateMap.put(pAutomaton.getInitialState(), lNewAutomaton.getInitialState());
+
+    for (NondeterministicFiniteAutomaton.State lState : pAutomaton.getStates()) {
+      if (!lState.equals(pAutomaton.getInitialState())) {
+        lStateMap.put(lState, lNewAutomaton.createState());
+      }
+    }
+
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getEdges()) {
+      if (!edge.getSource().equals(edge.getTarget())) {
+        lNewAutomaton.createEdge(edge.getSource(), edge.getTarget(), edge.getLabel());
+      }
+    }
+
+    // set final states
+    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+      lNewAutomaton.addToFinalStates(lStateMap.get(lFinalState));
+    }
+
+    return lNewAutomaton;
+  }
+
 }
