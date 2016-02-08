@@ -96,7 +96,7 @@ public class TestGoalUtils {
 
   public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
-      CoverageSpecificationTranslator pCoverageSpecificationTranslator, boolean pOptimizeGoalAutomata) {
+      CoverageSpecificationTranslator pCoverageSpecificationTranslator, boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel) {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
 
     if (pInfeasibilityPropagation.getFirst()) {
@@ -123,7 +123,7 @@ public class TestGoalUtils {
 
     for (int i = 0; i < goalPatterns.size(); i++) {
       Goal lGoal = constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-          pOptimizeGoalAutomata);
+          pOptimizeGoalAutomata, pUseOmegaLabel);
       goalsToCover.add(lGoal);
     }
 
@@ -180,13 +180,14 @@ public class TestGoalUtils {
    * @param pInverseAlphaLabel
    * @param pOmegaLabel
    * @param pUseAutomatonOptimization
+   * @param pUseOmegaLabel
    * @return
    */
   public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization) {
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization, boolean pUseOmegaLabel) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
-        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel, pUseOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);

@@ -49,10 +49,10 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 
 public class ToGuardedAutomatonTranslator {
 
-  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> toAutomaton(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel) {
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> toAutomaton(ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseOmegaLabel) {
     NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton1 = translate(pPattern);
 
-    NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton2 = removeLambdaEdges(lAutomaton1, pAlphaLabel, pOmegaLabel);
+    NondeterministicFiniteAutomaton<GuardedLabel> lAutomaton2 = removeLambdaEdges(lAutomaton1, pAlphaLabel, pOmegaLabel, pUseOmegaLabel);
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton3 = removeNodeSetGuards(lAutomaton2);
 
@@ -71,20 +71,22 @@ public class ToGuardedAutomatonTranslator {
     return lVisitor.getAutomaton();
   }
 
-  public static NondeterministicFiniteAutomaton<GuardedLabel> removeLambdaEdges(NondeterministicFiniteAutomaton<GuardedLabel> pAutomaton, GuardedEdgeLabel pAlphaLabel, GuardedLabel pOmegaLabel) {
+  public static NondeterministicFiniteAutomaton<GuardedLabel> removeLambdaEdges(NondeterministicFiniteAutomaton<GuardedLabel> pAutomaton, GuardedEdgeLabel pAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseOmegaLabel) {
     /** first we augment the given automaton with the alpha and omega edge */
     // TODO move into separate (private) method
     NondeterministicFiniteAutomaton.State lNewInitialState = pAutomaton.createState();
     NondeterministicFiniteAutomaton<GuardedLabel>.Edge lInitialEdge = pAutomaton.createEdge(lNewInitialState, pAutomaton.getInitialState(), pAlphaLabel);
     pAutomaton.setInitialState(lNewInitialState);
 
-    NondeterministicFiniteAutomaton.State lNewFinalState = pAutomaton.createState();
+    if (pUseOmegaLabel) {
+      NondeterministicFiniteAutomaton.State lNewFinalState = pAutomaton.createState();
 
-    for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
-      pAutomaton.createEdge(lFinalState, lNewFinalState, pOmegaLabel);
+      for (NondeterministicFiniteAutomaton.State lFinalState : pAutomaton.getFinalStates()) {
+        pAutomaton.createEdge(lFinalState, lNewFinalState, pOmegaLabel);
+      }
+
+      pAutomaton.setFinalStates(Collections.singleton(lNewFinalState));
     }
-
-    pAutomaton.setFinalStates(Collections.singleton(lNewFinalState));
 
     /** now we remove guarded lambda edges */
 

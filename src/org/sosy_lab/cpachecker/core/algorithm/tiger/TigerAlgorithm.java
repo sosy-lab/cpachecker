@@ -257,8 +257,14 @@ public class TigerAlgorithm
   @Option(
       secure = true,
       name = "tiger_with_presenceConditions",
-      description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions")
+      description = "Use Test Input Generator algorithm with an extension using the BDDCPA to model product line presence conditions.")
   public boolean useTigerAlgorithm_with_pc = false;
+
+  @Option(
+      secure = true,
+      name = "useOmegaLabel",
+      description = "Inserts the omega label at the end of each test goal automaton to enforce the tiger algorithm to generate only test cases from counterexamples that reach the end of the program.")
+  public boolean useOmegaLabel = true;
 
   @Option(
       secure = true,
@@ -430,7 +436,7 @@ public class TigerAlgorithm
     Pair<Boolean, LinkedList<Edges>> lInfeasibilityPropagation = initializeInfisabilityPropagation();
 
     Set<Goal> goalsToCover = testGoalUtils.extractTestGoalPatterns(fqlSpecification, lGoalPrediction,
-        lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata);
+        lInfeasibilityPropagation, mCoverageSpecificationTranslator, optimizeGoalAutomata, useOmegaLabel);
     statistics_numberOfTestGoals = goalsToCover.size();
     logger.logf(Level.INFO, "Number of test goals: %d", statistics_numberOfTestGoals);
 
