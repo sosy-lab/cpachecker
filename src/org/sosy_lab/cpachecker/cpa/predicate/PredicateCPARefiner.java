@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -86,7 +85,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -327,11 +325,8 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         cex.addFurtherInformation(counterexample.getModel(), dumpCounterexampleModelFile);
       }
     } else {
-      CounterexampleTraceInfo preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, allStatesTrace);
-      cex = CounterexampleInfo.feasiblePrecise(allStatesTrace, preciseCounterexample.getAssignments());
-      cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
-          dumpCounterexampleFile);
-      cex.addFurtherInformation(preciseCounterexample.getModel(), dumpCounterexampleModelFile);
+      return pathChecker.createCounterexampleForPathWithoutBranching(
+          allStatesTrace, counterexample);
     }
     preciseCouterexampleTime.stop();
 
@@ -496,17 +491,6 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     } finally {
       errorPathProcessing.stop();
     }
-  }
-
-  private CounterexampleTraceInfo addVariableAssignmentToCounterexample(
-      final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
-
-    List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(targetPath);
-    Iterable<ValueAssignment> model = counterexample.getModel();
-    CFAPathWithAssumptions pathWithAssignments =
-        pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
-
-    return CounterexampleTraceInfo.feasible(counterexample.getCounterExampleFormulas(), model, pathWithAssignments, counterexample.getBranchingPredicates());
   }
 
   @Override

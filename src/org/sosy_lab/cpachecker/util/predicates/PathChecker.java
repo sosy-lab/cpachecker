@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -124,13 +125,7 @@ public class PathChecker {
 
       } else {
         counterexample = CounterexampleInfo.feasiblePrecise(precisePath, info.getAssignments());
-
-        counterexample.addFurtherInformation(
-            solver.getFormulaManager().dumpFormula(
-                solver.getFormulaManager().getBooleanFormulaManager().and(
-                    info.getCounterExampleFormulas()
-                )),
-            dumpCounterexampleFormula);
+        counterexample.addFurtherInformation(dumpCounterexample(info), dumpCounterexampleFormula);
         counterexample.addFurtherInformation(dumpModel(info.getModel()), dumpCounterexampleModel);
       }
 
@@ -144,6 +139,20 @@ public class PathChecker {
     return counterexample;
   }
 
+  public CounterexampleInfo createCounterexampleForPathWithoutBranching(
+      final ARGPath allStatesTrace, final CounterexampleTraceInfo pInfo)
+      throws CPATransferException, InterruptedException {
+    List<SSAMap> ssamaps = createPrecisePathFormula(allStatesTrace).getSecond();
+    CFAPathWithAssumptions pathWithAssignments =
+        assignmentToPathAllocator.allocateAssignmentsToPath(
+            allStatesTrace, pInfo.getModel(), ssamaps);
+    CounterexampleInfo cex =
+        CounterexampleInfo.feasiblePrecise(allStatesTrace, pathWithAssignments);
+    cex.addFurtherInformation(dumpCounterexample(pInfo), dumpCounterexampleFormula);
+    cex.addFurtherInformation(dumpModel(pInfo.getModel()), dumpCounterexampleModel);
+    return cex;
+  }
+
   private Appender dumpModel(final Iterable<ValueAssignment> pModel) {
     final ImmutableList<ValueAssignment> model = Ordering.usingToString().immutableSortedCopy(pModel);
     return new AbstractAppender() {
@@ -153,6 +162,11 @@ public class PathChecker {
         Joiner.on('\n').appendTo(out, model);
       }
     };
+  }
+
+  private Appender dumpCounterexample(CounterexampleTraceInfo cex) {
+    FormulaManagerView fmgr = solver.getFormulaManager();
+    return fmgr.dumpFormula(fmgr.getBooleanFormulaManager().and(cex.getCounterExampleFormulas()));
   }
 
   public CounterexampleTraceInfo checkPath(ARGPath pPath)
@@ -172,13 +186,22 @@ public class PathChecker {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
         Iterable<ValueAssignment> model = getModel(thmProver);
-        CFAPathWithAssumptions pathWithAssignments = extractVariableAssignment(pPath, ssaMaps, model);
+        CFAPathWithAssumptions pathWithAssignments =
+            assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, pathWithAssignments, ImmutableMap.<Integer, Boolean>of());
       }
     }
   }
 
+  /**
+   * Calculate the precise PathFormula and SSAMaps for the given path.
+   * Multi-edges will be resolved. The resulting list of SSAMaps
+   * need not be the same size as the given path.
+   *
+   * @param pPath calculate the precise list of SSAMaps for this path.
+   * @return the PathFormula and the precise list of SSAMaps for the given path.
+   */
   private Pair<PathFormula, List<SSAMap>> createPrecisePathFormula(ARGPath pPath)
       throws CPATransferException, InterruptedException {
 
@@ -200,26 +223,6 @@ public class PathChecker {
     }
 
     return Pair.of(pathFormula, ssaMaps);
-  }
-
-  /**
-   * Calculate the precise SSAMaps for the given path.
-   * Multi-edges will be resolved. The resulting list of SSAMaps
-   * need not be the same size as the given path.
-   *
-   * @param pPath calculate the precise list of SSAMaps for this path.
-   * @return the precise list of SSAMaps for the given path.
-   */
-  public List<SSAMap> calculatePreciseSSAMaps(ARGPath pPath)
-      throws CPATransferException, InterruptedException {
-
-    return createPrecisePathFormula(pPath).getSecond();
-  }
-
-  public CFAPathWithAssumptions extractVariableAssignment(ARGPath pPath,
-      List<SSAMap> pSsaMaps, Iterable<ValueAssignment> pModel) throws InterruptedException {
-
-    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);
   }
 
   private Iterable<ValueAssignment> getModel(ProverEnvironment thmProver) {
