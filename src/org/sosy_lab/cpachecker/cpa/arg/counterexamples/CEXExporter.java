@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 
 @Options(prefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -182,12 +181,7 @@ public class CEXExporter {
     writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
-
-        if (counterexample.isPreciseCounterExample()) {
-          targetPath.toJSON(pAppendable, counterexample.getCFAPathWithAssignments());
-        } else {
-          targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
-        }
+        counterexample.toJSON(pAppendable);
       }
     });
 

@@ -25,12 +25,19 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.*;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -121,6 +128,46 @@ public class CounterexampleInfo {
     checkState(!spurious);
     checkState(isPreciseCounterExample);
     return assignments.getExactVariableValues(targetPath);
+  }
+
+  /**
+   * Create a JSON representation of this counterexample,
+   * which is used for the HTML report.
+   * @param sb The output to write to.
+   */
+  public void toJSON(Appendable sb) throws IOException {
+    checkState(!spurious);
+    int pathLength = targetPath.getFullPath().size();
+    List<Map<?, ?>> path = new ArrayList<>(pathLength);
+
+    PathIterator iterator = targetPath.fullPathIterator();
+    while (iterator.hasNext()) {
+      Map<String, Object> elem = new HashMap<>();
+      CFAEdge edge = iterator.getOutgoingEdge();
+      if (edge == null) {
+        continue; // in this case we do not need the edge
+      }
+      if (iterator.isPositionWithState()) {
+        elem.put("argelem", iterator.getAbstractState().getStateId());
+      }
+      elem.put("source", edge.getPredecessor().getNodeNumber());
+      elem.put("target", edge.getSuccessor().getNodeNumber());
+      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
+      elem.put("line", edge.getFileLocation().getStartingLineNumber());
+      elem.put("file", edge.getFileLocation().getFileName());
+
+      // cfa path with assignments has no padding (only inner edges of argpath).
+      if (assignments == null) {
+        elem.put("val", "");
+      } else {
+        CFAEdgeWithAssumptions edgeWithAssignment = assignments.get(iterator.getIndex());
+        elem.put("val", edgeWithAssignment.printForHTML());
+      }
+
+      path.add(elem);
+      iterator.advance();
+    }
+    JSON.writeJSONString(path, sb);
   }
 
   /**
