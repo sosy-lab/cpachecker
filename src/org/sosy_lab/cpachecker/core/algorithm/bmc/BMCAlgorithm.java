@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -299,7 +298,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.log(Level.WARNING, "Inconsistent replayed error path!");
           counterexample = CounterexampleInfo.feasible(targetPath,
               CFAPathWithAssumptions.empty());
-          counterexample.addFurtherInformation(RichModel.of(model), dumpCounterexampleModel);
+          counterexample.addFurtherInformation(model, dumpCounterexampleModel);
 
         } else {
           counterexample = CounterexampleInfo.feasible(targetPath, info.getAssignments());
@@ -318,7 +317,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
         counterexample = CounterexampleInfo.feasible(targetPath,
             CFAPathWithAssumptions.empty());
-        counterexample.addFurtherInformation(RichModel.of(model), dumpCounterexampleModel);
+        counterexample.addFurtherInformation(model, dumpCounterexampleModel);
       }
       ((ARGCPA) cpa).addCounterexample(targetPath.getLastState(), counterexample);
 

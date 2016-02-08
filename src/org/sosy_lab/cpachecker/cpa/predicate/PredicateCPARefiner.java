@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -86,6 +85,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -534,7 +534,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
       final CounterexampleTraceInfo counterexample, final ARGPath targetPath) throws CPATransferException, InterruptedException {
 
     List<SSAMap> ssamaps = pathChecker.calculatePreciseSSAMaps(targetPath);
-    RichModel model = counterexample.getModel();
+    Iterable<ValueAssignment> model = counterexample.getModel();
     CFAPathWithAssumptions pathWithAssignments =
         pathChecker.extractVariableAssignment(targetPath, ssamaps, model);
 

@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -50,6 +49,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
@@ -102,7 +102,7 @@ public class PathChecker {
       if (thmProver.isUnsat()) {
         return CounterexampleTraceInfo.infeasibleNoItp();
       } else {
-        RichModel model = getModel(thmProver);
+        Iterable<ValueAssignment> model = getModel(thmProver);
         CFAPathWithAssumptions pathWithAssignments = extractVariableAssignment(pPath, ssaMaps, model);
 
         return CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, pathWithAssignments, ImmutableMap.<Integer, Boolean>of());
@@ -148,18 +148,18 @@ public class PathChecker {
   }
 
   public CFAPathWithAssumptions extractVariableAssignment(ARGPath pPath,
-      List<SSAMap> pSsaMaps, RichModel pModel) throws InterruptedException {
+      List<SSAMap> pSsaMaps, Iterable<ValueAssignment> pModel) throws InterruptedException {
 
-    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel.keySet(), pSsaMaps);
+    return assignmentToPathAllocator.allocateAssignmentsToPath(pPath, pModel, pSsaMaps);
   }
 
-  private RichModel getModel(ProverEnvironment thmProver) {
+  private Iterable<ValueAssignment> getModel(ProverEnvironment thmProver) {
     try {
-      return RichModel.of(thmProver.getModel());
+      return thmProver.getModel();
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return RichModel.empty();
+      return ImmutableList.of();
     }
   }
 }

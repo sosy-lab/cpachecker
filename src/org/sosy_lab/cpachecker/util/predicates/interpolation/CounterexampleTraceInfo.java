@@ -29,11 +29,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 
 
 /**
@@ -43,7 +44,7 @@ import com.google.common.collect.ImmutableMap;
 public class CounterexampleTraceInfo {
     private final boolean spurious;
     private final ImmutableList<BooleanFormula> interpolants;
-    private final RichModel mCounterexampleModel;
+    private final ImmutableList<ValueAssignment> mCounterexampleModel;
     private final CFAPathWithAssumptions mAssignments;
     private final ImmutableList<BooleanFormula> mCounterexampleFormula;
     private final ImmutableMap<Integer, Boolean> branchingPreds;
@@ -51,7 +52,7 @@ public class CounterexampleTraceInfo {
     private CounterexampleTraceInfo(
         boolean pSpurious,
         ImmutableList<BooleanFormula> pInterpolants,
-        RichModel pCounterexampleModel,
+        ImmutableList<ValueAssignment> pCounterexampleModel,
         CFAPathWithAssumptions pAssignments,
         ImmutableList<BooleanFormula> pCounterexampleFormula,
         ImmutableMap<Integer, Boolean> pBranchingPreds) {
@@ -84,10 +85,13 @@ public class CounterexampleTraceInfo {
     }
 
     public static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
-        RichModel pModel, CFAPathWithAssumptions pAssignments, Map<Integer, Boolean> preds) {
+        Iterable<ValueAssignment> pModel, CFAPathWithAssumptions pAssignments, Map<Integer, Boolean> preds) {
+      // need make copy of model because it may become invalid when prover environment is closed,
+      // and sort it for deterministic behavior
+      ImmutableList<ValueAssignment> model = Ordering.usingToString().immutableSortedCopy(pModel);
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
-          checkNotNull(pModel),
+          model,
           checkNotNull(pAssignments),
           ImmutableList.copyOf(pCounterexampleFormula),
           ImmutableMap.copyOf(preds)
@@ -122,7 +126,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleFormula;
     }
 
-    public RichModel getModel() {
+    public ImmutableList<ValueAssignment> getModel() {
       checkState(!spurious);
       return mCounterexampleModel;
     }
