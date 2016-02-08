@@ -153,6 +153,14 @@ public class PathChecker {
     return cex;
   }
 
+  public CounterexampleInfo createImpreciseCounterexample(
+      final ARGPath allStatesTrace, final CounterexampleTraceInfo pInfo) {
+    CounterexampleInfo cex = CounterexampleInfo.feasible(allStatesTrace, pInfo.getAssignments());
+    cex.addFurtherInformation(dumpCounterexample(pInfo), dumpCounterexampleFormula);
+    cex.addFurtherInformation(dumpModel(pInfo.getModel()), dumpCounterexampleModel);
+    return cex;
+  }
+
   private Appender dumpModel(final Iterable<ValueAssignment> pModel) {
     final ImmutableList<ValueAssignment> model = Ordering.usingToString().immutableSortedCopy(pModel);
     return new AbstractAppender() {
