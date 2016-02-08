@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -45,9 +43,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAMultiEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
@@ -165,8 +160,7 @@ public class CEXExporter {
         new HashSet<>(targetPath.getStatePairs()));
     final ARGState rootState = targetPath.getFirstState();
 
-    writeErrorPathFile(errorPathFile, cexIndex,
-            createErrorPathWithVariableAssignmentInformation(counterexample));
+    writeErrorPathFile(errorPathFile, cexIndex, counterexample);
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,
@@ -262,62 +256,6 @@ public class CEXExporter {
                 counterexample);
       }
     });
-  }
-
-  private Appender createErrorPathWithVariableAssignmentInformation(
-          final CounterexampleInfo counterexample) {
-    return new Appender() {
-      @Override
-      public void appendTo(Appendable out) throws IOException {
-        // Write edges mixed with assigned values.
-        if (counterexample.isPreciseCounterExample()) {
-          CFAPathWithAssumptions exactValuePath = counterexample.getCFAPathWithAssignments();
-          printPathWithValues(out, exactValuePath);
-        } else {
-          printPath(out, counterexample.getTargetPath().getInnerEdges());
-        }
-      }
-
-      private void printPath(Appendable out, List<CFAEdge> pEdgePath) throws IOException {
-        for (CFAEdge edge : from(pEdgePath).filter(notNull())) {
-          out.append(edge.toString());
-          out.append(System.lineSeparator());
-        }
-      }
-
-      private void printPathWithValues(Appendable out,
-                                      CFAPathWithAssumptions pExactValuePath) throws IOException {
-
-        for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
-
-          if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
-            for (CFAEdgeWithAssumptions singleEdge : (CFAMultiEdgeWithAssumptions) edgeWithAssignments) {
-              printPreciseValues(out, singleEdge);
-            }
-          } else {
-            printPreciseValues(out, edgeWithAssignments);
-          }
-        }
-      }
-
-      private void printPreciseValues(Appendable out, CFAEdgeWithAssumptions edgeWithAssignments) throws IOException {
-        out.append(edgeWithAssignments.getCFAEdge().toString());
-        out.append(System.lineSeparator());
-
-        String cCode = edgeWithAssignments.prettyPrintCode(1);
-        if (!cCode.isEmpty()) {
-          out.append(cCode);
-        }
-
-        String comment = edgeWithAssignments.getComment();
-
-        if (!comment.isEmpty()) {
-          out.append('\t');
-          out.append(comment);
-          out.append(System.lineSeparator());
-        }
-      }
-    };
   }
 
   private void writeErrorPathFile(PathTemplate template, int cexIndex, Object content) {

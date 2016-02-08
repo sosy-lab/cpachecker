@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Predicates.notNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -43,7 +46,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 import com.google.common.collect.Lists;
 
-public class CounterexampleInfo {
+public class CounterexampleInfo extends AbstractAppender {
 
   private final boolean spurious;
   private final boolean isPreciseCounterExample;
@@ -170,6 +173,52 @@ public class CounterexampleInfo {
     JSON.writeJSONString(path, sb);
   }
 
+  @Override
+  public void appendTo(Appendable out) throws IOException {
+    if (isSpurious()) {
+      out.append("SPURIOUS COUNTEREXAMPLE");
+
+    } else if (isPreciseCounterExample) {
+      printPathWithValues(out, assignments);
+
+    } else {
+      targetPath.appendTo(out);
+    }
+  }
+
+  private void printPathWithValues(Appendable out, CFAPathWithAssumptions pExactValuePath)
+      throws IOException {
+    for (CFAEdgeWithAssumptions edgeWithAssignments : from(pExactValuePath).filter(notNull())) {
+      if (edgeWithAssignments instanceof CFAMultiEdgeWithAssumptions) {
+        for (CFAEdgeWithAssumptions singleEdge :
+            (CFAMultiEdgeWithAssumptions) edgeWithAssignments) {
+          printPreciseValues(out, singleEdge);
+        }
+      } else {
+        printPreciseValues(out, edgeWithAssignments);
+      }
+    }
+  }
+
+  private void printPreciseValues(Appendable out, CFAEdgeWithAssumptions edgeWithAssignments)
+      throws IOException {
+    // TODO Cleanup all string-producing methods of CFAEdgeWithAssumptions and merge with this
+    out.append(edgeWithAssignments.getCFAEdge().toString());
+    out.append(System.lineSeparator());
+
+    String cCode = edgeWithAssignments.prettyPrintCode(1);
+    if (!cCode.isEmpty()) {
+      out.append(cCode);
+    }
+
+    String comment = edgeWithAssignments.getComment();
+
+    if (!comment.isEmpty()) {
+      out.append('\t');
+      out.append(comment);
+      out.append(System.lineSeparator());
+    }
+  }
   /**
    * Add some additional information about the counterexample.
    *

@@ -36,7 +36,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -70,7 +70,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * such as {@link ARGUtils#getOnePathTo(ARGState)} and {@link ARGUtils#getRandomPath(ARGState)}.
  */
 @Immutable
-public class ARGPath implements Appender {
+public class ARGPath extends AbstractAppender {
 
   private final ImmutableList<ARGState> states;
   private final List<CFAEdge> edges; // immutable, but may contain null
@@ -304,12 +304,8 @@ public class ARGPath implements Appender {
 
   @Override
   public void appendTo(Appendable appendable) throws IOException {
-    Joiner.on('\n').skipNulls().appendTo(appendable, getFullPath());
-  }
-
-  @Override
-  public String toString() {
-    return Joiner.on('\n').skipNulls().join(getFullPath());
+    Joiner.on(System.lineSeparator()).skipNulls().appendTo(appendable, getFullPath());
+    appendable.append(System.lineSeparator());
   }
 
   /**
