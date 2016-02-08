@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -605,11 +604,7 @@ public class ARGUtils {
     Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
 
     if (pCounterExample != null) {
-      CFAPathWithAssumptions cfaPath = pCounterExample.getCFAPathWithAssignments();
-      if (cfaPath != null) {
-        ARGPath targetPath = pCounterExample.getTargetPath();
-        valueMap = pCounterExample.getExactVariableValues(targetPath);
-      }
+      valueMap = pCounterExample.getExactVariableValues();
     }
     if (valueMap == null) {
       valueMap = ImmutableMap.of();

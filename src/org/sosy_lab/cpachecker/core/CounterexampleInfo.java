@@ -27,13 +27,11 @@ import static com.google.common.base.Preconditions.*;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -107,30 +105,29 @@ public class CounterexampleInfo {
    * Return a path that indicates which variables where assigned which values at
    * what edge. Note that not every value for every variable is available.
    */
-  @Nullable
   public CFAPathWithAssumptions getCFAPathWithAssignments() {
     checkState(!spurious);
     return assignments;
   }
 
   @Nullable
-  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
+  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues() {
     checkState(!spurious);
     if (assignments.isEmpty()) {
       return null;
     }
 
-    return assignments.getExactVariableValues(pPath);
+    return assignments.getExactVariableValues(targetPath);
   }
 
   @Nullable
-  public CFAPathWithAssumptions getExactVariableValuePath(List<CFAEdge> pPath) {
+  public CFAPathWithAssumptions getExactVariableValuePath() {
     checkState(!spurious);
     if (assignments.isEmpty()) {
       return null;
     }
 
-    return assignments.getExactVariableValues(pPath);
+    return assignments.getExactVariableValues(targetPath.getInnerEdges());
   }
 
   /**

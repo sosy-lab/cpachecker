@@ -90,7 +90,6 @@ import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -762,11 +761,7 @@ public class ARGPathExporter {
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample.isPresent()) {
-        CFAPathWithAssumptions cfaPath = pCounterExample.get().getCFAPathWithAssignments();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.get().getTargetPath();
-          valueMap = pCounterExample.get().getExactVariableValues(targetPath);
-        }
+        valueMap = pCounterExample.get().getExactVariableValues();
       }
 
       GraphMlBuilder doc;

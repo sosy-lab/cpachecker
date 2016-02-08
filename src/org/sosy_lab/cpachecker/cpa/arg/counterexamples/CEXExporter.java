@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -165,7 +167,7 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
 
     writeErrorPathFile(errorPathFile, cexIndex,
-            createErrorPathWithVariableAssignmentInformation(targetPath.getInnerEdges(), counterexample));
+            createErrorPathWithVariableAssignmentInformation(counterexample));
 
     if (errorPathCoreFile != null) {
       // the shrinked errorPath only includes the nodes,
@@ -174,7 +176,7 @@ public class CEXExporter {
       ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
       List<CFAEdge> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath);
       writeErrorPathFile(errorPathCoreFile, cexIndex,
-              createErrorPathWithVariableAssignmentInformation(shrinkedErrorPath, counterexample));
+          Appenders.forIterable(Joiner.on('\n'), shrinkedErrorPath));
     }
 
     writeErrorPathFile(errorPathJson, cexIndex, new Appender() {
@@ -197,7 +199,7 @@ public class CEXExporter {
       if (errorPathSourceFile != null) {
         switch(codeStyle) {
         case CONCRETE_EXECUTION:
-          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getExactVariableValuePath(targetPath.getInnerEdges()));
+          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getExactVariableValuePath());
           break;
         case CBMC:
           pathProgram = PathToCTranslator.translateSinglePath(targetPath);
@@ -269,17 +271,17 @@ public class CEXExporter {
   }
 
   private Appender createErrorPathWithVariableAssignmentInformation(
-          final List<CFAEdge> edgePath, final CounterexampleInfo counterexample) {
+          final CounterexampleInfo counterexample) {
     return new Appender() {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        CFAPathWithAssumptions exactValuePath = counterexample.getExactVariableValuePath(edgePath);
+        CFAPathWithAssumptions exactValuePath = counterexample.getExactVariableValuePath();
 
         if (exactValuePath != null) {
           printPathWithValues(out, exactValuePath);
         } else {
-          printPath(out, edgePath);
+          printPath(out, counterexample.getTargetPath().getInnerEdges());
         }
       }
 
