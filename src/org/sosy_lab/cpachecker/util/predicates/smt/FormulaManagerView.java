@@ -78,6 +78,7 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
@@ -1220,8 +1221,18 @@ public class FormulaManagerView {
     return manager.dumpFormula(pT);
   }
 
-  public boolean isPurelyConjunctive(BooleanFormula t) {
-    t = applyTactic(t, Tactic.NNF);
+  public boolean isPurelyConjunctive(BooleanFormula t) throws InterruptedException {
+    final BooleanFormulaVisitor<Boolean> isAtomicVisitor =
+        new DefaultBooleanFormulaVisitor<Boolean>() {
+          @Override protected Boolean visitDefault() {
+            return false;
+          }
+          @Override public Boolean visitAtom(BooleanFormula atom,
+              FunctionDeclaration decl) {
+            return true;
+          }
+        };
+
     return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
 
       @Override public Boolean visitDefault() {
@@ -1237,7 +1248,8 @@ public class FormulaManagerView {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
-        return booleanFormulaManager.visit(this, operand);
+        // Return false unless the operand is atomic.
+        return booleanFormulaManager.visit(isAtomicVisitor, operand);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
