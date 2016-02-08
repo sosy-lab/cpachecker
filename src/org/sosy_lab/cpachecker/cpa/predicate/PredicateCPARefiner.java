@@ -306,7 +306,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
         Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
         if (preds.isEmpty()) {
           logger.log(Level.WARNING, "No information about ARG branches available!");
-          return null;
+          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
         }
 
         // find correct path
