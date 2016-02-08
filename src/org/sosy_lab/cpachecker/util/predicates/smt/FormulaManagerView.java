@@ -1522,13 +1522,8 @@ public class FormulaManagerView {
    * See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for
    * documentation.
    */
-  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
-    try {
-      return manager.applyTactic(input, tactic);
-    } catch (InterruptedException pE) {
-      // TODO: propagate exception upwards.
-      throw new UnsupportedOperationException("Applying tactic has caused an exception", pE);
-    }
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) throws InterruptedException{
+    return manager.applyTactic(input, tactic);
   }
 
   /**
