@@ -176,7 +176,7 @@ public class PathChecker {
   public CounterexampleInfo createImpreciseCounterexample(
       final ARGPath imprecisePath, final CounterexampleTraceInfo pInfo) {
     CounterexampleInfo cex =
-        CounterexampleInfo.feasible(imprecisePath, CFAPathWithAssumptions.empty());
+        CounterexampleInfo.feasibleImprecise(imprecisePath);
     addCounterexampleFormula(pInfo, cex);
     addCounterexampleModel(pInfo, cex);
     return cex;

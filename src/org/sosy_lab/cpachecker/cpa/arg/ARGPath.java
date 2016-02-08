@@ -323,13 +323,8 @@ public class ARGPath implements Appender {
    */
   public void toJSON(Appendable sb, List<CFAEdgeWithAssumptions> pathWithAssignments) throws IOException {
     int pathLength = getFullPath().size();
+    checkArgument(pathWithAssignments.isEmpty() || pathWithAssignments.size() == pathLength);
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
-
-    if (pathLength != pathWithAssignments.size()) {
-      // TODO: Probably pathWithAssignments should always be empty or have same size
-      // add assert?
-      pathWithAssignments = ImmutableList.of();
-    }
 
     PathIterator iterator = fullPathIterator();
     while (iterator.hasNext()) {

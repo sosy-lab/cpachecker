@@ -601,13 +601,10 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
 
-    if (pCounterExample != null) {
+    if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
-    }
-    if (valueMap == null) {
-      valueMap = ImmutableMap.of();
     }
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");

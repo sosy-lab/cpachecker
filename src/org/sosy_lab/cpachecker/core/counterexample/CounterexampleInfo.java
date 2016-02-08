@@ -29,8 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -77,15 +75,17 @@ public class CounterexampleInfo {
   /**
    * Creates a feasible counterexample whose target path is marked as being imprecise.
    */
-  public static CounterexampleInfo feasible(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pAssignments), false);
+  public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), null, false);
   }
 
   /**
    * Creates a feasible counterexample whose target path is marked as being precise.
    */
   public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
-    return new CounterexampleInfo(false, checkNotNull(pTargetPath), checkNotNull(pAssignments), true);
+    checkArgument(!pAssignments.isEmpty());
+    checkArgument(pAssignments.fitsPath(pTargetPath.getInnerEdges()));
+    return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
   }
 
   public boolean isSpurious() {
@@ -102,30 +102,25 @@ public class CounterexampleInfo {
   /**
    * Return a path that indicates which variables where assigned which values at
    * what edge. Note that not every value for every variable is available.
+   *
+   * This is only available for precise counterexamples.
    */
   public CFAPathWithAssumptions getCFAPathWithAssignments() {
     checkState(!spurious);
+    checkState(isPreciseCounterExample);
     return assignments;
   }
 
-  @Nullable
+  /**
+   * Return an assignment from ARGStates to variable values.
+   * Note that not every value for every variable is available.
+   *
+   * This is only available for precise counterexamples.
+   */
   public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues() {
     checkState(!spurious);
-    if (assignments.isEmpty()) {
-      return null;
-    }
-
+    checkState(isPreciseCounterExample);
     return assignments.getExactVariableValues(targetPath);
-  }
-
-  @Nullable
-  public CFAPathWithAssumptions getExactVariableValuePath() {
-    checkState(!spurious);
-    if (assignments.isEmpty()) {
-      return null;
-    }
-
-    return assignments.getExactVariableValues(targetPath.getInnerEdges());
   }
 
   /**

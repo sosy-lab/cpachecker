@@ -183,7 +183,7 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable pAppendable) throws IOException {
 
-        if (counterexample.getCFAPathWithAssignments() != null) {
+        if (counterexample.isPreciseCounterExample()) {
           targetPath.toJSON(pAppendable, counterexample.getCFAPathWithAssignments().asList());
         } else {
           targetPath.toJSON(pAppendable, ImmutableList.<CFAEdgeWithAssumptions>of());
@@ -199,7 +199,7 @@ public class CEXExporter {
       if (errorPathSourceFile != null) {
         switch(codeStyle) {
         case CONCRETE_EXECUTION:
-          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getExactVariableValuePath());
+          pathProgram = PathToConcreteProgramTranslator.translateSinglePath(targetPath, counterexample.getCFAPathWithAssignments());
           break;
         case CBMC:
           pathProgram = PathToCTranslator.translateSinglePath(targetPath);
@@ -219,7 +219,7 @@ public class CEXExporter {
       if (errorPathSourceFile != null) {
         switch(codeStyle) {
         case CONCRETE_EXECUTION:
-          pathProgram = PathToConcreteProgramTranslator.translatePaths(rootState, pathElements, counterexample.getCFAPathWithAssignments());
+          logger.log(Level.WARNING, "Cannot export imprecise counterexample to C code for concrete execution.");
           break;
         case CBMC:
           pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
@@ -276,9 +276,8 @@ public class CEXExporter {
       @Override
       public void appendTo(Appendable out) throws IOException {
         // Write edges mixed with assigned values.
-        CFAPathWithAssumptions exactValuePath = counterexample.getExactVariableValuePath();
-
-        if (exactValuePath != null) {
+        if (counterexample.isPreciseCounterExample()) {
+          CFAPathWithAssumptions exactValuePath = counterexample.getCFAPathWithAssignments();
           printPathWithValues(out, exactValuePath);
         } else {
           printPath(out, counterexample.getTargetPath().getInnerEdges());

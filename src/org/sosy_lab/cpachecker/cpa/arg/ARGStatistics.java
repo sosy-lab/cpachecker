@@ -299,8 +299,13 @@ public class ARGStatistics implements IterationStatistics {
 
           CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
           // we use the imprecise version of the CounterexampleInfo, due to the possible
-          // merges which are done in the used CPAs
-          cex = CounterexampleInfo.feasible(path, assignments);
+          // merges which are done in the used CPAs, but if we can compute a path with assignments,
+          // it is probably precise
+          if (!assignments.isEmpty()) {
+            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
+          } else {
+            cex = CounterexampleInfo.feasibleImprecise(path);
+          }
         }
       }
       if (cex != null) {

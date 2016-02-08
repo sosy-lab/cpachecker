@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -216,7 +215,7 @@ public class ApronDelegatingRefiner extends AbstractARGBasedRefiner implements S
 
     // we use the imprecise version of the CounterexampleInfo, due to the possible
     // merges which are done in the ApronCPA
-    return CounterexampleInfo.feasible(pErrorPath, CFAPathWithAssumptions.empty());
+    return CounterexampleInfo.feasibleImprecise(pErrorPath);
   }
 
   /**

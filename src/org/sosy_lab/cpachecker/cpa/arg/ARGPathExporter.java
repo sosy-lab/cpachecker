@@ -760,7 +760,7 @@ public class ARGPathExporter {
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction = ARGUtils.CHILDREN_OF_STATE;
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
-      if (pCounterExample.isPresent()) {
+      if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
         valueMap = pCounterExample.get().getExactVariableValues();
       }
 

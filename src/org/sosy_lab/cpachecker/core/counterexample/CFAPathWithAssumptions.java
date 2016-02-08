@@ -86,43 +86,7 @@ public class CFAPathWithAssumptions implements Iterable<CFAEdgeWithAssumptions> 
     return ImmutableList.copyOf(pathWithAssignments);
   }
 
-  @Nullable
-  public CFAPathWithAssumptions getExactVariableValues(List<CFAEdge> pPath) {
-
-    if (fitsPath(pPath)) {
-      return this;
-    }
-
-    int index = pathWithAssignments.size() - pPath.size();
-
-    if (index < 0) {
-      return null;
-    }
-
-    List<CFAEdgeWithAssumptions> result;
-
-    result = new ArrayList<>(pPath.size());
-
-    for (CFAEdge edge : pPath) {
-
-      if (index > pathWithAssignments.size()) {
-        return null;
-      }
-
-      CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
-
-      if (!edge.equals(cfaWithAssignment.getCFAEdge())) {
-        return null;
-      }
-
-      result.add(cfaWithAssignment);
-      index++;
-    }
-
-    return new CFAPathWithAssumptions(result);
-  }
-
-  private boolean fitsPath(List<CFAEdge> pPath) {
+  boolean fitsPath(List<CFAEdge> pPath) {
 
     if (pPath.size() != pathWithAssignments.size()) {
       return false;
