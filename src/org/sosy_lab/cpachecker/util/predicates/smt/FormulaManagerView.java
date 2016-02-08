@@ -81,7 +81,6 @@ import org.sosy_lab.solver.basicimpl.tactics.Tactic;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
-import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -1173,18 +1172,24 @@ public class FormulaManagerView {
     if (result != null) { return result; }
 
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
-    new RecursiveFormulaVisitor(manager) {
+    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      public Void visitFunction(
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
           FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
           isPurelyAtomic.set(false);
+          return TraversalProcess.ABORT;
         }
-        return null;
+        return TraversalProcess.CONTINUE;
       }
-    }.visit(f);
+    }, f);
     result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
@@ -1375,7 +1380,7 @@ public class FormulaManagerView {
     for (Entry<? extends Formula, ? extends Formula> e : replacements.entrySet()) {
       m.put(unwrap(e.getKey()), unwrap(e.getValue()));
     }
-    return (BooleanFormula)manager.substitute(f, m);
+    return manager.substitute(f, m);
   }
 
   /**
@@ -1520,7 +1525,12 @@ public class FormulaManagerView {
    * documentation.
    */
   public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
-    return manager.applyTactic(input, tactic);
+    try {
+      return manager.applyTactic(input, tactic);
+    } catch (InterruptedException pE) {
+      // TODO: propagate exception upwards.
+      throw new UnsupportedOperationException("Applying tactic has caused an exception", pE);
+    }
   }
 
   /**
