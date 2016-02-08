@@ -123,9 +123,6 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   }
 
   public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
-
-    pPath.remove(pPath.size() - 1);
-
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
     return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
