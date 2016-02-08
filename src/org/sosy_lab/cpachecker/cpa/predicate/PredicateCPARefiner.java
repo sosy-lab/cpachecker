@@ -293,41 +293,37 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
   /**
    * Creates a new CounterexampleInfo object out of the given parameters.
    */
-  protected CounterexampleInfo handleRealError(final ARGPath allStatesTrace, boolean branchingOccurred,
-      CounterexampleTraceInfo counterexample) throws InterruptedException, CPATransferException {
+  protected CounterexampleInfo handleRealError(
+      final ARGPath allStatesTrace,
+      boolean branchingOccurred,
+      CounterexampleTraceInfo counterexample)
+      throws InterruptedException {
 
     errorPathProcessing.start();
     try {
-      if (branchingOccurred) {
-        Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
-        if (preds.isEmpty()) {
-          logger.log(Level.WARNING, "No information about ARG branches available!");
-          return null;
-        }
-
-        // find correct path
-        ARGPath targetPath;
-        try {
-          ARGState root = allStatesTrace.getFirstState();
-          ARGState target = allStatesTrace.getLastState();
-          Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
-
-          targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
-
-        } catch (IllegalArgumentException e) {
-          logger.logUserException(Level.WARNING, e, null);
-          logger.log(
-              Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-
-          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
-        }
-
-        return pathChecker.createCounterexample(targetPath, counterexample.getModel());
-
-      } else {
-        return pathChecker.createCounterexampleForPathWithoutBranching(
-            allStatesTrace, counterexample);
+      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
+      if (branchingOccurred && preds.isEmpty()) {
+        logger.log(Level.WARNING, "No information about ARG branches available!");
+        return null;
       }
+
+      // find correct path
+      ARGPath targetPath;
+      try {
+        ARGState root = allStatesTrace.getFirstState();
+        ARGState target = allStatesTrace.getLastState();
+        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
+
+        targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
+
+      } catch (IllegalArgumentException e) {
+        logger.logUserException(Level.WARNING, e, null);
+        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+
+        return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
+      }
+
+      return pathChecker.createCounterexample(targetPath, counterexample, branchingOccurred);
     } finally {
       errorPathProcessing.stop();
     }

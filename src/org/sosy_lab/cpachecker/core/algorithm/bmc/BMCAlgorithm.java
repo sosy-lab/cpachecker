@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -179,7 +180,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * It does so by asking the solver for a satisfying assignment.
    */
   @Override
-  protected void analyzeCounterexample(final ReachedSet pReachedSet, final ProverEnvironment pProver)
+  protected void analyzeCounterexample(
+      final BooleanFormula pCounterexampleFormula,
+      final ReachedSet pReachedSet,
+      final ProverEnvironment pProver)
       throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
@@ -222,9 +226,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       List<ValueAssignment> model;
-
       try {
-
         // need to ask solver for satisfiability again,
         // otherwise model doesn't contain new predicates
         boolean stillSatisfiable = !pProver.isUnsat();
@@ -261,6 +263,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return;
       }
 
+      BooleanFormula cexFormula = pCounterexampleFormula;
+
       // replay error path for a more precise satisfying assignment
       PathChecker pathChecker;
       try {
@@ -272,6 +276,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           solver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = solver.getFormulaManager();
           pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
+          // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
+          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
         }
 
         pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
@@ -281,7 +287,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
         return;
       }
-      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, model);
+
+      CounterexampleTraceInfo cexInfo =
+          CounterexampleTraceInfo.feasible(
+              ImmutableList.<BooleanFormula>of(cexFormula), model, branchingInformation);
+      CounterexampleInfo counterexample =
+          pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
       ((ARGCPA) cpa).addCounterexample(counterexample.getTargetPath().getLastState(), counterexample);
 
     } finally {

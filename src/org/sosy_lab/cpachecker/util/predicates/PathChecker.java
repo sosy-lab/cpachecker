@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
@@ -110,75 +110,102 @@ public class PathChecker {
     pConfig.inject(this);
   }
 
+  /**
+   * Create a {@link CounterexampleInfo} object for a given counterexample.
+   * If the path has branching it will be checked again with an SMT solver to extract a model
+   * that is as precise and simple as possible.
+   * If the double-check fails, an imprecise result is returned.
+   *
+   * @param precisePath The precise ARGPath that represents the counterexample.
+   * @param pInfo More information about the counterexample
+   * @param pathHasBranching Whether there are branches in the ARG for this path
+   * @return a {@link CounterexampleInfo} instance
+   */
   public CounterexampleInfo createCounterexample(
-      final ARGPath precisePath, final Iterable<ValueAssignment> pModel) throws InterruptedException {
+      final ARGPath precisePath,
+      final CounterexampleTraceInfo pInfo,
+      final boolean pathHasBranching)
+      throws InterruptedException {
 
-    CounterexampleInfo counterexample;
+    CFAPathWithAssumptions pathWithAssignments;
+    CounterexampleTraceInfo preciseInfo;
     try {
-      Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
-          checkPath(precisePath);
-      CounterexampleTraceInfo info = replayedPathResult.getFirst();
+      if (pathHasBranching) {
+        Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
+            checkPath(precisePath);
 
-      if (info.isSpurious()) {
-        logger.log(Level.WARNING, "Inconsistent replayed error path!");
-        logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
-        counterexample = CounterexampleInfo.feasible(precisePath, CFAPathWithAssumptions.empty());
-        counterexample.addFurtherInformation(dumpModel(pModel), dumpCounterexampleModel);
+        if (replayedPathResult.getFirst().isSpurious()) {
+          logger.log(Level.WARNING, "Inconsistent replayed error path!");
+          logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
+          return createImpreciseCounterexample(precisePath, pInfo);
+
+        } else {
+          preciseInfo = replayedPathResult.getFirst();
+          pathWithAssignments = replayedPathResult.getSecond();
+        }
 
       } else {
-        counterexample =
-            CounterexampleInfo.feasiblePrecise(precisePath, replayedPathResult.getSecond());
-        counterexample.addFurtherInformation(dumpCounterexample(info), dumpCounterexampleFormula);
-        counterexample.addFurtherInformation(dumpModel(info.getModel()), dumpCounterexampleModel);
+        preciseInfo = pInfo;
+        List<SSAMap> ssamaps = createPrecisePathFormula(precisePath).getSecond();
+        pathWithAssignments =
+            assignmentToPathAllocator.allocateAssignmentsToPath(
+                precisePath, pInfo.getModel(), ssamaps);
       }
 
     } catch (SolverException | CPATransferException e) {
       // path is now suddenly a problem
       logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
       logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
-      counterexample = CounterexampleInfo.feasible(precisePath, CFAPathWithAssumptions.empty());
-      counterexample.addFurtherInformation(dumpModel(pModel), dumpCounterexampleModel);
+      return createImpreciseCounterexample(precisePath, pInfo);
     }
-    return counterexample;
-  }
 
-  public CounterexampleInfo createCounterexampleForPathWithoutBranching(
-      final ARGPath allStatesTrace, final CounterexampleTraceInfo pInfo)
-      throws CPATransferException, InterruptedException {
-    List<SSAMap> ssamaps = createPrecisePathFormula(allStatesTrace).getSecond();
-    CFAPathWithAssumptions pathWithAssignments =
-        assignmentToPathAllocator.allocateAssignmentsToPath(
-            allStatesTrace, pInfo.getModel(), ssamaps);
-    CounterexampleInfo cex =
-        CounterexampleInfo.feasiblePrecise(allStatesTrace, pathWithAssignments);
-    cex.addFurtherInformation(dumpCounterexample(pInfo), dumpCounterexampleFormula);
-    cex.addFurtherInformation(dumpModel(pInfo.getModel()), dumpCounterexampleModel);
+    CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
+    addCounterexampleFormula(preciseInfo, cex);
+    addCounterexampleModel(preciseInfo, cex);
     return cex;
   }
 
+  /**
+   * Create a {@link CounterexampleInfo} object for a given counterexample.
+   * Use this method if a precise {@link ARGPath} for the counterexample could not be constructed.
+   *
+   * @param imprecisePath Some ARGPath that is related to the counterexample.
+   * @param pInfo More information about the counterexample
+   * @return a {@link CounterexampleInfo} instance
+   */
   public CounterexampleInfo createImpreciseCounterexample(
-      final ARGPath allStatesTrace, final CounterexampleTraceInfo pInfo) {
+      final ARGPath imprecisePath, final CounterexampleTraceInfo pInfo) {
     CounterexampleInfo cex =
-        CounterexampleInfo.feasible(allStatesTrace, CFAPathWithAssumptions.empty());
-    cex.addFurtherInformation(dumpCounterexample(pInfo), dumpCounterexampleFormula);
-    cex.addFurtherInformation(dumpModel(pInfo.getModel()), dumpCounterexampleModel);
+        CounterexampleInfo.feasible(imprecisePath, CFAPathWithAssumptions.empty());
+    addCounterexampleFormula(pInfo, cex);
+    addCounterexampleModel(pInfo, cex);
     return cex;
   }
 
-  private Appender dumpModel(final Iterable<ValueAssignment> pModel) {
-    final ImmutableList<ValueAssignment> model = Ordering.usingToString().immutableSortedCopy(pModel);
-    return new AbstractAppender() {
+  private void addCounterexampleModel(
+      CounterexampleTraceInfo cexInfo, CounterexampleInfo counterexample) {
+    final ImmutableList<ValueAssignment> model =
+        Ordering.usingToString().immutableSortedCopy(cexInfo.getModel());
 
-      @Override
-      public void appendTo(Appendable out) throws IOException {
-        Joiner.on('\n').appendTo(out, model);
-      }
-    };
+    counterexample.addFurtherInformation(
+        new AbstractAppender() {
+          @Override
+          public void appendTo(Appendable out) throws IOException {
+            Joiner.on('\n').appendTo(out, model);
+          }
+        },
+        dumpCounterexampleModel);
   }
 
-  private Appender dumpCounterexample(CounterexampleTraceInfo cex) {
+  private void addCounterexampleFormula(
+      CounterexampleTraceInfo cexInfo, CounterexampleInfo counterexample) {
     FormulaManagerView fmgr = solver.getFormulaManager();
-    return fmgr.dumpFormula(fmgr.getBooleanFormulaManager().and(cex.getCounterExampleFormulas()));
+    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
+
+    BooleanFormula f = bfmgr.and(cexInfo.getCounterExampleFormulas());
+    if (!bfmgr.isTrue(f)) {
+      counterexample.addFurtherInformation(fmgr.dumpFormula(f), dumpCounterexampleFormula);
+    }
   }
 
   public Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
