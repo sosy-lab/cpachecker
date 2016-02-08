@@ -42,7 +42,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -53,7 +52,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -74,7 +72,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -98,14 +95,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       + "as soon as the target states are discovered, which is done if "
       + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
-
-  @Option(secure=true, description="dump counterexample formula to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
-
-  @Option(secure=true, description="dump counterexample model to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleModel = PathTemplate.ofFormatString("ErrorPath.%d.assignment.txt");
 
   @Option(secure=true, description="Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -270,56 +259,28 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return;
       }
 
-      // create and store CounterexampleInfo object
-      CounterexampleInfo counterexample;
-
-
       // replay error path for a more precise satisfying assignment
-      Solver solver = this.solver;
-      PathFormulaManager pmgr = this.pmgr;
+      PathChecker pathChecker;
+      try {
+        Solver solver = this.solver;
+        PathFormulaManager pmgr = this.pmgr;
 
-      // SMTInterpol does not support reusing the same solver
-      if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
-        try {
+        if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
+          // SMTInterpol does not support reusing the same solver
           solver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = solver.getFormulaManager();
           pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-        } catch (InvalidConfigurationException e) {
-          // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
-          logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-          return;
-        }
-      }
-      try {
-        PathChecker pathChecker = new PathChecker(logger, pmgr, solver, assignmentToPathAllocator);
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath);
-
-        if (info.isSpurious()) {
-          logger.log(Level.WARNING, "Inconsistent replayed error path!");
-          counterexample = CounterexampleInfo.feasible(targetPath,
-              CFAPathWithAssumptions.empty());
-          counterexample.addFurtherInformation(model, dumpCounterexampleModel);
-
-        } else {
-          counterexample = CounterexampleInfo.feasible(targetPath, info.getAssignments());
-
-          counterexample.addFurtherInformation(
-              solver.getFormulaManager().dumpFormula(
-                  solver.getFormulaManager().getBooleanFormulaManager().and(
-                      info.getCounterExampleFormulas()
-                  )),
-              dumpCounterexampleFormula);
-          counterexample.addFurtherInformation(info.getModel(), dumpCounterexampleModel);
         }
 
-      } catch (SolverException | CPATransferException e) {
-        // path is now suddenly a problem
+        pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
+
+      } catch (InvalidConfigurationException e) {
+        // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-        counterexample = CounterexampleInfo.feasible(targetPath,
-            CFAPathWithAssumptions.empty());
-        counterexample.addFurtherInformation(model, dumpCounterexampleModel);
+        return;
       }
-      ((ARGCPA) cpa).addCounterexample(targetPath.getLastState(), counterexample);
+      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, model);
+      ((ARGCPA) cpa).addCounterexample(counterexample.getTargetPath().getLastState(), counterexample);
 
     } finally {
       stats.errorPathCreation.stop();

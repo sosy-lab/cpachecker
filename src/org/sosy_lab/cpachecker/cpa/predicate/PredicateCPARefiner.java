@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -64,7 +66,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -312,43 +313,28 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
    */
   protected CounterexampleInfo handleRealError(final ARGPath allStatesTrace, boolean branchingOccurred,
       CounterexampleTraceInfo counterexample) throws InterruptedException, CPATransferException {
-    final ARGPath targetPath;
-    final CounterexampleTraceInfo preciseCounterexample;
+    CounterexampleInfo cex;
 
     preciseCouterexampleTime.start();
-    boolean isPreciseErrorPath = true;
     if (branchingOccurred) {
-      Pair<ARGPath, CounterexampleTraceInfo> preciseInfo = findPreciseErrorPath(allStatesTrace, counterexample);
+      cex = findPreciseErrorPath(allStatesTrace, counterexample);
 
-      if (preciseInfo != null) {
-        targetPath = preciseInfo.getFirst();
-        if (preciseInfo.getSecond() != null) {
-          preciseCounterexample = preciseInfo.getSecond();
-        } else {
-          logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
-          preciseCounterexample = counterexample;
-        }
-      } else {
+      if (cex == null) {
         logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-        targetPath = allStatesTrace;
-        preciseCounterexample = counterexample;
-        isPreciseErrorPath = false;
+        cex = CounterexampleInfo.feasible(allStatesTrace, counterexample.getAssignments());
+        cex.addFurtherInformation(formulaManager.dumpCounterexample(counterexample),
+            dumpCounterexampleFile);
+        cex.addFurtherInformation(counterexample.getModel(), dumpCounterexampleModelFile);
       }
     } else {
-      targetPath = allStatesTrace;
-      preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, targetPath);
+      CounterexampleTraceInfo preciseCounterexample = addVariableAssignmentToCounterexample(counterexample, allStatesTrace);
+      cex = CounterexampleInfo.feasiblePrecise(allStatesTrace, preciseCounterexample.getAssignments());
+      cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
+          dumpCounterexampleFile);
+      cex.addFurtherInformation(preciseCounterexample.getModel(), dumpCounterexampleModelFile);
     }
     preciseCouterexampleTime.stop();
 
-    CounterexampleInfo cex;
-    if (isPreciseErrorPath) {
-      cex = CounterexampleInfo.feasiblePrecise(targetPath, preciseCounterexample.getAssignments());
-    } else {
-      cex = CounterexampleInfo.feasible(targetPath, preciseCounterexample.getAssignments());
-    }
-    cex.addFurtherInformation(formulaManager.dumpCounterexample(preciseCounterexample),
-        dumpCounterexampleFile);
-    cex.addFurtherInformation(preciseCounterexample.getModel(), dumpCounterexampleModelFile);
     return cex;
   }
 
@@ -483,7 +469,7 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
     }
   }
 
-  private Pair<ARGPath, CounterexampleTraceInfo> findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
+  private @Nullable CounterexampleInfo findPreciseErrorPath(ARGPath pPath, CounterexampleTraceInfo counterexample) throws InterruptedException {
     errorPathProcessing.start();
     try {
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
@@ -501,30 +487,12 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
         targetPath = ARGUtils.getPathFromBranchingInformation(root, target,
             pathElements, preds);
-
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, null);
         return null;
       }
 
-      // try to create a better satisfying assignment by replaying this single path
-      CounterexampleTraceInfo info2;
-      try {
-        info2 = pathChecker.checkPath(targetPath);
-
-      } catch (SolverException | CPATransferException e) {
-        // path is now suddenly a problem
-        logger.logUserException(Level.WARNING, e, "Could not replay error path");
-        return null;
-      }
-
-      if (info2.isSpurious()) {
-        logger.log(Level.WARNING, "Inconsistent replayed error path!");
-        return Pair.of(targetPath, null);
-      } else {
-        return Pair.of(targetPath, info2);
-      }
-
+      return pathChecker.createCounterexample(targetPath, counterexample.getModel());
     } finally {
       errorPathProcessing.stop();
     }
