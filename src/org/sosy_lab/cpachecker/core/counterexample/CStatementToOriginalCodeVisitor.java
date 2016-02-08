@@ -42,7 +42,7 @@ import com.google.common.base.Joiner;
  *
  * NOT necessarily equivalent to specific parts of the original code file.
  */
-public enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, RuntimeException> {
+enum CStatementToOriginalCodeVisitor implements CStatementVisitor<String, RuntimeException> {
 
   INSTANCE;
 
