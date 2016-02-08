@@ -301,26 +301,31 @@ public class PredicateCPARefiner extends AbstractARGBasedRefiner implements Stat
 
     errorPathProcessing.start();
     try {
-      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
-      if (branchingOccurred && preds.isEmpty()) {
-        logger.log(Level.WARNING, "No information about ARG branches available!");
-        return null;
-      }
-
-      // find correct path
       ARGPath targetPath;
-      try {
-        ARGState root = allStatesTrace.getFirstState();
-        ARGState target = allStatesTrace.getLastState();
-        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
+      if (branchingOccurred) {
+        Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
+        if (preds.isEmpty()) {
+          logger.log(Level.WARNING, "No information about ARG branches available!");
+          return null;
+        }
 
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
+        // find correct path
+        try {
+          ARGState root = allStatesTrace.getFirstState();
+          ARGState target = allStatesTrace.getLastState();
+          Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, null);
-        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+          targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
 
-        return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
+        } catch (IllegalArgumentException e) {
+          logger.logUserException(Level.WARNING, e, null);
+          logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
+
+          return pathChecker.createImpreciseCounterexample(allStatesTrace, counterexample);
+        }
+
+      } else {
+        targetPath = allStatesTrace;
       }
 
       return pathChecker.createCounterexample(targetPath, counterexample, branchingOccurred);
