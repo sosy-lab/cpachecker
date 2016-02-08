@@ -197,7 +197,7 @@ public class PathChecker {
       if (thmProver.isUnsat()) {
         return Pair.of(CounterexampleTraceInfo.infeasibleNoItp(), null);
       } else {
-        Iterable<ValueAssignment> model = getModel(thmProver);
+        List<ValueAssignment> model = getModel(thmProver);
         CFAPathWithAssumptions pathWithAssignments =
             assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
@@ -240,9 +240,9 @@ public class PathChecker {
     return Pair.of(pathFormula, ssaMaps);
   }
 
-  private Iterable<ValueAssignment> getModel(ProverEnvironment thmProver) {
+  private List<ValueAssignment> getModel(ProverEnvironment thmProver) {
     try {
-      return thmProver.getModel();
+      return ImmutableList.copyOf(thmProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);

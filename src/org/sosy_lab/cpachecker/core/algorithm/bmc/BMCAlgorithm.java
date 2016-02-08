@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -79,11 +80,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -219,7 +221,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pProver.push(branchingFormula);
       }
 
-      Model model;
+      List<ValueAssignment> model;
 
       try {
 
@@ -233,7 +235,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return;
         }
 
-        model = pProver.getModel();
+        model = ImmutableList.copyOf(pProver.getModel());
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");

@@ -597,7 +597,7 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      Iterable<ValueAssignment> model = getModel(pProver);
+      List<ValueAssignment> model = getModel(pProver);
       return CounterexampleTraceInfo.feasible(
           f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
@@ -613,9 +613,9 @@ public final class InterpolationManager {
     }
   }
 
-  private Iterable<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
+  private List<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
     try {
-      return pItpProver.getModel();
+      return ImmutableList.copyOf(pItpProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);

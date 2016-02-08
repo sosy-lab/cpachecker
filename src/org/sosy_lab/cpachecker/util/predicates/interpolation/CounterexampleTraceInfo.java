@@ -33,7 +33,6 @@ import org.sosy_lab.solver.api.Model.ValueAssignment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Ordering;
 
 
 /**
@@ -82,12 +81,9 @@ public class CounterexampleTraceInfo {
       List<BooleanFormula> pCounterexampleFormula,
       Iterable<ValueAssignment> pModel,
       Map<Integer, Boolean> preds) {
-      // need make copy of model because it may become invalid when prover environment is closed,
-      // and sort it for deterministic behavior
-      ImmutableList<ValueAssignment> model = Ordering.usingToString().immutableSortedCopy(pModel);
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
-          model,
+          ImmutableList.copyOf(pModel),
           ImmutableList.copyOf(pCounterexampleFormula),
           ImmutableMap.copyOf(preds)
           );
