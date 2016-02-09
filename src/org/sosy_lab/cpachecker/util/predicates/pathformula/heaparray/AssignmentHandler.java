@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Varia
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
@@ -70,8 +71,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Implements a handler for assignments.
@@ -254,17 +257,51 @@ class AssignmentHandler {
    * @param pVariable The left hand side of the assignment.
    * @param pAssignments A list of assignment statements.
    * @param pQfmgr A formula manager with quantifier support.
+   * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignmentsWithQuantifier(
-      final CLeftHandSide pVariable,
-      final List<CExpressionAssignmentStatement> pAssignments,
-      final QuantifiedFormulaManagerView pQfmgr)
+      final @Nonnull CLeftHandSide pVariable,
+      final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
+      final @Nonnull QuantifiedFormulaManagerView pQfmgr,
+      final boolean pUseOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
-    throw new UnsupportedOperationException("Implementation of initializer handling with "
-        + "quantifiers is not yet implemented.");
+
+    assert pAssignments.size() > 0 : "Cannot handle initialization assignments without an "
+        + "assignment right hand side.";
+    assert formulaManager.getIntegerFormulaManager() != null : "Need a formula manager for "
+        + "integers to handle initialization assignments with quantifiers";
+
+    final IntegerFormulaManagerView ifmgr = formulaManager.getIntegerFormulaManager();
+
+    final CType lhsType = CTypeUtils.simplifyType(implicitCastToPointer(
+        pVariable.getExpressionType()));
+
+    final CExpressionVisitorWithPointerAliasing rhsVisitor =
+        new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
+            errorConditions, pts);
+    final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
+
+    // TODO Fix targetName inference. With the simple example, the inferred targetName is
+    // "*(signed_int)*" instead of the expected "*signed_int".
+    /*final */String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
+    targetName = "*signed_int";
+    final FormulaType<?> targetType = converter.getFormulaTypeFromCType(lhsType);
+    final int index = pUseOldSSAIndices
+        ? converter.getIndex(targetName, lhsType, ssa)
+        : converter.getFreshIndex(targetName, lhsType, ssa);
+
+    final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + index + "@counter");
+    final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + index,
+        FormulaType.IntegerType, targetType);
+
+    final BooleanFormula initializationAssignment = formulaManager.makeEqual(
+        afmgr.select(arrayFormula, counter),
+        rhsValue.getValue());
+
+    return pQfmgr.forall(ImmutableList.of(counter), initializationAssignment);
   }
 
   /**

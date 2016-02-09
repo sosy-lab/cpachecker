@@ -1006,19 +1006,19 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
 
       List<CExpressionAssignmentStatement> assignments =
           CInitializers.convertToAssignments(declaration, pDeclarationEdge);
+      if (options.handleStringLiteralInitializers()) {
+        // Special handling for string literal initializers -- convert them
+        // into character arrays
+        assignments = expandStringLiterals(assignments);
+      }
+      if (options.handleImplicitInitialization()) {
+        assignments = expandAssignmentList(declaration, assignments);
+      }
       if (qfmgr == null) {
-        if (options.handleStringLiteralInitializers()) {
-          // Special handling for string literal initializers -- convert them
-          // into character arrays
-          assignments = expandStringLiterals(assignments);
-        }
-        if (options.handleImplicitInitialization()) {
-          assignments = expandAssignmentList(declaration, assignments);
-        }
         result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
       } else {
         result = assignmentHandler.handleInitializationAssignmentsWithQuantifier(
-            lhs, assignments, qfmgr);
+            lhs, assignments, qfmgr, true);
       }
 
     } else {
