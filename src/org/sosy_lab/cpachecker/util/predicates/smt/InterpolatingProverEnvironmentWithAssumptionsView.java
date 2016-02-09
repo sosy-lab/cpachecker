@@ -84,19 +84,21 @@ public class InterpolatingProverEnvironmentWithAssumptionsView<E> implements
 
   @Override
   public BooleanFormula getInterpolant(List<E> formulasOfA)
-      throws SolverException {
+      throws SolverException, InterruptedException {
     return delegate.getInterpolant(formulasOfA);
   }
 
   @Override
   public List<BooleanFormula> getSeqInterpolants(
-      List<Set<E>> partitionedFormulas) throws SolverException {
+      List<Set<E>> partitionedFormulas)
+      throws SolverException, InterruptedException {
     return delegate.getSeqInterpolants(partitionedFormulas);
   }
 
   @Override
   public List<BooleanFormula> getTreeInterpolants(
-      List<Set<E>> partitionedFormulas, int[] startOfSubTree) throws SolverException {
+      List<Set<E>> partitionedFormulas, int[] startOfSubTree)
+      throws SolverException, InterruptedException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }
 

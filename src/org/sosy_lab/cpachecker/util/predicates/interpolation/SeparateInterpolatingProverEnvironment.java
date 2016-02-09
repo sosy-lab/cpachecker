@@ -91,13 +91,15 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> pFormulasOfA) throws SolverException {
+  public BooleanFormula getInterpolant(List<T> pFormulasOfA)
+      throws SolverException, InterruptedException {
     BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
     return convertToMain(itpF);
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas) throws SolverException {
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas)
+      throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(partitionedFormulas);
     final List<BooleanFormula> result = new ArrayList<>();
     for (BooleanFormula itp : itps) {
@@ -107,7 +109,8 @@ public class SeparateInterpolatingProverEnvironment<T> implements InterpolatingP
   }
 
   @Override
-  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree) throws SolverException{
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree)
+      throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
     final List<BooleanFormula> result = new ArrayList<>();
     for (BooleanFormula itp : itps) {
