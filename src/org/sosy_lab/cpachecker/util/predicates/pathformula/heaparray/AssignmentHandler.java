@@ -254,14 +254,20 @@ class AssignmentHandler {
    * Handles an initialization assignments, i.e. an assignment with a C initializer, with using a
    * quantifier over the resulting SMT array.
    *
+   * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
+   * the normal initialization in {@link #handleInitializationAssignments(CLeftHandSide, List)}.</p>
+   *
+   * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
    * @param pAssignments A list of assignment statements.
    * @param pQfmgr A formula manager with quantifier support.
    * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
+   * @see #handleInitializationAssignments(CLeftHandSide, List)
    */
   BooleanFormula handleInitializationAssignmentsWithQuantifier(
+      final @Nonnull CLeftHandSide pLeftHandSide,
       final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
       final @Nonnull QuantifiedFormulaManagerView pQfmgr,
       final boolean pUseOldSSAIndices)
@@ -282,21 +288,33 @@ class AssignmentHandler {
             errorConditions, pts);
     final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
 
-    final String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
-    final FormulaType<?> targetType = converter.getFormulaTypeFromCType(lhsType);
-    final int index = pUseOldSSAIndices
-        ? converter.getIndex(targetName, lhsType, ssa)
-        : converter.getFreshIndex(targetName, lhsType, ssa);
+    if (rhsValue == null) {
+      // Fallback case, if we have no initialization of the form "<variable> = <value>"
+      // Example code snippet
+      // (cf. test/programs/simple/struct-initializer-for-composite-field_false-unreach-label.c)
+      //    struct s { int x; };
+      //    struct t { struct s s; };
+      //    ...
+      //    const struct s s = { .x = 1 };
+      //    struct t t = { .s = s };
+      return handleInitializationAssignments(pLeftHandSide, pAssignments);
+    } else {
+      final String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
+      final FormulaType<?> targetType = converter.getFormulaTypeFromCType(lhsType);
+      final int index = pUseOldSSAIndices
+          ? converter.getIndex(targetName, lhsType, ssa)
+          : converter.getFreshIndex(targetName, lhsType, ssa);
 
-    final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + index + "@counter");
-    final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + index,
-        FormulaType.IntegerType, targetType);
+      final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + index + "@counter");
+      final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + index,
+          FormulaType.IntegerType, targetType);
 
-    final BooleanFormula initializationAssignment = formulaManager.makeEqual(
-        afmgr.select(arrayFormula, counter),
-        rhsValue.getValue());
+      final BooleanFormula initializationAssignment = formulaManager.makeEqual(
+          afmgr.select(arrayFormula, counter),
+          rhsValue.getValue());
 
-    return pQfmgr.forall(ImmutableList.of(counter), initializationAssignment);
+      return pQfmgr.forall(ImmutableList.of(counter), initializationAssignment);
+    }
   }
 
   /**

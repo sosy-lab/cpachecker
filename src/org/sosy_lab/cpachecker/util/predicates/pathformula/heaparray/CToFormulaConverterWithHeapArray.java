@@ -1018,7 +1018,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
         result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
       } else {
         result = assignmentHandler.handleInitializationAssignmentsWithQuantifier(
-            assignments, qfmgr, true);
+            lhs, assignments, qfmgr, true);
       }
 
     } else {
