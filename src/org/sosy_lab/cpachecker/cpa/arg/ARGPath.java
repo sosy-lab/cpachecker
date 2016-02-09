@@ -177,7 +177,7 @@ public class ARGPath extends AbstractAppender {
           curNode = intermediateEdge.getSuccessor();
         }
 
-      // we have a normal connection without whole in the edges
+      // we have a normal connection without hole in the edges
       } else {
         fullPath.add(curOutgoingEdge);
       }
@@ -266,6 +266,10 @@ public class ARGPath extends AbstractAppender {
     return new ReverseARGPathBuilder();
   }
 
+  /**
+   * The length of the path, i.e., the number of states
+   * (this is different from the number of edges).
+   */
   public int size() {
     return states.size();
   }
@@ -439,6 +443,10 @@ public class ARGPath extends AbstractAppender {
       return pos;
     }
 
+    /**
+     * Get a {@link PathPosition} instance that refers to the current position of this iterator.
+     * Can be used to create a new iterator in the same position.
+     */
     public PathPosition getPosition() {
       return new PathPosition(path, getIndex());
     }
@@ -562,18 +570,27 @@ public class ARGPath extends AbstractAppender {
 
     /**
      * Get the prefix of the current ARGPath from the first state to the current
-     * state (eclusive) returned by this iterator.
+     * state (exclusive) returned by this iterator.
      * The prefix will always be forwards directed, thus the {@link ReversePathIterator}
      * does also return the sequence from the first state of the ARGPath up (exclusive)
      * the current position of the iterator.
      *
+     * May not be called when this iterator points to the first state in the path
+     * (at the beginning of an iteration with a forwards PathIterator,
+     * or at the end of an iteration with a backwards PathIterator).
+     *
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getPrefixExclusive() {
+      checkState(pos > 0, "Exclusive prefix of first state in path would be empty.");
       return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos-1));
     }
   }
 
+  /**
+   * A marker for a specific position in an {@link ARGPath}.
+   * This class is independent of the traversal order of the iterator that was used to create it.
+   */
   public static final class PathPosition {
 
     private final int pos;
@@ -604,22 +621,35 @@ public class ARGPath extends AbstractAppender {
           && (this.path.equals(other.path)));
     }
 
+    /**
+     * Create a fresh {@link PathIterator} for this path,
+     * initialized at this position of the path, and iterating forwards.
+     */
     public PathIterator iterator() {
       return new DefaultPathIterator(path, pos);
     }
 
+    /**
+     * Create a fresh {@link PathIterator} for this path,
+     * initialized at this position of the path, and iterating backwards.
+     */
     public PathIterator reverseIterator() {
       return new ReversePathIterator(path, pos);
     }
 
+    /**
+     * @see PathIterator#getLocation()
+     */
     public CFANode getLocation() {
       return iterator().getLocation();
     }
 
+    /**
+     * Return the {@link ARGPath} that this position belongs to.
+     */
     public ARGPath getPath() {
       return path;
     }
-
   }
 
   /**
