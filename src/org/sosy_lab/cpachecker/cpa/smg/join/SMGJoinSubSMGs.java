@@ -154,8 +154,7 @@ final class SMGJoinSubSMGs {
       return;
     }
 
-    for(Integer pointerToSubSmg : valueAbstractionCandidates.keySet()) {
-      List<SMGAbstractionCandidate> abstractionCandidates = valueAbstractionCandidates.get(pointerToSubSmg);
+    for(List<SMGAbstractionCandidate> abstractionCandidates : valueAbstractionCandidates.values()) {
       Collections.sort(abstractionCandidates);
       abstractionCandidates.get(0).execute(destSMG);
     }
