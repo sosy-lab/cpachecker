@@ -55,7 +55,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
   /**
    * Statistics for formula slicing.
    */
-  class Stats implements Statistics {
+  private static class Stats implements Statistics {
     final Timer LBEencodingTimer = new Timer();
 
     @Override

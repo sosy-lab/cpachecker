@@ -86,12 +86,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -761,12 +760,8 @@ public class ARGPathExporter {
       final Function<? super ARGState, ? extends Iterable<ARGState>> successorFunction = ARGUtils.CHILDREN_OF_STATE;
 
       Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
-      if (pCounterExample.isPresent()) {
-        CFAPathWithAssumptions cfaPath = pCounterExample.get().getCFAPathWithAssignments();
-        if (cfaPath != null) {
-          ARGPath targetPath = pCounterExample.get().getTargetPath();
-          valueMap = pCounterExample.get().getExactVariableValues(targetPath);
-        }
+      if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
+        valueMap = pCounterExample.get().getExactVariableValues();
       }
 
       GraphMlBuilder doc;

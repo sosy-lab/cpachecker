@@ -48,7 +48,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager, Statistics
   /**
    * Statistics for formula slicing.
    */
-  class Stats implements Statistics {
+  private static class Stats implements Statistics {
     final Timer formulaSlicingTimer = new Timer();
 
     @Override

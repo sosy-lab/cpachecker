@@ -148,7 +148,7 @@ public class FormulaLinearizationManager {
    * "concave".
    */
   public BooleanFormula convertToPolicy(BooleanFormula f,
-      Model pModel) {
+      Model pModel) throws InterruptedException {
 
     model = pModel;
 

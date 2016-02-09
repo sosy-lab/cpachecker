@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -50,18 +49,15 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -258,22 +254,16 @@ class KInductionProver implements AutoCloseable {
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
-    BooleanFormula invariant = bfmgr.makeBoolean(false);
+    BooleanFormula invariant = bfmgr.makeBoolean(true);
 
-    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
-      BooleanFormula pathInvariant = bfmgr.makeBoolean(true);
-
-      for (CFANode location : path) {
-        for (CandidateInvariant candidateInvariant :
-            getConfirmedCandidates(location).filter(CandidateInvariant.class)) {
-          pathInvariant = bfmgr.and(pathInvariant, candidateInvariant.getFormula(pFMGR, pPFMGR));
-        }
-        pathInvariant =
-            bfmgr.and(
-                pathInvariant, currentInvariantsSupplier.getInvariantFor(location, pFMGR, pPFMGR));
-      }
-      invariant = bfmgr.or(pathInvariant, invariant);
+    for (CandidateInvariant candidateInvariant :
+        getConfirmedCandidates(pLocation).filter(CandidateInvariant.class)) {
+      invariant = bfmgr.and(invariant, candidateInvariant.getFormula(pFMGR, pPFMGR));
     }
+
+    invariant =
+        bfmgr.and(invariant, currentInvariantsSupplier.getInvariantFor(pLocation, pFMGR, pPFMGR));
+
     return invariant;
   }
 
@@ -281,30 +271,18 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
-    ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
-    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
-      ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
+    ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
 
-      for (CFANode location : path) {
-        for (ExpressionTreeCandidateInvariant expressionTreeCandidateInvariant :
-            getConfirmedCandidates(location).filter(ExpressionTreeCandidateInvariant.class)) {
-          pathInvariant =
-              And.of(pathInvariant, expressionTreeCandidateInvariant.asExpressionTree());
-          if (ExpressionTrees.getFalse().equals(pathInvariant)) {
-            break;
-          }
-        }
-
-        pathInvariant = And.of(pathInvariant, currentInvariantsSupplier.getInvariantFor(location));
-        if (ExpressionTrees.getFalse().equals(pathInvariant)) {
-          break;
-        }
-      }
-      invariant = Or.of(pathInvariant, invariant);
-      if (ExpressionTrees.getTrue().equals(invariant)) {
+    for (ExpressionTreeCandidateInvariant expressionTreeCandidateInvariant :
+        getConfirmedCandidates(pLocation).filter(ExpressionTreeCandidateInvariant.class)) {
+      invariant = And.of(invariant, expressionTreeCandidateInvariant.asExpressionTree());
+      if (ExpressionTrees.getFalse().equals(invariant)) {
         break;
       }
     }
+
+    invariant = And.of(invariant, currentInvariantsSupplier.getInvariantFor(pLocation));
+
     return invariant;
   }
 
@@ -382,7 +360,6 @@ class KInductionProver implements AutoCloseable {
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
 
     BoundsCPA stepCaseBoundsCPA = CPAs.retrieveCPA(cpa, BoundsCPA.class);
-    CallstackCPA stepCaseCallstackCPA = CPAs.retrieveCPA(cpa, CallstackCPA.class);
 
     // Initialize the reached set if necessary
     ensureReachedSetInitialized(reached);
@@ -410,7 +387,6 @@ class KInductionProver implements AutoCloseable {
           } else {
             predecessorReachedSet = reached;
             stepCaseBoundsCPA.setMaxLoopIterations(k);
-            stepCaseCallstackCPA.setMaxRecursionDepth(k);
             BMCHelper.unroll(logger, predecessorReachedSet, reachedSetInitializer, algorithm, cpa);
           }
         }
@@ -440,7 +416,6 @@ class KInductionProver implements AutoCloseable {
 
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(k + 1);
-    stepCaseCallstackCPA.setMaxRecursionDepth(k + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
     stopLocations = getStopLocations(reached);
 
@@ -522,8 +497,9 @@ class KInductionProver implements AutoCloseable {
       for (CFANode loopHead : loop.getLoopHeads()) {
         Precision precision =
             cpa.getInitialPrecision(loopHead, StateSpacePartition.getDefaultPartition());
-        pReachedSet.add(
-            cpa.getInitialState(loopHead, StateSpacePartition.getDefaultPartition()), precision);
+        AbstractState initialState =
+            cpa.getInitialState(loopHead, StateSpacePartition.getDefaultPartition());
+        pReachedSet.add(initialState, precision);
       }
     }
   }

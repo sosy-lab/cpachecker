@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -77,10 +78,10 @@ import org.sosy_lab.solver.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
 import org.sosy_lab.solver.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.solver.basicimpl.tactics.Tactic;
+import org.sosy_lab.solver.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.solver.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.solver.visitors.FormulaVisitor;
-import org.sosy_lab.solver.visitors.RecursiveFormulaVisitor;
 import org.sosy_lab.solver.visitors.TraversalProcess;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -1104,7 +1105,7 @@ public class FormulaManagerView {
   public Collection<BooleanFormula> extractAtoms(
       BooleanFormula pFormula,
       final boolean splitArithEqualities) {
-    final Set<BooleanFormula> result = new HashSet<>();
+    final Set<BooleanFormula> result = new LinkedHashSet<>();
     booleanFormulaManager.visitRecursively(new DefaultBooleanFormulaVisitor<TraversalProcess>(){
       @Override
       protected TraversalProcess visitDefault() {
@@ -1114,9 +1115,7 @@ public class FormulaManagerView {
       @Override
       public TraversalProcess visitAtom(BooleanFormula atom, FunctionDeclaration decl) {
         if (splitArithEqualities && myIsPurelyArithmetic(atom)) {
-
-          // TODO: why only the 0th element is relevant?
-          result.add(splitNumeralEqualityIfPossible(atom).get(0));
+          result.addAll(extractAtoms(splitNumeralEqualityIfPossible(atom).get(0), false));
         }
         result.add(atom);
         return TraversalProcess.CONTINUE;
@@ -1174,18 +1173,24 @@ public class FormulaManagerView {
     if (result != null) { return result; }
 
     final AtomicBoolean isPurelyAtomic = new AtomicBoolean(true);
-    new RecursiveFormulaVisitor(manager) {
+    visitRecursively(new DefaultFormulaVisitor<TraversalProcess>() {
       @Override
-      public Void visitFunction(
+      protected TraversalProcess visitDefault(Formula f) {
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitFunction(
           Formula f,
           List<Formula> args,
           FunctionDeclaration decl, Function<List<Formula>, Formula> constructor) {
         if (decl.getKind() == FunctionDeclarationKind.UF) {
           isPurelyAtomic.set(false);
+          return TraversalProcess.ABORT;
         }
-        return null;
+        return TraversalProcess.CONTINUE;
       }
-    }.visit(f);
+    }, f);
     result = isPurelyAtomic.get();
     arithCache.put(f, result);
     return result;
@@ -1212,26 +1217,22 @@ public class FormulaManagerView {
     return manager.extractVariablesAndUFs(unwrap(f)).keySet();
   }
 
-  /**
-   * Extract pairs of <variable name, variable formula>
-   *  of all free variables in a formula.
-   *
-   * @deprecated The type of the returned Formula objects is incorrect.
-   * Thus consider using {@link #extractVariableNames(Formula)} instead.
-   * @param pF The input formula
-   * @return Map from variable names to variable formulas.
-   */
-  @Deprecated
-  public Map<String, Formula> extractFreeVariableMap(Formula pF) {
-    return manager.extractVariables(unwrap(pF));
-  }
-
   public Appender dumpFormula(BooleanFormula pT) {
     return manager.dumpFormula(pT);
   }
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
-    t = applyTactic(t, Tactic.NNF);
+    final BooleanFormulaVisitor<Boolean> isAtomicVisitor =
+        new DefaultBooleanFormulaVisitor<Boolean>() {
+          @Override protected Boolean visitDefault() {
+            return false;
+          }
+          @Override public Boolean visitAtom(BooleanFormula atom,
+              FunctionDeclaration decl) {
+            return !containsIfThenElse(atom);
+          }
+        };
+
     return booleanFormulaManager.visit(new DefaultBooleanFormulaVisitor<Boolean>() {
 
       @Override public Boolean visitDefault() {
@@ -1247,7 +1248,8 @@ public class FormulaManagerView {
         return !containsIfThenElse(atom);
       }
       @Override public Boolean visitNot(BooleanFormula operand) {
-        return booleanFormulaManager.visit(this, operand);
+        // Return false unless the operand is atomic.
+        return booleanFormulaManager.visit(isAtomicVisitor, operand);
       }
       @Override public Boolean visitAnd(List<BooleanFormula> operands) {
         for (BooleanFormula operand : operands) {
@@ -1376,7 +1378,7 @@ public class FormulaManagerView {
     for (Entry<? extends Formula, ? extends Formula> e : replacements.entrySet()) {
       m.put(unwrap(e.getKey()), unwrap(e.getValue()));
     }
-    return (BooleanFormula)manager.substitute(f, m);
+    return manager.substitute(f, m);
   }
 
   /**
@@ -1520,7 +1522,7 @@ public class FormulaManagerView {
    * See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for
    * documentation.
    */
-  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) {
+  public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic) throws InterruptedException{
     return manager.applyTactic(input, tactic);
   }
 

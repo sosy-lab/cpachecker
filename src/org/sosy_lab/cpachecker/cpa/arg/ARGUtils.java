@@ -52,9 +52,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
@@ -602,17 +601,10 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
+    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
 
-    if (pCounterExample != null) {
-      CFAPathWithAssumptions cfaPath = pCounterExample.getCFAPathWithAssignments();
-      if (cfaPath != null) {
-        ARGPath targetPath = pCounterExample.getTargetPath();
-        valueMap = pCounterExample.getExactVariableValues(targetPath);
-      }
-    }
-    if (valueMap == null) {
-      valueMap = ImmutableMap.of();
+    if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
+      valueMap = pCounterExample.getExactVariableValues();
     }
 
     sb.append("CONTROL AUTOMATON " + name + "\n\n");

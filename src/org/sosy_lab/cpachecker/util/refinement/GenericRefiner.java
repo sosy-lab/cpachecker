@@ -37,8 +37,8 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -305,8 +305,14 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
 
       logger.log(Level.FINEST, "found a feasible counterexample");
       // we use the imprecise version of the CounterexampleInfo, due to the possible
-      // merges which are done in the used CPAs
-      return CounterexampleInfo.feasible(feasiblePath, createModel(feasiblePath));
+      // merges which are done in the used CPAs, but if we can compute a path with assignments,
+      // it is probably precise.
+      CFAPathWithAssumptions assignments = createModel(feasiblePath);
+      if (!assignments.isEmpty()) {
+        return CounterexampleInfo.feasiblePrecise(feasiblePath, assignments);
+      } else {
+        return CounterexampleInfo.feasibleImprecise(feasiblePath);
+      }
     }
 
     return CounterexampleInfo.spurious();

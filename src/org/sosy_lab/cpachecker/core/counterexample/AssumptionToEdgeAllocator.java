@@ -1955,7 +1955,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public final static class ValueLiterals {
+  private final static class ValueLiterals {
 
     /*Contains values for possible sub expressions */
     private final List<SubExpressionValueLiteral> subExpressionValueLiterals = new ArrayList<>();
@@ -1968,10 +1968,6 @@ public class AssumptionToEdgeAllocator {
 
     public ValueLiterals(ValueLiteral valueLiteral) {
       expressionValueLiteral = valueLiteral;
-    }
-
-    public ValueLiteral getExpressionValueLiteral() {
-      return expressionValueLiteral;
     }
 
     public CExpression getExpressionValueLiteralAsCExpression() {
@@ -2005,7 +2001,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static interface ValueLiteral {
+  private static interface ValueLiteral {
 
     public CExpression getValueLiteral();
     public boolean isUnknown();
@@ -2013,7 +2009,7 @@ public class AssumptionToEdgeAllocator {
     public ValueLiteral addCast(CSimpleType pType);
   }
 
-  public static class UnknownValueLiteral implements ValueLiteral {
+  private static class UnknownValueLiteral implements ValueLiteral {
 
     private static final UnknownValueLiteral instance = new UnknownValueLiteral();
 
@@ -2044,7 +2040,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static class ExplicitValueLiteral implements ValueLiteral {
+  private static class ExplicitValueLiteral implements ValueLiteral {
 
     private final CLiteralExpression explicitValueLiteral;
 
@@ -2090,10 +2086,6 @@ public class AssumptionToEdgeAllocator {
       return explicitValueLiteral;
     }
 
-    public CLiteralExpression getExplicitValueLiteral() {
-      return explicitValueLiteral;
-    }
-
     @Override
     public boolean isUnknown() {
       return false;
@@ -2105,7 +2097,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static final class CastedExplicitValueLiteral extends ExplicitValueLiteral {
+  private static final class CastedExplicitValueLiteral extends ExplicitValueLiteral {
 
     private final CCastExpression castExpression;
 
@@ -2120,7 +2112,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  public static final class SubExpressionValueLiteral {
+  private static final class SubExpressionValueLiteral {
 
     private final ValueLiteral valueLiteral;
     private final CLeftHandSide subExpression;
@@ -2132,10 +2124,6 @@ public class AssumptionToEdgeAllocator {
 
     public CExpression getValueLiteralAsCExpression() {
       return valueLiteral.getValueLiteral();
-    }
-
-    public ValueLiteral getValueLiteral() {
-      return valueLiteral;
     }
 
     public CLeftHandSide getSubExpression() {

@@ -185,7 +185,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   private <T> List<BooleanFormula> extractInterpolantSequence(final List<T> pTerms,
-      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException {
+      final InterpolatingProverEnvironmentWithAssumptions<T> pProver) throws SolverException, InterruptedException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 

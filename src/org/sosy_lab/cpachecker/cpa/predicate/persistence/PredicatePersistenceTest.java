@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.TruthJUnit.assume;
 
 import java.util.List;
 
@@ -75,7 +74,6 @@ public class PredicatePersistenceTest extends SolverBasedTest0 {
 
   @Test
   public void testSplitFormula_Syntactically() {
-    assume().that(solver).isNotEqualTo(Solvers.Z3); // broken for Z3 currently
 
     BooleanFormula f1 =
         imgr.equal(imgr.makeVariable("variable_with_long_name"), imgr.makeNumber(1));

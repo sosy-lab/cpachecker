@@ -999,14 +999,16 @@ public class InvariantsState implements AbstractState,
 
   private FluentIterable<BooleanFormula<CompoundInterval>> getApproximationFormulas() {
 
-    final Predicate<MemoryLocation> acceptVariable = new Predicate<MemoryLocation>() {
+    final Predicate<MemoryLocation> acceptVariable =
+        new Predicate<MemoryLocation>() {
 
-      @Override
-      public boolean apply(@Nullable MemoryLocation pInput) {
-        return pInput != null && !pInput.getIdentifier().contains("*");
-      }
-
-    };
+          @Override
+          public boolean apply(@Nullable MemoryLocation pInput) {
+            return pInput != null
+                && !pInput.getIdentifier().contains("*")
+                && !pInput.getIdentifier().contains("->");
+          }
+        };
 
     final Predicate<BooleanFormula<CompoundInterval>> acceptFormula = new Predicate<BooleanFormula<CompoundInterval>>() {
 

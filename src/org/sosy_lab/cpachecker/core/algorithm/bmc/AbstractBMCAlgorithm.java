@@ -404,7 +404,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (safe) {
       pInductionProblem.assumeTruth(pReachedSet);
     } else {
-      analyzeCounterexample(pReachedSet, pProver);
+      analyzeCounterexample(program, pReachedSet, pProver);
     }
 
     // Now pop the program formula off of the stack
@@ -420,12 +420,16 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    * Subclasses can use this method to further analyze the counterexample
    * if necessary.
    *
+   * @param pCounterexample the satisfiable formula that contains the specification violation
    * @param pReachedSet the reached used for analyzing
-   * @param pProver the prover that should be used
+   * @param pProver the prover that was used (has pCounterexample formula pushed onto it)
    * @throws CPATransferException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
-  protected void analyzeCounterexample(final ReachedSet pReachedSet, final ProverEnvironment pProver)
+  protected void analyzeCounterexample(
+      final BooleanFormula pCounterexample,
+      final ReachedSet pReachedSet,
+      final ProverEnvironment pProver)
       throws CPATransferException, InterruptedException {
     // by default, do nothing (just a hook for subclasses)
   }
