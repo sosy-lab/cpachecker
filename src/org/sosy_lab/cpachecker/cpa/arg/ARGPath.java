@@ -109,30 +109,6 @@ public class ARGPath extends AbstractAppender {
   }
 
   /**
-   * This method returns the transition, as pair of state and edge, at the given offset.
-   *
-   * @param pOffset the offset of the state / edge pair
-   * @return the pair of state and edge at the given offset
-   * @throws IndexOutOfBoundsException If the offset is beyond the last edge (greater or equal than {@code getInnerEdges().size()}).
-   */
-  public Pair<ARGState, CFAEdge> obtainTransitionAt(int pOffset) {
-    checkElementIndex(pOffset, edges.size());
-    return Pair.of(states.get(pOffset), edges.get(pOffset));
-  }
-
-  /**
-   * This method obtains the suffix from the path, starting after the given offset.
-   *
-   * @param pOffset the offset
-   * @return the suffix
-   */
-  public ARGPath obtainSuffix(int pOffset) {
-    checkElementIndex(pOffset, states.size());
-    return new ARGPath(states.subList(pOffset, states.size()),
-                       edges.subList(pOffset, edges.size()));
-  }
-
-  /**
    * Return the list of edges between the states.
    * The result of this method is always one element shorter
    * than {@link #asStatesList()}.
