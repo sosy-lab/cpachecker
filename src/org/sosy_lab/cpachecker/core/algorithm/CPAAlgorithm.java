@@ -292,6 +292,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Considering successor of current state");
         logger.log(Level.ALL, "Successor of", state, "\nis", successor);
 
+        shutdownNotifier.shutdownIfNecessary();
         stats.precisionTimer.start();
         PrecisionAdjustmentResult precAdjustmentResult;
         try {
@@ -353,6 +354,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         // An optimization, we don't bother merging if we know that the
         // merge operator won't do anything (i.e., it is merge-sep).
         if (mergeOperator != MergeSepOperator.getInstance() && !reached.isEmpty()) {
+          shutdownNotifier.shutdownIfNecessary();
           stats.mergeTimer.start();
           try {
             List<AbstractState> toRemove = new ArrayList<>();
@@ -388,6 +390,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           }
         }
 
+        shutdownNotifier.shutdownIfNecessary();
         stats.stopTimer.start();
         boolean stop;
         try {
