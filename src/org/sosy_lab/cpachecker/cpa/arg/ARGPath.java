@@ -585,6 +585,39 @@ public class ARGPath extends AbstractAppender {
       checkState(pos > 0, "Exclusive prefix of first state in path would be empty.");
       return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos-1));
     }
+
+    /**
+     * Get the suffix of the current ARGPath from the current state (inclusive) to the
+     * last state returned by this iterator.
+     * The suffix will always be forwards directed, thus the {@link ReversePathIterator}
+     * does also return the sequence from the current state of the ARGPath (inclusive)
+     * up to the last position of the iterator.
+     *
+     * @return A non-null {@link ARGPath}
+     */
+    public ARGPath getSuffixInclusive() {
+      int lastPos = path.states.size();
+      return new ARGPath(path.states.subList(pos, lastPos), path.edges.subList(pos, lastPos-1));
+    }
+
+    /**
+     * Get the suffix of the current ARGPath from the current state (exclusive) to the
+     * last state returned by this iterator.
+     * The suffix will always be forwards directed, thus the {@link ReversePathIterator}
+     * does also return the sequence from the current state of the ARGPath (exclusive)
+     * up to the last position of the iterator.
+     *
+     * May not be called when this iterator points to the last state in the path
+     * (at the end of an iteration with a forwards PathIterator,
+     * or at the beginning of an iteration with a backwards PathIterator).
+     *
+     * @return A non-null {@link ARGPath}
+     */
+    public ARGPath getSuffixExclusive() {
+      checkState(pos < path.states.size() - 1, "Exclusive suffix of last state in path would be empty.");
+      int lastPos = path.states.size();
+      return new ARGPath(path.states.subList(pos+1, lastPos), path.edges.subList(pos+1, lastPos-1));
+    }
   }
 
   /**

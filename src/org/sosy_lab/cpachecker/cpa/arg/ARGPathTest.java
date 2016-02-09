@@ -217,6 +217,29 @@ public class ARGPathTest {
     path.pathIterator().getPrefixExclusive();
   }
 
+
+  @Test
+  public void testGetSuffixInclusive() {
+    assertThat(path.reversePathIterator().getSuffixInclusive()).isEqualTo(ARGPath.builder().build(lastARGState));
+    assertThat(path.pathIterator().getSuffixInclusive()).isEqualTo(path);
+
+    PathIterator it = path.reversePathIterator();
+    it.advance();
+    assertThat(it.getSuffixInclusive()).isEqualTo(ARGPath.builder().add(thirdARGState, null).build(lastARGState));
+  }
+
+  @Test
+  public void testGetSuffixExclusive() {
+    PathIterator it = path.reversePathIterator();
+    it.advance();
+    assertThat(it.getSuffixExclusive()).isEqualTo(ARGPath.builder().build(lastARGState));
+  }
+
+  @Test(expected=IllegalStateException.class)
+  public void testGetSuffixExclusiveFails() {
+    path.reversePathIterator().getSuffixExclusive();
+  }
+
   @SuppressFBWarnings(
       value="DE_MIGHT_IGNORE",
       justification="We want the the excpetions to be thrown in the unit test,"
