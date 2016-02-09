@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -222,6 +221,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
             1,
             pCFA,
             additionalAutomata);
+
     InvariantGenerator invariantGenerator = cpaInvariantGenerator;
     final Function<CPAInvariantGenerator, CPAInvariantGenerator> adjust;
     if (options.adjustConditions) {
@@ -305,6 +305,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     Configuration invariantConfig;
     try {
       ConfigurationBuilder configBuilder = Configuration.builder().copyOptionFrom(config, "specification");
+
       configBuilder.loadFromFile(configFile);
       invariantConfig = configBuilder.build();
     } catch (IOException e) {
@@ -433,7 +434,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
         BooleanFormula f = AbstractStates.extractReportedFormulas(fmgr, locState, pfmgr);
-        logger.log(Level.ALL, "Invariant for", pLocation+":", f);
+        logger.log(Level.ALL, "Invariant for", pLocation + ":", f);
 
         invariant = bfmgr.or(invariant, f);
       }
@@ -455,33 +456,23 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     @Override
     public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
-      ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
-      for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
-        ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
+      ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
 
-        for (CFANode location : path) {
-          ExpressionTree<Object> locationInvariant = ExpressionTrees.getFalse();
+      for (AbstractState locState : AbstractStates.filterLocation(reached, pLocation)) {
+        ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
 
-          for (AbstractState locState : AbstractStates.filterLocation(reached, location)) {
-            ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
-
-            for (ExpressionTreeReportingState expressionTreeReportingState :
-                AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
-              stateInvariant =
-                  And.of(
-                      stateInvariant,
-                      expressionTreeReportingState.getFormulaApproximation(
-                          cfa.getFunctionHead(pLocation.getFunctionName()), location));
-            }
-
-            locationInvariant = Or.of(locationInvariant, stateInvariant);
-          }
-
-          pathInvariant = And.of(pathInvariant, locationInvariant);
+        for (ExpressionTreeReportingState expressionTreeReportingState :
+            AbstractStates.asIterable(locState).filter(ExpressionTreeReportingState.class)) {
+          stateInvariant =
+              And.of(
+                  stateInvariant,
+                  expressionTreeReportingState.getFormulaApproximation(
+                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
         }
-        invariant = Or.of(pathInvariant, invariant);
+
+        locationInvariant = Or.of(locationInvariant, stateInvariant);
       }
-      return invariant;
+      return locationInvariant;
     }
   }
 
