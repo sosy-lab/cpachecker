@@ -254,7 +254,6 @@ class AssignmentHandler {
    * Handles an initialization assignments, i.e. an assignment with a C initializer, with using a
    * quantifier over the resulting SMT array.
    *
-   * @param pVariable The left hand side of the assignment.
    * @param pAssignments A list of assignment statements.
    * @param pQfmgr A formula manager with quantifier support.
    * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
@@ -263,7 +262,6 @@ class AssignmentHandler {
    * @throws InterruptedException If the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignmentsWithQuantifier(
-      final @Nonnull CLeftHandSide pVariable,
       final @Nonnull List<CExpressionAssignmentStatement> pAssignments,
       final @Nonnull QuantifiedFormulaManagerView pQfmgr,
       final boolean pUseOldSSAIndices)
@@ -276,18 +274,15 @@ class AssignmentHandler {
 
     final IntegerFormulaManagerView ifmgr = formulaManager.getIntegerFormulaManager();
 
-    final CType lhsType = CTypeUtils.simplifyType(implicitCastToPointer(
-        pVariable.getExpressionType()));
+    final CType lhsType = CTypeUtils.simplifyType(
+        pAssignments.get(0).getLeftHandSide().getExpressionType());
 
     final CExpressionVisitorWithPointerAliasing rhsVisitor =
         new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
             errorConditions, pts);
     final Value rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor).asValue();
 
-    // TODO Fix targetName inference. With the simple example, the inferred targetName is
-    // "*(signed_int)*" instead of the expected "*signed_int".
-    /*final */String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
-    targetName = "*signed_int";
+    final String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
     final FormulaType<?> targetType = converter.getFormulaTypeFromCType(lhsType);
     final int index = pUseOldSSAIndices
         ? converter.getIndex(targetName, lhsType, ssa)
