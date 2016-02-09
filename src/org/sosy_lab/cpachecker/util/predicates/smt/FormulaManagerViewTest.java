@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -221,13 +220,13 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     assertIsNotConjunctive(bmgrv.or(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
   }
 
-  @Test @Ignore // currently failing for some solvers
+  @Test
   public void testIsPurelyConjunctive_Equivalence() {
     assertIsNotConjunctive(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
     assertIsNotConjunctive(bmgr.not(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
   }
 
-  @Test @Ignore // currently failing for some solvers
+  @Test
   public void testIsPurelyConjunctive_Implication() {
     assertIsNotConjunctive(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
     assertIsNotConjunctive(bmgr.not(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
