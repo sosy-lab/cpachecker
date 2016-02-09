@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,12 +51,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -260,7 +259,7 @@ class KInductionProver implements AutoCloseable {
 
     BooleanFormula invariant = bfmgr.makeBoolean(false);
 
-    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+    for (List<CFANode> path : Collections.singleton(Collections.singletonList(pLocation))) {
       BooleanFormula pathInvariant = bfmgr.makeBoolean(true);
 
       for (CFANode location : path) {
@@ -282,7 +281,7 @@ class KInductionProver implements AutoCloseable {
     ExpressionTreeSupplier currentInvariantsSupplier = getCurrentExpressionTreeInvariantSupplier();
 
     ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
-    for (List<CFANode> path : CFAUtils.getBlankPaths(pLocation)) {
+    for (List<CFANode> path : Collections.singleton(Collections.singletonList(pLocation))) {
       ExpressionTree<Object> pathInvariant = ExpressionTrees.getTrue();
 
       for (CFANode location : path) {
@@ -382,7 +381,6 @@ class KInductionProver implements AutoCloseable {
     logger.log(Level.INFO, "Running algorithm to create induction hypothesis");
 
     BoundsCPA stepCaseBoundsCPA = CPAs.retrieveCPA(cpa, BoundsCPA.class);
-    CallstackCPA stepCaseCallstackCPA = CPAs.retrieveCPA(cpa, CallstackCPA.class);
 
     // Initialize the reached set if necessary
     ensureReachedSetInitialized(reached);
@@ -410,7 +408,6 @@ class KInductionProver implements AutoCloseable {
           } else {
             predecessorReachedSet = reached;
             stepCaseBoundsCPA.setMaxLoopIterations(k);
-            stepCaseCallstackCPA.setMaxRecursionDepth(k);
             BMCHelper.unroll(logger, predecessorReachedSet, reachedSetInitializer, algorithm, cpa);
           }
         }
@@ -440,7 +437,6 @@ class KInductionProver implements AutoCloseable {
 
     // Create the formula asserting the faultiness of the successor
     stepCaseBoundsCPA.setMaxLoopIterations(k + 1);
-    stepCaseCallstackCPA.setMaxRecursionDepth(k + 1);
     BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
     stopLocations = getStopLocations(reached);
 
@@ -522,8 +518,9 @@ class KInductionProver implements AutoCloseable {
       for (CFANode loopHead : loop.getLoopHeads()) {
         Precision precision =
             cpa.getInitialPrecision(loopHead, StateSpacePartition.getDefaultPartition());
-        pReachedSet.add(
-            cpa.getInitialState(loopHead, StateSpacePartition.getDefaultPartition()), precision);
+        AbstractState initialState =
+            cpa.getInitialState(loopHead, StateSpacePartition.getDefaultPartition());
+        pReachedSet.add(initialState, precision);
       }
     }
   }
