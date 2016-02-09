@@ -212,11 +212,14 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
     InvariantGeneratorOptions options = new InvariantGeneratorOptions();
     pConfig.inject(options);
+    final ShutdownManager childShutdownManager =
+        ShutdownManager.createWithParent(pShutdownManager.getNotifier());
 
-    CPAInvariantGenerator cpaInvariantGenerator = new CPAInvariantGenerator(
+    CPAInvariantGenerator cpaInvariantGenerator =
+        new CPAInvariantGenerator(
             pConfig,
             pLogger.withComponentName("CPAInvariantGenerator"),
-            ShutdownManager.createWithParent(pShutdownManager.getNotifier()),
+            childShutdownManager,
             pShutdownOnSafeManager,
             1,
             pCFA,
@@ -225,48 +228,62 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     InvariantGenerator invariantGenerator = cpaInvariantGenerator;
     final Function<CPAInvariantGenerator, CPAInvariantGenerator> adjust;
     if (options.adjustConditions) {
-      adjust = new Function<CPAInvariantGenerator, CPAInvariantGenerator>() {
+      adjust =
+          new Function<CPAInvariantGenerator, CPAInvariantGenerator>() {
 
-        @Override
-        public CPAInvariantGenerator apply(CPAInvariantGenerator pToAdjust) {
-          ConfigurableProgramAnalysis cpa = pToAdjust.cpa;
-          LogManager logger = pToAdjust.logger;
-          List<AdjustableConditionCPA> conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
-          CPAInvariantGenerator result = pToAdjust;
-          try {
-            if (adjustConditions(logger, conditionCPAs)) {
-              result = new CPAInvariantGenerator(pConfig, pLogger, pShutdownManager, pShutdownOnSafeManager, pToAdjust.iteration + 1, pCFA, pToAdjust.reachedSetFactory, cpa, pToAdjust.algorithm);
+            @Override
+            public CPAInvariantGenerator apply(CPAInvariantGenerator pToAdjust) {
+              ConfigurableProgramAnalysis cpa = pToAdjust.cpa;
+              LogManager logger = pToAdjust.logger;
+              List<AdjustableConditionCPA> conditionCPAs =
+                  CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
+              CPAInvariantGenerator result = pToAdjust;
+              try {
+                if (adjustConditions(logger, conditionCPAs)) {
+                  result =
+                      new CPAInvariantGenerator(
+                          pConfig,
+                          pLogger,
+                          childShutdownManager,
+                          pShutdownOnSafeManager,
+                          pToAdjust.iteration + 1,
+                          pCFA,
+                          pToAdjust.reachedSetFactory,
+                          cpa,
+                          pToAdjust.algorithm);
+                }
+              } catch (InvalidConfigurationException e) {
+                pLogger.logUserException(
+                    Level.WARNING, e, "Creating adjusted invariant generator failed");
+              } finally {
+                if (result == pToAdjust) {
+                  CPAs.closeCpaIfPossible(pToAdjust.cpa, pToAdjust.logger);
+                  CPAs.closeIfPossible(pToAdjust.algorithm, pToAdjust.logger);
+                }
+              }
+              return result;
             }
-          } catch (InvalidConfigurationException e) {
-            pLogger.logUserException(Level.WARNING, e, "Creating adjusted invariant generator failed");
-          } finally {
-            if (result == pToAdjust) {
-              CPAs.closeCpaIfPossible(pToAdjust.cpa, pToAdjust.logger);
-              CPAs.closeIfPossible(pToAdjust.algorithm, pToAdjust.logger);
+
+            private boolean adjustConditions(
+                LogManager pLogger, List<AdjustableConditionCPA> pConditionCPAs) {
+
+              boolean adjusted = false;
+
+              // Adjust precision if at least one CPA can do it.
+              for (AdjustableConditionCPA cpa : pConditionCPAs) {
+                if (cpa.adjustPrecision()) {
+                  pLogger.log(Level.INFO, "Adjusting precision for CPA", cpa);
+                  adjusted = true;
+                }
+              }
+              if (!adjusted) {
+                pLogger.log(
+                    Level.INFO,
+                    "None of the CPAs could adjust precision, " + "stopping invariant generation");
+              }
+              return adjusted;
             }
-          }
-          return result;
-        }
-
-        private boolean adjustConditions(LogManager pLogger, List<AdjustableConditionCPA> pConditionCPAs) {
-
-          boolean adjusted = false;
-
-          // Adjust precision if at least one CPA can do it.
-          for (AdjustableConditionCPA cpa : pConditionCPAs) {
-            if (cpa.adjustPrecision()) {
-              pLogger.log(Level.INFO, "Adjusting precision for CPA", cpa);
-              adjusted = true;
-            }
-          }
-          if (!adjusted) {
-            pLogger.log(Level.INFO, "None of the CPAs could adjust precision, "
-                + "stopping invariant generation");
-          }
-          return adjusted;
-        }
-
-      };
+          };
     } else {
       adjust = new Function<CPAInvariantGenerator, CPAInvariantGenerator>() {
 
