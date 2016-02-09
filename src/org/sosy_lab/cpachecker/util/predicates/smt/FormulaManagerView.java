@@ -1221,7 +1221,7 @@ public class FormulaManagerView {
     return manager.dumpFormula(pT);
   }
 
-  public boolean isPurelyConjunctive(BooleanFormula t) throws InterruptedException {
+  public boolean isPurelyConjunctive(BooleanFormula t) {
     final BooleanFormulaVisitor<Boolean> isAtomicVisitor =
         new DefaultBooleanFormulaVisitor<Boolean>() {
           @Override protected Boolean visitDefault() {
@@ -1229,7 +1229,7 @@ public class FormulaManagerView {
           }
           @Override public Boolean visitAtom(BooleanFormula atom,
               FunctionDeclaration decl) {
-            return true;
+            return !containsIfThenElse(atom);
           }
         };
 

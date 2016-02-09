@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Set;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -55,6 +56,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.truth.Truth;
 
 @RunWith(Parameterized.class)
 public class FormulaManagerViewTest extends SolverBasedTest0 {
@@ -176,6 +178,80 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
   public void testExtractAtoms_SplitEqualities_bvReplaceByInt() throws SolverException, InterruptedException {
     // BitvectorFormulaManagerView here!
     testExtractAtoms_SplitEqualities_bitvectors(mgrv.getBitvectorFormulaManager());
+  }
+
+  private void assertIsConjunctive(BooleanFormula f) {
+    if (!mgrv.isPurelyConjunctive(f)) {
+      Truth.assert_().fail("Formula <%s> is not detected as purely conjunctive but it should be.", f);
+    }
+  }
+
+  private void assertIsNotConjunctive(BooleanFormula f) {
+    if (mgrv.isPurelyConjunctive(f)) {
+      Truth.assert_().fail("Formula <%s> is detected as purely conjunctive but is not.", f);
+    }
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_Simple() {
+    assertIsConjunctive(bmgrv.makeBoolean(true));
+    assertIsConjunctive(bmgrv.makeBoolean(false));
+    assertIsConjunctive(bmgrv.makeVariable("a"));
+    assertIsConjunctive(bmgrv.not(bmgrv.makeVariable("a")));
+    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
+    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.not(bmgrv.makeVariable("b"))));
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_Atom() {
+    BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), imgr.makeNumber(1));
+    assertIsConjunctive(atom);
+    assertIsConjunctive(bmgrv.not(atom));
+    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), atom));
+    assertIsConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.not(atom)));
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_Negation() {
+    assertIsNotConjunctive(bmgrv.not(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_Disjunction() {
+    assertIsNotConjunctive(bmgrv.or(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
+  }
+
+  @Test @Ignore // currently failing for some solvers
+  public void testIsPurelyConjunctive_Equivalence() {
+    assertIsNotConjunctive(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
+    assertIsNotConjunctive(bmgr.not(bmgrv.equivalence(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
+  }
+
+  @Test @Ignore // currently failing for some solvers
+  public void testIsPurelyConjunctive_Implication() {
+    assertIsNotConjunctive(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
+    assertIsNotConjunctive(bmgr.not(bmgrv.implication(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_Xor() {
+    assertIsNotConjunctive(bmgrv.xor(bmgrv.makeVariable("a"), bmgrv.makeVariable("b")));
+    assertIsNotConjunctive(bmgr.not(bmgrv.xor(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"))));
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_BooleanIfThenElse() {
+    assertIsNotConjunctive(bmgrv.ifThenElse(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"), bmgrv.makeVariable("c")));
+  }
+
+  @Test
+  public void testIsPurelyConjunctive_IfThenElse() {
+    IntegerFormula ifThenElse = bmgrv.ifThenElse(bmgrv.makeVariable("a"), imgr.makeNumber(0), imgr.makeNumber(1));
+    BooleanFormula atom = imgr.equal(imgr.makeVariable("x"), ifThenElse);
+    assertIsNotConjunctive(atom);
+    assertIsNotConjunctive(bmgrv.not(atom));
+    assertIsNotConjunctive(bmgrv.and(bmgrv.makeVariable("a"), atom));
+    assertIsNotConjunctive(bmgrv.and(bmgrv.makeVariable("a"), bmgrv.not(atom)));
   }
 
   @Test
