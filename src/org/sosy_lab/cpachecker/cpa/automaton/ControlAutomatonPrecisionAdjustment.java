@@ -143,13 +143,6 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     final Automaton automaton = ((AutomatonState) pState).getOwningAutomaton();
     final AutomatonState state = (AutomatonState) pState;
 
-    final AutomatonState stateOnHandledTarget;
-    switch (onHandledTarget) {
-      case BOTTOM: stateOnHandledTarget = bottomState; break;
-      case INACTIVE: stateOnHandledTarget = inactiveState; break;
-      default: stateOnHandledTarget = state;
-    }
-
     ImmutableSet<? extends SafetyProperty> encoded = automaton.getEncodedProperties();
     ImmutableSet<SafetyProperty> disabled = pi.getBlacklist();
     if (disabled.containsAll(encoded)) {
@@ -160,6 +153,13 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
 
     // Specific handling of potential target states!!!
     if (state.isTarget()) {
+
+      final AutomatonState stateOnHandledTarget;
+      switch (onHandledTarget) {
+        case BOTTOM: stateOnHandledTarget = bottomState; break;
+        case INACTIVE: stateOnHandledTarget = inactiveState; break;
+        default: stateOnHandledTarget = state;
+      }
 
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
