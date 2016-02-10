@@ -57,6 +57,33 @@ public class AutomatonPrecision implements Precision {
   }
 
   @Override
+  public int hashCode() {
+    return blacklist.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+
+    if (!(obj instanceof AutomatonPrecision)) {
+      return false;
+    }
+
+    AutomatonPrecision other = (AutomatonPrecision) obj;
+
+    if (!blacklist.equals(other.blacklist)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Override
   public String toString() {
     return blacklist.toString();
   }
