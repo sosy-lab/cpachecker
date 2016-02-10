@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 
@@ -78,7 +77,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   int statNumberOfMatches = 0;
   Timer totalPostTime = new Timer();
   Timer matchTime = new Timer();
-  Timer inactivityCheckTime = new Timer();
   Timer assertionsTime = new Timer();
   Timer actionTime = new Timer();
   Timer totalStrengthenTime = new Timer();
@@ -415,47 +413,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
                                     List<AbstractState> pOtherElements,
                                     CFAEdge pCfaEdge, Precision pPrecision)
                                     throws CPATransferException {
-
-    inactivityCheckTime.start();
-    try {
-
-      int totalObservingAutomata = 0;
-      int totalInactiveObservingAutomata = 0;
-
-      Set<AutomatonInternalState> activeStates = Sets.newHashSet();
-
-      for (AbstractState other: pOtherElements) {
-        if (!(other instanceof AutomatonState)) {
-          continue;
-        }
-
-        final AutomatonState o = (AutomatonState) other;
-        final AutomatonInternalState q = o.getInternalState();
-        final Automaton a = o.getAutomatonCPA().getAutomaton();
-
-        if (a.getIsObservingOnly()) {
-          totalObservingAutomata++;
-
-          if (q.equals(AutomatonInternalState.INACTIVE)) {
-            totalInactiveObservingAutomata++;
-          } else {
-            activeStates.add(q);
-          }
-        }
-      }
-
-      if (totalObservingAutomata > 0) {
-        if (totalInactiveObservingAutomata == totalObservingAutomata) {
-          // STOP exploring the path if all observing
-          // automata are DISABLED/INACTIVE or have done their work.
-          return Collections.emptyList();
-        }
-
-      }
-
-    } finally {
-      inactivityCheckTime.stop();
-    }
 
     if (pElement instanceof AutomatonUnknownState) {
 
