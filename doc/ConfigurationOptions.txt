@@ -1918,6 +1918,9 @@ cpa.predicate.encodeOverflowsWithUFs = false
 # file are global and declared before this function is called.
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
+# Regexp pattern for feature variables.
+cpa.predicate.featureVariablePattern = "(\\w)*__SELECTED_FEATURE_(\\w)"
+
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 
@@ -1943,6 +1946,9 @@ cpa.predicate.handleStringLiteralInitializers = false
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced with Integer or Rational.
 cpa.predicate.ignoreExtractConcat = true
+
+# Ignore feature variables? They should be tracked with a more efficient CPA.
+cpa.predicate.ignoreFeatureVariables = false
 
 # Ignore fields that are not relevant for reachability properties. This is
 # unsound in case fields are accessed by pointer arithmetic with hard-coded
@@ -3161,6 +3167,9 @@ tiger.dumpGoalAutomataTo = "Automaton_%s.dot"
 # Coverage criterion given as an FQL query
 tiger.fqlQuery = PredefinedCoverageCriteria.BASIC_BLOCK_COVERAGE
 
+# List of input variables: v1,v2,v3...
+tiger.inputInterface = ""
+
 # Inverses the order of test goals each time a new round of re-processing of
 # timed-out goals begins.
 tiger.inverseOrder = true
@@ -3201,7 +3210,7 @@ tiger.testcaseGeneartionTimesFile = "generationTimes.csv"
 tiger.testsuiteFile = "testsuite.txt"
 
 # Use Test Input Generator algorithm with an extension using the BDDCPA to
-# model product line presence conditions
+# model product line presence conditions.
 tiger.tiger_with_presenceConditions = false
 
 # How to proceed with timed-out goals if some time remains after processing
@@ -3214,6 +3223,11 @@ tiger.useAutomataCrossProduct = false
 
 # Map information on infeasibility of one test goal to other test goals.
 tiger.useInfeasibilityPropagation = false
+
+# Inserts the omega label at the end of each test goal automaton to enforce
+# the tiger algorithm to generate only test cases from counterexamples that
+# reach the end of the program.
+tiger.useOmegaLabel = true
 
 # Enforce the original order each time a new round of re-processing of
 # timed-out goals begins.
