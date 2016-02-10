@@ -793,11 +793,7 @@ public class TigerAlgorithm
         }
       }
 
-      lCurrentStates.clear();
-
-      Set<NondeterministicFiniteAutomaton.State> lTmp = lCurrentStates;
-      lCurrentStates = lNextStates;
-      lNextStates = lTmp;
+      lCurrentStates.addAll(lNextStates);
     }
 
     for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
