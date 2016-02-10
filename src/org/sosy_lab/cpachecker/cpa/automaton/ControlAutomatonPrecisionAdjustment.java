@@ -120,7 +120,7 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
     return result;
   }
 
-  private boolean propertyBudgetExhausted(Property pProperty) {
+  private boolean isPropertyBudgetExhausted(Property pProperty) {
     int timesFeasible = feasibleViolationsOf(ImmutableSet.of(pProperty));
 
     return (violationsLimit > 0
@@ -174,17 +174,17 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
       //      (they should not be considered as target states)
       if (onHandledTarget != TargetStateVisitBehaviour.SIGNAL) {
         Set<SafetyProperty> violated = AbstractStates.extractViolatedProperties(state, SafetyProperty.class);
-        Set<SafetyProperty> exhausted = Sets.newHashSet();
+        Set<SafetyProperty> exhaustedProperties = Sets.newHashSet();
 
         for (SafetyProperty p: violated) {
-          if (propertyBudgetExhausted(p)) {
-            exhausted.add(p);
+          if (isPropertyBudgetExhausted(p)) {
+            exhaustedProperties.add(p);
           }
         }
 
-        if (exhausted.size() > 0) {
-          final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhausted);
-          signalDisablingProperties(exhausted);
+        if (exhaustedProperties.size() > 0) {
+          final AutomatonPrecision piPrime = pi.cloneAndAddBlacklisted(exhaustedProperties);
+          signalDisablingProperties(exhaustedProperties);
 
           return Optional.of(PrecisionAdjustmentResult.create(
               stateOnHandledTarget,
