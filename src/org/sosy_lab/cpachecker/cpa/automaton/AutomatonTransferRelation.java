@@ -82,7 +82,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
-  private final AutomatonState inactiveState;
+  private final AutomatonState intermediateState;
   private final ControlAutomatonOptions options;
   private @Nullable CounterexamplesSummary cexSummary;
 
@@ -98,13 +98,13 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa,
-      LogManager pLogger, AutomatonState pInactiveState, ControlAutomatonOptions pOptions)
+      LogManager pLogger, AutomatonState pIntermediateState, ControlAutomatonOptions pOptions)
           throws InvalidConfigurationException {
 
     options = pOptions;
     cpa = pCpa;
     logger = pLogger;
-    inactiveState = pInactiveState;
+    intermediateState = pIntermediateState;
   }
 
   @Override
@@ -130,7 +130,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         // The order of the states is important (!!) because
         //    the CPAAlgorithm terminates after it has found the target state
         //    --> The target state should not be the first element here!
-        firstToReturnStates.add(inactiveState);
+        firstToReturnStates.add(intermediateState);
       }
     }
 
@@ -366,7 +366,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
             }
 
             AutomatonState errorState = AutomatonState.automatonStateFactory(
-                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, violatedProperties);
+                Collections.<String, AutomatonVariable>emptyMap(), AutomatonInternalState.ERROR, cpa, 0, 0, false, violatedProperties);
 
             logger.log(Level.INFO, "Automaton going to ErrorState on edge \"" + pEdge.getDescription() + "\"");
             result.add(errorState);
@@ -433,7 +433,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       // stay in same state, no transitions to be executed here (no transition matched)
       final AutomatonState stateNewCounters = AutomatonState.automatonStateFactory(
           pState.getVars(), pState.getInternalState(),
-          cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, null);
+          cpa, pState.getMatches(), pState.getFailedMatches() + failedMatches, false, null);
       return Collections.singleton(stateNewCounters);
     }
   }

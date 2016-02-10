@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -53,7 +54,7 @@ public class Automaton {
   private final Set<AutomatonInternalState> states = Sets.newHashSet();
   private final Set<AutomatonInternalState> targetStates = Sets.newHashSet();
   private final AutomatonInternalState initState;
-  private final Set<SafetyProperty> encodedProperties = Sets.newHashSet();
+  private final ImmutableSet<SafetyProperty> encodedProperties;
   private final AutomatonSafetyPropertyFactory propertyFactory ;
 
   private Optional<Boolean> isObservingOnly = Optional.absent();
@@ -68,6 +69,7 @@ public class Automaton {
 
     Map<String, AutomatonInternalState> nameToState = Maps.newHashMapWithExpectedSize(pRawStates.size());
     List<AutomatonInternalState> postprocessedStates = postprocessStates(pRawStates);
+    Builder<SafetyProperty> encodedPropertiesBuilder = ImmutableSet.builder();
 
     for (AutomatonInternalState q : postprocessedStates) {
 
@@ -83,8 +85,8 @@ public class Automaton {
       }
 
       for (AutomatonTransition t: q.getTransitions()) {
-        encodedProperties.addAll(t.getViolatedWhenEnteringTarget());
-        encodedProperties.addAll(t.getViolatedWhenAssertionFailed());
+        encodedPropertiesBuilder.addAll(t.getViolatedWhenEnteringTarget());
+        encodedPropertiesBuilder.addAll(t.getViolatedWhenAssertionFailed());
 
         // Add a reference from the properties to the automaton.
         for (SafetyProperty p: t.getViolatedWhenAssertionFailed()) {
@@ -95,6 +97,8 @@ public class Automaton {
         }
       }
     }
+
+    encodedProperties = encodedPropertiesBuilder.build();
 
     initState = nameToState.get(pInitialStateName);
     if (initState == null) {
@@ -257,7 +261,7 @@ public class Automaton {
    * @return  The set of safety properties that are encoded in the automaton.
    */
   public ImmutableSet<? extends SafetyProperty> getEncodedProperties() {
-    return ImmutableSet.copyOf(encodedProperties);
+    return encodedProperties;
   }
 
   public ImmutableSet<? extends SafetyProperty> getIsRelevantForProperties(AutomatonTransition pTrans) {

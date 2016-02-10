@@ -1430,6 +1430,10 @@ cpa.predicate.ignoreIrrelevantVariables = true
 # do not include assumptions of states into path formula during strengthening
 cpa.predicate.ignoreStateAssumptions = false
 
+# check satisfiability when a 'twin' of a target state has been found; the
+# twin gets constructed when splitting on target states.
+cpa.predicate.intermediateTargetStateSatCheck = true
+
 # export final loop invariants
 cpa.predicate.invariants.export = true
 

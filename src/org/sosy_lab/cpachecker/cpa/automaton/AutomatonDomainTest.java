@@ -48,7 +48,7 @@ public class AutomatonDomainTest {
     return AutomatonState.automatonStateFactory(
         Collections.<String,AutomatonVariable>emptyMap(),
         internalState, cpa,
-        0, 0, null);
+        0, 0, false, null);
   }
 
   @Test

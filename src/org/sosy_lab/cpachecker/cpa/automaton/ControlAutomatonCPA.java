@@ -130,6 +130,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   private final AutomatonState topState;
   private final AutomatonState bottomState;
   private final AutomatonState inactiveState;
+  private final AutomatonState intermediateTargetBeforeInactiveState;
   private final AbstractDomain automatonDomain;
   private final AutomatonPrecision initPrecision = AutomatonPrecision.emptyBlacklist();
 
@@ -157,12 +158,13 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     this.topState = new AutomatonState.TOP(this);
     this.bottomState = new AutomatonState.BOTTOM(this);
     this.inactiveState = new AutomatonState.INACTIVE(this);
+    this.intermediateTargetBeforeInactiveState = new AutomatonState.INTERMEDIATE(this);
     this.automatonDomain = new AutomatonDomain(topState, inactiveState);
     this.stopOperator = new AutomatonStopOperator(automatonDomain);
 
     budgeting = InfinitePropertyBudgeting.INSTANCE;
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger, inactiveState, options);
+    this.transferRelation = new AutomatonTransferRelation(this, pLogger, intermediateTargetBeforeInactiveState, options);
     this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
     this.mergeOperator = new AutomatonMergeOperator(pConfig, this, automatonDomain, topState);
 
@@ -247,7 +249,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AutomatonState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
+    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, false, null);
   }
 
   @Override

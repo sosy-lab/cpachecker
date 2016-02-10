@@ -110,6 +110,9 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, description = "check satisfiability when a target state has been found (should be true)")
   private boolean targetStateSatCheck = true;
 
+  @Option(secure=true, description = "check satisfiability when a 'twin' of a target state has been found; the twin gets constructed when splitting on target states.")
+  private boolean intermediateTargetStateSatCheck = true;
+
   @Option(secure=true, description = "Compute abstractions after introducing an assumption.")
   private boolean blockEndsAfterAssumption = false;
 
@@ -379,8 +382,7 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
 
     strengthenTimer.start();
     try {
-
-      CFANode succLoc = getAnalysisSuccesor(edge);
+      CFANode loc = getAnalysisSuccesor(edge);
 
       PredicateAbstractState element = (PredicateAbstractState) pElement;
       if (element.isAbstractionState()) {
@@ -393,7 +395,8 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
         element = updateStateWithAbstractionFromFile((ComputeAbstractionState)element);
       }
 
-      boolean errorFound = false;
+      boolean targetStateFound = false;
+      boolean intermediateTargetStateFound = false;
       for (AbstractState lElement : otherElements) {
         if (lElement instanceof AssumptionStorageState) {
           element = strengthen(element, (AssumptionStorageState) lElement);
@@ -407,19 +410,32 @@ public class PredicateTransferRelation extends SingleEdgeTransferRelation {
          * Add additional assumptions from an automaton state.
          */
         if (!ignoreStateAssumptions && lElement instanceof AbstractStateWithAssumptions) {
-          element = strengthen(succLoc, element, (AbstractStateWithAssumptions) lElement);
+          element = strengthen(loc, element, (AbstractStateWithAssumptions) lElement);
         }
 
-
         if (AbstractStates.isTargetState(lElement)) {
-          errorFound = true;
+          targetStateFound = true;
+        }
+
+        if (AbstractStates.isIntermediateTargetState(lElement)) {
+          intermediateTargetStateFound = true;
         }
       }
 
-      // check satisfiability in case of error
+      // Checking satisfiability of a intermediate state
+      // means to compute an abstraction that might not be 'true'
+      //  This is important for test case generation; it forces the state space to split (and get unique paths)
+      if (intermediateTargetStateFound && intermediateTargetStateSatCheck) {
+        element = new PredicateAbstractState.ComputeAbstractionState(
+            element.getPathFormula(), element.getAbstractionFormula(), loc,
+            element.getAbstractionLocationsOnPath());
+      }
+
+      // Check satisfiability in case of error
       // (not necessary for abstraction elements)
-      if (errorFound && targetStateSatCheck) {
+      if (targetStateFound && targetStateSatCheck) {
         element = strengthenSatCheck(element, getAnalysisSuccesor(edge));
+
         if (element == null) {
           // successor not reachable
           return Collections.emptySet();

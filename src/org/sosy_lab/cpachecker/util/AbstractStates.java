@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.IntermediateTargetable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
@@ -269,6 +270,10 @@ public final class AbstractStates {
 
   public static boolean isTargetState(AbstractState as) {
     return (as instanceof Targetable) && ((Targetable)as).isTarget();
+  }
+
+  public static boolean isIntermediateTargetState(AbstractState as) {
+    return (as instanceof IntermediateTargetable) && ((IntermediateTargetable)as).isIntermediateTarget();
   }
 
   public static final Predicate<AbstractState> IS_TARGET_STATE = new Predicate<AbstractState>() {

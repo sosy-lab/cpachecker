@@ -71,7 +71,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
-                0, 0, ImmutableMap.<Property, ResultValue<?>>of()),
+                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of()),
 
             AutomatonState.automatonStateFactory(
                 ImmutableMap.<String, AutomatonVariable>of(),
@@ -79,7 +79,7 @@ public class PowersetAutomatonDomainTest {
                 cpa,
                 ImmutableList.<Pair<AStatement, Boolean>>of(),
                 ImmutableList.<AAstNode> of(),
-                0, 0, ImmutableMap.<Property, ResultValue<?>>of())
+                0, 0, false, ImmutableMap.<Property, ResultValue<?>>of())
     }));
 
     e_q2_q3 = new PowersetAutomatonState(ImmutableSet.copyOf(

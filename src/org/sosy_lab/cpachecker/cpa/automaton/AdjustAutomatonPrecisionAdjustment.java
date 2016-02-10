@@ -77,7 +77,7 @@ public class AdjustAutomatonPrecisionAdjustment extends WrappingPrecisionAdjustm
           state.getAssumptions(),
           state.getShadowCode(),
           state.getMatches(),
-          state.getFailedMatches(),
+          state.getFailedMatches(), false,
           state.getViolatedPropertyInstances());
 
       return Optional.of(PrecisionAdjustmentResult.create(adjustedState, pPrecision, Action.CONTINUE));

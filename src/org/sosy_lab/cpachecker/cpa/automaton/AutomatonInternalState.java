@@ -49,6 +49,17 @@ public class AutomatonInternalState {
   /** State representing INACTIVE: an automata that is not considered any more (removed from the precision). */
   static final AutomatonInternalState INACTIVE = new AutomatonInternalState("_predefinedState_INACTIVE", AutomatonBoolExpr.TRUE);
 
+  static final AutomatonInternalState INTERMEDIATEINACTIVE = new AutomatonInternalState(
+      "_predefinedState_INTERMEDIATEINACTIVE",
+      Collections.singletonList(new AutomatonTransition(
+                                    AutomatonBoolExpr.TRUE,
+                                    null,
+                                    true,
+                                    ImmutableList.<AAstNode>of(),
+                                    ImmutableList.<AutomatonAction>of(),
+                                    INACTIVE, ImmutableSet.<SafetyProperty>of())),
+      false, false);
+
   /** Error State */
   static final AutomatonInternalState ERROR = new AutomatonInternalState(
       "_predefinedState_ERROR",
