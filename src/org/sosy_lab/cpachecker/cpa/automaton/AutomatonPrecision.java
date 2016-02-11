@@ -23,32 +23,75 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.solver.SolverException;
+
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Sets;
 
 public class AutomatonPrecision implements Precision {
 
-  private ImmutableSet<SafetyProperty> blacklist = ImmutableSet.of();
+  private ImmutableMap<SafetyProperty, Optional<Region>> blacklist = ImmutableMap.of();
+  @Nullable private final RegionManager regionManager;
 
-  private AutomatonPrecision(ImmutableSet<SafetyProperty> pBlacklist) {
-    this.blacklist = pBlacklist;
+  private AutomatonPrecision(ImmutableMap<SafetyProperty, Optional<Region>> pBlacklist, RegionManager pRegionManager) {
+    blacklist = pBlacklist;
+    regionManager = pRegionManager;
   }
 
   public static AutomatonPrecision emptyBlacklist() {
-    return new AutomatonPrecision(ImmutableSet.<SafetyProperty>of());
+    return new AutomatonPrecision(ImmutableMap.<SafetyProperty, Optional<Region>>of(), null);
   }
 
-  public AutomatonPrecision cloneAndAddBlacklisted(Set<SafetyProperty> pProperty) {
-    return new AutomatonPrecision(
-        ImmutableSet.<SafetyProperty>builder().addAll(this.blacklist).addAll(pProperty).build());
+  public AutomatonPrecision cloneAndAddBlacklisted(Map<SafetyProperty, Optional<Region>> pProperties,
+      RegionManager pRegionManager) {
+
+    Builder<SafetyProperty, Optional<Region>> builder = ImmutableMap.<SafetyProperty, Optional<Region>>builder();
+
+    for (Entry<SafetyProperty, Optional<Region>> e: this.blacklist.entrySet()) {
+      SafetyProperty prop = e.getKey();
+      Optional<Region> thisPresenceCond = e.getValue();
+      Optional<Region> otherPresenceCond = pProperties.get(prop);
+
+      final Optional<Region> presenceCondUnion =
+          makeAndOfConditions(pRegionManager, thisPresenceCond, otherPresenceCond);
+
+      builder.put(prop, presenceCondUnion);
+    }
+
+    for (Entry<SafetyProperty, Optional<Region>> e: pProperties.entrySet()) {
+      if (!this.blacklist.containsKey(e.getKey())) {
+        builder.put(e.getKey(), e.getValue());
+      }
+    }
+
+    return new AutomatonPrecision(builder.build(), pRegionManager);
   }
 
-  public ImmutableSet<SafetyProperty> getBlacklist() {
+  private Optional<Region> makeAndOfConditions(RegionManager pRegionManager,
+      Optional<Region> thisPresenceCond, Optional<Region> otherPresenceCond) {
+
+    if (!otherPresenceCond.isPresent()) {
+      return thisPresenceCond;
+    } else if (!thisPresenceCond.isPresent()) {
+      return otherPresenceCond;
+    } else {
+      return Optional.of(pRegionManager.makeOr(thisPresenceCond.get(), otherPresenceCond.get()));
+    }
+  }
+
+  public ImmutableMap<SafetyProperty, Optional<Region>> getBlacklist() {
     return blacklist;
   }
 
@@ -69,8 +112,62 @@ public class AutomatonPrecision implements Precision {
     Preconditions.checkArgument(pOther instanceof AutomatonPrecision);
     AutomatonPrecision other = (AutomatonPrecision) pOther;
 
-    return new AutomatonPrecision(ImmutableSet.<SafetyProperty>copyOf(
-        Sets.intersection(this.blacklist, other.blacklist)));
+    RegionManager rm = this.regionManager;
+    if (rm == null) {
+      rm = other.regionManager;
+    }
+
+    Builder<SafetyProperty, Optional<Region>> builder = ImmutableMap.<SafetyProperty, Optional<Region>>builder();
+    Set<SafetyProperty> commonProperties = Sets.intersection(this.blacklist.keySet(), other.blacklist.keySet());
+
+    for (SafetyProperty p: commonProperties) {
+      Optional<Region> thisPresenceCond = this.blacklist.get(p);
+      Optional<Region> otherPresenceCond = other.blacklist.get(p);
+
+      final Optional<Region> joinedPresenceCondition = makeAndOfConditions(rm, thisPresenceCond, otherPresenceCond);
+
+      builder.put(p, joinedPresenceCondition);
+    }
+
+    return new AutomatonPrecision(builder.build(), rm);
+  }
+
+  /**
+   * Are all properties blacklisted under the given presence conditions?
+   *
+   * @param pViolatedProperties
+   * @param pPresenceCondition
+   * @return
+   * @throws InterruptedException
+   * @throws SolverException
+   */
+  public boolean isBlackListed(Set<SafetyProperty> pViolatedProperties, Region pPresenceCondition)
+      throws SolverException, InterruptedException {
+
+    int intersection = 0;
+
+    for (SafetyProperty p : pViolatedProperties) {
+      if (!blacklist.containsKey(p)) {
+        return false;
+      }
+      Optional<Region> pc = blacklist.get(p);
+      pc = blacklist.get(pc);
+      if (pc == null || !pc.isPresent()) { // equals pc==TRUE, i.e., blacklisted for all configurations
+        intersection++;
+      } else {
+        Preconditions.checkState(regionManager != null);
+        boolean covered = regionManager.entails(pPresenceCondition, pc.get());
+        if (covered) {
+          intersection++;
+        }
+      }
+    }
+
+    if (intersection == pViolatedProperties.size()) {
+      return true;
+    }
+
+    return false;
   }
 
 

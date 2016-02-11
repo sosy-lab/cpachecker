@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.util.Set;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -33,22 +35,25 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.bdd.BDDState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.solver.SolverException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 @Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
-  private final AutomatonState bottomState;
-  private final AutomatonState inactiveState;
-
   @Option(secure=true, name="limit.violations",
       description="Handle at most k (> 0) violation of one property.")
   private int violationsLimit = 1;
-
 
   enum TargetStateVisitBehaviour {
     SIGNAL, // Signal the target state (default)
@@ -57,6 +62,10 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
   }
   @Option(secure=true, description="Behaviour on a property that has already been fully handled.")
   private TargetStateVisitBehaviour onHandledTarget = TargetStateVisitBehaviour.SIGNAL;
+
+
+  private final AutomatonState bottomState;
+  private final AutomatonState inactiveState;
 
   public ControlAutomatonPrecisionAdjustment(
       LogManager pLogger,
@@ -96,12 +105,27 @@ public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment 
         default: stateOnHandledTarget = state;
       }
 
+      BDDState bddState = AbstractStates.extractStateByType(pFullState, BDDState.class);
+      Region presenceCondition = null;
+      if (bddState != null) {
+        presenceCondition = bddState.getRegion();
+      }
+
       // A property might have already been disabled!
       //    Handling of blacklisted (disabled) states:
-      if (pi.getBlacklist().containsAll(state.getViolatedProperties())) {
-        return Optional.of(PrecisionAdjustmentResult.create(
-            stateOnHandledTarget,
-            pi, Action.CONTINUE));
+      Set<SafetyProperty> violated = Sets.newHashSet();
+      for (Property p: state.getViolatedProperties()) {
+        Preconditions.checkState(p instanceof SafetyProperty);
+        violated.add((SafetyProperty)p);
+      }
+      try {
+        if (pi.isBlackListed(violated, presenceCondition)) {
+          return Optional.of(PrecisionAdjustmentResult.create(
+              stateOnHandledTarget,
+              pi, Action.CONTINUE));
+        }
+      } catch (SolverException e) {
+        throw new CPAException("Presence-condition check failed!", e);
       }
 
     }

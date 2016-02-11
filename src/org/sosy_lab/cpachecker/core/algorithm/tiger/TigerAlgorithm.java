@@ -143,11 +143,13 @@ import org.sosy_lab.cpachecker.util.statistics.StatCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatCpuTime.NoTimeMeasurement;
 import org.sosy_lab.solver.AssignableTerm;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 @Options(prefix = "tiger")
@@ -928,14 +930,19 @@ public class TigerAlgorithm
             restrictBdd(remainingPC);
           }
           // Exclude covered goals from further exploration
-          Set<Property> toBlacklist = Sets.newLinkedHashSet();
+          Map<Property, Optional<Region>> toBlacklist = Maps.newHashMap();
           for (Goal goal : pTestGoalsToBeProcessed) {
+
             if (testsuite.isGoalCoveredOrInfeasible(goal)) {
-              toBlacklist.add(goal);
+              toBlacklist.put(goal, Optional.<Region>absent());
+            } else if (useTigerAlgorithm_with_pc) {
+              Region remainingPc = testsuite.getRemainingPresenceCondition(goal);
+              Region coveredFor = bddCpaNamedRegionManager.makeNot(remainingPc);
+              toBlacklist.put(goal, Optional.of(coveredFor));
             }
           }
 
-          Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist);
+          Precisions.disablePropertiesForWaitlist(pARTCPA, reachedSet, toBlacklist, bddCpaNamedRegionManager);
         }
       }
 

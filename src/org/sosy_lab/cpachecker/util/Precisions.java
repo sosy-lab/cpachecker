@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,14 +35,15 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonPrecision;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.cpa.composite.CompositePrecision;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 import com.google.common.collect.TreeTraverser;
 
 public class Precisions {
@@ -136,24 +137,20 @@ public class Precisions {
     return result;
   }
 
-  public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet, final Set<Property> pToBlacklist) {
+  public static void disablePropertiesForWaitlist(ARGCPA pCpa, final ReachedSet pReachedSet,
+      final Map<Property, Optional<Region>> pToBlacklist, final RegionManager pRegionManager) {
 
-    final HashSet<SafetyProperty> toBlacklist = Sets.newHashSet(
-      Collections2.transform(pToBlacklist, new Function<Property, SafetyProperty>() {
-        @Override
-        public SafetyProperty apply(Property pProp) {
-          Preconditions.checkArgument(pProp instanceof SafetyProperty);
-          return (SafetyProperty) pProp;
-        }
-
-      }).iterator());
+    Map<SafetyProperty, Optional<Region>> toBlackList = Maps.newHashMap();
+    for (Entry<Property, Optional<Region>> e: pToBlacklist.entrySet()) {
+      toBlackList.put((SafetyProperty)e.getKey(), e.getValue());
+    }
 
     // update the precision:
     //  (optional) disable some automata transitions (global precision)
     for (AbstractState e: pReachedSet.getWaitlist()) {
 
       final Precision pi = pReachedSet.getPrecision(e);
-      final Precision piPrime = blacklistProperties(pi, toBlacklist);
+      final Precision piPrime = blacklistProperties(pi, toBlackList, pRegionManager);
 
       if (piPrime != null) {
         pReachedSet.updatePrecision(e, piPrime);
@@ -162,13 +159,14 @@ public class Precisions {
 
   }
 
-  public static Precision blacklistProperties(final Precision pi, final HashSet<SafetyProperty> toBlacklist) {
+  public static Precision blacklistProperties(final Precision pi,
+      final Map<SafetyProperty, Optional<Region>> toBlacklist, final RegionManager pRegionManager) {
     final Precision piPrime = Precisions.replaceByFunction(pi, new Function<Precision, Precision>() {
       @Override
       public Precision apply(Precision pPrecision) {
         if (pPrecision instanceof AutomatonPrecision) {
           AutomatonPrecision pi = (AutomatonPrecision) pPrecision;
-          return pi.cloneAndAddBlacklisted(toBlacklist);
+          return pi.cloneAndAddBlacklisted(toBlacklist, pRegionManager);
         }
         return null;
       }
