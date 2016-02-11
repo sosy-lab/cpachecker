@@ -214,6 +214,7 @@
 
 /.metadata
 /test/programs/benchmarks
+/test/programs/array-simplified-benchmarks
 
 /war/WEB-INF/appengine-generated
 /war/WEB-INF/classes
