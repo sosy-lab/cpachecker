@@ -538,7 +538,7 @@ public class ARGPathExporter {
               }
             }
 
-            if (!code.isEmpty()) {
+            if (!assignments.isEmpty()) {
               code.add(And.of(
                   FluentIterable.from(assignments)
                   .transform(
