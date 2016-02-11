@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,6 +44,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.management.JMException;
@@ -133,6 +135,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -789,12 +792,14 @@ public class TigerAlgorithm
           } else {
             if (lLabel.contains(lCFAEdge)) {
               lNextStates.add(lOutgoingEdge.getTarget());
+              lNextStates.addAll(getSuccsessorsOfEmptyTransitions(pAutomaton, lOutgoingEdge.getTarget()));
             }
           }
         }
       }
 
       lCurrentStates.addAll(lNextStates);
+      lNextStates.clear();
     }
 
     for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
@@ -807,6 +812,17 @@ public class TigerAlgorithm
     } else {
       return ThreeValuedAnswer.REJECT;
     }
+  }
+
+  private static Collection<? extends State> getSuccsessorsOfEmptyTransitions(NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, State pState) {
+    Set<State> states = new HashSet<>();
+    for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getOutgoingEdges(pState)) {
+      GuardedEdgeLabel label = edge.getLabel();
+      if (Pattern.matches("E\\d+ \\[\\]", label.toString())) {
+        states.add(edge.getTarget());
+      }
+    }
+    return states;
   }
 
   enum ReachabilityAnalysisResult {
