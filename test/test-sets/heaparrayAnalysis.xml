@@ -76,5 +76,26 @@
     <option name="-predicateAnalysis"/>
     <option name="-setprop">solver.solver=SMTINTERPOL</option>
   </rundefinition>
+  <rundefinition name="MathSAT5-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+  </rundefinition>
+  <rundefinition name="MathSAT5-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=MATHSAT5</option>
+  </rundefinition>
+  <rundefinition name="Z3-heaparray">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
+  <rundefinition name="Z3-heaparray-quantifiers">
+    <option name="-predicateAnalysis-heaparray"/>
+    <option name="-setprop">cpa.predicate.useQuantifiersOnArrays=true</option>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
+  <rundefinition name="Z3-uf">
+    <option name="-predicateAnalysis"/>
+    <option name="-setprop">solver.solver=Z3</option>
+  </rundefinition>
 
 </benchmark>
