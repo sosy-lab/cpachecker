@@ -116,6 +116,7 @@ import org.w3c.dom.Element;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -558,25 +559,44 @@ public class ARGPathExporter {
 
         if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
           ExpressionTree<Object> invariant = Or.of(code);
-          String assumptionCode =
-              ExpressionTrees.convert(
-                      invariant,
-                      new Function<Object, String>() {
+          final Function<Object, String> converter =
+              new Function<Object, String>() {
 
-                        @Override
-                        public String apply(Object pLeafExpression) {
-                          if (pLeafExpression instanceof CExpression) {
-                            return ((CExpression) pLeafExpression)
-                                .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-                          }
-                          if (pLeafExpression == null) {
-                            return "(0)";
-                          }
-                          return pLeafExpression.toString();
-                        }
-                      })
-                  .toString();
-          result.put(KeyDef.ASSUMPTION, assumptionCode);
+                @Override
+                public String apply(Object pLeafExpression) {
+                  if (pLeafExpression instanceof CExpression) {
+                    return ((CExpression) pLeafExpression)
+                        .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                  }
+                  if (pLeafExpression == null) {
+                    return "(0)";
+                  }
+                  return pLeafExpression.toString();
+                }
+              };
+          final String assumptionCode;
+
+          // If there are only conjunctions, use multiple statements
+          // instead of the "&&" operator that is harder to parse.
+          if (ExpressionTrees.isAnd(invariant)) {
+            assumptionCode =
+                Joiner.on("; ")
+                    .join(
+                        ExpressionTrees.getChildren(invariant)
+                            .transform(
+                                new Function<ExpressionTree<Object>, ExpressionTree<String>>() {
+
+                                  @Override
+                                  public ExpressionTree<String> apply(
+                                      ExpressionTree<Object> pTree) {
+                                    return ExpressionTrees.convert(pTree, converter);
+                                  }
+                                }));
+          } else {
+            assumptionCode = ExpressionTrees.convert(invariant, converter).toString();
+          }
+
+          result.put(KeyDef.ASSUMPTION, assumptionCode + ";");
           if (isFunctionScope) {
             result.put(KeyDef.ASSUMPTIONSCOPE, functionName);
           }
