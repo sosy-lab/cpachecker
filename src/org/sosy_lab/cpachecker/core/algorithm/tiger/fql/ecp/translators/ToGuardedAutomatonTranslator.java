@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -704,7 +705,7 @@ public class ToGuardedAutomatonTranslator {
     return lNewAutomaton;
   }
 
-  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeSelfLoops(
+  public static NondeterministicFiniteAutomaton<GuardedEdgeLabel> removeEmptySelfLoops(
       NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> lNewAutomaton = new NondeterministicFiniteAutomaton<>();
 
@@ -719,7 +720,7 @@ public class ToGuardedAutomatonTranslator {
     }
 
     for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge edge : pAutomaton.getEdges()) {
-      if (!edge.getSource().equals(edge.getTarget())) {
+      if (!(edge.getSource().equals(edge.getTarget()) && Pattern.matches("E\\d+ \\[\\]", edge.getLabel().toString()))) {
         lNewAutomaton.createEdge(edge.getSource(), edge.getTarget(), edge.getLabel());
       }
     }
