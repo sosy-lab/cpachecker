@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.w3c.dom.DOMException;
@@ -479,6 +480,8 @@ public class AutomatonGraphmlCommon {
         }
         return false;
       }
+    } else if (edge instanceof CFunctionSummaryStatementEdge) {
+      return true;
     }
 
     return false;
