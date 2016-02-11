@@ -22,8 +22,8 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * This packages provides the encoding of (possibly-aliased) C pointers into SMT
- * formulae, including conditional updates for maybe-aliased pointers.
+ * This packages provides the encoding of (possibly-aliased) C pointers into SMT formulae, including
+ * conditional updates for maybe-aliased pointers.
  * <p/>
  * The packages assumes that pointers of different types are never aliased.
  * <p/>
@@ -31,8 +31,8 @@
  * arrays, hence we need a SMT solver capable of the SMT theory of arrays. In
  * current CPAchecker, the following bundled solvers can be used:
  * <ul>
- *   <li><emph>SMTInterpol</emph>&mdash;the default solver (configuration
- *       option: <code>solver.solver=SMTINTERPOL</code>)</li>
+ *   <li><emph>SMTInterpol</emph>&mdash;the default solver (configuration option:
+ *       <code>solver.solver=SMTINTERPOL</code>)</li>
  *   <li><emph>MathSAT5</emph>&mdash;available with configuration option:
  *       <code>solver.solver=MATHSAT5</code></li>
  *   <li><emph>Princess</emph>&mdash;available with configuration option:

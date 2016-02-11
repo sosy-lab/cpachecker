@@ -26,16 +26,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Equivalence;
+import com.google.common.collect.ImmutableList;
 
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -55,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -75,8 +69,14 @@ import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
 
-import com.google.common.base.Equivalence;
-import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 
 /**
  * A manager for pointer target sets.
@@ -97,13 +97,11 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return Whether the type is a fake base type or not.
    */
   static boolean isFakeBaseType(final CType pCType) {
-    return pCType instanceof CArrayType
-        && ((CArrayType) pCType).getType() instanceof CVoidType;
+    return pCType instanceof CArrayType && ((CArrayType) pCType).getType() instanceof CVoidType;
   }
 
   /**
-   * Returns a fake base type of a given size, i.e. an array of {@code size}
-   * voids.
+   * Returns a fake base type of a given size, i.e. an array of {@code size} voids.
    *
    * @param pSize The size of the fake base type.
    * @return An array of {@code size} voids.
@@ -135,11 +133,10 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   /**
    * Creates a new PointerTargetSetManager.
    *
-   * @param pOptions Additional configuration options.
+   * @param pOptions            Additional configuration options.
    * @param pFormulaManagerView The manager for SMT formulae.
-   * @param pTypeHandler A type handler for certain types.
-   * @param pShutdownNotifier A notifier for external shutdowns to stop
-   *                         long-running algorithms.
+   * @param pTypeHandler        A type handler for certain types.
+   * @param pShutdownNotifier   A notifier for external shutdowns to stop long-running algorithms.
    */
   PointerTargetSetManagerHeapArray(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -159,13 +156,12 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   /**
    * Merges two {@link PointerTargetSet}s into one.
    *
-   * @param pPts1 The first {@code PointerTargetSet}.
-   * @param pPts2 The second {@code PointerTargetSet}.
+   * @param pPts1      The first {@code PointerTargetSet}.
+   * @param pPts2      The second {@code PointerTargetSet}.
    * @param pResultSSA The map of SSA indices.
    * @param pConverter The converter for C code to SMT formulae.
    * @return The merged {@code PointerTargetSet}s.
-   * @throws InterruptedException If the algorithms gets interrupted by an
-   *                              external shutdown.
+   * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
    */
   @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
@@ -175,16 +171,13 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final CtoFormulaConverter pConverter) throws InterruptedException {
 
     if (pPts1.isEmpty() && pPts2.isEmpty()) {
-      return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(),
-          bfmgr);
+      return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
-    final CopyOnWriteSortedMap<String, CType> basesOnlyPts1 =
-        CopyOnWriteSortedMap.copyOf(
-            PathCopyingPersistentTreeMap.<String, CType>of());
-    final CopyOnWriteSortedMap<String, CType> basesOnlyPts2 =
-        CopyOnWriteSortedMap.copyOf(
-            PathCopyingPersistentTreeMap.<String, CType>of());
+    final CopyOnWriteSortedMap<String, CType> basesOnlyPts1 =CopyOnWriteSortedMap.copyOf(
+        PathCopyingPersistentTreeMap.<String, CType>of());
+    final CopyOnWriteSortedMap<String, CType> basesOnlyPts2 =CopyOnWriteSortedMap.copyOf(
+        PathCopyingPersistentTreeMap.<String, CType>of());
 
     PersistentSortedMap<String, CType> mergedBases = merge(
         pPts1.getBases(), pPts2.getBases(), Equivalence.equals(),
@@ -201,7 +194,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
           }
 
           @Override
-          public void differingValues(String key, CType leftValue,
+          public void differingValues(
+              String key, CType leftValue,
               CType rightValue) {
             if (isFakeBaseType(leftValue)
                 && !(rightValue instanceof CElaboratedType)) {
@@ -215,11 +209,9 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     shutdownNotifier.shutdownIfNecessary();
 
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts1 =
-        CopyOnWriteSortedMap.copyOf(
-            PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts2 =
-        CopyOnWriteSortedMap.copyOf(
-            PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
+        CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
 
     PersistentSortedMap<CompositeField, Boolean> mergedFields = merge(
         pPts1.getFields(), pPts2.getFields(), Equivalence.equals(),
@@ -255,7 +247,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     mergedTargets = addAllTargets(mergedTargets, basesOnlyPts1.getSnapshot(),
         fieldsOnlyPts2.getSnapshot());
 
-    final PersistentSortedMap<String ,DeferredAllocationPool> mergedAllocations =
+    final PersistentSortedMap<String, DeferredAllocationPool> mergedAllocations =
         mergeDeferredAllocationPools(pPts1, pPts2);
     shutdownNotifier.shutdownIfNecessary();
 
@@ -267,8 +259,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       // Trivial case: either no allocations on one branch at all, or no
       // difference. Just take the first non-null value, the second is either
       // equal or null.
-      lastBase =
-          (pPts1.getLastBase() != null) ? pPts1.getLastBase() : pPts2.getLastBase();
+      lastBase = (pPts1.getLastBase() != null) ? pPts1.getLastBase() : pPts2.getLastBase();
       mergeFormula = bfmgr.makeBoolean(true);
     } else if (basesOnlyPts1.isEmpty()) {
       assert pPts2.getBases().keySet().containsAll(pPts1.getBases().keySet());
@@ -289,14 +280,12 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       mergedBases = mergedBases.putAndCopy(fakeName, fakeType);
       lastBase = fakeName;
       mergeFormula = formulaManager.makeAnd(
-          getNextBaseAddressInequality(fakeName, pPts1.getBases(),
-              pPts1.getLastBase()),
-          getNextBaseAddressInequality(fakeName, pPts2.getBases(),
-              pPts2.getLastBase()));
+          getNextBaseAddressInequality(fakeName, pPts1.getBases(), pPts1.getLastBase()),
+          getNextBaseAddressInequality(fakeName, pPts2.getBases(), pPts2.getLastBase()));
     }
 
-    PointerTargetSet result = new PointerTargetSet(mergedBases, lastBase,
-        mergedFields, mergedAllocations, mergedTargets);
+    PointerTargetSet result = new PointerTargetSet(mergedBases, lastBase, mergedFields,
+        mergedAllocations, mergedTargets);
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 = makeValueImportConstraints(
@@ -321,20 +310,19 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    *
    * @param pPts1 The first pool.
    * @param pPts2 The second pool.
-   * @return A merged {@code DeferredAllocationPool} with the content of both
-   *         parameters.
+   * @return A merged {@code DeferredAllocationPool} with the content of both parameters.
    */
-  private PersistentSortedMap<String, DeferredAllocationPool>
-  mergeDeferredAllocationPools(final PointerTargetSet pPts1,
+  private PersistentSortedMap<String, DeferredAllocationPool> mergeDeferredAllocationPools(
+      final PointerTargetSet pPts1,
       final PointerTargetSet pPts2) {
-    final Map<DeferredAllocationPool, DeferredAllocationPool> mergedPools =
-        new HashMap<>();
-    final MergeConflictHandler<String, DeferredAllocationPool>
-        mergeConflictHandler = new MergeConflictHandler<String,
-        DeferredAllocationPool>() {
+    final Map<DeferredAllocationPool, DeferredAllocationPool> mergedPools = new HashMap<>();
+    final MergeConflictHandler<String, DeferredAllocationPool> mergeConflictHandler =
+        new MergeConflictHandler<String, DeferredAllocationPool>() {
       @Override
-      public DeferredAllocationPool resolveConflict(String key,
-          DeferredAllocationPool a, DeferredAllocationPool b) {
+      public DeferredAllocationPool resolveConflict(
+          String key,
+          DeferredAllocationPool a,
+          DeferredAllocationPool b) {
         final DeferredAllocationPool result = a.mergeWith(b);
         final DeferredAllocationPool oldResult = mergedPools.get(result);
         if (oldResult == null) {
@@ -348,13 +336,11 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       }
     };
 
-    PersistentSortedMap<String, DeferredAllocationPool> mergedAllocations =
-        merge(pPts1.getDeferredAllocations(), pPts2.getDeferredAllocations(),
-            mergeConflictHandler);
+    PersistentSortedMap<String, DeferredAllocationPool> mergedAllocations = merge(
+        pPts1.getDeferredAllocations(), pPts2.getDeferredAllocations(), mergeConflictHandler);
     for (final DeferredAllocationPool merged : mergedPools.keySet()) {
       for (final String pointerVariable : merged.getPointerVariables()) {
-        mergedAllocations = mergedAllocations.putAndCopy(pointerVariable,
-            merged);
+        mergedAllocations = mergedAllocations.putAndCopy(pointerVariable, merged);
       }
     }
 
@@ -371,13 +357,14 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
     /**
      * Resolves a merge conflict between two types and returns the resolved type
      *
-     * @param pKey Not used in the algorithm.
+     * @param pKey   Not used in the algorithm.
      * @param pType1 The first type to merge.
      * @param pType2 The second type to merge.
      * @return A conflict resolving C type.
      */
     @Override
-    public CType resolveConflict(final String pKey, final CType pType1,
+    public CType resolveConflict(
+        final String pKey, final CType pType1,
         final CType pType2) {
       if (isFakeBaseType(pType1)) {
         return pType2;
@@ -386,28 +373,25 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       }
 
       int currentFieldIndex = 0;
-      final ImmutableList.Builder<CCompositeTypeMemberDeclaration>
-          membersBuilder = ImmutableList.builder();
+      final ImmutableList.Builder<CCompositeTypeMemberDeclaration> membersBuilder =
+          ImmutableList.builder();
       if (pType1 instanceof CCompositeType) {
         final CCompositeType compositeType1 = (CCompositeType) pType1;
 
         if (compositeType1.getKind() == ComplexTypeKind.UNION
             && !compositeType1.getMembers().isEmpty()
-            && compositeType1.getMembers().get(0).getName().equals(
-                getUnitedFieldBaseName(0))) {
+            && compositeType1.getMembers().get(0).getName().equals(getUnitedFieldBaseName(0))) {
           membersBuilder.addAll(compositeType1.getMembers());
           currentFieldIndex += compositeType1.getMembers().size();
         } else {
-          membersBuilder.add(
-              new CCompositeTypeMemberDeclaration(compositeType1,
-                  getUnitedFieldBaseName(currentFieldIndex)));
+          membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType1,
+              getUnitedFieldBaseName(currentFieldIndex)));
           currentFieldIndex++;
         }
 
       } else {
-        membersBuilder.add(
-            new CCompositeTypeMemberDeclaration(pType1,
-                getUnitedFieldBaseName(currentFieldIndex)));
+        membersBuilder.add(new CCompositeTypeMemberDeclaration(pType1,
+            getUnitedFieldBaseName(currentFieldIndex)));
         currentFieldIndex++;
       }
 
@@ -417,32 +401,28 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
         if (compositeType2.getKind() == ComplexTypeKind.UNION
             && !compositeType2.getMembers().isEmpty()
             && compositeType2.getMembers().get(0).getName().equals(
-                getUnitedFieldBaseName(0))) {
-          for (CCompositeTypeMemberDeclaration ignored
-              : compositeType2.getMembers()) {
-            membersBuilder.add(
-                new CCompositeTypeMemberDeclaration(compositeType2,
-                    getUnitedFieldBaseName(currentFieldIndex)));
+            getUnitedFieldBaseName(0))) {
+          for (CCompositeTypeMemberDeclaration ignored : compositeType2.getMembers()) {
+            membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
+                getUnitedFieldBaseName(currentFieldIndex)));
             currentFieldIndex++;
           }
         } else {
-          membersBuilder.add(
-              new CCompositeTypeMemberDeclaration(compositeType2,
-                  getUnitedFieldBaseName(currentFieldIndex)));
+          membersBuilder.add(new CCompositeTypeMemberDeclaration(compositeType2,
+              getUnitedFieldBaseName(currentFieldIndex)));
         }
 
       } else {
-        membersBuilder.add(
-            new CCompositeTypeMemberDeclaration(pType2,
-                getUnitedFieldBaseName(currentFieldIndex)));
+        membersBuilder.add(new CCompositeTypeMemberDeclaration(pType2,
+            getUnitedFieldBaseName(currentFieldIndex)));
       }
 
       String name = UNITED_BASE_UNION_TAG_PREFIX
           + pType1.toString().replace(' ', '_')
           + "_and_"
           + pType2.toString().replace(' ', '_');
-      return new CCompositeType(false, false, ComplexTypeKind.UNION,
-          membersBuilder.build(), name, name);
+      return new CCompositeType(false, false, ComplexTypeKind.UNION, membersBuilder.build(),
+          name, name);
     }
   }
 
@@ -453,11 +433,11 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param <T> The type of the list entries in the merge conflict handler.
    * @return A handler for merge conflicts.
    */
-  private static <K, T> MergeConflictHandler<K, PersistentList<T>>
-  mergeOnConflict() {
+  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
     return new MergeConflictHandler<K, PersistentList<T>>() {
       @Override
-      public PersistentList<T> resolveConflict(K pKey, PersistentList<T> pList1,
+      public PersistentList<T> resolveConflict(
+          K pKey, PersistentList<T> pList1,
           PersistentList<T> pList2) {
         return DeferredAllocationPool.mergeLists(pList1, pList2);
       }
@@ -465,11 +445,10 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * Create constraint that imports the old value of a variable into the
-   * memory handled with UFs.
+   * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
-   * @param pNewBases A map of new bases.
-   * @param pSharedFields A list of shared fields.
+   * @param pNewBases      A map of new bases.
+   * @param pSharedFields  A list of shared fields.
    * @param pSSAMapBuilder The SSA map.
    * @return A boolean formula for the import constraint.
    */
@@ -496,14 +475,13 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * Create constraint that imports the old value of a variable into the
-   * memory handled with UFs.
+   * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
-   * @param pAddress The formula for the address.
+   * @param pAddress        The formula for the address.
    * @param pVariablePrefix A prefix for variables.
-   * @param pVariableType The type of the variable.
-   * @param pSharedFields A list of shared fields.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pVariableType   The type of the variable.
+   * @param pSharedFields   A list of shared fields.
+   * @param pSSAMapBuilder  The SSA map.
    * @return A boolean formula for the import constraint.
    */
   private BooleanFormula makeValueImportConstraints(
@@ -512,19 +490,17 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final CType pVariableType,
       final List<Pair<CCompositeType, String>> pSharedFields,
       final SSAMapBuilder pSSAMapBuilder) {
-    assert !CTypeUtils.containsArray(pVariableType) : "Array access can't be "
-        + "encoded as a variable";
+    assert !CTypeUtils.containsArray(pVariableType) : "Array access can't be encoded as a variable";
 
     BooleanFormula result = bfmgr.makeBoolean(true);
 
     if (pVariableType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) pVariableType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not "
-          + "composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: "
+          + compositeType;
 
       int offset = 0;
-      for (final CCompositeTypeMemberDeclaration memberDeclaration
-          : compositeType.getMembers()) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String name = memberDeclaration.getName();
         final CType type = CTypeUtils.simplifyType(memberDeclaration.getType());
         final String prefix = pVariablePrefix
@@ -563,12 +539,13 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   /**
    * Creates a formula for a dereference of a type.
    *
-   * @param pType The type to be dereferenced.
-   * @param pAddress The formula of the type's address.
+   * @param pType          The type to be dereferenced.
+   * @param pAddress       The formula of the type's address.
    * @param pSSAMapBuilder The SSA map.
    * @return A formula for the dereference of the type.
    */
-  private Formula makeDereference(final CType pType,
+  private Formula makeDereference(
+      final CType pType,
       final Formula pAddress,
       final SSAMapBuilder pSSAMapBuilder) {
     final String ufName = CToFormulaConverterWithHeapArray.getArrayName(pType);
@@ -581,8 +558,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * The method is used to speed up {@code sizeof} computation by caching sizes
-   * of declared composite types.
+   * The method is used to speed up {@code sizeof} computation by caching sizes of declared
+   * composite types.
    *
    * @param pType The type to determine the size of.
    * @return The size of a given type.
@@ -593,15 +570,15 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * The method is used to speed up member offset computation for declared
-   * composite types.
+   * The method is used to speed up member offset computation for declared composite types.
    *
    * @param pCompositeType The composite type.
-   * @param pMemberName The name of the member of the composite type.
+   * @param pMemberName    The name of the member of the composite type.
    * @return The offset of the member in the composite type.
    */
   @Override
-  public int getOffset(final CCompositeType pCompositeType,
+  public int getOffset(
+      final CCompositeType pCompositeType,
       final String pMemberName) {
     return typeHandler.getOffset(pCompositeType, pMemberName);
   }
@@ -609,13 +586,14 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   /**
    * Gets the next base address.
    *
-   * @param pNewBase Not used.
-   * @param pBases A map of existing bases.
+   * @param pNewBase  Not used.
+   * @param pBases    A map of existing bases.
    * @param pLastBase The name of the last added base.
    * @return A formula for the next base address.
    */
   @Override
-  protected BooleanFormula getNextBaseAddressInequality(final String pNewBase,
+  protected BooleanFormula getNextBaseAddressInequality(
+      final String pNewBase,
       final PersistentSortedMap<String, CType> pBases,
       final String pLastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
@@ -640,15 +618,14 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * Adds pointer targets for every used (tracked) (sub)field of the newly
-   * allocated base.
+   * Adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
    *
-   * @param pBase The name of the base.
-   * @param pTargetType The type of the target.
-   * @param pContainerType The type of the container, might be {@code null}.
-   * @param pProperOffset The offset.
+   * @param pBase            The name of the base.
+   * @param pTargetType      The type of the target.
+   * @param pContainerType   The type of the container, might be {@code null}.
+   * @param pProperOffset    The offset.
    * @param pContainerOffset The offset in the container.
-   * @param pTargets The map of available targets.
+   * @param pTargets         The map of available targets.
    * @return The new map of targets.
    */
   @CheckReturnValue
@@ -669,23 +646,21 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
   }
 
   /**
-   * Recursively adds pointer targets for every used (tracked) (sub)field of the
-   * newly allocated base.
+   * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated
+   * base.
    *
    * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
    *
-   * @param pBase the name of the newly allocated base variable
-   * @param pCurrentType type of the allocated base or the next added pointer
-   *                    target
-   * @param pContainerType either {@code null} or the type of the innermost
-   *                      container of the next added pointer target
-   * @param pProperOffset either {@code 0} or the offset of the next added
-   *                     pointer target in its innermost container
-   * @param pContainerOffset either {@code 0} or the offset of the innermost
-   *                        container (relative to the base adddress)
-   * @param pTargets The list of targets where the new targets should be added to
-   * @param pFields The set of "shared" fields that are accessed directly via
-   *               pointers.
+   * @param pBase            the name of the newly allocated base variable
+   * @param pCurrentType     type of the allocated base or the next added pointer target
+   * @param pContainerType   either {@code null} or the type of the innermost container of the next
+   *                         added pointer target
+   * @param pProperOffset    either {@code 0} or the offset of the next added pointer target in its
+   *                         innermost container
+   * @param pContainerOffset either {@code 0} or the offset of the innermost container (relative to
+   *                         the base adddress)
+   * @param pTargets         The list of targets where the new targets should be added to
+   * @param pFields          The set of "shared" fields that are accessed directly via pointers.
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
@@ -700,8 +675,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       final PersistentSortedMap<CompositeField, Boolean> pFields) {
 
     final CType type = CTypeUtils.simplifyType(pCurrentType);
-    assert !(type instanceof CElaboratedType) : "Unresolved elaborated type "
-        + type + " for base " + pBase;
+    assert !(type instanceof CElaboratedType) : "Unresolved elaborated type " + type + " for base "
+        + pBase;
 
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
@@ -720,8 +695,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
 
     } else if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not "
-          + "composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: "
+          + compositeType;
 
       final String typeName = CTypeUtils.typeToString(compositeType);
       typeHandler.addCompositeTypeToCache(compositeType);
@@ -729,11 +704,9 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration
           : compositeType.getMembers()) {
-        if (pFields.containsKey(CompositeField.of(
-            typeName, memberDeclaration.getName()))) {
-          pTargets = addToTargets(pBase, memberDeclaration.getType(),
-              compositeType, offset, pContainerOffset + pProperOffset, pTargets,
-              pFields);
+        if (pFields.containsKey(CompositeField.of(typeName, memberDeclaration.getName()))) {
+          pTargets = addToTargets(pBase, memberDeclaration.getType(), compositeType, offset,
+              pContainerOffset + pProperOffset, pTargets, pFields);
         }
 
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
@@ -742,20 +715,18 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
       }
 
     } else {
-      pTargets = addToTarget(pBase, type, pContainerType, pProperOffset,
-          pContainerOffset, pTargets);
+      pTargets = addToTarget(pBase, type, pContainerType, pProperOffset, pContainerOffset, pTargets);
     }
 
     return pTargets;
   }
 
   /**
-   * Compute all targets for a given set of bases and fields, and add them to a
-   * map.
+   * Compute all targets for a given set of bases and fields, and add them to a map.
    *
    * @param pTargets A map of existing targets
-   * @param pBases A set of bases
-   * @param pFields A set of fields
+   * @param pBases   A set of bases
+   * @param pFields  A set of fields
    * @return A map of existing targets
    */
   @CheckReturnValue

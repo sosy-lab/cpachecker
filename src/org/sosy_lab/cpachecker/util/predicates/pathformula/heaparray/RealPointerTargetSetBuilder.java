@@ -27,17 +27,9 @@ import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 
-import javax.annotation.Nonnull;
-
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -48,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -59,15 +53,21 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
+
+import javax.annotation.Nonnull;
 
 /**
  * Actual builder implementation for PointerTargetSet.
  *
- * Its state starts with an existing set, but may be changed later. It supports
- * read access, but it is not recommended to use instances of this class except
- * for the short period of time while creating a new set.
+ * Its state starts with an existing set, but may be changed later. It supports read access, but it
+ * is not recommended to use instances of this class except for the short period of time while
+ * creating a new set.
  *
  * This class is not thread-safe.
  */
@@ -90,8 +90,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
         @Override
         public boolean apply(Pair<CCompositeType, String> pField) {
           final String type = CTypeUtils.typeToString(pField.getFirst());
-          final CompositeField compositeField = CompositeField.of(
-              type, pField.getSecond());
+          final CompositeField compositeField = CompositeField.of(type, pField.getSecond());
           return !fields.containsKey(compositeField);
         }
       };
@@ -106,23 +105,23 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
             @Nonnull Pair<CCompositeType, String> pField) {
           final CCompositeType fieldComposite = pField.getFirst();
           final String fieldName = pField.getSecond();
-          for (final CCompositeTypeMemberDeclaration declaration
-              : fieldComposite.getMembers()) {
+          for (final CCompositeTypeMemberDeclaration declaration : fieldComposite.getMembers()) {
             if (declaration.getName().equals(fieldName)) {
               return Triple.of(fieldComposite, fieldName,
                   CTypeUtils.simplifyType(declaration.getType()));
             }
           }
-          throw new AssertionError("Tried to start tracking a non-existent "
-              + "field " + fieldName + " in composite type " + fieldComposite);
+          throw new AssertionError("Tried to start tracking a non-existent field " + fieldName
+              + " in composite type " + fieldComposite);
         }
       };
 
   // Used in addEssentialFields()
   private static final Comparator<Triple<CCompositeType, String, CType>>
-  simpleTypedFieldsFirstComparator = new Comparator<Triple<CCompositeType, String, CType>>() {
+      simpleTypedFieldsFirstComparator = new Comparator<Triple<CCompositeType, String, CType>>() {
     @Override
-    public int compare(Triple<CCompositeType, String, CType> pField1,
+    public int compare(
+        Triple<CCompositeType, String, CType> pField1,
         Triple<CCompositeType, String, CType> pField2) {
       final int isField1Simple = pField1.getThird() instanceof CCompositeType ? 1 : 0;
       final int isField2Simple = pField2.getThird() instanceof CCompositeType ? 1 : 0;
@@ -133,12 +132,13 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   /**
    * Creates a new RealPointerTargetSetBuilder.
    *
-   * @param pPointerTargetSet The underlying PointerTargetSet
-   * @param pFormulaManagerView The formula manager for SMT formulae
+   * @param pPointerTargetSet        The underlying PointerTargetSet
+   * @param pFormulaManagerView      The formula manager for SMT formulae
    * @param pPointerTargetSetManager The PointerTargetSetManager
-   * @param pOptions Additional configuration options.
+   * @param pOptions                 Additional configuration options.
    */
-  RealPointerTargetSetBuilder(final PointerTargetSet pPointerTargetSet,
+  RealPointerTargetSetBuilder(
+      final PointerTargetSet pPointerTargetSet,
       final FormulaManagerView pFormulaManagerView,
       final PointerTargetSetManagerHeapArray pPointerTargetSetManager,
       final FormulaEncodingWithPointerAliasingOptions pOptions) {
@@ -153,8 +153,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   }
 
   /**
-   * Recursively adds pointer targets for every used (tracked) (sub)field of the
-   * newly allocated base.
+   * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated
+   * base.
    *
    * Note: The recursion doesn't proceed on unused (untracked) (sub)fields.
    *
@@ -201,8 +201,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
       // This is the declaration of a variable of an incomplete struct type.
       // We can't access the contents of this variable anyway, so we don't add
       // targets
-      assert ((CElaboratedType) pType).getRealType() == null : "Elaborated type "
-          + pType + " that was not simplified but could have been.";
+      assert ((CElaboratedType) pType).getRealType() == null : "Elaborated type " + pType + " "
+          + "that was not simplified but could have been.";
     } else {
       addTargets(pName, pType);
     }
@@ -211,9 +211,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   }
 
   /**
-   * Adds the newly allocated base of the given type for tracking along with all
-   * its tracked (sub)fields (if it is a structure/union) or all its elements
-   * (it it is an array).
+   * Adds the newly allocated base of the given type for tracking along with all its tracked
+   * (sub)fields (if it is a structure/union) or all its elements (it it is an array).
    *
    * @param pName The name of the base
    * @param pType The type of the base
@@ -240,30 +239,32 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * Returns, whether a field of a composite type is tracked or not.
    *
    * @param pCompositeType The composite type.
-   * @param pFieldName The name of the field in the composite type.
+   * @param pFieldName     The name of the field in the composite type.
    * @return True, if the field is already tracked, false otherwise.
    */
   @Override
-  public boolean tracksField(final CCompositeType pCompositeType,
+  public boolean tracksField(
+      final CCompositeType pCompositeType,
       final String pFieldName) {
     return fields.containsKey(CompositeField.of(
         CTypeUtils.typeToString(pCompositeType), pFieldName));
   }
 
   /**
-   * Recursively adds pointer targets for the given base variable when the newly
-   * used field is added for tracking.
+   * Recursively adds pointer targets for the given base variable when the newly used field is added
+   * for tracking.
    *
-   * @param pBase The base variable
-   * @param pCurrentType The type of the base variable or of the next sub field
-   * @param pProperOffset Either {@code 0} or the offset of the next sub field in
-   *                     its innermost container
-   * @param pContainerOffset Either {@code 0} or the offset of the innermost
-   *                        container relative to the base address
-   * @param pComposite The composite of the newly used field
-   * @param pMemberName The name of the newly used field
+   * @param pBase            The base variable
+   * @param pCurrentType     The type of the base variable or of the next sub field
+   * @param pProperOffset    Either {@code 0} or the offset of the next sub field in its innermost
+   *                         container
+   * @param pContainerOffset Either {@code 0} or the offset of the innermost container relative to
+   *                         the base address
+   * @param pComposite       The composite of the newly used field
+   * @param pMemberName      The name of the newly used field
    */
-  private void addTargets(final String pBase,
+  private void addTargets(
+      final String pBase,
       final CType pCurrentType,
       final int pProperOffset,
       final int pContainerOffset,
@@ -289,26 +290,22 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
       }
     } else if (type instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) type;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not "
-          + "composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: "
+          + compositeType;
 
       final String typeName = CTypeUtils.typeToString(compositeType);
       int offset = 0;
       final boolean isTargetComposite = typeName.equals(pComposite);
 
-      for (final CCompositeTypeMemberDeclaration memberDeclaration
-          : compositeType.getMembers()) {
-        if (fields.containsKey(CompositeField.of(typeName,
-            memberDeclaration.getName()))) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (fields.containsKey(CompositeField.of(typeName,  memberDeclaration.getName()))) {
           addTargets(pBase, memberDeclaration.getType(), offset, pContainerOffset + pProperOffset,
               pComposite, pMemberName);
         }
 
-        if (isTargetComposite
-            && memberDeclaration.getName().equals(pMemberName)) {
-          targets = ptsMgs.addToTargets(pBase, memberDeclaration.getType(),
-              compositeType, offset, pContainerOffset + pProperOffset, targets,
-              fields);
+        if (isTargetComposite && memberDeclaration.getName().equals(pMemberName)) {
+          targets = ptsMgs.addToTargets(pBase, memberDeclaration.getType(), compositeType,
+              offset, pContainerOffset + pProperOffset, targets, fields);
         }
 
         if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
@@ -322,11 +319,12 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * Adds a field of a composite type to the tracking.
    *
    * @param pCompositeType The composite type with the field in it.
-   * @param pFieldName The name of the field in the composite type.
+   * @param pFieldName     The name of the field in the composite type.
    * @return True, if the addition of the target was successful, false otherwise
    */
   @Override
-  public boolean addField(final CCompositeType pCompositeType,
+  public boolean addField(
+      final CCompositeType pCompositeType,
       final String pFieldName) {
     final String type = CTypeUtils.typeToString(pCompositeType);
     final CompositeField field = CompositeField.of(type, pFieldName);
@@ -334,10 +332,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
       return true; // The field has already been added
     }
 
-    final PersistentSortedMap<String, PersistentList<PointerTarget>> old =
-        targets;
-    for (final PersistentSortedMap.Entry<String, CType> baseEntry
-        : bases.entrySet()) {
+    final PersistentSortedMap<String, PersistentList<PointerTarget>> old = targets;
+    for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
       addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, type, pFieldName);
     }
     fields = fields.putAndCopy(field, true);
@@ -350,16 +346,17 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   }
 
   /**
-   * Should be used to remove the newly added field if it didn't turn out to
-   * correspond to any actual pointer target.
+   * Should be used to remove the newly added field if it didn't turn out to correspond to any
+   * actual pointer target.
    *
-   * This can happen if we try to track a field of a composite that has no
-   * corresponding allocated bases.
+   * This can happen if we try to track a field of a composite that has no corresponding allocated
+   * bases.
    *
    * @param pCompositeType The composite type which's field should be removed.
-   * @param pFieldName The name of the field that should be removed.
+   * @param pFieldName     The name of the field that should be removed.
    */
-  private void shallowRemoveField(final CCompositeType pCompositeType,
+  private void shallowRemoveField(
+      final CCompositeType pCompositeType,
       final String pFieldName) {
     final String type = CTypeUtils.typeToString(pCompositeType);
     final CompositeField field = CompositeField.of(type, pFieldName);
@@ -367,23 +364,19 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   }
 
   /**
-   * Used to start tracking for fields that were used in some expression or an
-   * assignment LHS.
+   * Used to start tracking for fields that were used in some expression or an assignment LHS.
    *
-   * Each field is added for tracking only if it's present in some currently
-   * allocated object; an inner structure/union field is added only if the field
-   * corresponding to the inner composite itself is already tracked; also, a
-   * field corresponding to an inner composite is added only if any fields of
-   * that composite are already tracked. The latter two optimizations cause
-   * problems when adding an inner composite field along with the corresponding
-   * containing field e.g.:
+   * Each field is added for tracking only if it's present in some currently allocated object; an
+   * inner structure/union field is added only if the field corresponding to the inner composite
+   * itself is already tracked; also, a field corresponding to an inner composite is added only if
+   * any fields of that composite are already tracked. The latter two optimizations cause problems
+   * when adding an inner composite field along with the corresponding containing field e.g.:
    *
    * <p>{@code pouter->inner.f = /*...* /;}</p>
    *
-   * Here {@code inner.f} is not added because inner is not yet tracked and
-   * {@code outer.inner} is not added because no fields in structure
-   * <tt>inner</tt> are tracked. The issue is solved by grouping the requested
-   * fields into chunks by their nesting and avoid optimizations when adding
+   * Here {@code inner.f} is not added because inner is not yet tracked and {@code outer.inner} is
+   * not added because no fields in structure <tt>inner</tt> are tracked. The issue is solved by
+   * grouping the requested fields into chunks by their nesting and avoid optimizations when adding
    * fields of the same chunk.
    *
    * @param pFields The fields that should be tracked.
@@ -391,10 +384,10 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   @Override
   public void addEssentialFields(
       final List<Pair<CCompositeType, String>> pFields) {
-    final List<Triple<CCompositeType, String, CType>> typedFields =
-        from(pFields).filter(isNewFieldPredicate)
-                     .transform(typeFieldFunction)
-                     .toSortedList(simpleTypedFieldsFirstComparator);
+    final List<Triple<CCompositeType, String, CType>> typedFields = from(pFields)
+        .filter(isNewFieldPredicate)
+        .transform(typeFieldFunction)
+        .toSortedList(simpleTypedFieldsFirstComparator);
     if (typedFields.isEmpty()) {
       return;
     }
@@ -408,10 +401,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
         Triple<CCompositeType, String, CType> current = field;
         do {
           currentChain.add(current);
-          for (final Triple<CCompositeType, String, CType> parentField
-              : typedFields) {
-            if (!done.contains(parentField)
-                && parentField.getThird().equals(current.getFirst())) {
+          for (final Triple<CCompositeType, String, CType> parentField : typedFields) {
+            if (!done.contains(parentField) && parentField.getThird().equals(current.getFirst())) {
               current = parentField;
               break;
             }
@@ -438,28 +429,29 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * Adds a pointer variable to the pool of tracked deferred allocations.
    *
    * @param pPointerVariable The name of the pointer variable.
-   * @param pIsZeroing A flag indicating if the variable is zeroing.
-   * @param pSize The size of the memory.
-   * @param pBaseVariable The name of the base variable.
+   * @param pIsZeroing       A flag indicating if the variable is zeroing.
+   * @param pSize            The size of the memory.
+   * @param pBaseVariable    The name of the base variable.
    */
-  private void addDeferredAllocation(final String pPointerVariable,
+  private void addDeferredAllocation(
+      final String pPointerVariable,
       final boolean pIsZeroing,
       final CIntegerLiteralExpression pSize,
       final String pBaseVariable) {
     deferredAllocations = deferredAllocations.putAndCopy(pPointerVariable,
-        new DeferredAllocationPool(pPointerVariable, pIsZeroing, pSize,
-            pBaseVariable));
+        new DeferredAllocationPool(pPointerVariable, pIsZeroing, pSize, pBaseVariable));
   }
 
   /**
    * Adds a temporary deferred allocation to the tracking pool.
    *
-   * @param pIsZeroing A flag indicating if the variable is zeroing.
-   * @param pSize The size of the memory.
+   * @param pIsZeroing    A flag indicating if the variable is zeroing.
+   * @param pSize         The size of the memory.
    * @param pBaseVariable The name of the base variable.
    */
   @Override
-  public void addTemporaryDeferredAllocation(final boolean pIsZeroing,
+  public void addTemporaryDeferredAllocation(
+      final boolean pIsZeroing,
       final CIntegerLiteralExpression pSize,
       final String pBaseVariable) {
     addDeferredAllocation(pBaseVariable, pIsZeroing, pSize, pBaseVariable);
@@ -468,18 +460,17 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   /**
    * Adds a pointer to the tracking of deferred memory allocations.
    *
-   * @param pNewPointerVariable The new pointer variable.
+   * @param pNewPointerVariable      The new pointer variable.
    * @param pOriginalPointerVariable The original pointer variable.
    */
   @Override
-  public void addDeferredAllocationPointer(final String pNewPointerVariable,
+  public void addDeferredAllocationPointer(
+      final String pNewPointerVariable,
       final String pOriginalPointerVariable) {
     final DeferredAllocationPool newDeferredAllocationPool =
-        deferredAllocations.get(pOriginalPointerVariable)
-                           .addPointerVariable(pNewPointerVariable);
+        deferredAllocations.get(pOriginalPointerVariable).addPointerVariable(pNewPointerVariable);
 
-    for (final String pointerVariable
-        : newDeferredAllocationPool.getPointerVariables()) {
+    for (final String pointerVariable : newDeferredAllocationPool.getPointerVariables()) {
       deferredAllocations = deferredAllocations.putAndCopy(
           pointerVariable, newDeferredAllocationPool);
     }
@@ -491,13 +482,13 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * Removes pointer to a deferred memory allocation from tracking.
    *
    * @param pOldVariable The variable to be removed.
-   * @return Whether the removed variable was the only pointer to the
-   *         corresponding referred allocation.
+   * @return Whether the removed variable was the only pointer to the corresponding referred
+   * allocation.
    */
   @Override
   public boolean removeDeferredAllocatinPointer(final String pOldVariable) {
-    final DeferredAllocationPool newPool = deferredAllocations.get(pOldVariable)
-        .removePointerVariable(pOldVariable);
+    final DeferredAllocationPool newPool =
+        deferredAllocations.get(pOldVariable).removePointerVariable(pOldVariable);
 
     deferredAllocations = deferredAllocations.removeAndCopy(pOldVariable);
     if (!newPool.getPointerVariables().isEmpty()) {
@@ -512,8 +503,8 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   }
 
   /**
-   * Removes a variable from the pool of deferred allocations and returns the
-   * pool without the variable.
+   * Removes a variable from the pool of deferred allocations and returns the pool without the
+   * variable.
    *
    * @param pAllocatedVariable The name of the variable to be removed.
    * @return The deferred allocation pool without the variable.
@@ -521,8 +512,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   @Override
   public DeferredAllocationPool removeDeferredAllocation(
       final String pAllocatedVariable) {
-    final DeferredAllocationPool allocationPool = deferredAllocations.get(
-        pAllocatedVariable);
+    final DeferredAllocationPool allocationPool = deferredAllocations.get(pAllocatedVariable);
     for (final String variable : allocationPool.getPointerVariables()) {
       deferredAllocations = deferredAllocations.removeAndCopy(variable);
     }
@@ -544,26 +534,21 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    * Checks, if a variable is a temporary deferred allocation pointer.
    *
    * @param pPointer The variable name.
-   * @return True, if the variable is a temporary deferred allocation pointer,
-   *         false otherwise.
+   * @return True, if the variable is a temporary deferred allocation pointer, false otherwise.
    */
   @Override
   public boolean isTemporaryDeferredAllocationPointer(final String pPointer) {
-    final DeferredAllocationPool allocationPool = deferredAllocations.get(
-        pPointer);
-    assert allocationPool == null
-        || allocationPool.getBaseVariables().size() >= 1 : "Inconsistent "
-        + "deferred allocation pool: no bases";
-    return allocationPool != null
-        && allocationPool.getBaseVariables().get(0).equals(pPointer);
+    final DeferredAllocationPool allocationPool = deferredAllocations.get(pPointer);
+    assert allocationPool == null || allocationPool.getBaseVariables().size() >= 1
+        : "Inconsistent deferred allocation pool: no bases";
+    return allocationPool != null && allocationPool.getBaseVariables().get(0).equals(pPointer);
   }
 
   /**
    * Checks, if a variable is a deferred allocation pointer.
    *
    * @param pVariable The variable name.
-   * @return True, if the variable is a deferred allocation pointer, false
-   *         otherwise.
+   * @return True, if the variable is a deferred allocation pointer, false otherwise.
    */
   @Override
   public boolean isDeferredAllocationPointer(final String pVariable) {
@@ -625,19 +610,19 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
    */
   @Override
   public PersistentList<PointerTarget> getAllTargets(final CType pType) {
-    return firstNonNull(targets.get(CTypeUtils.typeToString(pType)),
-        PersistentLinkedList.<PointerTarget>of());
+    return firstNonNull(targets.get(CTypeUtils.typeToString(pType)), PersistentLinkedList.<PointerTarget>of());
   }
 
   /**
    * Gets all matching targets of a pointer target pattern.
    *
-   * @param pType The type of the pointer variable.
+   * @param pType          The type of the pointer variable.
    * @param pTargetPattern The pointer target pattern.
    * @return A list of matching pointer targets.
    */
   @Override
-  public Iterable<PointerTarget> getMatchingTargets(final CType pType,
+  public Iterable<PointerTarget> getMatchingTargets(
+      final CType pType,
       final PointerTargetPattern pTargetPattern) {
     return from(getAllTargets(pType)).filter(pTargetPattern);
   }
@@ -645,26 +630,26 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
   /**
    * Gets all spurious targets of a pointer target pattern.
    *
-   * @param pType The type of the pointer variable.
+   * @param pType          The type of the pointer variable.
    * @param pTargetPattern The pointer target pattern.
    * @return A list of spurious pointer targets.
    */
   @Override
-  public Iterable<PointerTarget> getSpuriousTargets(final CType pType,
+  public Iterable<PointerTarget> getSpuriousTargets(
+      final CType pType,
       final PointerTargetPattern pTargetPattern) {
     return from(getAllTargets(pType)).filter(not(pTargetPattern));
   }
 
   /**
-   * Returns an immutable PointerTargetSet with all the changes made to the
-   * builder.
+   * Returns an immutable PointerTargetSet with all the changes made to the builder.
    *
    * @return A PointerTargetSet with all changes made to the builder.
    */
   @Override
   public PointerTargetSet build() {
-    PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields,
-        deferredAllocations, targets);
+    PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields, deferredAllocations,
+        targets);
     if (result.isEmpty()) {
       return PointerTargetSet.emptyPointerTargetSet();
     } else {

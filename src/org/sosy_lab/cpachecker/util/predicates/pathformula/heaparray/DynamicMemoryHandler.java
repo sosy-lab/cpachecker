@@ -23,17 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -57,26 +46,35 @@ import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.DeferredAllocationPool;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.logging.Level;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
- * This class is responsible for handling everything related to dynamic memory,
- * e.g. calls to malloc() and free(),
- * and for handling deferred allocations (calls to malloc() where the assumed
+ * This class is responsible for handling everything related to dynamic memory, e.g. calls to
+ * malloc() and free(), and for handling deferred allocations (calls to malloc() where the assumed
  * type of the memory is not yet known).
  */
 class DynamicMemoryHandler {
@@ -95,14 +93,15 @@ class DynamicMemoryHandler {
   /**
    * Creates a new DynamicMemoryHandler
    *
-   * @param pConverter The C to SMT formula converter.
-   * @param pCFAEdge The current edge in the CFA (for logging purposes).
-   * @param pSSAMapBuilder The SSA map.
+   * @param pConverter               The C to SMT formula converter.
+   * @param pCFAEdge                 The current edge in the CFA (for logging purposes).
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    */
-  DynamicMemoryHandler(final CToFormulaConverterWithHeapArray pConverter,
+  DynamicMemoryHandler(
+      final CToFormulaConverterWithHeapArray pConverter,
       final CFAEdge pCFAEdge,
       final SSAMapBuilder pSSAMapBuilder,
       final PointerTargetSetBuilder pPointerTargetSetBuilder,
@@ -119,14 +118,15 @@ class DynamicMemoryHandler {
   /**
    * Handles a dynamic memory function and returns its value.
    *
-   * @param pExpression The function call expression.
-   * @param pFunctionName The name of the function.
+   * @param pExpression        The function call expression.
+   * @param pFunctionName      The name of the function.
    * @param pExpressionVisitor A visitor to evaluate the expression's value.
    * @return The value of the function call.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
-  Value handleDynamicMemoryFunction(final CFunctionCallExpression pExpression,
+  Value handleDynamicMemoryFunction(
+      final CFunctionCallExpression pExpression,
       final String pFunctionName,
       final CExpressionVisitorWithPointerAliasing pExpressionVisitor)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -143,20 +143,19 @@ class DynamicMemoryHandler {
     } else if (converter.options.isMemoryFreeFunction(pFunctionName)) {
       return handleMemoryFree(pExpression, pExpressionVisitor);
     } else {
-      throw new AssertionError("Unknown memory allocation function "
-          + pFunctionName);
+      throw new AssertionError("Unknown memory allocation function " + pFunctionName);
     }
   }
 
   /**
-   * Handle memory allocation functions that may fail (i.e., return null)
-   * and that may or may not zero the memory.
+   * Handle memory allocation functions that may fail (i.e., return null) and that may or may not
+   * zero the memory.
    *
-   * @param pExpression The function call expression.
+   * @param pExpression   The function call expression.
    * @param pFunctionName The name of the allocation function.
    * @return A formula for the memory allocation.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   private Formula handleMemoryAllocation(
       final CFunctionCallExpression pExpression,
@@ -184,8 +183,7 @@ class DynamicMemoryHandler {
         long result = ExpressionValueVisitor.calculateBinaryOperation(
             new NumericValue(value0.longValue()),
             new NumericValue(value1.longValue()), multiplication,
-            converter.machineModel, converter.logger).asLong(
-            multiplication.getExpressionType());
+            converter.machineModel, converter.logger).asLong(multiplication.getExpressionType());
 
         CExpression newParam = new CIntegerLiteralExpression(
             param0.getFileLocation(), multiplication.getExpressionType(),
@@ -201,15 +199,15 @@ class DynamicMemoryHandler {
           && converter.options.hasSuperfluousParameters(pFunctionName)) {
         parameters = Collections.singletonList(parameters.get(0));
       } else {
-        throw new UnrecognizedCCodeException(String.format("Memory allocation "
-            + "function %s() called with %d parameters instead of 1",
-            pFunctionName, parameters.size()), edge, pExpression);
+        throw new UnrecognizedCCodeException(
+            String.format("Memory allocation function %s() called with %d parameters instead of 1",
+                pFunctionName, parameters.size()), edge, pExpression);
       }
     }
 
     final String delegateFunctionName = !isZeroing
-        ? converter.options.getSuccessfulAllocFunctionName()
-        : converter.options.getSuccessfulZallocFunctionName();
+                                        ? converter.options.getSuccessfulAllocFunctionName()
+                                        : converter.options.getSuccessfulZallocFunctionName();
 
     if (!converter.options.makeMemoryAllocationsAlwaysSucceed()) {
       final Formula nonDet = converter.makeFreshVariable(pFunctionName,
@@ -225,17 +223,18 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Handle memory allocation functions that cannot fail
-   * (i.e., do not return NULL) and do not zero the memory.
+   * Handle memory allocation functions that cannot fail (i.e., do not return NULL) and do not zero
+   * the memory.
    *
    * @param pFunctionName The name of the memory allocation function.
-   * @param pParameters The list of function parameters.
-   * @param pExpression The function call expression.
+   * @param pParameters   The list of function parameters.
+   * @param pExpression   The function call expression.
    * @return A formula for the function call.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
-  private Formula handleSuccessfulMemoryAllocation(final String pFunctionName,
+  private Formula handleSuccessfulMemoryAllocation(
+      final String pFunctionName,
       List<CExpression> pParameters,
       final CFunctionCallExpression pExpression)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -243,13 +242,12 @@ class DynamicMemoryHandler {
     // as it might refer to another function if this method is called from
     // handleMemoryAllocation()
     if (pParameters.size() != 1) {
-      if (pParameters.size() >
-          1 && converter.options.hasSuperfluousParameters(pFunctionName)) {
+      if (pParameters.size() > 1 && converter.options.hasSuperfluousParameters(pFunctionName)) {
         pParameters = Collections.singletonList(pParameters.get(0));
       } else {
-        throw new UnrecognizedCCodeException(String.format("Memory allocation "
-            + "function %s() called with %d parameters instead of 1",
-            pFunctionName, pParameters.size()), edge, pExpression);
+        throw new UnrecognizedCCodeException(
+            String.format("Memory allocation function %s() called with %d parameters instead of 1",
+                pFunctionName, pParameters.size()), edge, pExpression);
       }
     }
 
@@ -267,8 +265,8 @@ class DynamicMemoryHandler {
       } else if (operand2Type != null) {
         newType = new CArrayType(false, false, operand2Type, product.getOperand1());
       } else {
-        throw new UnrecognizedCCodeException("Can't determine type for internal"
-            + " memory allocation", edge, pExpression);
+        throw new UnrecognizedCCodeException("Can't determine type for internal memory allocation",
+            edge, pExpression);
       }
     } else {
       size = tryEvaluateExpression(parameter);
@@ -290,11 +288,9 @@ class DynamicMemoryHandler {
 
     Formula address;
     if (newType != null) {
-      final String newBase = makeAllocVariableName(pFunctionName, newType, ssa,
-          converter);
-      address =  makeAllocation(
-          converter.options.isSuccessfulZallocFunctionName(pFunctionName),
-          newType, newBase);
+      final String newBase = makeAllocVariableName(pFunctionName, newType, ssa, converter);
+      address = makeAllocation(
+          converter.options.isSuccessfulZallocFunctionName(pFunctionName), newType, newBase);
     } else {
       final String newBase = makeAllocVariableName(pFunctionName, CVoidType.VOID,
           ssa, converter);
@@ -302,7 +298,7 @@ class DynamicMemoryHandler {
           converter.options.isSuccessfulZallocFunctionName(pFunctionName),
           size != null ? new CIntegerLiteralExpression(
               parameter.getFileLocation(), parameter.getExpressionType(),
-              BigInteger.valueOf(size)) :  null, newBase);
+              BigInteger.valueOf(size)) : null, newBase);
       address = converter.makeConstant(PointerTargetSet.getBaseName(newBase),
           CPointerType.POINTER_TO_VOID);
     }
@@ -318,27 +314,26 @@ class DynamicMemoryHandler {
   /**
    * Handles calls to {@code free()}.
    *
-   * @param pExpression The parameters of the {@code free()} call.
-   * @param pExpressionVisitor A visitor to evaluate the value of the function
-   *                          call.
+   * @param pExpression        The parameters of the {@code free()} call.
+   * @param pExpressionVisitor A visitor to evaluate the value of the function call.
    * @return The return value of the function call.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  private Value handleMemoryFree(final CFunctionCallExpression pExpression,
+  private Value handleMemoryFree(
+      final CFunctionCallExpression pExpression,
       final CExpressionVisitorWithPointerAliasing pExpressionVisitor)
       throws UnrecognizedCCodeException {
     final List<CExpression> parameters = pExpression.getParameterExpressions();
     if (parameters.size() != 1) {
-      throw new UnrecognizedCCodeException(String.format("free() called with %d"
-          + " parameters", parameters.size()), edge, pExpression);
+      throw new UnrecognizedCCodeException(String.format("free() called with %d parameters",
+          parameters.size()), edge, pExpression);
     }
 
     if (errorConditions.isEnabled()) {
       final Formula operand = pExpressionVisitor.asValueFormula(
           parameters.get(0).accept(pExpressionVisitor),
           CTypeUtils.simplifyType(parameters.get(0).getExpressionType()));
-      BooleanFormula validFree = converter.formulaManager.makeEqual(
-          operand, converter.nullPointer);
+      BooleanFormula validFree = converter.formulaManager.makeEqual(operand, converter.nullPointer);
 
       for (String base : pts.getAllBases()) {
         Formula baseF = converter.makeConstant(
@@ -356,22 +351,22 @@ class DynamicMemoryHandler {
    * Creates a formula for memory allocations.
    *
    * @param pIsZeroing A flag indicating if the variable is zeroing.
-   * @param pType The type.
-   * @param pBase The name of the base.
+   * @param pType      The type.
+   * @param pBase      The name of the base.
    * @return A formula for the memory allocation.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution gets interrupted.
+   * @throws InterruptedException       If the execution gets interrupted.
    */
-  private Formula makeAllocation(final boolean pIsZeroing,
+  private Formula makeAllocation(
+      final boolean pIsZeroing,
       final CType pType,
       final String pBase)
       throws UnrecognizedCCodeException, InterruptedException {
     final CType baseType = CTypeUtils.getBaseType(pType);
-    final Formula result = converter.makeConstant(
-        PointerTargetSet.getBaseName(pBase), baseType);
+    final Formula result = converter.makeConstant(PointerTargetSet.getBaseName(pBase), baseType);
     if (pIsZeroing) {
-      AssignmentHandler assignmentHandler = new AssignmentHandler(converter,
-          edge, pBase, ssa, pts, constraints, errorConditions);
+      AssignmentHandler assignmentHandler = new AssignmentHandler(converter, edge, pBase, ssa,
+          pts, constraints, errorConditions);
       final BooleanFormula initialization =
           assignmentHandler.makeAssignment(
               pType,
@@ -391,13 +386,14 @@ class DynamicMemoryHandler {
   /**
    * Creates a name for an allocation.
    *
-   * @param pFunctionName The name of the function.
-   * @param pType The type of the function.
+   * @param pFunctionName  The name of the function.
+   * @param pType          The type of the function.
    * @param pSSAMapBuilder The SSA map.
-   * @param pConverter The C to SMT formula converter.
+   * @param pConverter     The C to SMT formula converter.
    * @return A name for allocations.
    */
-  static String makeAllocVariableName(final String pFunctionName,
+  static String makeAllocVariableName(
+      final String pFunctionName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder,
       final CtoFormulaConverter pConverter) {
@@ -409,15 +405,14 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Tries to evaluate an expression, i.e. get the value if it is an integer
-   * literal.
+   * Tries to evaluate an expression, i.e. get the value if it is an integer literal.
    *
    * @param pExpression The C expression.
    * @return The value, if the expression is an integer literal, or {@code null}
    */
   private static Integer tryEvaluateExpression(CExpression pExpression) {
     if (pExpression instanceof CIntegerLiteralExpression) {
-      return ((CIntegerLiteralExpression)pExpression).getValue().intValue();
+      return ((CIntegerLiteralExpression) pExpression).getValue().intValue();
     }
     return null;
   }
@@ -426,8 +421,7 @@ class DynamicMemoryHandler {
    * Returns, whether a expression is a {@code sizeof} expression.
    *
    * @param pExpression The C expression.
-   * @return True, if the expression is a {@code sizeof} expression, false
-   *         otherwise.
+   * @return True, if the expression is a {@code sizeof} expression, false otherwise.
    */
   private static boolean isSizeof(final CExpression pExpression) {
     return pExpression instanceof CUnaryExpression
@@ -437,18 +431,17 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Returns, whether the expression is a multiplication of the {@code sizeof}
-   * operator.
+   * Returns, whether the expression is a multiplication of the {@code sizeof} operator.
    *
    * @param pExpression The expression type.
-   * @return True, if the expression is a multiplication of the {@code sizeof}
-   *         operator, false otherwise.
+   * @return True, if the expression is a multiplication of the {@code sizeof} operator, false
+   * otherwise.
    */
   private static boolean isSizeofMultiple(final CExpression pExpression) {
     return pExpression instanceof CBinaryExpression
         && ((CBinaryExpression) pExpression).getOperator() == BinaryOperator.MULTIPLY
         && (isSizeof(((CBinaryExpression) pExpression).getOperand1())
-            || isSizeof(((CBinaryExpression) pExpression).getOperand2()));
+        || isSizeof(((CBinaryExpression) pExpression).getOperand2()));
   }
 
   /**
@@ -473,18 +466,18 @@ class DynamicMemoryHandler {
 
   // Handling of deferred allocations
 
- /**
-  * The function tries to recover dynamically allocated array type from the
-  * pointer type it was casted or assigned to.
-  *
-  * @param pType the revealing <em>pointed</em> type (e.g. {@code char} for
-  *             {@code char *}) of the pointer to which the void * variable was
-  *             casted or assigned to.
-  * @param pSizeLiteral the size specified at the allocation site.
-  * @return the recovered array type or the {@code type} parameter in case the
-  *         type can't be recovered
-  */
-  private CType refineType(final @Nonnull CType pType,
+  /**
+   * The function tries to recover dynamically allocated array type from the pointer type it was
+   * casted or assigned to.
+   *
+   * @param pType        the revealing <em>pointed</em> type (e.g. {@code char} for {@code char *})
+   *                     of the pointer to which the void * variable was casted or assigned to.
+   * @param pSizeLiteral the size specified at the allocation site.
+   * @return the recovered array type or the {@code type} parameter in case the type can't be
+   * recovered
+   */
+  private CType refineType(
+      final @Nonnull CType pType,
       final @Nonnull CIntegerLiteralExpression pSizeLiteral) {
     assert pSizeLiteral.getValue() != null;
 
@@ -494,9 +487,8 @@ class DynamicMemoryHandler {
       // An array type is used in the cast or assignment, so its size should
       // likely match the allocated size. Issue a warning if this isn't the case
       if (typeSize != size) {
-        converter.logger.logf(Level.WARNING, "Array size of the revealed type "
-            + "differs form the allocation size: %s : %d != %d", pType, typeSize,
-            size);
+        converter.logger.logf(Level.WARNING, "Array size of the revealed type differs form the " +
+            "allocation size: %s : %d != %d", pType, typeSize, size);
       }
       // The type used is already an array type, nothing to recover
       return pType;
@@ -509,8 +501,8 @@ class DynamicMemoryHandler {
       final int n = size / typeSize;
       final int remainder = size % typeSize;
       if (n == 0 || remainder != 0) {
-        converter.logger.logf(Level.WARNING, "Can't refine allocation type, "
-            + "but the sizes differ: %s : %d != %d", pType, typeSize, size);
+        converter.logger.logf(Level.WARNING, "Can't refine allocation type, but the sizes " +
+            "differ: %s : %d != %d", pType, typeSize, size);
         return pType;
       }
 
@@ -521,19 +513,20 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Returns the type of the allocated dynamic variable by the usage pointer
-   * type of the void * variable and the allocation size
+   * Returns the type of the allocated dynamic variable by the usage pointer type of the void *
+   * variable and the allocation size
    *
-   * @param pType The usage pointer type.
+   * @param pType        The usage pointer type.
    * @param pSizeLiteral The allocation size.
    * @return The type of the allocated dynamic variable.
    */
-  private CType getAllocationType(final @Nonnull CType pType,
+  private CType getAllocationType(
+      final @Nonnull CType pType,
       final @Nullable CIntegerLiteralExpression pSizeLiteral) {
     if (pType instanceof CPointerType) {
       return pSizeLiteral != null
-          ? refineType(((CPointerType) pType).getType(), pSizeLiteral)
-          : ((CPointerType) pType).getType();
+             ? refineType(((CPointerType) pType).getType(), pSizeLiteral)
+             : ((CPointerType) pType).getType();
     } else if (pType instanceof CArrayType) {
       return pSizeLiteral != null ? refineType(pType, pSizeLiteral) : pType;
     } else {
@@ -545,9 +538,9 @@ class DynamicMemoryHandler {
    * Handles the type revelation of deferred allocations.
    *
    * @param pPointerVariable The name of the pointer variable.
-   * @param pType The type of the pointer variable.
+   * @param pType            The type of the pointer variable.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException if the execution was interrupted.
+   * @throws InterruptedException       if the execution was interrupted.
    */
   private void handleDeferredAllocationTypeRevelation(
       final @Nonnull String pPointerVariable,
@@ -567,7 +560,7 @@ class DynamicMemoryHandler {
    *
    * @param pPointerVariable The name of the pointer variable.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   private void handleDeferredAllocationPointerEscape(
       final String pPointerVariable)
@@ -576,15 +569,13 @@ class DynamicMemoryHandler {
         pts.removeDeferredAllocation(pPointerVariable);
     final CIntegerLiteralExpression size =
         deferredAllocationPool.getSize() != null
-            ? deferredAllocationPool.getSize()
-            : new CIntegerLiteralExpression(FileLocation.DUMMY,
-                CNumericTypes.SIGNED_CHAR,
-                BigInteger.valueOf(converter.options.defaultAllocationSize()));
+        ? deferredAllocationPool.getSize()
+        : new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.SIGNED_CHAR,
+            BigInteger.valueOf(converter.options.defaultAllocationSize()));
 
-    converter.logger.logfOnce(Level.WARNING, "The void * pointer %s to a "
-        + "deferred allocation escaped form tracking! Allocating array "
-        + "void[%d]. (in the following line(s):\n %s)", pPointerVariable,
-        size.getValue(), edge);
+    converter.logger.logfOnce(Level.WARNING, "The void * pointer %s to a deferred allocation " +
+        "escaped form tracking! Allocating array void[%d]. (in the following line(s):\n %s)",
+        pPointerVariable, size.getValue(), edge);
 
     for (final String baseVariable : deferredAllocationPool.getBaseVariables()) {
       makeAllocation(deferredAllocationPool.wasAllocationZeroing(),
@@ -595,21 +586,21 @@ class DynamicMemoryHandler {
   /**
    * Handles deferred allocations in assignment expressions.
    *
-   * @param pLhs The left hand side of the C expression.
-   * @param pRhs The right hand side of the C expression.
-   * @param pLhsLocation The location of the left hand side in the source file.
-   * @param pRhsExpression The expression of the right hand side.
-   * @param pLhsType The type of the left hand side.
-   * @param pLhsUsedDeferredAllocationPointers A map of all used deferred
-   *                                          allocation pointers on the left
-   *                                          hand side.
-   * @param pRhsUsedDeferredAllocationPointers A map of all used deferred
-   *                                          allocation pointers on the right
-   *                                          hand side.
+   * @param pLhs                               The left hand side of the C expression.
+   * @param pRhs                               The right hand side of the C expression.
+   * @param pLhsLocation                       The location of the left hand side in the source
+   *                                           file.
+   * @param pRhsExpression                     The expression of the right hand side.
+   * @param pLhsType                           The type of the left hand side.
+   * @param pLhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the
+   *                                           left hand side.
+   * @param pRhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the
+   *                                           right hand side.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
-  void handleDeferredAllocationsInAssignment(final CLeftHandSide pLhs,
+  void handleDeferredAllocationsInAssignment(
+      final CLeftHandSide pLhs,
       final CRightHandSide pRhs,
       final Location pLhsLocation,
       final Expression pRhsExpression,
@@ -621,7 +612,7 @@ class DynamicMemoryHandler {
     // Handle allocations: reveal the actual type form the LHS type or defer the allocation until later
     boolean isAllocation = false;
     if ((converter.options.revealAllocationTypeFromLHS()
-            || converter.options.deferUntypedAllocations())
+        || converter.options.deferUntypedAllocations())
         && pRhs instanceof CFunctionCallExpression
         && !pRhsExpression.isNondetValue()
         && pRhsExpression.isValue()) {
@@ -639,13 +630,12 @@ class DynamicMemoryHandler {
             // We can reveal the type from the LHS
             if (CExpressionVisitorWithPointerAliasing.isRevealingType(pLhsType)) {
               handleDeferredAllocationTypeRevelation(variable, pLhsType);
-            // We can defer the allocation and start tracking the variable in the LHS
+              // We can defer the allocation and start tracking the variable in the LHS
             } else if (pLhsType.equals(CPointerType.POINTER_TO_VOID)
                 && // TODO: remove the double-check (?)
-                   CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(pLhs)
+                CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(pLhs)
                 && pLhsLocation.isUnaliasedLocation()) {
-              final String variableName = pLhsLocation.asUnaliasedLocation()
-                  .getVariableName();
+              final String variableName = pLhsLocation.asUnaliasedLocation().getVariableName();
               if (pts.isDeferredAllocationPointer(variableName)) {
                 handleDeferredAllocationPointerRemoval(variableName, false);
               }
@@ -657,8 +647,7 @@ class DynamicMemoryHandler {
             }
             isAllocation = true;
           } else {
-            throw new UnrecognizedCCodeException("Can't handle ambiguous "
-                + "allocation", edge, pRhs);
+            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, pRhs);
           }
         }
       }
@@ -666,29 +655,28 @@ class DynamicMemoryHandler {
 
     // Track currently deferred allocations
     if (converter.options.deferUntypedAllocations() && !isAllocation) {
-      handleDeferredAllocationsInAssignment(pLhs, pRhs, pLhsLocation,
-          pRhsExpression, pLhsUsedDeferredAllocationPointers,
-          pRhsUsedDeferredAllocationPointers);
+      handleDeferredAllocationsInAssignment(pLhs, pRhs, pLhsLocation, pRhsExpression,
+          pLhsUsedDeferredAllocationPointers, pRhsUsedDeferredAllocationPointers);
     }
   }
 
   /**
    * Handles deferred allocations in assignment expressions.
    *
-   * @param pLhs The left hand side of the C expression.
-   * @param pRhs The right hand side of the C expression.
-   * @param pLhsLocation The location of the left hand side in the source file.
-   * @param pRhsExpression The expression of the right hand side.
-   * @param pLhsUsedDeferredAllocationPointers A map of all used deferred
-   *                                          allocation pointers on the left
-   *                                          hand side.
-   * @param pRhsUsedDeferredAllocationPointers A map of all used deferred
-   *                                          allocation pointers on the right
-   *                                          hand side.
+   * @param pLhs                               The left hand side of the C expression.
+   * @param pRhs                               The right hand side of the C expression.
+   * @param pLhsLocation                       The location of the left hand side in the source
+   *                                           file.
+   * @param pRhsExpression                     The expression of the right hand side.
+   * @param pLhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the
+   *                                           left hand side.
+   * @param pRhsUsedDeferredAllocationPointers A map of all used deferred allocation pointers on the
+   *                                           right hand side.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
-  private void handleDeferredAllocationsInAssignment(final CLeftHandSide pLhs,
+  private void handleDeferredAllocationsInAssignment(
+      final CLeftHandSide pLhs,
       final CRightHandSide pRhs,
       final Location pLhsLocation,
       final Expression pRhsExpression,
@@ -705,13 +693,11 @@ class DynamicMemoryHandler {
         : pRhsUsedDeferredAllocationPointers.entrySet()) {
       boolean handled = false;
 
-      if (CExpressionVisitorWithPointerAliasing.isRevealingType(
-          usedPointer.getValue())) {
+      if (CExpressionVisitorWithPointerAliasing.isRevealingType(usedPointer.getValue())) {
         // The cast type is pointer or array type different from void *, so it
         // can be used to reveal the type of the allocation
         // e.g. return (struct s *)__tmp;
-        handleDeferredAllocationTypeRevelation(
-            usedPointer.getKey(), usedPointer.getValue());
+        handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
         handled = true;
 
         // If we still can't reveal the type from a cast so we'll try to reveal
@@ -721,24 +707,23 @@ class DynamicMemoryHandler {
         // Both outcomes are only possible if the RHS is encoded as a variable.
       } else if (pRhs instanceof CExpression
           && // This checks if the RHS is encoded as a variable rather than an
-             // UF application rhsExpression.isUnaliasedLocation() returns just
-             // this
-             pRhsExpression.isUnaliasedLocation()) {
+          // UF application rhsExpression.isUnaliasedLocation() returns just
+          // this
+          pRhsExpression.isUnaliasedLocation()) {
         // An older criterion for the same condition is used for double-checking
-        assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(
-            (CExpression) pRhs) : "Wrong assumptions on deferred allocations "
-            + "tracking: rhs " + pRhsExpression + " is not unaliased";
+        assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation((CExpression) pRhs)
+            : "Wrong assumptions on deferred allocations tracking: rhs " + pRhsExpression
+            + " is not unaliased";
         // Check if the only variable is the rhs is the one we're currently
         // dealing with during the iteration
         // (i.e. rhsUsedDeferredAllocationPointers doesn't contain any extra
         // variables)
-        assert pRhsExpression.asUnaliasedLocation().getVariableName().equals(
-            usedPointer.getKey()) : "Wrong assumptions on deferred allocations "
-            + "tracking: rhs " + pRhsExpression + " does not match "
-            + usedPointer;
-        assert pRhsUsedDeferredAllocationPointers.size() == 1:  "Wrong "
-            + "assumptions on deferred allocations tracking: rhs is not a "
-            + "single pointer, rhsUsedDeferredAllocationPointers.size() is "
+        assert pRhsExpression.asUnaliasedLocation().getVariableName().equals(usedPointer.getKey())
+            : "Wrong assumptions on deferred allocations tracking: rhs " + pRhsExpression
+            + " does not match " +  usedPointer;
+        assert pRhsUsedDeferredAllocationPointers.size() == 1 : "Wrong assumptions on deferred "
+            + "allocations tracking: rhs is not a single pointer, "
+            + "rhsUsedDeferredAllocationPointers.size() is "
             + pRhsUsedDeferredAllocationPointers.size();
 
         final CType lhsType = CTypeUtils.simplifyType(pLhs.getExpressionType());
@@ -748,23 +733,23 @@ class DynamicMemoryHandler {
             !pLhsLocation.isAliased()) {
           // Double-check
           assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(pLhs)
-            : "Wrong assumptions on deferred allocations tracking: lhs "
+              : "Wrong assumptions on deferred allocations tracking: lhs "
               + pLhsLocation + " is not unaliased";
           // Now check that lhsUsedDeferredAllocationPointers is filled correctly.
           // It should either contain the only pointer that was previously
           // tracked and is now gone (rewritten with the new value) or be empty.
           final Map.Entry<String, CType> lhsUsedPointer =
               !pLhsUsedDeferredAllocationPointers.isEmpty()
-                  ? pLhsUsedDeferredAllocationPointers.entrySet().iterator().next()
-                  : null;
+              ? pLhsUsedDeferredAllocationPointers.entrySet().iterator().next()
+              : null;
 
-          assert pLhsUsedDeferredAllocationPointers.size() <= 1:  "Wrong "
+          assert pLhsUsedDeferredAllocationPointers.size() <= 1 : "Wrong "
               + "assumptions on deferred allocations tracking: "
               + "lhsUsedDeferredAllocationPointers.size() is "
               + pLhsUsedDeferredAllocationPointers.size();
           assert (lhsUsedPointer == null
               || (pLhsLocation.asUnaliased().getVariableName()).equals(
-                  lhsUsedPointer.getKey())) : "Wrong assumptions on deferred "
+              lhsUsedPointer.getKey())) : "Wrong assumptions on deferred "
               + "allocations tracking: lhs " + lhsUsedPointer + " does not "
               + "match rhs " + pRhsExpression;
 
@@ -819,18 +804,17 @@ class DynamicMemoryHandler {
       if (CExpressionVisitorWithPointerAliasing.isRevealingType(
           usedPointer.getValue())) {
         // *((int *)__tmp) = 5;
-        handleDeferredAllocationTypeRevelation(
-            usedPointer.getKey(), usedPointer.getValue());
+        handleDeferredAllocationTypeRevelation(usedPointer.getKey(), usedPointer.getValue());
       } else if (!pLhsLocation.isAliased()) {
         assert CExpressionVisitorWithPointerAliasing.isUnaliasedLocation(pLhs)
-            : "Wrong assumptions on deferred allocations tracking: lhs "
-            + pLhsLocation +" is aliased";
-        assert pLhsLocation.asUnaliased().getVariableName().equals(
-            usedPointer.getKey()) : "Wrong assumptions on deferred allocations "
-            + "tracking: lhs " + pLhsLocation + " does not match " + usedPointer;
-        assert pLhsUsedDeferredAllocationPointers.size() == 1 : "Wrong "
-            + "assumptions on deferred allocations tracking: lhs is not a "
-            + "single pointer, lhsUsedDeferredAllocationPointers.size() is "
+            : "Wrong assumptions on deferred allocations tracking: lhs " + pLhsLocation
+            + " is aliased";
+        assert pLhsLocation.asUnaliased().getVariableName().equals(usedPointer.getKey())
+            : "Wrong assumptions on deferred allocations tracking: lhs " + pLhsLocation
+            + " does not match " + usedPointer;
+        assert pLhsUsedDeferredAllocationPointers.size() == 1 : "Wrong assumptions on deferred "
+            + "allocations tracking: lhs is not a single pointer, "
+            + "lhsUsedDeferredAllocationPointers.size() is "
             + pLhsUsedDeferredAllocationPointers.size();
 
         if (!passed) {
@@ -852,13 +836,13 @@ class DynamicMemoryHandler {
   /**
    * Handles deferred allocations in assume expressions.
    *
-   * @param pExpression The expression in the C code.
-   * @param pUsedDeferredAllocationPointers A map of all used deferred allocation
-   *                                       pointers.
+   * @param pExpression                     The expression in the C code.
+   * @param pUsedDeferredAllocationPointers A map of all used deferred allocation pointers.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution gets interrupted.
+   * @throws InterruptedException       If the execution gets interrupted.
    */
-  void handleDeferredAllocationsInAssume(final CExpression pExpression,
+  void handleDeferredAllocationsInAssume(
+      final CExpression pExpression,
       final Map<String, CType> pUsedDeferredAllocationPointers)
       throws UnrecognizedCCodeException, InterruptedException {
 
@@ -872,32 +856,30 @@ class DynamicMemoryHandler {
       } else if (pExpression instanceof CBinaryExpression) {
         final CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
         switch (binaryExpression.getOperator()) {
-        case EQUALS:
-        case NOT_EQUALS:
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-        case LESS_EQUAL:
-        case LESS_THAN:
-          final CType operand1Type = CTypeUtils.simplifyType(
-              binaryExpression.getOperand1().getExpressionType());
-          final CType operand2Type = CTypeUtils.simplifyType(
-              binaryExpression.getOperand2().getExpressionType());
-          CType type = null;
+          case EQUALS:
+          case NOT_EQUALS:
+          case GREATER_EQUAL:
+          case GREATER_THAN:
+          case LESS_EQUAL:
+          case LESS_THAN:
+            final CType operand1Type = CTypeUtils.simplifyType(
+                binaryExpression.getOperand1().getExpressionType());
+            final CType operand2Type = CTypeUtils.simplifyType(
+                binaryExpression.getOperand2().getExpressionType());
+            CType type = null;
 
-          if (CExpressionVisitorWithPointerAliasing.isRevealingType(
-              operand1Type)) {
-            type = operand1Type;
-          } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(
-              operand2Type)) {
-            type = operand2Type;
-          }
-          if (type != null) {
-            handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
-          }
-          break;
-        default:
-          throw new UnrecognizedCCodeException("unexpected binary operator in "
-              + "assume", pExpression);
+            if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand1Type)) {
+              type = operand1Type;
+            } else if (CExpressionVisitorWithPointerAliasing.isRevealingType(operand2Type)) {
+              type = operand2Type;
+            }
+            if (type != null) {
+              handleDeferredAllocationTypeRevelation(usedPointer.getKey(), type);
+            }
+            break;
+          default:
+            throw new UnrecognizedCCodeException("unexpected binary operator in assume",
+                pExpression);
         }
       }
     }
@@ -907,21 +889,21 @@ class DynamicMemoryHandler {
    * Removes a pointer variable from tracking.
    *
    * @param pPointerVariable The name of the pointer variable.
-   * @param pIsReturn A flag indicating if the variable is a return variable.
+   * @param pIsReturn        A flag indicating if the variable is a return variable.
    */
   private void handleDeferredAllocationPointerRemoval(
       final String pPointerVariable,
       final boolean pIsReturn) {
     if (pts.removeDeferredAllocatinPointer(pPointerVariable)) {
-      converter.logger.logfOnce(Level.WARNING, (!pIsReturn ? "Assignment to "
-          + "the" : "Destroying the") + " void * pointer  %s produces garbage! "
-          + "(in the following line(s):\n %s)", pPointerVariable, edge);
+      converter.logger.logfOnce(Level.WARNING, (!pIsReturn ? "Assignment to the" : "Destroying "
+          + "the") + " void * pointer  %s produces garbage! (in the following line(s):\n %s)",
+          pPointerVariable, edge);
     }
   }
 
   /**
-   * The function removes local void * pointers (deferred allocations) declared
-   * in current function scope from tracking after returning from the function.
+   * The function removes local void * pointers (deferred allocations) declared in current function
+   * scope from tracking after returning from the function.
    *
    * @param pFunction THe name of the function.
    */

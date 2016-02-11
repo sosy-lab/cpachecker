@@ -25,16 +25,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -78,7 +70,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -93,13 +91,15 @@ import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
-import com.google.common.base.Optional;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 
 /**
  * Implements a converter for C code into SMT formulae.
@@ -118,11 +118,11 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
 
   final ArrayFormulaManagerView afmgr;
-  final QuantifiedFormulaManagerView qfmgr;
+  private final QuantifiedFormulaManagerView qfmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
   @SuppressWarnings("hiding")
-  final ShutdownNotifier shutdownNotifier = super.shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier = super.shutdownNotifier;
   @SuppressWarnings("hiding") // same instance with narrower type
   final FormulaEncodingWithPointerAliasingOptions options;
 
@@ -131,25 +131,24 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   static final String FIELD_NAME_SEPARATOR = "$";
   private static final Map<CType, String> arrayNameCache = new IdentityHashMap<>();
 
-  final TypeHandlerWithPointerAliasing typeHandler;
+  private final TypeHandlerWithPointerAliasing typeHandler;
   final PointerTargetSetManagerHeapArray ptsMgr;
 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
 
   /**
-   * Creates a C to SMT formula converter with support for pointer aliasing. The
-   * heap is modelled with SMT arrays.
+   * Creates a C to SMT formula converter with support for pointer aliasing. The heap is modelled
+   * with SMT arrays.
    *
-   * @param pOptions Additional configuration options.
-   * @param pFormulaManager The formula manger for SMT formulae.
-   * @param machineModel The machine model for the evaluation run.
+   * @param pOptions                Additional configuration options.
+   * @param pFormulaManager         The formula manger for SMT formulae.
+   * @param machineModel            The machine model for the evaluation run.
    * @param pVariableClassification An optional classification of variables.
-   * @param pLogManager The main CPAchecker logger.
-   * @param pShutdownNotifier A notifier for user shutdowns to stop long running
-   *                          algorithms.
-   * @param pTypeHandler A handler for C types.
-   * @param pDirection The direction of the analysis.
+   * @param pLogManager             The main CPAchecker logger.
+   * @param pShutdownNotifier       A notifier for user shutdowns to stop long running algorithms.
+   * @param pTypeHandler            A handler for C types.
+   * @param pDirection              The direction of the analysis.
    */
   public CToFormulaConverterWithHeapArray(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -167,14 +166,13 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     variableClassification = pVariableClassification;
     options = pOptions;
     typeHandler = pTypeHandler;
-    ptsMgr = new PointerTargetSetManagerHeapArray(options, formulaManager,
-        typeHandler, shutdownNotifier);
+    ptsMgr = new PointerTargetSetManagerHeapArray(options, formulaManager, typeHandler,
+        shutdownNotifier);
 
     afmgr = pFormulaManager.getArrayFormulaManager();
     qfmgr = null;
 
-    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(
-        CPointerType.POINTER_TO_VOID);
+    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
     nullPointer = formulaManager.makeNumber(voidPointerFormulaType, 0);
   }
 
@@ -182,14 +180,15 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * Creates a C to SMT formula converter with support for pointer aliasing. The heap is modelled
    * with SMT arrays.
    *
-   * @param pOptions Additional configuration options.
-   * @param pFormulaManager The formula manager for SMT formulae.
-   * @param pMachineModel The machine model for the evaluation run.
-   * @param pVariableClassification An optional classification of variables.
-   * @param pLogManager The main CPAchecker logger.
-   * @param pShutdownNotifier A notifier for user shutdowns to stop long running algorithms.
-   * @param pTypeHandler A handler for C types.
-   * @param pDirection The direction of the analysis.
+   * @param pOptions                      Additional configuration options.
+   * @param pFormulaManager               The formula manager for SMT formulae.
+   * @param pMachineModel                 The machine model for the evaluation run.
+   * @param pVariableClassification       An optional classification of variables.
+   * @param pLogManager                   The main CPAchecker logger.
+   * @param pShutdownNotifier             A notifier for user shutdowns to stop long running
+   *                                      algorithms.
+   * @param pTypeHandler                  A handler for C types.
+   * @param pDirection                    The direction of the analysis.
    * @param pQuantifiedFormulaManagerView A formula manager supporting quantifiers.
    */
   public CToFormulaConverterWithHeapArray(
@@ -204,7 +203,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final QuantifiedFormulaManagerView pQuantifiedFormulaManagerView) {
 
     super(pOptions, pFormulaManager, pMachineModel, pVariableClassification, pLogManager,
-        pShutdownNotifier, pTypeHandler,pDirection);
+        pShutdownNotifier, pTypeHandler, pDirection);
 
     variableClassification = pVariableClassification;
     options = pOptions;
@@ -262,11 +261,12 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * Eliminates the arrow operator for field references.
    *
    * @param pField The field reference with arrow operator.
-   * @param pEdge The current edge in the CFA (or logging purposes).
+   * @param pEdge  The current edge in the CFA (or logging purposes).
    * @return The field reference without the arrow operator.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  static CFieldReference eliminateArrow(final CFieldReference pField,
+  static CFieldReference eliminateArrow(
+      final CFieldReference pField,
       final CFAEdge pEdge)
       throws UnrecognizedCCodeException {
     if (pField.isPointerDereference()) {
@@ -292,12 +292,13 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Checks if a variable is only found with a single type.
    *
-   * @param pName The name of the variable.
-   * @param pType The type of the variable.
+   * @param pName         The name of the variable.
+   * @param pType         The type of the variable.
    * @param pSsaSavedType The type of the variable as saved in the SSA map.
    */
   @Override
-  protected void checkSsaSavedType(final String pName,
+  protected void checkSsaSavedType(
+      final String pName,
       final CType pType,
       CType pSsaSavedType) {
     if (pSsaSavedType != null) {
@@ -305,20 +306,21 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     }
     if (pSsaSavedType != null
         && !pSsaSavedType.equals(CTypeUtils.simplifyType(pType))) {
-      logger.logf(Level.FINEST, "Variable %s was found with multiple types! "
-          + "(Type1: %s, Type2: %s)", pName, pSsaSavedType, pType);
+      logger.logf(Level.FINEST, "Variable %s was found with multiple types! (Type1: %s, Type2: %s)",
+          pName, pSsaSavedType, pType);
     }
   }
 
   /**
    * Checks, whether a given variable has an SSA index or not.
    *
-   * @param pName The name of the variable.
-   * @param pType The  type of the variable.
+   * @param pName          The name of the variable.
+   * @param pType          The  type of the variable.
    * @param pSSAMapBuilder The SSA map.
    * @return Whether a given variable has an SSA index or not.
    */
-  boolean hasIndex(final String pName,
+  boolean hasIndex(
+      final String pName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder) {
     checkSsaSavedType(pName, pType, pSSAMapBuilder.getType(pName));
@@ -328,14 +330,14 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Returns a formula for a dereference.
    *
-   * @param pType The type of the variable.
-   * @param pAddress The address formula of the variable that will be
-   *                dereferenced.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pType            The type of the variable.
+   * @param pAddress         The address formula of the variable that will be dereferenced.
+   * @param pSSAMapBuilder   The SSA map.
    * @param pErrorConditions Additional error conditions.
    * @return A formula for the dereference of the variable.
    */
-  Formula makeDereference(CType pType,
+  Formula makeDereference(
+      CType pType,
       final Formula pAddress,
       final SSAMapBuilder pSSAMapBuilder,
       final ErrorConditions pErrorConditions) {
@@ -353,13 +355,13 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Returns a formula for a safe dereference.
    *
-   * @param pType The type of the variable.
-   * @param pAddress The address formula of the variable that will be
-   *                dereferenced.
+   * @param pType          The type of the variable.
+   * @param pAddress       The address formula of the variable that will be dereferenced.
    * @param pSSAMapBuilder The SSA map.
    * @return A formula for a safe dereference of a variable.
    */
-  Formula makeSafeDereference(CType pType,
+  Formula makeSafeDereference(
+      CType pType,
       final Formula pAddress,
       final SSAMapBuilder pSSAMapBuilder) {
 
@@ -376,11 +378,12 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * Checks, whether a field is relevant in the composite type.
    *
    * @param pCompositeType The composite type to check.
-   * @param pFieldName The field to check its relevance.
+   * @param pFieldName     The field to check its relevance.
    * @return Whether a field is relevant for the composite type.
    */
   @Override
-  protected boolean isRelevantField(final CCompositeType pCompositeType,
+  protected boolean isRelevantField(
+      final CCompositeType pCompositeType,
       final String pFieldName) {
     return super.isRelevantField(pCompositeType, pFieldName)
         || getSizeof(pCompositeType) <= options.maxPreFilledAllocationSize();
@@ -394,17 +397,17 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    */
   private boolean isAddressedVariable(CDeclaration pVar) {
     return !variableClassification.isPresent()
-        || variableClassification.get().getAddressedVariables().contains(
-            pVar.getQualifiedName());
+        || variableClassification.get().getAddressedVariables().contains(pVar.getQualifiedName());
   }
 
   /**
    * Adds all fields of a C type to the pointer target set.
    *
    * @param pType The type of the composite type.
-   * @param pPts The underlying pointer target set.
+   * @param pPts  The underlying pointer target set.
    */
-  private void addAllFields(final CType pType,
+  private void addAllFields(
+      final CType pType,
       final PointerTargetSetBuilder pPts) {
 
     if (pType instanceof CCompositeType) {
@@ -413,14 +416,12 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
           : compositeType.getMembers()) {
         if (isRelevantField(compositeType, memberDeclaration.getName())) {
           pPts.addField(compositeType, memberDeclaration.getName());
-          final CType memberType = CTypeUtils.simplifyType(
-              memberDeclaration.getType());
+          final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
           addAllFields(memberType, pPts);
         }
       }
     } else if (pType instanceof CArrayType) {
-      final CType elementType = CTypeUtils.simplifyType(
-          ((CArrayType) pType).getType());
+      final CType elementType = CTypeUtils.simplifyType(((CArrayType) pType).getType());
       addAllFields(elementType, pPts);
     }
   }
@@ -428,14 +429,15 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Adds a pre filled base to the pointer target set.
    *
-   * @param pBase The name of the base.
-   * @param pType The type of the base.
-   * @param pPrepared A flag indicating whether the base is prepared or not.
-   * @param pForcePreFill A flag indicating whether we force the pre fill.
-   * @param pConstraints Additional constraints
+   * @param pBase                    The name of the base.
+   * @param pType                    The type of the base.
+   * @param pPrepared                A flag indicating whether the base is prepared or not.
+   * @param pForcePreFill            A flag indicating whether we force the pre fill.
+   * @param pConstraints             Additional constraints
    * @param pPointerTargetSetBuilder The underlying pointer target set.
    */
-  void addPreFilledBase(final String pBase,
+  void addPreFilledBase(
+      final String pBase,
       final CType pType,
       final boolean pPrepared,
       final boolean pForcePreFill,
@@ -449,7 +451,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
 
     if (pForcePreFill
         || (options.maxPreFilledAllocationSize() > 0
-            && getSizeof(pType) <= options.maxPreFilledAllocationSize())) {
+        && getSizeof(pType) <= options.maxPreFilledAllocationSize())) {
       addAllFields(pType, pPointerTargetSetBuilder);
     }
   }
@@ -457,39 +459,39 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Declares a shared base on a declaration.
    *
-   * @param pDeclaration The declaration.
-   * @param pShareImmediately A flag that indicates, if the base is shared
-   *                         immediately.
-   * @param pConstraints Additional constraints.
+   * @param pDeclaration             The declaration.
+   * @param pShareImmediately        A flag that indicates, if the base is shared immediately.
+   * @param pConstraints             Additional constraints.
    * @param pPointerTargetSetBuilder The underlying pointer target set.
    */
-  private void declareSharedBase(final CDeclaration pDeclaration,
+  private void declareSharedBase(
+      final CDeclaration pDeclaration,
       final boolean pShareImmediately,
       final Constraints pConstraints,
       final PointerTargetSetBuilder pPointerTargetSetBuilder) {
     if (pShareImmediately) {
-      addPreFilledBase(pDeclaration.getQualifiedName(), pDeclaration.getType(),
-          false, false, pConstraints, pPointerTargetSetBuilder);
+      addPreFilledBase(pDeclaration.getQualifiedName(), pDeclaration.getType(), false, false,
+          pConstraints, pPointerTargetSetBuilder);
     } else if (isAddressedVariable(pDeclaration)
         || CTypeUtils.containsArray(pDeclaration.getType())) {
       pConstraints.addConstraint(pPointerTargetSetBuilder.prepareBase(
-          pDeclaration.getQualifiedName(),
-          CTypeUtils.simplifyType(pDeclaration.getType())));
+          pDeclaration.getQualifiedName(), CTypeUtils.simplifyType(pDeclaration.getType())));
     }
   }
 
   /**
    * Adds constraints for the value import.
    *
-   * @param pCFAEdge The current CFA edge.
-   * @param pAddress A formula for the current address.
-   * @param pBase The base of  the variable.
-   * @param pFields A list of fields of the composite type.
+   * @param pCFAEdge       The current CFA edge.
+   * @param pAddress       A formula for the current address.
+   * @param pBase          The base of  the variable.
+   * @param pFields        A list of fields of the composite type.
    * @param pSSAMapBuilder The SSA map.
-   * @param pConstraints Additional constraints.
+   * @param pConstraints   Additional constraints.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  void addValueImportConstraints(final CFAEdge pCFAEdge,
+  void addValueImportConstraints(
+      final CFAEdge pCFAEdge,
       final Formula pAddress,
       final Variable pBase,
       final List<Pair<CCompositeType, String>> pFields,
@@ -500,20 +502,17 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     final CType baseType = CTypeUtils.simplifyType(pBase.getType());
 
     if (baseType instanceof CArrayType) {
-      throw new UnrecognizedCCodeException("Array access can't be encoded as a "
-          + "variable", pCFAEdge);
+      throw new UnrecognizedCCodeException("Array access can't be encoded as a variable", pCFAEdge);
 
     } else if (baseType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) baseType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not "
-          + "composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: "
+          + compositeType;
 
       int offset = 0;
-      for (final CCompositeTypeMemberDeclaration memberDeclaration
-          : compositeType.getMembers()) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final CType memberType = CTypeUtils.simplifyType(
-            memberDeclaration.getType());
+        final CType memberType = CTypeUtils.simplifyType(memberDeclaration.getType());
         final Variable newBase = Variable.create(pBase.getName()
             + FIELD_NAME_SEPARATOR + memberName, memberType);
 
@@ -550,9 +549,9 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    *  is identical to:
    *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
    *
-   * @param pExpression     The string that has to be expanded
-   * @param pType  The type of the character array.
-   * @return      List of character-literal expressions
+   * @param pExpression The string that has to be expanded
+   * @param pType       The type of the character array.
+   * @return List of character-literal expressions
    */
   private static List<CCharLiteralExpression> expandStringLiteral(
       final CStringLiteralExpression pExpression,
@@ -609,8 +608,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
         if (lhsType instanceof CArrayType) {
           lhsArrayType = (CArrayType) lhsType;
         } else if (lhsType instanceof CPointerType) {
-          lhsArrayType = new CArrayType(false, false,
-              ((CPointerType) lhsType).getType(), null);
+          lhsArrayType = new CArrayType(false, false, ((CPointerType) lhsType).getType(), null);
         } else {
           throw new UnrecognizedCCodeException("Assigning string literal to "
               + lhsType.toString(), assignment);
@@ -639,7 +637,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Expands an assignment list.
    *
-   * @param pDeclaration The declaration of the variable.
+   * @param pDeclaration         The declaration of the variable.
    * @param pExplicitAssignments A list of explicit assignments to the variable.
    * @return A list of assignment statements.
    */
@@ -654,8 +652,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       alreadyAssigned.add(statement.getLeftHandSide().toString());
     }
 
-    final List<CExpressionAssignmentStatement> defaultAssignments =
-        new ArrayList<>();
+    final List<CExpressionAssignmentStatement> defaultAssignments = new ArrayList<>();
     expandAssignmentList(variableType, lhs, alreadyAssigned, defaultAssignments);
     defaultAssignments.addAll(pExplicitAssignments);
     return defaultAssignments;
@@ -664,12 +661,13 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Expands an assignment list.
    *
-   * @param pType The type of the assignment.
-   * @param pLhs The left hand side of the assignment.
-   * @param pAlreadyAssigned A set of already assigned values.
+   * @param pType               The type of the assignment.
+   * @param pLhs                The left hand side of the assignment.
+   * @param pAlreadyAssigned    A set of already assigned values.
    * @param pDefaultAssignments A list of the default assignments.
    */
-  private void expandAssignmentList(CType pType,
+  private void expandAssignmentList(
+      CType pType,
       final CLeftHandSide pLhs,
       final Set<String> pAlreadyAssigned,
       final List<CExpressionAssignmentStatement> pDefaultAssignments) {
@@ -690,24 +688,21 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
               new CIntegerLiteralExpression(pLhs.getFileLocation(),
                   CNumericTypes.INT, BigInteger.valueOf(i)));
 
-          expandAssignmentList(elementType, newLhs, pAlreadyAssigned,
-              pDefaultAssignments);
+          expandAssignmentList(elementType, newLhs, pAlreadyAssigned, pDefaultAssignments);
         }
       }
 
     } else if (pType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) pType;
-      for (final CCompositeTypeMemberDeclaration memberDeclaration
-          : compositeType.getMembers()) {
+      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final CType memberType = memberDeclaration.getType();
         final CLeftHandSide newLhs = new CFieldReference(pLhs.getFileLocation(),
             memberType, memberDeclaration.getName(), pLhs, false);
-        expandAssignmentList(memberType, newLhs, pAlreadyAssigned,
-            pDefaultAssignments);
+        expandAssignmentList(memberType, newLhs, pAlreadyAssigned, pDefaultAssignments);
       }
     } else {
       assert isSimpleType(pType);
-      CExpression initExp = ((CInitializerExpression)CDefaults.forType(pType,
+      CExpression initExp = ((CInitializerExpression) CDefaults.forType(pType,
           pLhs.getFileLocation())).getExpression();
       pDefaultAssignments.add(new CExpressionAssignmentStatement(
           pLhs.getFileLocation(), pLhs, initExp));
@@ -723,8 +718,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   @Override
   protected PointerTargetSetBuilder createPointerTargetSetBuilder(
       PointerTargetSet pPointerTargetSet) {
-    return new RealPointerTargetSetBuilder(pPointerTargetSet, formulaManager,
-        ptsMgr, options);
+    return new RealPointerTargetSetBuilder(pPointerTargetSet, formulaManager, ptsMgr, options);
   }
 
   /**
@@ -732,7 +726,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    *
    * @param pPointerTargetSet1 The first set of pointer targets.
    * @param pPointerTargetSet2 The second set of pointer targets.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pSSAMapBuilder     The SSA map.
    * @return A set of pointer targets merged from both.
    * @throws InterruptedException If the execution was interrupted.
    */
@@ -748,17 +742,18 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Creates a visitor for right hand side expressions.
    *
-   * @param pCFAEdge The current edge of the CFA.
-   * @param pFunction The name of the current function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pCFAEdge                 The current edge of the CFA.
+   * @param pFunction                The name of the current function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying set of pointer targets.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A visitor for right hand side expressions.
    */
   @Override
   protected CRightHandSideVisitor<Formula, UnrecognizedCCodeException>
-  createCRightHandSideVisitor(CFAEdge pCFAEdge,
+  createCRightHandSideVisitor(
+      CFAEdge pCFAEdge,
       String pFunction,
       SSAMapBuilder pSSAMapBuilder,
       PointerTargetSetBuilder pPointerTargetSetBuilder,
@@ -766,28 +761,28 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       ErrorConditions pErrorConditions) {
 
     CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(this, pCFAEdge, pFunction,
-            pSSAMapBuilder, pConstraints, pErrorConditions,
-            pPointerTargetSetBuilder);
+        new CExpressionVisitorWithPointerAliasing(this, pCFAEdge, pFunction, pSSAMapBuilder,
+            pConstraints, pErrorConditions, pPointerTargetSetBuilder);
     return rhsVisitor.asFormulaVisitor();
   }
 
   /**
    * Creates a formula for a {@code return} statement in C code.
    *
-   * @param pAssignment The (optional) assignment done at the return statement.
-   * @param pReturnEdge The return edge of the CFA.
-   * @param pFunction The name of the current function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pAssignment              The (optional) assignment done at the return statement.
+   * @param pReturnEdge              The return edge of the CFA.
+   * @param pFunction                The name of the current function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A formula for a return statement.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makeReturn(final Optional<CAssignment> pAssignment,
+  protected BooleanFormula makeReturn(
+      final Optional<CAssignment> pAssignment,
       final CReturnStatementEdge pReturnEdge,
       final String pFunction,
       final SSAMapBuilder pSSAMapBuilder,
@@ -795,15 +790,13 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final Constraints pConstraints,
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCCodeException, InterruptedException {
-    BooleanFormula result = super.makeReturn(pAssignment, pReturnEdge, pFunction,
-        pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints, pErrorConditions);
+    BooleanFormula result = super.makeReturn(pAssignment, pReturnEdge, pFunction, pSSAMapBuilder,
+        pPointerTargetSetBuilder, pConstraints, pErrorConditions);
 
     if (pAssignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
-          ((CFunctionEntryNode) pReturnEdge.getSuccessor().getEntryNode())
-              .getReturnVariable().get();
-      final boolean containsArray = CTypeUtils.containsArray(
-          returnVariableDeclaraton.getType());
+          ((CFunctionEntryNode) pReturnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
+      final boolean containsArray = CTypeUtils.containsArray(returnVariableDeclaraton.getType());
 
       declareSharedBase(returnVariableDeclaraton, containsArray, pConstraints,
           pPointerTargetSetBuilder);
@@ -815,24 +808,25 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Creates a formula for an assignment.
    *
-   * @param pLhs the left-hand-side of the assignment
-   * @param pLhsForChecking a left-hand-side of the assignment (for most cases:
-   *                       {@code lhs == lhsForChecking}), that is used to
-   *                       check, if the assignment is important.
-   *                       If the assignment is not important, we return TRUE.
-   * @param pRhs the right-hand-side of the assignment
-   * @param pCFAEdge The current edge in the CFA.
-   * @param pFunction The name of the current function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pLhs                     the left-hand-side of the assignment
+   * @param pLhsForChecking          a left-hand-side of the assignment (for most cases: {@code lhs
+   *                                 == lhsForChecking}), that is used to check, if the assignment
+   *                                 is important. If the assignment is not important, we return
+   *                                 TRUE.
+   * @param pRhs                     the right-hand-side of the assignment
+   * @param pCFAEdge                 The current edge in the CFA.
+   * @param pFunction                The name of the current function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makeAssignment(final CLeftHandSide pLhs,
+  protected BooleanFormula makeAssignment(
+      final CLeftHandSide pLhs,
       final CLeftHandSide pLhsForChecking,
       CRightHandSide pRhs,
       final CFAEdge pCFAEdge,
@@ -847,30 +841,28 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       pRhs = makeCastFromArrayToPointerIfNecessary((CExpression) pRhs, pLhs.getExpressionType());
     }
 
-    AssignmentHandler assignmentHandler = new AssignmentHandler(this, pCFAEdge,
-        pFunction, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
-        pErrorConditions);
-    return assignmentHandler.handleAssignment(pLhs, pLhsForChecking, pRhs,
-        false, null);
+    AssignmentHandler assignmentHandler = new AssignmentHandler(this, pCFAEdge,pFunction,
+        pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,pErrorConditions);
+    return assignmentHandler.handleAssignment(pLhs, pLhsForChecking, pRhs, false, null);
   }
 
   /**
    * Creates a log message string from a given message and the current CFA edge.
    *
-   * @param pMsg The message string.
+   * @param pMsg     The message string.
    * @param pCFAEdge The current CFA edge.
    * @return A log message string.
    */
-  private static String getLogMessage(final String pMsg,
+  private static String getLogMessage(
+      final String pMsg,
       final CFAEdge pCFAEdge) {
-    return pCFAEdge.getFileLocation() + ": " + pMsg + ": "
-        + pCFAEdge.getDescription();
+    return pCFAEdge.getFileLocation() + ": " + pMsg + ": " + pCFAEdge.getDescription();
   }
 
   /**
    * Logs a message for debugging purpose.
    *
-   * @param pMsg The message to be logged.
+   * @param pMsg     The message to be logged.
    * @param pCFAEdge The current edge in the CFA.
    */
   private void logDebug(final String pMsg, final CFAEdge pCFAEdge) {
@@ -882,15 +874,15 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Creates a formula for declarations in the C code.
    *
-   * @param pDeclarationEdge The declaration edge in the CFA.
-   * @param pFunction The name of the current function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pDeclarationEdge         The declaration edge in the CFA.
+   * @param pFunction                The name of the current function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A formula for a declaration in C code.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   @Override
   protected BooleanFormula makeDeclaration(
@@ -918,16 +910,14 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       return bfmgr.makeBoolean(true);
     }
 
-    CVariableDeclaration declaration =
-        (CVariableDeclaration) pDeclarationEdge.getDeclaration();
+    CVariableDeclaration declaration = (CVariableDeclaration) pDeclarationEdge.getDeclaration();
 
     // makeFreshIndex(variableName, declaration.getType(), ssa);
     // TODO: Make sure about correctness of SSA indices without this trick!
 
     CType declarationType = CTypeUtils.simplifyType(declaration.getType());
 
-    if (!isRelevantVariable(declaration)
-        && !isAddressedVariable(declaration)) {
+    if (!isRelevantVariable(declaration) && !isAddressedVariable(declaration)) {
       // The variable is unused
       logDebug("Ignoring declaration of unused variable", pDeclarationEdge);
       return bfmgr.makeBoolean(true);
@@ -935,10 +925,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
 
     if (pErrorConditions.isEnabled()) {
       final Formula address = makeConstant(PointerTargetSet.getBaseName(
-          declaration.getQualifiedName()), CTypeUtils.getBaseType(
-          declarationType));
-      pConstraints.addConstraint(formulaManager.makeEqual(
-          makeBaseAddressOfTerm(address), address));
+          declaration.getQualifiedName()), CTypeUtils.getBaseType(declarationType));
+      pConstraints.addConstraint(formulaManager.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
     // if there is an initializer associated to this variable,
@@ -949,11 +937,11 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
     if (declarationType instanceof CArrayType
         && ((CArrayType) declarationType).getLength() == null) {
       final Integer actualLength;
-      if (initializer instanceof  CInitializerList) {
+      if (initializer instanceof CInitializerList) {
         actualLength = ((CInitializerList) initializer).getInitializers().size();
       } else if (initializer instanceof CInitializerExpression
           && ((CInitializerExpression) initializer).getExpression()
-              instanceof CStringLiteralExpression) {
+          instanceof CStringLiteralExpression) {
         actualLength = ((CStringLiteralExpression) ((CInitializerExpression)
             initializer).getExpression()).getContentString().length() + 1;
       } else {
@@ -977,19 +965,17 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
 
     declareSharedBase(declaration, false, pConstraints, pPointerTargetSetBuilder);
     if (CTypeUtils.containsArray(declarationType)) {
-      addPreFilledBase(declaration.getQualifiedName(), declarationType, true,
-          false, pConstraints, pPointerTargetSetBuilder);
+      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, pConstraints,
+          pPointerTargetSetBuilder);
     }
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
     }
 
-    final CIdExpression lhs =
-        new CIdExpression(declaration.getFileLocation(), declaration);
-    final AssignmentHandler assignmentHandler = new AssignmentHandler(this,
-        pDeclarationEdge, pFunction, pSSAMapBuilder, pPointerTargetSetBuilder,
-        pConstraints, pErrorConditions);
+    final CIdExpression lhs = new CIdExpression(declaration.getFileLocation(), declaration);
+    final AssignmentHandler assignmentHandler = new AssignmentHandler(this, pDeclarationEdge,
+        pFunction, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints, pErrorConditions);
     final BooleanFormula result;
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
@@ -1032,20 +1018,21 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Creates a predicate formula for an expression and its truth assumption.
    *
-   * @param pExpression The expression.
-   * @param pTruthAssumption The assumption for the truth of the expression.
-   * @param pCFAEdge The current edge in the CFA.
-   * @param pFunction The name of the current function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pExpression              The expression.
+   * @param pTruthAssumption         The assumption for the truth of the expression.
+   * @param pCFAEdge                 The current edge in the CFA.
+   * @param pFunction                The name of the current function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A predicate formula for an expression and its truth assumption.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makePredicate(final CExpression pExpression,
+  protected BooleanFormula makePredicate(
+      final CExpression pExpression,
       final boolean pTruthAssumption,
       final CFAEdge pCFAEdge,
       final String pFunction,
@@ -1054,19 +1041,16 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final Constraints pConstraints,
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCCodeException, InterruptedException {
-    final CType expressionType = CTypeUtils.simplifyType(
-        pExpression.getExpressionType());
+    final CType expressionType = CTypeUtils.simplifyType(pExpression.getExpressionType());
     CExpressionVisitorWithPointerAliasing ev =
-        new CExpressionVisitorWithPointerAliasing(this, pCFAEdge, pFunction,
-            pSSAMapBuilder, pConstraints, pErrorConditions,
-            pPointerTargetSetBuilder);
+        new CExpressionVisitorWithPointerAliasing(this, pCFAEdge, pFunction, pSSAMapBuilder,
+            pConstraints, pErrorConditions, pPointerTargetSetBuilder);
     BooleanFormula result = toBooleanFormula(ev.asValueFormula(
         pExpression.accept(ev), expressionType));
 
     if (options.deferUntypedAllocations()) {
-      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this,
-          pCFAEdge, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
-          pErrorConditions);
+      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, pCFAEdge, pSSAMapBuilder,
+          pPointerTargetSetBuilder, pConstraints, pErrorConditions);
       memoryHandler.handleDeferredAllocationsInAssume(pExpression,
           ev.getUsedDeferredAllocationPointers());
     }
@@ -1083,18 +1067,19 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Creates a formula for a function call.
    *
-   * @param pEdge The function call edge in the CFA.
-   * @param pCallerFunction The name of the caller function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pEdge                    The function call edge in the CFA.
+   * @param pCallerFunction          The name of the caller function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A formula representing the function call.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makeFunctionCall(final CFunctionCallEdge pEdge,
+  protected BooleanFormula makeFunctionCall(
+      final CFunctionCallEdge pEdge,
       final String pCallerFunction,
       final SSAMapBuilder pSSAMapBuilder,
       final PointerTargetSetBuilder pPointerTargetSetBuilder,
@@ -1103,24 +1088,20 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       throws UnrecognizedCCodeException, InterruptedException {
 
     final CFunctionEntryNode entryNode = pEdge.getSuccessor();
-    BooleanFormula result = super.makeFunctionCall(pEdge, pCallerFunction,
-        pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
-        pErrorConditions);
+    BooleanFormula result = super.makeFunctionCall(pEdge, pCallerFunction, pSSAMapBuilder,
+        pPointerTargetSetBuilder, pConstraints, pErrorConditions);
 
-    for (CParameterDeclaration formalParameter
-        : entryNode.getFunctionParameters()) {
-      final CType parameterType = CTypeUtils.simplifyType(
-          formalParameter.getType());
-      final CVariableDeclaration formalDeclaration =
-          formalParameter.asVariableDeclaration();
+    for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
+      final CType parameterType = CTypeUtils.simplifyType(formalParameter.getType());
+      final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
       final CVariableDeclaration declaration;
+
       if (options.useParameterVariables()) {
         CParameterDeclaration tmpParameter = new CParameterDeclaration(
-                formalParameter.getFileLocation(), formalParameter.getType(),
+            formalParameter.getFileLocation(), formalParameter.getType(),
             formalParameter.getName() + PARAM_VARIABLE_NAME);
 
-        tmpParameter.setQualifiedName(formalParameter.getQualifiedName()
-            + PARAM_VARIABLE_NAME);
+        tmpParameter.setQualifiedName(formalParameter.getQualifiedName() + PARAM_VARIABLE_NAME);
         declaration = tmpParameter.asVariableDeclaration();
       } else {
         declaration = formalDeclaration;
@@ -1135,15 +1116,15 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
   /**
    * Creates a formula for a function exit.
    *
-   * @param pSummaryEdge The function's summary edge in the CFA.
-   * @param pCalledFunction The name of the called function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pSummaryEdge             The function's summary edge in the CFA.
+   * @param pCalledFunction          The name of the called function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying pointer target set
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    * @return A formula for the function exit.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
   @Override
   protected BooleanFormula makeExitFunction(
@@ -1155,13 +1136,11 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       final ErrorConditions pErrorConditions)
       throws UnrecognizedCCodeException, InterruptedException {
 
-    final BooleanFormula result = super.makeExitFunction(pSummaryEdge,
-        pCalledFunction, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
-        pErrorConditions);
+    final BooleanFormula result = super.makeExitFunction(pSummaryEdge, pCalledFunction,
+        pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints, pErrorConditions);
 
-    DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this,
-        pSummaryEdge, pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints,
-        pErrorConditions);
+    DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(this, pSummaryEdge,
+        pSSAMapBuilder, pPointerTargetSetBuilder, pConstraints, pErrorConditions);
     memoryHandler.handleDeferredAllocationInFunctionExit(pCalledFunction);
 
     return result;
@@ -1173,19 +1152,20 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * Evaluates the return type of a function call.
    *
    * @param pExpression The function call expression.
-   * @param pCFAEdge The edge in the CFA.
+   * @param pCFAEdge    The edge in the CFA.
    * @return The type of the function call.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   @Override
-  protected CType getReturnType(final CFunctionCallExpression pExpression,
+  protected CType getReturnType(
+      final CFunctionCallExpression pExpression,
       final CFAEdge pCFAEdge) throws UnrecognizedCCodeException {
     return super.getReturnType(pExpression, pCFAEdge);
   }
 
   /**
-   * Creates an expression for a cast from an array to a pointer type. This cast
-   * is only done, if necessary.
+   * Creates an expression for a cast from an array to a pointer type. This cast is only done, if
+   * necessary.
    *
    * @param pExpression The expression to get casted.
    * @param pTargetType The target type of the cast.
@@ -1202,7 +1182,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * {@inheritDoc}
    */
   @Override
-  protected Formula makeCast(final CType pFromType,
+  protected Formula makeCast(
+      final CType pFromType,
       final CType pToType,
       final Formula pFormula,
       final Constraints pConstraints,
@@ -1223,7 +1204,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * {@inheritDoc}
    */
   @Override
-  protected Formula makeVariable(final String pName,
+  protected Formula makeVariable(
+      final String pName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder) {
     return super.makeVariable(pName, pType, pSSAMapBuilder);
@@ -1233,7 +1215,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * {@inheritDoc}
    */
   @Override
-  protected Formula makeFreshVariable(final String pName,
+  protected Formula makeFreshVariable(
+      final String pName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder) {
     return super.makeFreshVariable(pName, pType, pSSAMapBuilder);
@@ -1243,7 +1226,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * {@inheritDoc}
    */
   @Override
-  public int makeFreshIndex(final String pName,
+  public int makeFreshIndex(
+      final String pName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder) {
     return super.makeFreshIndex(pName, pType, pSSAMapBuilder);
@@ -1253,7 +1237,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * {@inheritDoc}
    */
   @Override
-  protected int getIndex(final String pName,
+  protected int getIndex(
+      final String pName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder) {
     return super.getIndex(pName, pType, pSSAMapBuilder);
@@ -1263,7 +1248,8 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
    * {@inheritDoc}
    */
   @Override
-  protected int getFreshIndex(final String pName,
+  protected int getFreshIndex(
+      final String pName,
       final CType pType,
       final SSAMapBuilder pSSAMapBuilder) {
     return super.getFreshIndex(pName, pType, pSSAMapBuilder);

@@ -24,18 +24,12 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.heaparray;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.*;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -49,10 +43,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetPattern;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Variable;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
@@ -64,17 +65,16 @@ import org.sosy_lab.solver.api.ArrayFormula;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.Formula;
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.solver.api.NumeralFormula.IntegerFormula;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Implements a handler for assignments.
@@ -97,15 +97,16 @@ class AssignmentHandler {
   /**
    * Creates a new AssignmentHandler.
    *
-   * @param pConverter The C to SMT formula converter.
-   * @param pCFAEdge The current edge of the CFA (for logging purposes).
-   * @param pFunction The name of the current function.
-   * @param pSSAMapBuilder The SSA map.
+   * @param pConverter               The C to SMT formula converter.
+   * @param pCFAEdge                 The current edge of the CFA (for logging purposes).
+   * @param pFunction                The name of the current function.
+   * @param pSSAMapBuilder           The SSA map.
    * @param pPointerTargetSetBuilder The underlying set of pointer targets.
-   * @param pConstraints Additional constraints.
-   * @param pErrorConditions Additional error conditions.
+   * @param pConstraints             Additional constraints.
+   * @param pErrorConditions         Additional error conditions.
    */
-  AssignmentHandler(final CToFormulaConverterWithHeapArray pConverter,
+  AssignmentHandler(
+      final CToFormulaConverterWithHeapArray pConverter,
       final CFAEdge pCFAEdge,
       final String pFunction,
       final SSAMapBuilder pSSAMapBuilder,
@@ -130,16 +131,17 @@ class AssignmentHandler {
   /**
    * Creates a formula to handle assignments.
    *
-   * @param pLhs The left hand side of an assignment.
+   * @param pLhs            The left hand side of an assignment.
    * @param pLhsForChecking The left hand side of an assignment to check.
-   * @param pRhs Either {@code null} or the right hand side of the assignment.
-   * @param pBatchMode A flag indicating batch mode.
+   * @param pRhs            Either {@code null} or the right hand side of the assignment.
+   * @param pBatchMode      A flag indicating batch mode.
    * @param pDestroyedTypes Either {@code null} or a set of destroyed types.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
-  BooleanFormula handleAssignment(final CLeftHandSide pLhs,
+  BooleanFormula handleAssignment(
+      final CLeftHandSide pLhs,
       final CLeftHandSide pLhsForChecking,
       final @Nullable CRightHandSide pRhs,
       final boolean pBatchMode,
@@ -154,12 +156,12 @@ class AssignmentHandler {
     final CType lhsType = CTypeUtils.simplifyType(pLhs.getExpressionType());
     final CType rhsType =
         pRhs != null ? CTypeUtils.simplifyType(pRhs.getExpressionType())
-                    : CNumericTypes.SIGNED_CHAR;
+                     : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
     final CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(converter, edge, function,
-            ssa, constraints, errorConditions, pts);
+        new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
+            errorConditions, pts);
 
     final Expression rhsExpression;
     if (pRhs == null) {
@@ -167,22 +169,21 @@ class AssignmentHandler {
     } else {
       CRightHandSide r = pRhs;
       if (r instanceof CExpression) {
-        r = converter.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
+        r = converter.convertLiteralToFloatIfNecessary((CExpression) r, lhsType);
       }
       rhsExpression = r.accept(rhsVisitor);
     }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
-    final List<Pair<CCompositeType, String>> rhsAddressedFields =
-        rhsVisitor.getAddressedFields();
+    final List<Pair<CCompositeType, String>> rhsAddressedFields = rhsVisitor.getAddressedFields();
     final Map<String, CType> rhsUsedDeferredAllocationPointers =
         rhsVisitor.getUsedDeferredAllocationPointers();
 
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(converter, edge, function,
-            ssa, constraints, errorConditions, pts);
+        new CExpressionVisitorWithPointerAliasing(converter, edge, function, ssa, constraints,
+            errorConditions, pts);
     final Location lhsLocation = pLhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsUsedDeferredAllocationPointers =
         lhsVisitor.getUsedDeferredAllocationPointers();
@@ -192,11 +193,9 @@ class AssignmentHandler {
     if (converter.options.revealAllocationTypeFromLHS()
         || converter.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler =
-          new DynamicMemoryHandler(converter, edge, ssa, pts, constraints,
-              errorConditions);
-      memoryHandler.handleDeferredAllocationsInAssignment(pLhs, pRhs,
-          lhsLocation, rhsExpression, lhsType,
-          lhsUsedDeferredAllocationPointers, rhsUsedDeferredAllocationPointers);
+          new DynamicMemoryHandler(converter, edge, ssa, pts, constraints, errorConditions);
+      memoryHandler.handleDeferredAllocationsInAssignment(pLhs, pRhs, lhsLocation, rhsExpression,
+          lhsType, lhsUsedDeferredAllocationPointers, rhsUsedDeferredAllocationPointers);
     }
 
     final BooleanFormula result =
@@ -212,11 +211,11 @@ class AssignmentHandler {
   /**
    * Handles initialization assignments.
    *
-   * @param pVariable The left hand side of the variable.
+   * @param pVariable    The left hand side of the variable.
    * @param pAssignments A list of assignment statements.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException It the execution was interrupted.
+   * @throws InterruptedException       It the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignments(
       final CLeftHandSide pVariable,
@@ -248,15 +247,16 @@ class AssignmentHandler {
    * quantifier over the resulting SMT array.
    *
    * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
-   * the normal initialization in {@link #handleInitializationAssignments(CLeftHandSide, List)}.</p>
+   * the normal initialization in {@link #handleInitializationAssignments(CLeftHandSide,
+   * List)}.</p>
    *
-   * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
-   * @param pAssignments A list of assignment statements.
-   * @param pQfmgr A formula manager with quantifier support.
+   * @param pLeftHandSide     The left hand side of the statement. Needed for fallback scenario.
+   * @param pAssignments      A list of assignment statements.
+   * @param pQfmgr            A formula manager with quantifier support.
    * @param pUseOldSSAIndices A flag indicating whether we will reuse SSA indices or not.
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    * @see #handleInitializationAssignments(CLeftHandSide, List)
    */
   BooleanFormula handleInitializationAssignmentsWithQuantifier(
@@ -295,8 +295,8 @@ class AssignmentHandler {
       final String targetName = CToFormulaConverterWithHeapArray.getArrayName(lhsType);
       final FormulaType<?> targetType = converter.getFormulaTypeFromCType(lhsType);
       final int index = pUseOldSSAIndices
-          ? converter.getIndex(targetName, lhsType, ssa)
-          : converter.getFreshIndex(targetName, lhsType, ssa);
+                        ? converter.getIndex(targetName, lhsType, ssa)
+                        : converter.getFreshIndex(targetName, lhsType, ssa);
 
       final IntegerFormula counter = ifmgr.makeVariable(targetName + "@" + index + "@counter");
       final ArrayFormula<?, ?> arrayFormula = afmgr.makeArray(targetName + "@" + index,
@@ -313,18 +313,18 @@ class AssignmentHandler {
   /**
    * Creates a formula for an assignment.
    *
-   * @param pLvalueType The type of the lvalue.
-   * @param pRvalueType The type of the rvalue.
-   * @param pLvalue The location of the lvalue.
-   * @param pRvalue The rvalue expression.
-   * @param pUseOldSSAIndices A flag indicating if we should use the old SSA
-   *                         indices or not.
-   * @param pUpdatedTypes Either {@code null} or a set of updated types.
+   * @param pLvalueType       The type of the lvalue.
+   * @param pRvalueType       The type of the rvalue.
+   * @param pLvalue           The location of the lvalue.
+   * @param pRvalue           The rvalue expression.
+   * @param pUseOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param pUpdatedTypes     Either {@code null} or a set of updated types.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
+   * @throws InterruptedException       If the execution was interrupted.
    */
-  BooleanFormula makeAssignment(@Nonnull CType pLvalueType,
+  BooleanFormula makeAssignment(
+      @Nonnull CType pLvalueType,
       final @Nonnull CType pRvalueType,
       final @Nonnull Location pLvalue,
       final @Nonnull Expression pRvalue,
@@ -348,15 +348,13 @@ class AssignmentHandler {
       updatedVariables = new HashSet<>();
     }
 
-    final BooleanFormula result = makeDestructiveAssignment(pLvalueType,
-        pRvalueType, pLvalue, pRvalue, pUseOldSSAIndices, pUpdatedTypes,
-        updatedVariables);
+    final BooleanFormula result = makeDestructiveAssignment(pLvalueType, pRvalueType, pLvalue,
+        pRvalue, pUseOldSSAIndices, pUpdatedTypes, updatedVariables);
 
     if (!pUseOldSSAIndices) {
       if (pLvalue.isAliased()) {
         if (pUpdatedTypes == null) {
-          assert isSimpleType(pLvalueType) : "Should be impossible due to the "
-              + "first if statement";
+          assert isSimpleType(pLvalueType) : "Should be impossible due to the first if statement";
           pUpdatedTypes = Collections.singleton(pLvalueType);
         }
 
@@ -364,8 +362,7 @@ class AssignmentHandler {
 
       } else { // Unaliased lvalue
         if (updatedVariables == null) {
-          assert isSimpleType(pLvalueType) : "Should be impossible due to the "
-              + "first if statement";
+          assert isSimpleType(pLvalueType) : "Should be impossible due to the first if statement";
           updatedVariables = Collections.singleton(Variable.create(
               pLvalue.asUnaliased().getVariableName(), pLvalueType));
         }
@@ -383,21 +380,21 @@ class AssignmentHandler {
   /**
    * Creates a formula for a destructive assignment.
    *
-   * @param pLvalueType The type of the lvalue.
-   * @param pRvalueType The type of the rvalue.
-   * @param pLvalue The location of the lvalue.
-   * @param pRvalue The rvalue expression.
-   * @param pUseOldSSAIndices A flag indicating if we should use the old SSA
-   *                         indices or not.
-   * @param pUpdatedTypes Either {@code null} or a set of updated types.
+   * @param pLvalueType       The type of the lvalue.
+   * @param pRvalueType       The type of the rvalue.
+   * @param pLvalue           The location of the lvalue.
+   * @param pRvalue           The rvalue expression.
+   * @param pUseOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param pUpdatedTypes     Either {@code null} or a set of updated types.
    * @param pUpdatedVariables Either {@code null} or a set of updated variables.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  private BooleanFormula makeDestructiveAssignment(@Nonnull CType pLvalueType,
+  private BooleanFormula makeDestructiveAssignment(
+      @Nonnull CType pLvalueType,
       @Nonnull CType pRvalueType,
-      final @Nonnull  Location pLvalue,
-      final @Nonnull  Expression pRvalue,
+      final @Nonnull Location pLvalue,
+      final @Nonnull Expression pRvalue,
       final boolean pUseOldSSAIndices,
       final @Nullable Set<CType> pUpdatedTypes,
       final @Nullable Set<Variable> pUpdatedVariables)
@@ -408,11 +405,10 @@ class AssignmentHandler {
     BooleanFormula result;
 
     if (pLvalueType instanceof CArrayType) {
-      Preconditions.checkArgument(pLvalue.isAliased(), "Array elements are "
-          + "always aliased (i.e. can't be encoded with variables)");
+      Preconditions.checkArgument(pLvalue.isAliased(), "Array elements are always aliased " +
+          "(i.e. can't be encoded with variables)");
       final CArrayType lvalueArrayType = (CArrayType) pLvalueType;
-      final CType lvalueElementType = CTypeUtils.simplifyType(
-          lvalueArrayType.getType());
+      final CType lvalueElementType = CTypeUtils.simplifyType(lvalueArrayType.getType());
 
       // There are only two cases of assignment to an array, either initializing
       // the array with a value (possibly nondet), which is useful for stack
@@ -420,11 +416,11 @@ class AssignmentHandler {
       // for structure assignment implementation). This is only possible from
       // another array of the same type.
       Preconditions.checkArgument(pRvalue.isValue() && isSimpleType(pRvalueType)
-          || pRvalue.asLocation().isAliased()
+              || pRvalue.asLocation().isAliased()
               && pRvalueType instanceof CArrayType
-              && CTypeUtils.simplifyType(((CArrayType)pRvalueType).getType())
-                  .equals(lvalueElementType), "Impossible array assignment due "
-          + "to incompatible types: assignment of %s to %s", pRvalueType,
+              && CTypeUtils.simplifyType(((CArrayType) pRvalueType).getType())
+              .equals(lvalueElementType), "Impossible array assignment due to incompatible " +
+          "types: assignment of %s to %s", pRvalueType,
           pLvalueType);
 
       Integer length = CTypeUtils.getArrayLength(lvalueArrayType);
@@ -454,7 +450,7 @@ class AssignmentHandler {
                 newRvalue.getSecond(), newLvalue.getFirst(),
                 newRvalue.getFirst(), pUseOldSSAIndices, pUpdatedTypes,
                 pUpdatedVariables));
-         offset += converter.getSizeof(lvalueArrayType.getType());
+        offset += converter.getSizeof(lvalueArrayType.getType());
       }
 
       return result;
@@ -470,7 +466,7 @@ class AssignmentHandler {
           || pRvalueType.equals(pLvalueType))) {
         throw new UnrecognizedCCodeException("Impossible structure assignment "
             + "due to incompatible types: assignment of " + pRvalue
-            + " with type "+ pRvalueType + " to " + pLvalue + " with type "
+            + " with type " + pRvalueType + " to " + pLvalue + " with type "
             + pLvalueType, edge);
       }
 
@@ -479,23 +475,23 @@ class AssignmentHandler {
       for (final CCompositeTypeMemberDeclaration memberDeclaration
           : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final CType newLvalueType = CTypeUtils.simplifyType(
-            memberDeclaration.getType());
+        final CType newLvalueType = CTypeUtils.simplifyType(memberDeclaration.getType());
 
         // Optimizing away the assignments from uninitialized fields
         if (converter.isRelevantField(lvalueCompositeType, memberName) &&
             (!pLvalue.isAliased() || // Assignment to a variable, no profit in optimizing it
-             !isSimpleType(newLvalueType) || // That's not a simple assignment, check the nested composite
-             pRvalue.isValue() || // This is initialization, so the assignment is mandatory
-             pts.tracksField(lvalueCompositeType, memberName) || // The field is tracked as essential
-             // The variable representing the RHS was used some where (i.e. has SSA index)
-             !pRvalue.asLocation().isAliased() &&
-                 converter.hasIndex(pRvalue.asLocation().asUnaliased().getVariableName()
-                     + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
-                     + memberName, newLvalueType, ssa))) {
+                !isSimpleType(
+                    newLvalueType) || // That's not a simple assignment, check the nested composite
+                pRvalue.isValue() || // This is initialization, so the assignment is mandatory
+                pts.tracksField(lvalueCompositeType,
+                    memberName) || // The field is tracked as essential
+                // The variable representing the RHS was used some where (i.e. has SSA index)
+                !pRvalue.asLocation().isAliased() &&
+                    converter.hasIndex(pRvalue.asLocation().asUnaliased().getVariableName()
+                        + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
+                        + memberName, newLvalueType, ssa))) {
           final Pair<? extends Location, CType> newLvalue =
-              shiftCompositeLvalue(pLvalue, offset, memberName,
-                  memberDeclaration.getType());
+              shiftCompositeLvalue(pLvalue, offset, memberName, memberDeclaration.getType());
           final Pair<? extends Expression, CType> newRvalue =
               shiftCompositeRvalue(pRvalue, offset, memberName, pRvalueType,
                   memberDeclaration.getType());
@@ -523,13 +519,12 @@ class AssignmentHandler {
   /**
    * Creates a formula for a simple destructive assignment.
    *
-   * @param pLvalueType The type of the lvalue.
-   * @param pRvalueType The type of the rvalue.
-   * @param pLvalue The location of the lvalue.
-   * @param pRvalue The rvalue expression.
-   * @param pUseOldSSAIndices A flag indicating if we should use the old SSA
-   *                         indices or not.
-   * @param pUpdatedTypes Either {@code null} or a set of updated types.
+   * @param pLvalueType       The type of the lvalue.
+   * @param pRvalueType       The type of the rvalue.
+   * @param pLvalue           The location of the lvalue.
+   * @param pRvalue           The rvalue expression.
+   * @param pUseOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param pUpdatedTypes     Either {@code null} or a set of updated types.
    * @param pUpdatedVariables Either {@code null} or a set of updated variables.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
@@ -556,40 +551,40 @@ class AssignmentHandler {
 
     final Formula value;
     switch (pRvalue.getKind()) {
-    case ALIASED_LOCATION:
-      value = converter.makeDereference(pRvalueType,
-          pRvalue.asAliasedLocation().getAddress(), ssa, errorConditions);
-      break;
-    case UNALIASED_LOCATION:
-      value = converter.makeVariable(
-          pRvalue.asUnaliasedLocation().getVariableName(), pRvalueType, ssa);
-      break;
-    case DET_VALUE:
-      value = pRvalue.asValue().getValue();
-      break;
-    case NONDET:
-      value = null;
-      break;
-    default: throw new AssertionError();
+      case ALIASED_LOCATION:
+        value = converter.makeDereference(pRvalueType,
+            pRvalue.asAliasedLocation().getAddress(), ssa, errorConditions);
+        break;
+      case UNALIASED_LOCATION:
+        value = converter.makeVariable(
+            pRvalue.asUnaliasedLocation().getVariableName(), pRvalueType, ssa);
+        break;
+      case DET_VALUE:
+        value = pRvalue.asValue().getValue();
+        break;
+      case NONDET:
+        value = null;
+        break;
+      default:
+        throw new AssertionError();
     }
 
     assert !(pLvalueType instanceof CFunctionType) : "Can't assign to functions";
 
     final String targetName = !pLvalue.isAliased()
-        ? pLvalue.asUnaliased().getVariableName()
-        : CToFormulaConverterWithHeapArray.getArrayName(pLvalueType);
-    final FormulaType<?> targetType = converter.getFormulaTypeFromCType(
-        pLvalueType);
+                              ? pLvalue.asUnaliased().getVariableName()
+                              : CToFormulaConverterWithHeapArray.getArrayName(pLvalueType);
+    final FormulaType<?> targetType = converter.getFormulaTypeFromCType(pLvalueType);
     final int oldIndex = converter.getIndex(targetName, pLvalueType, ssa);
     final int newIndex = pUseOldSSAIndices
-        ? converter.getIndex(targetName, pLvalueType, ssa)
-        : converter.getFreshIndex(targetName, pLvalueType, ssa);
+                         ? converter.getIndex(targetName, pLvalueType, ssa)
+                         : converter.getFreshIndex(targetName, pLvalueType, ssa);
     final BooleanFormula result;
 
     pRvalueType = implicitCastToPointer(pRvalueType);
     final Formula rhs = value != null
-        ? converter.makeCast(pRvalueType, pLvalueType, value, constraints, edge)
-        : null;
+                        ? converter.makeCast(pRvalueType, pLvalueType, value, constraints, edge)
+                        : null;
 
     if (!pLvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
@@ -625,10 +620,11 @@ class AssignmentHandler {
   /**
    * Updates the SSA map.
    *
-   * @param pTypes A set of types that should be added to the SSA map.
+   * @param pTypes         A set of types that should be added to the SSA map.
    * @param pSSAMapBuilder The current SSA map.
    */
-  private void updateSSA(final @Nonnull Set<CType> pTypes,
+  private void updateSSA(
+      final @Nonnull Set<CType> pTypes,
       final SSAMapBuilder pSSAMapBuilder) {
     for (final CType type : pTypes) {
       final String ufName = CToFormulaConverterWithHeapArray.getArrayName(type);
@@ -639,8 +635,8 @@ class AssignmentHandler {
   /**
    * Shifts the array's lvalue.
    *
-   * @param pLvalue The lvalue location.
-   * @param pOffset The offset of the shift.
+   * @param pLvalue            The lvalue location.
+   * @param pOffset            The offset of the shift.
    * @param pLvalueElementType The type of the lvalue element.
    * @return A tuple of location and type after the shift.
    */
@@ -648,19 +644,19 @@ class AssignmentHandler {
       final AliasedLocation pLvalue,
       final int pOffset,
       final CType pLvalueElementType) {
-    final Formula offsetFormula = formulaManager
-        .makeNumber(converter.voidPointerFormulaType, pOffset);
-    final AliasedLocation newLvalue = Location.ofAddress(formulaManager
-        .makePlus(pLvalue.getAddress(), offsetFormula));
+    final Formula offsetFormula = formulaManager.makeNumber(
+        converter.voidPointerFormulaType, pOffset);
+    final AliasedLocation newLvalue = Location.ofAddress(
+        formulaManager.makePlus(pLvalue.getAddress(), offsetFormula));
     return Pair.of(newLvalue, pLvalueElementType);
   }
 
   /**
    * Shifts the array's rvalue.
    *
-   * @param pRvalue The rvalue expression.
-   * @param pRvalueType The type of the rvalue.
-   * @param pOffset The offset of the shift.
+   * @param pRvalue            The rvalue expression.
+   * @param pRvalueType        The type of the rvalue.
+   * @param pOffset            The offset of the shift.
    * @param pLvalueElementType The type of the lvalue element.
    * @return A tuple of expression and type after the shift.
    */
@@ -672,38 +668,36 @@ class AssignmentHandler {
     // Support both initialization (with a value or nondet) and assignment
     // (from another array location)
     switch (pRvalue.getKind()) {
-    case ALIASED_LOCATION: {
-      assert pRvalueType instanceof CArrayType : "Non-array rvalue in array "
-          + "assignment";
-      final Formula offsetFormula = formulaManager.makeNumber(
-          converter.voidPointerFormulaType, pOffset);
-      final AliasedLocation newRvalue = Location.ofAddress(
-          formulaManager.makePlus(pRvalue.asAliasedLocation().getAddress(),
-              offsetFormula));
-      final CType newRvalueType = CTypeUtils.simplifyType(
-          ((CArrayType) pRvalueType).getType());
-      return Pair.of(newRvalue, newRvalueType);
-    }
-    case DET_VALUE: {
-      return Pair.of(pRvalue, pRvalueType);
-    }
-    case NONDET: {
-      final CType newLvalueType = isSimpleType(pLvalueElementType)
-          ? pLvalueElementType : CNumericTypes.SIGNED_CHAR;
-      return Pair.of(Value.nondetValue(), newLvalueType);
-    }
-    case UNALIASED_LOCATION: {
-      throw new AssertionError("Array locations should always be aliased");
-    }
-    default: throw new AssertionError();
+      case ALIASED_LOCATION: {
+        assert pRvalueType instanceof CArrayType : "Non-array rvalue in array assignment";
+        final Formula offsetFormula = formulaManager.makeNumber(
+            converter.voidPointerFormulaType, pOffset);
+        final AliasedLocation newRvalue = Location.ofAddress(
+            formulaManager.makePlus(pRvalue.asAliasedLocation().getAddress(), offsetFormula));
+        final CType newRvalueType = CTypeUtils.simplifyType(((CArrayType) pRvalueType).getType());
+        return Pair.of(newRvalue, newRvalueType);
+      }
+      case DET_VALUE: {
+        return Pair.of(pRvalue, pRvalueType);
+      }
+      case NONDET: {
+        final CType newLvalueType = isSimpleType(pLvalueElementType)
+                                    ? pLvalueElementType : CNumericTypes.SIGNED_CHAR;
+        return Pair.of(Value.nondetValue(), newLvalueType);
+      }
+      case UNALIASED_LOCATION: {
+        throw new AssertionError("Array locations should always be aliased");
+      }
+      default:
+        throw new AssertionError();
     }
   }
 
   /**
    * Shifts the composite lvalue.
    *
-   * @param pLvalue The lvalue location.
-   * @param pOffset The offset of the shift.
+   * @param pLvalue     The lvalue location.
+   * @param pOffset     The offset of the shift.
    * @param pMemberName The name of the member.
    * @param pMemberType The type of the member.
    * @return A tuple of location and type after the shift.
@@ -718,14 +712,13 @@ class AssignmentHandler {
       final Formula offsetFormula = formulaManager.makeNumber(
           converter.voidPointerFormulaType, pOffset);
       final AliasedLocation newLvalue = Location.ofAddress(
-          formulaManager.makePlus(pLvalue.asAliased().getAddress(),
-              offsetFormula));
+          formulaManager.makePlus(pLvalue.asAliased().getAddress(), offsetFormula));
       return Pair.of(newLvalue, newLvalueType);
 
     } else {
       final UnaliasedLocation newLvalue = Location.ofVariableName(
           pLvalue.asUnaliased().getVariableName()
-              +  CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
+              + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
               + pMemberName);
       return Pair.of(newLvalue, newLvalueType);
     }
@@ -735,8 +728,8 @@ class AssignmentHandler {
   /**
    * Shifts the composite rvalue.
    *
-   * @param pRvalue The rvalue expression.
-   * @param pOffset The offset of the shift.
+   * @param pRvalue     The rvalue expression.
+   * @param pOffset     The offset of the shift.
    * @param pMemberName The name of the member.
    * @param pRvalueType The type of the rvalue.
    * @param pMemberType The type of the member.
@@ -752,30 +745,30 @@ class AssignmentHandler {
     // (or nondet)
     final CType newLvalueType = CTypeUtils.simplifyType(pMemberType);
     switch (pRvalue.getKind()) {
-    case ALIASED_LOCATION: {
-      final Formula offsetFormula = formulaManager.makeNumber(
-          converter.voidPointerFormulaType, pOffset);
-      final AliasedLocation newRvalue = Location.ofAddress(
-          formulaManager.makePlus(pRvalue.asAliasedLocation().getAddress(),
-              offsetFormula));
-      return Pair.of(newRvalue, newLvalueType);
-    }
-    case UNALIASED_LOCATION: {
-      final UnaliasedLocation newRvalue = Location.ofVariableName(
-          pRvalue.asUnaliasedLocation().getVariableName()
-              + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
-              + pMemberName);
-      return Pair.of(newRvalue, newLvalueType);
-    }
-    case DET_VALUE: {
-      return Pair.of(pRvalue, pRvalueType);
-    }
-    case NONDET: {
-      final CType newRvalueType = isSimpleType(newLvalueType)
-          ? newLvalueType : CNumericTypes.SIGNED_CHAR;
-      return Pair.of(Value.nondetValue(), newRvalueType);
-    }
-    default: throw new AssertionError();
+      case ALIASED_LOCATION: {
+        final Formula offsetFormula = formulaManager.makeNumber(
+            converter.voidPointerFormulaType, pOffset);
+        final AliasedLocation newRvalue = Location.ofAddress(
+            formulaManager.makePlus(pRvalue.asAliasedLocation().getAddress(), offsetFormula));
+        return Pair.of(newRvalue, newLvalueType);
+      }
+      case UNALIASED_LOCATION: {
+        final UnaliasedLocation newRvalue = Location.ofVariableName(
+            pRvalue.asUnaliasedLocation().getVariableName()
+                + CToFormulaConverterWithHeapArray.FIELD_NAME_SEPARATOR
+                + pMemberName);
+        return Pair.of(newRvalue, newLvalueType);
+      }
+      case DET_VALUE: {
+        return Pair.of(pRvalue, pRvalueType);
+      }
+      case NONDET: {
+        final CType newRvalueType = isSimpleType(newLvalueType)
+                                    ? newLvalueType : CNumericTypes.SIGNED_CHAR;
+        return Pair.of(Value.nondetValue(), newRvalueType);
+      }
+      default:
+        throw new AssertionError();
     }
   }
 }
