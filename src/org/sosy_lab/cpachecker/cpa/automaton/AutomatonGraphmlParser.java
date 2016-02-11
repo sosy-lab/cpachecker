@@ -66,10 +66,13 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -81,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -684,14 +688,49 @@ public class AutomatonGraphmlParser {
       for (String assumeCode : pStatements) {
         Collection<CStatement> statements =
             removeDuplicates(
-                adjustCharAssignments(
-                    AutomatonASTComparator.generateSourceASTOfBlock(
-                        tryFixArrayInitializers(assumeCode), pCParser, pScope)));
+                adjustCharAssignments(parseAsCStatements(assumeCode, pScope, pCParser)));
         result.addAll(statements);
       }
       return result;
     }
     return Collections.emptySet();
+  }
+
+  private Collection<CStatement> parseAsCStatements(String pCode, Scope pScope, CParser pCParser)
+      throws CParserException, InvalidAutomatonException, InvalidConfigurationException {
+    Collection<CStatement> result = new HashSet<>();
+    boolean fallBack = false;
+    ExpressionTree<AExpression> tree = parseStatement(pCode, pScope, pCParser);
+    if (!tree.equals(ExpressionTrees.getTrue())) {
+      if (tree.equals(ExpressionTrees.getFalse())) {
+        return Collections.<CStatement>singleton(
+            new CExpressionStatement(
+                FileLocation.DUMMY,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
+      }
+      if (ExpressionTrees.isAnd(tree)) {
+        for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
+          if (child instanceof LeafExpression) {
+            AExpression expression = ((LeafExpression<AExpression>) child).getExpression();
+            if (expression instanceof CExpression) {
+              result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
+            } else {
+              fallBack = true;
+            }
+          } else {
+            fallBack = true;
+          }
+        }
+      } else {
+        fallBack = true;
+      }
+    }
+    if (fallBack) {
+      return AutomatonASTComparator.generateSourceASTOfBlock(
+          tryFixArrayInitializers(pCode), pCParser, pScope);
+    }
+    return result;
   }
 
   private ExpressionTree<AExpression> parseStatementsAsExpressionTree(
