@@ -255,9 +255,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       stats.chooseTimer.stop();
 
       logger.log(Level.FINER, "Retrieved state from waitlist");
-      if (handleState(state, precision, reachedSet)) {
-        // Prec operator requested break
-        return status;
+      try {
+        if (handleState(state, precision, reachedSet)) {
+          // Prec operator requested break
+          return status;
+        }
+      } catch (Exception e) {
+        // re-add the old state to the waitlist, there might be unhandled successors left
+        // that otherwise would be forgotten (which would be unsound)
+        reachedSet.reAddToWaitlist(state);
+        throw e;
       }
 
       if (iterationListener != null) {
