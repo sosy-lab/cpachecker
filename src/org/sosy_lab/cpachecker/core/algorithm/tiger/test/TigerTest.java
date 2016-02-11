@@ -33,6 +33,7 @@ import java.util.Map;
 
 import org.junit.BeforeClass;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.core.AlgorithmResult;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
@@ -44,8 +45,8 @@ import org.sosy_lab.cpachecker.util.test.TestRunStatisticsParser;
 
 public class TigerTest {
 
-//  @Rule
-//  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(20); // 20 seconds max per method tested
 
   private static final String FASE_C = "test/programs/tiger/simulator/FASE2015.c";
   private static final String MINI_FASE_C = "test/programs/tiger/simulator/mini_FASE2015.c";
