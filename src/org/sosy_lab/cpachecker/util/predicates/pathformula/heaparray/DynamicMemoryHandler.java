@@ -380,7 +380,6 @@ class DynamicMemoryHandler {
               Value.ofValue(
                   converter.formulaManager.makeNumber(
                       converter.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-              PointerTargetPattern.forBase(pBase),
               true,
               null);
       constraints.addConstraint(initialization);

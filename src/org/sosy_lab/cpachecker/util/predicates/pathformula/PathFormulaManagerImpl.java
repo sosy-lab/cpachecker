@@ -194,11 +194,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
       if (useQuantifiersOnArrays) {
         QuantifiedFormulaManagerView qfmgr = fmgr.getQuantifiedFormulaManager();
-        if (qfmgr == null) {
-          logger.log(Level.SEVERE, "To use the analysis with option \"cpa.predicate"
+        assert qfmgr != null : "To use the analysis with option \"cpa.predicate"
               + ".useQuantifiersOnArrays=true\", you have to use a solver supporting quantifier "
-              + "theories!");
-        }
+              + "theories!";
+
         converter = new CToFormulaConverterWithHeapArray(options, fmgr, pMachineModel,
             pVariableClassification, logger, shutdownNotifier, aliasingTypeHandler, direction,
             qfmgr);

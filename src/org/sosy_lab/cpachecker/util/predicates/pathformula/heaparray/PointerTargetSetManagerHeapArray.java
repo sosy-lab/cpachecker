@@ -300,9 +300,9 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 = makeValueImportConstraints(
-        basesOnlyPts1.getSnapshot(), sharedFields, pResultSSA, pPts2);
+        basesOnlyPts1.getSnapshot(), sharedFields, pResultSSA);
     final BooleanFormula mergeFormula1 = makeValueImportConstraints(
-        basesOnlyPts2.getSnapshot(), sharedFields, pResultSSA, pPts1);
+        basesOnlyPts2.getSnapshot(), sharedFields, pResultSSA);
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultBuilder =
@@ -418,7 +418,7 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
             && !compositeType2.getMembers().isEmpty()
             && compositeType2.getMembers().get(0).getName().equals(
                 getUnitedFieldBaseName(0))) {
-          for (CCompositeTypeMemberDeclaration memberDeclaration
+          for (CCompositeTypeMemberDeclaration ignored
               : compositeType2.getMembers()) {
             membersBuilder.add(
                 new CCompositeTypeMemberDeclaration(compositeType2,
@@ -429,14 +429,12 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
           membersBuilder.add(
               new CCompositeTypeMemberDeclaration(compositeType2,
                   getUnitedFieldBaseName(currentFieldIndex)));
-          currentFieldIndex++;
         }
 
       } else {
         membersBuilder.add(
             new CCompositeTypeMemberDeclaration(pType2,
                 getUnitedFieldBaseName(currentFieldIndex)));
-        currentFieldIndex++;
       }
 
       String name = UNITED_BASE_UNION_TAG_PREFIX
@@ -473,14 +471,12 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param pNewBases A map of new bases.
    * @param pSharedFields A list of shared fields.
    * @param pSSAMapBuilder The SSA map.
-   * @param pPointerTargetSet The underlying PointerTargetSet
    * @return A boolean formula for the import constraint.
    */
   private BooleanFormula makeValueImportConstraints(
       final PersistentSortedMap<String, CType> pNewBases,
       final List<Pair<CCompositeType, String>> pSharedFields,
-      final SSAMapBuilder pSSAMapBuilder,
-      final PointerTargetSet pPointerTargetSet) {
+      final SSAMapBuilder pSSAMapBuilder) {
 
     BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
     for (final Map.Entry<String, CType> base : pNewBases.entrySet()) {
@@ -591,7 +587,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param pType The type to determine the size of.
    * @return The size of a given type.
    */
-  int getSize(CType pType) {
+  @Override
+  protected int getSize(CType pType) {
     return typeHandler.getSizeof(pType);
   }
 
@@ -617,7 +614,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @param pLastBase The name of the last added base.
    * @return A formula for the next base address.
    */
-  BooleanFormula getNextBaseAddressInequality(final String pNewBase,
+  @Override
+  protected BooleanFormula getNextBaseAddressInequality(final String pNewBase,
       final PersistentSortedMap<String, CType> pBases,
       final String pLastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
@@ -691,7 +689,8 @@ class PointerTargetSetManagerHeapArray extends PointerTargetSetManager {
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
-  PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
+  @Override
+  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
       final String pBase,
       final CType pCurrentType,
       final @Nullable CType pContainerType,

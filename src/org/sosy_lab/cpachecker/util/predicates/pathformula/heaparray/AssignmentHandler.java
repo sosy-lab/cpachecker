@@ -188,12 +188,6 @@ class AssignmentHandler {
         lhsVisitor.getUsedDeferredAllocationPointers();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     pts.addEssentialFields(lhsVisitor.getUsedFields());
-    // the pattern matching possibly aliased locations
-    final PointerTargetPattern pattern =
-        lhsLocation.isUnaliasedLocation()
-            ? null
-            : PointerTargetPattern.forLeftHandSide(
-                pLhs, converter.typeHandler, converter.ptsMgr, edge, pts);
 
     if (converter.options.revealAllocationTypeFromLHS()
         || converter.options.deferUntypedAllocations()) {
@@ -206,8 +200,7 @@ class AssignmentHandler {
     }
 
     final BooleanFormula result =
-        makeAssignment(lhsType, rhsType, lhsLocation, rhsExpression, pattern,
-            pBatchMode, pDestroyedTypes);
+        makeAssignment(lhsType, rhsType, lhsLocation, rhsExpression, pBatchMode, pDestroyedTypes);
 
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
@@ -324,7 +317,6 @@ class AssignmentHandler {
    * @param pRvalueType The type of the rvalue.
    * @param pLvalue The location of the lvalue.
    * @param pRvalue The rvalue expression.
-   * @param pPattern Either {@code null} or the pattern of pointer targets.
    * @param pUseOldSSAIndices A flag indicating if we should use the old SSA
    *                         indices or not.
    * @param pUpdatedTypes Either {@code null} or a set of updated types.
@@ -336,7 +328,6 @@ class AssignmentHandler {
       final @Nonnull CType pRvalueType,
       final @Nonnull Location pLvalue,
       final @Nonnull Expression pRvalue,
-      final @Nullable PointerTargetPattern pPattern,
       final boolean pUseOldSSAIndices,
       @Nullable Set<CType> pUpdatedTypes)
       throws UnrecognizedCCodeException, InterruptedException {

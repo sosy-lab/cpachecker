@@ -438,7 +438,7 @@ public class PointerTargetSetManager {
   /**
    * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
    */
-  int getSize(CType cType) {
+  protected int getSize(CType cType) {
     return typeHandler.getSizeof(cType);
   }
 
@@ -450,7 +450,7 @@ public class PointerTargetSetManager {
   }
 
 
-  BooleanFormula getNextBaseAddressInequality(final String newBase,
+  protected BooleanFormula getNextBaseAddressInequality(final String newBase,
                                                         final PersistentSortedMap<String, CType> bases,
                                                         final String lastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
@@ -499,13 +499,14 @@ public class PointerTargetSetManager {
    * @return The targets map together with all the added targets.
    */
   @CheckReturnValue
-  PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(final String base,
-                          final CType currentType,
-                          final @Nullable CType containerType,
-                          final int properOffset,
-                          final int containerOffset,
-                          PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-                          final PersistentSortedMap<CompositeField, Boolean> fields) {
+  protected PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
+      final String base,
+      final CType currentType,
+      final @Nullable CType containerType,
+      final int properOffset,
+      final int containerOffset,
+      PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      final PersistentSortedMap<CompositeField, Boolean> fields) {
     final CType cType = CTypeUtils.simplifyType(currentType);
     assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
     if (cType instanceof CArrayType) {
