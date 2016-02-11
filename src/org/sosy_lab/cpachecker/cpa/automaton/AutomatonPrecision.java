@@ -150,13 +150,12 @@ public class AutomatonPrecision implements Precision {
       if (!blacklist.containsKey(p)) {
         return false;
       }
-      Optional<Region> pc = blacklist.get(p);
-      pc = blacklist.get(pc);
-      if (pc == null || !pc.isPresent()) { // equals pc==TRUE, i.e., blacklisted for all configurations
+      Optional<Region> propBlacklistedFor = blacklist.get(p);
+      if (propBlacklistedFor == null || !propBlacklistedFor.isPresent()) { // equals pc==TRUE, i.e., blacklisted for all configurations
         intersection++;
       } else {
         Preconditions.checkState(regionManager != null);
-        boolean covered = regionManager.entails(pPresenceCondition, pc.get());
+        boolean covered = regionManager.entails(pPresenceCondition, propBlacklistedFor.get());
         if (covered) {
           intersection++;
         }
