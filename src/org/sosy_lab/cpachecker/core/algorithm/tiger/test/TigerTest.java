@@ -1049,6 +1049,33 @@ public class TigerTest {
         new File("config/tiger-variants-powerset.properties"));
     prop.put("tiger.numberOfTestGoalsPerRun", "-1");
     prop.put("tiger.useOmegaLabel", "false");
+    prop.put("cpa.automaton.splitOnTargetStatesToInactive", "true");
+    prop.put("tiger.fqlQuery",
+        "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))).\"EDGES(ID)*\"");
+
+    TestResults results = CPATestRunner.run(prop, EXAMPLE_C);
+    AlgorithmResult result = results.getCheckerResult().getAlgorithmResult();
+
+    assertThat(result).isInstanceOf(TestSuite.class);
+    TestSuite testSuite = (TestSuite) result;
+
+    assertThat(testSuite.getNumberOfFeasibleTestGoals()).isEqualTo(3);
+    assertThat(testSuite.getNumberOfInfeasibleTestGoals()).isEqualTo(1);
+    assertThat(testSuite.getNumberOfTimedoutTestGoals()).isEqualTo(0);
+  }
+
+  /**
+   * Type:        variant
+   * Analysis:    predicate
+   * Specialties: multiple test goals
+   */
+  @Test
+  public void variants_example_useOfOmegaLabelAndDoNotSplitOnTargetStates() throws Exception {
+    Map<String, String> prop = TigerTestHelper.getConfigurationFromPropertiesFile(
+        new File("config/tiger-variants-powerset.properties"));
+    prop.put("tiger.numberOfTestGoalsPerRun", "-1");
+    prop.put("tiger.useOmegaLabel", "true");
+    prop.put("cpa.automaton.splitOnTargetStatesToInactive", "true");
     prop.put("tiger.fqlQuery",
         "COVER \"EDGES(ID)*\".(EDGES(@LABEL(G1))+EDGES(@LABEL(G2))+EDGES(@LABEL(G3))+EDGES(@LABEL(G4))).\"EDGES(ID)*\"");
 
