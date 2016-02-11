@@ -41,6 +41,7 @@ import java.util.logging.Level;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -62,6 +63,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -71,8 +73,13 @@ import com.google.common.collect.Sets;
 @Options(prefix = "cpa.automaton")
 class AutomatonTransferRelation extends SingleEdgeTransferRelation {
 
+  @Option(secure=true, description = "Split to a state 'INACTIVE' when reaching a target state.")
+  boolean splitOnTargetStatesToInactive = false;
+
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
+
+  private final AutomatonState inactiveState;
 
   int statNumberOfMatches = 0;
   Timer totalPostTime = new Timer();
@@ -83,16 +90,49 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(ControlAutomatonCPA pCpa, Configuration config,
-      LogManager pLogger) throws InvalidConfigurationException {
+      LogManager pLogger, AutomatonState pIntermediateState) throws InvalidConfigurationException {
 
     config.inject(this);
 
-    this.cpa = pCpa;
-    this.logger = pLogger;
+    cpa = pCpa;
+    logger = pLogger;
+    inactiveState = pIntermediateState;
   }
 
   @Override
   public Collection<AutomatonState> getAbstractSuccessorsForEdge(
+                      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+                      throws CPATransferException {
+
+    final Collection<AutomatonState> basicResult = getAbstractSuccessorsForEdge0(pElement, pPrecision, pCfaEdge);
+
+    List<AutomatonState> targetStates = Lists.newLinkedList();
+    List<AutomatonState> firstToReturnStates = Lists.newLinkedList();
+
+    for (AutomatonState q: basicResult) {
+      if (q.isTarget()) {
+        targetStates.add(q);
+      } else {
+        firstToReturnStates.add(q);
+      }
+    }
+
+    if (splitOnTargetStatesToInactive) {
+      if (targetStates.size() > 0) {
+        // The order of the states is important (!!) because
+        //    the CPAAlgorithm terminates after it has found the target state
+        //    --> The target state should not be the first element here!
+        firstToReturnStates.add(inactiveState);
+      }
+    }
+
+    // IMPORTAT:
+    //    Return non-target states first!!
+    firstToReturnStates.addAll(targetStates);
+    return firstToReturnStates;
+  }
+
+  public Collection<AutomatonState> getAbstractSuccessorsForEdge0(
                       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
                       throws CPATransferException {
 
