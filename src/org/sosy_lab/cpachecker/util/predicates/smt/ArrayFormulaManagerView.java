@@ -117,10 +117,15 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return wrap(inputArrayType, result);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @SuppressWarnings("unchecked")
+  @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(
-      String pName, ArrayFormulaType<TI, TE> type) {
-    return wrap(type, manager.makeArray(pName, (ArrayFormulaType<Formula, Formula>)unwrapType(type)));
+      final @Nonnull String pName, final @Nonnull ArrayFormulaType<TI, TE> type) {
+    return wrap(
+        type, manager.makeArray(pName, (ArrayFormulaType<Formula, Formula>) unwrapType(type)));
   }
 
   /**
