@@ -39,6 +39,11 @@ public class NondeterministicFiniteAutomaton<T> {
       ID = pId;
     }
 
+    @Override
+    public String toString() {
+      return String.valueOf(ID);
+    }
+
   }
 
   private static class StatePool {
