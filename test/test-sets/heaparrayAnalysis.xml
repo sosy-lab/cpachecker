@@ -16,20 +16,25 @@
   <tasks name="ArraysReach10">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach10.set</includesfile>
   </tasks>
+  <tasks name="ArraysReach25">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach25.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=25</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=25</option>
+  </tasks>
+  <tasks name="ArraysReach50">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach50.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=50</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=50</option>
+  </tasks>
   <tasks name="ArraysReach100">
     <includesfile>../programs/array-simplified-benchmarks/ArraysReach100.set</includesfile>
     <option name="-setprop">cpa.predicate.maxArrayLength=100</option>
     <option name="-setprop">cpa.predicate.defaultArrayLength=100</option>
   </tasks>
-  <tasks name="ArraysReach1000">
-    <includesfile>../programs/array-simplified-benchmarks/ArraysReach1000.set</includesfile>
-    <option name="-setprop">cpa.predicate.maxArrayLength=1000</option>
-    <option name="-setprop">cpa.predicate.defaultArrayLength=1000</option>
-  </tasks>
-  <tasks name="ArraysReach10000">
-    <includesfile>../programs/array-simplified-benchmarks/ArraysReach10000.set</includesfile>
-    <option name="-setprop">cpa.predicate.maxArrayLength=10000</option>
-    <option name="-setprop">cpa.predicate.defaultArrayLength=10000</option>
+  <tasks name="ArraysReach250">
+    <includesfile>../programs/array-simplified-benchmarks/ArraysReach250.set</includesfile>
+    <option name="-setprop">cpa.predicate.maxArrayLength=250</option>
+    <option name="-setprop">cpa.predicate.defaultArrayLength=250</option>
   </tasks>
   <!-- End customized array set -->
   <tasks name="BitVectorsReach">
