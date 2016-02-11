@@ -338,11 +338,7 @@ class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
     }
     fields = fields.putAndCopy(field, true);
 
-    if (old != targets) {
-      return true; // Target added
-    }
-
-    return false;
+    return old != targets;
   }
 
   /**
