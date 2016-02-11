@@ -1006,7 +1006,9 @@ public class InvariantsState implements AbstractState,
           public boolean apply(@Nullable MemoryLocation pInput) {
             return pInput != null
                 && !pInput.getIdentifier().contains("*")
-                && !pInput.getIdentifier().contains("->");
+                && !pInput.getIdentifier().contains("->")
+                && !pInput.getIdentifier().contains(".")
+                && !pInput.getIdentifier().contains("[");
           }
         };
 
