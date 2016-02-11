@@ -77,7 +77,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, Z3JAVA, PRINCESS]
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -99,6 +99,21 @@ solver.z3.requireProofs = true
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
+
+# Activate replayable logging in Z3. The log can be given as an input to the
+# solver and replayed.
+solver.z3java.log = no default value
+
+# Ordering for objectives in the optimization context
+solver.z3java.objectivePrioritizationMode = "box"
+  allowed values: [lex, pareto, box]
+
+# Engine to use for the optimization
+solver.z3java.optimizationEngine = "basic"
+  allowed values: [basic, farkas, symba]
+
+# Require proofs from SMT solver
+solver.z3java.requireProofs = true
 
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
@@ -2457,11 +2472,11 @@ solver.checkUFs = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, Z3JAVA, PRINCESS]
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, Z3JAVA, PRINCESS]
 
 # File for exporting the path automaton in DOT format.
 spec.automatonDumpFile = no default value
