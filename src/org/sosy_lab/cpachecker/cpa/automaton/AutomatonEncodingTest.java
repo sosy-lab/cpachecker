@@ -118,4 +118,18 @@ public class AutomatonEncodingTest {
     return results;
   }
 
+  @Test
+  public void testAssumeOnNamedArgument_Safe() throws Exception {
+    final String specFile = "test/config/automata/encode/SPEC_sqrt.spc";
+    final String programFile = "test/config/automata/encode/SPEC_sqrt_true.c";
+
+    TestResults results = runWithAutomataEncoding(specFile, programFile);
+
+    results.assertIsSafe();
+
+    TestRunStatisticsParser stat = new TestRunStatisticsParser();
+    results.getCheckerResult().printStatistics(stat.getPrintStream());
+  }
+
+
 }
