@@ -1000,7 +1000,7 @@ public class CToFormulaConverterWithHeapArray extends CtoFormulaConverter {
       if (options.handleImplicitInitialization()) {
         assignments = expandAssignmentList(declaration, assignments);
       }
-      if (qfmgr == null) {
+      if (qfmgr == null || !(declarationType instanceof CArrayType)) {
         result = assignmentHandler.handleInitializationAssignments(lhs, assignments);
       } else {
         result = assignmentHandler.handleInitializationAssignmentsWithQuantifier(
