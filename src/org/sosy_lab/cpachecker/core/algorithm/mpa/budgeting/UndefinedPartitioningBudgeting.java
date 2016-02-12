@@ -33,12 +33,12 @@ public enum UndefinedPartitioningBudgeting implements PartitionBudgeting {
   INSTANCE;
 
   @Override
-  public Optional<TimeSpan> getPartitionWallTimeLimit() {
+  public Optional<TimeSpan> getPartitionWallTimeLimit(int pForNumberOfProperties) {
     return Optional.absent();
   }
 
   @Override
-  public Optional<TimeSpan> getPartitionCpuTimeLimit() {
+  public Optional<TimeSpan> getPartitionCpuTimeLimit(int pForNumberOfProperties) {
     return Optional.absent();
   }
 

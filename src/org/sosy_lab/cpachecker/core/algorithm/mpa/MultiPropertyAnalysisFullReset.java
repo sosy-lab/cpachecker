@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisFactory;
 import org.sosy_lab.cpachecker.core.AnalysisFactory.Analysis;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.budgeting.PartitionBudgeting;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.InitOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning;
+import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.Partitioning.PartitioningStatus;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.interfaces.PartitioningOperator.PartitioningException;
 import org.sosy_lab.cpachecker.core.algorithm.mpa.partitioning.CheaperFirstDivideOperator;
@@ -346,8 +348,7 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
       initAnalysisAndReached(checkPartitions, all);
 
       // Initialize the check for resource limits
-      initAndStartLimitChecker(checkPartitions.getPartitionBudgeting());
-
+      initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
 
       do {
         final Set<Property> runProperties = Sets.difference(all, getInactiveProperties(partitionAnalysis.getReached()));
@@ -518,11 +519,15 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
             checkPartitions = remainingPartitions;
           }
 
+          if (checkPartitions.getStatus() == PartitioningStatus.BREAK) {
+            break;
+          }
+
           // Re-initialize the sets 'waitlist' and 'reached'
           stats.numberOfRestarts++;
           remainingPartitions = initAnalysisAndReached(checkPartitions, all);
           // -- Reset the resource limit checker
-          initAndStartLimitChecker(checkPartitions.getPartitionBudgeting());
+          initAndStartLimitChecker(checkPartitions, checkPartitions.getPartitionBudgeting());
         }
 
         interruptNotifier.canInterrupt();
@@ -607,8 +612,9 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
 
     // Check the partition and the budget for feasibility...
     Preconditions.checkState(pToCheck.size() <= 1
-        || result.getPartitionBudgeting().getPartitionCpuTimeLimit().isPresent()
-        || result.getPartitionBudgeting().getPartitionWallTimeLimit().isPresent(),
+        || result.isEmpty()
+        || result.getPartitionBudgeting().getPartitionCpuTimeLimit(result.getFirstPartition().size()).isPresent()
+        || result.getPartitionBudgeting().getPartitionWallTimeLimit(result.getFirstPartition().size()).isPresent(),
         "You have to specify a time limit for a multi-property verification runs with more than one partition!");
 
     return result;
@@ -619,18 +625,20 @@ public final class MultiPropertyAnalysisFullReset implements MultiPropertyAlgori
     return lastRunPropertySummary;
   }
 
-  private synchronized void initAndStartLimitChecker(PartitionBudgeting pBudgeting) {
+  private synchronized void initAndStartLimitChecker(Partitioning pPartitions, PartitionBudgeting pBudgeting) {
 
     try {
       // Configure limits
       List<ResourceLimit> limits = Lists.newArrayList();
 
-      if (pBudgeting.getPartitionCpuTimeLimit().isPresent()) {
-        limits.add(ProcessCpuTimeLimit.fromNowOn(pBudgeting.getPartitionCpuTimeLimit().get()));
+      Optional<TimeSpan> partCpuTimeLimit = pBudgeting.getPartitionCpuTimeLimit(pPartitions.getFirstPartition().size());
+      if (partCpuTimeLimit.isPresent()) {
+        limits.add(ProcessCpuTimeLimit.fromNowOn(partCpuTimeLimit.get()));
       }
 
-      if (pBudgeting.getPartitionWallTimeLimit().isPresent()) {
-        limits.add(WalltimeLimit.fromNowOn(pBudgeting.getPartitionWallTimeLimit().get()));
+      Optional<TimeSpan> partWallTimeLimit = pBudgeting.getPartitionWallTimeLimit(pPartitions.getFirstPartition().size());
+      if (partWallTimeLimit.isPresent()) {
+        limits.add(WalltimeLimit.fromNowOn(partWallTimeLimit.get()));
       }
 
       // Stop the old check

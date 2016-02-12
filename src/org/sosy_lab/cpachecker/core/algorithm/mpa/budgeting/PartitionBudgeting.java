@@ -29,8 +29,8 @@ import com.google.common.base.Optional;
 
 public interface PartitionBudgeting {
 
-  public Optional<TimeSpan> getPartitionWallTimeLimit();
-  public Optional<TimeSpan> getPartitionCpuTimeLimit();
+  public Optional<TimeSpan> getPartitionWallTimeLimit(int pForNumberOfProperties);
+  public Optional<TimeSpan> getPartitionCpuTimeLimit(int pForNumberOfProperties);
 
   public PartitionBudgeting getBudgetTimesTwo();
 

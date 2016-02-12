@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpa;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -259,7 +258,7 @@ public enum PropertyStats implements Statistics {
     return "Property Statistics";
   }
 
-  public void signalRelevancesOfProperties(ImmutableSet<? extends SafetyProperty> pRelevant) {
+  public void signalRelevancesOfProperties(Collection<? extends Property> pRelevant) {
     relevantProperties.addAll(pRelevant);
   }
 

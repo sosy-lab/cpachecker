@@ -36,6 +36,7 @@ public interface Partitioning extends Iterable<ImmutableSet<Property>> {
 
   public static enum PartitioningStatus {
     NONE,
+    BREAK,
     ALL_IN_ONE,
     ALL_IN_ONE_SHORT,
     ONE_FOR_EACH,

@@ -90,7 +90,7 @@ public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
     }
 
     @Override
-    public Optional<TimeSpan> getPartitionWallTimeLimit() {
+    public Optional<TimeSpan> getPartitionWallTimeLimit(int pForNumberOfProperties) {
       if (wallTime.compareTo(TimeSpan.empty()) >= 0) {
         return Optional.of(wallTime.multiply(budgetFactor));
       }
@@ -98,7 +98,7 @@ public class AllShortThenAllThenSepOperator extends PartitioningBudgetOperator {
     }
 
     @Override
-    public Optional<TimeSpan> getPartitionCpuTimeLimit() {
+    public Optional<TimeSpan> getPartitionCpuTimeLimit(int pForNumberOfProperties) {
       if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
         return Optional.of(cpuTime.multiply(budgetFactor));
       }

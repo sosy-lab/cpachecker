@@ -39,18 +39,32 @@ import com.google.common.base.Optional;
 public class BasicPartitionBudgeting implements PartitionBudgeting {
 
   @Option(secure=true, name="time.wall",
-      description="Limit for wall time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+      description="Limit for wall time of one partition (use seconds or specify a unit; -1 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
       defaultUserUnit=TimeUnit.SECONDS,
       min=-1)
   protected TimeSpan wallTime = TimeSpan.ofNanos(-1);
 
   @Option(secure=true, name="time.cpu",
-      description="Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1 for infinite)")
+      description="Limit for cpu time of one partition (use seconds or specify a unit; -1 for infinite)")
   @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
       defaultUserUnit=TimeUnit.SECONDS,
       min=-1)
   protected TimeSpan cpuTime = TimeSpan.ofNanos(-1);
+
+  @Option(secure=true, name="property.time.wall",
+      description="Limit for wall time of one property (use seconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+      defaultUserUnit=TimeUnit.SECONDS,
+      min=-1)
+  protected TimeSpan propertyWallTime = TimeSpan.ofNanos(-1);
+
+  @Option(secure=true, name="property.time.cpu",
+      description="Limit for cpu time of one property (use seconds or specify a unit; -1 for infinite)")
+  @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+      defaultUserUnit=TimeUnit.SECONDS,
+      min=-1)
+  protected TimeSpan propertyCpuTime = TimeSpan.ofNanos(-1);
 
   protected final int budgetFactor;
 
@@ -76,18 +90,30 @@ public class BasicPartitionBudgeting implements PartitionBudgeting {
   }
 
   @Override
-  public Optional<TimeSpan> getPartitionWallTimeLimit() {
+  public Optional<TimeSpan> getPartitionWallTimeLimit(int pForNumberOfProperties) {
+    if (pForNumberOfProperties == 1
+        && propertyWallTime.compareTo(TimeSpan.empty()) >= 0) {
+      return Optional.of(propertyWallTime.multiply(budgetFactor));
+    }
+
     if (wallTime.compareTo(TimeSpan.empty()) >= 0) {
       return Optional.of(wallTime.multiply(budgetFactor));
     }
+
     return Optional.absent();
   }
 
   @Override
-  public Optional<TimeSpan> getPartitionCpuTimeLimit() {
+  public Optional<TimeSpan> getPartitionCpuTimeLimit(int pForNumberOfProperties) {
+    if (pForNumberOfProperties == 1
+        && propertyCpuTime.compareTo(TimeSpan.empty()) >= 0) {
+      return Optional.of(propertyCpuTime.multiply(budgetFactor));
+    }
+
     if (cpuTime.compareTo(TimeSpan.empty()) >= 0) {
       return Optional.of(cpuTime.multiply(budgetFactor));
     }
+
     return Optional.absent();
   }
 
