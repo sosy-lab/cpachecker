@@ -388,11 +388,11 @@ cbmc.options.nuaf = false
 # specify the limit for unwindings (0 is infinite)
 cbmc.options.unwindings = 0
 
+# maximum time limit for CBMC (0 is infinite)
 # maximum time limit for CBMC (use milliseconds or specify a unit; 0 for
 # infinite)
-# maximum time limit for CBMC (0 is infinite)
-cbmc.timelimit = 0ms
 cbmc.timelimit = 0
+cbmc.timelimit = 0ms
 
 # if this score is exceeded by the first analysis, the auxilliary analysis
 # will be refined
@@ -687,8 +687,8 @@ cpa.arg.errorPath.file = "ErrorPath.%d.txt"
 # counterexamples reported. Only relevant with analysis.stopAfterError=false
 # and cpa.arg.errorPath.exportImmediately=true. Put the weakest and cheapest
 # filter first, e.g., PathEqualityCounterexampleFilter.
-cpa.arg.errorPath.filters = ImmutableList.<Class<? extends CounterexampleFilter>>of(
-          PathEqualityCounterexampleFilter.class)
+cpa.arg.errorPath.filters = [
+          PathEqualityCounterexampleFilter.class]
 
 # export error path as graph
 cpa.arg.errorPath.graph = "ErrorPath.%d.dot"
@@ -706,10 +706,10 @@ cpa.arg.errorPath.source = "ErrorPath.%d.c"
 cpa.arg.export = true
 cpa.arg.file = "ARG.dot"
 
-# inform ARG CPA if it is run in a CPA enabled analysis because then it
-# mustbehave differntly during merge.
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differntly during merge.
+# inform ARG CPA if it is run in a CPA enabled analysis because then it
+# mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
