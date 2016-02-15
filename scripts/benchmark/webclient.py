@@ -53,7 +53,7 @@ from concurrent.futures import as_completed
 from concurrent.futures import Future
 
 try:
-    import sseclient
+    import sseclient  # @UnresolvedImport
     from requests import HTTPError
 except:
     pass

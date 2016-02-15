@@ -97,7 +97,7 @@ def execute_benchmark(benchmark, output_handler):
 
         cloud = subprocess.Popen(cmdLine, stdin=subprocess.PIPE, shell=util.is_windows())
         try:
-            (out, err) = cloud.communicate(cloudInput.encode('utf-8'))
+            cloud.communicate(cloudInput.encode('utf-8'))
         except KeyboardInterrupt:
             stop()
         returnCode = cloud.wait()
